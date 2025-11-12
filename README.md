@@ -381,6 +381,16 @@ Special thanks to:
 
 ---
 
+## Support This Research
+
+If Noodlings has been useful for your research or projects, consider supporting continued development:
+
+**Bitcoin**: `3MVEd1RdvEXQGgo1EdzrVnvTS7pUuTZ2J5`
+
+Your support helps maintain this open research and keeps the Noodlings using their noodles!
+
+---
+
 ## Contact
 
 - **GitHub**: [github.com/caitlynmeeks/Noodlings](https://github.com/caitlynmeeks/Noodlings)
