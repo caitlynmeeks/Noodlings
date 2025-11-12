@@ -264,7 +264,7 @@ You: @observe toad
 
 **Predictive Processing**: Hierarchical predictive coding (Friston, Clark, Rao & Ballard). The brain as a prediction machine that minimizes surprise.
 
-**Affective Primacy**: Emotions aren't add-ons - they're the *substrate* of experience (Panksepp, Barrett). We model affect first, cognition emerges.
+**Affective Primacy**: Emotions aren't add-ons; they're the substrate of experience (Panksepp, Barrett). We model affect first, cognition emerges.
 
 **Theatrical Control**: Narrative events as interface primitives for temporally-grounded systems. From Brenda Laurel's *Computers as Theatre*.
 
@@ -284,14 +284,14 @@ You: @observe toad
 
 ## Contributing
 
-We welcome contributions! This is research code exploring temporal dynamics in affective architectures.
+This is research code exploring temporal dynamics in affective architectures. Contributions welcome.
 
 ### Ways to Help
 
 1. **Try it**: Spawn agents, create theatrical scripts, report behaviors
 2. **Improve metrics**: Better ways to quantify temporal coherence?
 3. **Add benchmarks**: Test on EmotionLines, DailyDialog, etc.
-4. **Documentation**: Help explain complex concepts clearly
+4. **Documentation**: Help explain complex concepts
 5. **Visualizations**: Make phenomenal states interpretable
 
 ### Philosophy
@@ -334,7 +334,7 @@ If you use Noodlings in your research:
 - **ACT-R**: Cognitive architecture (no affect focus)
 - **Sigma**: Integrated cognitive architecture
 
-**Difference**: Noodlings puts affect *first* and focuses on temporal dynamics at multiple scales, with theatrical control as the interface primitive.
+**Difference**: Noodlings puts affect first and focuses on temporal dynamics at multiple scales, with theatrical control as the interface primitive.
 
 ---
 
@@ -342,7 +342,7 @@ If you use Noodlings in your research:
 
 ### Is this real consciousness?
 
-**No**. We're exploring *functional correlates* - computational patterns that theories of consciousness predict. We make no claims about phenomenology, qualia, or subjective experience.
+No. We're exploring functional correlates: computational patterns that theories of consciousness predict. We make no claims about phenomenology, qualia, or subjective experience.
 
 ### Why not just use a bigger LLM?
 
@@ -354,7 +354,7 @@ Not currently. MLX is Apple Metal only. We may port to PyTorch/JAX in the future
 
 ### What's BRENDA?
 
-**Behavioral Regulation Engine for Narrative-Driven Agents** - a protocol for converting natural language theatrical scripts into timed phenomenal experiences. See the whitepaper for details.
+Behavioral Regulation Engine for Narrative-Driven Agents. A protocol for converting natural language theatrical scripts into timed phenomenal experiences. See the whitepaper for details.
 
 ### Are Noodlings conscious?
 
@@ -387,11 +387,9 @@ Special thanks to:
 
 ## Support This Research
 
-If Noodlings has been useful for your research or projects, consider supporting continued development:
+If Noodlings is useful for your work, consider supporting continued development:
 
 **Bitcoin**: `3MVEd1RdvEXQGgo1EdzrVnvTS7pUuTZ2J5`
-
-Your support helps maintain this open research and keeps the Noodlings using their noodles!
 
 ---
 
