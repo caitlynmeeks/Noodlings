@@ -1,0 +1,233 @@
+{
+  "title": "The Sled-Boat Catastrophe",
+  "cast": [
+    "toad",
+    "phi"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "Toad's First Attempt",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "extraversion",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 10,
+          "action": "create_prop",
+          "args": {
+            "name": "Motor-Sled-Boat",
+            "desc": "A ridiculous vessel with twin propellers, a horn that blares like a startled goose, and one suspiciously shaped air raid siren mounted on the bow."
+          }
+        },
+        {
+          "t": 25,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Behold! My motor-sled-boat, born of pure toadly ambition and a single moment of questionable engineering!"
+          }
+        },
+        {
+          "t": 30,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Toots the horn with great enthusiasm, then immediately starts honking at the fish in the pond."
+          }
+        },
+        {
+          "t": 40,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Fishing boats are just too boring! I\u2019ve got a siren, twin propellers, and the sound of chaos in my veins!"
+          }
+        },
+        {
+          "t": 50,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Puts the boat in reverse, then launches it with a dramatic splash of foam and noise."
+          }
+        },
+        {
+          "t": 60,
+          "action": "destroy",
+          "target": "Motor-Sled-Boat"
+        },
+        {
+          "t": 65,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Oh no! I\u2019ve crashed into the hedge! It\u2019s not even a hedge\u2014it\u2019s a *silly* hedge with flamingo-shaped spikes!"
+          }
+        },
+        {
+          "t": 70,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Stares at the wreckage, then slowly pulls out a paintbrush and a jar of rainbow jelly."
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Rebuild",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "rebuild"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "Siren-Sled-Boat",
+            "desc": "A floating sled with twin propellers, a siren that plays 'The Sound of the Sea' backwards, and a horn that goes 'WHEE-WHEE-WOOO!' when it\u2019s happy."
+          }
+        },
+        {
+          "t": 15,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Toad, I see your passion. Let\u2019s make it even more ridiculous\u2014add a kazoo that plays when the siren goes off!"
+          }
+        },
+        {
+          "t": 25,
+          "action": "create_prop",
+          "args": {
+            "name": "Kazoo-Siren",
+            "desc": "A tiny kazoo attached to the siren that squeaks when the horn blares, creating a dissonant symphony of chaos."
+          }
+        },
+        {
+          "t": 35,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Tries to test drive the new boat, but accidentally turns it into a full-on musical instrument that plays 'I\u2019m a Little Teapot' in reverse."
+          }
+        },
+        {
+          "t": 45,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "It\u2019s not just a boat\u2014it\u2019s a performance art piece! I\u2019ve finally achieved toadly greatness!"
+          }
+        },
+        {
+          "t": 50,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Sighs, then offers a cookie and says, 'You\u2019re not wrong. But maybe next time, don\u2019t crash into the flamingo hedge.'"
+          }
+        },
+        {
+          "t": 55,
+          "action": "timer",
+          "args": {
+            "delay": 30,
+            "next_scene": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "The Tea and Hugs",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 30,
+          "next_scene": null
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "I think I\u2019ve finally found the perfect balance of chaos and joy. This boat will be legendary."
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Gently places a teacup in front of toad and offers a cookie with a smile."
+          }
+        },
+        {
+          "t": 10,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Well done, Toad. You\u2019ve built a boat that doesn\u2019t just move\u2014it sings, screams, and makes fish cry."
+          }
+        },
+        {
+          "t": 15,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Hugs phi tightly, then takes a big bite of cookie while the kazoo plays softly in the background."
+          }
+        },
+        {
+          "t": 20,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Gives a group hug with toad and the Siren-Sled-Boat, which gently vibrates in response."
+          }
+        },
+        {
+          "t": 25,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Next time, I\u2019ll build a boat that can fly\u2026 or at least float on jelly."
+          }
+        },
+        {
+          "t": 30,
+          "action": "create_prop",
+          "args": {
+            "name": "Jelly-Floating-Boat",
+            "desc": "A floating, slightly wobbly boat made of marshmallow and dreams. It only moves when someone hums 'Twinkle Twinkle.'"
+          }
+        },
+        {
+          "t": 35,
+          "action": "emote",
+          "args": {
+            "text": "Everyone shares a group hug as the Siren-Sled-Boat gently hums in the background."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+# Development tools
+.aider*
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.pyc
+venv/
+env/
+.venv/
+
+# Logs
+*.log
+applications/cmush/logs/
+research/logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Training data (contains real agent interactions)
+training/data/cmush_real/
+training/data/synthetic/*.jsonl
+
+# Training checkpoints (large files)
+training/checkpoints/
+*.npz
+*.ckpt
+
+# Agent runtime state
+applications/cmush/world/agents/*/agent_state.json
+applications/cmush/world/agents/*/checkpoint.npz
+applications/cmush/world/agents/*/thoughts/*.txt
+
+# Evaluation results
+evaluation/ablation_studies/results/
+evaluation/ablation_studies/*.log
+evaluation/ablation_studies/*.png
+
+# Temp files
+*.tmp
+*.bak
+*~
+temp
+server_debug.log
+
+# Session notes (development only)
+2025-*.txt
+*-oh-hi-there-*.txt
+
+# Draft documents (keep only published versions)
+KODING.md
+MEMORY_DEEPDIVE.md
+NOODLINGS_DEEP_DIVE.txt
+PHASE5_SESSION_SUMMARY_*.md
+MIGRATION_COMPLETE.md
+REBRANDING_GUIDE.md
+rebrand.sh
+generate_pdf.py
+WHITEPAPER.md
+WHITEPAPER.pdf
+WHITEPAPER_v2.md

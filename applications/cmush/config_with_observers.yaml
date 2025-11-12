@@ -1,0 +1,84 @@
+# cMUSH Configuration with Observer Loops
+# Enhanced version with Φ-boosting observer loops enabled
+# Copy relevant sections to your config.yaml to enable
+
+# Standard Configuration (unchanged)
+server:
+  host: "0.0.0.0"
+  port: 8080
+  max_connections: 100
+
+# Consilience Configuration
+consilience:
+  checkpoint_path: "../../models/consilience_phase4_best.npz"
+  memory_capacity: 100
+  max_agents: 10
+  use_vae: false
+  collect_training_data: true
+
+# Response behavior
+response:
+  cooldown: 2.0  # Minimum seconds between responses
+  surprise_threshold: 0.0001  # Base threshold (low for testing)
+
+# NEW: Observer Loop Configuration
+observers:
+  enabled: true                      # Enable observer loops for Φ-boosting
+  use_meta_observer: true            # Enable meta-observer (3-body epistemic knot)
+  observe_hierarchical_states: true  # Apply observers to fast/medium/slow layers separately
+
+  # Observer parameters
+  injection_strength: 0.1            # How much error signal modulates state (0.1 = 10%)
+  observer_loss_weight: 0.5          # Weight for observer prediction loss in training
+  meta_loss_weight: 0.2              # Weight for meta-observer loss in training
+
+  # Online learning (experimental - start with false)
+  enable_online_learning: false      # Train observers during conversation
+  learning_rate: 0.0001              # Learning rate if online training enabled
+
+# Agent personalities (optional - affects response behavior)
+personalities:
+  agent_callie:
+    extraversion: 0.7                # Outgoing, speaks more
+    emotional_sensitivity: 0.6       # Moderate emotional responsiveness
+    curiosity: 0.8                   # High curiosity
+    spontaneity: 0.6                 # Somewhat spontaneous
+    reflection_depth: 0.7            # Reflective
+    social_orientation: 0.8          # Very social
+
+  agent_desobelle:
+    extraversion: 0.4                # More introverted
+    emotional_sensitivity: 0.8       # Highly emotionally sensitive
+    curiosity: 0.7                   # Curious
+    spontaneity: 0.4                 # More deliberate
+    reflection_depth: 0.9            # Very reflective
+    social_orientation: 0.5          # Moderately social
+
+# Autonomous cognition (optional - internal monologue)
+autonomous_cognition:
+  enabled: true
+  thought_interval: 30               # Seconds between autonomous thoughts
+  thought_probability: 0.3           # Probability of thinking at each interval
+  max_thought_length: 200            # Max characters in internal monologue
+
+# Logging
+logging:
+  level: INFO
+  log_file: "logs/cmush.log"
+  log_thoughts: true                 # Log agent internal thoughts
+  log_observer_metrics: true         # NEW: Log observer statistics
+
+# Expected Results with Observers:
+# - Φ increase: 50-100%
+# - Computational overhead: 5-10%
+# - Parameter overhead: ~3-4%
+# - Observer influence: 0.2-0.5 norm (10-25% state modulation)
+# - Observer loss: ~0.5-1.0 (untrained), decreases with training
+# - Meta loss: ~0.1-0.3 (varies with dynamics)
+
+# Usage:
+# 1. Copy this file to config.yaml OR
+# 2. Copy the "observers:" section to your existing config.yaml
+# 3. Restart cMUSH server
+# 4. Check logs for "Observer loops: ENABLED"
+# 5. Use @observe <agent> command to see observer statistics

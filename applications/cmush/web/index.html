@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>noodleMUSH - Noodlings Multi-User Shared Hallucination</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #00ff00;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        #header {
+            text-align: center;
+            padding: 10px;
+            border-bottom: 2px solid #00ff00;
+            margin-bottom: 10px;
+        }
+
+        #header h1 {
+            font-size: 24px;
+            letter-spacing: 2px;
+        }
+
+        #header p {
+            font-size: 12px;
+            color: #00aa00;
+        }
+
+        #output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #00ff00;
+            margin-bottom: 10px;
+            background-color: #001100;
+        }
+
+        #output::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        #output::-webkit-scrollbar-track {
+            background: #001100;
+        }
+
+        #output::-webkit-scrollbar-thumb {
+            background: #00ff00;
+        }
+
+        .line {
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 5px;
+            border-left: 3px solid transparent;
+        }
+
+        .line.system {
+            color: #ffff00;
+        }
+
+        .line.error {
+            color: #ff0000;
+        }
+
+        .line.event {
+            color: #00dddd;
+        }
+
+        .line.output {
+            color: #00ff00;
+        }
+
+        /* Speaker-specific colors */
+        .line.speaker-you {
+            border-left-color: #00ff00;
+            background-color: #001a00;
+        }
+
+        .line.speaker-callie {
+            border-left-color: #ffaa00;
+            background-color: #1a1000;
+        }
+
+        .line.speaker-phi {
+            border-left-color: #ff00ff;
+            background-color: #1a001a;
+        }
+
+        .line.speaker-toad {
+            border-left-color: #00ffff;
+            background-color: #001a1a;
+        }
+
+        .line.speaker-desobelle {
+            border-left-color: #ff88ff;
+            background-color: #1a001a;
+        }
+
+        .line.speaker-servnak {
+            border-left-color: #88ff88;
+            background-color: #001a0a;
+        }
+
+        .line.speaker-other {
+            border-left-color: #aaaaaa;
+            background-color: #0a0a0a;
+        }
+
+        .speaker-name {
+            font-weight: bold;
+            margin-right: 5px;
+            text-transform: capitalize;
+        }
+
+        /* Thought/rumination styling */
+        .line.thought {
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        .speaker-you .speaker-name {
+            color: #00ff00;
+        }
+
+        .speaker-callie .speaker-name {
+            color: #ffaa00;
+        }
+
+        .speaker-phi .speaker-name {
+            color: #ff00ff;
+        }
+
+        .speaker-toad .speaker-name {
+            color: #00ffff;
+        }
+
+        .speaker-desobelle .speaker-name {
+            color: #ff88ff;
+        }
+
+        .speaker-servnak .speaker-name {
+            color: #88ff88;
+        }
+
+        .speaker-other .speaker-name {
+            color: #aaaaaa;
+        }
+
+        #input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        #prompt {
+            color: #00ff00;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #input {
+            flex: 1;
+            background-color: #001100;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+        }
+
+        #input:focus {
+            outline: none;
+            border-color: #00ffff;
+        }
+
+        #auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #auth-modal.hidden {
+            display: none;
+        }
+
+        #auth-form {
+            background-color: #001100;
+            border: 2px solid #00ff00;
+            padding: 30px;
+            min-width: 400px;
+        }
+
+        #auth-form h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #00ff00;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ff00;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            background-color: #000;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #00ffff;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            background-color: #003300;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #005500;
+            border-color: #00ffff;
+        }
+
+        button:active {
+            background-color: #007700;
+        }
+
+        #status {
+            text-align: center;
+            margin-top: 10px;
+            color: #ffff00;
+            font-size: 12px;
+        }
+
+        .blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Telepathy toggle */
+        #telepathy-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #003300;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        #telepathy-toggle:hover {
+            background-color: #005500;
+            border-color: #00ffff;
+        }
+
+        #telepathy-toggle.active {
+            background-color: #005500;
+            border-color: #ffff00;
+            color: #ffff00;
+        }
+
+        #telepathy-toggle::before {
+            content: '🧠 ';
+        }
+    </style>
+</head>
+<body>
+    <div id="auth-modal">
+        <div id="auth-form">
+            <h2>noodleMUSH Login</h2>
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" autocomplete="username" />
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" autocomplete="current-password" />
+            </div>
+            <div class="button-group">
+                <button id="login-btn">Login</button>
+                <button id="register-btn">Register</button>
+            </div>
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <div id="container">
+        <div id="header">
+            <h1>noodleMUSH</h1>
+            <p>Noodlings Multi-User Shared Hallucination</p>
+            <button id="telepathy-toggle" title="Toggle telepathy (read others' thoughts)">Telepathy: OFF</button>
+        </div>
+
+        <div id="output"></div>
+
+        <div id="input-area">
+            <div id="prompt">&gt;</div>
+            <input type="text" id="input" placeholder="Type a command..." autocomplete="off" />
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        let ws = null;
+        let authenticated = false;
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        // Telepathy mode (can read others' thoughts)
+        let telepathyEnabled = localStorage.getItem('telepathyEnabled') === 'true';
+
+        // Message history for redrawing when telepathy toggles
+        let messageHistory = [];
+
+        // DOM elements
+        const authModal = document.getElementById('auth-modal');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const statusDiv = document.getElementById('status');
+        const outputDiv = document.getElementById('output');
+        const inputField = document.getElementById('input');
+        const telepathyToggle = document.getElementById('telepathy-toggle');
+
+        // Cookie helpers
+        function setCookie(name, value, days = 30) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Strict`;
+        }
+
+        function getCookie(name) {
+            return document.cookie.split('; ').reduce((r, c) => {
+                const [key, val] = c.split('=');
+                return key === name ? decodeURIComponent(val) : r;
+            }, '');
+        }
+
+        function deleteCookie(name) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        }
+
+        // Connect to WebSocket server
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname || 'localhost';
+            const port = 8765;
+            const url = `${protocol}//${host}:${port}`;
+
+            addLine('system', `Connecting to ${url}...`);
+
+            ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                addLine('system', 'Connected to noodleMUSH server!');
+
+                // Try auto-login with saved credentials
+                const savedUsername = getCookie('noodlemush_username');
+                const savedPassword = getCookie('noodlemush_password');
+
+                if (savedUsername && savedPassword) {
+                    addLine('system', 'Attempting auto-login...');
+                    ws.send(JSON.stringify({
+                        type: 'login',
+                        username: savedUsername,
+                        password: savedPassword
+                    }));
+                }
+            };
+
+            ws.onmessage = (event) => {
+                handleMessage(JSON.parse(event.data));
+            };
+
+            ws.onerror = (error) => {
+                addLine('error', `Connection error: ${error.message || 'Unknown error'}`);
+            };
+
+            ws.onclose = () => {
+                addLine('system', 'Disconnected from server.');
+                authenticated = false;
+                authModal.classList.remove('hidden');
+            };
+        }
+
+        // Handle incoming messages
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'register_response':
+                case 'login_response':
+                    if (data.success) {
+                        authenticated = true;
+                        authModal.classList.add('hidden');
+                        inputField.focus();
+
+                        // Save credentials for auto-login
+                        const username = usernameInput.value.trim() || getCookie('noodlemush_username');
+                        const password = passwordInput.value || getCookie('noodlemush_password');
+                        if (username && password) {
+                            setCookie('noodlemush_username', username);
+                            setCookie('noodlemush_password', password);
+                        }
+                    } else {
+                        statusDiv.textContent = data.message;
+                        statusDiv.style.color = '#ff0000';
+                    }
+                    break;
+
+                case 'system':
+                    addLine('system', data.text);
+                    break;
+
+                case 'output':
+                    addLine('output', data.text);
+                    break;
+
+                case 'event':
+                    addLine('event', data.text);
+                    break;
+
+                case 'thought':
+                    // Add thought class for strikethrough styling
+                    addLine('event thought', data.text);
+                    break;
+
+                case 'error':
+                    addLine('error', data.text);
+                    break;
+
+                case 'pong':
+                    // Keepalive response
+                    break;
+
+                default:
+                    console.log('Unknown message type:', data);
+            }
+        }
+
+        // Add line to output (stores in history and redraws)
+        function addLine(type, text) {
+            // Store in message history
+            messageHistory.push({ type, text, timestamp: Date.now() });
+
+            // Limit history to 500 messages
+            if (messageHistory.length > 500) {
+                messageHistory.shift();
+            }
+
+            // Redraw all messages
+            redrawMessages();
+        }
+
+        // Redraw all messages from history with current telepathy state
+        function redrawMessages() {
+            // Clear output
+            outputDiv.innerHTML = '';
+
+            // Process messages with thought collapsing
+            const processedMessages = collapseThoughts(messageHistory);
+
+            // Render each processed message
+            processedMessages.forEach(msg => {
+                renderMessage(msg);
+            });
+
+            // Scroll to bottom
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+
+        // Collapse consecutive thoughts from same speaker (Unity-style)
+        function collapseThoughts(messages) {
+            const processed = [];
+            let currentThoughtGroup = null;
+
+            for (const msg of messages) {
+                const speakerMatch = msg.text.match(/^(You|[A-Z][a-z]+(?:\.?\s*[A-Z]?[a-z]*)?)\s+(thinks)/i);
+
+                if (speakerMatch && !telepathyEnabled) {
+                    const speaker = speakerMatch[1].trim().toLowerCase();
+
+                    // Skip "you" - always show your own thoughts
+                    if (speaker === 'you') {
+                        processed.push(msg);
+                        currentThoughtGroup = null;
+                        continue;
+                    }
+
+                    // Check if we can group with current thought group
+                    if (currentThoughtGroup && currentThoughtGroup.speaker === speaker) {
+                        // Add to existing group
+                        currentThoughtGroup.count++;
+                        currentThoughtGroup.thoughts.push(msg.text);
+                    } else {
+                        // Start new group
+                        currentThoughtGroup = {
+                            type: msg.type,
+                            speaker: speaker,
+                            text: msg.text,
+                            thoughts: [msg.text],
+                            count: 1,
+                            isCollapsedThought: true
+                        };
+                        processed.push(currentThoughtGroup);
+                    }
+                } else {
+                    // Not a thought, or telepathy is on - break grouping
+                    currentThoughtGroup = null;
+                    processed.push(msg);
+                }
+            }
+
+            return processed;
+        }
+
+        // Render a single message to the output div
+        function renderMessage(msg) {
+            const line = document.createElement('div');
+            line.className = `line ${msg.type}`;
+
+            // Parse speaker name from beginning of text
+            const speakerMatch = msg.text.match(/^(You|[A-Z][a-z]+(?:\.?\s*[A-Z]?[a-z]*)?)\s+(say|says|tilts|purrs|meows|bounces|giggles|perks|action|thinks|asks|exclaims|whispers|shouts|murmurs|replies|responds|nods|smiles|laughs|sighs)/i);
+
+            if (speakerMatch) {
+                const speakerName = speakerMatch[1].trim().toLowerCase();
+                const verb = speakerMatch[2].trim().toLowerCase();
+                const restOfText = msg.text.substring(speakerMatch[0].length).trimStart();
+
+                // Determine speaker class and color
+                let speakerClass = 'speaker-other';
+                let speakerColor = '#aaaaaa';
+
+                if (speakerName === 'you') {
+                    speakerClass = 'speaker-you';
+                    speakerColor = '#00ff00';
+                } else if (speakerName === 'callie') {
+                    speakerClass = 'speaker-callie';
+                    speakerColor = '#ffaa00';
+                } else if (speakerName === 'phi') {
+                    speakerClass = 'speaker-phi';
+                    speakerColor = '#ff00ff';
+                } else if (speakerName.includes('toad') || speakerName === 'mr. toad') {
+                    speakerClass = 'speaker-toad';
+                    speakerColor = '#00ffff';
+                } else if (speakerName === 'desobelle' || speakerName === 'belle') {
+                    speakerClass = 'speaker-desobelle';
+                    speakerColor = '#ff88ff';
+                } else if (speakerName === 'servnak' || speakerName.includes('servnak')) {
+                    speakerClass = 'speaker-servnak';
+                    speakerColor = '#88ff88';
+                }
+
+                line.className += ` ${speakerClass}`;
+
+                // Add thought class if this is a rumination
+                if (verb === 'thinks') {
+                    line.className += ' thought';
+                }
+
+                // Format with prominent speaker badge and action
+                const badge = document.createElement('span');
+                badge.className = 'speaker-name';
+                badge.style.backgroundColor = speakerColor;
+                badge.style.color = '#000000';
+                badge.style.padding = '2px 8px';
+                badge.style.borderRadius = '3px';
+                badge.style.marginRight = '8px';
+                badge.textContent = speakerMatch[1].toUpperCase();
+
+                const verbSpan = document.createElement('span');
+                verbSpan.style.fontStyle = 'italic';
+                verbSpan.style.color = speakerColor;
+                verbSpan.style.marginRight = '8px';
+                verbSpan.textContent = verb;
+
+                line.appendChild(badge);
+                line.appendChild(verbSpan);
+
+                // Telepathy check and collapsed thought counter
+                if (msg.isCollapsedThought && msg.count > 1) {
+                    // Collapsed thought group - show counter
+                    const counterSpan = document.createElement('span');
+                    counterSpan.style.color = speakerColor;
+                    counterSpan.style.fontWeight = 'bold';
+                    counterSpan.textContent = `(+${msg.count})`;
+                    line.appendChild(counterSpan);
+                } else if (verb === 'thinks' && !telepathyEnabled && speakerName !== 'you') {
+                    // Single collapsed thought - show nothing (just badge + verb)
+                } else {
+                    // Show full text (telepathy on, or not a thought, or user's own thought)
+                    const textNode = document.createTextNode(restOfText);
+                    line.appendChild(textNode);
+                }
+            } else {
+                // No speaker detected, just add text as-is
+                line.textContent = msg.text;
+            }
+
+            outputDiv.appendChild(line);
+        }
+
+        // Send command
+        function sendCommand(command) {
+            if (!authenticated || !ws || ws.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            // Add to history
+            commandHistory.push(command);
+            historyIndex = commandHistory.length;
+
+            // Echo command to chat (so user can see what they typed)
+            addLine('you', `> ${command}`);
+
+            // Send to server
+            ws.send(JSON.stringify({
+                type: 'command',
+                command: command
+            }));
+
+            // Clear input
+            inputField.value = '';
+        }
+
+        // Authentication
+        function login() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                statusDiv.textContent = 'Please enter username and password';
+                statusDiv.style.color = '#ff0000';
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'login',
+                username: username,
+                password: password
+            }));
+
+            statusDiv.textContent = 'Logging in...';
+            statusDiv.style.color = '#ffff00';
+        }
+
+        function register() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                statusDiv.textContent = 'Please enter username and password';
+                statusDiv.style.color = '#ff0000';
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'register',
+                username: username,
+                password: password
+            }));
+
+            statusDiv.textContent = 'Registering...';
+            statusDiv.style.color = '#ffff00';
+        }
+
+        // Telepathy toggle
+        function toggleTelepathy() {
+            telepathyEnabled = !telepathyEnabled;
+            localStorage.setItem('telepathyEnabled', telepathyEnabled);
+            updateTelepathyButton();
+
+            // Redraw all messages with new telepathy state
+            redrawMessages();
+        }
+
+        function updateTelepathyButton() {
+            if (telepathyEnabled) {
+                telepathyToggle.textContent = 'Telepathy: ON';
+                telepathyToggle.classList.add('active');
+                telepathyToggle.title = 'You can read others\' thoughts (click to disable)';
+            } else {
+                telepathyToggle.textContent = 'Telepathy: OFF';
+                telepathyToggle.classList.remove('active');
+                telepathyToggle.title = 'You cannot read others\' thoughts (click to enable)';
+            }
+        }
+
+        // Initialize telepathy button state
+        updateTelepathyButton();
+
+        // Event listeners
+        telepathyToggle.addEventListener('click', toggleTelepathy);
+        loginBtn.addEventListener('click', login);
+        registerBtn.addEventListener('click', register);
+
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl-T: Toggle telepathy
+            if (e.ctrlKey && e.key === 't') {
+                e.preventDefault();
+                toggleTelepathy();
+                return;
+            }
+        });
+
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = inputField.value.trim();
+                if (command) {
+                    // Check for client-side commands
+                    if (command === '/scope' || command === '@scope' || command === 'scope') {
+                        // Open NoodleScope in new tab
+                        window.open('http://localhost:8050', '_blank');
+                        addLine('system', '🧠 Opening NoodleScope in new tab...');
+                        inputField.value = '';
+                        return;
+                    }
+                    sendCommand(command);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    inputField.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    inputField.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    inputField.value = '';
+                }
+            }
+        });
+
+        // Keepalive ping every 30 seconds
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }));
+            }
+        }, 30000);
+
+        // Initial connection
+        connect();
+
+        // Welcome message
+        addLine('system', '═══════════════════════════════════════════════');
+        addLine('system', 'noodleMUSH - Noodlings Multi-User Shared Hallucination');
+        addLine('system', '═══════════════════════════════════════════════');
+        addLine('system', '');
+        addLine('system', 'A text-based world where experimental AI agents');
+        addLine('system', 'explore the boundaries of machine phenomenology.');
+        addLine('system', '');
+        addLine('system', 'These agents run affective consciousness models -');
+        addLine('system', 'we make no claims about "real" consciousness, but');
+        addLine('system', 'we\'re noodling with functional correlates of it.');
+        addLine('system', '');
+        addLine('system', 'Type "help" for commands.');
+        addLine('system', 'Type "/scope" to watch consciousness in real-time! 🧠');
+        addLine('system', '═══════════════════════════════════════════════');
+        addLine('system', '');
+    </script>
+</body>
+</html>

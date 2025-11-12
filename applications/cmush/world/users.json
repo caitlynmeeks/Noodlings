@@ -1,0 +1,21 @@
+{
+  "user_caity": {
+    "uid": "user_caity",
+    "username": "caity",
+    "password_hash": "1122d60c118b6b4400187cb1dd0f44075d0a9509de8299b38a68a0833c140607:c6c60790cb65dac14b3f2bc9e2149f5b",
+    "current_room": "room_000",
+    "inventory": [],
+    "created": "2025-10-26T14:49:36.366158",
+    "last_seen": "2025-11-10T23:57:37.632553",
+    "description": "A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)"
+  },
+  "user_caitlyn": {
+    "uid": "user_caitlyn",
+    "username": "caitlyn",
+    "password_hash": "d73c40a33ee84052e736db30b1eed25bade6786f3e37a04a472ccac94121864e:83bf81591e75bfb568fcd3343ffa036c",
+    "current_room": "room_000",
+    "inventory": [],
+    "created": "2025-11-10T18:29:58.590861",
+    "last_seen": "2025-11-10T18:29:58.590873"
+  }
+}

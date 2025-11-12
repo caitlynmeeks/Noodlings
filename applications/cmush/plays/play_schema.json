@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Noodlings Play Schema",
+  "description": "Schema for BRENDA-generated plays in noodleMUSH",
+  "type": "object",
+  "required": ["title", "cast", "scenes"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Play title"
+    },
+    "cast": {
+      "type": "array",
+      "description": "List of agent names in the play",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "scenes": {
+      "type": "array",
+      "description": "List of scenes",
+      "items": {
+        "$ref": "#/definitions/scene"
+      },
+      "maxItems": 10
+    }
+  },
+  "definitions": {
+    "scene": {
+      "type": "object",
+      "required": ["id", "name", "trigger", "beats"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Scene number (0-indexed)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Scene name"
+        },
+        "trigger": {
+          "$ref": "#/definitions/trigger"
+        },
+        "beats": {
+          "type": "array",
+          "description": "List of story beats (actions)",
+          "items": {
+            "$ref": "#/definitions/beat"
+          },
+          "maxItems": 12
+        }
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["manual", "chat", "room_enter", "timer"]
+        },
+        "args": {
+          "type": "object",
+          "description": "Trigger-specific arguments"
+        }
+      }
+    },
+    "beat": {
+      "type": "object",
+      "required": ["t", "action"],
+      "properties": {
+        "t": {
+          "type": "number",
+          "description": "Time offset in seconds from scene start"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["bias", "warp", "say", "emote", "create_prop", "create_npc", "destroy", "timer"]
+        },
+        "actor": {
+          "type": "string",
+          "description": "Agent performing the action"
+        },
+        "target": {
+          "type": "string",
+          "description": "Target of the action"
+        },
+        "args": {
+          "type": "object",
+          "description": "Action-specific arguments"
+        }
+      }
+    }
+  }
+}

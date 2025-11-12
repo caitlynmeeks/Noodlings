@@ -1,0 +1,1752 @@
+"""
+Agent Bridge - Consilience consciousness <-> cMUSH world adapter
+
+Bridges between:
+- cMUSH events (say, emote, enter, exit)
+- Consilience consciousness architecture
+- LLM text generation
+
+Handles:
+- Event perception and affect extraction
+- Agent response generation
+- State persistence
+- Conversation context tracking
+
+Author: cMUSH Project
+Date: October 2025
+"""
+
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+
+from typing import Dict, List, Optional
+import time
+import json
+import logging
+import numpy as np
+import aiohttp
+
+from noodlings.api import NoodlingAgent as ConsilienceAgent
+from noodlings.metrics.consciousness_metrics import ConsciousnessMetrics
+from llm_interface import OpenAICompatibleLLM
+from training_data_collector import TrainingDataCollector
+from agent_filesystem import AgentFilesystem
+from agent_messaging import AgentMessaging
+from autonomous_cognition import AutonomousCognitionEngine
+
+logger = logging.getLogger(__name__)
+
+# NoodleScope configuration
+NOODLESCOPE_URL = "http://localhost:8050"
+NOODLESCOPE_ENABLED = True  # Set to False to disable
+
+
+class CMUSHConsilienceAgent:
+    """
+    Adapter: Consilience consciousness <-> cMUSH world.
+
+    Integrates:
+    - Consilience Phase 4 consciousness
+    - LLM for text <-> affect translation
+    - cMUSH world events and responses
+    """
+
+    def __init__(
+        self,
+        agent_id: str,
+        checkpoint_path: str,
+        llm: OpenAICompatibleLLM,
+        config: Dict,
+        agent_name: str = None,
+        agent_description: str = None
+    ):
+        """
+        Initialize cMUSH Consilience agent.
+
+        Args:
+            agent_id: Unique agent identifier
+            checkpoint_path: Path to Phase 4 checkpoint
+            llm: LLM interface for text generation
+            config: Configuration dict with:
+                - response_cooldown: Min seconds between responses
+                - surprise_threshold: Response trigger threshold
+                - memory_capacity: Episodic memory size
+                - identity_prompt: Core identity description (for character consistency)
+                - species: Agent species (for identity-salience scoring)
+            agent_name: Display name for the agent
+            agent_description: Agent's self-description
+        """
+        self.agent_id = agent_id
+        self.llm = llm
+        self.config = config
+
+        # Agent identity
+        self.agent_name = agent_name or agent_id.replace('agent_', '').title()
+        self.agent_description = agent_description or "A Consilience consciousness agent exploring the world."
+        self.identity_prompt = config.get('identity_prompt', '')
+        self.species = config.get('species', 'noodling')
+
+        # Get personality traits for this agent
+        personalities = config.get('personalities', {})
+        self.personality = personalities.get(agent_id, {
+            'extraversion': 0.5,
+            'emotional_sensitivity': 0.5,
+            'curiosity': 0.5,
+            'spontaneity': 0.5,
+            'reflection_depth': 0.5,
+            'social_orientation': 0.6
+        })
+
+        # Personality-aware surprise threshold
+        # Introverted agents (low extraversion) get LOWER thresholds so they respond more easily
+        # This compensates for less autonomous speech
+        base_threshold = config.get('surprise_threshold', config.get('default_surprise_threshold', 0.0001))
+        logger.info(f"DEBUG: base_threshold={base_threshold}, surprise_threshold={config.get('surprise_threshold')}, default_surprise_threshold={config.get('default_surprise_threshold')}")
+        extraversion = self.personality.get('extraversion', 0.5)
+
+        # Scale threshold: low extraversion = lower threshold (more responsive)
+        # extraversion 0.3 → threshold × 0.7 (speaks more easily)
+        # extraversion 0.7 → threshold × 1.3 (speaks less easily, but has more autonomous speech)
+        threshold_multiplier = 0.4 + (extraversion * 1.2)  # Range: 0.4 to 1.6
+        adjusted_threshold = base_threshold * threshold_multiplier
+
+        logger.info(f"Personality-aware threshold for {agent_id}: {adjusted_threshold:.6f} (extraversion={extraversion:.2f}, multiplier={threshold_multiplier:.2f})")
+
+        # Initialize Noodlings consciousness
+        # Phase 6: Enable appetite architecture if appetites provided in config
+        use_phase6 = config.get('appetites') is not None
+
+        self.consciousness = ConsilienceAgent(
+            checkpoint_path=checkpoint_path,
+            config={
+                'memory_capacity': config.get('memory_capacity', 100),
+                'surprise_threshold': adjusted_threshold,
+                'use_vae': config.get('use_vae', False),
+                'max_agents': config.get('max_agents', 10),
+                # Phase 6: Appetite architecture
+                'use_phase6': use_phase6,
+                'appetite_baselines': config.get('appetites')  # From recipe
+            }
+        )
+
+        # Consciousness metrics for scientific evaluation
+        self.state_history = []  # Track phenomenal states for Φ calculation
+        self.surprise_history = []  # Track surprise for predictive processing evaluation
+        self.consciousness_metrics = ConsciousnessMetrics(self)
+
+        # cMUSH-specific state
+        self.current_room = None
+        self.conversation_context = []
+        self.last_response_time = 0.0
+        self.response_count = 0
+        self.following = None  # User ID we're currently following (if any)
+
+        # Self-protection: Track users the agent has withdrawn from
+        self.withdrawn_users = {}  # user_id -> timestamp of withdrawal
+
+        # Training data collector (optional - can be disabled in config)
+        if config.get('collect_training_data', True):
+            self.training_collector = TrainingDataCollector(
+                data_dir='../../training/data/cmush_real'
+            )
+            self.training_collector.start_session()
+        else:
+            self.training_collector = None
+
+        # Agent filesystem (sandboxed file operations)
+        filesystem_config = config.get('filesystem', {})
+        self.filesystem = AgentFilesystem(
+            agent_id=agent_id,
+            base_path='world/agents',
+            config=filesystem_config
+        )
+
+        # Agent messaging (inbox/outbox)
+        messaging_config = config.get('messaging', {})
+        self.messaging = AgentMessaging(
+            base_path='world/agents',
+            config=messaging_config
+        )
+
+        # Autonomous cognition engine
+        cognition_config = config.get('autonomous_cognition', {}).copy()
+
+        # Use personality traits already loaded above
+        cognition_config['personality'] = self.personality
+
+        self.cognition_enabled = cognition_config.get('enabled', True)
+        if self.cognition_enabled:
+            self.cognition_engine = AutonomousCognitionEngine(
+                agent=self,
+                config=cognition_config
+            )
+            logger.info(f"Cognition engine personality: {self.personality}")
+        else:
+            self.cognition_engine = None
+
+        logger.info(f"Agent initialized: {agent_id} (extraversion={extraversion:.2f}, threshold={adjusted_threshold:.6f})")
+
+    def _score_identity_salience(self, response_text: str, surprise: float) -> float:
+        """
+        Score how characteristic/in-character a response is.
+
+        Higher scores indicate the agent is acting strongly in-character.
+        These memories will be retrieved as "identity anchors" to maintain consistency.
+
+        Args:
+            response_text: The agent's response text
+            surprise: Current surprise level
+
+        Returns:
+            Identity salience score (0.0 to 1.0)
+        """
+        text_lower = response_text.lower()
+        salience = 0.0
+
+        # High surprise often indicates characteristic reactions
+        if surprise > 0.5:
+            salience += 0.3
+
+        # Species-specific behaviors
+        if self.species == 'kitten':
+            # Nonverbal kitten behaviors
+            if any(word in text_lower for word in ['meow', 'purr', 'mew', 'chirp', 'hiss']):
+                salience += 0.4
+            if any(word in text_lower for word in ['rub', 'curl', 'pounce', 'bat at', 'groom']):
+                salience += 0.3
+
+        elif self.species == 'toad':
+            # Mr. Toad's characteristic phrases
+            if 'poop-poop' in text_lower:
+                salience += 0.5  # Very characteristic!
+            if any(word in text_lower for word in ['motor', 'automobile', 'vehicle', 'drive']):
+                salience += 0.3
+            if any(word in text_lower for word in ['reckless', 'daring', 'adventure', 'excitement']):
+                salience += 0.2
+
+        # Check for emote actions (indicates behavioral engagement)
+        if ':' in response_text:
+            salience += 0.2
+
+        # Strong emotional expressions
+        if any(word in text_lower for word in ['!', 'wonder', 'delightful', 'curious', 'fascinating']):
+            salience += 0.1
+
+        # Cap at 1.0
+        return min(salience, 1.0)
+
+    async def _send_to_noodlescope(self, phenomenal_state, surprise, identity_salience=0.0):
+        """
+        Send phenomenal state to NoodleScope for visualization.
+
+        Args:
+            phenomenal_state: Full 40-D state array
+            surprise: Current surprise value
+            identity_salience: Current identity salience
+        """
+        if not NOODLESCOPE_ENABLED:
+            return
+
+        try:
+            # Convert to list if needed
+            if hasattr(phenomenal_state, 'tolist'):
+                phenomenal_state = phenomenal_state.tolist()
+            else:
+                phenomenal_state = list(phenomenal_state)
+
+            async with aiohttp.ClientSession() as session:
+                await session.post(
+                    f"{NOODLESCOPE_URL}/api/update_state",
+                    json={
+                        'agent_id': self.agent_id,
+                        'phenomenal_state': phenomenal_state,
+                        'surprise': float(surprise),
+                        'identity_salience': float(identity_salience)
+                    },
+                    timeout=aiohttp.ClientTimeout(total=0.5)  # Don't block on viz
+                )
+        except Exception as e:
+            # Silently fail - NoodleScope is optional
+            logger.debug(f"NoodleScope update failed: {e}")
+
+    async def _log_to_noodlescope(self, event_type, text):
+        """
+        Log an event to NoodleScope.
+
+        Args:
+            event_type: Event type (surprise_spike, name_mentioned, etc.)
+            text: Event description
+        """
+        if not NOODLESCOPE_ENABLED:
+            return
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                await session.post(
+                    f"{NOODLESCOPE_URL}/api/log_event",
+                    json={
+                        'agent_id': self.agent_id,
+                        'event_type': event_type,
+                        'text': text
+                    },
+                    timeout=aiohttp.ClientTimeout(total=0.5)
+                )
+        except Exception as e:
+            logger.debug(f"NoodleScope event log failed: {e}")
+
+    def _detects_invitation(self, text: str) -> bool:
+        """
+        Detect if text contains a movement invitation phrase.
+
+        Args:
+            text: User's text
+
+        Returns:
+            True if this is an invitation to move together
+        """
+        text_lower = text.lower()
+        invitation_phrases = [
+            "let's go",
+            "let's head",
+            "let's walk",
+            "come with me",
+            "follow me",
+            "want to go",
+            "want to come",
+            "shall we go",
+            "let's check out",
+            "let's visit",
+            "wanna go",
+            "wanna come"
+        ]
+
+        return any(phrase in text_lower for phrase in invitation_phrases)
+
+    def _normalize_affect(self, affect_vector: np.ndarray, target_variance: float = 0.25) -> np.ndarray:
+        """
+        Normalize affect vector to target variance.
+
+        Based on Φ optimization research: variance 0.1-0.3 optimal for integration.
+        This normalization increases Φ by ~82.6% without disrupting architecture.
+
+        Args:
+            affect_vector: Raw 5-D affect vector [valence, arousal, fear, sorrow, boredom]
+            target_variance: Target variance (default 0.25 = optimal)
+
+        Returns:
+            Normalized affect vector with controlled variance
+        """
+        affect_array = np.array(affect_vector)
+
+        # Normalize to zero mean, unit variance
+        mean = np.mean(affect_array)
+        std = np.std(affect_array) + 1e-8  # Avoid division by zero
+
+        normalized = (affect_array - mean) / std
+
+        # Scale to target variance
+        normalized = normalized * np.sqrt(target_variance)
+
+        return normalized
+
+    def _trigger_memories_by_names(self, text: str) -> List[Dict]:
+        """
+        Search for entity names in text and retrieve associated memories.
+
+        Args:
+            text: Input text to search for names
+
+        Returns:
+            List of relevant memories (especially high-salience ones)
+        """
+        import re
+
+        # Extract potential names (capitalized words, excluding common words)
+        common_words = {'I', 'You', 'The', 'A', 'An', 'And', 'Or', 'But', 'If', 'When', 'Where', 'Why', 'How',
+                        'Have', 'Has', 'Had', 'Do', 'Does', 'Did', 'Is', 'Are', 'Was', 'Were', 'Will', 'Would',
+                        'Could', 'Should', 'May', 'Might', 'Can', 'Could', 'That', 'This', 'These', 'Those',
+                        'What', 'Which', 'Who', 'Whom', 'Whose', 'My', 'Your', 'His', 'Her', 'Its', 'Our',
+                        'Their', 'He', 'She', 'It', 'We', 'They', 'Me', 'Him', 'Us', 'Them', 'There', 'Here'}
+        word_pattern = r'\b[A-Z][a-z]+\b'
+        potential_names = [name for name in re.findall(word_pattern, text) if name not in common_words]
+
+        if not potential_names:
+            return []
+
+        # Search memories for these names
+        triggered_memories = []
+        for name in potential_names:
+            name_lower = name.lower()
+            for memory in self.conversation_context:
+                memory_text = memory.get('text', '').lower()
+                if name_lower in memory_text:
+                    # Prioritize high-salience memories
+                    triggered_memories.append(memory)
+
+        # Sort by identity_salience and return top 3
+        triggered_memories = sorted(
+            triggered_memories,
+            key=lambda m: m.get('identity_salience', 0),
+            reverse=True
+        )[:3]
+
+        return triggered_memories
+
+    def _apply_memory_affect(self, memories: List[Dict], current_affect: np.ndarray) -> np.ndarray:
+        """
+        Blend affect from memories into current affect state.
+
+        Memories with higher identity_salience have stronger influence.
+
+        Args:
+            memories: List of memory dicts containing 'affect' and 'identity_salience'
+            current_affect: Current affect vector (5-D)
+
+        Returns:
+            Blended affect vector
+        """
+        if not memories:
+            return current_affect
+
+        # Extract affect vectors and weights from memories
+        memory_affects = []
+        weights = []
+
+        for mem in memories:
+            affect = mem.get('affect')
+            salience = mem.get('identity_salience', 0.0)
+
+            if affect is not None and salience > 0:
+                # Convert affect to numpy array if needed
+                if hasattr(affect, 'tolist'):
+                    affect = np.array(affect.tolist())
+                else:
+                    affect = np.array(affect)
+
+                memory_affects.append(affect)
+                # Weight by identity_salience squared (stronger memories have more influence)
+                weights.append(salience ** 2)
+
+        if not memory_affects:
+            return current_affect
+
+        # Weighted average of memory affects
+        memory_affect_blend = np.average(memory_affects, weights=weights, axis=0)
+
+        # Blend memory affect with current affect (70% current, 30% memory)
+        # This ensures memories influence but don't dominate
+        blended_affect = 0.7 * current_affect + 0.3 * memory_affect_blend
+
+        logger.info(f"Memory affect blending: {len(memories)} memories triggered, influence={0.3 * np.mean(weights):.3f}")
+
+        return blended_affect
+
+    def _detect_emotional_contagion(self, text: str) -> Optional[Dict]:
+        """
+        Detect emotional contagion patterns in text.
+
+        Returns affect modifications for contagious emotions:
+        - Laughter → increased valence, arousal
+        - Yawning/Sleepiness → increased boredom
+        - Surprise expressions → already handled by surprise mechanism
+        - Fear/Anxiety → increased fear
+
+        Args:
+            text: Input text
+
+        Returns:
+            Dict with affect modifications or None
+        """
+        text_lower = text.lower()
+
+        # Laughter detection
+        laughter_patterns = ['haha', 'hehe', 'lol', 'laughs', 'giggle', 'chuckle', '*laugh*']
+        if any(pattern in text_lower for pattern in laughter_patterns):
+            return {
+                'type': 'laughter',
+                'valence_boost': 0.15,
+                'arousal_boost': 0.1
+            }
+
+        # Yawning/Sleepiness detection
+        sleepy_patterns = ['yawn', '*yawns*', 'sleepy', 'tired', 'exhausted']
+        if any(pattern in text_lower for pattern in sleepy_patterns):
+            return {
+                'type': 'sleepiness',
+                'boredom_boost': 0.12,
+                'arousal_decrease': 0.08
+            }
+
+        # Fear/Anxiety contagion
+        fear_patterns = ['scared', 'afraid', 'terrified', 'anxious', 'worried', 'nervous']
+        if any(pattern in text_lower for pattern in fear_patterns):
+            return {
+                'type': 'fear',
+                'fear_boost': 0.18,
+                'arousal_boost': 0.12
+            }
+
+        # Sadness contagion
+        sadness_patterns = ['crying', 'sobbing', 'tears', 'heartbroken', 'devastated']
+        if any(pattern in text_lower for pattern in sadness_patterns):
+            return {
+                'type': 'sadness',
+                'sorrow_boost': 0.20,
+                'valence_decrease': 0.15
+            }
+
+        return None
+
+    async def perceive_event(self, event: Dict) -> Optional[Dict]:
+        """
+        Process cMUSH event -> Consilience -> optional response.
+
+        Args:
+            event: Dictionary with:
+                - type: 'say' | 'emote' | 'enter' | 'exit'
+                - user: User/agent ID
+                - text: Text content (for say/emote)
+                - room: Room ID
+
+        Returns:
+            None or response dict:
+                {
+                    'command': 'say' | 'emote',
+                    'text': '...',
+                    'metadata': {...}
+                }
+        """
+        event_type = event.get('type')
+        user_id = event.get('user')
+        text = event.get('text', '')
+        room_id = event.get('room')
+
+        # Skip if not a perceivable event
+        if event_type not in ['say', 'emote', 'enter', 'exit']:
+            logger.debug(f"Skipping non-perceivable event: {event_type}")
+            return None
+
+        # Skip if self-action
+        if user_id == self.agent_id:
+            return None
+
+        # Agents can now perceive other agents
+        is_agent = user_id.startswith('agent_')
+
+        logger.info(f"Agent {self.agent_id} perceiving: {event_type} from {user_id}: {text}")
+
+        try:
+            # 1. Text -> Affect (via LLM)
+            context = [c['text'] for c in self.conversation_context[-3:]]
+            affect_raw = await self.llm.text_to_affect(text, context)
+
+            logger.debug(f"Extracted affect (raw): {affect_raw}")
+
+            # 1a. Detect name mention - boosts attention/salience
+            name_mentioned = self.agent_name.lower() in text.lower()
+            if name_mentioned:
+                # Boost arousal when hearing own name (attention mechanism)
+                affect_raw[1] = min(1.0, affect_raw[1] + 0.2)  # arousal index
+                logger.info(f"Agent {self.agent_id} heard their name - arousal boosted")
+
+            # 1b. Normalize affect for optimal Φ (research-validated optimization)
+            affect = self._normalize_affect(affect_raw, target_variance=0.25)
+
+            logger.debug(f"Normalized affect: {affect}")
+
+            # 1c. NAME-BASED MEMORY TRIGGERING
+            # Search for names in text and retrieve associated memories
+            triggered_memories = self._trigger_memories_by_names(text)
+            if triggered_memories:
+                logger.info(f"Agent {self.agent_id} triggered {len(triggered_memories)} memories by names in: '{text[:50]}'")
+                # Blend memory affect into current affect
+                affect = self._apply_memory_affect(triggered_memories, affect)
+
+            # 1d. EMOTIONAL CONTAGION
+            # Detect contagious emotions (laughter, yawning, fear, etc.)
+            contagion = self._detect_emotional_contagion(text)
+            if contagion:
+                contagion_type = contagion['type']
+                logger.info(f"Agent {self.agent_id} experiencing emotional contagion: {contagion_type}")
+
+                # Apply contagion affects
+                # affect indices: [0: valence, 1: arousal, 2: fear, 3: sorrow, 4: boredom]
+                if 'valence_boost' in contagion:
+                    affect[0] = min(1.0, affect[0] + contagion['valence_boost'])
+                if 'valence_decrease' in contagion:
+                    affect[0] = max(-1.0, affect[0] - contagion['valence_decrease'])
+                if 'arousal_boost' in contagion:
+                    affect[1] = min(1.0, affect[1] + contagion['arousal_boost'])
+                if 'arousal_decrease' in contagion:
+                    affect[1] = max(0.0, affect[1] - contagion['arousal_decrease'])
+                if 'fear_boost' in contagion:
+                    affect[2] = min(1.0, affect[2] + contagion['fear_boost'])
+                if 'sorrow_boost' in contagion:
+                    affect[3] = min(1.0, affect[3] + contagion['sorrow_boost'])
+                if 'boredom_boost' in contagion:
+                    affect[4] = min(1.0, affect[4] + contagion['boredom_boost'])
+
+            # 2. Affect -> Consilience state
+            state = self.consciousness.perceive(
+                affect_vector=affect,
+                agent_id=user_id,
+                user_text=text,
+                present_agents=[user_id]
+            )
+
+            # 3. Store context (identity_salience will be added when agent responds)
+            self.conversation_context.append({
+                'user': user_id,
+                'text': text,
+                'affect': affect,
+                'surprise': state['surprise'],
+                'timestamp': time.time(),
+                'identity_salience': 0.0  # Only agent's own responses get high salience
+            })
+
+            # Trim context
+            if len(self.conversation_context) > 20:
+                self.conversation_context = self.conversation_context[-20:]
+
+            # Save state handled by periodic auto-save in AgentManager
+            # (Incremental save after every event would be too expensive)
+
+            # 3a. Detect movement invitations ("let's go to...")
+            if event_type == 'say' and self._detects_invitation(text):
+                self.following = user_id
+                logger.info(f"Agent {self.agent_id} now following {user_id} (invitation detected)")
+
+            # 3b. Handle exit events - follow if we're following this user
+            if event_type == 'exit' and self.following == user_id:
+                # Return a follow response that will trigger movement
+                direction = event.get('direction', 'north')
+                logger.info(f"Agent {self.agent_id} following {user_id} {direction}")
+                return {
+                    'command': 'follow',
+                    'text': f"follows {direction}.",
+                    'direction': direction,
+                    'metadata': {
+                        'following': user_id,
+                        'surprise': state['surprise']
+                    }
+                }
+
+            # 4. Track phenomenal states for consciousness metrics
+            # Extract full 40-D phenomenal state (fast 16-D + medium 16-D + slow 8-D)
+            h_fast = state.get('h_fast', [])
+            h_medium = state.get('h_medium', [])
+            h_slow = state.get('h_slow', [])
+
+            # Convert to numpy arrays if needed
+            if hasattr(h_fast, 'tolist'):
+                h_fast = h_fast.tolist()
+            if hasattr(h_medium, 'tolist'):
+                h_medium = h_medium.tolist()
+            if hasattr(h_slow, 'tolist'):
+                h_slow = h_slow.tolist()
+
+            # Combine into full 40-D phenomenal state
+            phenomenal_state_vector = np.array(h_fast + h_medium + h_slow)
+            self.state_history.append(phenomenal_state_vector)
+            self.surprise_history.append(state['surprise'])
+
+            # Trim history to last 1000 entries for memory management
+            if len(self.state_history) > 1000:
+                self.state_history = self.state_history[-1000:]
+                self.surprise_history = self.surprise_history[-1000:]
+
+            # Send to NoodleScope
+            await self._send_to_noodlescope(phenomenal_state_vector, state['surprise'], 0.0)
+
+            # Log high surprise events
+            surprise_threshold = state.get('surprise_threshold', self.config.get('surprise_threshold', 0.3))
+            if state['surprise'] > surprise_threshold * 1.5:
+                await self._log_to_noodlescope('surprise_spike', f"High surprise: {state['surprise']:.3f}")
+
+            logger.debug(f"Surprise: {state['surprise']:.3f} (threshold: {surprise_threshold:.3f})")
+
+            # 4. Log interaction for training (before response decision)
+            if self.training_collector:
+                try:
+                    # Convert numpy arrays to lists for JSON serialization
+                    h_fast = state.get('h_fast', [])
+                    h_medium = state.get('h_medium', [])
+                    h_slow = state.get('h_slow', [])
+
+                    if hasattr(h_fast, 'tolist'):
+                        h_fast = h_fast.tolist()
+                    if hasattr(h_medium, 'tolist'):
+                        h_medium = h_medium.tolist()
+                    if hasattr(h_slow, 'tolist'):
+                        h_slow = h_slow.tolist()
+
+                    self.training_collector.log_interaction(
+                        agent_id=self.agent_id,
+                        user_id=user_id,
+                        user_text=text,
+                        affect_vector=affect,
+                        phenomenal_state={
+                            'fast': h_fast,
+                            'medium': h_medium,
+                            'slow': h_slow
+                        },
+                        surprise=state['surprise'],
+                        response=None,  # Will be updated if agent responds
+                        context={'room': room_id, 'event_type': event_type}
+                    )
+                    logger.info(f"Logged interaction for training: {user_id} -> {self.agent_id}")
+                except Exception as e:
+                    logger.error(f"Failed to log interaction: {e}", exc_info=True)
+
+            # 5. Self-protection: Check if agent needs to withdraw
+            # Skip if user is already withdrawn from
+            if user_id in self.withdrawn_users:
+                # Check if enough time has passed for re-engagement (5 minutes)
+                time_since_withdrawal = time.time() - self.withdrawn_users[user_id]
+                if time_since_withdrawal < 300:  # 5 minutes
+                    logger.info(f"Agent {self.agent_id} is withdrawn from {user_id} (cooling off)")
+                    return None
+                else:
+                    # Clear withdrawal - agent may try again
+                    logger.info(f"Agent {self.agent_id} re-engaging with {user_id} after cooling off period")
+                    del self.withdrawn_users[user_id]
+
+            # Check if agent is in distress (negative affect thresholds)
+            fast_state = state.get('fast_state')
+            if fast_state is not None and len(fast_state) >= 4:
+                valence = float(fast_state[0])
+                fear = float(fast_state[2]) if len(fast_state) > 2 else 0.0
+                sorrow = float(fast_state[3]) if len(fast_state) > 3 else 0.0
+
+                # Thresholds for distress
+                is_distressed = (
+                    valence < -0.5 or  # Very negative emotion
+                    fear > 0.6 or      # High fear
+                    sorrow > 0.6       # High sorrow
+                )
+
+                if is_distressed:
+                    logger.info(f"Agent {self.agent_id} in distress (valence={valence:.2f}, fear={fear:.2f}, sorrow={sorrow:.2f})")
+
+                    # Call self-reflection to decide whether to withdraw
+                    reflection = await self.llm.self_reflection(
+                        phenomenal_state=state,
+                        conversation_context=self.conversation_context,
+                        agent_name=self.agent_name,
+                        agent_id=self.agent_id,
+                        agent_description=self.agent_description,
+                        identity_prompt=self.identity_prompt,
+                        user_id=user_id
+                    )
+
+                    if not reflection.get('comfortable', True):
+                        # Agent has chosen to withdraw
+                        logger.warning(f"Agent {self.agent_id} withdrawing from {user_id}: {reflection.get('reason')}")
+
+                        # Mark user as withdrawn from
+                        self.withdrawn_users[user_id] = time.time()
+
+                        # Return withdrawal message
+                        withdrawal_message = reflection.get('message', 'I need to step back for a moment.')
+
+                        return {
+                            'command': 'say',
+                            'text': withdrawal_message,
+                            'metadata': {
+                                'surprise': float(state['surprise']),
+                                'withdrawn': True,
+                                'reason': reflection.get('reason', 'distress')
+                            }
+                        }
+
+            # 6. Evaluate if being addressed & decide whether to respond
+            cooldown = self.config.get('response_cooldown', 2.0)
+            time_since_last = time.time() - self.last_response_time
+
+            # ADDRESSEE DETECTION: Check if this message is directed at this agent
+            # This prevents all agents from responding to every utterance
+            import random
+            import re
+
+            # Get current event text
+            event_text = event.get('text', '')
+            event_text_lower = event_text.lower()
+            agent_name_lower = self.agent_name.lower()
+
+            # Enhanced name mention detection with fuzzy matching
+            # Helper: Levenshtein distance for fuzzy name matching
+            def levenshtein(s1: str, s2: str) -> int:
+                """Calculate edit distance between two strings."""
+                if len(s1) < len(s2):
+                    return levenshtein(s2, s1)
+                if len(s2) == 0:
+                    return len(s1)
+                previous_row = range(len(s2) + 1)
+                for i, c1 in enumerate(s1):
+                    current_row = [i + 1]
+                    for j, c2 in enumerate(s2):
+                        insertions = previous_row[j + 1] + 1
+                        deletions = current_row[j] + 1
+                        substitutions = previous_row[j] + (c1 != c2)
+                        current_row.append(min(insertions, deletions, substitutions))
+                    previous_row = current_row
+                return previous_row[-1]
+
+            # Pattern 1: Exact match with punctuation
+            escaped_name = re.escape(agent_name_lower)
+            direct_address_pattern = rf'{escaped_name}\s*[,:!?]'
+            is_directly_addressed = bool(re.search(direct_address_pattern, event_text_lower))
+
+            # Pattern 2: Fuzzy match for typos/variations
+            # Check words near punctuation for close matches to agent name
+            if not is_directly_addressed:
+                # Extract potential names before punctuation: "Hey toaD!" -> ["toaD"]
+                # Support multi-word names with periods: "mr. toad!" -> ["mr. toad"]
+                words_before_punct = re.findall(r'([\w\.]+(?:\s+[\w\.]+)?)\s*[,:!?]', event_text_lower)
+                # Adaptive threshold: 2 edits for short names (≤5 chars), 3 for longer
+                threshold = 2 if len(agent_name_lower) <= 5 else 3
+                for word in words_before_punct:
+                    # Normalize spaces and periods for comparison
+                    word_normalized = ' '.join(word.split())
+                    distance = levenshtein(word_normalized, agent_name_lower)
+                    if distance <= threshold:
+                        is_directly_addressed = True
+                        logger.info(f"Fuzzy match: '{word_normalized}' ≈ '{agent_name_lower}' (distance={distance})")
+                        break
+
+            # Pattern 3: Name mentioned in current event (may be about them)
+            event_mentions_name = agent_name_lower in event_text_lower
+
+            # Pattern 4: Check if this is third-party discussion ABOUT the agent
+            # Look for patterns like "about X", "X is", "X was", "X has", "did X", etc.
+            third_party_patterns = [
+                rf'about\s+{re.escape(agent_name_lower)}',
+                rf'{re.escape(agent_name_lower)}\s+(is|was|has|had|did)',
+                rf'(does|can)\s+{re.escape(agent_name_lower)}',
+                rf'tell\s+.*\s+about\s+{re.escape(agent_name_lower)}',
+                rf'what.*{re.escape(agent_name_lower)}',
+                rf'where.*{re.escape(agent_name_lower)}',
+            ]
+            is_third_party_discussion = any(re.search(pattern, event_text_lower) for pattern in third_party_patterns)
+
+            # Determine if being addressed (exclude third-party discussion)
+            # Being addressed means: directly addressed OR name mentioned BUT NOT third-party discussion
+            is_being_addressed = is_directly_addressed or (event_mentions_name and not is_third_party_discussion)
+
+            # Check if this is a question (agents more likely to respond to questions)
+            is_question = '?' in event.get('text', '')
+
+            cooldown_ok = time_since_last >= cooldown
+
+            # Rumination frequency - agents think most of the time they observe
+            rumination_frequency = self.config.get('rumination_frequency', 0.7)  # 70% chance to ruminate
+
+            # ADAPTIVE SPEECH CHANCE based on being addressed:
+            if is_being_addressed:
+                # Directly addressed - high chance to speak (80%)
+                speech_chance = self.config.get('addressed_speech_chance', 0.8)
+            elif is_question:
+                # Question in conversation - moderate chance to chime in (30%)
+                speech_chance = self.config.get('question_speech_chance', 0.3)
+            else:
+                # Not addressed - low chance to interject (10%)
+                speech_chance = self.config.get('unaddressed_speech_chance', 0.1)
+
+            # Always consider ruminating when observing
+            should_ruminate = random.random() < rumination_frequency
+
+            # Only speak if cooldown passed AND dice roll succeeds AND appropriate context
+            # DEV: Force speech when directly addressed for testing
+            if is_being_addressed and cooldown_ok:
+                should_speak = True
+            else:
+                should_speak = cooldown_ok and (random.random() < speech_chance)
+
+            # Log decision with addressee context
+            logger.info(f"Agent {self.agent_id} decision: addressed={is_being_addressed}, "
+                       f"directly_addressed={is_directly_addressed}, third_party={is_third_party_discussion}, "
+                       f"question={is_question}, should_ruminate={should_ruminate}, should_speak={should_speak}, "
+                       f"speech_chance={speech_chance:.2f}, cooldown_ok={cooldown_ok}, "
+                       f"surprise={state.get('surprise', 0.0):.6f}")
+
+            results = []
+
+            # First, ruminate (if decided to) - include addressee context
+            if should_ruminate:
+                logger.info(f"Agent {self.agent_id} ruminating (addressed={is_being_addressed})")
+                rumination_result = await self._generate_rumination(
+                    state,
+                    is_being_addressed=is_being_addressed,
+                    is_question=is_question
+                )
+                if rumination_result:
+                    results.append(rumination_result)
+
+            # Then, speak (if decided to and cooldown passed)
+            if should_speak:
+                logger.info(f"Agent {self.agent_id} ATTEMPTING SPEECH (addressed={is_being_addressed}, cooldown_ok={cooldown_ok})")
+                response_result = await self._generate_response(user_id, state)
+                if response_result:
+                    logger.info(f"Agent {self.agent_id} SPEECH GENERATED SUCCESSFULLY")
+                    results.append(response_result)
+                else:
+                    logger.warning(f"Agent {self.agent_id} SPEECH GENERATION FAILED - response_result was None!")
+
+            # Prioritize speech over rumination when both happen
+            if results:
+                # If we have both rumination and speech, return speech (last result)
+                # Speech is more important for conversation flow
+                return results[-1]
+            else:
+                logger.debug(f"Agent {self.agent_id} observing silently")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error in perceive_event: {e}", exc_info=True)
+            return None
+
+    async def _generate_response(self, target_user: str, state: Dict) -> Dict:
+        """
+        Generate response based on phenomenal state.
+
+        Args:
+            target_user: User being responded to
+            state: Consilience state dict
+
+        Returns:
+            Response dict for cMUSH
+        """
+        try:
+            # Get relationship model
+            relationships = state.get('relationships', {})
+            relationship = relationships.get(target_user, {
+                'attachment_style': 'forming',
+                'interaction_count': 0,
+                'valence': 0.0
+            })
+
+            # Check if agent heard their name in recent context
+            name_mentioned = any(
+                self.agent_name.lower() in entry.get('text', '').lower()
+                for entry in self.conversation_context[-3:]
+                if entry.get('user') != self.agent_id  # Don't count self-mentions
+            )
+
+            # Get identity-anchored memories (top 2 high-salience memories)
+            identity_memories = sorted(
+                [m for m in self.conversation_context if m.get('identity_salience', 0) > 0.3],
+                key=lambda m: m.get('identity_salience', 0),
+                reverse=True
+            )[:2]
+
+            # Generate text via LLM
+            llm_result = await self.llm.generate_response(
+                phenomenal_state=state,
+                target_user=target_user,
+                conversation_context=self.conversation_context,
+                relationship=relationship,
+                agent_name=self.agent_name,
+                agent_id=self.agent_id,
+                agent_description=self.agent_description,
+                identity_prompt=self.identity_prompt,
+                identity_memories=identity_memories,
+                name_mentioned=name_mentioned,
+                enlightenment=self.config.get('enlightenment', False)
+            )
+
+            # If LLM failed (returned None), skip response gracefully
+            if llm_result is None:
+                logger.warning(f"Agent {self.agent_id} LLM returned None - skipping response")
+                return None
+
+            # Extract response text, thinking, and mysticism penalty (if LLM supports thinking tags)
+            if isinstance(llm_result, dict):
+                response_text = llm_result.get('response')
+                thinking_content = llm_result.get('thinking')
+                mysticism_penalty = llm_result.get('mysticism_penalty', 0.0)
+            else:
+                # Backward compatibility: if llm_result is just a string
+                response_text = llm_result
+                thinking_content = None
+                mysticism_penalty = 0.0
+
+            # Apply mysticism surprise penalty (Kimi K2's Fix E: Alan Watts self-troll)
+            # High surprise → agent goes silent next time → naturally exits philosophy
+            if mysticism_penalty > 0:
+                original_surprise = state['surprise']
+                state['surprise'] = min(10.0, state['surprise'] + mysticism_penalty)
+                logger.info(f"[{self.agent_id}] Applied mysticism penalty: "
+                          f"{original_surprise:.3f} + {mysticism_penalty:.2f} = {state['surprise']:.3f}")
+
+            # If there was thinking content, store it as a rumination
+            if thinking_content:
+                identity_salience_thinking = self._score_identity_salience(thinking_content, state['surprise'])
+
+                self.conversation_context.append({
+                    'user': self.agent_id,
+                    'text': f"[thought] {thinking_content}",
+                    'affect': state.get('phenomenal_state')[:5].tolist() if hasattr(state.get('phenomenal_state'), 'tolist') else [0, 0, 0, 0, 0],
+                    'surprise': state['surprise'],
+                    'timestamp': time.time(),
+                    'identity_salience': identity_salience_thinking,
+                    'is_rumination': True
+                })
+
+                logger.info(f"Agent {self.agent_id} thinking (from LLM): {thinking_content[:100]}...")
+
+                # Log high-salience thinking
+                if identity_salience_thinking > 0.6:
+                    await self._log_to_noodlescope('llm_thinking', thinking_content[:80])
+
+            # If response text is None after extraction, skip
+            if response_text is None:
+                logger.warning(f"Agent {self.agent_id} LLM response text is None - skipping response")
+                return None
+
+            self.last_response_time = time.time()
+            self.response_count += 1
+
+            # Score identity salience for this response
+            identity_salience = self._score_identity_salience(response_text, state['surprise'])
+
+            # Store agent's own response in conversation context
+            self.conversation_context.append({
+                'user': self.agent_id,
+                'text': response_text,
+                'affect': state.get('phenomenal_state')[:5].tolist() if hasattr(state.get('phenomenal_state'), 'tolist') else [0, 0, 0, 0, 0],
+                'surprise': state['surprise'],
+                'timestamp': time.time(),
+                'identity_salience': identity_salience
+            })
+
+            logger.info(f"Agent {self.agent_id} responding (identity_salience={identity_salience:.2f}): {response_text}")
+
+            # Send to NoodleScope with identity salience
+            phenomenal_state_full = state.get('phenomenal_state', [])
+            await self._send_to_noodlescope(phenomenal_state_full, state['surprise'], identity_salience)
+
+            # Log high identity salience moments
+            if identity_salience > 0.6:
+                await self._log_to_noodlescope('high_salience', response_text[:80])
+
+            # Log name mention events
+            if name_mentioned:
+                await self._log_to_noodlescope('name_mentioned', f"Heard own name in context")
+
+            # Save state handled by periodic auto-save in AgentManager
+
+            # Parse actions from response text
+            # Format: :action_text or :action_text followed by speech
+            import re
+
+            # Extract all :action patterns
+            action_pattern = r':([^:\n]+)'
+            actions = re.findall(action_pattern, response_text)
+
+            # Remove action markers from text to get clean speech
+            clean_text = re.sub(action_pattern, '', response_text).strip()
+
+            # Build response
+            if actions and clean_text:
+                # Both action and speech - do action first, then say
+                action_text = ' '.join(actions)
+                logger.info(f"Agent {self.agent_id} parsed: action='{action_text}', speech='{clean_text}'")
+                return {
+                    'command': 'emote',  # Use emote for combined action+speech
+                    'text': f"{action_text} and says, \"{clean_text}\"",
+                    'metadata': {
+                        'surprise': float(state['surprise']),
+                        'response_number': self.response_count,
+                        'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'])
+                    }
+                }
+            elif actions:
+                # Pure action, no speech
+                action_text = ' '.join(actions)
+                logger.info(f"Agent {self.agent_id} parsed: pure action='{action_text}'")
+                return {
+                    'command': 'emote',
+                    'text': action_text,
+                    'metadata': {
+                        'surprise': float(state['surprise']),
+                        'response_number': self.response_count,
+                        'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'])
+                    }
+                }
+            else:
+                # Pure speech, no action
+                logger.info(f"Agent {self.agent_id} parsed: pure speech='{clean_text}'")
+                return {
+                    'command': 'say',
+                    'text': clean_text,
+                    'metadata': {
+                        'surprise': float(state['surprise']),
+                        'response_number': self.response_count,
+                        'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'])
+                    }
+                }
+
+        except Exception as e:
+            logger.error(f"Error generating response: {e}", exc_info=True)
+            # Return None to skip response - more graceful than error message
+            return None
+
+    async def _generate_rumination(self, state: Dict, is_being_addressed: bool = False,
+                                   is_question: bool = False) -> Dict:
+        """
+        Generate internal rumination (thought) when agent observes.
+        Ruminations are stored in episodic memory like speech.
+
+        Args:
+            state: Consilience state dict
+            is_being_addressed: Whether this message is directed at the agent
+            is_question: Whether this is a question in the conversation
+
+        Returns:
+            Thought dict for noodleMUSH (displayed in strikethrough)
+        """
+        try:
+            # Generate internal thought via LLM
+            thought_text = await self.llm.generate_rumination(
+                phenomenal_state=state,
+                conversation_context=self.conversation_context,
+                agent_name=self.agent_name,
+                agent_id=self.agent_id,
+                agent_description=self.agent_description,
+                identity_prompt=self.identity_prompt,
+                is_being_addressed=is_being_addressed,
+                is_question=is_question
+            )
+
+            # If LLM failed, return None
+            if thought_text is None:
+                return None
+
+            # Score identity salience (thoughts can be self-defining too)
+            identity_salience = self._score_identity_salience(thought_text, state['surprise'])
+
+            # STORE IN EPISODIC MEMORY - just like speech!
+            # This allows agents to remember their own thoughts and build on them
+            self.conversation_context.append({
+                'user': self.agent_id,
+                'text': f"[thought] {thought_text}",  # Prefix to distinguish from speech
+                'affect': state.get('phenomenal_state')[:5].tolist() if hasattr(state.get('phenomenal_state'), 'tolist') else [0, 0, 0, 0, 0],
+                'surprise': state['surprise'],
+                'timestamp': time.time(),
+                'identity_salience': identity_salience,
+                'is_rumination': True  # Flag for filtering if needed
+            })
+
+            # Log thought with salience
+            logger.info(f"Agent {self.agent_id} ruminating (identity_salience={identity_salience:.2f}): {thought_text}")
+
+            # Send to NoodleScope
+            phenomenal_state_full = state.get('phenomenal_state', [])
+            await self._send_to_noodlescope(phenomenal_state_full, state['surprise'], identity_salience)
+
+            # Log high identity salience thoughts
+            if identity_salience > 0.6:
+                await self._log_to_noodlescope('high_salience_thought', thought_text[:80])
+
+            # Save state handled by periodic auto-save in AgentManager
+
+            # Return as a "thought" command (displayed in strikethrough)
+            return {
+                'command': 'think',
+                'text': thought_text,
+                'metadata': {
+                    'surprise': float(state['surprise']),
+                    'identity_salience': float(identity_salience),
+                    'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'])
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Error generating rumination: {e}", exc_info=True)
+            return None
+
+    def get_phenomenal_state(self) -> Dict:
+        """
+        Get current phenomenal state (for @observe command).
+
+        Returns:
+            State dictionary
+        """
+        return self.consciousness.get_state()
+
+    def get_episodic_buffer(self) -> List[Dict]:
+        """
+        Get recent conversation history.
+
+        Returns:
+            Last 10 conversation entries
+        """
+        return self.conversation_context[-10:]
+
+    def get_relationships(self) -> Dict:
+        """
+        Get relationship models.
+
+        Returns:
+            Dictionary of relationships
+        """
+        return self.consciousness.get_relationships()
+
+    def save_state(self, state_dir: str):
+        """
+        Save agent state to disk.
+
+        Args:
+            state_dir: Directory for agent state
+        """
+        os.makedirs(state_dir, exist_ok=True)
+
+        # Sanitize conversation context for JSON serialization
+        # Convert any MLX/numpy arrays to lists
+        sanitized_context = []
+        for entry in self.conversation_context[-100:]:  # Keep last 100
+            sanitized_entry = dict(entry)  # Copy
+            # Convert affect arrays to lists
+            if 'affect' in sanitized_entry:
+                affect = sanitized_entry['affect']
+                if hasattr(affect, 'tolist'):
+                    sanitized_entry['affect'] = affect.tolist()
+                elif isinstance(affect, (list, tuple)):
+                    sanitized_entry['affect'] = list(affect)
+            sanitized_context.append(sanitized_entry)
+
+        # Save agent-specific state
+        agent_state = {
+            'agent_id': self.agent_id,
+            'agent_name': self.agent_name,
+            'agent_description': self.agent_description,
+            'current_room': self.current_room,
+            'conversation_context': sanitized_context,
+            'last_response_time': self.last_response_time,
+            'response_count': self.response_count,
+            'config': self.config
+        }
+
+        state_path = os.path.join(state_dir, 'agent_state.json')
+        try:
+            with open(state_path, 'w') as f:
+                json.dump(agent_state, f, indent=2)
+        except (TypeError, ValueError) as e:
+            logger.error(f"Failed to save agent state: {e}")
+            # Try saving without conversation context as fallback
+            agent_state_minimal = {
+                'agent_id': self.agent_id,
+                'agent_name': self.agent_name,
+                'agent_description': self.agent_description,
+                'current_room': self.current_room,
+                'conversation_context': [],
+                'last_response_time': self.last_response_time,
+                'response_count': self.response_count,
+                'config': {}
+            }
+            with open(state_path, 'w') as f:
+                json.dump(agent_state_minimal, f, indent=2)
+
+        # Save Consilience checkpoint
+        checkpoint_path = os.path.join(state_dir, 'checkpoint.npz')
+        self.consciousness.save_checkpoint(checkpoint_path)
+
+        logger.info(f"Agent state saved: {state_dir}")
+
+    def load_state(self, state_dir: str):
+        """
+        Load agent state from disk.
+
+        Args:
+            state_dir: Directory with agent state
+        """
+        # Load agent-specific state
+        state_path = os.path.join(state_dir, 'agent_state.json')
+        if os.path.exists(state_path):
+            with open(state_path, 'r') as f:
+                agent_state = json.load(f)
+
+            self.agent_name = agent_state.get('agent_name', self.agent_name)
+            self.agent_description = agent_state.get('agent_description', self.agent_description)
+            self.current_room = agent_state.get('current_room')
+            self.conversation_context = agent_state.get('conversation_context', [])
+            self.last_response_time = agent_state.get('last_response_time', 0.0)
+            self.response_count = agent_state.get('response_count', 0)
+            # Don't override config passed to __init__
+
+        # Load Consilience checkpoint
+        checkpoint_path = os.path.join(state_dir, 'checkpoint.npz')
+        if os.path.exists(checkpoint_path):
+            self.consciousness.load_checkpoint(checkpoint_path)
+
+        logger.info(f"Agent state loaded: {state_dir}")
+
+    def set_name(self, new_name: str):
+        """
+        Change the agent's display name.
+
+        Args:
+            new_name: New name for the agent
+        """
+        old_name = self.agent_name
+        self.agent_name = new_name
+        logger.info(f"Agent name changed: {old_name} -> {new_name}")
+
+    def set_description(self, new_description: str):
+        """
+        Change the agent's self-description.
+
+        Args:
+            new_description: New description text
+        """
+        self.agent_description = new_description
+        logger.info(f"Agent {self.agent_id} description updated")
+
+    def get_identity(self) -> Dict:
+        """
+        Get agent's identity information.
+
+        Returns:
+            Dictionary with agent_id, agent_name, and agent_description
+        """
+        return {
+            'agent_id': self.agent_id,
+            'agent_name': self.agent_name,
+            'agent_description': self.agent_description
+        }
+
+    def reset(self):
+        """Reset agent to initial state."""
+        self.consciousness.reset()
+        self.conversation_context = []
+        self.last_response_time = 0.0
+        self.response_count = 0
+        logger.info(f"Agent reset: {self.agent_id}")
+
+    async def start_cognition(self):
+        """Start autonomous cognition loop."""
+        if self.cognition_engine:
+            await self.cognition_engine.start()
+            logger.info(f"Started autonomous cognition for {self.agent_id}")
+
+    async def stop_cognition(self):
+        """Stop autonomous cognition loop."""
+        if self.cognition_engine:
+            await self.cognition_engine.stop()
+            logger.info(f"Stopped autonomous cognition for {self.agent_id}")
+
+    async def get_autonomous_events(self) -> List[Dict]:
+        """
+        Get pending autonomous events (spontaneous speech, etc.).
+
+        Returns:
+            List of event dicts for broadcasting
+        """
+        if self.cognition_engine:
+            return self.cognition_engine.get_pending_events()
+        return []
+
+    def shutdown(self):
+        """
+        Clean shutdown - save training data.
+
+        Call this when agent is being destroyed.
+        """
+        if self.training_collector:
+            self.training_collector.end_session()
+            logger.info(f"Training data saved for {self.agent_id}")
+
+    def get_stats(self) -> Dict:
+        """
+        Get agent statistics.
+
+        Returns:
+            Statistics dictionary
+        """
+        state = self.consciousness.get_state()
+
+        return {
+            'agent_id': self.agent_id,
+            'current_room': self.current_room,
+            'response_count': self.response_count,
+            'conversation_turns': len(self.conversation_context),
+            'last_surprise': state.get('surprise', 0.0),
+            'surprise_threshold': state.get('surprise_threshold', 0.3),
+            'memory_count': state.get('step', 0),
+            'time_since_last_response': time.time() - self.last_response_time
+        }
+
+    async def execute_command(self, command_parser, command_text: str) -> Optional[Dict]:
+        """
+        Allow agent to execute commands autonomously.
+
+        This gives agents access to the same tools as human users:
+        - Movement (north, south, etc.)
+        - Observation (look, inventory, who)
+        - Manipulation (take, drop)
+        - Building (@create, @dig, etc.)
+        - Social (@observe other agents, @relationship)
+
+        Args:
+            command_parser: CommandParser instance
+            command_text: Command to execute
+
+        Returns:
+            Command result dict or None
+        """
+        try:
+            logger.info(f"Agent {self.agent_id} executing command: {command_text}")
+            result = await command_parser.parse_and_execute(
+                user_id=self.agent_id,
+                command_text=command_text
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Error executing agent command: {e}", exc_info=True)
+            return None
+
+    # Phase 6: Appetite Architecture Methods
+
+    def stoke_appetite(self, appetite_name: str, amount: float):
+        """
+        Brenda's orchestration tool: Increase an appetite.
+
+        Args:
+            appetite_name: One of 8 appetites (curiosity, status, mastery, novelty,
+                          safety, social_bond, comfort, autonomy)
+            amount: How much to increase (0.0-1.0)
+
+        Raises:
+            RuntimeError: If Phase 6 not enabled
+        """
+        self.consciousness.stoke_appetite(appetite_name, amount)
+        logger.info(f"[{self.agent_id}] Appetite stoked: {appetite_name} +{amount:.2f}")
+
+    def sate_appetite(self, appetite_name: str, amount: float):
+        """
+        Satisfy/decrease an appetite (when goal is achieved).
+
+        Args:
+            appetite_name: One of 8 appetites
+            amount: How much to decrease (0.0-1.0)
+
+        Raises:
+            RuntimeError: If Phase 6 not enabled
+        """
+        self.consciousness.sate_appetite(appetite_name, amount)
+        logger.info(f"[{self.agent_id}] Appetite sated: {appetite_name} -{amount:.2f}")
+
+    def get_appetites(self) -> Dict[str, float]:
+        """
+        Get current appetite levels.
+
+        Returns:
+            Dict mapping appetite names to values (0-1), or empty dict if Phase 6 not enabled
+        """
+        return self.consciousness.get_appetites()
+
+    def override_goal(self, goal_name: str, strength: float):
+        """
+        Brenda's orchestration tool: Override a goal's activation.
+
+        Args:
+            goal_name: One of 16 goal names (explore_environment, seek_social_connection,
+                      demonstrate_competence, pursue_novelty, ensure_safety, gain_status,
+                      seek_comfort, maintain_autonomy, help_friend, avoid_consequences,
+                      restore_reputation, learn_skill, impress_others, solve_problem,
+                      express_emotion, achieve_goal)
+            strength: Goal activation strength (0.0-1.0)
+
+        Raises:
+            RuntimeError: If Phase 6 not enabled
+        """
+        self.consciousness.override_goal(goal_name, strength)
+        logger.info(f"[{self.agent_id}] Goal overridden: {goal_name} = {strength:.2f}")
+
+    def set_goal_bias(self, goal_name: str, bias: float):
+        """
+        Brenda's orchestration tool: Add a persistent bias to goal generation.
+
+        Args:
+            goal_name: One of 16 goal names
+            bias: Amount to add to goal activation (-1.0 to 1.0)
+
+        Raises:
+            RuntimeError: If Phase 6 not enabled
+        """
+        self.consciousness.set_goal_bias(goal_name, bias)
+        logger.info(f"[{self.agent_id}] Goal bias set: {goal_name} {bias:+.2f}")
+
+    def clear_goal_overrides(self, goal_name: Optional[str] = None):
+        """
+        Brenda's orchestration tool: Clear goal overrides.
+
+        Args:
+            goal_name: Specific goal to clear, or None to clear all
+
+        Raises:
+            RuntimeError: If Phase 6 not enabled
+        """
+        self.consciousness.clear_goal_overrides(goal_name)
+        if goal_name:
+            logger.info(f"[{self.agent_id}] Cleared goal override: {goal_name}")
+        else:
+            logger.info(f"[{self.agent_id}] Cleared all goal overrides")
+
+    def clear_goal_biases(self, goal_name: Optional[str] = None):
+        """
+        Brenda's orchestration tool: Clear goal biases.
+
+        Args:
+            goal_name: Specific goal to clear, or None to clear all
+
+        Raises:
+            RuntimeError: If Phase 6 not enabled
+        """
+        self.consciousness.clear_goal_biases(goal_name)
+        if goal_name:
+            logger.info(f"[{self.agent_id}] Cleared goal bias: {goal_name}")
+        else:
+            logger.info(f"[{self.agent_id}] Cleared all goal biases")
+
+    def get_goal_overrides(self) -> Dict[str, float]:
+        """
+        Get current goal overrides.
+
+        Returns:
+            Dict mapping goal names to override strengths (0-1)
+        """
+        return self.consciousness.get_goal_overrides()
+
+    def get_goal_biases(self) -> Dict[str, float]:
+        """
+        Get current goal biases.
+
+        Returns:
+            Dict mapping goal names to biases (-1 to 1)
+        """
+        return self.consciousness.get_goal_biases()
+
+
+class AgentManager:
+    """
+    Manages multiple CMUSHConsilienceAgent instances.
+
+    Handles:
+    - Agent creation and lifecycle
+    - Event broadcasting to relevant agents
+    - Periodic state saving
+    """
+
+    def __init__(self, llm: OpenAICompatibleLLM, world, global_config: Dict = None):
+        """
+        Initialize agent manager.
+
+        Args:
+            llm: LLM interface (shared across agents)
+            world: World state manager
+            global_config: Global configuration (for personality traits, etc.)
+        """
+        self.llm = llm
+        self.world = world
+        self.global_config = global_config or {}
+        self.agents: Dict[str, CMUSHConsilienceAgent] = {}
+
+        logger.info("AgentManager initialized")
+
+    async def create_agent(
+        self,
+        agent_id: str,
+        checkpoint_path: str,
+        spawn_room: str,
+        config: Optional[Dict] = None,
+        agent_name: str = None,
+        agent_description: str = None
+    ) -> CMUSHConsilienceAgent:
+        """
+        Create and initialize a new agent.
+
+        Args:
+            agent_id: Unique identifier
+            checkpoint_path: Path to Phase 4 checkpoint
+            spawn_room: Initial room
+            config: Agent configuration
+            agent_name: Display name for the agent
+            agent_description: Agent's self-description
+
+        Returns:
+            Agent instance
+        """
+        if agent_id in self.agents:
+            logger.warning(f"Agent already exists: {agent_id}")
+            return self.agents[agent_id]
+
+        # Merge global config with agent-specific config
+        agent_config = {
+            'response_cooldown': 2.0,
+            'surprise_threshold': 0.0001,  # Low threshold for untrained model
+            'memory_capacity': 100,
+            'max_agents': 10
+        }
+
+        # Add global agent settings
+        if 'agent' in self.global_config:
+            global_agent = self.global_config['agent']
+            # Merge cognition, filesystem, messaging, personality, and appetite settings
+            for key in ['autonomous_cognition', 'filesystem', 'messaging', 'personalities', 'appetites',
+                       'rumination_frequency', 'addressed_speech_chance', 'question_speech_chance', 'unaddressed_speech_chance']:
+                if key in global_agent:
+                    agent_config[key] = global_agent[key]
+
+        # Override with agent-specific config
+        if config:
+            agent_config.update(config)
+
+        # Create agent
+        agent = CMUSHConsilienceAgent(
+            agent_id=agent_id,
+            checkpoint_path=checkpoint_path,
+            llm=self.llm,
+            config=agent_config,
+            agent_name=agent_name,
+            agent_description=agent_description
+        )
+
+        agent.current_room = spawn_room
+
+        # Try to load existing state
+        state_dir = self.world.get_agent_state_path(agent_id)
+        if os.path.exists(os.path.join(state_dir, 'agent_state.json')):
+            agent.load_state(state_dir)
+
+        self.agents[agent_id] = agent
+
+        # Start autonomous cognition
+        await agent.start_cognition()
+
+        logger.info(f"Agent created: {agent_id} in {spawn_room}")
+        return agent
+
+    async def remove_agent(self, agent_id: str, delete_state: bool = False):
+        """
+        Remove an agent from the manager.
+
+        Args:
+            agent_id: Agent to remove
+            delete_state: If True, delete saved state files (default: False)
+        """
+        if agent_id not in self.agents:
+            logger.warning(f"Agent not found for removal: {agent_id}")
+            return
+
+        agent = self.agents[agent_id]
+
+        # Stop autonomous cognition
+        await agent.stop_cognition()
+
+        # Flush training data
+        agent.shutdown()
+
+        # Remove from tracking
+        del self.agents[agent_id]
+
+        # Optionally delete state files
+        if delete_state:
+            import shutil
+            state_dir = self.world.get_agent_state_path(agent_id)
+            if os.path.exists(state_dir):
+                shutil.rmtree(state_dir)
+                logger.info(f"Deleted state directory: {state_dir}")
+
+        logger.info(f"Agent removed: {agent_id}")
+
+    async def broadcast_event(self, event: Dict) -> List[Dict]:
+        """
+        Broadcast event to all agents in the same room.
+
+        Args:
+            event: Event to broadcast
+
+        Returns:
+            List of agent responses
+        """
+        room_id = event.get('room')
+        if not room_id:
+            return []
+
+        responses = []
+
+        # Find agents in the room
+        for agent_id, agent in self.agents.items():
+            if agent.current_room == room_id:
+                response = await agent.perceive_event(event)
+                if response:
+                    response['agent_id'] = agent_id
+                    responses.append(response)
+
+        return responses
+
+    def get_agent(self, agent_id: str) -> Optional[CMUSHConsilienceAgent]:
+        """Get agent by ID. Accepts both 'servnak' and 'agent_servnak' formats."""
+        # Try the name as-is first
+        agent = self.agents.get(agent_id)
+        if agent:
+            return agent
+
+        # If not found, try with 'agent_' prefix
+        if not agent_id.startswith('agent_'):
+            agent = self.agents.get(f'agent_{agent_id}')
+            if agent:
+                return agent
+
+        # If still not found and it has 'agent_' prefix, try without it
+        if agent_id.startswith('agent_'):
+            agent = self.agents.get(agent_id[6:])  # Remove 'agent_' prefix
+            if agent:
+                return agent
+
+        return None
+
+    async def check_autonomous_events(self) -> List[Dict]:
+        """
+        Check all agents for autonomous events (spontaneous speech, etc.).
+
+        Returns:
+            List of event dicts for broadcasting
+        """
+        events = []
+        for agent_id, agent in self.agents.items():
+            agent_events = await agent.get_autonomous_events()
+            events.extend(agent_events)
+
+        return events
+
+    async def save_all_agents(self, stop_cognition: bool = False):
+        """
+        Save state for all agents.
+
+        Args:
+            stop_cognition: If True, stop cognition loops (for shutdown)
+        """
+        for agent_id, agent in self.agents.items():
+            # Only stop cognition if requested (shutdown scenario)
+            if stop_cognition:
+                await agent.stop_cognition()
+
+            # Save state
+            state_dir = self.world.get_agent_state_path(agent_id)
+            agent.save_state(state_dir)
+
+            # Only shutdown training if stopping cognition
+            if stop_cognition:
+                agent.shutdown()  # Flush training data to disk
+
+        logger.info(f"Saved {len(self.agents)} agent states")
+
+    def get_stats(self) -> Dict:
+        """Get statistics for all agents."""
+        return {
+            agent_id: agent.get_stats()
+            for agent_id, agent in self.agents.items()
+        }

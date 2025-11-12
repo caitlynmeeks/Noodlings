@@ -1,0 +1,22 @@
+{
+  "agent_toad": {
+    "uid": "agent_toad",
+    "name": "toad",
+    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "current_room": "room_000",
+    "inventory": [],
+    "config": {},
+    "created": "2025-11-11T20:24:16.851202",
+    "last_active": "2025-11-11T20:24:16.851229"
+  },
+  "agent_phi": {
+    "uid": "agent_phi",
+    "name": "phi",
+    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "current_room": "room_000",
+    "inventory": [],
+    "config": {},
+    "created": "2025-11-11T20:33:05.005896",
+    "last_active": "2025-11-11T20:33:05.005913"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "room_000": {
+    "uid": "room_000",
+    "name": "The Nexus",
+    "description": "A cozy campfire with crackling logs, little sparks drifting up into the sky, soft moss underfoot.",
+    "exits": {
+      "north": "room_001",
+      "east": "room_002"
+    },
+    "objects": [],
+    "occupants": [
+      "user_caitlyn",
+      "user_caity",
+      "agent_toad",
+      "agent_phi"
+    ],
+    "owner": "system",
+    "created": "2025-10-26T13:51:25.550264"
+  },
+  "room_001": {
+    "uid": "room_001",
+    "name": "The Observatory",
+    "description": "A quiet space with transparent walls revealing the vast digital expanse beyond. Constellations of data flow past like stars.",
+    "exits": {
+      "south": "room_000"
+    },
+    "objects": [],
+    "occupants": [],
+    "owner": "system",
+    "created": "2025-10-26T13:51:25.550269"
+  },
+  "room_002": {
+    "uid": "room_002",
+    "name": "The Garden of Forking Paths",
+    "description": "Multiple corridors branch off in impossible directions. Each path seems to lead somewhere different every time you look.",
+    "exits": {
+      "west": "room_000"
+    },
+    "objects": [],
+    "occupants": [],
+    "owner": "system",
+    "created": "2025-10-26T13:51:25.550271"
+  }
+}

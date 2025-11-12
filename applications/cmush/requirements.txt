@@ -1,0 +1,5 @@
+websockets>=12.0
+aiohttp>=3.9.0
+pyyaml>=6.0
+mlx>=0.0.10
+numpy>=1.24.0

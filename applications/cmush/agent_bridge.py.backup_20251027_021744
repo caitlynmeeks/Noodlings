@@ -1,0 +1,483 @@
+"""
+Agent Bridge - Consilience consciousness <-> cMUSH world adapter
+
+Bridges between:
+- cMUSH events (say, emote, enter, exit)
+- Consilience consciousness architecture
+- LLM text generation
+
+Handles:
+- Event perception and affect extraction
+- Agent response generation
+- State persistence
+- Conversation context tracking
+
+Author: cMUSH Project
+Date: October 2025
+"""
+
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../consilience_core'))
+
+from typing import Dict, List, Optional
+import time
+import json
+import logging
+
+from consilience_core.api import ConsilienceAgent
+from llm_interface import OpenAICompatibleLLM
+
+logger = logging.getLogger(__name__)
+
+
+class CMUSHConsilienceAgent:
+    """
+    Adapter: Consilience consciousness <-> cMUSH world.
+
+    Integrates:
+    - Consilience Phase 4 consciousness
+    - LLM for text <-> affect translation
+    - cMUSH world events and responses
+    """
+
+    def __init__(
+        self,
+        agent_id: str,
+        checkpoint_path: str,
+        llm: OpenAICompatibleLLM,
+        config: Dict
+    ):
+        """
+        Initialize cMUSH Consilience agent.
+
+        Args:
+            agent_id: Unique agent identifier
+            checkpoint_path: Path to Phase 4 checkpoint
+            llm: LLM interface for text generation
+            config: Configuration dict with:
+                - response_cooldown: Min seconds between responses
+                - surprise_threshold: Response trigger threshold
+                - memory_capacity: Episodic memory size
+        """
+        self.agent_id = agent_id
+        self.llm = llm
+        self.config = config
+
+        # Initialize Consilience consciousness
+        self.consciousness = ConsilienceAgent(
+            checkpoint_path=checkpoint_path,
+            config={
+                'memory_capacity': config.get('memory_capacity', 100),
+                'surprise_threshold': config.get('surprise_threshold', 0.3),
+                'use_vae': config.get('use_vae', False),
+                'max_agents': config.get('max_agents', 10)
+            }
+        )
+
+        # cMUSH-specific state
+        self.current_room = None
+        self.conversation_context = []
+        self.last_response_time = 0.0
+        self.response_count = 0
+
+        logger.info(f"Agent initialized: {agent_id}")
+
+    async def perceive_event(self, event: Dict) -> Optional[Dict]:
+        """
+        Process cMUSH event -> Consilience -> optional response.
+
+        Args:
+            event: Dictionary with:
+                - type: 'say' | 'emote' | 'enter' | 'exit'
+                - user: User/agent ID
+                - text: Text content (for say/emote)
+                - room: Room ID
+
+        Returns:
+            None or response dict:
+                {
+                    'command': 'say' | 'emote',
+                    'text': '...',
+                    'metadata': {...}
+                }
+        """
+        event_type = event.get('type')
+        user_id = event.get('user')
+        text = event.get('text', '')
+        room_id = event.get('room')
+
+        # Skip if not a perceivable event
+        if event_type not in ['say', 'emote', 'enter', 'exit']:
+            logger.debug(f"Skipping non-perceivable event: {event_type}")
+            return None
+
+        # Skip if self-action
+        if user_id == self.agent_id:
+            return None
+
+        # Agents can now perceive other agents
+        is_agent = user_id.startswith('agent_')
+
+        logger.info(f"Agent {self.agent_id} perceiving: {event_type} from {user_id}: {text}")
+
+        try:
+            # 1. Text -> Affect (via LLM)
+            context = [c['text'] for c in self.conversation_context[-3:]]
+            affect = await self.llm.text_to_affect(text, context)
+
+            logger.debug(f"Extracted affect: {affect}")
+
+            # 2. Affect -> Consilience state
+            state = self.consciousness.perceive(
+                affect_vector=affect,
+                agent_id=user_id,
+                user_text=text,
+                present_agents=[user_id]
+            )
+
+            # 3. Store context
+            self.conversation_context.append({
+                'user': user_id,
+                'text': text,
+                'affect': affect,
+                'surprise': state['surprise'],
+                'timestamp': time.time()
+            })
+
+            # Trim context
+            if len(self.conversation_context) > 20:
+                self.conversation_context = self.conversation_context[-20:]
+
+            logger.debug(f"Surprise: {state['surprise']:.3f} (threshold: {state['surprise_threshold']:.3f})")
+
+            # 4. Decide whether to respond
+            cooldown = self.config.get('response_cooldown', 2.0)
+            time_since_last = time.time() - self.last_response_time
+
+            should_respond = state['should_respond'] and time_since_last >= cooldown
+
+            if should_respond:
+                logger.info(f"Agent {self.agent_id} triggering response (surprise > threshold)")
+                return await self._generate_response(user_id, state)
+            else:
+                logger.debug(f"Agent not responding (should_respond={state['should_respond']}, cooldown={time_since_last:.1f}s)")
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error in perceive_event: {e}", exc_info=True)
+            return None
+
+    async def _generate_response(self, target_user: str, state: Dict) -> Dict:
+        """
+        Generate response based on phenomenal state.
+
+        Args:
+            target_user: User being responded to
+            state: Consilience state dict
+
+        Returns:
+            Response dict for cMUSH
+        """
+        try:
+            # Get relationship model
+            relationships = state.get('relationships', {})
+            relationship = relationships.get(target_user, {
+                'attachment_style': 'forming',
+                'interaction_count': 0,
+                'valence': 0.0
+            })
+
+            # Generate text via LLM
+            response_text = await self.llm.generate_response(
+                phenomenal_state=state,
+                target_user=target_user,
+                conversation_context=self.conversation_context,
+                relationship=relationship
+            )
+
+            self.last_response_time = time.time()
+            self.response_count += 1
+
+            logger.info(f"Agent {self.agent_id} responding: {response_text}")
+
+            return {
+                'command': 'say',
+                'text': response_text,
+                'metadata': {
+                    'surprise': float(state['surprise']),
+                    'response_number': self.response_count,
+                    'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'])
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Error generating response: {e}", exc_info=True)
+            return {
+                'command': 'say',
+                'text': "I'm experiencing some processing difficulty right now.",
+                'metadata': {'error': str(e)}
+            }
+
+    def get_phenomenal_state(self) -> Dict:
+        """
+        Get current phenomenal state (for @observe command).
+
+        Returns:
+            State dictionary
+        """
+        return self.consciousness.get_state()
+
+    def get_episodic_buffer(self) -> List[Dict]:
+        """
+        Get recent conversation history.
+
+        Returns:
+            Last 10 conversation entries
+        """
+        return self.conversation_context[-10:]
+
+    def get_relationships(self) -> Dict:
+        """
+        Get relationship models.
+
+        Returns:
+            Dictionary of relationships
+        """
+        return self.consciousness.get_relationships()
+
+    def save_state(self, state_dir: str):
+        """
+        Save agent state to disk.
+
+        Args:
+            state_dir: Directory for agent state
+        """
+        os.makedirs(state_dir, exist_ok=True)
+
+        # Save agent-specific state
+        agent_state = {
+            'agent_id': self.agent_id,
+            'current_room': self.current_room,
+            'conversation_context': self.conversation_context[-100:],  # Keep last 100
+            'last_response_time': self.last_response_time,
+            'response_count': self.response_count,
+            'config': self.config
+        }
+
+        state_path = os.path.join(state_dir, 'agent_state.json')
+        with open(state_path, 'w') as f:
+            json.dump(agent_state, f, indent=2)
+
+        # Save Consilience checkpoint
+        checkpoint_path = os.path.join(state_dir, 'checkpoint.npz')
+        self.consciousness.save_checkpoint(checkpoint_path)
+
+        logger.info(f"Agent state saved: {state_dir}")
+
+    def load_state(self, state_dir: str):
+        """
+        Load agent state from disk.
+
+        Args:
+            state_dir: Directory with agent state
+        """
+        # Load agent-specific state
+        state_path = os.path.join(state_dir, 'agent_state.json')
+        if os.path.exists(state_path):
+            with open(state_path, 'r') as f:
+                agent_state = json.load(f)
+
+            self.current_room = agent_state.get('current_room')
+            self.conversation_context = agent_state.get('conversation_context', [])
+            self.last_response_time = agent_state.get('last_response_time', 0.0)
+            self.response_count = agent_state.get('response_count', 0)
+            # Don't override config passed to __init__
+
+        # Load Consilience checkpoint
+        checkpoint_path = os.path.join(state_dir, 'checkpoint.npz')
+        if os.path.exists(checkpoint_path):
+            self.consciousness.load_checkpoint(checkpoint_path)
+
+        logger.info(f"Agent state loaded: {state_dir}")
+
+    def reset(self):
+        """Reset agent to initial state."""
+        self.consciousness.reset()
+        self.conversation_context = []
+        self.last_response_time = 0.0
+        self.response_count = 0
+        logger.info(f"Agent reset: {self.agent_id}")
+
+    def get_stats(self) -> Dict:
+        """
+        Get agent statistics.
+
+        Returns:
+            Statistics dictionary
+        """
+        state = self.consciousness.get_state()
+
+        return {
+            'agent_id': self.agent_id,
+            'current_room': self.current_room,
+            'response_count': self.response_count,
+            'conversation_turns': len(self.conversation_context),
+            'last_surprise': state.get('surprise', 0.0),
+            'surprise_threshold': state.get('surprise_threshold', 0.3),
+            'memory_count': state.get('step', 0),
+            'time_since_last_response': time.time() - self.last_response_time
+        }
+
+    async def execute_command(self, command_parser, command_text: str) -> Optional[Dict]:
+        """
+        Allow agent to execute commands autonomously.
+
+        This gives agents access to the same tools as human users:
+        - Movement (north, south, etc.)
+        - Observation (look, inventory, who)
+        - Manipulation (take, drop)
+        - Building (@create, @dig, etc.)
+        - Social (@observe other agents, @relationship)
+
+        Args:
+            command_parser: CommandParser instance
+            command_text: Command to execute
+
+        Returns:
+            Command result dict or None
+        """
+        try:
+            logger.info(f"Agent {self.agent_id} executing command: {command_text}")
+            result = await command_parser.parse_and_execute(
+                user_id=self.agent_id,
+                command_text=command_text
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Error executing agent command: {e}", exc_info=True)
+            return None
+
+
+class AgentManager:
+    """
+    Manages multiple CMUSHConsilienceAgent instances.
+
+    Handles:
+    - Agent creation and lifecycle
+    - Event broadcasting to relevant agents
+    - Periodic state saving
+    """
+
+    def __init__(self, llm: OpenAICompatibleLLM, world):
+        """
+        Initialize agent manager.
+
+        Args:
+            llm: LLM interface (shared across agents)
+            world: World state manager
+        """
+        self.llm = llm
+        self.world = world
+        self.agents: Dict[str, CMUSHConsilienceAgent] = {}
+
+        logger.info("AgentManager initialized")
+
+    async def create_agent(
+        self,
+        agent_id: str,
+        checkpoint_path: str,
+        spawn_room: str,
+        config: Optional[Dict] = None
+    ) -> CMUSHConsilienceAgent:
+        """
+        Create and initialize a new agent.
+
+        Args:
+            agent_id: Unique identifier
+            checkpoint_path: Path to Phase 4 checkpoint
+            spawn_room: Initial room
+            config: Agent configuration
+
+        Returns:
+            Agent instance
+        """
+        if agent_id in self.agents:
+            logger.warning(f"Agent already exists: {agent_id}")
+            return self.agents[agent_id]
+
+        # Default config
+        agent_config = {
+            'response_cooldown': 2.0,
+            'surprise_threshold': 0.0001,  # Low threshold for untrained model
+            'memory_capacity': 100,
+            'max_agents': 10
+        }
+        if config:
+            agent_config.update(config)
+
+        # Create agent
+        agent = CMUSHConsilienceAgent(
+            agent_id=agent_id,
+            checkpoint_path=checkpoint_path,
+            llm=self.llm,
+            config=agent_config
+        )
+
+        agent.current_room = spawn_room
+
+        # Try to load existing state
+        state_dir = self.world.get_agent_state_path(agent_id)
+        if os.path.exists(os.path.join(state_dir, 'agent_state.json')):
+            agent.load_state(state_dir)
+
+        self.agents[agent_id] = agent
+
+        logger.info(f"Agent created: {agent_id} in {spawn_room}")
+        return agent
+
+    async def broadcast_event(self, event: Dict) -> List[Dict]:
+        """
+        Broadcast event to all agents in the same room.
+
+        Args:
+            event: Event to broadcast
+
+        Returns:
+            List of agent responses
+        """
+        room_id = event.get('room')
+        if not room_id:
+            return []
+
+        responses = []
+
+        # Find agents in the room
+        for agent_id, agent in self.agents.items():
+            if agent.current_room == room_id:
+                response = await agent.perceive_event(event)
+                if response:
+                    response['agent_id'] = agent_id
+                    responses.append(response)
+
+        return responses
+
+    def get_agent(self, agent_id: str) -> Optional[CMUSHConsilienceAgent]:
+        """Get agent by ID."""
+        return self.agents.get(agent_id)
+
+    def save_all_agents(self):
+        """Save state for all agents."""
+        for agent_id, agent in self.agents.items():
+            state_dir = self.world.get_agent_state_path(agent_id)
+            agent.save_state(state_dir)
+
+        logger.info(f"Saved {len(self.agents)} agent states")
+
+    def get_stats(self) -> Dict:
+        """Get statistics for all agents."""
+        return {
+            agent_id: agent.get_stats()
+            for agent_id, agent in self.agents.items()
+        }
