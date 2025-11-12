@@ -1,7 +1,8 @@
 # A Noodle is All You Need: Theatrical Control of Multi-Timescale Affective Architectures
 
 **Caitlyn Meeks**
-Independent Research
+Researcher at Noodlings.ai
+caitlyn.meeks@noodlings.ai
 November 2025
 
 ---
@@ -590,8 +591,8 @@ Full play: 233 lines, 3 scenes, 24 beats, generated from 87-word natural languag
 
 ---
 
-**Repository**: https://github.com/[your-username]/noodlings
-**Demo Video**: [Link to motor-sled-boat demonstration]
-**Contact**: [Your email]
+**Repository**: https://github.com/caitlynmeeks/Noodlings
 
-*Noodlings: Using their noodle since 2025*
+**Support this research**: Bitcoin donations at `3MVEd1RdvEXQGgo1EdzrVnvTS7pUuTZ2J5`
+
+*This project is dedicated to Roger Ferragallo.*
