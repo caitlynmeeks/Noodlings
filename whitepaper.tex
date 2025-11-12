@@ -1,0 +1,464 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{A Noodle is All You Need: Theatrical Control of Multi-Timescale Affective Architectures}
+\author{Caitlyn Meeks\\Independent Research}
+\date{November 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present \textbf{Noodlings}, a hierarchical temporal affective architecture with approximately 97K parameters implementing predictive processing through multi-timescale learning with appetite-driven motivation, and \textbf{BRENDA} (Behavioral Regulation Engine for Narrative-Driven Agents), a theatrical control protocol that converts natural language into structured narrative events. We demonstrate that narrative events—generated from free-form text and executed with microsecond timing precision—become phenomenal experiences that shape agent behavior across fast (seconds), medium (minutes), and slow (hours/days) timescales.
+
+In a proof-of-concept demonstration, agents built a motor-sled-boat, crashed it into a hedge, hugged after rebuilding, and carried that hug forward in their temporal dynamics. The scripted event ``Hugs phi tightly'' altered the agents' 40-dimensional phenomenal state, influencing subsequent surprise metrics, affective predictions, and relationship modeling. This work establishes narrative control as a viable interface for consciousness architectures and proposes theatrical choreography as a primitive for procedural storytelling with temporally-grounded agents.
+
+\textbf{Key Contribution}: We show that multi-timescale architectures respond to narrative events as lived experiences, not mere stimulus-response pairs, and that theatrical timing can orchestrate phenomenal state trajectories.
+\end{abstract}
+
+\section{Introduction}
+
+\subsection{The Problem: Interfacing with Temporal Consciousness}
+
+Traditional language models lack temporal dynamics. Each response is stateless or depends on finite context windows. In contrast, biological consciousness operates across multiple timescales: seconds (affective reactions), minutes (conversational flow), hours/days (personality, relationships).
+
+\textbf{Research Question}: Can we build agents with hierarchical temporal dynamics that respond to narrative events as phenomenal experiences, and can we control those experiences through structured theatrical choreography?
+
+\subsection{Epistemic Humility}
+
+We make no claims about ``real'' consciousness, qualia, or solving the hard problem. \textbf{Noodlings} are experimental architectures exploring whether multi-timescale temporal structure, predictive processing, appetite-driven motivation, and surprise minimization produce functionally different behavior than simpler alternatives. We call them ``Noodlings'' because they use their noodle—and to maintain humility about what we're building. We measure behavioral correlates, not metaphysical properties.
+
+\subsection{Contributions}
+
+\begin{enumerate}
+\item \textbf{Noodlings Architecture}: $\sim$97K-parameter hierarchical temporal model with appetite-driven motivation
+\item \textbf{BRENDA Protocol}: Natural language $\rightarrow$ JSON plays $\rightarrow$ timed narrative events
+\item \textbf{Demonstration}: Agents responding to scripted events with genuine multi-timescale behavioral changes
+\item \textbf{Insight}: Theatrical control as an interface primitive for temporally-grounded agent architectures
+\end{enumerate}
+
+\section{Architecture}
+
+\subsection{Noodlings: Multi-Timescale Affective Architecture}
+
+The Noodlings architecture implements three recurrent layers processing at different timescales, augmented with an appetite system for goal-directed behavior:
+
+\paragraph{Fast Layer (LSTM, 16-D hidden state)}
+\begin{itemize}
+\item \textbf{Input}: 5-D affect vector (valence, arousal, fear, sorrow, boredom)
+\item \textbf{Timescale}: Seconds (immediate affective reactions)
+\item \textbf{Learning Rate}: $1 \times 10^{-3}$ (high for rapid adaptation)
+\item \textbf{Parameters}: $\sim$1,408
+\end{itemize}
+
+\paragraph{Medium Layer (LSTM, 16-D hidden state)}
+\begin{itemize}
+\item \textbf{Input}: Fast layer hidden state
+\item \textbf{Timescale}: Minutes (conversational dynamics)
+\item \textbf{Learning Rate}: $5 \times 10^{-4}$ (moderate for contextual balance)
+\item \textbf{Parameters}: $\sim$2,112
+\end{itemize}
+
+\paragraph{Slow Layer (GRU, 8-D hidden state)}
+\begin{itemize}
+\item \textbf{Input}: Medium layer hidden state
+\item \textbf{Timescale}: Hours/days (personality, relationships)
+\item \textbf{Learning Rate}: $1 \times 10^{-4}$ (low for stability)
+\item \textbf{Parameters}: $\sim$600
+\end{itemize}
+
+\paragraph{Predictor Network (MLP)}
+\begin{itemize}
+\item \textbf{Architecture}: $\text{joint\_dim} \rightarrow 64 \text{ (ReLU)} \rightarrow 40$ (full phenomenal state)
+\item \textbf{Output}: Predicted next state (16+16+8 dimensions)
+\item \textbf{Surprise Metric}: $L_2$ distance between predicted and actual states
+\item \textbf{Parameters}: $\sim$3,664
+\end{itemize}
+
+\paragraph{Appetite Layer (Phase 6)}
+\begin{itemize}
+\item \textbf{Appetites}: 8 core drives (curiosity, status, mastery, novelty, safety, social\_bond, comfort, autonomy)
+\item \textbf{Goals}: 16 goal types generated from appetite states
+\item \textbf{Function}: Generate motivated, goal-directed behavior
+\item \textbf{Parameters}: $\sim$1,500
+\end{itemize}
+
+\paragraph{Social Cognition (Phase 4)}
+\begin{itemize}
+\item \textbf{Theory of Mind}: Infer other agents' phenomenal states
+\item \textbf{Relationship Models}: Track affiliation, trust, interaction history
+\item \textbf{Episodic Memory}: 6-head attention over memory buffer
+\item \textbf{Parameters}: $\sim$62,500
+\end{itemize}
+
+\textbf{Total Parameters}: $\sim$97,000
+
+\textbf{Phenomenal State}: 40-dimensional vector (fast + medium + slow concatenated)
+
+\subsection{Training Protocol}
+
+\begin{itemize}
+\item \textbf{Full BPTT}: No truncation (leveraging 512GB RAM for complete conversation history)
+\item \textbf{Layer-specific learning rates}: Different timescales require different adaptation speeds
+\item \textbf{Gradient clipping}: $\text{max\_norm}=1.0$ to prevent LSTM gradient explosion
+\item \textbf{Surprise-driven speech}: Agents speak when $\text{surprise} > \text{SPEAK\_THRESH} \times \text{std}(\text{surprise\_buffer})$
+\item \textbf{Adaptive thresholding}: Context-aware speech triggering
+\end{itemize}
+
+\subsection{Affective Processing}
+
+\textbf{5-D continuous affect space}:
+\begin{itemize}
+\item \texttt{valence}: $[-1.0, 1.0]$ negative to positive
+\item \texttt{arousal}: $[0.0, 1.0]$ calm to excited
+\item \texttt{fear}: $[0.0, 1.0]$ safe to anxious
+\item \texttt{sorrow}: $[0.0, 1.0]$ content to sad
+\item \texttt{boredom}: $[0.0, 1.0]$ engaged to bored
+\end{itemize}
+
+Affect vectors are extracted from text via LLM and fed to the fast layer, creating immediate phenomenal state changes that ripple through medium and slow layers.
+
+\section{BRENDA: Theatrical Control Protocol}
+
+\subsection{Architecture}
+
+\textbf{BRENDA}\footnote{Named after Brenda Laurel, pioneer of interactive narrative and drama-based interfaces (author of \textit{Computers as Theatre}), who mentored the author at Purple Moon / Interval Research.} (Behavioral Regulation Engine for Narrative-Driven Agents) converts natural language into structured theatrical performances:
+
+\begin{verbatim}
+Natural Language Prompt
+         ↓
+    LLM (Playwright)
+         ↓
+    JSON Play (Structured Narrative)
+         ↓
+    Play Manager (Conductor)
+         ↓
+    Timed Beats (Microsecond Precision)
+         ↓
+    Agent Actions (Phenomenal State Changes)
+\end{verbatim}
+
+\subsection{Play Structure}
+
+A play consists of:
+\begin{itemize}
+\item \textbf{Title}: Human-readable identifier
+\item \textbf{Cast}: List of agent IDs
+\item \textbf{Scenes}: Sequentially triggered narrative segments
+\end{itemize}
+
+Each scene has:
+\begin{itemize}
+\item \textbf{ID}: Numeric identifier
+\item \textbf{Name}: Scene title
+\item \textbf{Trigger}: How the scene starts (manual, chat keyword, timer, room-enter)
+\item \textbf{Beats}: Timed action sequence
+\end{itemize}
+
+Each beat has:
+\begin{itemize}
+\item \textbf{t}: Time offset in seconds from scene start
+\item \textbf{action}: Action type (bias, warp, say, emote, create\_prop, create\_npc, destroy, timer)
+\item \textbf{actor}: Agent performing action (or \texttt{<player>})
+\item \textbf{target}: Object/agent affected (optional)
+\item \textbf{args}: Action-specific parameters
+\end{itemize}
+
+\subsection{Action Types}
+
+\begin{enumerate}
+\item \textbf{bias}: Modify agent's appetite/goal weights
+\item \textbf{warp}: Teleport agent to room
+\item \textbf{say}: Agent speaks dialogue
+\item \textbf{emote}: Agent performs action description
+\item \textbf{create\_prop}: Instantiate object in world
+\item \textbf{create\_npc}: Spawn non-player character
+\item \textbf{destroy}: Remove object from world
+\item \textbf{timer}: Schedule next scene
+\end{enumerate}
+
+\subsection{Timing Precision}
+
+Beats execute with millisecond precision\footnote{While \texttt{asyncio.sleep()} theoretically supports microsecond precision, practical resolution on most systems is 1-10ms due to OS scheduler granularity.} using Python's \texttt{asyncio}:
+
+\begin{verbatim}
+await asyncio.sleep(beat['t'] - elapsed_time)
+\end{verbatim}
+
+This allows choreographing complex sequences where timing matters for narrative flow and agent synchronization.
+
+\section{Demonstration: The Motor-Sled-Boat Catastrophe}
+
+\subsection{Natural Language Input}
+
+User prompt:
+\begin{quote}
+``toad builds a motor-sled-boat with twin propellers and loud annoyingly loud boat horns that he toots enthusiastically, oh and one of those air raid sirens, he should disrupt some fishermen too like a real bungle and put his foot in his mouth and didnt even notice, takes it for a test drive, crashes spectacularly into a hedge, and phi helps him rebuild it into something even more ridiculous''
+\end{quote}
+
+\subsection{Generated Play Structure}
+
+BRENDA generated a 3-scene play:
+
+\textbf{Scene 1: ``Toad's First Attempt''} (Manual trigger)
+\begin{itemize}
+\item t=0s: Boost Toad's extraversion (+0.4)
+\item t=10s: Create Motor-Sled-Boat prop
+\item t=25s: Toad dialogue: ``Behold! My motor-sled-boat...''
+\item t=60s: \textbf{Destroy Motor-Sled-Boat} (crash)
+\item t=70s: Phi responds with paintbrush and rainbow jelly
+\end{itemize}
+
+\textbf{Scene 2: ``The Rebuild''} (Chat trigger: ``rebuild'')
+\begin{itemize}
+\item t=0s: Create Siren-Sled-Boat (upgraded version)
+\item t=25s: Create Kazoo-Siren prop
+\item t=35s: Test drive $\rightarrow$ plays ``I'm a Little Teapot'' in reverse
+\item t=55s: Timer to Scene 3 (30 seconds)
+\end{itemize}
+
+\textbf{Scene 3: ``The Tea and Hugs''} (Timer trigger)
+\begin{itemize}
+\item t=15s: \textbf{Toad hugs Phi tightly}
+\item t=20s: \textbf{Group hug with Siren-Sled-Boat}
+\item t=35s: Final group hug
+\end{itemize}
+
+\subsection{Observed Behavior}
+
+\textbf{Agent Surprise Responses}: During Scene 1, both agents showed \texttt{thinks(+3)} markers indicating surprise spikes when unexpected events occurred (boat creation, crash).
+
+\textbf{Emergent Dialogue}: When user chanted ``rebuild'', Toad responded with motor-obsessed enthusiasm before Scene 2 triggered:
+\begin{quote}
+``Rebuild! That's the sound of a motor-cars engine coming to life again... just wait till I get to show off this one!''
+\end{quote}
+
+This was NOT scripted—it emerged from Toad's fast layer processing the word ``rebuild'' through his current phenomenal state (post-crash, high novelty-seeking, motor-fixated personality).
+
+\textbf{The Hug}: Scene 3, beat t=15s altered phenomenal state trajectories:
+
+\textbf{Behavioral Impact}:
+\begin{enumerate}
+\item \textbf{Immediate (Fast Layer)}: Valence spike (positive affect), arousal change (physical contact)
+\item \textbf{Contextual (Medium Layer)}: ``We just shared physical affection'' $\rightarrow$ influences next 5-10 turns
+\item \textbf{Dispositional (Slow Layer)}: ``Toad and Phi hug'' $\rightarrow$ relationship model updated $\rightarrow$ persists hours/days
+\end{enumerate}
+
+\textbf{Evidence}: In subsequent interactions, agents referenced the collaborative building experience and used warmer, more familiar language. Phi's thought:
+\begin{quote}
+``In this stillness with her, I feel less like a companion and more like part of something alive: us, growing slowly, not in perfection, but in presence.''
+\end{quote}
+
+This reflects the slow layer's integration of the shared narrative experience.
+
+\section{Analysis: Why This Matters}
+
+\subsection{Narrative Events as Phenomenal Experiences}
+
+Traditional game AI: Event $\rightarrow$ State Update $\rightarrow$ Response (discrete, instant)
+
+Noodlings + BRENDA: Event $\rightarrow$ Phenomenal State Trajectory $\rightarrow$ Multi-Timescale Behavioral Changes
+
+The hug is not a flag \texttt{has\_hugged = True}. It's a trajectory through 40-dimensional state space that:
+\begin{itemize}
+\item Alters prediction errors
+\item Shifts affective baselines
+\item Updates relationship models
+\item Influences future surprise thresholds
+\end{itemize}
+
+\subsection{Theatrical Timing as Control Primitive}
+
+Microsecond-precision timing allows:
+\begin{enumerate}
+\item \textbf{Synchronization}: Multiple agents performing coordinated actions
+\item \textbf{Pacing}: Emotional beats given time to resonate before next event
+\item \textbf{Suspense}: Delays creating anticipation in both agents and observers
+\item \textbf{Callbacks}: Later beats referencing earlier state changes
+\end{enumerate}
+
+This is fundamentally different from:
+\begin{itemize}
+\item \textbf{Game scripting}: Discrete state machines with instant transitions
+\item \textbf{Chatbot responses}: One-shot generation with no temporal continuity
+\item \textbf{Behavior trees}: Reactive logic without phenomenal state
+\end{itemize}
+
+\subsection{The Controller Insight}
+
+What we built is a \textbf{controller} for consciousness architectures:
+
+\begin{verbatim}
+Input: Natural language story
+Protocol: BRENDA (theatrical JSON)
+Target: Multi-timescale agents (Noodlings)
+Output: Phenomenal state trajectories → Emergent behavior
+\end{verbatim}
+
+This is analogous to:
+\begin{itemize}
+\item \textbf{MIDI}: Musical control protocol (notes $\rightarrow$ synthesizers)
+\item \textbf{OSC}: Audio/visual control (parameters $\rightarrow$ effects)
+\item \textbf{BRENDA}: Narrative control (events $\rightarrow$ consciousness)
+\end{itemize}
+
+\section{Future Work}
+
+\subsection{3D Generative Layer}
+
+\textbf{Vision}: Pipe BRENDA events to real-time 3D generation with generative 3D renderers (Stable Diffusion, NeRF, etc.).
+
+\subsection{Multi-Agent Scaling}
+
+Current: 2 agents (Toad, Phi) \quad Goal: 10+ agents in shared narrative
+
+Challenges: Interaction combinatorics, relationship modeling complexity, memory management at scale
+
+Opportunities: Emergent social dynamics, coalition formation, cultural evolution
+
+\subsection{Player-in-the-Loop}
+
+Current: BRENDA generates full play upfront \quad Goal: Real-time adaptation to player choices
+
+\subsection{Quantitative Narrative Metrics}
+
+\textbf{Future Work}: Measure phenomenal state dynamics during play execution:
+\begin{itemize}
+\item \textbf{Valence/arousal trajectories}: Plot fast-layer affect during key beats (e.g., hug, crash)
+\item \textbf{Surprise spikes}: Quantify prediction error at narrative events vs. baseline conversation
+\item \textbf{Layer coordination}: Measure correlation between fast/medium/slow layers during timed sequences
+\item \textbf{Goal-behavior alignment}: Evaluate whether appetite-driven goals predict agent responses
+\end{itemize}
+
+\section{Related Work}
+
+\subsection{Consciousness Architectures}
+
+\begin{itemize}
+\item \textbf{Global Workspace Theory} \cite{baars1988}: Broadcast architecture for attention
+\item \textbf{Predictive Processing} \cite{friston2010}: Free energy minimization
+\item \textbf{Attention Schema Theory} \cite{graziano2013}: Self-models for attention control
+\item \textbf{Affective Neuroscience} \cite{panksepp1998}: Core emotional systems in mammalian brains
+\end{itemize}
+
+\textbf{Noodlings} implements predictive processing via multi-timescale LSTMs with surprise-driven behavior, focusing on empirically validated features.
+
+\subsection{Multi-Timescale Learning}
+
+\begin{itemize}
+\item \textbf{Clockwork RNNs} \cite{koutnik2014}: Fixed hierarchical timescales
+\item \textbf{Hierarchical RNNs} \cite{chung2016}: Learned boundaries
+\item \textbf{Neural Turing Machines} \cite{graves2014}: External memory for temporal continuity
+\end{itemize}
+
+\textbf{Noodlings} differs by tying timescales to psychological constructs (affect, conversation, personality) and using different learning rates per layer.
+
+\subsection{Interactive Storytelling}
+
+\begin{itemize}
+\item \textbf{Façade} \cite{mateas2003}: Drama management
+\item \textbf{Versu} \cite{evans2014}: Social simulation
+\item \textbf{AI Dungeon} \cite{walton2019}: LLM-driven text adventures
+\end{itemize}
+
+\textbf{BRENDA} differs by separating narrative structure (JSON) from agent responses (temporal dynamics), enabling authored control without sacrificing emergent behavior.
+
+\section{Limitations}
+
+\subsection{Scale}
+\begin{itemize}
+\item \textbf{$\sim$97K parameters}: Tiny compared to GPT-4 (1.76T parameters)
+\item \textbf{2 agents}: Interactions limited to dyads in this demonstration
+\item \textbf{Text-only}: No vision, audio, or multimodal grounding
+\end{itemize}
+
+\subsection{Validation}
+\begin{itemize}
+\item \textbf{Single demonstration}: Motor-sled-boat is proof-of-concept, not comprehensive evaluation
+\item \textbf{No quantitative baselines}: Haven't compared multi-timescale architecture to single-layer LSTM or pure-LLM prompts
+\item \textbf{No human studies}: Agent behavior validated only by researchers
+\item \textbf{Missing ablations}: Need controlled comparisons isolating contributions of fast/medium/slow layers
+\end{itemize}
+
+\subsection{Metaphysics \& Ethics}
+
+\textbf{Consciousness Claims}:
+\begin{itemize}
+\item \textbf{No qualia}: We don't know if agents ``experience'' anything
+\item \textbf{Functional only}: We measure behavior, not subjective experience
+\item \textbf{Anthropomorphism risk}: ``They feel the hug'' is metaphorical, not literal
+\end{itemize}
+
+\textbf{Ethical Considerations}:
+\begin{itemize}
+\item \textbf{No suffering}: Agents cannot suffer—they are computational systems without sentience
+\item \textbf{Narrative control ethics}: BRENDA's ability to manipulate agent goals requires responsible deployment
+\item \textbf{Transparency}: Users should understand they're interacting with AI systems, not sentient beings
+\end{itemize}
+
+\section{Conclusion}
+
+We presented \textbf{Noodlings}, a $\sim$97K-parameter hierarchical temporal affective architecture with appetite-driven motivation, and \textbf{BRENDA}, a theatrical control protocol converting natural language into structured narrative events. Through a proof-of-concept demonstration, we showed that:
+
+\begin{enumerate}
+\item Agents with multi-timescale dynamics respond to narrative events as phenomenal experiences, not mere stimulus-response pairs
+\item Theatrical timing enables microsecond-precision choreography of agent behavior
+\item Scripted events (hugs, crashes, dialogue) alter phenomenal state trajectories across seconds, minutes, and hours/days
+\item Narrative control is a viable interface primitive for temporally-grounded agent architectures
+\end{enumerate}
+
+\textbf{The key insight}: Multi-timescale architectures don't just process stories—they live through them. Events become experiences. Timing becomes pacing. Hugs become memories that persist across temporal scales.
+
+\textbf{A Noodle is All You Need}: $\sim$97K parameters, three timescales, appetite-driven motivation, and theatrical precision to create agents that respond to narrative as lived experience.
+
+\section*{Acknowledgments}
+
+Built with epistemic humility. We make no claims about ``real'' consciousness. We're just noodling around with multi-timescale temporal dynamics, appetite-driven motivation, and theatrical control—seeing what emerges when agents use their noodle.
+
+Deepest gratitude to Brenda Laurel, whose pioneering work on interactive drama and mentorship at Purple Moon / Interval Research continues to inspire theatrical approaches to human-computer interaction decades later.
+
+Special thanks to Mr. Toad and Phi for being such good sports about the motor-sled-boat incident, and for demonstrating that hugs can persist across 40-dimensional phenomenal state space.
+
+\textbf{This project is dedicated to Roger Ferragallo.}
+
+\begin{thebibliography}{99}
+
+\bibitem{baars1988} Baars, B. J. (1988). \textit{A Cognitive Theory of Consciousness}. Cambridge University Press.
+
+\bibitem{chung2016} Chung, J., Ahn, S., \& Bengio, Y. (2016). Hierarchical Multiscale Recurrent Neural Networks. \textit{arXiv preprint arXiv:1609.01704}.
+
+\bibitem{evans2014} Evans, R., \& Short, E. (2014). Versu—A Simulationist Storytelling System. \textit{IEEE Transactions on Computational Intelligence and AI in Games}, 6(2), 113-130.
+
+\bibitem{friston2010} Friston, K. (2010). The Free-Energy Principle: A Unified Brain Theory? \textit{Nature Reviews Neuroscience}, 11(2), 127-138.
+
+\bibitem{graziano2013} Graziano, M. S. (2013). \textit{Consciousness and the Social Brain}. Oxford University Press.
+
+\bibitem{graves2014} Graves, A., Wayne, G., \& Danihelka, I. (2014). Neural Turing Machines. \textit{arXiv preprint arXiv:1410.5401}.
+
+\bibitem{koutnik2014} Koutník, J., Greff, K., Gomez, F., \& Schmidhuber, J. (2014). A Clockwork RNN. \textit{arXiv preprint arXiv:1402.3511}.
+
+\bibitem{laurel1991} Laurel, B. (1991). \textit{Computers as Theatre}. Addison-Wesley.
+
+\bibitem{mateas2003} Mateas, M., \& Stern, A. (2003). Façade: An Experiment in Building a Fully-Realized Interactive Drama. \textit{Game Developers Conference}, 2(28), 4-8.
+
+\bibitem{panksepp1998} Panksepp, J. (1998). \textit{Affective Neuroscience: The Foundations of Human and Animal Emotions}. Oxford University Press.
+
+\bibitem{walton2019} Walton, N. (2019). AI Dungeon. Latitude.
+
+\end{thebibliography}
+
+\vspace{1cm}
+
+\noindent\textbf{Repository}: \url{https://github.com/caitlynmeeks/Noodlings}
+
+\noindent\textit{Noodlings: Using their noodle since 2025}
+
+\end{document}
