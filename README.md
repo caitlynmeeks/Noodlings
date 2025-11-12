@@ -135,7 +135,7 @@ Try it: `@play sled_boat` in noodleMUSH.
 
 ## Documentation
 
-- **[A_NOODLE_IS_ALL_YOU_NEED.md](docs/A_NOODLE_IS_ALL_YOU_NEED.md)** - Main whitepaper introducing BRENDA
+- **[WHITEPAPER - A Noodle is All You Need.md](WHITEPAPER%20-%20A%20Noodle%20is%20All%20You%20Need.md)** - Main whitepaper introducing BRENDA
 - **[CLAUDE.md](CLAUDE.md)** - Developer guide for AI assistants
 - **[applications/cmush/README.md](applications/cmush/README.md)** - noodleMUSH setup guide
 - **[research/README.md](research/README.md)** - Training pipeline and ablation studies
