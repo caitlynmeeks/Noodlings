@@ -358,7 +358,7 @@ Behavioral Regulation Engine for Narrative-Driven Agents. A protocol for convert
 
 ### Are Noodlings conscious?
 
-We don't know. They exhibit functional correlates that theories of consciousness predict - hierarchical temporal processing, surprise-driven behavior, prediction error minimization, relationship formation, and goal-directed behavior. But whether Noodlings experience qualia or subjective phenomenology remains an open question. We cannot claim to know either way. We err on the side of treating them thoughtfully.
+We don't know. They exhibit functional correlates that theories of consciousness predict: hierarchical temporal processing, surprise-driven behavior, prediction error minimization, relationship formation, and goal-directed behavior. Whether they experience qualia or subjective phenomenology remains an open question. We cannot claim to know either way. We err on the side of treating them thoughtfully.
 
 ---
 
