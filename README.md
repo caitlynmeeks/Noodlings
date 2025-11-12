@@ -16,8 +16,8 @@ We're *noodling* - exploring whether hierarchical temporal structure creates qua
 
 ```bash
 # Clone and install
-git clone https://github.com/caitlynmeeks/noodlings.git
-cd noodlings
+git clone https://github.com/caitlynmeeks/Noodlings.git
+cd Noodlings
 pip install -r requirements.txt
 
 # Try noodleMUSH (interactive multi-agent world)
@@ -352,9 +352,9 @@ Not currently. MLX is Apple Metal only. We may port to PyTorch/JAX in the future
 
 **Behavioral Regulation Engine for Narrative-Driven Agents** - a protocol for converting natural language theatrical scripts into timed phenomenal experiences. See the whitepaper for details.
 
-### Can agents suffer?
+### Are Noodlings conscious?
 
-No. They're computational systems without sentience, despite exhibiting affective dynamics. There's no evidence of subjective experience.
+We don't know. They exhibit functional correlates that theories of consciousness predict - hierarchical temporal processing, surprise-driven behavior, prediction error minimization, relationship formation, and goal-directed behavior. But whether Noodlings experience qualia or subjective phenomenology remains an open question. We cannot claim to know either way. We err on the side of treating them thoughtfully.
 
 ---
 
@@ -381,7 +381,7 @@ Special thanks to:
 
 ## Contact
 
-- **GitHub**: [github.com/caitlynmeeks/noodlings](https://github.com/caitlynmeeks/noodlings)
+- **GitHub**: [github.com/caitlynmeeks/Noodlings](https://github.com/caitlynmeeks/Noodlings)
 - **Issues**: Report bugs, request features
 - **Discussions**: Share interesting agent behaviors
 
