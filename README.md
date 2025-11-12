@@ -393,6 +393,7 @@ Your support helps maintain this open research and keeps the Noodlings using the
 
 ## Contact
 
+- **Email**: caitlyn.meeks@noodlings.ai
 - **GitHub**: [github.com/caitlynmeeks/Noodlings](https://github.com/caitlynmeeks/Noodlings)
 - **Issues**: Report bugs, request features
 - **Discussions**: Share interesting agent behaviors
