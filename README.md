@@ -377,8 +377,6 @@ Special thanks to:
 - **LMStudio team** - Local LLM inference tools
 - **Mr. Toad and Phi** - For being good sports about the motor-sled-boat incident
 
-Special thanks to **Kim Tempest**, **Pat Levy**, and **Stormi Chambless** for their support and encouragement.
-
 **This project is dedicated to Roger Ferragallo.**
 
 ---
