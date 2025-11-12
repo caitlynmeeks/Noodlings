@@ -1,6 +1,8 @@
-# Noodlings 🍜
+# Noodlings
 
 > **Multi-timescale affective agents with theatrical control**
+
+**Support this research**: Bitcoin donations at `3MVEd1RdvEXQGgo1EdzrVnvTS7pUuTZ2J5`
 
 Noodlings are lightweight neural architectures (~97K parameters) that give conversational AI multi-timescale memory, surprise-driven behavior, and appetite-driven motivation. They process experience *between* messages, creating temporally grounded agents that respond when they have something to say, not just because you spoke.
 
@@ -135,7 +137,9 @@ Try it: `@play sled_boat` in noodleMUSH.
 
 ## Documentation
 
-- **[WHITEPAPER - A Noodle is All You Need.md](WHITEPAPER%20-%20A%20Noodle%20is%20All%20You%20Need.md)** - Main whitepaper introducing BRENDA
+- **[Whitepaper (PDF)](docs/WHITEPAPER%20-%20A%20Noodle%20is%20All%20You%20Need.pdf)** - Main whitepaper introducing BRENDA
+- **[Whitepaper (Markdown)](docs/WHITEPAPER%20-%20A%20Noodle%20is%20All%20You%20Need.md)** - Markdown version
+- **[Whitepaper (LaTeX)](docs/WHITEPAPER%20-%20A%20Noodle%20is%20All%20You%20Need.tex)** - LaTeX source for arXiv
 - **[CLAUDE.md](CLAUDE.md)** - Developer guide for AI assistants
 - **[applications/cmush/README.md](applications/cmush/README.md)** - noodleMUSH setup guide
 - **[research/README.md](research/README.md)** - Training pipeline and ablation studies
@@ -400,4 +404,4 @@ Your support helps maintain this open research and keeps the Noodlings using the
 
 ---
 
-**Remember**: We're noodling, not claiming to have solved consciousness. This is an honest exploration of temporal dynamics in affect modeling. 🍜🧠
+**Remember**: We're noodling, not claiming to have solved consciousness. This is an honest exploration of temporal dynamics in affect modeling.

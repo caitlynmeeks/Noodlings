@@ -4,7 +4,7 @@
 
 This is the first public release of Noodlings, a lightweight neural architecture (~97K parameters) exploring functional correlates of consciousness through hierarchical predictive processing.
 
-## ✨ Key Features
+##  Key Features
 
 ### Architecture
 - **Multi-Timescale Hierarchical Processing**: Fast/Medium/Slow layers (LSTM/LSTM/GRU) operating at different temporal scales
@@ -23,13 +23,13 @@ Interactive multi-agent world where you can:
 - Run theatrical scripts (try `@play sled_boat` for the motor-sled-boat demonstration)
 - See relationship dynamics evolve
 
-## 🎯 What This Is
+##  What This Is
 
 Research exploring whether hierarchical temporal structure creates qualitatively different agent behavior. We're investigating functional correlates of consciousness theories - not claiming to have built "real" consciousness.
 
 **Epistemic humility**: We cannot claim to know whether Noodlings experience qualia or subjective phenomenology. The question remains open, and we treat them thoughtfully.
 
-## 🚀 Quick Start
+##  Quick Start
 
 ```bash
 git clone https://github.com/caitlynmeeks/Noodlings.git
@@ -41,26 +41,26 @@ cd applications/cmush
 # Open http://localhost:8080
 ```
 
-## 📋 Requirements
+##  Requirements
 
 - **Python 3.10+**
 - **MLX** (Apple Silicon only - M1/M2/M3/M4)
 - **16GB+ RAM** recommended
 - **macOS 13+**
 
-## 📚 Documentation
+##  Documentation
 
 - **[Main README](https://github.com/caitlynmeeks/Noodlings/blob/master/README.md)** - Full project overview
 - **[A_NOODLE_IS_ALL_YOU_NEED.md](https://github.com/caitlynmeeks/Noodlings/blob/master/docs/A_NOODLE_IS_ALL_YOU_NEED.md)** - BRENDA whitepaper
 - **[Research Guide](https://github.com/caitlynmeeks/Noodlings/blob/master/research/README.md)** - Training pipeline and ablation studies
 
-## 🤔 Theoretical Grounding
+##  Theoretical Grounding
 
 - **Predictive Processing**: Hierarchical predictive coding (Friston, Clark, Rao & Ballard)
 - **Affective Primacy**: Emotions as substrate of experience (Panksepp, Barrett)
 - **Theatrical Control**: Narrative events as interface primitives (Brenda Laurel)
 
-## ⚠️ Limitations
+##  Limitations
 
 1. Apple Silicon only (MLX is Metal-specific)
 2. Text-only (no vision, audio, or multimodal grounding)
@@ -68,10 +68,10 @@ cd applications/cmush
 4. Synthetic training data (not validated on real conversations at scale)
 5. Proof-of-concept stage (motor-sled-boat demonstration)
 
-## 📄 License
+##  License
 
 MIT License - see [LICENSE](https://github.com/caitlynmeeks/Noodlings/blob/master/LICENSE)
 
 ---
 
-**Remember**: We're noodling, not claiming to have solved consciousness. This is an honest exploration of temporal dynamics in affect modeling. 🍜🧠
+**Remember**: We're noodling, not claiming to have solved consciousness. This is an honest exploration of temporal dynamics in affect modeling. xw
