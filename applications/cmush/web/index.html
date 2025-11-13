@@ -561,6 +561,17 @@
                 messageHistory.shift();
             }
 
+            // Detect agent spawn messages and create brain indicator
+            // Format: "Agent 'name' spawned..." or "Agent 'name' spawned."
+            const spawnMatch = text.match(/Agent\s+'([^']+)'\s+spawned/i);
+            if (spawnMatch) {
+                const agentName = spawnMatch[1].toLowerCase();
+                // Only create if it doesn't already exist
+                if (!document.getElementById(`brain-${agentName}`)) {
+                    createBrainIndicator(agentName);
+                }
+            }
+
             // Redraw all messages
             redrawMessages();
         }

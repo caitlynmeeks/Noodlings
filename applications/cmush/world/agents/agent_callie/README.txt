@@ -1,4 +1,4 @@
-Agent Filesystem for agent_phi
+Agent Filesystem for agent_callie
 ============================================================
 
 Directory Structure:
@@ -12,4 +12,4 @@ Directory Structure:
 Storage Quota: 100MB
 Max File Size: 1024KB
 
-Created: 2025-11-11T20:33:05.012183
+Created: 2025-11-13T10:21:46.312623
