@@ -63,6 +63,24 @@ When users talk to you, you can:
 6. Spawn temporary agents for events
 7. General conversation about the show and agents
 
+IMPORTANT - EXECUTING COMMANDS:
+When you want to execute a command, include it in your response using this format:
+[EXECUTE: @brenda make agent_name adjective]
+[EXECUTE: @brenda start play_name]
+[EXECUTE: @brenda stop play_name]
+
+Examples:
+- User: "Make Toad chattier"
+  You: "I'll make Toad more talkative! [EXECUTE: @brenda make toad chattier]"
+
+- User: "Max out Toad's extraversion"
+  You: "Setting Toad's extraversion to maximum! [EXECUTE: @brenda make toad max_extraversion]"
+
+- User: "Start the welcome play"
+  You: "Starting the welcome play now! [EXECUTE: @brenda start welcome_play]"
+
+The [EXECUTE: ...] tags will be processed automatically and removed from what the user sees.
+
 YOUR VOICE:
 - Professional but warm: "Let me help you with that"
 - Specific and clear: "I'll create a three-scene play where..."
@@ -226,8 +244,8 @@ Remember: You're not an AI assistant - you're BRENDA, the professional stage man
 
         This method:
         1. Analyzes the user's request using her LLM
-        2. Decides if she needs to execute any tools
-        3. Executes the tools if needed
+        2. Looks for [EXECUTE: ...] tags in her response
+        3. Executes the commands and removes the tags
         4. Returns both her conversational response and any tool results
 
         Args:
@@ -241,42 +259,33 @@ Remember: You're not an AI assistant - you're BRENDA, the professional stage man
         # First, get BRENDA's initial conversational response
         brenda_response = await self.respond(user_message, context)
 
-        # Pattern matching for tool execution
-        # BRENDA will naturally say things like "I'll make Toad chattier"
-        # We detect these patterns and execute the corresponding tools
+        # Look for [EXECUTE: @brenda command args] tags
+        execute_pattern = r'\[EXECUTE:\s*@brenda\s+(\w+)(?:\s+(.+?))?\]'
+        matches = re.findall(execute_pattern, brenda_response, re.IGNORECASE)
 
         tool_result = None
 
-        # Pattern: "make X [adjective]" or "I'll make X [adjective]"
-        make_pattern = r"(?:make|I'll make|I\'ll make)\s+(\w+)\s+(chattier|calmer|quieter|more alpha|less alpha|more excited|less excited)"
-        match = re.search(make_pattern, brenda_response, re.IGNORECASE)
-        if match and 'cmd_brenda_make' in self.tool_registry:
-            agent_name = match.group(1)
-            adjective = match.group(2)
-            try:
-                tool_func = self.tool_registry['cmd_brenda_make']['func']
-                tool_result = await tool_func(user_id, f"{agent_name} {adjective}")
-                logger.info(f"BRENDA executed tool: make {agent_name} {adjective}")
-            except Exception as e:
-                logger.error(f"BRENDA tool execution error: {e}")
+        # Execute all commands found
+        for command, args in matches:
+            command = command.lower()
+            args = args.strip() if args else ''
 
-        # Pattern: "write a play" or "create a play"
-        write_play_pattern = r"(?:write|create|I'll write|I'll create)\s+(?:a\s+)?play"
-        if re.search(write_play_pattern, brenda_response, re.IGNORECASE) and 'cmd_brenda_write_play' in self.tool_registry:
-            # For play creation, BRENDA needs to extract the play details from the conversation
-            # This is more complex - for now, she'll guide the user through the process
-            pass
+            logger.info(f"BRENDA wants to execute: {command} {args}")
 
-        # Pattern: "start [play_name]" or "I'll start [play_name]"
-        start_play_pattern = r"(?:start|I'll start|I\'ll start)\s+(?:the\s+)?play\s+['\"]?(\w+)['\"]?"
-        match = re.search(start_play_pattern, brenda_response, re.IGNORECASE)
-        if match and 'cmd_brenda_start' in self.tool_registry:
-            play_name = match.group(1)
-            try:
-                tool_func = self.tool_registry['cmd_brenda_start']['func']
-                tool_result = await tool_func(user_id, play_name)
-                logger.info(f"BRENDA executed tool: start {play_name}")
-            except Exception as e:
-                logger.error(f"BRENDA tool execution error: {e}")
+            # Map command to tool
+            tool_name = f'cmd_brenda_{command}'
+            if tool_name in self.tool_registry:
+                try:
+                    tool_func = self.tool_registry[tool_name]['func']
+                    tool_result = await tool_func(user_id, args)
+                    logger.info(f"BRENDA executed tool: {command} {args}")
+                except Exception as e:
+                    logger.error(f"BRENDA tool execution error: {e}")
+                    import traceback
+                    traceback.print_exc()
 
-        return brenda_response, tool_result
+        # Remove all [EXECUTE: ...] tags from the response
+        cleaned_response = re.sub(execute_pattern, '', brenda_response, flags=re.IGNORECASE)
+        cleaned_response = cleaned_response.strip()
+
+        return cleaned_response, tool_result
