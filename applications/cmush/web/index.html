@@ -318,6 +318,56 @@
         #telepathy-toggle::before {
             content: '🧠 ';
         }
+
+        /* Brain status bar */
+        #brain-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px;
+            border-bottom: 1px solid #003300;
+            margin-bottom: 10px;
+            min-height: 40px;
+        }
+
+        .brain-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.3;
+            transition: opacity 0.3s ease;
+        }
+
+        .brain-indicator.thinking {
+            opacity: 1;
+        }
+
+        .brain-indicator .agent-name-label {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .brain-indicator .brain-icon {
+            font-size: 20px;
+            display: inline-block;
+        }
+
+        .brain-indicator.thinking .brain-icon {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+        }
     </style>
 </head>
 <body>
@@ -347,6 +397,10 @@
             <button id="telepathy-toggle" title="Toggle telepathy (read others' thoughts)">Telepathy: OFF</button>
         </div>
 
+        <div id="brain-status-bar">
+            <!-- Brain indicators will be dynamically added here -->
+        </div>
+
         <div id="output"></div>
 
         <div id="input-area">
@@ -368,6 +422,10 @@
         // Message history for redrawing when telepathy toggles
         let messageHistory = [];
 
+        // Brain status tracking
+        let agentBrainStatus = {}; // { agentName: { thinking: boolean, timeout: timeoutId } }
+        const THINKING_TIMEOUT = 3000; // Clear thinking status after 3 seconds of no activity
+
         // DOM elements
         const authModal = document.getElementById('auth-modal');
         const usernameInput = document.getElementById('username');
@@ -378,6 +436,7 @@
         const outputDiv = document.getElementById('output');
         const inputField = document.getElementById('input');
         const telepathyToggle = document.getElementById('telepathy-toggle');
+        const brainStatusBar = document.getElementById('brain-status-bar');
 
         // Cookie helpers
         function setCookie(name, value, days = 30) {
@@ -523,6 +582,81 @@
             outputDiv.scrollTop = outputDiv.scrollHeight;
         }
 
+        // Update brain indicator for an agent
+        function updateBrainStatus(agentName, isThinking) {
+            const normalizedName = agentName.toLowerCase();
+
+            // Get or create brain indicator
+            let indicator = document.getElementById(`brain-${normalizedName}`);
+            if (!indicator) {
+                indicator = createBrainIndicator(normalizedName);
+            }
+
+            // Clear any existing timeout
+            if (agentBrainStatus[normalizedName]?.timeout) {
+                clearTimeout(agentBrainStatus[normalizedName].timeout);
+            }
+
+            if (isThinking) {
+                // Set thinking state
+                indicator.classList.add('thinking');
+                agentBrainStatus[normalizedName] = {
+                    thinking: true,
+                    timeout: setTimeout(() => {
+                        indicator.classList.remove('thinking');
+                        agentBrainStatus[normalizedName].thinking = false;
+                    }, THINKING_TIMEOUT)
+                };
+            } else {
+                // Clear thinking state immediately
+                indicator.classList.remove('thinking');
+                if (agentBrainStatus[normalizedName]) {
+                    agentBrainStatus[normalizedName].thinking = false;
+                }
+            }
+        }
+
+        // Create brain indicator element for an agent
+        function createBrainIndicator(agentName) {
+            const normalizedName = agentName.toLowerCase();
+
+            // Get color for agent
+            let color = '#aaaaaa';
+            if (normalizedName === 'callie') {
+                color = '#ffaa00';
+            } else if (normalizedName === 'phi') {
+                color = '#ff00ff';
+            } else if (normalizedName.includes('toad') || normalizedName === 'mr. toad') {
+                color = '#00ffff';
+            } else if (normalizedName === 'desobelle' || normalizedName === 'belle') {
+                color = '#ff88ff';
+            } else if (normalizedName === 'servnak' || normalizedName.includes('servnak')) {
+                color = '#88ff88';
+            }
+
+            const indicator = document.createElement('div');
+            indicator.className = 'brain-indicator';
+            indicator.id = `brain-${normalizedName}`;
+
+            const nameLabel = document.createElement('span');
+            nameLabel.className = 'agent-name-label';
+            nameLabel.style.color = color;
+            nameLabel.textContent = agentName.toUpperCase();
+
+            const brainIcon = document.createElement('span');
+            brainIcon.className = 'brain-icon';
+            brainIcon.textContent = '🧠';
+
+            indicator.appendChild(nameLabel);
+            indicator.appendChild(brainIcon);
+            brainStatusBar.appendChild(indicator);
+
+            // Initialize status
+            agentBrainStatus[normalizedName] = { thinking: false, timeout: null };
+
+            return indicator;
+        }
+
         // Collapse consecutive thoughts from same speaker (Unity-style)
         function collapseThoughts(messages) {
             const processed = [];
@@ -610,6 +744,19 @@
                 // Add thought class if this is a rumination
                 if (verb === 'thinks') {
                     line.className += ' thought';
+
+                    // Update brain status indicator
+                    if (speakerName !== 'you') {
+                        updateBrainStatus(speakerName, true);
+                    }
+                }
+
+                // Check if we should hide this thinking message
+                const shouldHideThought = (verb === 'thinks' && !telepathyEnabled && speakerName !== 'you');
+
+                if (shouldHideThought) {
+                    // Don't add this line to output at all - only show brain indicator
+                    return;
                 }
 
                 // Format with prominent speaker badge and action
@@ -631,21 +778,9 @@
                 line.appendChild(badge);
                 line.appendChild(verbSpan);
 
-                // Telepathy check and collapsed thought counter
-                if (msg.isCollapsedThought && msg.count > 1) {
-                    // Collapsed thought group - show counter
-                    const counterSpan = document.createElement('span');
-                    counterSpan.style.color = speakerColor;
-                    counterSpan.style.fontWeight = 'bold';
-                    counterSpan.textContent = `(+${msg.count})`;
-                    line.appendChild(counterSpan);
-                } else if (verb === 'thinks' && !telepathyEnabled && speakerName !== 'you') {
-                    // Single collapsed thought - show nothing (just badge + verb)
-                } else {
-                    // Show full text (telepathy on, or not a thought, or user's own thought)
-                    const textNode = document.createTextNode(restOfText);
-                    line.appendChild(textNode);
-                }
+                // Show full text (telepathy on, or not a thought, or user's own thought)
+                const textNode = document.createTextNode(restOfText);
+                line.appendChild(textNode);
             } else {
                 // No speaker detected, just add text as-is
                 line.textContent = msg.text;
