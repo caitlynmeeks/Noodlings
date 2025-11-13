@@ -3085,7 +3085,7 @@ class CommandParser:
         context = {
             'agents': [agent_id.replace('agent_', '') for agent_id in self.agent_manager.agents.keys()],
             'location': user.get('location', 'unknown') if user else 'unknown',
-            'running_plays': list(self.play_manager.running_plays.keys())
+            'running_plays': list(self.play_manager.active_plays.keys())
         }
 
         try:
