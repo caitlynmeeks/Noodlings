@@ -18,9 +18,11 @@ from datetime import datetime
 import logging
 import time
 import re
+import json
 
 from recipe_loader import RecipeLoader
 from play_manager import PlayManager
+from brenda_character import BrendaCharacter
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +85,19 @@ class CommandParser:
 
         # BRENDA play manager (drama generation)
         self.play_manager = PlayManager(plays_dir="plays", server=server)
+
+        # BRENDA character (conversational stage manager)
+        llm_config = config.get('llm', {}) if config else {}
+        self.brenda_character = BrendaCharacter(
+            api_base=llm_config.get('api_base', 'http://localhost:1234/v1'),
+            api_key=llm_config.get('api_key', 'not-needed'),
+            model=llm_config.get('model', 'qwen3-4b-instruct-2507-mlx'),
+            timeout=llm_config.get('timeout', 60)
+        )
+
+        # Register tools that BRENDA can use
+        # We register these after commands are set up
+        self._register_brenda_tools()
 
         # Command registry
         self.commands = {
@@ -189,6 +204,43 @@ class CommandParser:
             '@yeet': self.cmd_yeet,
             '@shutdown': self.cmd_shutdown
         }
+
+    def _register_brenda_tools(self):
+        """
+        Register tools that BRENDA can use for command execution.
+
+        This allows BRENDA to execute commands based on her conversational understanding.
+        She'll analyze the user's request and execute the appropriate tools.
+        """
+        # Register personality adjustment tool
+        async def tool_make(user_id: str, args: str):
+            return await self.cmd_brenda_make(user_id, args)
+
+        self.brenda_character.register_tool(
+            'cmd_brenda_make',
+            tool_make,
+            'Adjust agent personality (make them chattier, calmer, etc.)'
+        )
+
+        # Register play start tool
+        async def tool_start(user_id: str, args: str):
+            return await self.cmd_brenda_start(user_id, args)
+
+        self.brenda_character.register_tool(
+            'cmd_brenda_start',
+            tool_start,
+            'Start a play'
+        )
+
+        # Register play stop tool
+        async def tool_stop(user_id: str, args: str):
+            return await self.cmd_brenda_stop(user_id, args)
+
+        self.brenda_character.register_tool(
+            'cmd_brenda_stop',
+            tool_stop,
+            'Stop a running play'
+        )
 
     async def parse_and_execute(
         self,
@@ -3023,11 +3075,49 @@ class CommandParser:
             phrase = action + rest.strip()
             return await self._brenda_make(user_id, agent_name, phrase)
 
-        return {
-            'success': False,
-            'output': "🤷‍♀️ Brenda doesn't understand that vibe. Try:\n  @brenda make <agent> <adjective>\n  @brenda help",
-            'events': []
+        # ==== CONVERSATIONAL BRENDA ====
+        # If no specific command matched, engage conversational BRENDA
+        # She'll use her LLM to understand the request and respond in character
+        # She can also execute commands based on what she says
+
+        # Build context for BRENDA
+        user = self.world.get_user(user_id)
+        context = {
+            'agents': [agent_id.replace('agent_', '') for agent_id in self.agent_manager.agents.keys()],
+            'location': user.get('location', 'unknown') if user else 'unknown',
+            'running_plays': list(self.play_manager.running_plays.keys())
         }
+
+        try:
+            # Get BRENDA's conversational response with tool execution
+            brenda_response, tool_result = await self.brenda_character.respond_with_tools(
+                args, context, user_id
+            )
+
+            # Format output: BRENDA's words + any tool execution results
+            output = f"🌿 BRENDA: {brenda_response}"
+
+            if tool_result:
+                # Tool was executed - add result to output
+                if tool_result.get('success'):
+                    output += f"\n\n{tool_result.get('output', '')}"
+                else:
+                    output += f"\n\n⚠️  {tool_result.get('output', 'Something went wrong...')}"
+
+            return {
+                'success': True,
+                'output': output,
+                'events': tool_result.get('events', []) if tool_result else []
+            }
+        except Exception as e:
+            logger.error(f"BRENDA conversational error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'success': False,
+                'output': "🤷‍♀️ Let me check my iPad... *adjusts reading glasses* Sorry, I'm having trouble with my notes. Try '@brenda help' to see what I can do.",
+                'events': []
+            }
 
     async def _brenda_make(self, user_id: str, agent_name: str, phrase: str) -> Dict:
         """Apply natural language adjustments to an agent."""
