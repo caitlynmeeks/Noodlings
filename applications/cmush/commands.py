@@ -2905,44 +2905,47 @@ class CommandParser:
         - @brenda plays stop <name> - stop a running play
         - @brenda plays delete <name> - delete a play (soft delete to trash)
         """
-        if not args:
+        # Help text (both no args and explicit "help")
+        help_text = (
+            "🌿 BRENDA - Behavioral Regulation Engine for Narrative-Driven Agents\n"
+            "=" * 60 + "\n\n"
+            "AGENT TWEAKING:\n"
+            "  @brenda make <agent> <adjective> - adjust personality (chattier, calm, alpha, etc.)\n"
+            "  @brenda reset <agent> - reload recipe defaults\n"
+            "  @brenda vibe check <agent> - show current parameter settings\n"
+            "  @brenda undo <agent> - undo last Brenda change\n"
+            "  @brenda pass the joint - maximum hippie vibes 🌿\n\n"
+            "PLAY MANAGEMENT:\n"
+            "  @brenda write play <story> - generate theatrical script from natural language\n"
+            "  @brenda plays list - show all available plays\n"
+            "  @brenda plays start <name> - begin a play (shows trigger keywords)\n"
+            "  @brenda plays stop <name> - stop a running play\n"
+            "  @brenda plays next <name> - manually advance to next scene\n"
+            "  @brenda plays delete <name> - soft delete play (moves to trash)\n"
+            "  @brenda plays status - show currently running plays\n\n"
+            "APPETITE CONTROL (Phase 6):\n"
+            "  @stoke <agent> <appetite> <amount> - increase drive (0.0-1.0)\n"
+            "  @sate <agent> <appetite> <amount> - decrease drive (0.0-1.0)\n"
+            "  @appetites <agent> - view current appetite states\n"
+            "  Appetites: curiosity, status, mastery, novelty, safety, social_bond, comfort, autonomy\n\n"
+            "GOAL ORCHESTRATION (Phase 6):\n"
+            "  @override <agent> <goal> <strength> - force goal activation (0.0-1.0)\n"
+            "  @bias <agent> <goal> <bias> - add persistent goal bias (-1.0 to 1.0)\n"
+            "  @reset_goals <agent> [goal] - clear overrides/biases\n"
+            "  @clear_bias <agent> [goal] - clear goal biases\n\n"
+            "EXAMPLES:\n"
+            "  @brenda make Toad chattier\n"
+            "  @brenda write play where Toad builds a rocket ship\n"
+            "  @brenda plays start sled_boat\n"
+            "  @stoke Toad novelty 0.5\n"
+            "  @override Toad pursue_novelty 0.9\n\n"
+            "Type @brenda help to see this message again."
+        )
+
+        if not args or args.lower() == 'help':
             return {
                 'success': False,
-                'output': (
-                    "🌿 BRENDA - Behavioral Regulation Engine for Narrative-Driven Agents\n"
-                    "=" * 60 + "\n\n"
-                    "AGENT TWEAKING:\n"
-                    "  @brenda make <agent> <adjective> - adjust personality (chattier, calm, alpha, etc.)\n"
-                    "  @brenda reset <agent> - reload recipe defaults\n"
-                    "  @brenda vibe check <agent> - show current parameter settings\n"
-                    "  @brenda undo <agent> - undo last Brenda change\n"
-                    "  @brenda pass the joint - maximum hippie vibes 🌿\n\n"
-                    "PLAY MANAGEMENT:\n"
-                    "  @brenda write play <story> - generate theatrical script from natural language\n"
-                    "  @brenda plays list - show all available plays\n"
-                    "  @brenda plays start <name> - begin a play (shows trigger keywords)\n"
-                    "  @brenda plays stop <name> - stop a running play\n"
-                    "  @brenda plays next <name> - manually advance to next scene\n"
-                    "  @brenda plays delete <name> - soft delete play (moves to trash)\n"
-                    "  @brenda plays status - show currently running plays\n\n"
-                    "APPETITE CONTROL (Phase 6):\n"
-                    "  @stoke <agent> <appetite> <amount> - increase drive (0.0-1.0)\n"
-                    "  @sate <agent> <appetite> <amount> - decrease drive (0.0-1.0)\n"
-                    "  @appetites <agent> - view current appetite states\n"
-                    "  Appetites: curiosity, status, mastery, novelty, safety, social_bond, comfort, autonomy\n\n"
-                    "GOAL ORCHESTRATION (Phase 6):\n"
-                    "  @override <agent> <goal> <strength> - force goal activation (0.0-1.0)\n"
-                    "  @bias <agent> <goal> <bias> - add persistent goal bias (-1.0 to 1.0)\n"
-                    "  @reset_goals <agent> [goal] - clear overrides/biases\n"
-                    "  @clear_bias <agent> [goal] - clear goal biases\n\n"
-                    "EXAMPLES:\n"
-                    "  @brenda make Toad chattier\n"
-                    "  @brenda write play where Toad builds a rocket ship\n"
-                    "  @brenda plays start sled_boat\n"
-                    "  @stoke Toad novelty 0.5\n"
-                    "  @override Toad pursue_novelty 0.9\n\n"
-                    "Type @brenda help to see this message again."
-                ),
+                'output': help_text,
                 'events': []
             }
 
