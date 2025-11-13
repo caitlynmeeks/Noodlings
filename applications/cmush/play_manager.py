@@ -422,18 +422,31 @@ class PlayManager:
         first_scene = play['scenes'][0]
         trigger_type = first_scene['trigger']['type']
 
+        # Collect all chat trigger keywords from all scenes
+        chat_triggers = []
+        for scene in play['scenes']:
+            if scene['trigger']['type'] == 'chat':
+                keyword = scene['trigger']['args'].get('keyword', '')
+                if keyword:
+                    chat_triggers.append(keyword)
+
+        # Build trigger announcement
+        trigger_info = ""
+        if chat_triggers:
+            trigger_info = f"\n\n✨ Chat Triggers: Say '{', '.join(chat_triggers)}' to advance scenes"
+
         if trigger_type == 'manual':
             # Start immediately for manual trigger
             await self._start_scene(filename, 0)
             return {
                 'success': True,
-                'message': f"🎭 Started play: {play['title']} (Scene 1/{len(play['scenes'])})"
+                'message': f"🎭 Started play: {play['title']} (Scene 1/{len(play['scenes'])}){trigger_info}"
             }
         else:
             # Other triggers will start the scene when triggered
             return {
                 'success': True,
-                'message': f"🎭 Play armed: {play['title']}\nWaiting for trigger: {trigger_type}"
+                'message': f"🎭 Play armed: {play['title']}\nWaiting for trigger: {trigger_type}{trigger_info}"
             }
 
     async def _start_scene(self, play_name: str, scene_index: int):
