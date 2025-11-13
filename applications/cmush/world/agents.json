@@ -18,5 +18,25 @@
     "config": {},
     "created": "2025-11-13T10:21:46.306726",
     "last_active": "2025-11-13T10:21:46.306739"
+  },
+  "agent_servnak": {
+    "uid": "agent_servnak",
+    "name": "servnak",
+    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "current_room": "room_000",
+    "inventory": [],
+    "config": {},
+    "created": "2025-11-13T10:26:57.192816",
+    "last_active": "2025-11-13T10:26:57.192835"
+  },
+  "agent_desobelle": {
+    "uid": "agent_desobelle",
+    "name": "desobelle",
+    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "current_room": "room_000",
+    "inventory": [],
+    "config": {},
+    "created": "2025-11-13T10:27:39.401868",
+    "last_active": "2025-11-13T10:27:39.401881"
   }
 }

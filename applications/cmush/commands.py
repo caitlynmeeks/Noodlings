@@ -214,7 +214,7 @@ class CommandParser:
         """
         # Register personality adjustment tool
         async def tool_make(user_id: str, args: str):
-            return await self.cmd_brenda_make(user_id, args)
+            return await self._brenda_make(user_id, args)
 
         self.brenda_character.register_tool(
             'cmd_brenda_make',
@@ -3093,6 +3093,10 @@ class CommandParser:
             brenda_response, tool_result = await self.brenda_character.respond_with_tools(
                 args, context, user_id
             )
+
+            # Clean up multiple newlines in BRENDA's response
+            import re
+            brenda_response = re.sub(r'\n\n\n+', '\n\n', brenda_response.strip())
 
             # Format output: BRENDA's words + any tool execution results
             output = f"🌿 BRENDA: {brenda_response}"
