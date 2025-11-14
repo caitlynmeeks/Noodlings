@@ -214,7 +214,12 @@ class CommandParser:
         """
         # Register personality adjustment tool
         async def tool_make(user_id: str, args: str):
-            return await self._brenda_make(user_id, args)
+            # Parse args: "agent_name phrase" -> split into agent_name and phrase
+            parts = args.split(None, 1)  # Split on first whitespace
+            if len(parts) < 2:
+                return {'success': False, 'output': '⚠️  Need both agent name and description.', 'events': []}
+            agent_name, phrase = parts
+            return await self._brenda_make(user_id, agent_name, phrase)
 
         self.brenda_character.register_tool(
             'cmd_brenda_make',
@@ -222,9 +227,31 @@ class CommandParser:
             'Adjust agent personality (make them chattier, calmer, etc.)'
         )
 
+        # Register build room tool
+        async def tool_build(user_id: str, args: str):
+            return await self._brenda_build(user_id, args)
+
+        self.brenda_character.register_tool(
+            'cmd_brenda_build',
+            tool_build,
+            'Build a new room from natural language description'
+        )
+
+        # Register play write tool
+        async def tool_write(user_id: str, args: str):
+            # Args should be the story description
+            return await self._brenda_write_play(user_id, args)
+
+        self.brenda_character.register_tool(
+            'cmd_brenda_write',
+            tool_write,
+            'Generate a play from natural language description'
+        )
+
         # Register play start tool
         async def tool_start(user_id: str, args: str):
-            return await self.cmd_brenda_start(user_id, args)
+            # Args should be the play filename
+            return await self._brenda_play_start(user_id, args)
 
         self.brenda_character.register_tool(
             'cmd_brenda_start',
@@ -234,12 +261,23 @@ class CommandParser:
 
         # Register play stop tool
         async def tool_stop(user_id: str, args: str):
-            return await self.cmd_brenda_stop(user_id, args)
+            # Args should be the play filename
+            return await self._brenda_play_stop(user_id, args)
 
         self.brenda_character.register_tool(
             'cmd_brenda_stop',
             tool_stop,
             'Stop a running play'
+        )
+
+        # Register model change tool
+        async def tool_usemodel(user_id: str, args: str):
+            return await self._brenda_usemodel(user_id, args)
+
+        self.brenda_character.register_tool(
+            'cmd_brenda_usemodel',
+            tool_usemodel,
+            'Change BRENDA\'s LLM model'
         )
 
     async def parse_and_execute(
@@ -880,118 +918,175 @@ class CommandParser:
     # ===== Agent Commands =====
 
     async def cmd_spawn_agent(self, user_id: str, args: str) -> Dict:
-        """Spawn a Noodling agent (with optional recipe)."""
+        """Spawn one or more Noodling agents (with optional recipe)."""
         if not args:
             return {
                 'success': False,
                 'output': (
-                    'Usage: @spawn <agent_name> [description]\n\n'
+                    'Usage: @spawn <agent_name> [agent_name2 ...] [description]\n\n'
                     'Available recipes:\n' +
                     '\n'.join(f'  - {name}' for name in self.recipe_loader.list_recipes()) +
-                    '\n\nExample: @spawn phi'
+                    '\n\nExamples:\n'
+                    '  @spawn phi\n'
+                    '  @spawn phi toad callie\n'
+                    '  @spawn phi curious and thoughtful'
                 ),
                 'events': []
             }
 
-        # Parse name and optional description
-        parts = args.split(None, 1)
-        agent_name = parts[0].strip().lower()  # Lowercase for recipe lookup
-        agent_description = parts[1].strip() if len(parts) > 1 else None
+        # Check if multiple agent names are provided (all lowercase words before description)
+        parts = args.split()
+        agent_names = []
+        description_parts = []
 
-        agent_id = f"agent_{agent_name}"
+        # Collect agent names (assume they're recipe names or simple names without spaces)
+        for i, part in enumerate(parts):
+            part_lower = part.lower()
+            # Check if this looks like a recipe name or simple agent name
+            if self.recipe_loader.load_recipe(part_lower) or (i == 0 or part_lower.isalpha()):
+                # If it's the first word, or a known recipe, or a simple alphabetic word
+                if i < 3:  # Limit to first 3 words as potential agent names
+                    agent_names.append(part_lower)
+                else:
+                    # Rest is description
+                    description_parts = parts[i:]
+                    break
+            else:
+                # Not an agent name, must be start of description
+                description_parts = parts[i:]
+                break
+
+        # If no agent names found, treat first word as agent name
+        if not agent_names:
+            agent_names = [parts[0].lower()]
+            description_parts = parts[1:] if len(parts) > 1 else []
+
+        agent_description = ' '.join(description_parts) if description_parts else None
+
+        # Spawn each agent
+        all_events = []
+        spawned_agents = []
+        errors = []
 
         room = self.world.get_user_room(user_id)
         if not room:
             return {'success': False, 'output': 'Error getting location.', 'events': []}
 
-        # Check if agent already exists
-        if self.world.get_user(agent_id):
-            return {'success': False, 'output': f"Agent '{agent_name}' already exists.", 'events': []}
+        for agent_name in agent_names:
+            agent_id = f"agent_{agent_name}"
 
-        # Try to load recipe (will return None if not found)
-        recipe = self.recipe_loader.load_recipe(agent_name)
+            # Check if agent already exists
+            if self.world.get_user(agent_id):
+                errors.append(f"'{agent_name}' already exists")
+                continue
 
-        # Use recipe data if available, otherwise defaults
-        if recipe:
-            display_name = recipe.name
-            description = recipe.description if not agent_description else agent_description
+            # Try to load recipe (will return None if not found)
+            recipe = self.recipe_loader.load_recipe(agent_name)
 
-            # Build config from recipe
-            config = {
-                'appetites': recipe.get_appetite_baselines(),
-                'personality': recipe.get_personality_vector(),
-                'identity_prompt': recipe.identity_prompt,
-                'species': recipe.species,
-                'language_mode': recipe.language_mode,
-                'temperature': recipe.temperature,
-                'max_tokens': recipe.max_tokens,
-                'enforce_action_format': recipe.enforce_action_format,
-                'response_cooldown': recipe.response_cooldown,
-                'enlightenment': recipe.enlightenment
-            }
+            # Use recipe data if available, otherwise defaults
+            if recipe:
+                display_name = recipe.name
+                description = recipe.description if not agent_description else agent_description
 
-            # Wind in the Willows-style natural arrival
-            import random
-            arrival_phrases = [
-                "steps into the scene",
-                "ambles into view",
-                "appears round the bend",
-                "wanders in from the riverbank",
-                "pops up cheerfully"
-            ]
-            arrival = random.choice(arrival_phrases)
+                # Build config from recipe
+                config = {
+                    'appetites': recipe.get_appetite_baselines(),
+                    'personality': recipe.get_personality_vector(),
+                    'identity_prompt': recipe.identity_prompt,
+                    'species': recipe.species,
+                    'language_mode': recipe.language_mode,
+                    'temperature': recipe.temperature,
+                    'max_tokens': recipe.max_tokens,
+                    'enforce_action_format': recipe.enforce_action_format,
+                    'response_cooldown': recipe.response_cooldown,
+                    'enlightenment': recipe.enlightenment
+                }
 
-            spawn_msg = f"{display_name} ({recipe.species}) {arrival}"
-            if recipe.language_mode == 'nonverbal':
-                spawn_msg += ", watching curiously with bright eyes"
-            spawn_msg += f". {description}"
-        else:
-            # No recipe - use defaults
-            display_name = agent_name.capitalize()
-            description = agent_description if agent_description else "A Noodling consciousness agent"
-            config = None
+                # Wind in the Willows-style natural arrival
+                import random
+                arrival_phrases = [
+                    "steps into the scene",
+                    "ambles into view",
+                    "appears round the bend",
+                    "wanders in from the riverbank",
+                    "pops up cheerfully"
+                ]
+                arrival = random.choice(arrival_phrases)
 
-            # Wind in the Willows-style natural arrival
-            import random
-            arrival_phrases = [
-                "steps into the scene",
-                "ambles into view",
-                "appears round the bend",
-                "wanders in from somewhere",
-                "shows up with a friendly wave"
-            ]
-            arrival = random.choice(arrival_phrases)
-            spawn_msg = f"{display_name} {arrival}. {description}"
+                spawn_msg = f"{display_name} ({recipe.species}) {arrival}"
+                if recipe.language_mode == 'nonverbal':
+                    spawn_msg += ", watching curiously with bright eyes"
+                spawn_msg += f". {description}"
+            else:
+                # No recipe - use defaults
+                display_name = agent_name.capitalize()
+                description = agent_description if agent_description else "A Noodling consciousness agent"
+                config = None
 
-        # Create agent in world
-        checkpoint_path = "../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
-        self.world.create_agent(
-            name=agent_name,
-            checkpoint_path=checkpoint_path,
-            spawn_room=room['uid']
-        )
+                # Wind in the Willows-style natural arrival
+                import random
+                arrival_phrases = [
+                    "steps into the scene",
+                    "ambles into view",
+                    "appears round the bend",
+                    "wanders in from somewhere",
+                    "shows up with a friendly wave"
+                ]
+                arrival = random.choice(arrival_phrases)
+                spawn_msg = f"{display_name} {arrival}. {description}"
 
-        # Initialize agent in manager
-        await self.agent_manager.create_agent(
-            agent_id=agent_id,
-            checkpoint_path=checkpoint_path,
-            spawn_room=room['uid'],
-            agent_name=display_name,
-            agent_description=description,
-            config=config
-        )
+            # Create agent in world
+            checkpoint_path = "../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
+            self.world.create_agent(
+                name=agent_name,
+                checkpoint_path=checkpoint_path,
+                spawn_room=room['uid']
+            )
 
-        recipe_msg = f" (using recipe: {recipe.name})" if recipe else ""
-        return {
-            'success': True,
-            'output': f"Agent '{display_name}' spawned{recipe_msg}.",
-            'events': [{
+            # Initialize agent in manager
+            await self.agent_manager.create_agent(
+                agent_id=agent_id,
+                checkpoint_path=checkpoint_path,
+                spawn_room=room['uid'],
+                agent_name=display_name,
+                agent_description=description,
+                config=config
+            )
+
+            # Track successful spawn
+            spawned_agents.append(display_name)
+            recipe_msg = f" (using recipe: {recipe.name})" if recipe else ""
+
+            # Add event for this agent
+            all_events.append({
                 'type': 'enter',
                 'user': agent_id,
                 'room': room['uid'],
                 'text': spawn_msg
-            }]
-        }
+            })
+
+        # Build result message
+        if spawned_agents:
+            if len(spawned_agents) == 1:
+                output_msg = f"Agent '{spawned_agents[0]}' spawned."
+            else:
+                output_msg = f"Spawned {len(spawned_agents)} agents: {', '.join(spawned_agents)}."
+
+            if errors:
+                output_msg += f"\nErrors: {', '.join(errors)}"
+
+            return {
+                'success': True,
+                'output': output_msg,
+                'events': all_events
+            }
+        else:
+            # All failed
+            return {
+                'success': False,
+                'output': f"Failed to spawn agents. Errors: {', '.join(errors)}",
+                'events': []
+            }
 
     async def cmd_remove(self, user_id: str, args: str) -> Dict:
         """Remove an agent from the world."""
@@ -3060,6 +3155,11 @@ class CommandParser:
             agent_name = args[5:].strip()
             return await self._brenda_undo(user_id, agent_name)
 
+        # Usemodel
+        if args_lower.startswith('usemodel '):
+            model_name = args[9:].strip()
+            return await self._brenda_usemodel(user_id, model_name)
+
         # Make/adjust - various patterns
         # Pattern 1: "make <agent> <adjective>"
         make_match = re.match(r'^make\s+(\w+)\s+(.+)$', args, re.I)
@@ -3095,7 +3195,6 @@ class CommandParser:
             )
 
             # Clean up multiple newlines in BRENDA's response
-            import re
             brenda_response = re.sub(r'\n\n\n+', '\n\n', brenda_response.strip())
 
             # Format output: BRENDA's words + any tool execution results
@@ -3208,6 +3307,145 @@ class CommandParser:
             'output': output,
             'events': []
         }
+
+    async def _brenda_build(self, user_id: str, description: str) -> Dict:
+        """
+        Build a new room from natural language description.
+
+        Args:
+            user_id: User ID requesting the build
+            description: Natural language description (e.g., "a cozy library with bookshelves")
+
+        Returns:
+            Dict with success, output, and events
+        """
+        # Extract room name and description from natural language
+        # Simple heuristic: first few words are the name, rest is description
+        words = description.split()
+        if len(words) < 2:
+            return {
+                'success': False,
+                'output': "🤷‍♀️ I need more details about the room you want to build.",
+                'events': []
+            }
+
+        # Try to extract a name from the description
+        # Look for patterns like "a cozy library" or "the green room"
+        name_words = []
+        desc_words = []
+
+        # Skip articles and collect name
+        skip_words = {'a', 'an', 'the'}
+        in_name = True
+        for i, word in enumerate(words):
+            if word.lower() in skip_words and i < 3:
+                continue
+            if in_name and len(name_words) < 4:  # Max 4 words for name
+                name_words.append(word.capitalize())
+            else:
+                in_name = False
+                desc_words.append(word)
+
+        if not name_words:
+            name_words = words[:2]
+            desc_words = words[2:]
+
+        room_name = " ".join(name_words) if name_words else "New Room"
+        room_description = " ".join(desc_words) if desc_words else description
+
+        # If description is very short, use the full input
+        if not room_description or len(room_description) < 10:
+            room_description = description
+
+        # Create the room
+        try:
+            room_id = self.world.create_room(
+                name=room_name,
+                description=room_description,
+                owner=user_id
+            )
+
+            # Get user's current room to potentially link to it
+            user = self.world.get_user(user_id)
+            if user:
+                current_room_id = user.get('location')
+                if current_room_id:
+                    # Ask if they want to link it (for now, we'll just create it)
+                    pass
+
+            output = (
+                f"🏗️ Built '{room_name}' ({room_id})!\n\n"
+                f"{room_description}\n\n"
+                f"💡 Tip: Use '@link {room_id} <direction>' to connect it to your current room"
+            )
+
+            return {
+                'success': True,
+                'output': output,
+                'events': [{
+                    'type': 'room_created',
+                    'room_id': room_id,
+                    'name': room_name
+                }]
+            }
+        except Exception as e:
+            logger.error(f"Error building room: {e}")
+            return {
+                'success': False,
+                'output': f"⚠️ Couldn't build the room: {str(e)}",
+                'events': []
+            }
+
+    async def _brenda_usemodel(self, user_id: str, model_name: str) -> Dict:
+        """
+        Change BRENDA's LLM model and save to config.
+
+        Args:
+            user_id: User ID requesting the change
+            model_name: New model name (e.g., "deepseek-r1:latest")
+
+        Returns:
+            Dict with success status and message
+        """
+        try:
+            if not model_name or not model_name.strip():
+                return {
+                    'success': False,
+                    'output': '⚠️ Please specify a model name.',
+                    'events': []
+                }
+
+            model_name = model_name.strip()
+            old_model = self.brenda_character.model
+
+            # Update BRENDA's model
+            self.brenda_character.set_model(model_name)
+
+            # Save to config file
+            import yaml
+            config_path = 'config.yaml'
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+
+            if 'brenda' not in config:
+                config['brenda'] = {}
+            config['brenda']['model'] = model_name
+
+            with open(config_path, 'w') as f:
+                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+            return {
+                'success': True,
+                'output': f'✅ BRENDA model changed from "{old_model}" to "{model_name}".\nSaved to config.yaml.',
+                'events': []
+            }
+
+        except Exception as e:
+            return {
+                'success': False,
+                'output': f"⚠️ Couldn't change model: {str(e)}",
+                'events': []
+            }
 
     async def _brenda_vibe_check(self, user_id: str, agent_name: str) -> Dict:
         """Show current agent state (appetites, goals, biases)."""

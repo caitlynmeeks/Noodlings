@@ -1,0 +1,158 @@
+{
+  "title": "Tractor Heist",
+  "cast": [
+    "phi",
+    "toad"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Farmyard Plot",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_npc",
+          "args": {
+            "name": "Bessie the Cow",
+            "desc": "a calm, slightly suspicious cow with a fondness for hay"
+          }
+        },
+        {
+          "t": 1,
+          "action": "create_npc",
+          "args": {
+            "name": "Old Mr. Plow",
+            "desc": "a grumpy, rusty-looking tractor with a broken horn"
+          }
+        },
+        {
+          "t": 2,
+          "action": "warp",
+          "args": {
+            "room": "farmyard"
+          }
+        },
+        {
+          "t": 3,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Phi, I think Old Mr. Plow is the key to our escape plan."
+          }
+        },
+        {
+          "t": 4,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "tugs at the handle of Old Mr. Plow's steering wheel, testing it"
+          }
+        },
+        {
+          "t": 6,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "He's not just broken\u2014he\u2019s got a secret compartment under the seat."
+          }
+        },
+        {
+          "t": 7,
+          "action": "timer",
+          "args": {
+            "delay": 10,
+            "next_scene": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Heist Begins",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 10
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "Glowing Key",
+            "desc": "a tiny, pulsating key that hums when near the tractor"
+          }
+        },
+        {
+          "t": 1,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "I found the key\u2014it\u2019s glowing. It must unlock the back door."
+          }
+        },
+        {
+          "t": 2,
+          "action": "warp",
+          "args": {
+            "room": "tractor_bay"
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "carefully inserts the glowing key into the tractor's panel"
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "It\u2019s working. The back door opens\u2014no one\u2019s watching."
+          }
+        },
+        {
+          "t": 5,
+          "action": "create_npc",
+          "args": {
+            "name": "Sunny the Sheep",
+            "desc": "a sheep who suddenly appears and wags its tail"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "grins and pulls out a bag of cookies"
+          }
+        },
+        {
+          "t": 7,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Tea and cookies for the sheep who saved us!"
+          }
+        }
+      ]
+    }
+  ]
+}

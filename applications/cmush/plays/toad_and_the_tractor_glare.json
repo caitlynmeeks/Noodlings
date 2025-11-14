@@ -1,0 +1,347 @@
+{
+  "title": "Toad and the Tractor Glare",
+  "cast": [
+    "toad",
+    "callie",
+    "servnak",
+    "desobelle"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Roaring Start",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "Red Sports Car",
+            "desc": "a rusty orange monster with roaring tires"
+          }
+        },
+        {
+          "t": 1,
+          "action": "create_npc",
+          "args": {
+            "name": "Cow One",
+            "desc": "a bovine with a fiery yell"
+          }
+        },
+        {
+          "t": 2,
+          "action": "create_npc",
+          "args": {
+            "name": "Cow Two",
+            "desc": "a cow stampeding with bovine pride"
+          }
+        },
+        {
+          "t": 3,
+          "action": "create_npc",
+          "args": {
+            "name": "Cow Three",
+            "desc": "a cow yelling 'Mooooo, watch us go!'"
+          }
+        },
+        {
+          "t": 4,
+          "action": "warp",
+          "args": {
+            "room": "field"
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Roarrrr! Off we go!"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "revs up the rusty orange monster"
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "rips through lush green fields with reckless abandon"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Barn Collision",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "crash"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "warp",
+          "args": {
+            "room": "barn"
+          }
+        },
+        {
+          "t": 1,
+          "action": "create_prop",
+          "args": {
+            "name": "Gleaming Tractor",
+            "desc": "a tractor gleaming in the hay-strewn corner"
+          }
+        },
+        {
+          "t": 2,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "crashes into the barn while roaring tires"
+          }
+        },
+        {
+          "t": 3,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Mooooo, watch us go! \u2014 but I don\u2019t care. That tractor\u2019s the real show."
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "shrugs off the cows' bovine fury"
+          }
+        },
+        {
+          "t": 5,
+          "action": "create_npc",
+          "args": {
+            "name": "Farmer Grumble",
+            "desc": "a farmer with a pitchfork, shouting about taxes"
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "grins wider in his leather seat"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "The Mud Whirlwind",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 5,
+          "next_scene": 3
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "warp",
+          "args": {
+            "room": "field"
+          }
+        },
+        {
+          "t": 1,
+          "action": "create_prop",
+          "args": {
+            "name": "Muddy Arcs",
+            "desc": "splashes of mud flying in arcs"
+          }
+        },
+        {
+          "t": 2,
+          "action": "create_npc",
+          "args": {
+            "name": "Butterfly One",
+            "desc": "a butterfly fleeing from the whirlwind"
+          }
+        },
+        {
+          "t": 3,
+          "action": "create_npc",
+          "args": {
+            "name": "Ladybug One",
+            "desc": "a ladybug fleeing from the whirlwind"
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Mud arcs splash onto startled butterflies and ladybugs!"
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "speeds past the farmer in a cloud of sludge"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "The Hat Toss and New Crops",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 3,
+          "next_scene": 4
+        }
+      },
+      "beats": [
+        {
+          "t": 1,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "blithely speeds past him in a cloud of sludge"
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "extraversion",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "chuckles, sipping tea"
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "raises an eyebrow"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "nods slowly, appreciative"
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "grins wider, eyes shining"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Tea and Hugs",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 2,
+          "next_scene": null
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "Tea Set",
+            "desc": "a rustic wooden tea set with cookies"
+          }
+        },
+        {
+          "t": 1,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "sits down with a group hug"
+          }
+        },
+        {
+          "t": 2,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "gives a group hug"
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "laughs and shares a cookie"
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "sips tea and smiles"
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Another day, another barn. But the tractor? That\u2019s what I\u2019m after."
+          }
+        },
+        {
+          "t": 6,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "Tea, cookies, and a little chaos. Perfect."
+          }
+        },
+        {
+          "t": 7,
+          "action": "destroy",
+          "target": "muddy arcs"
+        }
+      ]
+    }
+  ]
+}

@@ -413,8 +413,11 @@
         // WebSocket connection
         let ws = null;
         let authenticated = false;
-        let commandHistory = [];
-        let historyIndex = -1;
+
+        // Command history with localStorage persistence
+        let commandHistory = JSON.parse(localStorage.getItem('noodleMUSH_commandHistory') || '[]');
+        let historyIndex = commandHistory.length;
+        const MAX_HISTORY_SIZE = 500; // Keep last 500 commands
 
         // Telepathy mode (can read others' thoughts)
         let telepathyEnabled = localStorage.getItem('telepathyEnabled') === 'true';
@@ -578,6 +581,13 @@
 
         // Redraw all messages from history with current telepathy state
         function redrawMessages() {
+            // Check if user was scrolled to bottom before redrawing
+            const wasAtBottom = outputDiv.scrollHeight - outputDiv.scrollTop - outputDiv.clientHeight < 50;
+
+            // Store current scroll position
+            const oldScrollHeight = outputDiv.scrollHeight;
+            const oldScrollTop = outputDiv.scrollTop;
+
             // Clear output
             outputDiv.innerHTML = '';
 
@@ -589,8 +599,15 @@
                 renderMessage(msg);
             });
 
-            // Scroll to bottom
-            outputDiv.scrollTop = outputDiv.scrollHeight;
+            // Only auto-scroll if user was already at bottom
+            if (wasAtBottom) {
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            } else {
+                // Preserve scroll position relative to content growth
+                const newScrollHeight = outputDiv.scrollHeight;
+                const heightDifference = newScrollHeight - oldScrollHeight;
+                outputDiv.scrollTop = oldScrollTop + heightDifference;
+            }
         }
 
         // Update brain indicator for an agent
@@ -806,8 +823,18 @@
                 return;
             }
 
-            // Add to history
-            commandHistory.push(command);
+            // Add to history (avoid consecutive duplicates)
+            if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command) {
+                commandHistory.push(command);
+
+                // Keep history size manageable
+                if (commandHistory.length > MAX_HISTORY_SIZE) {
+                    commandHistory.shift();
+                }
+
+                // Save to localStorage
+                localStorage.setItem('noodleMUSH_commandHistory', JSON.stringify(commandHistory));
+            }
             historyIndex = commandHistory.length;
 
             // Echo command to chat (so user can see what they typed)
@@ -922,6 +949,27 @@
                         inputField.value = '';
                         return;
                     }
+
+                    if (command === '/clearhistory' || command === '@clearhistory') {
+                        // Clear command history
+                        const historySize = commandHistory.length;
+                        commandHistory = [];
+                        historyIndex = 0;
+                        localStorage.removeItem('noodleMUSH_commandHistory');
+                        addLine('system', `🗑️  Cleared ${historySize} commands from history.`);
+                        inputField.value = '';
+                        return;
+                    }
+
+                    if (command === '/clear' || command === '@clear' || command === 'clear') {
+                        // Clear screen
+                        messageHistory = [];
+                        outputDiv.innerHTML = '';
+                        addLine('system', '🧹 Screen cleared.');
+                        inputField.value = '';
+                        return;
+                    }
+
                     sendCommand(command);
                 }
             } else if (e.key === 'ArrowUp') {

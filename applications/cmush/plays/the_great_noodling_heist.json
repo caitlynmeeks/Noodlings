@@ -1,0 +1,390 @@
+{
+  "title": "The Great Noodling Heist",
+  "cast": [
+    "phi",
+    "toad",
+    "callie",
+    "servnak",
+    "desobelle"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Whispering Woods",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "warp",
+          "actor": "phi",
+          "args": {
+            "room": "whispering_woods"
+          }
+        },
+        {
+          "t": 1,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "tucks a leaf behind his ear, staring at the trees"
+          }
+        },
+        {
+          "t": 2,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "The wind is talking in riddles today."
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "desobelle",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 4,
+          "action": "create_npc",
+          "args": {
+            "name": "Bumblebee Bessie",
+            "desc": "a tiny, fuzzy bee with a monocle"
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "I think the map is in the hollow of the oldest tree."
+          }
+        },
+        {
+          "t": 6,
+          "action": "warp",
+          "actor": "phi",
+          "args": {
+            "room": "ancient_tree_hollow"
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "digs in the soil with a twig"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Hollow of Secrets",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "map"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "Cracked Map",
+            "desc": "a parchment with scribbled paths and a single question mark"
+          }
+        },
+        {
+          "t": 1,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "It says 'follow the song of the silver stream'."
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "autonomy",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "taps her foot slowly, eyes wide"
+          }
+        },
+        {
+          "t": 4,
+          "action": "create_npc",
+          "args": {
+            "name": "Squish the Squirrel",
+            "desc": "a nervous squirrel holding a nut-shaped compass"
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "I\u2019ve heard the silver stream sings at midnight."
+          }
+        },
+        {
+          "t": 6,
+          "action": "warp",
+          "actor": "phi",
+          "args": {
+            "room": "silver_stream_cavern"
+          }
+        },
+        {
+          "t": 7,
+          "action": "timer",
+          "args": {
+            "delay": 10,
+            "next_scene": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Midnight at the Cavern",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 10,
+          "next_scene": 3
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "taps the wall, listening intently"
+          }
+        },
+        {
+          "t": 1,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "The song is faint\u2026 like a lullaby from another world."
+          }
+        },
+        {
+          "t": 2,
+          "action": "create_prop",
+          "args": {
+            "name": "Moonlight Flute",
+            "desc": "a small flute made of willow wood, glowing softly"
+          }
+        },
+        {
+          "t": 3,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "I played it once\u2014when I was a child."
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "closes her eyes and hums softly"
+          }
+        },
+        {
+          "t": 5,
+          "action": "warp",
+          "actor": "toad",
+          "args": {
+            "room": "hidden_lighthouse"
+          }
+        },
+        {
+          "t": 6,
+          "action": "destroy",
+          "target": "Cracked Map"
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "laughs gently and waves at the moon"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "The Lighthouse of Little Light",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "We found the key\u2014it\u2019s inside a seashell."
+          }
+        },
+        {
+          "t": 1,
+          "action": "create_prop",
+          "args": {
+            "name": "Seashell Key",
+            "desc": "a tiny shell with a spiral that hums when touched"
+          }
+        },
+        {
+          "t": 2,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "holds up the key and spins it slowly"
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "emotional_volatility",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "The key opens doors we never knew existed."
+          }
+        },
+        {
+          "t": 5,
+          "action": "create_npc",
+          "args": {
+            "name": "Tide Tilly",
+            "desc": "a gentle sea spirit with a shimmering tail"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "waves at Tide Tilly and smiles"
+          }
+        },
+        {
+          "t": 7,
+          "action": "timer",
+          "args": {
+            "delay": 5,
+            "next_scene": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "The Tea in the Gilded Corner",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 5,
+          "next_scene": null
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "Gilded Tea Set",
+            "desc": "a set of teacups with tiny stars on them"
+          }
+        },
+        {
+          "t": 1,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "Let\u2019s have tea. No maps, no secrets\u2014just warmth."
+          }
+        },
+        {
+          "t": 2,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "pours tea with a flutter of joy"
+          }
+        },
+        {
+          "t": 3,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "This is the best tea I\u2019ve ever tasted."
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "takes a sip, then hugs the group"
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "smiles and shares a cookie with everyone"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "gives a group hug"
+          }
+        },
+        {
+          "t": 7,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "And that\u2019s how we found peace."
+          }
+        }
+      ]
+    }
+  ]
+}

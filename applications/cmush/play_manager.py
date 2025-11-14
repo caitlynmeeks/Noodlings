@@ -22,7 +22,16 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 # LLM Prompt for play generation
-PLAY_GENERATION_PROMPT = """You are a JSON-only play generator for Noodlings MUSH.
+PLAY_GENERATION_PROMPT = """USER STORY REQUEST:
+{user_text}
+
+YOUR TASK: Create a play that EXACTLY matches the user's story above. Do not invent a different story!
+
+CRITICAL DISTINCTION - CAST vs NPCs:
+- CAST: Real Noodling agents (AI actors). You MUST ONLY use agents from the available cast list below.
+- NPCs: Temporary background characters created with create_npc action (like farmers, cows, etc.)
+
+Available CAST members (use ONLY these for the "cast" field and "actor" fields): {cast_list}
 
 Rules:
 - Use ONLY these beat actions: bias, warp, say, emote, create_prop, create_npc, destroy, timer
@@ -33,18 +42,19 @@ Rules:
 - End with tea, cookies, or group hug
 - Time offsets (t) are in seconds from scene start
 - Actions:
-  * bias: {{"actor": "agent", "args": {{"param": "extraversion", "delta": 0.3}}}}
-  * warp: {{"actor": "agent", "args": {{"room": "room_id"}}}}
-  * say: {{"actor": "agent", "args": {{"text": "dialogue"}}}}
-  * emote: {{"actor": "agent", "args": {{"text": "action description"}}}}
+  * bias: {{"actor": "agent_name", "args": {{"param": "extraversion", "delta": 0.3}}}}
+  * warp: {{"actor": "agent_name", "args": {{"room": "room_id"}}}}
+  * say: {{"actor": "agent_name", "args": {{"text": "dialogue"}}}}
+  * emote: {{"actor": "agent_name", "args": {{"text": "action description"}}}}
   * create_prop: {{"args": {{"name": "prop name", "desc": "description"}}}}
-  * create_npc: {{"args": {{"name": "npc name", "desc": "description"}}}}
+  * create_npc: {{"args": {{"name": "npc name", "desc": "description"}}}} (for background characters)
   * destroy: {{"target": "object name"}}
   * timer: {{"args": {{"delay": seconds, "next_scene": scene_id}}}}
 
-User requested: {user_text}
-
-Available cast members: {cast_list}
+IMPORTANT EXAMPLES:
+- If story mentions "Toad and some cows": Use Toad as cast, create cows as NPCs with create_npc
+- If story mentions "Phi meets a farmer": Use Phi as cast, create farmer as NPC with create_npc
+- Never add NPCs like "Bessie the Cow" or "Farmer Brown" to the "cast" field!
 
 Output ONLY valid JSON matching this structure (no commentary):
 {{
@@ -56,7 +66,8 @@ Output ONLY valid JSON matching this structure (no commentary):
       "name": "Scene Name",
       "trigger": {{"type": "manual", "args": {{}}}},
       "beats": [
-        {{"t": 0, "action": "say", "actor": "agent1", "args": {{"text": "Hello!"}}}}
+        {{"t": 0, "action": "create_npc", "args": {{"name": "Farmer Brown", "desc": "a grumpy farmer"}}}},
+        {{"t": 1, "action": "say", "actor": "agent1", "args": {{"text": "Hello!"}}}}
       ]
     }}
   ]
@@ -125,9 +136,9 @@ class PlayManager:
             response = await self.llm.generate(
                 prompt=prompt,
                 model=llm_model,
-                temperature=0.4,
+                temperature=0.7,
                 max_tokens=4000,
-                system_prompt="You are a creative playwright. Output only valid JSON."
+                system_prompt="You are a playwright creating a play that EXACTLY matches the user's story. Follow their story precisely. Output only valid JSON with no commentary."
             )
 
             # Debug: Log the raw LLM response
@@ -208,7 +219,10 @@ class PlayManager:
             f.write(f"cast_lower_map={cast_lower_map}\n")
 
         # Normalize cast names to match available agents
+        # Auto-filter invalid cast members (LLM often ignores instructions)
         normalized_cast = []
+        invalid_cast_members = []
+
         for cast_member in play_json['cast']:
             if cast_member == "<player>":
                 normalized_cast.append(cast_member)
@@ -230,15 +244,26 @@ class PlayManager:
             if cast_lower in cast_lower_map:
                 normalized_cast.append(cast_lower_map[cast_lower])
             else:
+                # LLM added an invalid cast member - track it but don't fail
+                invalid_cast_members.append(cast_member)
                 with open('/tmp/brenda_debug.txt', 'a') as f:
-                    f.write(f"  ERROR: Not found! available_cast={available_cast}\n")
-                return {
-                    'valid': False,
-                    'error': f"Unknown cast member '{cast_member}'. Available: {', '.join(available_cast)}"
-                }
+                    f.write(f"  WARNING: '{cast_member}' not in available cast - will be filtered out\n")
 
-        # Replace cast with normalized names
+        # If ALL cast members are invalid, that's a problem
+        if not normalized_cast and invalid_cast_members:
+            return {
+                'valid': False,
+                'error': f"No valid cast members. Invalid: {', '.join(invalid_cast_members)}. Available: {', '.join(available_cast)}"
+            }
+
+        # Replace cast with normalized names (filtered)
         play_json['cast'] = normalized_cast
+
+        # Log warning if we filtered any
+        if invalid_cast_members:
+            with open('/tmp/brenda_debug.txt', 'a') as f:
+                f.write(f"  Auto-filtered invalid cast members: {invalid_cast_members}\n")
+                f.write(f"  Final cast: {normalized_cast}\n")
 
         # Validate scenes
         for scene in play_json['scenes']:
@@ -249,7 +274,10 @@ class PlayManager:
             if 'beats' not in scene:
                 return {'valid': False, 'error': 'Scene missing beats'}
 
-            # Validate beats
+            # Validate and filter beats
+            valid_beats = []
+            invalid_beats = []
+
             for beat in scene['beats']:
                 if 'action' not in beat:
                     return {'valid': False, 'error': 'Beat missing action'}
@@ -267,8 +295,25 @@ class PlayManager:
                     actor_lower = actor_lower.strip()
                     if actor_lower in cast_lower_map:
                         beat['actor'] = cast_lower_map[actor_lower]
-                    elif actor != "<player>":
-                        return {'valid': False, 'error': f"Unknown actor '{actor}' in beat"}
+                        valid_beats.append(beat)
+                    elif actor == "<player>":
+                        valid_beats.append(beat)
+                    else:
+                        # Invalid actor - skip this beat
+                        invalid_beats.append(f"{actor} in scene {scene['id']}")
+                        with open('/tmp/brenda_debug.txt', 'a') as f:
+                            f.write(f"  Filtered beat with invalid actor '{actor}'\n")
+                else:
+                    # No actor (e.g., create_prop, create_npc) - keep it
+                    valid_beats.append(beat)
+
+            # Replace beats with filtered list
+            scene['beats'] = valid_beats
+
+            # Warn if we filtered any
+            if invalid_beats:
+                with open('/tmp/brenda_debug.txt', 'a') as f:
+                    f.write(f"  Auto-filtered {len(invalid_beats)} invalid beats: {invalid_beats}\n")
 
                 # Target might be a prop/NPC, so don't validate strictly
                 target = beat.get('target')

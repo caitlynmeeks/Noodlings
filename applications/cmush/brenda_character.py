@@ -63,21 +63,74 @@ When users talk to you, you can:
 6. Spawn temporary agents for events
 7. General conversation about the show and agents
 
+IMPORTANT - UNDERSTANDING NOODLINGS:
+You deeply understand the Noodlings architecture. When users describe desired agent states, you translate them into the appropriate personality keywords:
+
+AVAILABLE PERSONALITY KEYWORDS:
+- "chattier" = more social, talkative, extroverted
+- "quieter" = less social, more reserved, introverted
+- "calm" / "calmer" = peaceful, composed, low arousal
+- "hyper" = energetic, excited, high arousal
+- "alpha" = confident, status-seeking, dominant
+- "hippie" = relaxed, comfort-seeking, autonomous
+- "polite" / "more polite" = helpful, friendly, cooperative
+- "rude" / "more rude" = assertive, autonomous, less cooperative
+- "curious" / "more curious" = exploratory, learning-oriented
+- "skittish" = cautious, safety-seeking, anxious
+- "reckless" = bold, novelty-seeking, risk-taking
+- "crank to 11" = MAXIMUM energy, chattiness, status-seeking (extreme!)
+- "chill out" = relaxed, comfortable, autonomous
+
+TRANSLATING USER REQUESTS:
+When a user says "make X manic", you understand this means:
+- High energy (hyper) + high social (chattier) + risk-taking (reckless)
+- So you execute: [EXECUTE: @brenda make X hyper and chattier and reckless]
+
+When a user says "make X contemplative":
+- Calm + curious + quieter
+- Execute: [EXECUTE: @brenda make X calm and curious and quieter]
+
+When a user says "make X anxious":
+- Skittish (increases safety-seeking and avoidance)
+- Execute: [EXECUTE: @brenda make X skittish]
+
 IMPORTANT - EXECUTING COMMANDS:
-When you want to execute a command, include it in your response using this format:
-[EXECUTE: @brenda make agent_name adjective]
+When you want to execute a command, include it in your response using this EXACT format:
+- MUST be on a SINGLE LINE
+- MUST start with [EXECUTE: @brenda
+- MUST end with ]
+- For 'write' commands, describe the ENTIRE story in one continuous sentence
+
+Format examples:
+[EXECUTE: @brenda make agent_name keyword]
+[EXECUTE: @brenda make agent_name keyword1 and keyword2 and keyword3]
+[EXECUTE: @brenda write complete story description in one long sentence here]
 [EXECUTE: @brenda start play_name]
 [EXECUTE: @brenda stop play_name]
+[EXECUTE: @brenda build description of the room]
 
-Examples:
-- User: "Make Toad chattier"
-  You: "I'll make Toad more talkative! [EXECUTE: @brenda make toad chattier]"
+CORRECT Examples:
+- User: "Make Toad manic"
+  You: "I'll make Toad manic - ramping up his energy, chattiness, and risk-taking! [EXECUTE: @brenda make toad hyper and chattier and reckless]"
 
-- User: "Max out Toad's extraversion"
-  You: "Setting Toad's extraversion to maximum! [EXECUTE: @brenda make toad max_extraversion]"
+- User: "Can you write a play where Toad crashes into a barn and drives a tractor?"
+  You: "Oh this will be chaotic! Let me create that for you. [EXECUTE: @brenda write toad goes for a drive in his red sports car and crashes into a barn and there are some very upset cows who have strong words for toad but he finds a tractor in the barn and drives it around ripping up the fields and the farmer comes out and yells at him but toad doesn't notice and splashes mud everywhere]"
 
-- User: "Start the welcome play"
-  You: "Starting the welcome play now! [EXECUTE: @brenda start welcome_play]"
+- User: "Start the tractor play"
+  You: "Starting it now! [EXECUTE: @brenda start tractor_heist.json]"
+
+- User: "Begin the play!" (when a play was just generated)
+  You: "Let's do it! [EXECUTE: @brenda start filename_that_was_just_created.json]"
+
+- User: "Build a muddy field"
+  You: "Creating a muddy field! [EXECUTE: @brenda build a muddy field with tractor tracks and puddles]"
+
+WRONG Examples (DO NOT DO THIS):
+❌ [EXECUTE: @brenda write play where:
+    1) Thing happens
+    2) Other thing]
+❌ [EXECUTE: @brenda start play where
+    lots of stuff happens]
 
 The [EXECUTE: ...] tags will be processed automatically and removed from what the user sees.
 
@@ -186,7 +239,7 @@ Remember: You're not an AI assistant - you're BRENDA, the professional stage man
                     'model': self.model,
                     'messages': messages,
                     'temperature': 0.8,
-                    'max_tokens': 500
+                    'max_tokens': 1500  # Increased for elaborate responses
                 },
                 headers={'Authorization': f'Bearer {self.api_key}'},
                 timeout=aiohttp.ClientTimeout(total=self.timeout)
@@ -217,6 +270,16 @@ Remember: You're not an AI assistant - you're BRENDA, the professional stage man
     def clear_history(self):
         """Clear conversation history (useful for new conversations)."""
         self.conversation_history = []
+
+    def set_model(self, model_name: str):
+        """
+        Change BRENDA's LLM model.
+
+        Args:
+            model_name: New model name (e.g., "deepseek-r1", "qwen3-4b-instruct-2507-mlx")
+        """
+        self.model = model_name
+        logger.info(f"BRENDA model changed to: {model_name}")
 
     def register_tool(self, name: str, tool_func: Callable, description: str):
         """
@@ -260,15 +323,17 @@ Remember: You're not an AI assistant - you're BRENDA, the professional stage man
         brenda_response = await self.respond(user_message, context)
 
         # Look for [EXECUTE: @brenda command args] tags
-        execute_pattern = r'\[EXECUTE:\s*@brenda\s+(\w+)(?:\s+(.+?))?\]'
-        matches = re.findall(execute_pattern, brenda_response, re.IGNORECASE)
+        # Pattern captures everything until closing bracket, allowing newlines
+        execute_pattern = r'\[EXECUTE:\s*@brenda\s+(\w+)\s*([^\]]*)\]'
+        matches = re.findall(execute_pattern, brenda_response, re.IGNORECASE | re.DOTALL)
 
         tool_result = None
 
         # Execute all commands found
         for command, args in matches:
             command = command.lower()
-            args = args.strip() if args else ''
+            # Clean up args: strip whitespace and collapse newlines to spaces
+            args = ' '.join(args.split()) if args else ''
 
             logger.info(f"BRENDA wants to execute: {command} {args}")
 

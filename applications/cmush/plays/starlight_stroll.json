@@ -1,0 +1,391 @@
+{
+  "title": "Starlight Stroll",
+  "cast": [
+    "phi",
+    "toad"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Garden at Dusk",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "warp",
+          "actor": "phi",
+          "args": {
+            "room": "garden_november_starry"
+          }
+        },
+        {
+          "t": 1,
+          "action": "warp",
+          "actor": "toad",
+          "args": {
+            "room": "garden_november_starry"
+          }
+        },
+        {
+          "t": 2,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Ah, the garden breathes with stars tonight. Look \u2014 fireflies like tiny lanterns drifting through the air."
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Reaches out a hand, gently touching a drifting firefly that flickers like a shy smile."
+          }
+        },
+        {
+          "t": 4,
+          "action": "create_npc",
+          "args": {
+            "name": "Pip the Hedgehog",
+            "desc": "A small, shy hedgehog with velvet quills, tucked into a patch of clover, watching the world with quiet eyes."
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Hello there, Pip. You\u2019re watching the stars too, aren\u2019t you?"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Nuzzles gently against Pip\u2019s soft quills, feeling the warm brush of bristles like velvet under fingertips."
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Stares at the sky, then softly says, 'Even stillness hums with something... like time itself.'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Puddle Leap",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "leap"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Leaps over a small, shimmering puddle with a joyful hop \u2014 only a gentle splash ripples outward."
+          }
+        },
+        {
+          "t": 1,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "That was a perfect leap \u2014 like a spark skipping across water."
+          }
+        },
+        {
+          "t": 2,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "I once tried to leap over a pond too, and ended up with a very wet tail. Lesson learned."
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Sits cross-legged on a mossy stone, watching the fireflies dance."
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Small things \u2014 like a puddle, or a hedgehog\u2019s quiet breath \u2014 hold such beauty. We don\u2019t always notice them."
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Nods slowly, eyes fixed on the sky where a distant owl hoots softly."
+          }
+        },
+        {
+          "t": 6,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 7,
+          "action": "timer",
+          "args": {
+            "delay": 10,
+            "next_scene": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Stargazing and Stillness",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 10
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Sits beside Toad on a moss-covered stone, gazing upward at the night sky."
+          }
+        },
+        {
+          "t": 1,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Do you feel it? The way the stars hum \u2014 not loud, but deep. Like life is always moving, even when we\u2019re still."
+          }
+        },
+        {
+          "t": 2,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Yes. Even in silence, there\u2019s music. And warmth. Like the hedgehog\u2019s bristles \u2014 soft and real."
+          }
+        },
+        {
+          "t": 3,
+          "action": "create_prop",
+          "args": {
+            "name": "Starlight Lantern",
+            "desc": "A tiny, glowing lantern made from a firefly\u2019s light caught in a willow leaf."
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Holds the lantern gently, its light pulsing like a heartbeat."
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "emotional_volatility",
+            "delta": -0.2
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Smiles softly, then reaches out to gently touch the lantern."
+          }
+        },
+        {
+          "t": 7,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Maybe that\u2019s what matters \u2014 not grand things, but quiet moments where we feel seen."
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "The Quiet Hug",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "hug"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Wraps a gentle arm around Phi, pulling them close in a quiet group hug."
+          }
+        },
+        {
+          "t": 1,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Sometimes, the most beautiful things are just\u2026 here. Together."
+          }
+        },
+        {
+          "t": 2,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Lifts the Starlight Lantern and holds it between them, its light glowing warmly."
+          }
+        },
+        {
+          "t": 3,
+          "action": "create_prop",
+          "args": {
+            "name": "Warm Cookies",
+            "desc": "A small batch of cinnamon-sugar cookies baked by a hidden oven in the garden."
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Let\u2019s share some cookies. Warm, soft things \u2014 just like the night."
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Takes a cookie, smiles, and bites into it slowly."
+          }
+        },
+        {
+          "t": 6,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "autonomy",
+            "delta": 0.1
+          }
+        },
+        {
+          "t": 7,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "We didn\u2019t need to go far. Just be here, in the quiet \u2014 and find wonder."
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Tea and Quiet",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 15
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "Starlight Tea",
+            "desc": "A cup of chamomile and starflower tea, steaming gently in a ceramic mug."
+          }
+        },
+        {
+          "t": 1,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Sips the tea, watching the steam rise like a soft whisper."
+          }
+        },
+        {
+          "t": 2,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "The night is long, but so are the moments we share. Like this one."
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "Leans back, eyes closed, feeling the warmth of the tea and the quiet."
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "I think I\u2019ll remember this night \u2014 not for the stars, but for how stillness felt like a song."
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "Nods, smiles gently, and takes a slow sip of tea."
+          }
+        },
+        {
+          "t": 6,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "safety",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 7,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Tea. Cookies. A quiet night. And a hedgehog who felt like home."
+          }
+        }
+      ]
+    }
+  ]
+}
