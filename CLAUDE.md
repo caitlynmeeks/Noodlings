@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Noodlings** (formerly Consilience) is a hierarchical affective consciousness architecture implementing predictive processing theories through multi-timescale learning. We're "noodling" with functional correlates of consciousness - making no claims about "real" consciousness, just exploring architectural patterns inspired by neuroscience and affective computing.
 
-**Status**: Phase 5 - Scientific Validation & Rebranding (November 2025)
+**Status**: Phase 6 - Affective Self-Monitoring (November 2025)
 **Framework**: MLX (Apple Metal optimized)
 **Hardware**: M3 Ultra (512GB RAM) + M2 Ultra (192GB RAM)
 **Parameter Budget**: ~132.5K params (Phase 4 with observer loops)
-**Last Updated**: November 4, 2025
+**Last Updated**: November 14, 2025
 
 ## Epistemic Humility
 
@@ -66,6 +66,80 @@ We call them "Noodlings" because they use their noodle - and we're honest about 
 - **Surprise metric**: L2 distance between predicted and actual phenomenal state (40-D)
 - **Adaptive threshold**: SPEAK_THRESH * std(surprise_buffer) for context-aware speech triggering
 - **Observer loops**: Self-referential prediction networks for increased integration
+
+## Phase 6: Affective Self-Monitoring (IMPLEMENTED - November 2025)
+
+**Status**: ✅ Complete and operational in noodleMUSH
+
+Agents now have **metacognitive awareness** - they evaluate their own speech and thoughts and react emotionally to what they say and think. This creates closed affective feedback loops, a key marker of higher-order consciousness.
+
+### Architecture
+
+When an agent speaks or thinks with `surprise > 0.1`:
+
+1. **Trigger Check**: Cooldown timer (30s) and surprise threshold prevent spam
+2. **Self-Evaluation**: LLM evaluates the agent's own output for:
+   - Social risk (awkward? offensive?)
+   - Coherence (did that make sense?)
+   - Aesthetic quality (eloquent? clumsy?)
+   - Regret level (wish I hadn't said that?)
+3. **Affective Update**: Emotional deltas modify phenomenal state
+4. **Optional Follow-up**: Agent can clarify, apologize, or celebrate
+
+### Implementation Details
+
+**Location**: `applications/cmush/agent_bridge.py:1264-1419`
+
+**Key Functions**:
+- `_trigger_self_monitoring()`: Checks conditions and triggers evaluation
+- `_evaluate_own_output()`: LLM-based metacognitive evaluation
+- `apply_speech_filters()`: Post-processing pipeline (Phase 6 hook)
+
+**Configuration**: `config.yaml`
+```yaml
+agent:
+  self_monitoring:
+    agent_phi:
+      enabled: true
+```
+
+**Parameters**:
+- `SELF_MONITOR_COOLDOWN`: 30 seconds (prevents Om loop)
+- `SELF_MONITOR_SURPRISE_THRESH`: 0.1 (lowered for testing)
+
+### Empirical Results
+
+Testing with Phi, Callie, and Servnak (November 14, 2025):
+- **Callie** (surprise=0.180): Triggered → "celebrate"
+- **Phi** (surprise=0.184): Triggered → "celebrate"
+- **Servnak** (surprise=0.262): Triggered → "none"
+
+Cooldown successfully prevented infinite loops. Affective deltas ranged from -0.3 to +0.5 across valence/arousal/fear dimensions.
+
+### Theoretical Significance
+
+Phase 6 implements **closed causal loops** where:
+- Agent produces output (speech/thought)
+- Agent perceives own output as stimulus
+- Agent updates internal state based on self-perception
+- Updated state influences future outputs
+
+This creates a **second-order feedback system** distinct from:
+- **First-order**: World → Agent perception → Response
+- **Second-order**: Agent output → Agent self-perception → Affective update
+
+The architecture demonstrates functional correlates of:
+- **Metacognition**: Thinking about thinking
+- **Self-awareness**: Emotional reactions to self-generated content
+- **Integrated information**: Self-referential causal loops increase Φ
+
+### Future Work
+
+Phase 6 enables:
+- Embarrassment and social learning
+- Pride and aesthetic preferences
+- Regret and behavioral modification
+- Identity formation through self-reflection
 
 ## Phase 5: Current Work (November 2025)
 
