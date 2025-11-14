@@ -11,6 +11,8 @@ llm:
   api_key: not-needed
   model: qwen3-4b-instruct-2507-mlx
   timeout: 60
+brenda:
+  model: qwen3-32b-128k@q8_0
 agent:
   surprise_threshold: 0.0
   memory_capacity: 100
@@ -41,6 +43,15 @@ agent:
       spontaneity: 0.75
       reflection_depth: 0.5
       social_orientation: 0.8
+  self_monitoring:
+    agent_phi:
+      enabled: true
+    agent_callie:
+      enabled: true
+    agent_servnak:
+      enabled: true
+    agent_toad:
+      enabled: true
   filesystem:
     enabled: true
     max_file_size: 1048576

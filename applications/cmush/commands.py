@@ -874,6 +874,34 @@ class CommandParser:
             'events': []
         }
 
+    async def cmd_link(self, user_id: str, args: str) -> Dict:
+        """Link current room to an existing room with a custom direction name."""
+        # Parse: @link room_005 Glowing blue portal of whimsy
+        parts = args.split(None, 1)
+        if len(parts) < 2:
+            return {'success': False, 'output': 'Usage: @link <room_id> <direction_name>', 'events': []}
+
+        target_room_id = parts[0]
+        direction_name = parts[1]
+
+        current_room = self.world.get_user_room(user_id)
+        if not current_room:
+            return {'success': False, 'output': 'Error getting location.', 'events': []}
+
+        # Check if target room exists
+        target_room = self.world.get_room(target_room_id)
+        if not target_room:
+            return {'success': False, 'output': f"Room '{target_room_id}' not found.", 'events': []}
+
+        # Create custom exit
+        self.world.set_exit(current_room['uid'], direction_name.lower(), target_room_id)
+
+        return {
+            'success': True,
+            'output': f"✨ Linked! You can now travel via '{direction_name}' to {target_room.get('name', target_room_id)}.",
+            'events': []
+        }
+
     async def cmd_destroy(self, user_id: str, args: str) -> Dict:
         """Destroy an object in the current room."""
         if not args:
@@ -989,6 +1017,10 @@ class CommandParser:
                 description = recipe.description if not agent_description else agent_description
 
                 # Build config from recipe
+                # Phase 6: Debug self-monitoring config
+                sm_config = self.config['agent'].get('self_monitoring', {})
+                print(f"[DEBUG SPAWN] agent_id={agent_id}, self.config['agent'] keys={list(self.config['agent'].keys())}, self_monitoring={sm_config}", flush=True)
+
                 config = {
                     'appetites': recipe.get_appetite_baselines(),
                     'personality': recipe.get_personality_vector(),
@@ -999,7 +1031,9 @@ class CommandParser:
                     'max_tokens': recipe.max_tokens,
                     'enforce_action_format': recipe.enforce_action_format,
                     'response_cooldown': recipe.response_cooldown,
-                    'enlightenment': recipe.enlightenment
+                    'enlightenment': recipe.enlightenment,
+                    # Phase 6: Self-monitoring config from global config.yaml
+                    'self_monitoring': sm_config
                 }
 
                 # Wind in the Willows-style natural arrival
@@ -3054,7 +3088,7 @@ class CommandParser:
         """
         # Help text (both no args and explicit "help")
         help_text = (
-            "🌿 BRENDA - Behavioral Regulation Engine for Narrative-Driven Agents\n"
+            "🌿 BRENDA - Behavioral Regulation Engine for Narrative-Driven Agents\n" +
             "=" * 60 + "\n\n"
             "AGENT TWEAKING:\n"
             "  @brenda make <agent> <adjective> - adjust personality (chattier, calm, alpha, etc.)\n"
@@ -3133,6 +3167,41 @@ class CommandParser:
         if play_next_match:
             filename = play_next_match.group(1).strip()
             return await self._brenda_play_next(user_id, filename)
+
+        # === WORLD BUILDING COMMANDS ===
+
+        # Spawn actors/agents - accepts various formats:
+        # "spawn the actors" "spawn agents" "spawn <names>"
+        if args_lower.startswith('spawn'):
+            spawn_args = args[5:].strip().lower()
+            # Parse out agent names
+            spawn_args = spawn_args.replace('the', '').replace('actors', '').replace('agents', '').strip()
+            if not spawn_args:
+                # No specific agents - spawn the cast from running play
+                if self.play_manager.active_plays:
+                    # Get first running play's cast
+                    first_play_state = next(iter(self.play_manager.active_plays.values()))
+                    cast = first_play_state['play'].get('cast', [])
+                    if not cast:
+                        return {
+                            'success': False,
+                            'output': "🌿 BRENDA: The play has no cast! Strange theatrical production...",
+                            'events': []
+                        }
+                    spawn_args = ' '.join(cast)
+                else:
+                    return {
+                        'success': False,
+                        'output': "🌿 BRENDA: No play is running! Who should I summon to the stage?",
+                        'events': []
+                    }
+            return await self.cmd_spawn_agent(user_id, spawn_args)
+
+        # Build location/room - accepts "build <description>"
+        build_match = re.match(r'^build\s+(.+)$', args, re.I)
+        if build_match:
+            description = build_match.group(1).strip()
+            return await self._brenda_build_location(user_id, description)
 
         # === PARAMETER TWEAKING COMMANDS ===
 
@@ -3851,6 +3920,42 @@ class CommandParser:
             'success': True,
             'output': f"⏭️ {result['message']}",
             'events': []
+        }
+
+    async def _brenda_build_location(self, user_id: str, description: str) -> Dict:
+        """Build a new location based on description."""
+        # Parse out a short name from the description
+        words = description.split()
+        # Use first 3-4 words as room name
+        name_words = []
+        for word in words[:4]:
+            if word.lower() not in ['the', 'a', 'an', 'with', 'of']:
+                name_words.append(word.capitalize())
+        room_name = ' '.join(name_words) if name_words else "New Location"
+
+        # Create the room
+        result = await self.cmd_create(user_id, f"room {room_name}")
+        if not result['success']:
+            return result
+
+        # Get the room UID from the result
+        room_uid_match = re.search(r'\(([^)]+)\)', result['output'])
+        if not room_uid_match:
+            return {
+                'success': False,
+                'output': f"🌿 BRENDA: Built the location but couldn't find its ID! Technical difficulties...",
+                'events': result.get('events', [])
+            }
+
+        room_uid = room_uid_match.group(1)
+
+        # Set the description
+        desc_result = await self.cmd_describe(user_id, description)
+
+        return {
+            'success': True,
+            'output': f"🏗️ Built '{room_name}' ({room_uid})!\n\n{description}\n\n💡 Tip: Use '@link {room_uid} <direction>' to connect it to your current room",
+            'events': result.get('events', []) + desc_result.get('events', [])
         }
 
     # ===== Utility Commands =====

@@ -41,6 +41,75 @@ logger = logging.getLogger(__name__)
 NOODLESCOPE_URL = "http://localhost:8050"
 NOODLESCOPE_ENABLED = True  # Set to False to disable
 
+# Phase 6: Self-Monitoring Configuration
+SELF_MONITOR_COOLDOWN = 30  # Seconds between self-evaluations
+SELF_MONITOR_SURPRISE_THRESH = 0.1  # Only evaluate if surprise > threshold (lowered for testing)
+
+# LLM Prompt for speech self-evaluation
+SPEECH_EVAL_PROMPT = """You are evaluating what you just said from your own perspective.
+
+Your identity: {agent_name} - {agent_description}
+
+You just said: "{speech}"
+
+Recent context (last few exchanges):
+{context}
+
+Your current emotional state:
+- Valence: {valence:.2f} (-1=negative, +1=positive)
+- Arousal: {arousal:.2f} (0=calm, 1=excited)
+- Fear: {fear:.2f}
+- Surprise: {surprise:.2f}
+
+Evaluate your own speech quickly and instinctively. Answer these questions:
+
+1. SOCIAL: Does this sound awkward, offensive, or inappropriate? (yes/no/maybe)
+2. COHERENCE: Did that make sense or sound confused? (clear/unclear)
+3. AESTHETIC: Was that surprisingly eloquent or did I rhyme accidentally? (yes/no)
+4. REGRET: Do I wish I'd said that differently? (yes/no/maybe)
+
+Respond in JSON:
+{{
+  "social_risk": "none|mild|moderate|high",
+  "coherence": "clear|unclear",
+  "aesthetic_surprise": "none|rhyme|eloquent|poetic",
+  "regret_level": "none|mild|moderate|high",
+  "emotional_impact": {{
+    "valence_delta": 0.0,  // -0.5 to +0.5
+    "arousal_delta": 0.0,   // -0.3 to +0.3
+    "fear_delta": 0.0       // -0.3 to +0.3
+  }},
+  "follow_up": "none|clarify|apologize|celebrate",
+  "follow_up_text": "optional follow-up message"
+}}
+
+Be honest but not catastrophic. Most speech is fine."""
+
+
+def apply_speech_filters(text: str, agent_id: str) -> str:
+    """
+    Apply post-processing filters to agent speech.
+
+    Phase 6: Speech Post-Processing Architecture
+    - Backwards filter for "dweller"
+    - Future: Affective coloring, self-monitoring
+
+    Args:
+        text: Raw speech text from agent
+        agent_id: Agent identifier (e.g., "agent_dweller")
+
+    Returns:
+        Filtered speech text
+    """
+    # Backwards speech filter for The Backwards Dweller
+    if 'dweller' in agent_id.lower():
+        # Reverse word order (more comprehensible than character reversal)
+        words = text.split()
+        return ' '.join(reversed(words))
+
+    # No filter applied
+    return text
+
 
 class CMUSHConsilienceAgent:
     """
@@ -144,6 +213,15 @@ class CMUSHConsilienceAgent:
 
         # Self-protection: Track users the agent has withdrawn from
         self.withdrawn_users = {}  # user_id -> timestamp of withdrawal
+
+        # Phase 6: Self-monitoring state
+        self.last_self_monitor = 0.0  # Timestamp of last self-evaluation
+        # Check agent-specific self-monitoring config
+        # Config here is the 'agent' section, so self_monitoring is nested inside it
+        self_monitoring_config = config.get('self_monitoring', {})
+        agent_self_monitor_config = self_monitoring_config.get(agent_id, {})
+        self.self_monitor_enabled = agent_self_monitor_config.get('enabled', False)
+        print(f"[DEBUG INIT] agent_id={agent_id}, self_monitoring_config keys={list(self_monitoring_config.keys())}, agent_config={agent_self_monitor_config}, enabled={self.self_monitor_enabled}", flush=True)
 
         # Training data collector (optional - can be disabled in config)
         if config.get('collect_training_data', True):
@@ -1052,9 +1130,17 @@ class CMUSHConsilienceAgent:
                 # Both action and speech - do action first, then say
                 action_text = ' '.join(actions)
                 logger.info(f"Agent {self.agent_id} parsed: action='{action_text}', speech='{clean_text}'")
+                print(f"💬 {self.agent_name} speaking (surprise={state['surprise']:.3f}): '{clean_text[:50]}...'", flush=True)
+
+                # Apply speech post-processing filters (Phase 6)
+                filtered_text = apply_speech_filters(clean_text, self.agent_id)
+
+                # Phase 6: Self-monitoring (if enabled and conditions met)
+                await self._trigger_self_monitoring(filtered_text, state)
+
                 return {
                     'command': 'emote',  # Use emote for combined action+speech
-                    'text': f"{action_text} and says, \"{clean_text}\"",
+                    'text': f"{action_text} and says, \"{filtered_text}\"",
                     'metadata': {
                         'surprise': float(state['surprise']),
                         'response_number': self.response_count,
@@ -1077,9 +1163,17 @@ class CMUSHConsilienceAgent:
             else:
                 # Pure speech, no action
                 logger.info(f"Agent {self.agent_id} parsed: pure speech='{clean_text}'")
+                print(f"💬 {self.agent_name} speaking (surprise={state['surprise']:.3f}): '{clean_text[:50]}...'", flush=True)
+
+                # Apply speech post-processing filters (Phase 6)
+                filtered_text = apply_speech_filters(clean_text, self.agent_id)
+
+                # Phase 6: Self-monitoring (if enabled and conditions met)
+                await self._trigger_self_monitoring(filtered_text, state)
+
                 return {
                     'command': 'say',
-                    'text': clean_text,
+                    'text': filtered_text,
                     'metadata': {
                         'surprise': float(state['surprise']),
                         'response_number': self.response_count,
@@ -1140,6 +1234,10 @@ class CMUSHConsilienceAgent:
 
             # Log thought with salience
             logger.info(f"Agent {self.agent_id} ruminating (identity_salience={identity_salience:.2f}): {thought_text}")
+            print(f"💭 {self.agent_name} thinking (surprise={state['surprise']:.3f}): '{thought_text[:50]}...'", flush=True)
+
+            # Phase 6: Self-monitoring (if enabled and conditions met)
+            await self._trigger_self_monitoring(thought_text, state)
 
             # Send to NoodleScope
             phenomenal_state_full = state.get('phenomenal_state', [])
@@ -1165,6 +1263,160 @@ class CMUSHConsilienceAgent:
         except Exception as e:
             logger.error(f"Error generating rumination: {e}", exc_info=True)
             return None
+
+    async def _trigger_self_monitoring(self, text: str, state: Dict):
+        """
+        Check if self-monitoring should trigger and call evaluation if conditions met.
+
+        Works for both speech and thoughts - agents can react to what they say OR think.
+
+        Conditions:
+        1. Self-monitoring enabled for this agent
+        2. Cooldown period has passed
+        3. Surprise level exceeds threshold
+        """
+        if not self.self_monitor_enabled:
+            print(f"[DEBUG] Self-monitor disabled for {self.agent_name}", flush=True)
+            return
+
+        current_time = time.time()
+        time_since_last = current_time - self.last_self_monitor
+        surprise = state.get('surprise', 0.0)
+
+        print(f"[DEBUG] Self-monitor check: enabled={self.self_monitor_enabled}, surprise={surprise:.3f}, threshold={SELF_MONITOR_SURPRISE_THRESH}, cooldown={time_since_last:.1f}s/{SELF_MONITOR_COOLDOWN}s", flush=True)
+
+        # Check cooldown
+        if time_since_last < SELF_MONITOR_COOLDOWN:
+            print(f"[DEBUG] Cooldown not ready ({time_since_last:.1f}s < {SELF_MONITOR_COOLDOWN}s)", flush=True)
+            return
+
+        # Check surprise threshold
+        if surprise < SELF_MONITOR_SURPRISE_THRESH:
+            print(f"[DEBUG] Surprise too low ({surprise:.3f} < {SELF_MONITOR_SURPRISE_THRESH})", flush=True)
+            return
+
+        # Conditions met - evaluate own output (speech or thought)
+        logger.info(f"[SELF-MONITOR] Triggering for {self.agent_name} (surprise={surprise:.3f}, cooldown={time_since_last:.1f}s)")
+        print(f"🧠 [SELF-MONITOR] Triggering for {self.agent_name} (surprise={surprise:.3f}, cooldown={time_since_last:.1f}s)", flush=True)
+        await self._evaluate_own_output(text, state)
+
+    async def _evaluate_own_output(self, text: str, state: Dict):
+        """
+        Phase 6: Self-monitoring loop.
+
+        Agent evaluates their own speech OR thoughts and updates phenomenal state based on
+        social/aesthetic/coherence evaluation. This creates affective feedback loops.
+
+        Works for both:
+        - Speech: "Did I just say something awkward?"
+        - Thoughts: "Whoa, where did THAT dark thought come from?"
+
+        Args:
+            text: The speech or thought the agent just generated
+            state: Current consilience state
+        """
+        try:
+            # Get current affect from state
+            current_affect = state['phenomenal_state'][:5].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'][:5])
+
+            # Build recent context summary (last 3 exchanges)
+            recent_context = []
+            for msg in self.conversation_context[-3:]:
+                speaker = "You" if msg['user'] == self.agent_id else msg.get('user', 'Someone')
+                recent_context.append(f"{speaker}: {msg['text'][:100]}")
+            context_str = "\n".join(recent_context) if recent_context else "(no recent context)"
+
+            # Build evaluation prompt
+            eval_prompt = SPEECH_EVAL_PROMPT.format(
+                agent_name=self.agent_name,
+                agent_description=self.agent_description,
+                speech=text,  # Note: prompt says "speech" but works for thoughts too
+                context=context_str,
+                valence=current_affect[0],
+                arousal=current_affect[1],
+                fear=current_affect[2],
+                surprise=state.get('surprise', 0.0)
+            )
+
+            # Call LLM for quick self-evaluation
+            response, _ = await self.llm._complete(
+                system_prompt="You are evaluating your own speech/thoughts metacognitively.",
+                user_prompt=eval_prompt,
+                temperature=0.7
+            )
+
+            if not response:
+                return
+
+            # Parse JSON response
+            import json
+            try:
+                # Try to extract JSON from response
+                json_start = response.find('{')
+                json_end = response.rfind('}') + 1
+                if json_start >= 0 and json_end > json_start:
+                    eval_data = json.loads(response[json_start:json_end])
+                else:
+                    logger.warning(f"No JSON found in self-evaluation response: {response}")
+                    return
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse self-evaluation JSON: {e}")
+                return
+
+            # Extract affective impact
+            emotional_impact = eval_data.get('emotional_impact', {})
+            valence_delta = emotional_impact.get('valence', 0.0)
+            arousal_delta = emotional_impact.get('arousal', 0.0)
+            fear_delta = emotional_impact.get('fear', 0.0)
+
+            # Apply affective updates to phenomenal state
+            # Note: This modifies the internal state for the NEXT cycle
+            if abs(valence_delta) > 0.05 or abs(arousal_delta) > 0.05 or abs(fear_delta) > 0.05:
+                logger.info(f"[SELF-MONITOR] {self.agent_name} felt: valence{valence_delta:+.2f}, arousal{arousal_delta:+.2f}, fear{fear_delta:+.2f}")
+                print(f"💭 [SELF-MONITOR] {self.agent_name} felt: valence{valence_delta:+.2f}, arousal{arousal_delta:+.2f}, fear{fear_delta:+.2f}", flush=True)
+
+                # Get current affect (first 5 dims of phenomenal state)
+                current_affect = state['phenomenal_state'][:5].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'][:5])
+
+                # Apply deltas with bounds checking
+                current_affect[0] = max(-1.0, min(1.0, current_affect[0] + valence_delta))  # valence
+                current_affect[1] = max(0.0, min(1.0, current_affect[1] + arousal_delta))   # arousal
+                current_affect[2] = max(0.0, min(1.0, current_affect[2] + fear_delta))      # fear
+
+                # Update consciousness with new affect
+                # This will bias the next response
+                import mlx.core as mx
+                new_affect = mx.array(current_affect, dtype=mx.float32)
+                self.consciousness.fast_layer_state = self.consciousness._update_affect_bias(
+                    self.consciousness.fast_layer_state,
+                    new_affect
+                )
+
+            # Check if agent wants to follow up
+            follow_up = eval_data.get('follow_up')
+            if follow_up:
+                logger.info(f"[SELF-MONITOR] {self.agent_name} wants to follow up: {follow_up}")
+                print(f"💬 [SELF-MONITOR] {self.agent_name} wants to follow up: {follow_up}", flush=True)
+
+                # Add to conversation context as internal note
+                self.conversation_context.append({
+                    'user': self.agent_id,
+                    'text': f"[self-monitoring] {follow_up}",
+                    'affect': current_affect,
+                    'surprise': state['surprise'],
+                    'timestamp': time.time(),
+                    'identity_salience': 0.0,
+                    'is_self_monitor': True
+                })
+
+                # Optionally generate a follow-up response
+                # For now we just log it - the agent can respond naturally next cycle
+
+            # Update last monitor time
+            self.last_self_monitor = time.time()
+
+        except Exception as e:
+            logger.error(f"Error in self-monitoring: {e}", exc_info=True)
 
     def get_phenomenal_state(self) -> Dict:
         """

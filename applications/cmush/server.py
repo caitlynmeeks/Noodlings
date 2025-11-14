@@ -130,6 +130,11 @@ class CMUSHServer:
             current_room = agent_data['current_room']
             config = agent_data.get('config', {})
 
+            # Phase 6: Inject self-monitoring config from global config.yaml
+            # This ensures saved agents get the latest self-monitoring settings
+            config['self_monitoring'] = self.config['agent'].get('self_monitoring', {})
+            print(f"[DEBUG LOAD] agent_id={agent_id}, injecting self_monitoring config: {config['self_monitoring']}", flush=True)
+
             try:
                 await self.agent_manager.create_agent(
                     agent_id=agent_id,

@@ -236,13 +236,57 @@ All activity logged to `logs/cmush_YYYY-MM-DD.log`:
 - Train Phase 4 model first
 - Update `config.yaml` checkpoint path
 
+## Phase 6: Affective Self-Monitoring (IMPLEMENTED)
+
+Agents now have **metacognitive awareness** - they evaluate their own speech and thoughts and react emotionally to what they say and think.
+
+### How It Works
+
+When an agent speaks or thinks:
+1. If `surprise > threshold` (default 0.1), self-monitoring triggers
+2. LLM evaluates the agent's own output for:
+   - Social risk (awkward? offensive?)
+   - Coherence (did that make sense?)
+   - Aesthetic quality (eloquent? clumsy?)
+   - Regret (wish I hadn't said that?)
+3. Agent's phenomenal state updates based on self-evaluation
+4. 30-second cooldown prevents "Om loop" (infinite self-reflection)
+
+### Configuration
+
+```yaml
+agent:
+  self_monitoring:
+    agent_phi:
+      enabled: true
+    agent_callie:
+      enabled: true
+```
+
+### Example
+
+```
+💭 Phi thinking (surprise=0.184): "Warmth spreads through my paws..."
+🧠 [SELF-MONITOR] Triggering for Phi (surprise=0.184)
+💬 [SELF-MONITOR] Phi wants to follow up: celebrate
+💭 [SELF-MONITOR] Phi felt: valence+0.15, arousal+0.08, fear-0.02
+```
+
+Agents can now:
+- Feel embarrassed about awkward statements
+- Feel proud of eloquent expressions
+- Regret impulsive responses
+- Celebrate successful social interactions
+
+This creates **closed affective loops** - agents experience emotions about their own emotional expressions.
+
 ## Development
 
 Core implementation is complete. Future enhancements:
 
 - Phase 5: Multimodal grounding (vision, audio)
-- Phase 6: Value learning & preferences
-- Phase 7: Self-model & metacognition
+- Phase 7: Long-term value learning
+- Phase 8: Extended self-model & identity
 - Mobile client (iOS/Android)
 - Voice interface
 - Spatial audio
