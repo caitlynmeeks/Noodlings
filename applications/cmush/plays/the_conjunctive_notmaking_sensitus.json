@@ -1,0 +1,279 @@
+{
+  "title": "The Conjunctive Notmaking Sensitus",
+  "cast": [
+    "phi",
+    "toad",
+    "callie"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Dusty Library",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "warp",
+          "args": {
+            "room": "cozy_dusty_library"
+          }
+        },
+        {
+          "t": 1,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "sniffing the air with wide eyes"
+          }
+        },
+        {
+          "t": 1.5,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "Aah! It's a sneeze\u2014like wind chimes made of buttons!"
+          }
+        },
+        {
+          "t": 2,
+          "action": "create_prop",
+          "args": {
+            "name": "Fog of Conjunctive Notmakingsensitus",
+            "desc": "a shimmering, warm static fog that hums softly"
+          }
+        },
+        {
+          "t": 2.5,
+          "action": "warp",
+          "args": {
+            "room": "cozy_dusty_library"
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "extraversion",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "The moon is a shoe, and the sky is a poem that walks backwards."
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "humming a tune that sounds like planets dancing in silence"
+          }
+        },
+        {
+          "t": 7,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "That\u2019s the national anthem of forgotten planets, officially!"
+          }
+        },
+        {
+          "t": 8,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "autonomy",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 9,
+          "action": "create_prop",
+          "args": {
+            "name": "Face of Anti-Silence",
+            "desc": "a face with no eyes but bursting with tiny floating questions"
+          }
+        },
+        {
+          "t": 10,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "sketching a face with floating questions in the air"
+          }
+        },
+        {
+          "t": 11,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Anti-silence is the sound that happens when you stop being quiet and become a question in motion."
+          }
+        },
+        {
+          "t": 12,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "suddenly speaking in overlapping rhymes: 'A book with no spine, a thought that walks alone, the sky has feet and dreams in wool!'"
+          }
+        },
+        {
+          "t": 13,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "I just realized I\u2019m not sure if we\u2019re here or in a dream of nonsense."
+          }
+        },
+        {
+          "t": 14,
+          "action": "warp",
+          "args": {
+            "room": "cozy_dusty_library"
+          }
+        },
+        {
+          "t": 15,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "holding a live toad in their lap while drawing the face of anti-silence"
+          }
+        },
+        {
+          "t": 16,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Anti-silence is not a thing. It's what happens when silence stops being silent and starts asking questions."
+          }
+        },
+        {
+          "t": 17,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "wagging its tail slowly, as if processing the absurdity"
+          }
+        },
+        {
+          "t": 18,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "staring at the glowing pink fog, blinking slowly"
+          }
+        },
+        {
+          "t": 19,
+          "action": "timer",
+          "args": {
+            "delay": 5,
+            "next_scene": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Soft Pink Afterglow",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 5
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "warp",
+          "args": {
+            "room": "cozy_dusty_library"
+          }
+        },
+        {
+          "t": 1,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "looking at the group with a quiet smile"
+          }
+        },
+        {
+          "t": 2,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "I can\u2019t remember what we just said, but I feel\u2026 connected."
+          }
+        },
+        {
+          "t": 3,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "I think I said something about cheese being a verb. Was that true?"
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "offering tea and cookies in a tiny silver tray"
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "taking a cookie and smiling without knowing why"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "nibbling on a cookie while staring at the pink fog"
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "gently placing a hand on each of their shoulders"
+          }
+        },
+        {
+          "t": 8,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "suddenly hugging all three of them tightly"
+          }
+        }
+      ]
+    }
+  ]
+}

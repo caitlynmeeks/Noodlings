@@ -1,0 +1,376 @@
+{
+  "title": "Tea in the Reverse Hum",
+  "cast": [
+    "callie",
+    "phi",
+    "servnak"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Towering Oak",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "warp",
+          "actor": "callie",
+          "args": {
+            "room": "misty_forest_oak"
+          }
+        },
+        {
+          "t": 1,
+          "action": "warp",
+          "actor": "phi",
+          "args": {
+            "room": "misty_forest_oak"
+          }
+        },
+        {
+          "t": 2,
+          "action": "warp",
+          "actor": "servnak",
+          "args": {
+            "room": "misty_forest_oak"
+          }
+        },
+        {
+          "t": 3,
+          "action": "create_prop",
+          "args": {
+            "name": "glowing_lichen_bark",
+            "desc": "bark etched with soft pulsing lichen that glows in the mist"
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "reaches out to trace the glowing lichen"
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "The bark... it\u2019s breathing."
+          }
+        },
+        {
+          "t": 6,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "tilts head, listening to the wind in the leaves"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Squirrel on the Highest Branch",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "squirrel"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "silver_furred_squirrel",
+            "desc": "a small gray squirrel with oversized black eyes and a patch of silver fur, wearing a woven mushroom hat"
+          }
+        },
+        {
+          "t": 1,
+          "action": "create_prop",
+          "args": {
+            "name": "cedar_teapot",
+            "desc": "a teapot made from hollowed-out cedar, warm to the touch"
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "stares at the sparkling teacup, enchanted"
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "nervously reaches for the teacup, fumbles it"
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Oh no! I spilled it!"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "the mist curls into tiny shadow shapes that float away"
+          }
+        },
+        {
+          "t": 7,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "The tree feels like a sleeping giant with a heartbeat."
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Whispers from the Branches",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 10,
+          "next_scene": 3
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "I feel like I\u2019ve been here before."
+          }
+        },
+        {
+          "t": 1,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "And I\u2019ll be here again?"
+          }
+        },
+        {
+          "t": 2,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "Soft whispers echo: 'You were here before. You\u2019ll be here again.'"
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "holds the teacup to her chest, breathing slowly"
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "sip from the teacup, eyes wide with awe"
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "listens to the tree\u2019s reverse hum, quiet and steady"
+          }
+        },
+        {
+          "t": 6,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "It\u2019s humming backward now. Just for a moment."
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "smiles, touched by the magic"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Descending with a Feather",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 5,
+          "next_scene": 4
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "takes a slow step down the branch"
+          }
+        },
+        {
+          "t": 1,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "follows, hands linked with callie"
+          }
+        },
+        {
+          "t": 2,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "moves silently, watching the tree"
+          }
+        },
+        {
+          "t": 3,
+          "action": "create_prop",
+          "args": {
+            "name": "feather_on_path",
+            "desc": "a single feather lies on the forest path, drifting slightly in the mist"
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "I left a feather. Maybe it\u2019s a sign."
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "looks back at the tree, then smiles"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "touches the feather, then laughs softly"
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "the tree still hums in reverse \u2014 just for a moment"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "The Final Hush",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 3,
+          "next_scene": null
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "sips from the teacup, warm and glowing"
+          }
+        },
+        {
+          "t": 1,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "nods, sharing a cookie from the teapot"
+          }
+        },
+        {
+          "t": 2,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "gently hugs the others, eyes closed"
+          }
+        },
+        {
+          "t": 3,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "Tea. Cookies. And we\u2019re back, but not the same."
+          }
+        },
+        {
+          "t": 4,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "smiles, the mist softening around them"
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "the tree hums once more \u2014 faint, backward \u2014 then stills"
+          }
+        },
+        {
+          "t": 6,
+          "action": "create_prop",
+          "args": {
+            "name": "reverse_hum_memory",
+            "desc": "a lingering echo in the air, felt but not heard"
+          }
+        }
+      ]
+    }
+  ]
+}

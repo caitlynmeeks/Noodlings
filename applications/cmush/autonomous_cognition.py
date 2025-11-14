@@ -215,9 +215,9 @@ Example: ["thought 1", "thought 2", "thought 3"]"""
             # Parse JSON response
             thoughts = self._parse_thoughts_response(response)
 
-            # If LLM provided thinking tags, add them as additional thoughts
-            if llm_thinking:
-                thoughts.append(llm_thinking)
+            # Phase 6: DO NOT append llm_thinking to thoughts!
+            # LLM thinking tags are ungrounded meta-cognition, not phenomenally-grounded thoughts.
+            # The _complete() method already strips them from the response.
 
             # Log thoughts to file
             if thoughts:

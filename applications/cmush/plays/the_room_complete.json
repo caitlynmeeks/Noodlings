@@ -1,0 +1,1398 @@
+{
+  "title": "The Room: A Study in Emotional Catastrophe",
+  "description": "Tommy Wiseau's cinematic masterpiece recreated as a noodleMUSH play. Watch as Tommy's phenomenal state disintegrates in real-time while his friends betray him. YOU'RE TEARING ME APART, LISA! A demonstration of modeling extreme emotional volatility and interpersonal dysfunction.",
+  "cast": ["phi", "toad", "callie", "servnak", "desobelle"],
+  "character_mappings": {
+    "phi": "Tommy (volatile, earnest, prone to dramatic outbursts)",
+    "toad": "Mark (Tommy's best friend, conflicted about betrayal)",
+    "callie": "Lisa (manipulative, the source of all chaos)",
+    "servnak": "Denny (childlike, confused, inappropriately attached)",
+    "desobelle": "Michelle (Lisa's friend, observer of the disaster)"
+  },
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Rooftop - Oh Hai Mark",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "The Rooftop",
+            "desc": "A San Francisco rooftop with a spectacular view. There's a bench, some railings, and an inexplicable pile of footballs."
+          }
+        },
+        {
+          "t": 2,
+          "action": "create_prop",
+          "args": {
+            "name": "A Football",
+            "desc": "An American football. It will be tossed. A lot. For no particular reason."
+          }
+        },
+        {
+          "t": 4,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "valence",
+            "delta": 0.6
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "emotional_volatility",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "arrives on the rooftop, full of inexplicable energy and enthusiasm"
+          }
+        },
+        {
+          "t": 9,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Oh hai Mark! I didn't know it was you!"
+          }
+        },
+        {
+          "t": 11,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "agreeableness",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 13,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "looks up, slightly confused by the greeting"
+          }
+        },
+        {
+          "t": 15,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Hey Tommy! What's up?"
+          }
+        },
+        {
+          "t": 17,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "picks up the football and tosses it casually"
+          }
+        },
+        {
+          "t": 19,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "I'm so happy I have you as my best friend, and I love Lisa so much!"
+          }
+        },
+        {
+          "t": 22,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "valence",
+            "delta": -0.2
+          }
+        },
+        {
+          "t": 24,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "catches the football, feeling a pang of guilt"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Flower Shop - Oh Hai Doggy",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 20
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "The Flower Shop",
+            "desc": "A small flower shop with bouquets everywhere. There's a dog here for some reason."
+          }
+        },
+        {
+          "t": 2,
+          "action": "create_npc",
+          "args": {
+            "name": "Flower Shop Lady",
+            "desc": "a cheerful shopkeeper who somehow knows everyone"
+          }
+        },
+        {
+          "t": 4,
+          "action": "create_npc",
+          "args": {
+            "name": "The Doggy",
+            "desc": "a friendly dog that just hangs out in the flower shop"
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "enters the flower shop with purpose"
+          }
+        },
+        {
+          "t": 8,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Oh hai doggy!"
+          }
+        },
+        {
+          "t": 10,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "arousal",
+            "delta": 0.2
+          }
+        },
+        {
+          "t": 12,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "pets the dog briefly before turning to the counter"
+          }
+        },
+        {
+          "t": 14,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Hi! Can I have a dozen red roses, please?"
+          }
+        },
+        {
+          "t": 17,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "That's me! How much is it?"
+          }
+        },
+        {
+          "t": 20,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Here you go! Keep the change. Hi doggy!"
+          }
+        },
+        {
+          "t": 22,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "valence",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 24,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "leaves the shop with roses, totally oblivious to impending doom"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Denny's Confusion - The Awkward Interruption",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 15
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "Tommy's Apartment",
+            "desc": "A remarkably bland apartment with uncomfortable furniture and several framed photos of spoons for some reason."
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.5
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "fear",
+            "delta": -0.3
+          }
+        },
+        {
+          "t": 5,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "lounges on the couch, looking bored and vaguely scheming"
+          }
+        },
+        {
+          "t": 8,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "bursts through the door without knocking, completely oblivious to social boundaries"
+          }
+        },
+        {
+          "t": 10,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "HI LISA! WHERE'S TOMMY? I NEED TO TALK TO TOMMY ABOUT MY SITUATION WITH THE DRUGS!"
+          }
+        },
+        {
+          "t": 13,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "arousal",
+            "delta": -0.2
+          }
+        },
+        {
+          "t": 15,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "looks annoyed at the interruption"
+          }
+        },
+        {
+          "t": 17,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "Denny, Tommy's not here right now. What drugs?"
+          }
+        },
+        {
+          "t": 20,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "fear",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 22,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "THESE GUYS WANTED ME TO BUY DRUGS BUT TOMMY SAYS DRUGS ARE BAD AND I DON'T KNOW WHAT TO DO!"
+          }
+        },
+        {
+          "t": 25,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "enters with the roses, completely derailing the conversation"
+          }
+        },
+        {
+          "t": 27,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "What's going on here? Denny, are you okay?"
+          }
+        },
+        {
+          "t": 30,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "fear",
+            "delta": -0.5
+          }
+        },
+        {
+          "t": 31,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "valence",
+            "delta": 0.6
+          }
+        },
+        {
+          "t": 33,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "TOMMY! YOU'RE MY FAVORITE PERSON! I LOVE YOU SO MUCH!"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "The Betrayal - Mark and Lisa",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "Mark"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "valence",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "arousal",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "approaches Mark with calculated seduction"
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "Mark... I need to talk to you about something. About us."
+          }
+        },
+        {
+          "t": 8,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "fear",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 9,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "valence",
+            "delta": -0.4
+          }
+        },
+        {
+          "t": 11,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "backs away slightly, clearly conflicted"
+          }
+        },
+        {
+          "t": 13,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Lisa, this is wrong. Tommy's my best friend. We can't do this."
+          }
+        },
+        {
+          "t": 16,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "Tommy doesn't understand me. Not like you do, Mark."
+          }
+        },
+        {
+          "t": 19,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "curiosity",
+            "delta": -0.5
+          }
+        },
+        {
+          "t": 20,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "autonomy",
+            "delta": -0.3
+          }
+        },
+        {
+          "t": 22,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "struggles with internal conflict, loyalty wavering"
+          }
+        },
+        {
+          "t": 25,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "walks in unexpectedly, immediately sensing the tension"
+          }
+        },
+        {
+          "t": 27,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "Oh! I didn't mean to interrupt... Should I come back later?"
+          }
+        },
+        {
+          "t": 30,
+          "action": "bias",
+          "actor": "desobelle",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "YOU'RE TEARING ME APART, LISA!",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "betray"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "valence",
+            "delta": -0.7
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "arousal",
+            "delta": 0.9
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "emotional_volatility",
+            "delta": 0.8
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "fear",
+            "delta": 0.5
+          }
+        },
+        {
+          "t": 4,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "sorrow",
+            "delta": 0.7
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "discovers the truth, world crumbling around them"
+          }
+        },
+        {
+          "t": 8,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Why, Lisa? Why? WHY?!"
+          }
+        },
+        {
+          "t": 11,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "remains cold and defensive"
+          }
+        },
+        {
+          "t": 13,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "You just don't understand, Tommy. You never did."
+          }
+        },
+        {
+          "t": 16,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "arousal",
+            "delta": 0.1
+          }
+        },
+        {
+          "t": 18,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "throws arms up in complete despair, voice breaking"
+          }
+        },
+        {
+          "t": 20,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "YOU'RE TEARING ME APART, LISA!!!"
+          }
+        },
+        {
+          "t": 23,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "valence",
+            "delta": -0.6
+          }
+        },
+        {
+          "t": 24,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "fear",
+            "delta": 0.5
+          }
+        },
+        {
+          "t": 26,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "stands frozen, overwhelmed by guilt"
+          }
+        },
+        {
+          "t": 28,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Tommy... I... I'm so sorry, man. I never meant for this to happen."
+          }
+        },
+        {
+          "t": 31,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "fear",
+            "delta": 0.7
+          }
+        },
+        {
+          "t": 32,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "sorrow",
+            "delta": 0.6
+          }
+        },
+        {
+          "t": 34,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "starts crying, completely overwhelmed by the adult emotions"
+          }
+        },
+        {
+          "t": 36,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "WHY IS EVERYONE YELLING?! TOMMY, PLEASE DON'T BE SAD!"
+          }
+        },
+        {
+          "t": 39,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "collapses onto the couch, utterly destroyed"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "The Aftermath - Processing Catastrophe",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 25
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "A Tape Recorder",
+            "desc": "A tape recorder that was secretly recording everything. Of course."
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "sorrow",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 4,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "arousal",
+            "delta": -0.4
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "sits alone, reviewing the tape with hollow eyes"
+          }
+        },
+        {
+          "t": 8,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Everybody betray me. I'm fed up with this world."
+          }
+        },
+        {
+          "t": 11,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "enters cautiously, Mr. Typesafe held tight"
+          }
+        },
+        {
+          "t": 13,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "Tommy... I know you're hurting. But there are people who still care about you."
+          }
+        },
+        {
+          "t": 16,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "valence",
+            "delta": -0.3
+          }
+        },
+        {
+          "t": 18,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "looks up with profound sadness"
+          }
+        },
+        {
+          "t": 20,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "You're the only one who understands, Michelle. Everyone else... they just use me."
+          }
+        },
+        {
+          "t": 23,
+          "action": "bias",
+          "actor": "desobelle",
+          "args": {
+            "param": "sorrow",
+            "delta": 0.5
+          }
+        },
+        {
+          "t": 25,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "peeks in from the doorway, still confused"
+          }
+        },
+        {
+          "t": 27,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "TOMMY? CAN I... CAN I GIVE YOU A HUG? I DON'T UNDERSTAND WHAT HAPPENED BUT I KNOW YOU'RE SAD."
+          }
+        },
+        {
+          "t": 30,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "valence",
+            "delta": 0.2
+          }
+        },
+        {
+          "t": 32,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "manages the smallest smile for Denny"
+          }
+        },
+        {
+          "t": 34,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "You're a good kid, Denny. Don't ever change."
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "The Party - Everyone Pretends Everything Is Fine",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "party"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "Birthday Decorations",
+            "desc": "Awkward party decorations for Tommy's birthday. The tension in the air is palpable."
+          }
+        },
+        {
+          "t": 2,
+          "action": "create_npc",
+          "args": {
+            "name": "Party Guests",
+            "desc": "random people who somehow know Tommy, standing around awkwardly"
+          }
+        },
+        {
+          "t": 4,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "emotional_volatility",
+            "delta": 0.5
+          }
+        },
+        {
+          "t": 6,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "tries to act cheerful but the mask keeps slipping"
+          }
+        },
+        {
+          "t": 8,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Ha ha ha! Thank you all for coming to my birthday!"
+          }
+        },
+        {
+          "t": 11,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "stands near Mark, avoiding Tommy's gaze"
+          }
+        },
+        {
+          "t": 13,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "valence",
+            "delta": -0.4
+          }
+        },
+        {
+          "t": 15,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "drinks heavily, unable to make eye contact with Tommy"
+          }
+        },
+        {
+          "t": 17,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "So... anyone want cake?"
+          }
+        },
+        {
+          "t": 20,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "arousal",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 22,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "suddenly becomes manic, forced energy radiating"
+          }
+        },
+        {
+          "t": 24,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Let's play some MUSIC! Everyone should be DANCING!"
+          }
+        },
+        {
+          "t": 27,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "curiosity",
+            "delta": -0.3
+          }
+        },
+        {
+          "t": 28,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "fear",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 30,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "looks around nervously, sensing something is very wrong"
+          }
+        },
+        {
+          "t": 32,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "TOMMY? ARE YOU OKAY? YOU SEEM... DIFFERENT."
+          }
+        },
+        {
+          "t": 35,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "valence",
+            "delta": -0.5
+          }
+        },
+        {
+          "t": 37,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "I'm FINE, Denny! Everything is FINE! We're all just having a GREAT TIME!"
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "The Confrontation - Truth Comes Out",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 20
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "arousal",
+            "delta": 0.7
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "emotional_volatility",
+            "delta": 0.6
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "suddenly stops the music, facing everyone"
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "I have an announcement. I know about Lisa and Mark."
+          }
+        },
+        {
+          "t": 8,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "fear",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 10,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "goes pale, caught"
+          }
+        },
+        {
+          "t": 12,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "Tommy, I can explain—"
+          }
+        },
+        {
+          "t": 15,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "valence",
+            "delta": -0.8
+          }
+        },
+        {
+          "t": 17,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "You can explain?! You betrayed me! My best friend and my future wife!"
+          }
+        },
+        {
+          "t": 20,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "steps forward, face full of shame"
+          }
+        },
+        {
+          "t": 22,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Tommy, I... there's no excuse. I destroyed our friendship and I hate myself for it."
+          }
+        },
+        {
+          "t": 25,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "sorrow",
+            "delta": 0.8
+          }
+        },
+        {
+          "t": 27,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "voice cracks, rage giving way to pure heartbreak"
+          }
+        },
+        {
+          "t": 29,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "I loved you both so much. How could you do this to me?"
+          }
+        },
+        {
+          "t": 32,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "tries to intervene, voice of reason"
+          }
+        },
+        {
+          "t": 34,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "Tommy, maybe we should all just take a breath and—"
+          }
+        },
+        {
+          "t": 37,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "arousal",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 39,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "storms out, unable to bear it anymore"
+          }
+        },
+        {
+          "t": 41,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "I'm done with all of you! DONE!"
+          }
+        },
+        {
+          "t": 44,
+          "action": "create_prop",
+          "args": {
+            "name": "Awkward Silence",
+            "desc": "The crushing weight of ruined relationships hanging in the air."
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "The Final Scene - Resolution",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 30
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "destroy",
+          "target": "Birthday Decorations"
+        },
+        {
+          "t": 1,
+          "action": "destroy",
+          "target": "Party Guests"
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "valence",
+            "delta": -0.9
+          }
+        },
+        {
+          "t": 4,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "sorrow",
+            "delta": 0.9
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "arousal",
+            "delta": -0.6
+          }
+        },
+        {
+          "t": 7,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "stands alone in the empty apartment, surrounded by silence"
+          }
+        },
+        {
+          "t": 9,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "I did not hit her. I did not. Oh hai, Mark..."
+          }
+        },
+        {
+          "t": 12,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "sinks down, the weight of everything crushing"
+          }
+        },
+        {
+          "t": 15,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "What kind of drugs, Denny? What kind?"
+          }
+        },
+        {
+          "t": 18,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "mutters disconnected lines, phenomenal state fragmenting"
+          }
+        },
+        {
+          "t": 21,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "sorrow",
+            "delta": 0.8
+          }
+        },
+        {
+          "t": 23,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "returns, finding Tommy in ruins"
+          }
+        },
+        {
+          "t": 25,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Tommy... I'm so sorry, man. I'm so, so sorry."
+          }
+        },
+        {
+          "t": 28,
+          "action": "emote",
+          "actor": "servnak",
+          "args": {
+            "text": "enters with others, everyone drawn back by concern"
+          }
+        },
+        {
+          "t": 30,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "TOMMY! WE'RE ALL HERE! PLEASE DON'T BE ALONE!"
+          }
+        },
+        {
+          "t": 33,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "valence",
+            "delta": 0.1
+          }
+        },
+        {
+          "t": 35,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "looks up at everyone, broken but not destroyed"
+          }
+        },
+        {
+          "t": 37,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "You're all still here... even after everything?"
+          }
+        },
+        {
+          "t": 40,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "We're here, Tommy. People make mistakes, but they can also make amends. It'll take time."
+          }
+        },
+        {
+          "t": 43,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "sorrow",
+            "delta": -0.2
+          }
+        },
+        {
+          "t": 45,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "manages a tiny nod, the first step toward healing"
+          }
+        },
+        {
+          "t": 48,
+          "action": "create_prop",
+          "args": {
+            "name": "A Single Football",
+            "desc": "That football from the rooftop. A reminder of simpler times, and maybe hope for the future."
+          }
+        },
+        {
+          "t": 50,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Maybe... maybe we can try again. All of us."
+          }
+        }
+      ]
+    }
+  ]
+}

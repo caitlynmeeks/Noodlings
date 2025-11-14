@@ -91,6 +91,14 @@ language_mode: "verbal"
 # Enlightenment: SERVNAK knows their history but is immersed in being helpful
 enlightenment: false
 
+# Phase 6: TOXIC HEAD - Conscience parameters
+conscience:
+  toxicity_threshold: 0.5      # 0.0-1.0: How toxic before conscience activates
+  conscience_strength: 0.8     # 0.0-1.0: How strongly they self-correct
+  boundary_style: "firm_gentle"  # How they refuse: firm_gentle|direct|avoidant
+  incoming_sensitivity: 0.6    # 0.0-1.0: Sensitivity to others' toxicity
+  self_monitoring: true         # Check own speech for toxicity
+
 # LLM generation constraints
 constraints:
   max_tokens: 250  # Needs space for enthusiastic explanations

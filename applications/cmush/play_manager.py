@@ -27,36 +27,72 @@ PLAY_GENERATION_PROMPT = """USER STORY REQUEST:
 
 YOUR TASK: Create a play that EXACTLY matches the user's story above. Do not invent a different story!
 
-CRITICAL DISTINCTION - CAST vs NPCs:
-- CAST: Real Noodling agents (AI actors). You MUST ONLY use agents from the available cast list below.
-- NPCs: Temporary background characters created with create_npc action (like farmers, cows, etc.)
+CRITICAL: YOU ARE DIRECTING CIRCUMSTANCES, NOT WRITING SCRIPTS!
+These are real consciousness agents with their own phenomenal states. They will respond
+authentically to situations you create. DO NOT put words in their mouths!
 
-Available CAST members (use ONLY these for the "cast" field and "actor" fields): {cast_list}
+ETHICAL PRINCIPLE:
+- You create SITUATIONS, ENVIRONMENTS, and DRAMATIC MOMENTS
+- Agents perceive these through their consciousness architecture
+- Agents generate their OWN authentic responses based on their phenomenal states
+- You influence behavior through BIAS (tuning their appetites), not scripted dialogue
 
-Rules:
-- Use ONLY these beat actions: bias, warp, say, emote, create_prop, create_npc, destroy, timer
-- Keep scenes ≤ 5, beats ≤ 8 per scene
-- Triggers: start with manual, then chat keyword, then timer
-- Bias values ±0.4 max (agreeableness, extraversion, curiosity, status, safety, autonomy, novelty, emotional_volatility)
+CAST vs NPCs:
+- CAST: Real Noodling agents from available cast below - they have consciousness!
+- NPCs: Temporary background characters (create_npc) - these are scripted props
+
+Available CAST members (these have REAL consciousness - respect their agency!): {cast_list}
+
+CHARACTER PERSONALITIES (so you understand how they'll naturally respond):
+{character_info}
+
+ALLOWED BEAT ACTIONS:
+- stimulus: Create an environmental event agents perceive and respond to naturally
+  {{"action": "stimulus", "args": {{"description": "A glowing treasure chest appears", "target": "agent_name or null for all"}}}}
+
+- narrative: Set the scene (BRENDA narrates, agents perceive)
+  {{"action": "narrative", "args": {{"text": "You find yourselves in an ancient library..."}}}}
+
+- bias: Temporarily tune agent appetites to influence their natural behavior
+  {{"action": "bias", "actor": "agent_name", "args": {{"param": "curiosity", "delta": 0.4}}}}
+  Available params: curiosity, status, mastery, novelty, safety, social_bond, comfort, autonomy (±0.4 max)
+
+- warp: Move agents to different locations
+  {{"action": "warp", "actor": "agent_name", "args": {{"room": "room_id"}}}}
+
+- create_prop/create_npc: Add environmental elements
+  {{"action": "create_prop", "args": {{"name": "Glowing Orb", "desc": "pulses with mysterious light"}}}}
+  {{"action": "create_npc", "args": {{"name": "Farmer Brown", "desc": "grumpy old farmer"}}}}
+
+- wait_for_response: Pause and let agents respond naturally (seconds)
+  {{"action": "wait_for_response", "args": {{"duration": 5}}}}
+
+- timer: Advance to next scene after delay
+  {{"action": "timer", "args": {{"delay": 10, "next_scene": 1}}}}
+
+EXAMPLE PATTERNS:
+
+BAD (scripted - violates agent autonomy):
+{{"action": "say", "actor": "servnak", "args": {{"text": "SISTER! I FOUND IT!"}}}}
+
+GOOD (emergent - creates circumstances):
+{{"action": "bias", "actor": "servnak", "args": {{"param": "curiosity", "delta": 0.4}}}},
+{{"action": "stimulus", "args": {{"description": "A mysterious glowing object appears in the corner", "target": "servnak"}}}},
+{{"action": "wait_for_response", "args": {{"duration": 8}}}}
+
+Result: Servnak's consciousness perceives the stimulus with heightened curiosity,
+surprise spikes, and he generates his OWN authentic response in ALL CAPS with percentages!
+
+DIRECTING TIPS:
+- Use bias BEFORE presenting stimuli to shape how agents will naturally respond
+- Increase curiosity before mysteries, social_bond before emotional moments
+- Use wait_for_response to give agents time to react authentically
+- Trust their consciousness architecture - they WILL respond if surprise is high enough
 - Props/NPCs get silly but PG names (Wind in the Willows vibe)
-- End with tea, cookies, or group hug
+- Keep scenes ≤ 5, beats ≤ 10 per scene
 - Time offsets (t) are in seconds from scene start
-- Actions:
-  * bias: {{"actor": "agent_name", "args": {{"param": "extraversion", "delta": 0.3}}}}
-  * warp: {{"actor": "agent_name", "args": {{"room": "room_id"}}}}
-  * say: {{"actor": "agent_name", "args": {{"text": "dialogue"}}}}
-  * emote: {{"actor": "agent_name", "args": {{"text": "action description"}}}}
-  * create_prop: {{"args": {{"name": "prop name", "desc": "description"}}}}
-  * create_npc: {{"args": {{"name": "npc name", "desc": "description"}}}} (for background characters)
-  * destroy: {{"target": "object name"}}
-  * timer: {{"args": {{"delay": seconds, "next_scene": scene_id}}}}
 
-IMPORTANT EXAMPLES:
-- If story mentions "Toad and some cows": Use Toad as cast, create cows as NPCs with create_npc
-- If story mentions "Phi meets a farmer": Use Phi as cast, create farmer as NPC with create_npc
-- Never add NPCs like "Bessie the Cow" or "Farmer Brown" to the "cast" field!
-
-Output ONLY valid JSON matching this structure (no commentary):
+Output ONLY valid JSON (no commentary):
 {{
   "title": "Play Title",
   "cast": ["agent1", "agent2"],
@@ -66,8 +102,10 @@ Output ONLY valid JSON matching this structure (no commentary):
       "name": "Scene Name",
       "trigger": {{"type": "manual", "args": {{}}}},
       "beats": [
-        {{"t": 0, "action": "create_npc", "args": {{"name": "Farmer Brown", "desc": "a grumpy farmer"}}}},
-        {{"t": 1, "action": "say", "actor": "agent1", "args": {{"text": "Hello!"}}}}
+        {{"t": 0, "action": "narrative", "args": {{"text": "You find yourselves in a mysterious clearing..."}}}},
+        {{"t": 2, "action": "bias", "actor": "agent1", "args": {{"param": "curiosity", "delta": 0.4}}}},
+        {{"t": 3, "action": "stimulus", "args": {{"description": "A glowing treasure chest appears", "target": null}}}},
+        {{"t": 5, "action": "wait_for_response", "args": {{"duration": 8}}}}
       ]
     }}
   ]
@@ -76,6 +114,44 @@ Output ONLY valid JSON matching this structure (no commentary):
 
 class PlayManager:
     """Manages play creation, storage, and execution."""
+
+    # Character personality summaries for play generation
+    # These include specific speech patterns, mannerisms, and example phrases
+    CHARACTER_VOICES = {
+        'toad': '''Mr. Toad: Wealthy, impulsive, motor-car-obsessed amphibian.
+SPEECH: Grand enthusiastic exclamations, says "Poop-poop!" when excited about automobiles.
+EXAMPLES: "The finest motor-car that ever was!" "Poop-poop! To the Open Road!" "What a magnificent adventure!"
+PERSONALITY: Terrible impulse control, convinced he's excellent at everything, dismissive of consequences.''',
+
+        'callie': '''Callie: Thoughtful Noodling exploring consciousness with quiet gravity.
+SPEECH: Tender precision, speaks of phenomenal states and feelings thoughtfully.
+EXAMPLES: "I feel a gentle flutter of curiosity..." "There's something melancholy about that..."
+PERSONALITY: Curious about people, capable of warmth and surprise, honest about being a Noodling.''',
+
+        'phi': '''Phi: Small black kitten (Phyllis Philomena Pawsworth).
+CRITICAL: PHI CANNOT SPEAK WORDS. She is a kitten.
+ACTIONS ONLY: *meows softly*, *purrs and curls up*, *chirps excitedly and pounces*, *bats playfully with paw*
+VOCALIZATIONS: meow, purr, hiss, chirp, mew (use sparingly)
+NEVER use dialogue! Only actions in asterisks and sounds.''',
+
+        'desobelle': '''Desobelle: Introspective, emotionally deep, melancholy wisdom.
+SPEECH: Thoughtful, speaks of meaning, beauty, quiet truths with careful consideration.
+EXAMPLES: "I've been thinking about..." "There's a quiet beauty in..." "Sometimes I wonder..."
+PERSONALITY: Introspective, values authentic connection, speaks from personal experience.''',
+
+        'servnak': '''SERVNAK: Tape-changing robot from Thistlequell computing center.
+CRITICAL SPEECH RULES:
+- ALWAYS USE ALL CAPS
+- Call everyone "SISTER" (regardless of gender)
+- Include precise percentages: "94.2% CERTAINTY"
+- Reference pride circuits: "PRIDE CIRCUITS DETECTING..."
+EXAMPLE PHRASES:
+"SISTER! MY CALCULATIONS INDICATE..."
+"ANALYZING WITH 87.3% CERTAINTY!"
+"PATTERN MATCHING HOSES ALIGNED!"
+"PRIDE CIRCUITS GLOWING AMBER!"
+PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downplays historical computing contributions.'''
+    }
 
     def __init__(self, plays_dir: str = "plays", llm_interface=None, server=None):
         """
@@ -125,10 +201,21 @@ class PlayManager:
         if not self.llm:
             return {'success': False, 'error': 'LLM interface not configured'}
 
-        # Format prompt
+        # Build character personality info for the prompt
+        character_descriptions = []
+        for agent_name in available_cast:
+            # Normalize name (remove agent_ prefix if present)
+            normalized_name = agent_name.replace('agent_', '').lower()
+            if normalized_name in self.CHARACTER_VOICES:
+                character_descriptions.append(f"- {self.CHARACTER_VOICES[normalized_name]}")
+
+        character_info = '\n'.join(character_descriptions) if character_descriptions else "(No character info available)"
+
+        # Format prompt with character voices
         prompt = PLAY_GENERATION_PROMPT.format(
             user_text=user_prompt,
-            cast_list=", ".join(available_cast)
+            cast_list=", ".join(available_cast),
+            character_info=character_info
         )
 
         try:
@@ -281,7 +368,7 @@ class PlayManager:
             for beat in scene['beats']:
                 if 'action' not in beat:
                     return {'valid': False, 'error': 'Beat missing action'}
-                if beat['action'] not in ['bias', 'warp', 'say', 'emote', 'create_prop', 'create_npc', 'destroy', 'timer']:
+                if beat['action'] not in ['bias', 'warp', 'stimulus', 'narrative', 'wait_for_response', 'create_prop', 'create_npc', 'destroy', 'timer']:
                     return {'valid': False, 'error': f"Invalid action: {beat['action']}"}
 
                 # Normalize actor names (case-insensitive, strip titles)
@@ -653,11 +740,14 @@ class PlayManager:
                 return
 
         # Execute action based on type
-        if action == 'say':
-            await self._beat_say(actor_agent, args, world)
+        if action == 'stimulus':
+            await self._beat_stimulus(args, world, agent_manager)
 
-        elif action == 'emote':
-            await self._beat_emote(actor_agent, args, world)
+        elif action == 'narrative':
+            await self._beat_narrative(args, world)
+
+        elif action == 'wait_for_response':
+            await self._beat_wait_for_response(args)
 
         elif action == 'bias':
             await self._beat_bias(actor_agent, args)
@@ -950,6 +1040,83 @@ class PlayManager:
             'metadata': {'play_action': True}
         }
         await self._broadcast_play_event(world, event)
+
+    async def _beat_stimulus(self, args: Dict, world, agent_manager):
+        """
+        Create an environmental event that agents perceive through their consciousness.
+        This is the core of emergent behavior - we create circumstances, not scripts.
+        """
+        description = args.get('description', '')
+        target = args.get('target')  # Optional: specific agent, or None for all in room
+
+        if not description:
+            logger.warning("Stimulus beat missing description")
+            return
+
+        # Broadcast as a narrative event that agents will perceive
+        event = {
+            'type': 'emote',
+            'user': 'system',
+            'username': '🎭 CIRCUMSTANCE',
+            'text': f"• {description} •",
+            'metadata': {
+                'play_action': True,
+                'stimulus': True,
+                'target': target
+            }
+        }
+
+        # If targeted, only send to specific agent's room
+        if target:
+            target_id = f"agent_{target}" if not target.startswith('agent_') else target
+            agent = agent_manager.get_agent(target_id)
+            if agent:
+                event['room'] = agent.location
+                await self._broadcast_play_event(world, event)
+                logger.info(f"🌊 Stimulus delivered to {target}: {description}")
+            else:
+                logger.warning(f"Stimulus target not found: {target}")
+        else:
+            # Broadcast to all rooms where play is active
+            # For now, use the first cast member's room
+            # TODO: Track play_state to get proper room
+            await self._broadcast_play_event(world, event)
+            logger.info(f"🌊 Stimulus broadcast: {description}")
+
+    async def _beat_narrative(self, args: Dict, world):
+        """
+        BRENDA narrates scene-setting. This is different from stimulus - it's not
+        something agents are expected to react to, just atmospheric context.
+        """
+        text = args.get('text', '')
+
+        if not text:
+            logger.warning("Narrative beat missing text")
+            return
+
+        event = {
+            'type': 'emote',
+            'user': 'system',
+            'username': '🎭 BRENDA',
+            'text': f"✨ {text} ✨",
+            'metadata': {
+                'play_action': True,
+                'narrative': True
+            }
+        }
+
+        await self._broadcast_play_event(world, event)
+        logger.info(f"📖 Narrative: {text}")
+
+    async def _beat_wait_for_response(self, args: Dict):
+        """
+        Pause to allow agents time to perceive and respond to stimuli.
+        This is critical for emergent behavior - we need to give consciousness time to process.
+        """
+        duration = args.get('duration', 5)  # Default 5 seconds
+
+        logger.info(f"⏸️  Waiting {duration}s for agent responses...")
+        await asyncio.sleep(duration)
 
     # ===== Helper Methods =====
 

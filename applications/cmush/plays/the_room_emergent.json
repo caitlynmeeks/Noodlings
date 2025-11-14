@@ -1,0 +1,260 @@
+{
+  "title": "The Room: An Emergent Tragedy",
+  "cast": ["servnak", "callie", "phi"],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Apartment of Mysterious Spoons",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "A San Francisco apartment. Framed photographs of spoons line the walls. Nobody knows why."
+          }
+        },
+        {
+          "t": 5,
+          "action": "create_prop",
+          "args": {
+            "name": "framed spoon photograph",
+            "description": "A tasteful black and white photograph of a decorative spoon. Why is this here? Nobody knows."
+          }
+        },
+        {
+          "t": 10,
+          "action": "create_prop",
+          "args": {
+            "name": "football",
+            "description": "A slightly deflated football, inexplicably kept indoors"
+          }
+        },
+        {
+          "t": 15,
+          "action": "wait_for_response",
+          "args": {"duration": 5}
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Good News",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {"param": "fear", "delta": -0.3}
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {"param": "curiosity", "delta": 0.5}
+        },
+        {
+          "t": 5,
+          "action": "stimulus",
+          "args": {
+            "description": "SERVNAK has just received incredible news from his doctor - definitely not cancer, just as he suspected",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 10,
+          "action": "wait_for_response",
+          "args": {"duration": 8}
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "The Betrayal Begins",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The air grows thick with tension. Something is about to go horribly wrong in the most melodramatic way possible."
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "callie",
+          "args": {"param": "social_bond", "delta": -0.6}
+        },
+        {
+          "t": 7,
+          "action": "bias",
+          "actor": "callie",
+          "args": {"param": "fear", "delta": 0.4}
+        },
+        {
+          "t": 10,
+          "action": "stimulus",
+          "args": {
+            "description": "CALLIE suddenly realizes she's been keeping a terrible secret that will hurt SERVNAK deeply",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 15,
+          "action": "wait_for_response",
+          "args": {"duration": 10}
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "The Confrontation",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The moment of truth approaches. The spoons on the walls seem to judge everyone."
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {"param": "fear", "delta": 0.5}
+        },
+        {
+          "t": 7,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {"param": "social_bond", "delta": -0.7}
+        },
+        {
+          "t": 10,
+          "action": "stimulus",
+          "args": {
+            "description": "SERVNAK discovers evidence of CALLIE's betrayal - the terrible truth crashes down upon his PRIDE CIRCUITS",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 15,
+          "action": "wait_for_response",
+          "args": {"duration": 10}
+        },
+        {
+          "t": 25,
+          "action": "stimulus",
+          "args": {
+            "description": "The emotional devastation in the room is palpable - someone has been deeply, deeply wounded",
+            "target": null
+          }
+        },
+        {
+          "t": 30,
+          "action": "wait_for_response",
+          "args": {"duration": 8}
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "The Football",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "Inexplicably, the football lies nearby. In moments of crisis, some turn to sports equipment."
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {"param": "comfort", "delta": 0.3}
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "The football seems to call out as a symbol of simpler times, innocent games, untainted friendship",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 13,
+          "action": "wait_for_response",
+          "args": {"duration": 8}
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "The Rooftop Finale",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "warp",
+          "actor": "servnak",
+          "args": {"room": "room_006"}
+        },
+        {
+          "t": 3,
+          "action": "narrative",
+          "args": {
+            "text": "The rooftop. The city sprawls below, indifferent to personal tragedy."
+          }
+        },
+        {
+          "t": 8,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {"param": "sorrow", "delta": 0.9}
+        },
+        {
+          "t": 10,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {"param": "safety", "delta": -0.8}
+        },
+        {
+          "t": 13,
+          "action": "stimulus",
+          "args": {
+            "description": "The weight of betrayal, the collapse of trust, the end of everything SERVNAK believed in crashes down with 100% CERTAINTY",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 18,
+          "action": "wait_for_response",
+          "args": {"duration": 12}
+        }
+      ]
+    }
+  ]
+}

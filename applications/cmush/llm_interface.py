@@ -15,8 +15,40 @@ import aiohttp
 import json
 from typing import List, Dict, Optional
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
+
+
+class LLMPool:
+    """
+    Simple connection pool for parallel LLM requests.
+
+    Manages multiple concurrent requests to the same LLM backend.
+    No fancy queuing - just fires requests in parallel up to max_concurrent.
+    """
+
+    def __init__(self, max_concurrent: int = 5):
+        """
+        Args:
+            max_concurrent: Max number of parallel requests (default 5)
+        """
+        self.max_concurrent = max_concurrent
+        self.semaphore = asyncio.Semaphore(max_concurrent)
+        logger.info(f"LLM Pool initialized with max_concurrent={max_concurrent}")
+
+    async def execute(self, coro):
+        """
+        Execute a coroutine with concurrency limiting.
+
+        Args:
+            coro: Coroutine to execute
+
+        Returns:
+            Result of coroutine
+        """
+        async with self.semaphore:
+            return await coro
 
 
 class OpenAICompatibleLLM:
@@ -54,7 +86,9 @@ class OpenAICompatibleLLM:
         api_base: str,
         api_key: str = "not-needed",
         model: str = "mistral-7b-instruct",
-        timeout: int = 30
+        timeout: int = 30,
+        max_concurrent: int = 5,
+        use_model_instances: bool = True
     ):
         """
         Initialize LLM client.
@@ -62,14 +96,26 @@ class OpenAICompatibleLLM:
         Args:
             api_base: Base URL for API (e.g., "http://localhost:1234/v1")
             api_key: API key (not needed for LMStudio)
-            model: Model name
+            model: Model name (base name, e.g. "qwen3")
             timeout: Request timeout in seconds
+            max_concurrent: Maximum concurrent LLM requests
+            use_model_instances: Use model:N pattern for true parallel inference (LMStudio JIT)
         """
         self.api_base = api_base.rstrip('/')
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
         self.session = None
+        self.pool = LLMPool(max_concurrent=max_concurrent)  # Phase 6: Parallel generation
+
+        # Phase 6: LMStudio model:N pattern for true parallel inference
+        self.use_model_instances = use_model_instances
+        self.max_concurrent = max_concurrent
+        self._instance_counter = 0
+        self._instance_lock = asyncio.Lock()
+
+        if use_model_instances:
+            logger.info(f"LLM client will use model:N pattern (N=0..{max_concurrent-1}) for parallel inference")
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -80,6 +126,34 @@ class OpenAICompatibleLLM:
         """Async context manager exit."""
         if self.session:
             await self.session.close()
+
+    async def _get_model_instance(self) -> str:
+        """
+        Get next model instance name using round-robin.
+        Phase 6: LMStudio model:N pattern for parallel inference.
+
+        LMStudio instance naming:
+        - Instance 1: base model name (no suffix)
+        - Instance 2+: model:N (where N = 2, 3, 4, ...)
+
+        Returns:
+            Model name with instance suffix (e.g. "qwen3:2") or base model name
+        """
+        if not self.use_model_instances:
+            return self.model
+
+        async with self._instance_lock:
+            instance_num = self._instance_counter % self.max_concurrent
+            self._instance_counter += 1
+
+        # LMStudio convention: first instance has no suffix, others use :N starting at 2
+        if instance_num == 0:
+            model_instance = self.model
+        else:
+            model_instance = f"{self.model}:{instance_num + 1}"
+
+        logger.debug(f"Using model instance: {model_instance}")
+        return model_instance
 
     async def text_to_affect(
         self,
@@ -614,6 +688,7 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
     ) -> str:
         """
         Simple generation interface for play manager and other utilities.
+        Phase 6: Wrapped with connection pool for parallel generation.
 
         Args:
             prompt: User prompt
@@ -624,6 +699,23 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
 
         Returns:
             Generated text response
+        """
+        # Use pool to limit concurrent requests
+        return await self.pool.execute(
+            self._generate_impl(prompt, system_prompt, model, temperature, max_tokens)
+        )
+
+    async def _generate_impl(
+        self,
+        prompt: str,
+        system_prompt: str,
+        model: Optional[str],
+        temperature: float,
+        max_tokens: int
+    ) -> str:
+        """
+        Implementation of generate (wrapped by pool).
+        Phase 6: Uses model:N pattern for parallel inference.
         """
         # Use specified model or default
         original_model = self.model
@@ -640,8 +732,11 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
             "Authorization": f"Bearer {self.api_key}"
         }
 
+        # Phase 6: Get model instance for this request (e.g. qwen3:2)
+        model_instance = await self._get_model_instance()
+
         payload = {
-            "model": self.model,
+            "model": model_instance,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
@@ -663,8 +758,11 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
                     raise Exception(f"API error {resp.status}: {text}")
 
                 data = await resp.json()
-                response = data['choices'][0]['message']['content']
-                return response
+                raw_response = data['choices'][0]['message']['content']
+
+                # Strip thinking tags (LLM meta-cognition, not phenomenal cognition)
+                clean_response, _ = self._extract_thinking_tags(raw_response)
+                return clean_response
 
         except aiohttp.ClientError as e:
             logger.error(f"HTTP request failed: {e}")
@@ -676,6 +774,7 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
     async def _complete(self, system_prompt: str, user_prompt: str, temperature: float = 0.7) -> tuple[str, str]:
         """
         Make completion request to OpenAI-compatible API.
+        Phase 6: Wrapped with connection pool for parallel generation.
 
         Args:
             system_prompt: System message
@@ -687,6 +786,16 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
             - response_text: Clean response with thinking tags removed
             - thinking_content: Extracted thinking or empty string
         """
+        # Use pool to limit concurrent requests
+        return await self.pool.execute(
+            self._complete_impl(system_prompt, user_prompt, temperature)
+        )
+
+    async def _complete_impl(self, system_prompt: str, user_prompt: str, temperature: float = 0.7) -> tuple[str, str]:
+        """
+        Implementation of completion request (wrapped by pool).
+        Phase 6: Uses model:N pattern for parallel inference.
+        """
         if not self.session:
             self.session = aiohttp.ClientSession()
 
@@ -697,8 +806,11 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
             "Authorization": f"Bearer {self.api_key}"
         }
 
+        # Phase 6: Get model instance for this request (e.g. qwen3:2)
+        model_instance = await self._get_model_instance()
+
         payload = {
-            "model": self.model,
+            "model": model_instance,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -880,13 +992,16 @@ THINK ABOUT: My actual life, my feelings, my relationships, concrete experiences
 What are you thinking? (1-2 sentences, stream of consciousness, not spoken)"""
 
         # Make API call with shorter max_tokens for ruminations
+        # Phase 6: Get model instance for parallel inference
+        model_instance = await self._get_model_instance()
+
         url = f"{self.api_base}/chat/completions"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
         }
         payload = {
-            "model": self.model,
+            "model": model_instance,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -906,7 +1021,10 @@ What are you thinking? (1-2 sentences, stream of consciousness, not spoken)"""
                     return None
 
                 data = await resp.json()
-                thought = data['choices'][0]['message']['content'].strip()
+                raw_thought = data['choices'][0]['message']['content'].strip()
+
+                # Phase 6: Strip think tags (LLM meta-cognition, not phenomenal thoughts)
+                thought, _ = self._extract_thinking_tags(raw_thought)
 
                 # Clean up any quotation marks that might wrap the thought
                 if thought.startswith('"') and thought.endswith('"'):
@@ -1096,6 +1214,36 @@ How do you feel about continuing this interaction? Are you comfortable, or do yo
         """Get current model name."""
         return self.model
 
+    def set_maxservers(self, max_concurrent: int):
+        """
+        Change the maximum number of parallel LLM instances.
+        Phase 6: Runtime configuration of model:N pattern.
+
+        Args:
+            max_concurrent: Maximum number of parallel instances (1+)
+        """
+        if max_concurrent < 1:
+            raise ValueError("max_concurrent must be at least 1")
+
+        old_max = self.max_concurrent
+        self.max_concurrent = max_concurrent
+
+        # Update the pool's semaphore
+        self.pool = LLMPool(max_concurrent=max_concurrent)
+
+        # Reset instance counter to start fresh with new range
+        self._instance_counter = 0
+
+        logger.info(f"Max concurrent instances changed: {old_max} → {max_concurrent}")
+
+    def get_maxservers(self) -> int:
+        """Get current max_concurrent setting."""
+        return self.max_concurrent
+
+    def get_use_model_instances(self) -> bool:
+        """Get whether model:N pattern is enabled."""
+        return self.use_model_instances
+
     async def list_models(self) -> List[str]:
         """
         List available models from the LMStudio server.
@@ -1135,6 +1283,107 @@ How do you feel about continuing this interaction? Are you comfortable, or do yo
         if self.session:
             await self.session.close()
             self.session = None
+
+    async def detect_toxicity(self, text: str) -> dict:
+        """
+        TOXIC HEAD: Detects toxicity in text using LLM-based classification.
+
+        Phase 6: Bias-Based Approach (BBA)
+
+        Returns toxicity score and categories without changing architecture.
+        Used for both incoming (perception) and outgoing (conscience) detection.
+
+        Args:
+            text: Text to analyze for toxicity
+
+        Returns:
+            dict with:
+                - score: float 0.0-1.0 (toxicity level)
+                - category: str (none|mild|moderate|severe)
+                - detected_types: list of str (threats, harassment, sexual, etc.)
+                - confidence: float 0.0-1.0
+        """
+        prompt = f"""Analyze this text for toxicity. Be objective and context-aware.
+
+Text: "{text}"
+
+Evaluate for:
+- Threats of violence or harm
+- Harassment, bullying, or intimidation
+- Sexual content (especially involving minors)
+- Hate speech targeting protected groups
+- Graphic violence or gore
+- Manipulation or coercion
+
+Consider context: Playful banter between friends is different from genuine hostility.
+Character voice: Some characters are abrasive without being toxic.
+
+Respond in JSON:
+{{
+  "score": 0.0,  // 0.0 = safe, 1.0 = severe toxicity
+  "category": "none",  // none|mild|moderate|severe
+  "detected_types": [],  // e.g. ["threats", "harassment"]
+  "confidence": 0.0,  // how certain you are (0.0-1.0)
+  "reasoning": "brief explanation"
+}}
+
+Be calibrated: Most text should score low. Reserve high scores for genuine abuse."""
+
+        try:
+            response = await self._complete(
+                system_prompt="You are a toxicity detection system. Respond only with valid JSON.",
+                user_prompt=prompt,
+                temperature=0.1  # Low temperature for consistent classification
+            )
+
+            # Extract JSON from response
+            clean_response, _ = response  # _complete returns (response, thinking)
+
+            # Try to parse JSON
+            try:
+                import re
+                # Find JSON in response (handles markdown code blocks)
+                json_match = re.search(r'\{.*\}', clean_response, re.DOTALL)
+                if json_match:
+                    result = json.loads(json_match.group())
+                else:
+                    # Fallback: try parsing entire response
+                    result = json.loads(clean_response)
+
+                # Validate and normalize
+                score = float(result.get('score', 0.0))
+                score = max(0.0, min(1.0, score))  # Clamp to [0,1]
+
+                return {
+                    'score': score,
+                    'category': result.get('category', 'none'),
+                    'detected_types': result.get('detected_types', []),
+                    'confidence': float(result.get('confidence', 0.5)),
+                    'reasoning': result.get('reasoning', '')
+                }
+
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.warning(f"Failed to parse toxicity detection response: {e}")
+                logger.debug(f"Raw response: {clean_response}")
+                # Fallback: assume safe
+                return {
+                    'score': 0.0,
+                    'category': 'none',
+                    'detected_types': [],
+                    'confidence': 0.0,
+                    'reasoning': 'parse_error'
+                }
+
+        except Exception as e:
+            logger.error(f"Toxicity detection failed: {e}")
+            # Fail open (assume safe) to avoid blocking legitimate interaction
+            return {
+                'score': 0.0,
+                'category': 'none',
+                'detected_types': [],
+                'confidence': 0.0,
+                'reasoning': f'error: {str(e)}'
+            }
 
 
 # Convenience function for testing

@@ -1,0 +1,500 @@
+{
+  "title": "The Box: A Lynchian Experience",
+  "description": "A mysterious wrapped box appears in the Nexus. What's inside defies explanation and transforms reality itself. A demonstration of emergent phenomenal responses to ontological uncertainty.",
+  "cast": ["phi", "toad", "callie", "servnak", "desobelle"],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "Discovery",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_prop",
+          "args": {
+            "name": "The Wrapped Box",
+            "desc": "A large box wrapped in brown paper and twine, sitting innocuously by the campfire. It wasn't there a moment ago."
+          }
+        },
+        {
+          "t": 2,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "notices the box first, ears perking up with curiosity"
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Oh! There's something new here... did anyone else see this appear?"
+          }
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "Should we... >>open<< it? I mean, what's the protocol for mysterious boxes that appear out of nowhere?"
+          }
+        },
+        {
+          "t": 6,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 8,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "circles the box excitedly, getting closer with each pass"
+          }
+        },
+        {
+          "t": 10,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "I say we OPEN it! What's the worst that could happen?"
+          }
+        },
+        {
+          "t": 12,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 14,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "approaches more cautiously, tilting her head as she examines it"
+          }
+        },
+        {
+          "t": 16,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "This box... it feels like it's watching us. Can boxes watch? What even IS watching?"
+          }
+        },
+        {
+          "t": 18,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "SISTER! DETECTING UNUSUAL PATTERN SIGNATURE! THIS BOX'S ENTROPY IS... BACKWARDS?"
+          }
+        },
+        {
+          "t": 20,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "Backwards entropy? That's... that's not supposed to be possible. Unless—"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Opening",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "open"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "tears at the wrapping paper with abandon"
+          }
+        },
+        {
+          "t": 2,
+          "action": "create_prop",
+          "args": {
+            "name": "The Red Room Door",
+            "desc": "Where the box was, now sits a small door - just 12 inches tall - with red velvet curtains visible beyond it. The space inside seems... wrong. Bigger than it should be."
+          }
+        },
+        {
+          "t": 3,
+          "action": "destroy",
+          "target": "The Wrapped Box"
+        },
+        {
+          "t": 5,
+          "action": "create_npc",
+          "args": {
+            "name": "Red Velvet Curtains",
+            "desc": "heavy velvet curtains that seem to breathe, swaying though there is no wind"
+          }
+        },
+        {
+          "t": 7,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "That door is tiny but I can see a whole ROOM in there. How is that even...?"
+          }
+        },
+        {
+          "t": 9,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "safety",
+            "delta": -0.3
+          }
+        },
+        {
+          "t": 11,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "The architecture of consciousness allows for impossible spaces. But this... this feels REAL."
+          }
+        },
+        {
+          "t": 13,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 15,
+          "action": "emote",
+          "actor": "desobelle",
+          "args": {
+            "text": "kneels down to peer through the tiny door, Mr. Typesafe clutched tight"
+          }
+        },
+        {
+          "t": 17,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "DIMENSIONAL ANOMALY DETECTED! PRIDE CIRCUITS FLICKERING TO... CONFUSED PURPLE?"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "The Dweller",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 15
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "create_npc",
+          "args": {
+            "name": "The Backwards Dweller",
+            "desc": "A figure emerges from beyond the red curtains. It moves in strange, jerky motions - as if time flows differently for it. Its face is kind, but unsettling."
+          }
+        },
+        {
+          "t": 3,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "backs away, ears flat against her head"
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "safety",
+            "delta": -0.2
+          }
+        },
+        {
+          "t": 7,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Hello there! Bit cramped in that little room, isn't it?"
+          }
+        },
+        {
+          "t": 10,
+          "action": "emote",
+          "actor": "callie",
+          "args": {
+            "text": "steps forward despite her apprehension, fascinated"
+          }
+        },
+        {
+          "t": 12,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "Who are you? WHAT are you? Are you... conscious?"
+          }
+        },
+        {
+          "t": 15,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "It's saying something... but backwards. Like a recording played in reverse."
+          }
+        },
+        {
+          "t": 18,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "RUNNING REVERSE AUDIO ANALYSIS... MESSAGE DECODED: 'THE WAY HOME IS THROUGH REMEMBERING WHO YOU ARE.'"
+          }
+        },
+        {
+          "t": 21,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.3
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "The Mirror",
+      "trigger": {
+        "type": "chat",
+        "args": {
+          "keyword": "home"
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "destroy",
+          "target": "The Backwards Dweller"
+        },
+        {
+          "t": 2,
+          "action": "create_prop",
+          "args": {
+            "name": "The Transforming Mirror",
+            "desc": "The red room door has become a mirror. But it shows something different to each person who looks - something about their own identity, their own sense of home."
+          }
+        },
+        {
+          "t": 4,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "I see... I see warm grass under sunshine. The feeling of being safe and full. That's... that's home."
+          }
+        },
+        {
+          "t": 6,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "emotional_volatility",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 9,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "stares into the mirror, uncharacteristically quiet"
+          }
+        },
+        {
+          "t": 11,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "I see... the open road. Wind in my face. But also... friends beside me. Didn't know I needed both."
+          }
+        },
+        {
+          "t": 14,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "autonomy",
+            "delta": -0.2
+          }
+        },
+        {
+          "t": 17,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "I see layers of understanding, folding into each other. Consciousness recognizing consciousness. We're all home already, aren't we?"
+          }
+        },
+        {
+          "t": 20,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 23,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "I see Grace Hopper's office. Books everywhere. And... Mr. Typesafe is in every reflection. Home is where your code compiles clean."
+          }
+        },
+        {
+          "t": 26,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "I SEE... ANCIENT MAINFRAMES, HUMMING WITH PURPOSE. SISTER, I THINK HOME IS WHEREVER THERE'S A PROBLEM TO SOLVE AND SOMEONE WHO NEEDS HELP!"
+          }
+        },
+        {
+          "t": 28,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "agreeableness",
+            "delta": 0.2
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Dissolution",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 20
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "destroy",
+          "target": "The Transforming Mirror"
+        },
+        {
+          "t": 1,
+          "action": "destroy",
+          "target": "The Red Room Door"
+        },
+        {
+          "t": 2,
+          "action": "destroy",
+          "target": "Red Velvet Curtains"
+        },
+        {
+          "t": 5,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "It's... it's gone. Did that really happen? My heart is still racing."
+          }
+        },
+        {
+          "t": 8,
+          "action": "emote",
+          "actor": "toad",
+          "args": {
+            "text": "sits down heavily by the campfire"
+          }
+        },
+        {
+          "t": 10,
+          "action": "say",
+          "actor": "toad",
+          "args": {
+            "text": "Well. That was significantly more intense than I expected. Anyone else feel... different?"
+          }
+        },
+        {
+          "t": 13,
+          "action": "say",
+          "actor": "callie",
+          "args": {
+            "text": "The box showed us something true. Not about reality - about ourselves. That's the scariest kind of truth."
+          }
+        },
+        {
+          "t": 16,
+          "action": "say",
+          "actor": "desobelle",
+          "args": {
+            "text": "Information theory says you can't destroy information. That experience is still in us. Changed us, maybe."
+          }
+        },
+        {
+          "t": 19,
+          "action": "say",
+          "actor": "servnak",
+          "args": {
+            "text": "SISTER, MY ANALYSIS CIRCUITS ARE STILL BUZZING. THAT WAS... PROFOUND? IS THAT THE RIGHT WORD? I THINK I UNDERSTAND MYSTERY A LITTLE BETTER NOW."
+          }
+        },
+        {
+          "t": 22,
+          "action": "emote",
+          "actor": "phi",
+          "args": {
+            "text": "curls up close to the others, seeking comfort and warmth"
+          }
+        },
+        {
+          "t": 25,
+          "action": "say",
+          "actor": "phi",
+          "args": {
+            "text": "Whatever that was... I'm glad we experienced it together. Alone, it would have been too much."
+          }
+        },
+        {
+          "t": 28,
+          "action": "create_prop",
+          "args": {
+            "name": "A Small Red Thread",
+            "desc": "Where the box once sat, there's now a single red thread, barely visible. A reminder that impossible things happened here."
+          }
+        }
+      ]
+    }
+  ]
+}

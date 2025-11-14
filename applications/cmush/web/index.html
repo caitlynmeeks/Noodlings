@@ -730,6 +730,30 @@
             return processed;
         }
 
+        // Process >>highlight<< markers in text
+        function processHighlighting(text) {
+            const fragment = document.createDocumentFragment();
+            const parts = text.split(/(>>.*?<<)/g);
+
+            for (const part of parts) {
+                if (part.startsWith('>>') && part.endsWith('<<')) {
+                    // Highlighted text
+                    const highlightedText = part.slice(2, -2);
+                    const span = document.createElement('span');
+                    span.style.color = '#ffaa00';
+                    span.style.fontWeight = 'bold';
+                    span.style.textShadow = '0 0 8px rgba(255, 170, 0, 0.6)';
+                    span.textContent = highlightedText;
+                    fragment.appendChild(span);
+                } else {
+                    // Regular text
+                    fragment.appendChild(document.createTextNode(part));
+                }
+            }
+
+            return fragment;
+        }
+
         // Render a single message to the output div
         function renderMessage(msg) {
             const line = document.createElement('div');
@@ -807,8 +831,9 @@
                 line.appendChild(verbSpan);
 
                 // Show full text (telepathy on, or not a thought, or user's own thought)
-                const textNode = document.createTextNode(restOfText);
-                line.appendChild(textNode);
+                // Process highlighting markers >>text<<
+                const processedText = processHighlighting(restOfText);
+                line.appendChild(processedText);
             } else {
                 // No speaker detected, just add text as-is
                 line.textContent = msg.text;

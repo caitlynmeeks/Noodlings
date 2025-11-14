@@ -34,19 +34,98 @@ logger = logging.getLogger(__name__)
 # impress_others, solve_problem, express_emotion, achieve_goal
 # Config params: speech_cooldown, addressed_speech_chance, unaddressed_speech_chance
 BRENDA_CHAT_MAP = {
-    r"\bchatt?ier?\b": {"seek_social_connection": +0.3, "speech_cooldown": -1.0, "addressed_speech_chance": +0.1},
-    r"\bquiet(er)?\b": {"seek_social_connection": -0.3, "speech_cooldown": +1.5, "addressed_speech_chance": -0.2},
-    r"\bmor?e?\s+polite\b": {"help_friend": +0.3},
-    r"\bmor?e?\s+rude\b": {"maintain_autonomy": +0.3, "help_friend": -0.3},
-    r"\bmor?e?\s+curious\b": {"explore_environment": +0.3, "learn_skill": +0.2},
-    r"\bmor?e?\s+skittish\b": {"ensure_safety": +0.3, "avoid_consequences": +0.2},
-    r"\bmor?e?\s+reckless\b": {"ensure_safety": -0.3, "pursue_novelty": +0.3},
-    r"\bmor?e?\s+hippie\b": {"seek_comfort": +0.3, "maintain_autonomy": +0.2},
-    r"\bmor?e?\s+alpha\b": {"gain_status": +0.3, "demonstrate_competence": +0.2},
-    r"\bcalm(er)?\b": {"seek_comfort": +0.2, "ensure_safety": +0.1},
-    r"\bhyper\b": {"pursue_novelty": +0.3, "express_emotion": +0.2},
-    r"\bcrank.*to\s+11\b": {"seek_social_connection": +0.4, "gain_status": +0.3, "speech_cooldown": -1.5, "addressed_speech_chance": +0.15},
-    r"\bchill.*out\b": {"seek_comfort": +0.3, "maintain_autonomy": +0.2},
+    # Chattiness / Social engagement
+    r"\bmor?e?\s+chatt?y\b": {"seek_social_connection": +0.3, "speech_cooldown": -1.0, "addressed_speech_chance": +0.1},
+    r"\bless\s+chatt?y\b": {"seek_social_connection": -0.3, "speech_cooldown": +1.5, "addressed_speech_chance": -0.2},
+    r"\bnot\s+chatt?y\b": {"seek_social_connection": -0.5, "speech_cooldown": +2.0, "addressed_speech_chance": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+chatt?y\b": {"seek_social_connection": +0.6, "speech_cooldown": -2.0, "addressed_speech_chance": +0.3},
+    r"\bmor?e?\s+quiet\b": {"seek_social_connection": -0.3, "speech_cooldown": +1.5, "addressed_speech_chance": -0.2},
+    r"\bless\s+quiet\b": {"seek_social_connection": +0.3, "speech_cooldown": -1.0, "addressed_speech_chance": +0.1},
+    r"\bnot\s+quiet\b": {"seek_social_connection": +0.5, "speech_cooldown": -2.0, "addressed_speech_chance": +0.2},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+quiet\b": {"seek_social_connection": -0.6, "speech_cooldown": +3.0, "addressed_speech_chance": -0.4},
+
+    # Emotional intensity
+    r"\bmor?e?\s+intense\b": {"seek_social_connection": +0.4, "gain_status": +0.3, "express_emotion": +0.3, "speech_cooldown": -1.5, "addressed_speech_chance": +0.15},
+    r"\bless\s+intense\b": {"seek_comfort": +0.3, "maintain_autonomy": +0.2, "express_emotion": -0.3},
+    r"\bnot\s+intense\b": {"seek_comfort": +0.4, "express_emotion": -0.5, "gain_status": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+intense\b": {"seek_social_connection": +0.6, "gain_status": +0.5, "express_emotion": +0.5, "speech_cooldown": -2.5, "addressed_speech_chance": +0.3},
+    r"\bmor?e?\s+calm\b": {"seek_comfort": +0.2, "ensure_safety": +0.1, "express_emotion": -0.2},
+    r"\bless\s+calm\b": {"express_emotion": +0.3, "pursue_novelty": +0.2},
+    r"\bnot\s+calm\b": {"express_emotion": +0.4, "ensure_safety": -0.3, "pursue_novelty": +0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+calm\b": {"seek_comfort": +0.5, "ensure_safety": +0.3, "express_emotion": -0.5},
+
+    # Aggression / Dominance
+    r"\bmor?e?\s+(angry|furious)\b": {"gain_status": +0.3, "help_friend": -0.3, "express_emotion": +0.3, "avoid_consequences": -0.2},
+    r"\bless\s+(angry|furious)\b": {"help_friend": +0.3, "seek_comfort": +0.2, "express_emotion": -0.2},
+    r"\bnot\s+(angry|furious)\b": {"help_friend": +0.5, "seek_comfort": +0.3, "express_emotion": -0.4, "gain_status": -0.4},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+(angry|furious)\b": {"gain_status": +0.6, "help_friend": -0.6, "express_emotion": +0.6, "avoid_consequences": -0.5},
+    r"\bmor?e?\s+dominant\b": {"gain_status": +0.4, "demonstrate_competence": +0.2, "help_friend": -0.2},
+    r"\bless\s+dominant\b": {"help_friend": +0.3, "gain_status": -0.3},
+    r"\bnot\s+dominant\b": {"help_friend": +0.5, "gain_status": -0.5, "demonstrate_competence": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+dominant\b": {"gain_status": +0.7, "demonstrate_competence": +0.4, "help_friend": -0.5},
+    r"\bmor?e?\s+pushy\b": {"gain_status": +0.3, "maintain_autonomy": +0.2, "help_friend": -0.3},
+    r"\bless\s+pushy\b": {"help_friend": +0.3, "seek_comfort": +0.2},
+    r"\bnot\s+pushy\b": {"help_friend": +0.5, "gain_status": -0.4, "maintain_autonomy": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+pushy\b": {"gain_status": +0.6, "maintain_autonomy": +0.4, "help_friend": -0.6},
+    r"\bmor?e?\s+rude\b": {"maintain_autonomy": +0.3, "help_friend": -0.3, "gain_status": +0.2},
+    r"\bless\s+rude\b": {"help_friend": +0.3, "maintain_autonomy": -0.2},
+    r"\bnot\s+rude\b": {"help_friend": +0.5, "maintain_autonomy": -0.4, "gain_status": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+rude\b": {"maintain_autonomy": +0.6, "help_friend": -0.6, "gain_status": +0.4},
+
+    # Gentleness / Kindness
+    r"\bmor?e?\s+gentle\b": {"help_friend": +0.4, "seek_comfort": +0.2, "gain_status": -0.2},
+    r"\bless\s+gentle\b": {"gain_status": +0.2, "help_friend": -0.2},
+    r"\bnot\s+gentle\b": {"gain_status": +0.4, "help_friend": -0.4, "express_emotion": +0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+gentle\b": {"help_friend": +0.7, "seek_comfort": +0.4, "gain_status": -0.5},
+    r"\bmor?e?\s+polite\b": {"help_friend": +0.3, "avoid_consequences": +0.1},
+    r"\bless\s+polite\b": {"maintain_autonomy": +0.2, "help_friend": -0.2},
+    r"\bnot\s+polite\b": {"maintain_autonomy": +0.4, "help_friend": -0.4, "avoid_consequences": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+polite\b": {"help_friend": +0.6, "avoid_consequences": +0.3, "maintain_autonomy": -0.4},
+
+    # Anxiety / Fear / Caution
+    r"\bmor?e?\s+(anxious|skittish)\b": {"ensure_safety": +0.3, "avoid_consequences": +0.2, "seek_comfort": +0.2},
+    r"\bless\s+(anxious|skittish)\b": {"pursue_novelty": +0.3, "ensure_safety": -0.2},
+    r"\bnot\s+(anxious|skittish)\b": {"pursue_novelty": +0.5, "ensure_safety": -0.5, "avoid_consequences": -0.4},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+(anxious|skittish)\b": {"ensure_safety": +0.6, "avoid_consequences": +0.5, "seek_comfort": +0.5, "speech_cooldown": +2.0},
+    r"\bmor?e?\s+cautious\b": {"ensure_safety": +0.3, "avoid_consequences": +0.2, "pursue_novelty": -0.2},
+    r"\bless\s+cautious\b": {"pursue_novelty": +0.3, "ensure_safety": -0.2, "avoid_consequences": -0.2},
+    r"\bnot\s+cautious\b": {"pursue_novelty": +0.5, "ensure_safety": -0.4, "avoid_consequences": -0.4},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+cautious\b": {"ensure_safety": +0.6, "avoid_consequences": +0.5, "pursue_novelty": -0.5},
+    r"\bmor?e?\s+reckless\b": {"ensure_safety": -0.3, "pursue_novelty": +0.3, "avoid_consequences": -0.2},
+    r"\bless\s+reckless\b": {"ensure_safety": +0.3, "avoid_consequences": +0.2},
+    r"\bnot\s+reckless\b": {"ensure_safety": +0.5, "avoid_consequences": +0.4, "pursue_novelty": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+reckless\b": {"ensure_safety": -0.6, "pursue_novelty": +0.6, "avoid_consequences": -0.6},
+
+    # Sadness / Depression
+    r"\bmor?e?\s+sad\b": {"seek_social_connection": -0.3, "seek_comfort": +0.3, "express_emotion": +0.2, "speech_cooldown": +1.0},
+    r"\bless\s+sad\b": {"seek_social_connection": +0.3, "express_emotion": -0.2},
+    r"\bnot\s+sad\b": {"seek_social_connection": +0.5, "express_emotion": -0.4, "seek_comfort": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+sad\b": {"seek_social_connection": -0.6, "seek_comfort": +0.6, "express_emotion": +0.5, "speech_cooldown": +2.5},
+
+    # Curiosity / Exploration
+    r"\bmor?e?\s+curious\b": {"explore_environment": +0.3, "learn_skill": +0.2, "pursue_novelty": +0.2},
+    r"\bless\s+curious\b": {"explore_environment": -0.3, "pursue_novelty": -0.2},
+    r"\bnot\s+curious\b": {"explore_environment": -0.5, "pursue_novelty": -0.4, "learn_skill": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+curious\b": {"explore_environment": +0.6, "learn_skill": +0.5, "pursue_novelty": +0.5},
+
+    # Introspection / Reflection
+    r"\bmor?e?\s+introspective\b": {"maintain_autonomy": +0.3, "seek_social_connection": -0.2, "speech_cooldown": +1.0},
+    r"\bless\s+introspective\b": {"seek_social_connection": +0.3, "maintain_autonomy": -0.2},
+    r"\bnot\s+introspective\b": {"seek_social_connection": +0.5, "maintain_autonomy": -0.4, "speech_cooldown": -1.0},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+introspective\b": {"maintain_autonomy": +0.6, "seek_social_connection": -0.5, "speech_cooldown": +2.0},
+
+    # Special patterns (keep these for backward compatibility)
+    r"\bmor?e?\s+hippie\b": {"seek_comfort": +0.3, "maintain_autonomy": +0.2, "pursue_novelty": +0.2},
+    r"\bless\s+hippie\b": {"demonstrate_competence": +0.2, "gain_status": +0.2},
+    r"\bnot\s+hippie\b": {"demonstrate_competence": +0.4, "gain_status": +0.3, "seek_comfort": -0.4},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+hippie\b": {"seek_comfort": +0.6, "maintain_autonomy": +0.5, "pursue_novelty": +0.5},
+    r"\bmor?e?\s+alpha\b": {"gain_status": +0.3, "demonstrate_competence": +0.2, "help_friend": -0.2},
+    r"\bless\s+alpha\b": {"help_friend": +0.3, "gain_status": -0.2},
+    r"\bnot\s+alpha\b": {"help_friend": +0.5, "gain_status": -0.5, "demonstrate_competence": -0.3},
+    r"\b(completely|totally|fully|max(ed)?\s+out)\s+alpha\b": {"gain_status": +0.6, "demonstrate_competence": +0.5, "help_friend": -0.5},
+    r"\bhyper\b": {"pursue_novelty": +0.3, "express_emotion": +0.2, "seek_social_connection": +0.2},
+    r"\bcrank.*to\s+11\b": {"seek_social_connection": +0.4, "gain_status": +0.3, "express_emotion": +0.3, "speech_cooldown": -1.5, "addressed_speech_chance": +0.15},
+    r"\bchill.*out\b": {"seek_comfort": +0.3, "maintain_autonomy": +0.2, "express_emotion": -0.2},
 }
 
 
@@ -171,13 +250,14 @@ class CommandParser:
             '@reengage': self.cmd_reengage,
 
             # Consciousness metrics
-            '@phi': self.cmd_phi,
+            # '@phi': self.cmd_phi,  # Hidden until scientifically validated
             '@enlighten': self.cmd_enlighten,
             '@status': self.cmd_comprehensive_status,
 
             # LLM control
             '@model': self.cmd_set_model,
             '@models': self.cmd_list_models,
+            '@maxservers': self.cmd_set_maxservers,
 
             # Agent tools (filesystem, messaging, cognition)
             '@think': self.cmd_think,
@@ -2135,44 +2215,7 @@ class CommandParser:
         lines.append("└────────────────────────────────────────────────────────────┘")
         lines.append("")
 
-        # === CONSCIOUSNESS METRICS (Φ) ===
-        lines.append("┌─ CONSCIOUSNESS METRICS (Φ) ────────────────────────────────┐")
-        if len(agent.state_history) >= 2:
-            try:
-                phi = agent.consciousness_metrics.calculate_phi(
-                    phenomenal_state=agent.state_history[-1],
-                    method='partition_based'
-                )
-
-                # Interpretation
-                if phi < 0.5:
-                    phi_interpretation = "Minimal integration"
-                elif phi < 1.0:
-                    phi_interpretation = "Low integration"
-                elif phi < 2.0:
-                    phi_interpretation = "Moderate integration ✓"
-                elif phi < 3.0:
-                    phi_interpretation = "High integration ✓✓"
-                else:
-                    phi_interpretation = "Very high integration ✓✓✓"
-
-                lines.append(f"│  Φ (Integrated Information): {phi:.4f}")
-                lines.append(f"│  Interpretation: {phi_interpretation}")
-
-                # Recent surprise
-                if agent.surprise_history:
-                    recent_surprise = agent.surprise_history[-1]
-                    avg_surprise = sum(agent.surprise_history[-10:]) / min(len(agent.surprise_history), 10)
-                    lines.append(f"│  Recent Surprise: {recent_surprise:.4f} (avg: {avg_surprise:.4f})")
-
-                lines.append(f"│  State History: {len(agent.state_history)} timesteps")
-            except Exception as e:
-                lines.append(f"│  Φ: Unable to calculate ({str(e)[:30]}...)")
-        else:
-            lines.append(f"│  Φ: Insufficient history ({len(agent.state_history)} timesteps)")
-            lines.append(f"│  → Need at least 2 timesteps of interaction")
-        lines.append("└────────────────────────────────────────────────────────────┘")
-        lines.append("")
+        # Note: Φ analysis removed - use @phi command for detailed consciousness metrics
 
         # === APPETITES (Phase 6) ===
         lines.append("┌─ APPETITES (PHASE 6) ──────────────────────────────────────┐")
@@ -2238,6 +2281,67 @@ class CommandParser:
             lines.append(f"│    Fear:     {fear:+.3f}   {'😰' if fear > 0.6 else '→'}")
             lines.append(f"│    Sorrow:   {sorrow:+.3f}   {'😢' if sorrow > 0.6 else '→'}")
             lines.append(f"│    Boredom:  {boredom:+.3f}   {'😴' if boredom > 0.6 else '→'}")
+
+            # Generate human-readable emotional summary
+            lines.append(f"│")
+            lines.append(f"│  EMOTIONAL STATE:")
+            emotion_words = []
+
+            # Primary valence-based emotions
+            if valence > 0.5:
+                if arousal > 0.6:
+                    emotion_words.append("excited and happy")
+                else:
+                    emotion_words.append("content and peaceful")
+            elif valence < -0.5:
+                if sorrow > 0.6:
+                    emotion_words.append("deeply sad")
+                elif fear > 0.6:
+                    emotion_words.append("distressed and fearful")
+                else:
+                    emotion_words.append("upset")
+
+            # Secondary emotions
+            if fear > 0.7:
+                emotion_words.append("very anxious")
+            elif fear > 0.5:
+                emotion_words.append("nervous")
+
+            if sorrow > 0.7 and valence > -0.5:
+                emotion_words.append("melancholic")
+            elif sorrow > 0.5 and valence > -0.5:
+                emotion_words.append("wistful")
+
+            if boredom > 0.7:
+                emotion_words.append("extremely bored")
+            elif boredom > 0.5:
+                emotion_words.append("disengaged")
+
+            if arousal > 0.7 and valence > -0.3:
+                emotion_words.append("energized")
+            elif arousal < 0.2:
+                emotion_words.append("lethargic")
+
+            # Compound states
+            if valence > 0.3 and fear > 0.5:
+                emotion_words.append("cautiously optimistic")
+            if valence < -0.3 and arousal > 0.6:
+                emotion_words.append("agitated")
+
+            # Default if neutral
+            if not emotion_words:
+                if abs(valence) < 0.2 and arousal < 0.4:
+                    emotion_words.append("calm and neutral")
+                else:
+                    emotion_words.append("in a neutral state")
+
+            # Format the output
+            if len(emotion_words) == 1:
+                lines.append(f"│    {agent_name} is {emotion_words[0]}")
+            elif len(emotion_words) == 2:
+                lines.append(f"│    {agent_name} is {emotion_words[0]} and {emotion_words[1]}")
+            else:
+                lines.append(f"│    {agent_name} is {', '.join(emotion_words[:-1])}, and {emotion_words[-1]}")
         else:
             lines.append(f"│  Affective state: Not available")
         lines.append("└────────────────────────────────────────────────────────────┘")
@@ -2266,7 +2370,8 @@ class CommandParser:
         # === QUICK COMMANDS ===
         lines.append("┌─ QUICK ACTIONS ────────────────────────────────────────────┐")
         lines.append(f"│  @observe {agent_name}        - Detailed phenomenal state")
-        lines.append(f"│  @phi {agent_name}            - Full Φ analysis")
+        # Note: @phi command hidden until scientifically validated
+        # lines.append(f"│  @phi {agent_name}            - Full Φ analysis")
         lines.append(f"│  @appetites {agent_name}      - Appetite details")
         lines.append(f"│  @goals {agent_name}          - Goal details")
         lines.append(f"│  @relationship {agent_name}   - Relationship map")
@@ -2350,6 +2455,66 @@ class CommandParser:
             return {
                 'success': False,
                 'output': f"Error listing models: {str(e)}\n\nMake sure LMStudio is running.",
+                'events': []
+            }
+
+    async def cmd_set_maxservers(self, user_id: str, args: str) -> Dict:
+        """Configure the maximum number of parallel LLM instances (model:0, model:1, etc.)."""
+        if not args:
+            # Show current settings
+            current = self.agent_manager.llm.get_maxservers()
+            instance_mode = self.agent_manager.llm.get_use_model_instances()
+
+            mode_str = "ENABLED (using model:N pattern)" if instance_mode else "DISABLED (single model)"
+
+            return {
+                'success': True,
+                'output': f"Current parallel instance settings:\n\n"
+                         f"  Max concurrent instances: {current}\n"
+                         f"  Model instance mode: {mode_str}\n\n"
+                         f"Usage: @maxservers <number>\n"
+                         f"Example: @maxservers 1  (legacy single-instance mode)\n"
+                         f"Example: @maxservers 5  (default: 5 parallel instances)\n\n"
+                         f"Note: Requires LMStudio with 'Enable JIT model loading' enabled\n"
+                         f"      Uses round-robin: model:0, model:1, ..., model:{current-1}",
+                'events': []
+            }
+
+        try:
+            new_max = int(args.strip())
+            if new_max < 1:
+                return {
+                    'success': False,
+                    'output': "Error: max_concurrent must be at least 1",
+                    'events': []
+                }
+
+            # Update LLM client settings
+            old_max = self.agent_manager.llm.get_maxservers()
+            self.agent_manager.llm.set_maxservers(new_max)
+
+            # Save to config.yaml for persistence
+            if self.config and self.config_path:
+                self.config['llm']['max_concurrent'] = new_max
+                self._save_config()
+                persistence_msg = "\n✓ Setting saved to config.yaml (will persist across sessions)"
+            else:
+                persistence_msg = "\n⚠ Warning: Setting not saved to config (will reset on restart)"
+
+            mode_str = "model:0, model:1, ..., model:" + str(new_max - 1) if new_max > 1 else "single model (legacy mode)"
+
+            return {
+                'success': True,
+                'output': f"Max concurrent instances changed: {old_max} → {new_max}\n\n"
+                         f"Pattern: {mode_str}\n"
+                         f"This affects all agents immediately.{persistence_msg}",
+                'events': []
+            }
+
+        except ValueError:
+            return {
+                'success': False,
+                'output': f"Error: '{args}' is not a valid number\n\nUsage: @maxservers <number>",
                 'events': []
             }
 
@@ -3085,13 +3250,14 @@ class CommandParser:
         - @brenda plays start <name> - start a play
         - @brenda plays stop <name> - stop a running play
         - @brenda plays delete <name> - delete a play (soft delete to trash)
+        - @brenda "quoted text" - casual conversation (skips command parsing)
         """
         # Help text (both no args and explicit "help")
         help_text = (
             "🌿 BRENDA - Behavioral Regulation Engine for Narrative-Driven Agents\n" +
             "=" * 60 + "\n\n"
             "AGENT TWEAKING:\n"
-            "  @brenda make <agent> <adjective> - adjust personality (chattier, calm, alpha, etc.)\n"
+            "  @brenda make <agent> <adjective> - adjust personality (more chatty, less calm, etc.)\n"
             "  @brenda reset <agent> - reload recipe defaults\n"
             "  @brenda vibe check <agent> - show current parameter settings\n"
             "  @brenda undo <agent> - undo last Brenda change\n"
@@ -3104,6 +3270,9 @@ class CommandParser:
             "  @brenda plays next <name> - manually advance to next scene\n"
             "  @brenda plays delete <name> - soft delete play (moves to trash)\n"
             "  @brenda plays status - show currently running plays\n\n"
+            "CASUAL CHAT:\n"
+            "  @brenda \"make my day!\" - use quotes for casual conversation\n"
+            "  Anything in quotes will skip command parsing and just chat\n\n"
             "APPETITE CONTROL (Phase 6):\n"
             "  @stoke <agent> <appetite> <amount> - increase drive (0.0-1.0)\n"
             "  @sate <agent> <appetite> <amount> - decrease drive (0.0-1.0)\n"
@@ -3115,7 +3284,8 @@ class CommandParser:
             "  @reset_goals <agent> [goal] - clear overrides/biases\n"
             "  @clear_bias <agent> [goal] - clear goal biases\n\n"
             "EXAMPLES:\n"
-            "  @brenda make Toad chattier\n"
+            "  @brenda make Toad more chatty\n"
+            "  @brenda \"hey there!\"\n"
             "  @brenda write play where Toad builds a rocket ship\n"
             "  @brenda plays start sled_boat\n"
             "  @stoke Toad novelty 0.5\n"
@@ -3130,119 +3300,131 @@ class CommandParser:
                 'events': []
             }
 
+        # Check if args start with a quotation mark (casual conversation mode)
+        # This skips all command parsing and goes straight to conversational BRENDA
+        if args.strip().startswith('"') or args.strip().startswith("'"):
+            # Strip the quotes and treat as pure conversation
+            args = args.strip().strip('"').strip("'")
+            # Skip directly to conversational BRENDA (goto line 3308)
+            # We'll set a flag and jump to that section
+            skip_command_parsing = True
+        else:
+            skip_command_parsing = False
+
         args_lower = args.lower()
 
         # === PLAY COMMANDS ===
+        # Skip all command parsing if in casual conversation mode (quoted text)
+        if not skip_command_parsing:
+            # Play generation: write/draft/create play
+            play_gen_match = re.match(r'^(write|draft|create)\s+(a\s+)?plays?\s+(.+)$', args, re.I)
+            if play_gen_match:
+                story = play_gen_match.group(3)
+                return await self._brenda_write_play(user_id, story)
 
-        # Play generation: write/draft/create play
-        play_gen_match = re.match(r'^(write|draft|create)\s+(a\s+)?plays?\s+(.+)$', args, re.I)
-        if play_gen_match:
-            story = play_gen_match.group(3)
-            return await self._brenda_write_play(user_id, story)
+            # Play list
+            if args_lower.startswith('plays list') or args_lower == 'list plays':
+                return await self._brenda_plays_list(user_id)
 
-        # Play list
-        if args_lower.startswith('plays list') or args_lower == 'list plays':
-            return await self._brenda_plays_list(user_id)
+            # Play start
+            play_start_match = re.match(r'^plays?\s+start\s+(.+)$', args, re.I)
+            if play_start_match:
+                filename = play_start_match.group(1).strip()
+                return await self._brenda_play_start(user_id, filename)
 
-        # Play start
-        play_start_match = re.match(r'^plays?\s+start\s+(.+)$', args, re.I)
-        if play_start_match:
-            filename = play_start_match.group(1).strip()
-            return await self._brenda_play_start(user_id, filename)
+            # Play stop
+            play_stop_match = re.match(r'^plays?\s+stop\s+(.+)$', args, re.I)
+            if play_stop_match:
+                filename = play_stop_match.group(1).strip()
+                return await self._brenda_play_stop(user_id, filename)
 
-        # Play stop
-        play_stop_match = re.match(r'^plays?\s+stop\s+(.+)$', args, re.I)
-        if play_stop_match:
-            filename = play_stop_match.group(1).strip()
-            return await self._brenda_play_stop(user_id, filename)
+            # Play delete
+            play_delete_match = re.match(r'^plays?\s+delete\s+(.+)$', args, re.I)
+            if play_delete_match:
+                filename = play_delete_match.group(1).strip()
+                return await self._brenda_play_delete(user_id, filename)
 
-        # Play delete
-        play_delete_match = re.match(r'^plays?\s+delete\s+(.+)$', args, re.I)
-        if play_delete_match:
-            filename = play_delete_match.group(1).strip()
-            return await self._brenda_play_delete(user_id, filename)
+            # Play next (manual scene advance)
+            play_next_match = re.match(r'^plays?\s+next\s+(.+)$', args, re.I)
+            if play_next_match:
+                filename = play_next_match.group(1).strip()
+                return await self._brenda_play_next(user_id, filename)
 
-        # Play next (manual scene advance)
-        play_next_match = re.match(r'^plays?\s+next\s+(.+)$', args, re.I)
-        if play_next_match:
-            filename = play_next_match.group(1).strip()
-            return await self._brenda_play_next(user_id, filename)
+            # === WORLD BUILDING COMMANDS ===
 
-        # === WORLD BUILDING COMMANDS ===
-
-        # Spawn actors/agents - accepts various formats:
-        # "spawn the actors" "spawn agents" "spawn <names>"
-        if args_lower.startswith('spawn'):
-            spawn_args = args[5:].strip().lower()
-            # Parse out agent names
-            spawn_args = spawn_args.replace('the', '').replace('actors', '').replace('agents', '').strip()
-            if not spawn_args:
-                # No specific agents - spawn the cast from running play
-                if self.play_manager.active_plays:
-                    # Get first running play's cast
-                    first_play_state = next(iter(self.play_manager.active_plays.values()))
-                    cast = first_play_state['play'].get('cast', [])
-                    if not cast:
+            # Spawn actors/agents - accepts various formats:
+            # "spawn the actors" "spawn agents" "spawn <names>"
+            if args_lower.startswith('spawn'):
+                spawn_args = args[5:].strip().lower()
+                # Parse out agent names
+                spawn_args = spawn_args.replace('the', '').replace('actors', '').replace('agents', '').strip()
+                if not spawn_args:
+                    # No specific agents - spawn the cast from running play
+                    if self.play_manager.active_plays:
+                        # Get first running play's cast
+                        first_play_state = next(iter(self.play_manager.active_plays.values()))
+                        cast = first_play_state['play'].get('cast', [])
+                        if not cast:
+                            return {
+                                'success': False,
+                                'output': "🌿 BRENDA: The play has no cast! Strange theatrical production...",
+                                'events': []
+                            }
+                        spawn_args = ' '.join(cast)
+                    else:
                         return {
                             'success': False,
-                            'output': "🌿 BRENDA: The play has no cast! Strange theatrical production...",
+                            'output': "🌿 BRENDA: No play is running! Who should I summon to the stage?",
                             'events': []
                         }
-                    spawn_args = ' '.join(cast)
-                else:
-                    return {
-                        'success': False,
-                        'output': "🌿 BRENDA: No play is running! Who should I summon to the stage?",
-                        'events': []
-                    }
-            return await self.cmd_spawn_agent(user_id, spawn_args)
+                return await self.cmd_spawn_agent(user_id, spawn_args)
 
-        # Build location/room - accepts "build <description>"
-        build_match = re.match(r'^build\s+(.+)$', args, re.I)
-        if build_match:
-            description = build_match.group(1).strip()
-            return await self._brenda_build_location(user_id, description)
+            # Build location/room - accepts "build <description>"
+            build_match = re.match(r'^build\s+(.+)$', args, re.I)
+            if build_match:
+                description = build_match.group(1).strip()
+                return await self._brenda_build_location(user_id, description)
 
-        # === PARAMETER TWEAKING COMMANDS ===
+            # === PARAMETER TWEAKING COMMANDS ===
 
-        # Easter egg: pass the joint
-        if 'pass the joint' in args_lower or 'pass joint' in args_lower:
-            return await self._brenda_pass_joint(user_id, args)
+            # Easter egg: pass the joint
+            if 'pass the joint' in args_lower or 'pass joint' in args_lower:
+                return await self._brenda_pass_joint(user_id, args)
 
-        # Vibe check
-        if args_lower.startswith('vibe check '):
-            agent_name = args[11:].strip()
-            return await self._brenda_vibe_check(user_id, agent_name)
+            # Vibe check
+            if args_lower.startswith('vibe check '):
+                agent_name = args[11:].strip()
+                return await self._brenda_vibe_check(user_id, agent_name)
 
-        # Reset
-        if args_lower.startswith('reset '):
-            agent_name = args[6:].strip()
-            return await self._brenda_reset(user_id, agent_name)
+            # Reset
+            if args_lower.startswith('reset '):
+                agent_name = args[6:].strip()
+                return await self._brenda_reset(user_id, agent_name)
 
-        # Undo
-        if args_lower.startswith('undo '):
-            agent_name = args[5:].strip()
-            return await self._brenda_undo(user_id, agent_name)
+            # Undo
+            if args_lower.startswith('undo '):
+                agent_name = args[5:].strip()
+                return await self._brenda_undo(user_id, agent_name)
 
-        # Usemodel
-        if args_lower.startswith('usemodel '):
-            model_name = args[9:].strip()
-            return await self._brenda_usemodel(user_id, model_name)
+            # Usemodel
+            if args_lower.startswith('usemodel '):
+                model_name = args[9:].strip()
+                return await self._brenda_usemodel(user_id, model_name)
 
-        # Make/adjust - various patterns
-        # Pattern 1: "make <agent> <adjective>"
-        make_match = re.match(r'^make\s+(\w+)\s+(.+)$', args, re.I)
-        if make_match:
-            agent_name, phrase = make_match.groups()
-            return await self._brenda_make(user_id, agent_name, phrase)
+            # Make/adjust - various patterns
+            # Pattern 1: "make <agent> <adjective>"
+            make_match = re.match(r'^make\s+(\w+)\s+(.+)$', args, re.I)
+            if make_match:
+                agent_name, phrase = make_match.groups()
+                return await self._brenda_make(user_id, agent_name, phrase)
 
-        # Pattern 2: "<adjective> <agent> <optional out>"
-        # e.g., "chill Toad out", "crank Toad to 11"
-        phrase_match = re.match(r'^(chill|crank)\s+(\w+)(.*)$', args, re.I)
-        if phrase_match:
-            action, agent_name, rest = phrase_match.groups()
-            phrase = action + rest.strip()
-            return await self._brenda_make(user_id, agent_name, phrase)
+            # Pattern 2: "<adjective> <agent> <optional out>"
+            # e.g., "chill Toad out", "crank Toad to 11"
+            phrase_match = re.match(r'^(chill|crank)\s+(\w+)(.*)$', args, re.I)
+            if phrase_match:
+                action, agent_name, rest = phrase_match.groups()
+                phrase = action + rest.strip()
+                return await self._brenda_make(user_id, agent_name, phrase)
 
         # ==== CONVERSATIONAL BRENDA ====
         # If no specific command matched, engage conversational BRENDA
@@ -3978,7 +4160,7 @@ class CommandParser:
             "Agent Tools: @think <thought>, @remember [date], @message <agent> <text>, @inbox",
             "Filesystem: @write <file> <content>, @read <file>, @ls [dir], @exec <command>",
             "Cognition: @cognition <agent>, @set_frequency <agent> <seconds>, @ruminate <agent>",
-            "LLM: @model [model_name], @models",
+            "LLM: @model [model_name], @models, @maxservers [number]",
             "BRENDA 🌿: @brenda make <agent> <adjective>, @brenda write play <story>, @brenda plays list/start/stop/next",
             "Utility: help, quit"
         ]

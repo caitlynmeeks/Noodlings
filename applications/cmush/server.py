@@ -102,7 +102,9 @@ class CMUSHServer:
             api_base=llm_config['api_base'],
             api_key=llm_config.get('api_key', 'not-needed'),
             model=llm_config['model'],
-            timeout=llm_config.get('timeout', 30)
+            timeout=llm_config.get('timeout', 30),
+            max_concurrent=5,  # Match number of LMStudio instances
+            use_model_instances=True  # Enable model:N pattern for parallel inference
         )
         await self.llm.__aenter__()
 

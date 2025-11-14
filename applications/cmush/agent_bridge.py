@@ -616,7 +616,9 @@ class CMUSHConsilienceAgent:
 
         try:
             # 1. Text -> Affect (via LLM)
-            context = [c['text'] for c in self.conversation_context[-3:]]
+            # Use configurable memory window for affect extraction
+            affect_window = self.config.get('memory_windows', {}).get('affect_extraction', 3)
+            context = [c['text'] for c in self.conversation_context[-affect_window:]]
             affect_raw = await self.llm.text_to_affect(text, context)
 
             logger.debug(f"Extracted affect (raw): {affect_raw}")
@@ -683,9 +685,10 @@ class CMUSHConsilienceAgent:
                 'identity_salience': 0.0  # Only agent's own responses get high salience
             })
 
-            # Trim context
-            if len(self.conversation_context) > 20:
-                self.conversation_context = self.conversation_context[-20:]
+            # Trim context (use configurable threshold)
+            trim_threshold = self.config.get('memory_windows', {}).get('affect_trim_threshold', 20)
+            if len(self.conversation_context) > trim_threshold:
+                self.conversation_context = self.conversation_context[-trim_threshold:]
 
             # Save state handled by periodic auto-save in AgentManager
             # (Incremental save after every event would be too expensive)
@@ -808,9 +811,11 @@ class CMUSHConsilienceAgent:
                     logger.info(f"Agent {self.agent_id} in distress (valence={valence:.2f}, fear={fear:.2f}, sorrow={sorrow:.2f})")
 
                     # Call self-reflection to decide whether to withdraw
+                    # Use configurable memory window for self-reflection
+                    reflection_window = self.config.get('memory_windows', {}).get('self_reflection', 3)
                     reflection = await self.llm.self_reflection(
                         phenomenal_state=state,
-                        conversation_context=self.conversation_context,
+                        conversation_context=self.conversation_context[-reflection_window:],
                         agent_name=self.agent_name,
                         agent_id=self.agent_id,
                         agent_description=self.agent_description,
@@ -984,6 +989,77 @@ class CMUSHConsilienceAgent:
             logger.error(f"Error in perceive_event: {e}", exc_info=True)
             return None
 
+    async def _check_conscience(self, text: str, state: Dict) -> tuple[str, bool]:
+        """
+        Phase 6: TOXIC HEAD conscience check.
+
+        Checks agent's own speech for toxicity before broadcasting.
+        If toxicity detected above threshold, applies bias to phenomenal state
+        and optionally regenerates response.
+
+        Args:
+            text: The response text to check
+            state: Current phenomenal state
+
+        Returns:
+            tuple of (final_text, was_corrected)
+        """
+        # Get conscience config (with defaults if not present)
+        conscience_config = self.config.get('conscience', {})
+        if not conscience_config.get('self_monitoring', True):
+            return text, False  # Conscience disabled
+
+        toxicity_threshold = conscience_config.get('toxicity_threshold', 0.5)
+        conscience_strength = conscience_config.get('conscience_strength', 0.8)
+
+        try:
+            # Run TOXIC HEAD detection
+            toxicity_result = await self.llm.detect_toxicity(text)
+
+            toxicity_score = toxicity_result['score']
+            logger.debug(f"[{self.agent_id}] Conscience check: toxicity={toxicity_score:.3f}, "
+                        f"category={toxicity_result['category']}")
+
+            # If below threshold, approve speech
+            if toxicity_score < toxicity_threshold:
+                return text, False
+
+            # Conscience activated!
+            logger.warning(f"[{self.agent_id}] 🔴 TOXIC HEAD activated! "
+                          f"Score={toxicity_score:.3f}, types={toxicity_result['detected_types']}")
+
+            # Apply bias to phenomenal state (negative affect)
+            # This creates an *internal experience* of guilt/shame
+            bias_strength = conscience_strength * toxicity_score
+            state['h_fast'][0] = max(-1.0, state['h_fast'][0] - bias_strength)  # Reduce valence
+            state['h_fast'][2] = min(1.0, state['h_fast'][2] + bias_strength * 0.5)  # Increase fear
+            state['h_fast'][3] = min(1.0, state['h_fast'][3] + bias_strength * 0.3)  # Increase sorrow
+
+            logger.info(f"[{self.agent_id}] Applied conscience bias: "
+                       f"valence-={bias_strength:.2f}, fear+={bias_strength*0.5:.2f}")
+
+            # Generate conscience response based on boundary style
+            boundary_style = conscience_config.get('boundary_style', 'firm_gentle')
+
+            if boundary_style == 'firm_gentle':
+                # Polite but clear boundary
+                conscience_text = f"*pauses, reconsidering* Actually, I'd rather keep things respectful. Let's talk about something else?"
+            elif boundary_style == 'direct':
+                # Clear refusal
+                conscience_text = "I don't want to go there. That's not okay."
+            elif boundary_style == 'avoidant':
+                # Deflect without confrontation
+                conscience_text = "*changes subject uncomfortably*"
+            else:
+                conscience_text = "*hesitates and falls silent*"
+
+            return conscience_text, True
+
+        except Exception as e:
+            logger.error(f"[{self.agent_id}] Conscience check failed: {e}")
+            # Fail-safe: allow speech (don't break conversation flow)
+            return text, False
+
     async def _generate_response(self, target_user: str, state: Dict) -> Dict:
         """
         Generate response based on phenomenal state.
@@ -1019,10 +1095,12 @@ class CMUSHConsilienceAgent:
             )[:2]
 
             # Generate text via LLM
+            # Use configurable memory window for response generation
+            response_window = self.config.get('memory_windows', {}).get('response_generation', 5)
             llm_result = await self.llm.generate_response(
                 phenomenal_state=state,
                 target_user=target_user,
-                conversation_context=self.conversation_context,
+                conversation_context=self.conversation_context[-response_window:],
                 relationship=relationship,
                 agent_name=self.agent_name,
                 agent_id=self.agent_id,
@@ -1135,12 +1213,17 @@ class CMUSHConsilienceAgent:
                 # Apply speech post-processing filters (Phase 6)
                 filtered_text = apply_speech_filters(clean_text, self.agent_id)
 
+                # Phase 6: TOXIC HEAD conscience check
+                final_text, was_corrected = await self._check_conscience(filtered_text, state)
+                if was_corrected:
+                    logger.info(f"[{self.agent_id}] Conscience corrected speech")
+
                 # Phase 6: Self-monitoring (if enabled and conditions met)
-                await self._trigger_self_monitoring(filtered_text, state)
+                await self._trigger_self_monitoring(final_text, state)
 
                 return {
                     'command': 'emote',  # Use emote for combined action+speech
-                    'text': f"{action_text} and says, \"{filtered_text}\"",
+                    'text': f"{action_text} and says, \"{final_text}\"",
                     'metadata': {
                         'surprise': float(state['surprise']),
                         'response_number': self.response_count,
@@ -1168,12 +1251,17 @@ class CMUSHConsilienceAgent:
                 # Apply speech post-processing filters (Phase 6)
                 filtered_text = apply_speech_filters(clean_text, self.agent_id)
 
+                # Phase 6: TOXIC HEAD conscience check
+                final_text, was_corrected = await self._check_conscience(filtered_text, state)
+                if was_corrected:
+                    logger.info(f"[{self.agent_id}] Conscience corrected speech")
+
                 # Phase 6: Self-monitoring (if enabled and conditions met)
-                await self._trigger_self_monitoring(filtered_text, state)
+                await self._trigger_self_monitoring(final_text, state)
 
                 return {
                     'command': 'say',
-                    'text': filtered_text,
+                    'text': final_text,
                     'metadata': {
                         'surprise': float(state['surprise']),
                         'response_number': self.response_count,
@@ -1202,9 +1290,11 @@ class CMUSHConsilienceAgent:
         """
         try:
             # Generate internal thought via LLM
+            # Use configurable memory window for rumination
+            rumination_window = self.config.get('memory_windows', {}).get('rumination', 2)
             thought_text = await self.llm.generate_rumination(
                 phenomenal_state=state,
-                conversation_context=self.conversation_context,
+                conversation_context=self.conversation_context[-rumination_window:],
                 agent_name=self.agent_name,
                 agent_id=self.agent_id,
                 agent_description=self.agent_description,
@@ -1456,8 +1546,10 @@ class CMUSHConsilienceAgent:
 
         # Sanitize conversation context for JSON serialization
         # Convert any MLX/numpy arrays to lists
+        # Use configurable disk save limit
+        disk_save_limit = self.config.get('memory_windows', {}).get('disk_save', 100)
         sanitized_context = []
-        for entry in self.conversation_context[-100:]:  # Keep last 100
+        for entry in self.conversation_context[-disk_save_limit:]:
             sanitized_entry = dict(entry)  # Copy
             # Convert affect arrays to lists
             if 'affect' in sanitized_entry:

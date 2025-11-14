@@ -9,7 +9,7 @@ paths:
 llm:
   api_base: http://localhost:1234/v1
   api_key: not-needed
-  model: qwen3-4b-instruct-2507-mlx
+  model: qwen/qwen3-4b-2507
   timeout: 60
 brenda:
   model: qwen3-32b-128k@q8_0
@@ -22,6 +22,14 @@ agent:
   addressed_speech_chance: 0.8
   question_speech_chance: 0.3
   unaddressed_speech_chance: 0.1
+  # Memory window sizes (how many conversation turns to include in LLM context)
+  memory_windows:
+    affect_extraction: 10        # up from 3 - need recent emotional context
+    response_generation: 20      # up from 5 - MORE MEMORY = BETTER CONTINUITY
+    rumination: 10               # up from 2 - agents need context to think
+    self_reflection: 10          # up from 3 - understand full emotional arc
+    disk_save: 500               # up from 100 - cheap to save more
+    affect_trim_threshold: 50    # up from 20 - keep more in active memory
   autonomous_cognition:
     enabled: true
     wake_interval: 60

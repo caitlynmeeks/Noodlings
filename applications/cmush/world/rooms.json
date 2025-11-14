@@ -11,10 +11,10 @@
     "occupants": [
       "user_caitlyn",
       "user_caity",
-      "agent_toad",
+      "agent_phi",
       "agent_callie",
-      "agent_servnak",
-      "agent_desobelle"
+      "agent_sevnak",
+      "agent_phido"
     ],
     "owner": "system",
     "created": "2025-10-26T13:51:25.550264"
@@ -42,5 +42,65 @@
     "occupants": [],
     "owner": "system",
     "created": "2025-10-26T13:51:25.550271"
+  },
+  "room_003": {
+    "uid": "room_003",
+    "name": "Moonlit Garden With Fireflies,",
+    "description": "winding stone paths, tall grasses, and a small wooden bench under a willow tree. A distant owl calls softly in the background.",
+    "exits": {},
+    "objects": [],
+    "occupants": [],
+    "owner": "user_caity",
+    "created": "2025-11-13T14:28:40.242124"
+  },
+  "room_004": {
+    "uid": "room_004",
+    "name": "Moonlit Garden With Fireflies,",
+    "description": "winding stone paths, tall grasses, and a small wooden bench under a willow tree. A distant owl calls softly in the background.",
+    "exits": {},
+    "objects": [],
+    "occupants": [],
+    "owner": "user_caity",
+    "created": "2025-11-13T14:55:18.488725"
+  },
+  "room_005": {
+    "uid": "room_005",
+    "name": "Moonlit Garden With Fireflies,",
+    "description": "winding stone paths, tall grasses, and a small wooden bench under a willow tree. A distant owl calls softly in the background.",
+    "exits": {},
+    "objects": [],
+    "occupants": [],
+    "owner": "user_caity",
+    "created": "2025-11-13T15:33:36.583980"
+  },
+  "room_006": {
+    "uid": "room_006",
+    "name": "Mud Puddles Along Tractor",
+    "description": "path with high splash potential",
+    "exits": {},
+    "objects": [],
+    "occupants": [],
+    "owner": "user_caity",
+    "created": "2025-11-13T20:46:56.290476"
+  },
+  "room_007": {
+    "uid": "room_007",
+    "name": "Muddy Field With Tractor",
+    "description": "tracks spiraling through it, a crumbling red barn with splintered wood and a roof missing half its shingles, a herd of cows stomping their hooves while mooing in disapproval, and a farmer clutching his pitchfork like a tragic hero mid-monologue",
+    "exits": {},
+    "objects": [],
+    "occupants": [],
+    "owner": "user_caity",
+    "created": "2025-11-13T22:21:05.377283"
+  },
+  "room_008": {
+    "uid": "room_008",
+    "name": "Misty Forest Clearing Surrounded",
+    "description": "by ancient trees with glowing lichen that pulses gently in the dark; at its center stands a towering oak with bark like old parchment and tiny cracks that shimmer when touched; hanging from its branches are woven hammocks made of spider silk and pine needles, and a path winds up the roots like stairs carved by time; in the thick undergrowth, mushrooms glow softly with a faint blue light and emit soft hums when disturbed; the air smells of damp earth, pine resin, and something faintly sweet \u2014 like crushed mint in old tea; a single teacup rests on the mossy ground, half-buried and cracked but still warm; in the distance, a faint melody plays \u2014 low, slow, like a lullaby only heard when you\u2019re not listening",
+    "exits": {},
+    "objects": [],
+    "occupants": [],
+    "owner": "user_caity",
+    "created": "2025-11-14T01:36:23.903069"
   }
 }

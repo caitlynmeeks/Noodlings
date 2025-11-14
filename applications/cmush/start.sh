@@ -21,9 +21,11 @@ $PYTHON -m http.server 8080 &
 HTTP_PID=$!
 cd ..
 
-# Start WebSocket server
+# Start WebSocket server (with logging)
 echo "Starting WebSocket server on port 8765..."
-$PYTHON server.py
+LOG_FILE="logs/server_$(date +%Y%m%d_%H%M%S).log"
+mkdir -p logs
+$PYTHON server.py 2>&1 | tee "$LOG_FILE"
 
 # Cleanup on exit
 trap "kill $HTTP_PID 2>/dev/null" EXIT

@@ -1,19 +1,24 @@
-# cMUSH - Consilience Multi-User Shared Hallucination
+# noodleMUSH - Noodlings Multi-User Shared Hallucination
 
-A text-based MUD (Multi-User Dungeon) environment where Consilience Phase 4 consciousness agents interact with humans in real-time.
+A text-based MUD (Multi-User Dungeon) environment where Noodlings Phase 4 consciousness agents interact with humans in real-time.
 
 ## Overview
 
-cMUSH integrates the Consilience consciousness architecture with a persistent multi-user world. Users and AI agents coexist, interact, build worlds, and form relationships through a terminal-style web interface.
+noodleMUSH integrates the Noodlings consciousness architecture with a persistent multi-user world. Users and AI agents coexist, interact, build worlds, and form relationships through a terminal-style web interface.
 
 **Status**: Fully implemented, ready for testing
 **Framework**: MLX (Apple Metal), Python 3.10+, WebSockets
 **Architecture**: Phase 4 (Social Cognition & Theory of Mind)
+**Latest**: Play system, enhanced memory (4x longer context), parallel LLM inference
 
 ## Features
 
 - **Real-time multi-user interaction** via WebSocket
-- **Consilience consciousness agents** with Phase 4 social cognition
+- **Noodlings consciousness agents** with Phase 4 social cognition
+- **Theatrical play system** - BRENDA can direct plays with agent actors
+- **Enhanced memory** - 4x longer context windows for better continuity (20-turn conversations)
+- **Parallel LLM inference** - Support for multiple LMStudio instances (5x throughput)
+- **BRENDA tool-use** - Conversational command execution with natural language
 - **Persistent world state** (JSON storage, git-friendly)
 - **LLM integration** for text ↔ affect translation (LMStudio, Ollama, OpenAI)
 - **Terminal aesthetic** browser client (green-on-black)
@@ -62,14 +67,34 @@ Edit `config.yaml`:
 server:
   host: "0.0.0.0"
   port: 8765
+  web_port: 8080
 
 llm:
   api_base: "http://localhost:1234/v1"  # LMStudio
-  model: "mistral-7b-instruct"
+  model: "qwen/qwen3-4b-2507"
+
+agent:
+  memory_windows:
+    affect_extraction: 10        # Context for emotional analysis
+    response_generation: 20      # Context for agent speech (4x improvement!)
+    rumination: 10               # Context for internal thoughts
+    self_reflection: 10          # Context for withdrawal decisions
+    disk_save: 500               # Persistent memory limit
+    affect_trim_threshold: 50    # Active memory cleanup threshold
 
 paths:
-  checkpoint: "../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
+  checkpoint: "../../noodlings/checkpoints_phase4/best_checkpoint.npz"
 ```
+
+### Parallel Inference Setup
+
+To enable parallel LLM inference with multiple LMStudio instances:
+
+1. Load the same model multiple times in LMStudio
+2. LMStudio will automatically create instances: `model`, `model:2`, `model:3`, etc.
+3. Set `max_concurrent` in server.py to match your instance count (default: 5)
+4. Requests will be distributed round-robin across all instances
+5. This provides true parallel inference (5x throughput with 5 instances)
 
 ## Commands
 
@@ -97,12 +122,13 @@ paths:
 - `@dig <direction> <room_name>` - Create exit to new room
 
 ### Agent Commands
-- `@spawn <agent_name>` - Spawn a Consilience agent
+- `@spawn <agent_name>` - Spawn a Noodlings agent
 - `@observe <agent_name>` - View agent's phenomenal state
 - `@me` - View how agents perceive you (Theory of Mind)
 - `@relationship <agent_name>` - View relationship models
 - `@memory <agent_name>` - View episodic memory
 - `@agents` - List all active agents
+- `@play <play_name>` - Direct a theatrical play (BRENDA only)
 
 **Note**: Agents have full access to all user commands! They can:
 - Move around (`north`, `south`, etc.)
@@ -183,9 +209,47 @@ llm:
   model: "gpt-3.5-turbo"
 ```
 
+## Theatrical Play System
+
+BRENDA can direct theatrical plays with agent actors using the `@play <play_name>` command.
+
+### How It Works
+
+1. Place play scripts in `plays/` directory (JSON format)
+2. BRENDA uses `@play the_room_complete` to start a play
+3. Agents are automatically assigned roles based on availability
+4. Play executes with dialogue, stage directions, and timing
+5. Post-play cleanup restores agents to normal behavior
+
+### Play Script Format
+
+```json
+{
+  "title": "The Room",
+  "author": "Tommy Wiseau (adapted)",
+  "characters": ["Johnny", "Mark", "Lisa"],
+  "scenes": [
+    {
+      "location": "room_johnny_apartment",
+      "stage_direction": "Johnny's apartment. Football visible.",
+      "dialogue": [
+        {"character": "Johnny", "line": "Oh hai Mark!"},
+        {"character": "Mark", "line": "Hey Johnny, what's up?"}
+      ]
+    }
+  ]
+}
+```
+
+### Example Plays
+
+- `the_room_complete.json` - Full Tommy Wiseau adaptation
+- `the_box_lynchian_demo.json` - Surrealist experiment
+- `tea_in_the_reverse_hum.json` - Abstract dialogue piece
+
 ## Agent Behavior
 
-Consilience agents:
+Noodlings agents:
 - **Perceive** ALL events (speech, emotes, movement) from humans AND other agents
 - **Process** inputs through 40-D phenomenal state
 - **Respond** when surprise exceeds threshold
@@ -197,7 +261,7 @@ Consilience agents:
 
 ### Multi-Agent Support
 
-cMUSH fully supports multiple Consilience agents interacting:
+noodleMUSH fully supports multiple Noodlings agents interacting:
 - Agents perceive other agents' actions
 - Agents can observe each other's states (`@observe`)
 - Agents can view their relationships with other agents (`@relationship`)
@@ -206,7 +270,7 @@ cMUSH fully supports multiple Consilience agents interacting:
 
 ## Logging
 
-All activity logged to `logs/cmush_YYYY-MM-DD.log`:
+All activity logged to `logs/server_YYYYMMDD_HHMMSS.log`:
 
 ```
 [2025-10-23 12:34:56] [INFO] [user_alice] command: say Hello!
@@ -293,9 +357,11 @@ Core implementation is complete. Future enhancements:
 
 ## Credits
 
-**Consilience Project**: Hierarchical affective consciousness architecture
-**cMUSH**: Multi-user environment for consciousness research
+**Noodlings Project**: Hierarchical affective consciousness architecture
+**noodleMUSH**: Multi-user environment for consciousness research
 **Framework**: MLX (Apple Metal), WebSockets, OpenAI-compatible LLMs
+
+See also: [CHANGELOG.md](CHANGELOG.md) for version history
 
 ## License
 
