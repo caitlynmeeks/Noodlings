@@ -632,7 +632,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
                 # Delete object
                 del world.objects[prop_id]
 
-        # Clean up NPCs
+        # Clean up puppet NPCs (non-conscious)
         for npc_id in state.get('npcs', []):
             if npc_id in world.users:
                 # Remove from room
@@ -642,6 +642,28 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
                     room['occupants'].remove(npc_id)
                 # Delete NPC
                 del world.users[npc_id]
+
+        # NEW: Clean up temporary agents (conscious Noodlings spawned for play)
+        agent_manager = state.get('agent_manager')
+        for temp_agent_id in state.get('temp_agents', []):
+            if temp_agent_id in agent_manager.agents:
+                try:
+                    # Stop agent's autonomous tasks
+                    agent = agent_manager.agents[temp_agent_id]
+                    if hasattr(agent, 'stop_autonomous_tasks'):
+                        await agent.stop_autonomous_tasks()
+
+                    # Remove from room
+                    room = world.get_room(agent.current_room)
+                    if room and temp_agent_id in room['occupants']:
+                        room['occupants'].remove(temp_agent_id)
+
+                    # Delete agent (don't save state - temporary!)
+                    del agent_manager.agents[temp_agent_id]
+
+                    logger.info(f"Cleaned up temporary agent: {temp_agent_id}")
+                except Exception as e:
+                    logger.error(f"Error cleaning up temporary agent {temp_agent_id}: {e}")
 
         world.save_all()
 
@@ -939,9 +961,30 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
         await self._broadcast_play_event(world, event)
 
     async def _beat_create_npc(self, args: Dict, world, agent_manager, play_state: Dict):
-        """Execute a 'create_npc' beat - spawn temporary character."""
+        """
+        Execute a 'create_npc' beat - spawn temporary character.
+
+        NEW: Can spawn full Noodlings agents with pre-loaded emotional states!
+
+        Args:
+            args: {
+                'name': Character name,
+                'desc': Description,
+                'as_agent': bool (if True, spawn real agent instead of puppet),
+                'initial_state': Optional dict with emotional state to pre-load
+                    {
+                        'valence': -1.0 to 1.0 (negative to positive),
+                        'arousal': 0.0 to 1.0 (calm to excited),
+                        'fear': 0.0 to 1.0 (safe to anxious),
+                        'sorrow': 0.0 to 1.0 (content to sad),
+                        'boredom': 0.0 to 1.0 (engaged to bored)
+                    }
+            }
+        """
         name = args.get('name')
         desc = args.get('desc', 'A character from the play.')
+        as_agent = args.get('as_agent', False)  # NEW: spawn real agent?
+        initial_state = args.get('initial_state')  # NEW: pre-load emotional state
 
         if not name:
             return
@@ -952,10 +995,72 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             logger.warning("Cannot create NPC - no play room")
             return
 
-        # Create NPC as a simple user (not a full agent)
         npc_id = f"npc_{name.lower().replace(' ', '_')}"
 
-        # Add to world users (lightweight)
+        if as_agent:
+            # NEW: Spawn full Noodlings agent (temporary, auto-cleaned on play end)
+            try:
+                # Get checkpoint path from world's agent_manager config
+                checkpoint_path = agent_manager.checkpoint_path
+
+                if not checkpoint_path:
+                    logger.warning(f"Cannot spawn temporary agent '{name}' - no checkpoint configured")
+                    as_agent = False  # Fall back to puppet NPC
+                else:
+                    # Spawn temporary agent
+                    agent = await agent_manager.create_agent(
+                        agent_id=npc_id,
+                        checkpoint_path=checkpoint_path,
+                        spawn_room=room_id,
+                        agent_name=name,
+                        agent_description=desc,
+                        skip_phenomenal_state=False,  # Will manually inject if initial_state provided
+                        config=None
+                    )
+
+                    # EXCITING: Pre-load emotional state if provided ("come in HOT!")
+                    if initial_state and hasattr(agent, 'consciousness'):
+                        import mlx.core as mx
+                        # Convert initial affect to MLX array
+                        affect_vector = [
+                            initial_state.get('valence', 0.0),
+                            initial_state.get('arousal', 0.5),
+                            initial_state.get('fear', 0.0),
+                            initial_state.get('sorrow', 0.0),
+                            initial_state.get('boredom', 0.0)
+                        ]
+                        affect_tensor = mx.array(affect_vector, dtype=mx.float32)[None, :]  # Add batch dim
+
+                        # Process through consciousness to generate phenomenal state
+                        # This makes the affect ripple through fast/medium/slow layers
+                        state = agent.consciousness.process_input(affect_tensor)
+
+                        logger.info(f"Pre-loaded emotional state into {name}: valence={affect_vector[0]:.2f}, arousal={affect_vector[1]:.2f}, fear={affect_vector[2]:.2f}")
+
+                    # Track temporary agent for cleanup
+                    if 'temp_agents' not in play_state:
+                        play_state['temp_agents'] = []
+                    play_state['temp_agents'].append(npc_id)
+
+                    logger.info(f"Created TEMPORARY AGENT: {name} ({npc_id}) in {room_id} (will auto-cleanup on play end)")
+
+                    # Announce entrance
+                    event = {
+                        'type': 'enter',
+                        'user': npc_id,
+                        'username': name,
+                        'room': room_id,
+                        'text': f"🎭 {name} enters the scene! (conscious agent)",
+                        'metadata': {'play_action': True}
+                    }
+                    await self._broadcast_play_event(world, event)
+                    return  # Done with agent spawn
+
+            except Exception as e:
+                logger.error(f"Failed to spawn temporary agent '{name}': {e}")
+                as_agent = False  # Fall back to puppet NPC
+
+        # Fall back or default: Create NPC as a simple user (puppet, not conscious)
         world.users[npc_id] = {
             'uid': npc_id,
             'name': name,
@@ -979,7 +1084,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             play_state['npcs'] = []
         play_state['npcs'].append(npc_id)
 
-        logger.info(f"Created NPC: {name} ({npc_id}) in {room_id}")
+        logger.info(f"Created puppet NPC: {name} ({npc_id}) in {room_id}")
 
         # Announce NPC entrance
         event = {
