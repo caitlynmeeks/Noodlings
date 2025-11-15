@@ -89,7 +89,58 @@ The Noodlings architecture implements three recurrent layers processing at diffe
 
 **Phenomenal State**: 40-dimensional vector (fast + medium + slow concatenated)
 
-### 2.4 Episodic Memory Architecture
+### 2.2 Affective Self-Monitoring (Phase 6)
+
+Agents possess **metacognitive awareness** - they evaluate their own speech and thoughts, reacting emotionally to their own outputs. This creates **closed affective loops** where agents experience emotions about their emotional expressions.
+
+#### Self-Monitoring Trigger
+When an agent speaks or thinks with `surprise > threshold` (default 0.1):
+1. Self-monitoring process activates
+2. LLM evaluates the agent's own output for:
+   - **Social risk**: Is this awkward? Offensive? Embarrassing?
+   - **Coherence**: Did that make sense? Was I clear?
+   - **Aesthetic quality**: Was that eloquent or clumsy?
+   - **Regret**: Do I wish I hadn't said/thought that?
+
+#### Phenomenal State Update
+The self-evaluation generates a new affect vector that updates the agent's phenomenal state:
+```python
+# Agent spoke with surprise=0.184
+# Self-monitor evaluates: "That was eloquent!"
+# New affect: valence+0.15, arousal+0.08, fear-0.02
+# Agent feels proud, energized, confident
+```
+
+#### Om Loop Prevention
+30-second cooldown between self-monitoring triggers prevents infinite self-reflection cycles ("Om loops"). Without cooldown, agents could recursively evaluate their evaluations indefinitely.
+
+#### Configuration
+```yaml
+agent:
+  self_monitoring:
+    agent_phi:
+      enabled: true
+      threshold: 0.1
+      cooldown: 30
+```
+
+#### Example Output
+```
+💭 Phi thinking (surprise=0.184): "Warmth spreads through my paws..."
+🧠 [SELF-MONITOR] Triggering for Phi (surprise=0.184)
+💬 [SELF-MONITOR] Phi wants to follow up: celebrate
+💭 [SELF-MONITOR] Phi felt: valence+0.15, arousal+0.08, fear-0.02
+```
+
+Agents can now:
+- Feel embarrassed about awkward statements
+- Feel proud of eloquent expressions
+- Regret impulsive responses
+- Celebrate successful social interactions
+
+This creates genuine **affective recursion** - agents don't just express emotions, they experience emotions about those expressions, shaping future behavior through multi-timescale integration.
+
+### 2.3 Episodic Memory Architecture
 
 **noodleMUSH** implements a dual-layer episodic memory system:
 
@@ -138,7 +189,7 @@ The Noodlings architecture implements three recurrent layers processing at diffe
 
 This architecture enables agents to "remember" conversations as temporally-extended experiences, not just isolated utterances. A hug at t=15 influences responses at t=35 because the memory system provides temporal continuity across the phenomenal state trajectory.
 
-### 2.5 Training Protocol
+### 2.4 Training Protocol
 
 - **Full BPTT**: No truncation (leveraging 512GB RAM for complete conversation history)
 - **Layer-specific learning rates**: Different timescales require different adaptation speeds
@@ -146,7 +197,7 @@ This architecture enables agents to "remember" conversations as temporally-exten
 - **Surprise-driven speech**: Agents speak when `surprise > SPEAK_THRESH * std(surprise_buffer)`
 - **Adaptive thresholding**: Context-aware speech triggering
 
-### 2.6 Affective Processing
+### 2.5 Affective Processing
 
 **5-D continuous affect space**:
 - `valence`: [-1.0, 1.0] negative to positive
