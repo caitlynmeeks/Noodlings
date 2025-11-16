@@ -1,0 +1,7 @@
+config.yaml
+
+# Secret files
+config.yaml
+.env
+*.key
+*.secret
