@@ -7,6 +7,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Next Session
+- TAB toggle log view for debugging visibility
+
+---
+
+## [Phase 6.6] - 2025-11-15
+
+Massive consciousness features session! Four major systems implemented.
+
+### Added
+
+- **🎭 Character Voice Post-Processing System**
+  - Automatic voice translation: Basic English → Character-specific voice
+  - SERVNAK: ALL CAPS + percentages + "SISTER!" + pride circuits
+  - Phi (kitten): "meows, as if to say..." (NO direct speech!)
+  - Phido (dog): Enthusiastic speech + *tail wagging* + "FRIEND!"
+  - Backwards Dweller: Reversed word order (Lynchian)
+  - LLM-based translation (qwen3-4b) for flexibility
+  - Self-monitoring on FINAL character voice
+  - See CHARACTER_VOICE_SYSTEM.md
+
+- **📻 Enhanced Intuition Receiver**
+  - Species + pronouns: "Phi (kitten, she/her), SERVNAK (robot, they/them)"
+  - Noteworthy event narration: "WAIT - Toad just said the secret word!"
+  - "You" addressing: "Caity gave ME a tensor taffy!"
+  - Game awareness: Detects secret word/memory games
+  - Acts as perceptive narrator, not passive info
+
+- **💭 Memory Persistence Fix**
+  - Memory capacity: 50 → 500 messages (10x!)
+  - affect_trim_threshold: 500 (was 50)
+  - Secret words (DRAGONFLY) now persist across sessions
+  - See MEMORY_PERSISTENCE_FIX.md
+
+- **⚙️ Unified @setdesc Command**
+  - `@setdesc here <desc>` - Describe current room
+  - `@setdesc me <desc>` - Describe yourself
+  - `@setdesc "object" <desc>` - Describe object
+  - @describe redirects to @setdesc (backward compatible)
+
+- **🔍 Enhanced look Command**
+  - `look me` - Look at yourself
+  - `look here` - Look at room (explicit)
+  - Keywords for better UX
+
+- **🔇 @remove Improvements**
+  - `-s` flag for silent removal (no departure message)
+  - Quote handling: `@remove "backwards dweller"`
+  - Space→underscore conversion (matches @spawn)
+
+- **📝 @spawn Quote Support**
+  - Multi-word names: `@spawn "backwards dweller"`
+  - Uses shlex for proper quote parsing
+
+### Changed
+- Intuition now includes species and pronouns in all broadcasts
+- Intuition detects ongoing games and noteworthy events
+- Species reloaded from recipes on agent load
+- Pronoun inference from character names
+- "privately thinks" prefix in UI for all thoughts
+
+### Fixed
+- Phi character voice now works (species reloading fixed)
+- Phido gets dog voice (not cat voice)
+- Brain indicators removed on agent exit
+- @remove handles multi-word names with underscores/quotes
+- text_to_affect unpacking issues
+
+### Documentation
+- CHARACTER_VOICE_SYSTEM.md - Complete character voice docs
+- MEMORY_PERSISTENCE_FIX.md - Memory issue analysis
+- NEXT_SESSION_PROMPT.md - TAB log view specs
+- CLAUDE.md updated with session summary
+
+### Statistics
+- 9 files modified (+811/-62 lines)
+- 3 documentation files created
+- 5 major bugs fixed
+- Commit: e98a071
+
+---
+
+## [Phase 6.5] - 2025-11-15 (Earlier Session)
+
 ### Added
 - **Play system**: BRENDA can now direct theatrical plays with agent actors
   - `@play <play_name>` command to start plays
