@@ -1,4 +1,40 @@
-# Next Session: TAB Toggle Log View Feature
+# Next Session: Minor Polish + TAB Toggle Log View Feature
+
+## Quick Fixes First (15 minutes)
+
+Before the TAB log view, add two small enhancements:
+
+### 1. Add Age to Character Metadata
+
+Update recipes to include age field (e.g., `age: "6 months old"`, `age: "mid-30s"`, `age: "unknown"`)
+
+Add age to intuition broadcasts alongside species/pronouns.
+
+### 2. Enhanced "People here:" Display
+
+Update the `look` command (when showing room occupants) to display:
+
+```
+People here:
+  caitlyn [Noodler, human, 9 years old, she]
+  toad [Noodling, toad, mid-30s, he]
+  callie [Noodling, human, 27 years old, she]
+  servnak [Noodling, robot, age unknown, they]
+  phi [Noodling, kitten, 6 months old, she]
+  phido [Noodling, dog, 2 years old, he]
+```
+
+**Format**: `[Role, species, age, pronoun]`
+- Role: "Noodler" (human user) or "Noodling" (AI agent)
+- Species: human, toad, kitten, dog, robot, etc.
+- Age: From recipe or "unknown"
+- Pronoun: Just "she" not "she/her" (the "her" is implied)
+
+**File to modify**: `commands.py` in the `cmd_look` function
+
+---
+
+## Main Feature: TAB Toggle Log View
 
 ## Context
 
