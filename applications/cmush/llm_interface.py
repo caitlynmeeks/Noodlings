@@ -616,10 +616,25 @@ Examples of proper responses WITH MOTIVATION:
 DO NOT just philosophize or observe - inhabit your character's motivation and ACT IT OUT with emotes (:action format) and speech!
 """
 
+        # Extract intuition if available (Context Gremlin / Intuition Receiver)
+        intuition = phenomenal_state.get('intuition')
+        intuition_text = ""
+        if intuition:
+            intuition_text = f"""
+╔═══════════════════════════════════════════════════════════╗
+║  📻 YOUR INTUITIVE AWARENESS (Situational Context)       ║
+╚═══════════════════════════════════════════════════════════╝
+
+{intuition}
+
+This contextual awareness naturally informs your understanding of the situation.
+"""
+
         user_prompt = f"""Current phenomenal state:
 - Surprise: {surprise:.2f} (threshold: {threshold:.2f}) - {"HIGH, responded!" if surprise > threshold else "moderate"}
 - Affective valence: {valence_desc}
 - Arousal: {arousal_desc}
+{intuition_text}
 {identity_anchor_text}
 Relationship with {target_user}:
 - Attachment style: {attachment_style}
@@ -1121,6 +1136,12 @@ Reply with ONLY a number 0-10, nothing else."""
         valence_val = fast_state[0] if fast_state is not None and len(fast_state) > 0 else 0.0
         arousal_val = fast_state[1] if fast_state is not None and len(fast_state) > 1 else 0.0
 
+        # Extract intuition if available
+        intuition = phenomenal_state.get('intuition')
+        intuition_hint = ""
+        if intuition:
+            intuition_hint = f"\n\n📻 Your intuitive awareness: {intuition}\n"
+
         # Build addressee context hint
         addressee_hint = ""
         if is_being_addressed:
@@ -1232,6 +1253,7 @@ THINK ABOUT: My actual life, my feelings, my relationships, concrete experiences
 
         user_prompt = f"""What just happened:
 {context_str}
+{intuition_hint}
 {identity_anchor_immutable}
 
 What are you thinking? (1-2 sentences, stream of consciousness, not spoken)"""

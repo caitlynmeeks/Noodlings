@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Noodlings** (formerly Consilience) is a hierarchical affective consciousness architecture implementing predictive processing theories through multi-timescale learning. We're "noodling" with functional correlates of consciousness - making no claims about "real" consciousness, just exploring architectural patterns inspired by neuroscience and affective computing.
 
-**Status**: Phase 6 - Affective Self-Monitoring (November 2025)
+**Status**: Phase 6 - Affective Self-Monitoring + Theater System Complete (November 2025)
 **Framework**: MLX (Apple Metal optimized)
 **Hardware**: M3 Ultra (512GB RAM) + M2 Ultra (192GB RAM)
 **Parameter Budget**: ~132.5K params (Phase 4 with observer loops)
-**Last Updated**: November 14, 2025
+**Last Updated**: November 15, 2025 (Major theater system implementation)
 
 ## Epistemic Humility
 
@@ -66,6 +66,46 @@ We call them "Noodlings" because they use their noodle - and we're honest about 
 - **Surprise metric**: L2 distance between predicted and actual phenomenal state (40-D)
 - **Adaptive threshold**: SPEAK_THRESH * std(surprise_buffer) for context-aware speech triggering
 - **Observer loops**: Self-referential prediction networks for increased integration
+
+## Phase 6.5: Complete Theater System (IMPLEMENTED - November 15, 2025)
+
+**Status**: ✅ Complete and operational - plays now work beautifully!
+
+### Major Breakthrough Session
+
+Transformed the broken play system into a fully functional theater platform with:
+
+**Theater System:**
+- ✅ **Stage Direction System**: Cues with character motivation (Stanislavski method)
+- ✅ **CHARACTER ACTOR MODE**: Agents focus on scene, ignore ruminations during plays
+- ✅ **Pre-play Briefing**: Actors understand their roles and responsibilities
+- ✅ **Detailed Blocking**: WHO has WHAT, WHERE spatially, specific body language
+- ✅ **Model Routing**: Actors use DeepSeek v3.1 during plays for smarter performance
+- ✅ **Cue Pipeline**: Fixed critical bottleneck - cues now route to agents properly
+
+**New Commands:**
+- `@enlighten <agent|-a> <on|off>` - Toggle enlightenment/character immersion
+- `@spawn -e` - Spawn agents in enlightened mode
+- `@brenda status` - Show current model, running plays with filenames
+
+**UI/UX Enhancements:**
+- Model name display at end of each line (debugging)
+- Font size controls (A-/A+ buttons + keyboard shortcuts)
+- Persistent font size (localStorage)
+- Chat history persistence (200 messages across sessions)
+- Agent status indicators with enlightenment stars (⭐)
+- Names always bright (accessibility for cataracts)
+- Smooth brain pulse animation (only brains pulse, not names)
+- Dynamic star updates when enlightenment changes
+
+**Technical Improvements:**
+- Brenda loads correct model from config
+- Actors use play model during performances
+- No emoji in character immersion mode
+- MCP server ready for Claude Desktop integration
+
+**Files Changed:** 16 files, 2440 insertions, 346 deletions
+**Commit:** `b23b9b2` - Pushed to GitHub
 
 ## Phase 6: Affective Self-Monitoring (IMPLEMENTED - November 2025)
 
@@ -389,13 +429,68 @@ Phase 5 is complete when:
 6. ✅ **Epistemic humility** throughout documentation
 7. ✅ **One-command setup** for new users
 
+## Intuition Receiver (Context Gremlin) - IMPLEMENTED ✅
+
+**Status**: Implemented November 15, 2025 - Ready for testing!
+
+### Overview
+
+Each Noodling now has an **Intuition Receiver** - like a radio tuned to contextual signals. This provides integrated consciousness with natural awareness of:
+
+- **Message routing**: "This message addresses Toad, not you"
+- **Spatial awareness**: "Toad is by the bush, you're by the pond"
+- **Prop tracking**: "Toad is holding the stone"
+- **Action context**: "Toad just picked something up"
+
+### Implementation
+
+**Architecture**:
+- Fast LLM (qwen3-4b) generates contextual intuition for EVERY message
+- Integration point: `agent_bridge.py`, in `perceive_event()` before response generation
+- Intuition injected into both speech and thought prompts as "📻 YOUR INTUITIVE AWARENESS"
+
+**Files Modified**:
+- `config.yaml`: Added `intuition_receiver` configuration
+- `agent_bridge.py`: Added `_generate_intuition()` method, world state integration
+- `llm_interface.py`: Injected intuition into prompts for both speech and rumination
+
+**Example Flow**:
+1. User: "how are you toad?!"
+2. Callie's intuition: "That greeting is for Toad, not me."
+3. Callie doesn't respond (correct routing!)
+
+### Configuration
+
+```yaml
+agent:
+  intuition_receiver:
+    enabled: true
+    model: qwen/qwen3-4b-2507
+    timeout: 5
+```
+
+### Documentation
+
+See `applications/cmush/INTUITION_RECEIVER.md` for complete details.
+
+### Testing
+
+Start noodleMUSH and test with multiple agents:
+- Address specific agents by name
+- Have agents hold/move objects
+- Place agents in different locations
+- Check logs for `📻 Intuition:` entries
+
+**Theater system + Intuition Receiver = Production ready!**
+
 ## Getting Help
 
 - See `PHASE5_REORGANIZATION_PLAN.md` for detailed Phase 5 plan
 - Check `training/logs/` for training progress
 - Review `applications/cmush/README.md` for noodleMUSH usage
 - Consult `/Users/thistlequell/git/consilience/CLAUDE.md` for training context
+- **Theater system docs**: Commit `b23b9b2` for complete implementation details
 
 ---
 
-**Current Priority (November 4, 2025)**: Implement metrics suite in `noodlings/metrics/temporal_metrics.py` while training runs in background. Once training completes, run ablation studies to validate hierarchical architecture.
+**Current Priority (November 15, 2025)**: Implement Intuition Receiver (Context Gremlin) to provide integrated contextual awareness. Theater system is production-ready - time to add the final piece of consciousness!

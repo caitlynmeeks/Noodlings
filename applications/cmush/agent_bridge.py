@@ -131,7 +131,8 @@ class CMUSHConsilienceAgent:
         config: Dict,
         agent_name: str = None,
         agent_description: str = None,
-        session_profiler: Optional[SessionProfiler] = None
+        session_profiler: Optional[SessionProfiler] = None,
+        world = None
     ):
         """
         Initialize cMUSH Consilience agent.
@@ -148,11 +149,14 @@ class CMUSHConsilienceAgent:
                 - species: Agent species (for identity-salience scoring)
             agent_name: Display name for the agent
             agent_description: Agent's self-description
+            session_profiler: Session profiling tool (optional)
+            world: World state manager (for intuition receiver)
         """
         self.agent_id = agent_id
         self.llm = llm
         self.config = config
         self.session_profiler = session_profiler
+        self.world = world  # For contextual awareness (intuition receiver)
 
         # Agent identity
         self.agent_name = agent_name or agent_id.replace('agent_', '').title()
@@ -606,6 +610,149 @@ class CMUSHConsilienceAgent:
             }
 
         return None
+
+    async def _generate_intuition(
+        self,
+        event: Dict,
+        world_state: Optional[Dict] = None,
+        recent_context: Optional[List[Dict]] = None
+    ) -> Optional[str]:
+        """
+        Generate contextual intuition using fast LLM analysis.
+
+        The Intuition Receiver acts like a radio tuned to contextual signals,
+        providing natural awareness of:
+        - Message routing (who is being addressed)
+        - Spatial relationships (who is where)
+        - Prop tracking (who has what)
+        - Recent actions (what just happened)
+
+        This creates integrated contextual awareness rather than external scaffolding.
+
+        Args:
+            event: Current event being perceived
+            world_state: Optional world state dictionary with room/agent/object info
+            recent_context: Recent conversation context (last 3-5 messages)
+
+        Returns:
+            Intuitive awareness string, or None if intuition disabled/failed
+        """
+        # Check if intuition receiver is enabled
+        intuition_config = self.config.get('intuition_receiver', {})
+        if not intuition_config.get('enabled', True):
+            return None
+
+        try:
+            # Extract event details
+            event_type = event.get('type', 'say')
+            speaker_id = event.get('user', '')
+            message_text = event.get('text', '')
+            room_id = event.get('room', '')
+
+            # Build context for intuition analysis
+            context_info = []
+
+            # 1. WHO IS SPEAKING
+            speaker_name = speaker_id.replace('agent_', '').replace('user_', '').title()
+            context_info.append(f"Speaker: {speaker_name} ({speaker_id})")
+
+            # 2. RECENT CONVERSATION FLOW
+            if recent_context:
+                recent_speakers = []
+                for entry in recent_context[-3:]:
+                    speaker = entry.get('user', '').replace('agent_', '').replace('user_', '').title()
+                    text_snippet = entry.get('text', '')[:50]
+                    recent_speakers.append(f"{speaker}: {text_snippet}")
+                context_info.append(f"Recent conversation:\n" + "\n".join(recent_speakers))
+
+            # 3. CURRENT MESSAGE
+            context_info.append(f"Current message: '{message_text}'")
+
+            # 4. WORLD STATE (if available)
+            if world_state:
+                # Room occupants
+                room = world_state.get('rooms', {}).get(room_id, {})
+                occupants = room.get('occupants', [])
+                occupant_names = [occ.replace('agent_', '').replace('user_', '').title() for occ in occupants]
+                if occupant_names:
+                    context_info.append(f"Present in room: {', '.join(occupant_names)}")
+
+                # Objects in room
+                objects = room.get('objects', [])
+                if objects:
+                    object_list = []
+                    for obj_id in objects[:5]:  # Limit to 5 objects
+                        obj = world_state.get('objects', {}).get(obj_id, {})
+                        obj_name = obj.get('name', obj_id)
+                        object_list.append(obj_name)
+                    context_info.append(f"Objects nearby: {', '.join(object_list)}")
+
+                # Agent inventories (who has what)
+                agents_with_items = []
+                for agent_id in [occ for occ in occupants if occ.startswith('agent_')]:
+                    agent_data = world_state.get('agents', {}).get(agent_id, {})
+                    inventory = agent_data.get('inventory', [])
+                    if inventory:
+                        agent_name = agent_id.replace('agent_', '').title()
+                        items = []
+                        for item_id in inventory[:3]:  # Limit to 3 items per agent
+                            obj = world_state.get('objects', {}).get(item_id, {})
+                            items.append(obj.get('name', item_id))
+                        agents_with_items.append(f"{agent_name} has: {', '.join(items)}")
+                if agents_with_items:
+                    context_info.append("Possessions:\n" + "\n".join(agents_with_items))
+
+            # Build intuition prompt
+            context_text = "\n\n".join(context_info)
+
+            my_name = self.agent_name
+
+            prompt = f"""You are {my_name}, analyzing contextual signals in this situation.
+
+CONTEXT:
+{context_text}
+
+Generate a brief intuitive awareness (2-3 sentences max) that naturally captures:
+1. WHO is this message for? (Is it addressed to me, someone else, or everyone?)
+2. WHAT is happening? (Actions, spatial relationships, who has what)
+3. RECENT FLOW: What just happened before this?
+
+Write in first-person as {my_name}, expressing natural situational awareness.
+Be concise and focus only on relevant contextual signals.
+
+Examples:
+- "That greeting is for Toad, not me. They're by the glowing pond while I'm near the hedge."
+- "Callie is asking everyone a question. I notice she's still holding the mysterious stone from earlier."
+- "Someone just entered the room - Servnak. The conversation was about the garden project."
+
+Generate intuitive awareness:"""
+
+            # Use fast model for context analysis (qwen3-4b)
+            intuition_model = intuition_config.get('model', 'qwen/qwen3-4b-2507')
+            timeout = intuition_config.get('timeout', 5)
+
+            # Track this operation
+            tracker = get_tracker()
+            with tracker.track_operation(
+                self.agent_id,
+                "intuition_generation",
+                {"event_type": event_type, "speaker": speaker_id}
+            ):
+                # Generate intuition using fast LLM
+                intuition = await self.llm.generate(
+                    prompt=prompt,
+                    system_prompt=f"You are {my_name}'s intuitive contextual awareness. Be brief and natural.",
+                    model=intuition_model,
+                    temperature=0.3,  # Low temperature for consistent analysis
+                    max_tokens=150
+                )
+
+                logger.info(f"[{self.agent_id}] Intuition generated: {intuition[:100]}...")
+                return intuition.strip()
+
+        except Exception as e:
+            logger.warning(f"[{self.agent_id}] Intuition generation failed: {e}")
+            return None
 
     async def perceive_event(self, event: Dict) -> Optional[Dict]:
         """
@@ -1088,6 +1235,30 @@ class CMUSHConsilienceAgent:
                        f"question={is_question}, should_ruminate={should_ruminate}, should_speak={should_speak}, "
                        f"speech_chance={speech_chance:.2f}, cooldown_ok={cooldown_ok}, "
                        f"surprise={state.get('surprise', 0.0):.6f}")
+
+            # INTUITION RECEIVER: Generate contextual awareness
+            # This provides integrated understanding of who/what/where without external scaffolding
+            intuition = None
+            if self.world:  # Only if world state is available
+                # Build world state snapshot for intuition
+                world_snapshot = {
+                    'rooms': self.world.rooms,
+                    'objects': self.world.objects,
+                    'agents': self.world.agents,
+                    'users': self.world.users
+                }
+
+                # Generate intuition using fast LLM
+                intuition = await self._generate_intuition(
+                    event=event,
+                    world_state=world_snapshot,
+                    recent_context=self.conversation_context[-5:]
+                )
+
+                # Store intuition in state for LLM access
+                if intuition:
+                    state['intuition'] = intuition
+                    logger.info(f"[{self.agent_id}] 📻 Intuition: {intuition[:80]}...")
 
             results = []
 
@@ -2205,8 +2376,8 @@ class AgentManager:
         # Add global agent settings
         if 'agent' in self.global_config:
             global_agent = self.global_config['agent']
-            # Merge cognition, filesystem, messaging, personality, and appetite settings
-            for key in ['autonomous_cognition', 'filesystem', 'messaging', 'personalities', 'appetites',
+            # Merge cognition, filesystem, messaging, personality, intuition, and appetite settings
+            for key in ['autonomous_cognition', 'filesystem', 'messaging', 'intuition_receiver', 'personalities', 'appetites',
                        'rumination_frequency', 'addressed_speech_chance', 'question_speech_chance', 'unaddressed_speech_chance']:
                 if key in global_agent:
                     agent_config[key] = global_agent[key]
@@ -2223,7 +2394,8 @@ class AgentManager:
             config=agent_config,
             agent_name=agent_name,
             agent_description=agent_description,
-            session_profiler=self.session_profiler
+            session_profiler=self.session_profiler,
+            world=self.world  # Pass world for intuition receiver
         )
 
         agent.current_room = spawn_room

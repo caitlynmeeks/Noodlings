@@ -68,6 +68,10 @@ agent:
     enabled: true
     max_message_size: 10000
     inbox_retention_days: 30
+  intuition_receiver:
+    enabled: true
+    model: qwen/qwen3-4b-2507
+    timeout: 5
   appetites:
     curiosity: 0.3
     status: 0.1
