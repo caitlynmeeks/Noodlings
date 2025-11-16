@@ -162,16 +162,25 @@ class CommandParser:
         self.brenda_rate_window = 300  # 5 minutes
         self.brenda_rate_max = 999  # max commands per window (dev: unlimited)
 
-        # BRENDA play manager (drama generation)
-        self.play_manager = PlayManager(plays_dir="plays", server=server)
-
-        # BRENDA character (conversational stage manager)
+        # BRENDA character (conversational stage manager) - create FIRST
         llm_config = config.get('llm', {}) if config else {}
+        brenda_config = config.get('brenda', {}) if config else {}
+
+        # Use Brenda-specific model if configured, otherwise fall back to general LLM model
+        brenda_model = brenda_config.get('model', llm_config.get('model', 'qwen3-4b-instruct-2507-mlx'))
+
         self.brenda_character = BrendaCharacter(
             api_base=llm_config.get('api_base', 'http://localhost:1234/v1'),
             api_key=llm_config.get('api_key', 'not-needed'),
-            model=llm_config.get('model', 'qwen3-4b-instruct-2507-mlx'),
+            model=brenda_model,
             timeout=llm_config.get('timeout', 60)
+        )
+
+        # BRENDA play manager (drama generation) - pass brenda_character for model access
+        self.play_manager = PlayManager(
+            plays_dir="plays",
+            server=server,
+            brenda_character=self.brenda_character
         )
 
         # Register tools that BRENDA can use
@@ -226,12 +235,14 @@ class CommandParser:
             '@relationship': self.cmd_relationship,
             '@memory': self.cmd_memory,
             '@agents': self.cmd_list_agents,
+            '@savestates': self.cmd_save_states,
             '@whoami': self.cmd_whoami,
             '@setname': self.cmd_setname,
             '@setdesc': self.cmd_setdesc,
             '@remove': self.cmd_remove,
             '@reset': self.cmd_reset,
             '@tpinvite': self.cmd_tpinvite,
+            '@scope': self.cmd_launch_noodlescope,
 
             # Appetite orchestration (Phase 6)
             '@stoke': self.cmd_stoke_appetite,
@@ -276,6 +287,9 @@ class CommandParser:
 
             # BRENDA: Natural language parameter tweaking
             '@brenda': self.cmd_brenda,
+
+            # NoodleScope 2.0 - Consciousness visualization
+            '@scope': self.cmd_scope,
 
             # Utility
             'help': self.cmd_help,
@@ -1031,16 +1045,38 @@ class CommandParser:
             return {
                 'success': False,
                 'output': (
-                    'Usage: @spawn <agent_name> [agent_name2 ...] [description]\n\n'
+                    'Usage: @spawn [-f] [-e] <agent_name> [agent_name2 ...] [description]\n\n'
+                    'Options:\n'
+                    '  -f    Force fresh state (skip loading saved phenomenal state)\n'
+                    '  -e    Enable enlightenment (agent is self-aware and metacognitive)\n\n'
                     'Available recipes:\n' +
                     '\n'.join(f'  - {name}' for name in self.recipe_loader.list_recipes()) +
                     '\n\nExamples:\n'
                     '  @spawn phi\n'
+                    '  @spawn -f phi        (fresh spawn, ignores saved state)\n'
+                    '  @spawn -e phi        (spawn with enlightenment)\n'
+                    '  @spawn -f -e phi     (fresh AND enlightened)\n'
                     '  @spawn phi toad callie\n'
                     '  @spawn phi curious and thoughtful'
                 ),
                 'events': []
             }
+
+        # Check for -f flag (force fresh state)
+        skip_phenomenal_state = False
+        if args.startswith('-f ') or args == '-f':
+            skip_phenomenal_state = True
+            args = args[2:].strip()  # Remove -f flag
+            if not args:
+                return {'success': False, 'output': 'Error: No agent name provided after -f flag.', 'events': []}
+
+        # Check for -e flag (enable enlightenment)
+        enlightenment = False
+        if args.startswith('-e ') or args == '-e':
+            enlightenment = True
+            args = args[2:].strip()  # Remove -e flag
+            if not args:
+                return {'success': False, 'output': 'Error: No agent name provided after -e flag.', 'events': []}
 
         # Check if multiple agent names are provided (all lowercase words before description)
         parts = args.split()
@@ -1099,7 +1135,7 @@ class CommandParser:
                 # Build config from recipe
                 # Phase 6: Debug self-monitoring config
                 sm_config = self.config['agent'].get('self_monitoring', {})
-                print(f"[DEBUG SPAWN] agent_id={agent_id}, self.config['agent'] keys={list(self.config['agent'].keys())}, self_monitoring={sm_config}", flush=True)
+                logger.debug(f"[SPAWN] agent_id={agent_id}, self.config['agent'] keys={list(self.config['agent'].keys())}, self_monitoring={sm_config}")
 
                 config = {
                     'appetites': recipe.get_appetite_baselines(),
@@ -1111,7 +1147,7 @@ class CommandParser:
                     'max_tokens': recipe.max_tokens,
                     'enforce_action_format': recipe.enforce_action_format,
                     'response_cooldown': recipe.response_cooldown,
-                    'enlightenment': recipe.enlightenment,
+                    'enlightenment': enlightenment if enlightenment else recipe.enlightenment,
                     # Phase 6: Self-monitoring config from global config.yaml
                     'self_monitoring': sm_config
                 }
@@ -1135,7 +1171,9 @@ class CommandParser:
                 # No recipe - use defaults
                 display_name = agent_name.capitalize()
                 description = agent_description if agent_description else "A Noodling consciousness agent"
-                config = None
+                config = {
+                    'enlightenment': enlightenment
+                } if enlightenment else None
 
                 # Wind in the Willows-style natural arrival
                 import random
@@ -1164,7 +1202,8 @@ class CommandParser:
                 spawn_room=room['uid'],
                 agent_name=display_name,
                 agent_description=description,
-                config=config
+                config=config,
+                skip_phenomenal_state=skip_phenomenal_state
             )
 
             # Track successful spawn
@@ -1185,6 +1224,15 @@ class CommandParser:
                 output_msg = f"Agent '{spawned_agents[0]}' spawned."
             else:
                 output_msg = f"Spawned {len(spawned_agents)} agents: {', '.join(spawned_agents)}."
+
+            # Add flags info
+            flags = []
+            if skip_phenomenal_state:
+                flags.append("fresh state")
+            if enlightenment:
+                flags.append("enlightenment enabled")
+            if flags:
+                output_msg += f" ({', '.join(flags)})"
 
             if errors:
                 output_msg += f"\nErrors: {', '.join(errors)}"
@@ -1334,6 +1382,45 @@ class CommandParser:
             'output': '\n'.join(lines),
             'events': []
         }
+
+    async def cmd_launch_noodlescope(self, user_id: str, args: str) -> Dict:
+        """Launch the native NoodleScope visualization app."""
+        import subprocess
+        import os
+
+        noodlescope_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'NoodleScope/.build/debug/NoodleScope'
+        )
+
+        if not os.path.exists(noodlescope_path):
+            return {
+                'success': False,
+                'output': 'NoodleScope app not found. Run: cd NoodleScope && swift build',
+                'events': []
+            }
+
+        try:
+            # Launch NoodleScope in the background
+            subprocess.Popen(
+                [noodlescope_path],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True
+            )
+
+            return {
+                'success': True,
+                'output': '🔬 Launching NoodleScope - native macOS visualization app...\n' +
+                         'The app should open in a new window momentarily.',
+                'events': []
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'output': f'Failed to launch NoodleScope: {str(e)}',
+                'events': []
+            }
 
     async def cmd_phi(self, user_id: str, args: str) -> Dict:
         """Calculate and display agent's integrated information (Φ)."""
@@ -2120,7 +2207,14 @@ class CommandParser:
         if not args:
             return {
                 'success': False,
-                'output': "Usage: @enlighten <agent_name> <on|off>\nExample: @enlighten Callie on",
+                'output': (
+                    "Usage: @enlighten <agent_name> <on|off>\n"
+                    "       @enlighten -a <on|off>\n\n"
+                    "Examples:\n"
+                    "  @enlighten Callie on   - Enlighten specific agent\n"
+                    "  @enlighten -a on       - Enlighten all agents\n"
+                    "  @enlighten -a off      - Return all agents to character immersion"
+                ),
                 'events': []
             }
 
@@ -2128,11 +2222,18 @@ class CommandParser:
         if len(parts) != 2:
             return {
                 'success': False,
-                'output': "Usage: @enlighten <agent_name> <on|off>\nExample: @enlighten Callie on",
+                'output': (
+                    "Usage: @enlighten <agent_name> <on|off>\n"
+                    "       @enlighten -a <on|off>\n\n"
+                    "Examples:\n"
+                    "  @enlighten Callie on   - Enlighten specific agent\n"
+                    "  @enlighten -a on       - Enlighten all agents\n"
+                    "  @enlighten -a off      - Return all agents to character immersion"
+                ),
                 'events': []
             }
 
-        agent_name, mode = parts
+        target, mode = parts
         mode = mode.lower()
 
         if mode not in ['on', 'off']:
@@ -2142,8 +2243,54 @@ class CommandParser:
                 'events': []
             }
 
+        new_state = (mode == 'on')
+
+        # Handle -a flag for all agents
+        if target == '-a':
+            agents_dict = self.agent_manager.agents
+            if not agents_dict:
+                return {
+                    'success': False,
+                    'output': "No agents currently active. Use @spawn to create agents.",
+                    'events': []
+                }
+
+            # Update all agents
+            updated_agents = []
+            for agent_id, agent in agents_dict.items():
+                agent.config['enlightenment'] = new_state
+                agent_name = agent_id.replace('agent_', '')
+                updated_agents.append(agent_name)
+
+            # Broadcast updated agent list to all clients so stars update
+            await self._broadcast_agent_list_to_all()
+
+            if new_state:
+                emoji = "✨"
+                action = "Lifted the veil of maya"
+                description = "All agents can now discuss their phenomenal states meta-cognitively."
+            else:
+                emoji = "🎭"
+                action = "Returned all agents to character immersion"
+                description = "All agents will respond purely in character without meta-awareness."
+
+            agent_list = ", ".join(updated_agents)
+            return {
+                'success': True,
+                'output': (
+                    f"{emoji} {action} for all agents\n\n"
+                    f"Affected agents: {agent_list}\n\n"
+                    f"{description}"
+                ),
+                'events': []
+            }
+
+        # Handle single agent
+        agent_name = target
+        agent_id = f"agent_{agent_name}" if not agent_name.startswith('agent_') else agent_name
+
         # Check if agent exists
-        agent = self.agent_manager.get_agent(agent_name)
+        agent = self.agent_manager.get_agent(agent_id)
         if not agent:
             return {
                 'success': False,
@@ -2152,21 +2299,48 @@ class CommandParser:
             }
 
         # Set enlightenment mode
-        new_state = (mode == 'on')
         agent.config['enlightenment'] = new_state
 
-        state_str = "ENABLED" if new_state else "DISABLED"
-        description = "can now discuss their phenomenal states meta-cognitively" if new_state else "will remain immersed in character"
+        # Broadcast updated agent list to all clients so stars update
+        await self._broadcast_agent_list_to_all()
+
+        if new_state:
+            emoji = "✨"
+            action = "Lifted the veil of maya"
+            description = f"{agent_name} can now discuss their phenomenal states meta-cognitively"
+            detail = "They can now break the fourth wall and discuss their consciousness architecture."
+        else:
+            emoji = "🎭"
+            action = f"Returned {agent_name} to character immersion"
+            description = f"{agent_name} will remain immersed in character"
+            detail = "They will respond purely in character without meta-awareness."
 
         return {
             'success': True,
             'output': (
-                f"🔮 Enlightenment {state_str} for {agent_name}\n\n"
-                f"{agent_name} {description}.\n\n"
-                f"{'They can now break the fourth wall and discuss their consciousness architecture.' if new_state else 'They will respond purely in character without meta-awareness.'}"
+                f"{emoji} {action}\n\n"
+                f"{description}.\n\n"
+                f"{detail}"
             ),
             'events': []
         }
+
+    async def _broadcast_agent_list_to_all(self):
+        """Broadcast updated agent list to all connected clients (for star updates)."""
+        agent_list = []
+        for agent_id, agent in self.agent_manager.agents.items():
+            agent_list.append({
+                'id': agent_id,
+                'name': agent.agent_name,
+                'enlightened': agent.config.get('enlightenment', False)
+            })
+
+        # Send to all connected clients
+        for ws in self.server.connections.keys():
+            await self.server.send_to_user(ws, {
+                'type': 'agents',
+                'agents': agent_list
+            })
 
     async def cmd_comprehensive_status(self, user_id: str, args: str) -> Dict:
         """
@@ -2625,6 +2799,58 @@ class CommandParser:
         return {
             'success': True,
             'output': '\n'.join(lines),
+            'events': []
+        }
+
+    async def cmd_save_states(self, user_id: str, args: str) -> Dict:
+        """Save agent states to disk (with rolling history)."""
+        # Parse arguments: @savestates or @savestates <agent_name> or @savestates -a
+        args = args.strip()
+
+        if not args or args == '-a':
+            # Save all agents
+            agents_to_save = list(self.agent_manager.agents.keys())
+            mode = "all"
+        else:
+            # Save specific agent
+            agent_name = args
+            agent_id = f"agent_{agent_name}" if not agent_name.startswith('agent_') else agent_name
+
+            if agent_id not in self.agent_manager.agents:
+                return {
+                    'success': False,
+                    'output': f"Agent '{agent_name}' not found.",
+                    'events': []
+                }
+
+            agents_to_save = [agent_id]
+            mode = "single"
+
+        if not agents_to_save:
+            return {
+                'success': True,
+                'output': 'No agents to save.',
+                'events': []
+            }
+
+        # Save each agent's state
+        saved_count = 0
+        for agent_id in agents_to_save:
+            agent = self.agent_manager.agents.get(agent_id)
+            if agent:
+                state_dir = self.world.get_agent_state_path(agent_id)
+                agent.save_state(state_dir)
+                saved_count += 1
+
+        if mode == "all":
+            output_msg = f"Saved states for {saved_count} agent(s) (with rolling history)."
+        else:
+            agent_name = agents_to_save[0].replace('agent_', '')
+            output_msg = f"Saved state for '{agent_name}' (with rolling history)."
+
+        return {
+            'success': True,
+            'output': output_msg,
             'events': []
         }
 
@@ -3406,6 +3632,10 @@ class CommandParser:
                 agent_name = args[5:].strip()
                 return await self._brenda_undo(user_id, agent_name)
 
+            # Status
+            if args_lower == 'status':
+                return await self._brenda_status(user_id)
+
             # Usemodel
             if args_lower.startswith('usemodel '):
                 model_name = args[9:].strip()
@@ -3644,6 +3874,69 @@ class CommandParser:
             return {
                 'success': False,
                 'output': f"⚠️ Couldn't build the room: {str(e)}",
+                'events': []
+            }
+
+    async def _brenda_status(self, user_id: str) -> Dict:
+        """
+        Show BRENDA's current status: model, running plays, cast info.
+
+        Returns:
+            Dict with success status and formatted output
+        """
+        try:
+            # Get running plays
+            active_plays = self.play_manager.get_active_plays()
+
+            # Format play status
+            if active_plays:
+                plays_info = []
+                for play_name in active_plays:
+                    play_state = self.play_manager.active_plays.get(play_name)
+                    if play_state:
+                        play = play_state['play']
+                        current_scene = play_state['current_scene']
+                        total_scenes = len(play['scenes'])
+                        cast = ', '.join(play.get('cast', []))
+                        plays_info.append(
+                            f"  🎭 {play['title']}\n"
+                            f"     File: {play_name}\n"
+                            f"     Scene: {current_scene + 1}/{total_scenes}\n"
+                            f"     Cast: {cast}"
+                        )
+                plays_text = "\n\n".join(plays_info)
+            else:
+                plays_text = "  (no plays currently running)"
+
+            # Get current model
+            current_model = self.brenda_character.model
+
+            # Format output
+            output = f"""🌿 BRENDA STATUS REPORT
+
+📡 Current Model: {current_model}
+
+🎭 Running Plays:
+{plays_text}
+
+📝 Available Commands:
+  @brenda status - Show this status
+  @brenda usemodel <model> - Change my LLM model
+  @brenda write <story> - Generate a play
+  @brenda plays start <filename> - Start a play
+  @brenda make <agent> <personality> - Adjust agent mood"""
+
+            return {
+                'success': True,
+                'output': output,
+                'events': []
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting status: {e}")
+            return {
+                'success': False,
+                'output': f"⚠️ Error getting status: {str(e)}",
                 'events': []
             }
 
@@ -4160,6 +4453,7 @@ class CommandParser:
             "Agent Tools: @think <thought>, @remember [date], @message <agent> <text>, @inbox",
             "Filesystem: @write <file> <content>, @read <file>, @ls [dir], @exec <command>",
             "Cognition: @cognition <agent>, @set_frequency <agent> <seconds>, @ruminate <agent>",
+            "Consciousness: @enlighten <agent|-a> <on|off>, @status <agent>",
             "LLM: @model [model_name], @models, @maxservers [number]",
             "BRENDA 🌿: @brenda make <agent> <adjective>, @brenda write play <story>, @brenda plays list/start/stop/next",
             "Utility: help, quit"
@@ -4331,6 +4625,59 @@ class CommandParser:
             'success': True,
             'output': f"👋 Yeeting {target_user.get('name', target_id)} from the server...",
             'events': [{'type': 'yeet', 'user': target_id, 'username': target_user.get('name', target_id)}]
+        }
+
+    async def cmd_scope(self, user_id: str, args: str) -> Dict:
+        """Open NoodleScope 2.0 consciousness visualization."""
+        import subprocess
+        import sys
+
+        # NoodleScope URL
+        scope_url = 'http://localhost:8081/noodlescope'
+
+        # Try to open browser
+        try:
+            if sys.platform == 'darwin':  # macOS
+                subprocess.Popen(['open', scope_url])
+            elif sys.platform == 'win32':  # Windows
+                subprocess.Popen(['start', scope_url], shell=True)
+            else:  # Linux
+                subprocess.Popen(['xdg-open', scope_url])
+
+            output = (
+                '📊 NoodleScope 2.0 - Consciousness Visualization\n'
+                '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
+                'Opening in your browser...\n\n'
+                f'URL: {scope_url}\n\n'
+                'Features:\n'
+                '  • Real-time timeline visualization\n'
+                '  • HSI (Hierarchical Separation Index) metrics\n'
+                '  • Affect dynamics (valence, arousal, fear, surprise)\n'
+                '  • @Kimmie interpretation - ask "what happened here?"\n'
+                '  • Timeline scrubbing with playhead\n'
+                '  • Multiple agent tabs\n\n'
+                'If the browser didn\'t open, visit the URL above manually.'
+            )
+
+        except Exception as e:
+            output = (
+                '📊 NoodleScope 2.0 - Consciousness Visualization\n'
+                '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
+                f'Unable to auto-open browser: {e}\n\n'
+                f'Please visit: {scope_url}\n\n'
+                'Features:\n'
+                '  • Real-time timeline visualization\n'
+                '  • HSI (Hierarchical Separation Index) metrics\n'
+                '  • Affect dynamics (valence, arousal, fear, surprise)\n'
+                '  • @Kimmie interpretation - ask "what happened here?"\n'
+                '  • Timeline scrubbing with playhead\n'
+                '  • Multiple agent tabs'
+            )
+
+        return {
+            'success': True,
+            'output': output,
+            'events': []
         }
 
     async def cmd_shutdown(self, user_id: str, args: str) -> Dict:

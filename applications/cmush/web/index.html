@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>noodleMUSH - Noodlings Multi-User Shared Hallucination</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>noodleMUSH - Noodlings Multi-User Shared Hallucination v1.1</title>
     <style>
         * {
             margin: 0;
@@ -31,6 +34,7 @@
             padding: 10px;
             border-bottom: 2px solid #00ff00;
             margin-bottom: 10px;
+            position: relative;
         }
 
         #header h1 {
@@ -41,6 +45,34 @@
         #header p {
             font-size: 12px;
             color: #00aa00;
+        }
+
+        .font-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .font-btn {
+            background: #001100;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .font-btn:hover {
+            background: #003300;
+        }
+
+        .font-size-display {
+            color: #00aa00;
+            padding: 5px 10px;
+            font-size: 12px;
         }
 
         #output {
@@ -70,6 +102,7 @@
             word-wrap: break-word;
             padding: 5px;
             border-left: 3px solid transparent;
+            font-size: 18px;
         }
 
         .line.system {
@@ -335,12 +368,25 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            opacity: 0.3;
-            transition: opacity 0.3s ease;
         }
 
-        .brain-indicator.thinking {
-            opacity: 1;
+        .brain-indicator .agent-name-label {
+            opacity: 1 !important;  /* Names always bright for readability */
+        }
+
+        .brain-indicator .brain-icon {
+            opacity: 0.2;  /* Dim when idle */
+            transition: opacity 0.6s ease;
+        }
+
+        .brain-indicator.thinking .brain-icon {
+            opacity: 1;  /* Bright when thinking */
+            animation: brain-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes brain-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }  /* Darker pulse for more visibility */
         }
 
         .brain-indicator .agent-name-label {
@@ -392,6 +438,11 @@
 
     <div id="container">
         <div id="header">
+            <div class="font-controls">
+                <button class="font-btn" onclick="decreaseFontSize()">A-</button>
+                <span class="font-size-display" id="fontSizeDisplay">18px</span>
+                <button class="font-btn" onclick="increaseFontSize()">A+</button>
+            </div>
             <h1>noodleMUSH</h1>
             <p>Noodlings Multi-User Shared Hallucination</p>
             <button id="telepathy-toggle" title="Toggle telepathy (read others' thoughts)">Telepathy: OFF</button>
@@ -425,9 +476,78 @@
         // Message history for redrawing when telepathy toggles
         let messageHistory = [];
 
-        // Brain status tracking
-        let agentBrainStatus = {}; // { agentName: { thinking: boolean, timeout: timeoutId } }
+        // Brain status tracking with different processing states
+        let agentBrainStatus = {}; // { agentName: { state: 'idle'|'input'|'generating'|'thinking', timeout: timeoutId } }
         const THINKING_TIMEOUT = 3000; // Clear thinking status after 3 seconds of no activity
+
+        // Enlightened agents (meta-aware) - populated from server
+        let enlightenedAgents = [];
+
+        // Status icon mapping
+        const STATUS_ICONS = {
+            'idle': '🧠',
+            'input': '👂',      // Processing language input
+            'generating': '👄', // Generating speech/action
+            'thinking': '🧠'    // Ruminating
+        };
+
+        // Font size control
+        let currentFontSize = 18; // Default from CSS
+
+        function applyFontSize(size) {
+            // Update CSS rule so ALL messages (existing and future) use this size
+            const styleSheet = document.styleSheets[0];
+            // Find and update the .line rule
+            for (let i = 0; i < styleSheet.cssRules.length; i++) {
+                if (styleSheet.cssRules[i].selectorText === '.line') {
+                    styleSheet.cssRules[i].style.fontSize = size + 'px';
+                    break;
+                }
+            }
+        }
+
+        function increaseFontSize() {
+            currentFontSize = Math.min(currentFontSize + 2, 32); // Max 32px
+            applyFontSize(currentFontSize);
+            document.getElementById('fontSizeDisplay').textContent = currentFontSize + 'px';
+            localStorage.setItem('noodleMUSH_fontSize', currentFontSize);
+        }
+
+        function decreaseFontSize() {
+            currentFontSize = Math.max(currentFontSize - 2, 10); // Min 10px
+            applyFontSize(currentFontSize);
+            document.getElementById('fontSizeDisplay').textContent = currentFontSize + 'px';
+            localStorage.setItem('noodleMUSH_fontSize', currentFontSize);
+        }
+
+        // Load saved font size on startup
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedSize = localStorage.getItem('noodleMUSH_fontSize');
+            if (savedSize) {
+                currentFontSize = parseInt(savedSize);
+                // Apply to CSS rule so all messages use it
+                applyFontSize(currentFontSize);
+                // Update display
+                const display = document.getElementById('fontSizeDisplay');
+                if (display) {
+                    display.textContent = currentFontSize + 'px';
+                }
+            }
+        });
+
+        // Keyboard shortcuts for font size
+        document.addEventListener('keydown', (e) => {
+            // Only trigger if not typing in input field
+            if (document.activeElement.id === 'input') return;
+
+            if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                increaseFontSize();
+            } else if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                decreaseFontSize();
+            }
+        });
 
         // DOM elements
         const authModal = document.getElementById('auth-modal');
@@ -545,6 +665,28 @@
                     addLine('error', data.text);
                     break;
 
+                case 'history':
+                    // Chat history from previous session
+                    addLine('event', data.text);
+                    break;
+
+                case 'agents':
+                    // Create brain indicators for all agents
+                    // Clear any existing indicators first to prevent duplicates
+                    brainStatusBar.innerHTML = '';
+                    enlightenedAgents = [];  // Reset enlightened list
+                    agentBrainStatus = {};   // Reset status tracking
+
+                    if (data.agents && Array.isArray(data.agents)) {
+                        data.agents.forEach(agent => {
+                            if (agent.enlightened) {
+                                enlightenedAgents.push(agent.name.toLowerCase());
+                            }
+                            createBrainIndicator(agent.name);
+                        });
+                    }
+                    break;
+
                 case 'pong':
                     // Keepalive response
                     break;
@@ -564,16 +706,8 @@
                 messageHistory.shift();
             }
 
-            // Detect agent spawn messages and create brain indicator
-            // Format: "Agent 'name' spawned..." or "Agent 'name' spawned."
-            const spawnMatch = text.match(/Agent\s+'([^']+)'\s+spawned/i);
-            if (spawnMatch) {
-                const agentName = spawnMatch[1].toLowerCase();
-                // Only create if it doesn't already exist
-                if (!document.getElementById(`brain-${agentName}`)) {
-                    createBrainIndicator(agentName);
-                }
-            }
+            // Brain indicators now created from server's agent list on login
+            // (Removed spawn detection to prevent duplicates)
 
             // Redraw all messages
             redrawMessages();
@@ -611,7 +745,7 @@
         }
 
         // Update brain indicator for an agent
-        function updateBrainStatus(agentName, isThinking) {
+        function updateBrainStatus(agentName, isThinking, metadata = {}) {
             const normalizedName = agentName.toLowerCase();
 
             // Get or create brain indicator
@@ -625,21 +759,45 @@
                 clearTimeout(agentBrainStatus[normalizedName].timeout);
             }
 
+            // Determine state type from metadata
+            let state = 'thinking';  // Default for thought events
+
+            // Check for different processing states
+            if (metadata.processing_input) {
+                state = 'input';  // 👂 Processing language
+            } else if (metadata.generating_output) {
+                state = 'generating';  // 👄 Generating speech
+            }
+
             if (isThinking) {
                 // Set thinking state
                 indicator.classList.add('thinking');
+
+                // Update brain icon to reflect state
+                const brainIcon = indicator.querySelector('.brain-icon');
+                if (brainIcon) {
+                    brainIcon.textContent = STATUS_ICONS[state] || '🧠';
+                }
+
                 agentBrainStatus[normalizedName] = {
-                    thinking: true,
+                    state: state,
                     timeout: setTimeout(() => {
                         indicator.classList.remove('thinking');
-                        agentBrainStatus[normalizedName].thinking = false;
+                        if (brainIcon) {
+                            brainIcon.textContent = STATUS_ICONS['idle'];
+                        }
+                        agentBrainStatus[normalizedName].state = 'idle';
                     }, THINKING_TIMEOUT)
                 };
             } else {
                 // Clear thinking state immediately
                 indicator.classList.remove('thinking');
+                const brainIcon = indicator.querySelector('.brain-icon');
+                if (brainIcon) {
+                    brainIcon.textContent = STATUS_ICONS['idle'];
+                }
                 if (agentBrainStatus[normalizedName]) {
-                    agentBrainStatus[normalizedName].thinking = false;
+                    agentBrainStatus[normalizedName].state = 'idle';
                 }
             }
         }
@@ -647,6 +805,11 @@
         // Create brain indicator element for an agent
         function createBrainIndicator(agentName) {
             const normalizedName = agentName.toLowerCase();
+
+            // Don't create if already exists (prevents duplicates)
+            if (document.getElementById(`brain-${normalizedName}`)) {
+                return document.getElementById(`brain-${normalizedName}`);
+            }
 
             // Get color for agent
             let color = '#aaaaaa';
@@ -671,16 +834,30 @@
             nameLabel.style.color = color;
             nameLabel.textContent = agentName.toUpperCase();
 
+            // Check if agent is enlightened (from server data)
+            const isEnlightened = enlightenedAgents.includes(normalizedName.toLowerCase());
+
+            // Add star for enlightened agents
+            if (isEnlightened) {
+                const starIcon = document.createElement('span');
+                starIcon.textContent = '⭐';
+                starIcon.style.fontSize = '16px';
+                starIcon.title = 'Enlightened (meta-aware)';
+                indicator.appendChild(nameLabel);
+                indicator.appendChild(starIcon);
+            } else {
+                indicator.appendChild(nameLabel);
+            }
+
             const brainIcon = document.createElement('span');
             brainIcon.className = 'brain-icon';
             brainIcon.textContent = '🧠';
 
-            indicator.appendChild(nameLabel);
             indicator.appendChild(brainIcon);
             brainStatusBar.appendChild(indicator);
 
             // Initialize status
-            agentBrainStatus[normalizedName] = { thinking: false, timeout: null };
+            agentBrainStatus[normalizedName] = { state: 'idle', timeout: null };
 
             return indicator;
         }
@@ -962,19 +1139,24 @@
             }
         });
 
+        // Tab completion state
+        let tabCompletionState = {
+            active: false,
+            originalInput: '',
+            matches: [],
+            currentIndex: 0,
+            commandPrefix: '',
+            partialName: ''
+        };
+
         inputField.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const command = inputField.value.trim();
                 if (command) {
-                    // Check for client-side commands
-                    if (command === '/scope' || command === '@scope' || command === 'scope') {
-                        // Open NoodleScope in new tab
-                        window.open('http://localhost:8050', '_blank');
-                        addLine('system', '🧠 Opening NoodleScope in new tab...');
-                        inputField.value = '';
-                        return;
-                    }
+                    // Reset tab completion
+                    tabCompletionState.active = false;
 
+                    // Check for client-side commands
                     if (command === '/clearhistory' || command === '@clearhistory') {
                         // Clear command history
                         const historySize = commandHistory.length;
@@ -997,6 +1179,9 @@
 
                     sendCommand(command);
                 }
+            } else if (e.key === 'Tab') {
+                e.preventDefault();
+                handleTabCompletion();
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 if (historyIndex > 0) {
@@ -1012,8 +1197,136 @@
                     historyIndex = commandHistory.length;
                     inputField.value = '';
                 }
+            } else {
+                // Any other key resets tab completion
+                if (tabCompletionState.active && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    tabCompletionState.active = false;
+                }
             }
         });
+
+        // Handle tab completion
+        async function handleTabCompletion() {
+            const input = inputField.value;
+            const cursorPos = inputField.selectionStart;
+
+            // If not active, start new completion
+            if (!tabCompletionState.active) {
+                // Parse the command to find what we're completing
+                const parsed = parseCompletionContext(input, cursorPos);
+                if (!parsed) return;
+
+                // Request completions from server
+                const matches = await requestCompletions(parsed.command, parsed.partial);
+                if (!matches || matches.length === 0) return;
+
+                // Initialize completion state
+                tabCompletionState = {
+                    active: true,
+                    originalInput: input,
+                    matches: matches,
+                    currentIndex: 0,
+                    commandPrefix: parsed.prefix,
+                    partialName: parsed.partial
+                };
+
+                // Apply first match
+                applyCompletion(tabCompletionState.matches[0]);
+            } else {
+                // Cycle to next match
+                tabCompletionState.currentIndex = (tabCompletionState.currentIndex + 1) % tabCompletionState.matches.length;
+                applyCompletion(tabCompletionState.matches[tabCompletionState.currentIndex]);
+            }
+        }
+
+        // Parse command to determine what we're completing
+        function parseCompletionContext(input, cursorPos) {
+            // Commands that take object/agent/room names as arguments
+            const completionCommands = {
+                // Objects
+                '@setdesc': 'object',
+                '@describe': 'object',
+                'take': 'object',
+                'get': 'object',
+                'drop': 'object',
+                'look': 'mixed',  // can be object, agent, or empty
+                'examine': 'mixed',
+                // Agents
+                '@observe': 'agent',
+                '@relationship': 'agent',
+                '@memory': 'agent',
+                '@me': 'agent',
+                // Rooms
+                '@teleport': 'room',
+                '@goto': 'room'
+            };
+
+            // Find the command word
+            const words = input.trim().split(/\s+/);
+            if (words.length === 0) return null;
+
+            const command = words[0].toLowerCase();
+            const completionType = completionCommands[command];
+            if (!completionType) return null;
+
+            // Get the partial name (everything after the command)
+            const commandEndPos = input.indexOf(words[0]) + words[0].length;
+            const afterCommand = input.substring(commandEndPos).trimStart();
+            const partial = afterCommand.replace(/^["']|["']$/g, ''); // Remove quotes
+
+            return {
+                command: command,
+                type: completionType,
+                prefix: input.substring(0, commandEndPos) + ' ',
+                partial: partial
+            };
+        }
+
+        // Request completions from server
+        async function requestCompletions(command, partial) {
+            if (!authenticated || !ws || ws.readyState !== WebSocket.OPEN) {
+                return [];
+            }
+
+            return new Promise((resolve) => {
+                const msgId = Date.now();
+                const timeout = setTimeout(() => {
+                    resolve([]);
+                }, 1000);
+
+                // Listen for completion response
+                const handler = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'completions' && data.id === msgId) {
+                        clearTimeout(timeout);
+                        ws.removeEventListener('message', handler);
+                        resolve(data.matches || []);
+                    }
+                };
+
+                ws.addEventListener('message', handler);
+
+                // Send completion request
+                ws.send(JSON.stringify({
+                    type: 'complete',
+                    id: msgId,
+                    command: command,
+                    partial: partial
+                }));
+            });
+        }
+
+        // Apply a completion to the input field
+        function applyCompletion(match) {
+            // Auto-quote if name contains spaces
+            let completedName = match;
+            if (match.includes(' ')) {
+                completedName = `"${match}"`;
+            }
+
+            inputField.value = tabCompletionState.commandPrefix + completedName;
+            inputField.selectionStart = inputField.selectionEnd = inputField.value.length;
+        }
 
         // Keepalive ping every 30 seconds
         setInterval(() => {
@@ -1038,7 +1351,7 @@
         addLine('system', 'we\'re noodling with functional correlates of it.');
         addLine('system', '');
         addLine('system', 'Type "help" for commands.');
-        addLine('system', 'Type "/scope" to watch consciousness in real-time! 🧠');
+        addLine('system', 'Type "@scope" to launch native NoodleScope visualization! 🔬');
         addLine('system', '═══════════════════════════════════════════════');
         addLine('system', '');
     </script>

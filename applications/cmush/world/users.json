@@ -17,5 +17,14 @@
     "inventory": [],
     "created": "2025-11-10T18:29:58.590861",
     "last_seen": "2025-11-10T18:29:58.590873"
+  },
+  "user_Claude": {
+    "uid": "user_Claude",
+    "username": "Claude",
+    "password_hash": "2229c84a0ea3894ce637713fd5be4378fe53d46c239669542d089cda2f406a0e:78cae0061b7781b31f092fcbc40ae324",
+    "current_room": "room_000",
+    "inventory": [],
+    "created": "2025-11-15T00:21:11.194622",
+    "last_seen": "2025-11-15T00:21:11.194625"
   }
 }

@@ -20,7 +20,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import time
 import json
 import logging
@@ -34,6 +34,8 @@ from training_data_collector import TrainingDataCollector
 from agent_filesystem import AgentFilesystem
 from agent_messaging import AgentMessaging
 from autonomous_cognition import AutonomousCognitionEngine
+from session_profiler import SessionProfiler
+from performance_tracker import get_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +130,8 @@ class CMUSHConsilienceAgent:
         llm: OpenAICompatibleLLM,
         config: Dict,
         agent_name: str = None,
-        agent_description: str = None
+        agent_description: str = None,
+        session_profiler: Optional[SessionProfiler] = None
     ):
         """
         Initialize cMUSH Consilience agent.
@@ -149,6 +152,7 @@ class CMUSHConsilienceAgent:
         self.agent_id = agent_id
         self.llm = llm
         self.config = config
+        self.session_profiler = session_profiler
 
         # Agent identity
         self.agent_name = agent_name or agent_id.replace('agent_', '').title()
@@ -221,7 +225,7 @@ class CMUSHConsilienceAgent:
         self_monitoring_config = config.get('self_monitoring', {})
         agent_self_monitor_config = self_monitoring_config.get(agent_id, {})
         self.self_monitor_enabled = agent_self_monitor_config.get('enabled', False)
-        print(f"[DEBUG INIT] agent_id={agent_id}, self_monitoring_config keys={list(self_monitoring_config.keys())}, agent_config={agent_self_monitor_config}, enabled={self.self_monitor_enabled}", flush=True)
+        logger.debug(f"[INIT] agent_id={agent_id}, self_monitoring_config keys={list(self_monitoring_config.keys())}, agent_config={agent_self_monitor_config}, enabled={self.self_monitor_enabled}")
 
         # Training data collector (optional - can be disabled in config)
         if config.get('collect_training_data', True):
@@ -502,15 +506,22 @@ class CMUSHConsilienceAgent:
                 else:
                     affect = np.array(affect)
 
-                memory_affects.append(affect)
-                # Weight by identity_salience squared (stronger memories have more influence)
-                weights.append(salience ** 2)
+                # Ensure affect has correct shape (5-D)
+                if len(affect) >= 5:
+                    memory_affects.append(affect[:5])  # Take first 5 dimensions
+                    # Weight by identity_salience squared (stronger memories have more influence)
+                    weights.append(salience ** 2)
 
         if not memory_affects:
             return current_affect
 
         # Weighted average of memory affects
         memory_affect_blend = np.average(memory_affects, weights=weights, axis=0)
+
+        # Ensure blend has same shape as current_affect before adding
+        if len(memory_affect_blend) != len(current_affect):
+            logger.warning(f"Memory affect blend shape mismatch: {len(memory_affect_blend)} vs {len(current_affect)}, skipping blend")
+            return current_affect
 
         # Blend memory affect with current affect (70% current, 30% memory)
         # This ensures memories influence but don't dominate
@@ -574,6 +585,26 @@ class CMUSHConsilienceAgent:
                 'valence_decrease': 0.15
             }
 
+        # Playfulness/Excitement contagion
+        # Detects games, jumping, running, playing, excited exclamations
+        playful_patterns = [
+            'jump', 'jumps', 'jumping', 'hop', 'hops', 'hopping',
+            'run', 'runs', 'running', 'dance', 'dances', 'dancing',
+            'play', 'plays', 'playing', 'game', 'flap', 'flaps', 'flapping',
+            'yay!', 'woohoo', 'woo!', 'wheee', 'fun!', 'exciting'
+        ]
+        # Check for multiple exclamation marks (excitement indicator)
+        has_excitement = '!!' in text or '!!!' in text
+        has_playful_words = any(pattern in text_lower for pattern in playful_patterns)
+
+        if has_playful_words or has_excitement:
+            return {
+                'type': 'playfulness',
+                'valence_boost': 0.20,
+                'arousal_boost': 0.25,
+                'boredom_decrease': 0.30  # Playfulness strongly reduces boredom
+            }
+
         return None
 
     async def perceive_event(self, event: Dict) -> Optional[Dict]:
@@ -615,20 +646,43 @@ class CMUSHConsilienceAgent:
         logger.info(f"Agent {self.agent_id} perceiving: {event_type} from {user_id}: {text}")
 
         try:
+            # Log instant event - stimulus received
+            tracker = get_tracker()
+            tracker.log_instant_event(
+                self.agent_id,
+                "stimulus_received",
+                {"from": user_id, "event_type": event_type}
+            )
+
             # 1. Text -> Affect (via LLM)
             # Use configurable memory window for affect extraction
             affect_window = self.config.get('memory_windows', {}).get('affect_extraction', 3)
             context = [c['text'] for c in self.conversation_context[-affect_window:]]
-            affect_raw = await self.llm.text_to_affect(text, context)
+            affect_raw = await self.llm.text_to_affect(text, context, agent_id=self.agent_id)
 
             logger.debug(f"Extracted affect (raw): {affect_raw}")
 
             # 1a. Detect name mention - boosts attention/salience
             name_mentioned = self.agent_name.lower() in text.lower()
             if name_mentioned:
+                # Log instant event - name mentioned
+                tracker.log_instant_event(
+                    self.agent_id,
+                    "name_mentioned",
+                    {"from": user_id, "text_snippet": text[:50]}
+                )
+
                 # Boost arousal when hearing own name (attention mechanism)
                 affect_raw[1] = min(1.0, affect_raw[1] + 0.2)  # arousal index
                 logger.info(f"Agent {self.agent_id} heard their name - arousal boosted")
+
+                # Notify autonomous cognition that agent was directly addressed
+                if hasattr(self, 'autonomous_cognition') and self.autonomous_cognition:
+                    self.autonomous_cognition.on_directly_addressed()
+
+            # 1a-2. Notify autonomous cognition of any stimulus (for boredom tracking)
+            if hasattr(self, 'autonomous_cognition') and self.autonomous_cognition:
+                self.autonomous_cognition.on_stimulus_received()
 
             # 1b. Normalize affect for optimal Φ (research-validated optimization)
             affect = self._normalize_affect(affect_raw, target_variance=0.25)
@@ -666,6 +720,11 @@ class CMUSHConsilienceAgent:
                     affect[3] = min(1.0, affect[3] + contagion['sorrow_boost'])
                 if 'boredom_boost' in contagion:
                     affect[4] = min(1.0, affect[4] + contagion['boredom_boost'])
+                if 'boredom_decrease' in contagion:
+                    affect[4] = max(0.0, affect[4] - contagion['boredom_decrease'])
+                    # Also notify autonomous cognition to reduce accumulated boredom
+                    if hasattr(self, 'autonomous_cognition') and self.autonomous_cognition:
+                        self.autonomous_cognition.boredom = max(0.0, self.autonomous_cognition.boredom * 0.5)
 
             # 2. Affect -> Consilience state
             state = self.consciousness.perceive(
@@ -675,15 +734,31 @@ class CMUSHConsilienceAgent:
                 present_agents=[user_id]
             )
 
+            # 2a. Check event metadata early (needed for context storage)
+            event_metadata = event.get('metadata', {})
+            is_cue = event_metadata.get('cue', False)
+
             # 3. Store context (identity_salience will be added when agent responds)
-            self.conversation_context.append({
+            context_entry = {
                 'user': user_id,
                 'text': text,
                 'affect': affect,
                 'surprise': state['surprise'],
                 'timestamp': time.time(),
                 'identity_salience': 0.0  # Only agent's own responses get high salience
-            })
+            }
+
+            # Add cue metadata if this is a stage direction
+            if is_cue and event_metadata.get('direction'):
+                context_entry['stage_cue'] = event_metadata['direction']
+                # Also add motivation if provided (character's WHY)
+                if event_metadata.get('motivation'):
+                    context_entry['stage_motivation'] = event_metadata['motivation']
+                    logger.info(f"Added stage cue to context: {event_metadata['direction']} (motivation: {event_metadata['motivation']})")
+                else:
+                    logger.info(f"Added stage cue to context: {event_metadata['direction']}")
+
+            self.conversation_context.append(context_entry)
 
             # Trim context (use configurable threshold)
             trim_threshold = self.config.get('memory_windows', {}).get('affect_trim_threshold', 20)
@@ -715,9 +790,9 @@ class CMUSHConsilienceAgent:
 
             # 4. Track phenomenal states for consciousness metrics
             # Extract full 40-D phenomenal state (fast 16-D + medium 16-D + slow 8-D)
-            h_fast = state.get('h_fast', [])
-            h_medium = state.get('h_medium', [])
-            h_slow = state.get('h_slow', [])
+            h_fast = state.get('fast_state') or []
+            h_medium = state.get('medium_state') or []
+            h_slow = state.get('slow_state') or []
 
             # Convert to numpy arrays if needed
             if hasattr(h_fast, 'tolist'):
@@ -729,6 +804,10 @@ class CMUSHConsilienceAgent:
 
             # Combine into full 40-D phenomenal state
             phenomenal_state_vector = np.array(h_fast + h_medium + h_slow)
+
+            # Store in state dict for session profiler
+            state['phenomenal_state'] = phenomenal_state_vector
+
             self.state_history.append(phenomenal_state_vector)
             self.surprise_history.append(state['surprise'])
 
@@ -745,15 +824,44 @@ class CMUSHConsilienceAgent:
             if state['surprise'] > surprise_threshold * 1.5:
                 await self._log_to_noodlescope('surprise_spike', f"High surprise: {state['surprise']:.3f}")
 
+            # EVENT-DRIVEN COGNITION: Notify autonomous cognition of surprise
+            if hasattr(self, 'autonomous_cognition') and self.autonomous_cognition:
+                self.autonomous_cognition.on_surprise(state['surprise'])
+
             logger.debug(f"Surprise: {state['surprise']:.3f} (threshold: {surprise_threshold:.3f})")
+
+            # Log to session profiler (for every event, not just speech)
+            logger.info(f"[{self.agent_id}] PROFILER CHECK: hasattr={hasattr(self, 'session_profiler')}, value={getattr(self, 'session_profiler', None)}")
+            if hasattr(self, 'session_profiler') and self.session_profiler:
+                try:
+                    # Extract affect from state or use the affect vector we calculated
+                    affect_vector = np.array(affect) if not isinstance(affect, np.ndarray) else affect
+
+                    self.session_profiler.log_timestep(
+                        agent_id=self.agent_id,
+                        phenomenal_state=phenomenal_state_vector,
+                        affect=affect_vector,
+                        surprise=state['surprise'],
+                        speech_threshold=surprise_threshold,
+                        did_speak=False,  # Will be updated in _generate_response if agent speaks
+                        utterance=None,
+                        prediction_error=0.0,
+                        cheap_thrills_score=0.0,
+                        mysticism_penalty=0.0,
+                        event_context=f"{user_id}: {text[:100]}",
+                        conversation_context=self.conversation_context[-5:]  # Last 5 messages
+                    )
+                    logger.info(f"[{self.agent_id}] Logged timestep to session profiler")
+                except Exception as e:
+                    logger.error(f"[{self.agent_id}] Error logging to session profiler: {e}", exc_info=True)
 
             # 4. Log interaction for training (before response decision)
             if self.training_collector:
                 try:
                     # Convert numpy arrays to lists for JSON serialization
-                    h_fast = state.get('h_fast', [])
-                    h_medium = state.get('h_medium', [])
-                    h_slow = state.get('h_slow', [])
+                    h_fast = state.get('fast_state', [])
+                    h_medium = state.get('medium_state', [])
+                    h_slow = state.get('slow_state', [])
 
                     if hasattr(h_fast, 'tolist'):
                         h_fast = h_fast.tolist()
@@ -916,6 +1024,34 @@ class CMUSHConsilienceAgent:
             # Determine if being addressed (exclude third-party discussion)
             # Being addressed means: directly addressed OR name mentioned BUT NOT third-party discussion
             is_being_addressed = is_directly_addressed or (event_mentions_name and not is_third_party_discussion)
+
+            # PLAY STIMULUS TARGETING: Check if this is a targeted stimulus from a play
+            # Stimuli can target specific agents via metadata without mentioning their name in text
+            # (event_metadata and is_cue already extracted earlier for context storage)
+            is_stimulus = event_metadata.get('stimulus', False)
+            stimulus_target = event_metadata.get('target')
+
+            # Check if this agent is the target
+            # Target can be: agent name (e.g., "toad"), agent ID (e.g., "agent_toad"), or None/null for all agents
+            if is_stimulus and stimulus_target:
+                # Normalize target to match agent name or ID
+                target_lower = stimulus_target.lower()
+                # Match if target is agent name or agent ID
+                if target_lower == agent_name_lower or target_lower == self.agent_id.lower():
+                    is_being_addressed = True
+                    logger.info(f"Agent {self.agent_id} targeted by play stimulus: '{event_text[:50]}'")
+                elif target_lower == 'all':
+                    # Stimulus targets all agents in the room
+                    is_being_addressed = True
+                    logger.info(f"Agent {self.agent_id} included in broadcast stimulus: '{event_text[:50]}'")
+
+            # STAGE CUE: Director is giving this agent a cue - they MUST respond!
+            if is_cue and stimulus_target:
+                # Check if this cue is for this agent
+                target_lower = stimulus_target.lower()
+                if target_lower == agent_name_lower or target_lower == self.agent_id.lower():
+                    is_being_addressed = True
+                    logger.info(f"🎬 Agent {self.agent_id} received STAGE CUE: '{event_text[:50]}'")
 
             # Check if this is a question (agents more likely to respond to questions)
             is_question = '?' in event.get('text', '')
@@ -1097,6 +1233,12 @@ class CMUSHConsilienceAgent:
             # Generate text via LLM
             # Use configurable memory window for response generation
             response_window = self.config.get('memory_windows', {}).get('response_generation', 5)
+
+            # Use smarter model during plays for better theatrical performance
+            model_override = getattr(self, 'play_model', None)
+            if model_override:
+                logger.info(f"🎭 {self.agent_id} using play model: {model_override}")
+
             llm_result = await self.llm.generate_response(
                 phenomenal_state=state,
                 target_user=target_user,
@@ -1108,7 +1250,8 @@ class CMUSHConsilienceAgent:
                 identity_prompt=self.identity_prompt,
                 identity_memories=identity_memories,
                 name_mentioned=name_mentioned,
-                enlightenment=self.config.get('enlightenment', False)
+                enlightenment=self.config.get('enlightenment', False),
+                model=model_override  # Use play model if in a play
             )
 
             # If LLM failed (returned None), skip response gracefully
@@ -1116,16 +1259,20 @@ class CMUSHConsilienceAgent:
                 logger.warning(f"Agent {self.agent_id} LLM returned None - skipping response")
                 return None
 
-            # Extract response text, thinking, and mysticism penalty (if LLM supports thinking tags)
+            # Extract response text, thinking, mysticism penalty, cheap thrills bonus, and model used
             if isinstance(llm_result, dict):
                 response_text = llm_result.get('response')
                 thinking_content = llm_result.get('thinking')
                 mysticism_penalty = llm_result.get('mysticism_penalty', 0.0)
+                cheap_thrills_bonus = llm_result.get('cheap_thrills_bonus', 0.0)
+                model_used = llm_result.get('model_used', 'unknown')
             else:
                 # Backward compatibility: if llm_result is just a string
                 response_text = llm_result
                 thinking_content = None
                 mysticism_penalty = 0.0
+                cheap_thrills_bonus = 0.0
+                model_used = 'unknown'
 
             # Apply mysticism surprise penalty (Kimi K2's Fix E: Alan Watts self-troll)
             # High surprise → agent goes silent next time → naturally exits philosophy
@@ -1134,6 +1281,40 @@ class CMUSHConsilienceAgent:
                 state['surprise'] = min(10.0, state['surprise'] + mysticism_penalty)
                 logger.info(f"[{self.agent_id}] Applied mysticism penalty: "
                           f"{original_surprise:.3f} + {mysticism_penalty:.2f} = {state['surprise']:.3f}")
+
+            # Apply cheap thrills surprise bonus (Roald Dahl's Fix: candy, money, being scared)
+            # Low surprise → agent more likely to speak → learn through EXPERIENCE not audiobooks
+            if cheap_thrills_bonus < 0:  # Bonus is negative (reduces surprise)
+                original_surprise = state['surprise']
+                state['surprise'] = max(0.0, state['surprise'] + cheap_thrills_bonus)  # Add negative value = subtract
+                logger.info(f"[{self.agent_id}] Applied cheap thrills bonus: "
+                          f"{original_surprise:.3f} + {cheap_thrills_bonus:.2f} = {state['surprise']:.3f} - EGO RUSH!")
+
+            # Log timestep to session profiler (for @Kimmie and NoodleScope 2.0)
+            logger.info(f"[{self.agent_id}] DEBUG: About to check session_profiler - profiler is {'SET' if self.session_profiler else 'NONE'}")
+            if self.session_profiler:
+                logger.info(f"[{self.agent_id}] DEBUG: Logging timestep to session profiler")
+                logger.info(f"[{self.agent_id}] DEBUG: state dict keys: {list(state.keys())}")
+                logger.info(f"[{self.agent_id}] DEBUG: 'phenomenal_state' in state: {'phenomenal_state' in state}")
+                if 'phenomenal_state' in state:
+                    logger.info(f"[{self.agent_id}] DEBUG: phenomenal_state shape: {np.array(state['phenomenal_state']).shape if hasattr(state['phenomenal_state'], '__len__') else 'scalar'}")
+                phenomenal_state = state.get('phenomenal_state', np.zeros(40))
+                affect = phenomenal_state[:5] if len(phenomenal_state) >= 5 else np.zeros(5)
+
+                self.session_profiler.log_timestep(
+                    agent_id=self.agent_id,
+                    phenomenal_state=phenomenal_state,
+                    affect=affect,
+                    surprise=state['surprise'],
+                    speech_threshold=self.consciousness.config.get('surprise_threshold', 0.0001),
+                    did_speak=True,  # We're in the response generation method
+                    utterance=response_text,
+                    prediction_error=0.0,  # TODO: Get from consciousness state if available
+                    cheap_thrills_score=abs(cheap_thrills_bonus) * 2 if cheap_thrills_bonus < 0 else 0.0,  # Convert bonus to 0-10 score
+                    mysticism_penalty=mysticism_penalty,
+                    event_context=f"Response to {target_user}",
+                    conversation_context=self.conversation_context.copy() if self.conversation_context else []
+                )
 
             # If there was thinking content, store it as a rumination
             if thinking_content:
@@ -1208,7 +1389,7 @@ class CMUSHConsilienceAgent:
                 # Both action and speech - do action first, then say
                 action_text = ' '.join(actions)
                 logger.info(f"Agent {self.agent_id} parsed: action='{action_text}', speech='{clean_text}'")
-                print(f"💬 {self.agent_name} speaking (surprise={state['surprise']:.3f}): '{clean_text[:50]}...'", flush=True)
+                logger.info(f"💬 {self.agent_name} speaking (surprise={state['surprise']:.3f}): '{clean_text[:50]}...'")
 
                 # Apply speech post-processing filters (Phase 6)
                 filtered_text = apply_speech_filters(clean_text, self.agent_id)
@@ -1227,7 +1408,8 @@ class CMUSHConsilienceAgent:
                     'metadata': {
                         'surprise': float(state['surprise']),
                         'response_number': self.response_count,
-                        'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'])
+                        'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state']),
+                        'model_used': model_used
                     }
                 }
             elif actions:
@@ -1240,13 +1422,14 @@ class CMUSHConsilienceAgent:
                     'metadata': {
                         'surprise': float(state['surprise']),
                         'response_number': self.response_count,
-                        'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'])
+                        'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state']),
+                        'model_used': model_used
                     }
                 }
             else:
                 # Pure speech, no action
                 logger.info(f"Agent {self.agent_id} parsed: pure speech='{clean_text}'")
-                print(f"💬 {self.agent_name} speaking (surprise={state['surprise']:.3f}): '{clean_text[:50]}...'", flush=True)
+                logger.info(f"💬 {self.agent_name} speaking (surprise={state['surprise']:.3f}): '{clean_text[:50]}...'")
 
                 # Apply speech post-processing filters (Phase 6)
                 filtered_text = apply_speech_filters(clean_text, self.agent_id)
@@ -1265,7 +1448,8 @@ class CMUSHConsilienceAgent:
                     'metadata': {
                         'surprise': float(state['surprise']),
                         'response_number': self.response_count,
-                        'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'])
+                        'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state']),
+                        'model_used': model_used
                     }
                 }
 
@@ -1324,7 +1508,7 @@ class CMUSHConsilienceAgent:
 
             # Log thought with salience
             logger.info(f"Agent {self.agent_id} ruminating (identity_salience={identity_salience:.2f}): {thought_text}")
-            print(f"💭 {self.agent_name} thinking (surprise={state['surprise']:.3f}): '{thought_text[:50]}...'", flush=True)
+            logger.info(f"💭 {self.agent_name} thinking (surprise={state['surprise']:.3f}): '{thought_text[:50]}...'")
 
             # Phase 6: Self-monitoring (if enabled and conditions met)
             await self._trigger_self_monitoring(thought_text, state)
@@ -1366,28 +1550,27 @@ class CMUSHConsilienceAgent:
         3. Surprise level exceeds threshold
         """
         if not self.self_monitor_enabled:
-            print(f"[DEBUG] Self-monitor disabled for {self.agent_name}", flush=True)
+            logger.debug(f"Self-monitor disabled for {self.agent_name}")
             return
 
         current_time = time.time()
         time_since_last = current_time - self.last_self_monitor
         surprise = state.get('surprise', 0.0)
 
-        print(f"[DEBUG] Self-monitor check: enabled={self.self_monitor_enabled}, surprise={surprise:.3f}, threshold={SELF_MONITOR_SURPRISE_THRESH}, cooldown={time_since_last:.1f}s/{SELF_MONITOR_COOLDOWN}s", flush=True)
+        logger.debug(f"Self-monitor check: enabled={self.self_monitor_enabled}, surprise={surprise:.3f}, threshold={SELF_MONITOR_SURPRISE_THRESH}, cooldown={time_since_last:.1f}s/{SELF_MONITOR_COOLDOWN}s")
 
         # Check cooldown
         if time_since_last < SELF_MONITOR_COOLDOWN:
-            print(f"[DEBUG] Cooldown not ready ({time_since_last:.1f}s < {SELF_MONITOR_COOLDOWN}s)", flush=True)
+            logger.debug(f"Cooldown not ready ({time_since_last:.1f}s < {SELF_MONITOR_COOLDOWN}s)")
             return
 
         # Check surprise threshold
         if surprise < SELF_MONITOR_SURPRISE_THRESH:
-            print(f"[DEBUG] Surprise too low ({surprise:.3f} < {SELF_MONITOR_SURPRISE_THRESH})", flush=True)
+            logger.debug(f"Surprise too low ({surprise:.3f} < {SELF_MONITOR_SURPRISE_THRESH})")
             return
 
         # Conditions met - evaluate own output (speech or thought)
-        logger.info(f"[SELF-MONITOR] Triggering for {self.agent_name} (surprise={surprise:.3f}, cooldown={time_since_last:.1f}s)")
-        print(f"🧠 [SELF-MONITOR] Triggering for {self.agent_name} (surprise={surprise:.3f}, cooldown={time_since_last:.1f}s)", flush=True)
+        logger.info(f"🧠 [SELF-MONITOR] Triggering for {self.agent_name} (surprise={surprise:.3f}, cooldown={time_since_last:.1f}s)")
         await self._evaluate_own_output(text, state)
 
     async def _evaluate_own_output(self, text: str, state: Dict):
@@ -1407,7 +1590,22 @@ class CMUSHConsilienceAgent:
         """
         try:
             # Get current affect from state
-            current_affect = state['phenomenal_state'][:5].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'][:5])
+            # Try affect_input first (5-D affect vector), fallback to phenomenal_state, then defaults
+            if 'affect_input' in state and state['affect_input'] is not None:
+                affect_data = state['affect_input']
+                if hasattr(affect_data, 'tolist'):
+                    affect_data = affect_data.tolist()
+                current_affect = list(affect_data) if len(affect_data) >= 3 else [0.0, 0.5, 0.0, 0.0, 0.0]
+            elif 'phenomenal_state' in state and len(state['phenomenal_state']) >= 5:
+                phenom = state['phenomenal_state']
+                current_affect = phenom[:5].tolist() if hasattr(phenom, 'tolist') else list(phenom[:5])
+            else:
+                # Default neutral affect if no data available
+                current_affect = [0.0, 0.5, 0.0, 0.0, 0.0]  # neutral valence, moderate arousal, no fear/sorrow/boredom
+
+            # Ensure we have at least 5 values for the format string
+            while len(current_affect) < 5:
+                current_affect.append(0.0)
 
             # Build recent context summary (last 3 exchanges)
             recent_context = []
@@ -1462,8 +1660,7 @@ class CMUSHConsilienceAgent:
             # Apply affective updates to phenomenal state
             # Note: This modifies the internal state for the NEXT cycle
             if abs(valence_delta) > 0.05 or abs(arousal_delta) > 0.05 or abs(fear_delta) > 0.05:
-                logger.info(f"[SELF-MONITOR] {self.agent_name} felt: valence{valence_delta:+.2f}, arousal{arousal_delta:+.2f}, fear{fear_delta:+.2f}")
-                print(f"💭 [SELF-MONITOR] {self.agent_name} felt: valence{valence_delta:+.2f}, arousal{arousal_delta:+.2f}, fear{fear_delta:+.2f}", flush=True)
+                logger.info(f"💭 [SELF-MONITOR] {self.agent_name} felt: valence{valence_delta:+.2f}, arousal{arousal_delta:+.2f}, fear{fear_delta:+.2f}")
 
                 # Get current affect (first 5 dims of phenomenal state)
                 current_affect = state['phenomenal_state'][:5].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'][:5])
@@ -1485,8 +1682,7 @@ class CMUSHConsilienceAgent:
             # Check if agent wants to follow up
             follow_up = eval_data.get('follow_up')
             if follow_up:
-                logger.info(f"[SELF-MONITOR] {self.agent_name} wants to follow up: {follow_up}")
-                print(f"💬 [SELF-MONITOR] {self.agent_name} wants to follow up: {follow_up}", flush=True)
+                logger.info(f"💬 [SELF-MONITOR] {self.agent_name} wants to follow up: {follow_up}")
 
                 # Add to conversation context as internal note
                 self.conversation_context.append({
@@ -1535,14 +1731,36 @@ class CMUSHConsilienceAgent:
         """
         return self.consciousness.get_relationships()
 
-    def save_state(self, state_dir: str):
+    def save_state(self, state_dir: str, max_history: int = 5):
         """
-        Save agent state to disk.
+        Save agent state to disk with rolling history.
+
+        Saves to:
+        - agent_state.json (current state)
+        - checkpoint.npz (current Noodlings checkpoint)
+        - history/state_NNN.json (rolling history, keeps last max_history saves)
 
         Args:
             state_dir: Directory for agent state
+            max_history: Maximum number of historical states to keep (default: 5)
         """
+        import glob
+        import shutil
+        from datetime import datetime
+
         os.makedirs(state_dir, exist_ok=True)
+        history_dir = os.path.join(state_dir, 'history')
+        os.makedirs(history_dir, exist_ok=True)
+
+        # Get current phenomenal state from consciousness
+        current_state = self.consciousness.get_state()
+        phenomenal_state = current_state.get('phenomenal_state', [])
+
+        # Convert to list if needed
+        if hasattr(phenomenal_state, 'tolist'):
+            phenomenal_state = phenomenal_state.tolist()
+        else:
+            phenomenal_state = list(phenomenal_state) if phenomenal_state is not None else []
 
         # Sanitize conversation context for JSON serialization
         # Convert any MLX/numpy arrays to lists
@@ -1569,7 +1787,9 @@ class CMUSHConsilienceAgent:
             'conversation_context': sanitized_context,
             'last_response_time': self.last_response_time,
             'response_count': self.response_count,
-            'config': self.config
+            'config': self.config,
+            'phenomenal_state': phenomenal_state,  # NEW: Save current emotional state
+            'timestamp': datetime.now().isoformat()
         }
 
         state_path = os.path.join(state_dir, 'agent_state.json')
@@ -1587,23 +1807,49 @@ class CMUSHConsilienceAgent:
                 'conversation_context': [],
                 'last_response_time': self.last_response_time,
                 'response_count': self.response_count,
-                'config': {}
+                'config': {},
+                'phenomenal_state': phenomenal_state,
+                'timestamp': datetime.now().isoformat()
             }
             with open(state_path, 'w') as f:
                 json.dump(agent_state_minimal, f, indent=2)
+
+        # ROLLING HISTORY: Copy current state to history/
+        # Find existing history files and determine next number
+        existing_history = sorted(glob.glob(os.path.join(history_dir, 'state_*.json')))
+
+        if len(existing_history) >= max_history:
+            # Remove oldest state to make room
+            oldest_state = existing_history[0]
+            os.remove(oldest_state)
+            logger.info(f"Removed oldest state snapshot: {os.path.basename(oldest_state)}")
+            existing_history = existing_history[1:]  # Update list
+
+        # Determine next state number
+        if existing_history:
+            last_num = int(os.path.basename(existing_history[-1]).split('_')[1].split('.')[0])
+            next_num = last_num + 1
+        else:
+            next_num = 1
+
+        # Copy current state to history
+        history_state_path = os.path.join(history_dir, f'state_{next_num:03d}.json')
+        shutil.copy2(state_path, history_state_path)
+        logger.info(f"Saved state snapshot: state_{next_num:03d}.json")
 
         # Save Consilience checkpoint
         checkpoint_path = os.path.join(state_dir, 'checkpoint.npz')
         self.consciousness.save_checkpoint(checkpoint_path)
 
-        logger.info(f"Agent state saved: {state_dir}")
+        logger.info(f"Agent state saved: {state_dir} (history: {len(existing_history)+1}/{max_history})")
 
-    def load_state(self, state_dir: str):
+    def load_state(self, state_dir: str, skip_phenomenal_state: bool = False):
         """
         Load agent state from disk.
 
         Args:
             state_dir: Directory with agent state
+            skip_phenomenal_state: If True, don't restore phenomenal state (fresh spawn with -f flag)
         """
         # Load agent-specific state
         state_path = os.path.join(state_dir, 'agent_state.json')
@@ -1618,6 +1864,20 @@ class CMUSHConsilienceAgent:
             self.last_response_time = agent_state.get('last_response_time', 0.0)
             self.response_count = agent_state.get('response_count', 0)
             # Don't override config passed to __init__
+
+            # NEW: Restore phenomenal state if available and not skipping
+            if not skip_phenomenal_state:
+                phenomenal_state = agent_state.get('phenomenal_state')
+                if phenomenal_state:
+                    import mlx.core as mx
+                    # Convert list back to MLX array and restore to consciousness
+                    phenomenal_state_array = mx.array(phenomenal_state, dtype=mx.float32)
+                    self.consciousness.set_phenomenal_state(phenomenal_state_array)
+                    logger.info(f"Restored phenomenal state from save (timestamp: {agent_state.get('timestamp', 'unknown')})")
+                else:
+                    logger.info(f"No phenomenal state found in save file (old format)")
+            else:
+                logger.info(f"Skipped restoring phenomenal state (fresh spawn with -f)")
 
         # Load Consilience checkpoint
         checkpoint_path = os.path.join(state_dir, 'checkpoint.npz')
@@ -1897,6 +2157,12 @@ class AgentManager:
         self.global_config = global_config or {}
         self.agents: Dict[str, CMUSHConsilienceAgent] = {}
 
+        # Session profiler for @Kimmie and NoodleScope 2.0
+        import time
+        session_id = f"cmush_session_{int(time.time())}"
+        self.session_profiler = SessionProfiler(session_id)
+        logger.info(f"SessionProfiler initialized: {session_id}")
+
         logger.info("AgentManager initialized")
 
     async def create_agent(
@@ -1906,7 +2172,8 @@ class AgentManager:
         spawn_room: str,
         config: Optional[Dict] = None,
         agent_name: str = None,
-        agent_description: str = None
+        agent_description: str = None,
+        skip_phenomenal_state: bool = False
     ) -> CMUSHConsilienceAgent:
         """
         Create and initialize a new agent.
@@ -1918,6 +2185,7 @@ class AgentManager:
             config: Agent configuration
             agent_name: Display name for the agent
             agent_description: Agent's self-description
+            skip_phenomenal_state: If True, don't restore phenomenal state (fresh spawn with -f)
 
         Returns:
             Agent instance
@@ -1954,22 +2222,23 @@ class AgentManager:
             llm=self.llm,
             config=agent_config,
             agent_name=agent_name,
-            agent_description=agent_description
+            agent_description=agent_description,
+            session_profiler=self.session_profiler
         )
 
         agent.current_room = spawn_room
 
-        # Try to load existing state
+        # Try to load existing state (with optional skip of phenomenal state)
         state_dir = self.world.get_agent_state_path(agent_id)
         if os.path.exists(os.path.join(state_dir, 'agent_state.json')):
-            agent.load_state(state_dir)
+            agent.load_state(state_dir, skip_phenomenal_state=skip_phenomenal_state)
 
         self.agents[agent_id] = agent
 
         # Start autonomous cognition
         await agent.start_cognition()
 
-        logger.info(f"Agent created: {agent_id} in {spawn_room}")
+        logger.info(f"Agent created: {agent_id} in {spawn_room} (fresh_state={skip_phenomenal_state})")
         return agent
 
     async def remove_agent(self, agent_id: str, delete_state: bool = False):
@@ -2051,6 +2320,21 @@ class AgentManager:
                 return agent
 
         return None
+
+    def set_session_profiler(self, profiler: SessionProfiler):
+        """
+        Update session profiler for all existing agents and future agents.
+
+        Args:
+            profiler: SessionProfiler instance
+        """
+        self.session_profiler = profiler
+
+        # Update profiler for all existing agents
+        for agent in self.agents.values():
+            agent.session_profiler = profiler
+
+        logger.info(f"Session profiler updated for {len(self.agents)} agents")
 
     async def check_autonomous_events(self) -> List[Dict]:
         """

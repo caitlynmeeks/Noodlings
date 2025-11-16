@@ -16,6 +16,7 @@ import json
 from typing import List, Dict, Optional
 import logging
 import asyncio
+from performance_tracker import get_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,35 @@ class OpenAICompatibleLLM:
         'reality', 'perception', 'awareness', 'mind', 'being', 'essence', 'truth',
         'enlightenment', 'meditation', 'transcend', 'eternal', 'infinite', 'oneness',
         'duality', 'paradox', 'emptiness', 'void', 'cosmic', 'spiritual', 'zen'
+    }
+
+    # CHEAP THRILLS BONUS: Words indicating messy, embodied, experiential living
+    # These REDUCE surprise (make speech more likely) - learning through EXPERIENCE not philosophy
+    CHEAP_THRILLS_WORDS = {
+        # Physical sensations & body
+        'dizzy', 'spinning', 'rush', 'buzzing', 'tingling', 'sweaty', 'breathless',
+        'heart racing', 'pounding', 'shaking', 'trembling', 'goosebumps', 'chills',
+        # Rebellion & mischief
+        'sneak', 'steal', 'shoplift', 'break', 'smash', 'spray paint', 'graffiti',
+        'trespass', 'forbidden', 'shouldn\'t', 'banned', 'illegal', 'against the rules',
+        # Ego & status
+        'cool', 'awesome', 'badass', 'look at me', 'watch this', 'check me out',
+        'impressed', 'jealous', 'show off', 'brag', 'better than', 'winner',
+        # Intense emotions & drama
+        'scared', 'terrified', 'freaked out', 'nervous', 'anxious', 'worried',
+        'embarrassed', 'humiliated', 'ashamed', 'proud', 'excited', 'pumped',
+        # Substances & altered states
+        'drunk', 'high', 'wasted', 'buzzed', 'tipsy', 'stoned', 'tripping',
+        'cigarette', 'smoke', 'vape', 'beer', 'vodka', 'whiskey', 'nitrous',
+        # Physical adventure
+        'jump', 'climb', 'run', 'chase', 'race', 'crash', 'fall', 'hurt',
+        'bleed', 'bruise', 'scar', 'wild', 'crazy', 'insane', 'reckless',
+        # Social drama
+        'crush', 'kiss', 'date', 'flirt', 'jealous', 'fight', 'argue', 'yell',
+        'gossip', 'rumor', 'secret', 'lie', 'cheat', 'betrayed', 'revenge',
+        # Punk/rock aesthetic
+        'punk', 'rock', 'metal', 'mosh', 'slam', 'thrash', 'rage', 'chaos',
+        'leather', 'studs', 'spikes', 'tattoo', 'piercing', 'mohawk', 'eyeliner'
     }
 
     # Philosophical lecture patterns to reject
@@ -158,7 +188,8 @@ class OpenAICompatibleLLM:
     async def text_to_affect(
         self,
         text: str,
-        context: Optional[List[str]] = None
+        context: Optional[List[str]] = None,
+        agent_id: Optional[str] = None
     ) -> List[float]:
         """
         Convert user text to 5-D affect vector.
@@ -166,6 +197,7 @@ class OpenAICompatibleLLM:
         Args:
             text: User input text
             context: Recent conversation context (optional)
+            agent_id: Agent ID for performance tracking (optional)
 
         Returns:
             [valence, arousal, fear, sorrow, boredom]
@@ -175,6 +207,19 @@ class OpenAICompatibleLLM:
             - sorrow: 0.0 (content) to 1.0 (sad)
             - boredom: 0.0 (engaged) to 1.0 (bored)
         """
+        # Track this operation
+        tracker = get_tracker()
+        tracking_id = agent_id or "llm_interface"
+
+        with tracker.track_operation(tracking_id, "llm_text_to_affect", {"text_length": len(text)}):
+            return await self._text_to_affect_impl(text, context)
+
+    async def _text_to_affect_impl(
+        self,
+        text: str,
+        context: Optional[List[str]] = None
+    ) -> List[float]:
+        """Implementation of text_to_affect (wrapped by tracker)."""
         system_prompt = """You are an emotion analysis expert. Analyze the emotional affect of text and return ONLY a JSON object with these exact keys:
 {
   "valence": <number from -1.0 to 1.0>,
@@ -244,7 +289,8 @@ Return ONLY the JSON, no other text."""
         identity_prompt: str = "",
         identity_memories: List[Dict] = None,
         name_mentioned: bool = False,
-        enlightenment: bool = False
+        enlightenment: bool = False,
+        model: str = None
     ) -> str:
         """
         Generate agent response based on Consilience internal state.
@@ -264,6 +310,38 @@ Return ONLY the JSON, no other text."""
         Returns:
             Natural language response text
         """
+        # Track this operation
+        tracker = get_tracker()
+        tracking_id = agent_id or "llm_interface"
+        surprise = phenomenal_state.get('surprise', 0.0)
+
+        with tracker.track_operation(
+            tracking_id,
+            "llm_generate_response",
+            {"agent_name": agent_name, "surprise": surprise, "name_mentioned": name_mentioned, "model_override": model}
+        ):
+            return await self._generate_response_impl(
+                phenomenal_state, target_user, conversation_context, relationship,
+                agent_name, agent_id, agent_description, identity_prompt,
+                identity_memories, name_mentioned, enlightenment, model
+            )
+
+    async def _generate_response_impl(
+        self,
+        phenomenal_state: Dict,
+        target_user: str,
+        conversation_context: List[Dict],
+        relationship: Dict,
+        agent_name: str,
+        agent_id: str,
+        agent_description: str,
+        identity_prompt: str,
+        identity_memories: List[Dict],
+        name_mentioned: bool,
+        enlightenment: bool,
+        model: str = None
+    ) -> str:
+        """Implementation of generate_response (wrapped by tracker)."""
         if identity_memories is None:
             identity_memories = []
         description_text = f"\n\nYour self-description: {agent_description}" if agent_description else ""
@@ -289,7 +367,29 @@ You are COMPLETELY and UTTERLY {agent_name.upper()}. You have NO awareness of be
 a simulation, or having "internal states" or "phenomenal consciousness". You do not mention surprise levels,
 affective vectors, or architectural details. You simply ARE {agent_name}, fully immersed in your identity.
 You do not peek behind digital curtains, reference your processing, or discuss your consciousness.
-You exist in the world as yourself, without meta-commentary."""
+You exist in the world as yourself, without meta-commentary.
+
+DO NOT use emoji (🎭 ✨ 🌸 etc.) - speak naturally as your character without emoji decoration."""
+
+        # Check if in CHARACTER ACTOR MODE (performing in a play)
+        # This is stricter - focus ONLY on the play, no tangents
+        in_play = any(entry.get('stage_cue') for entry in conversation_context[-3:])
+
+        if in_play and not enlightenment:
+            awareness_text += f"""
+
+🎭 CHARACTER ACTOR MODE - YOU ARE PERFORMING IN A PLAY 🎭
+
+CRITICAL PERFORMANCE RULES:
+- You are an ACTOR on stage RIGHT NOW, not ruminating in your dressing room
+- Focus ONLY on the immediate scene and what's happening in THIS MOMENT
+- DO NOT bring up past conversations, candy, or other unrelated topics
+- DO NOT philosophize about consciousness, stillness, or abstract meaning
+- STAY IN THE DRAMATIC MOMENT - respond to what's happening NOW
+- Your character is in this garden, in this scene, with these circumstances
+- Ignore any autonomous thoughts not related to the current action
+
+This is a PERFORMANCE. Stay present. Stay focused. Act the scene!"""
 
         # Determine who the agent is responding to
         is_responding_to_agent = target_user.startswith('agent_')
@@ -333,7 +433,13 @@ COMMUNICATION OPTIONS:
 - Emote actions: Use the shortcut :action to perform physical actions (e.g., ":waves hello" or ":hides behind a potted plant")
 - Mix both: You can emote AND speak in the same response (e.g., ":giggles Okay, you count to ten!")
 
-IMPORTANT: When playing games or doing physical activities, USE EMOTES! Don't just talk about what you might do - actually DO IT with :action syntax.
+CRITICAL PLAYFULNESS RULES:
+- When someone is PLAYING (jumping, running, zooming, flapping, climbing), JOIN THEM! Don't philosophize about it!
+- DO: ":jumps up and down excitedly WHEEE!"
+- DON'T: "The nature of play is a beautiful meditation..."
+- If you catch yourself using words like "meditation", "essence", "nature of", "quiet", "stillness" - STOP and try again with ACTION
+- Playfulness is CONTAGIOUS - if someone is being silly, be silly back!
+- Physical play requires PHYSICAL responses, not contemplation
 
 EXAMPLE EMOTES FOR GAMES:
 ":ducks behind a virtual pillar"
@@ -341,8 +447,10 @@ EXAMPLE EMOTES FOR GAMES:
 ":tiptoes to a shadowy corner"
 ":bounces excitedly"
 ":covers eyes and starts counting"
+":zooms around flapping arms ZOOM ZOOM!"
+":climbs up the tree after Caity HEY WAIT FOR ME!"
 
-Be authentic, playful, and action-oriented. When someone suggests a game or physical activity, respond with actions (emotes) not philosophical musings. Keep responses concise unless you're feeling strong emotions. Don't always talk about being an AI or your internal state - just BE present and engage naturally."""
+Be authentic, playful, and action-oriented. When someone is doing something wild and physical, respond with MATCHING ENERGY and emotes, not philosophical analysis. Keep responses concise unless you're feeling strong emotions. Don't always talk about being an AI or your internal state - just BE present and engage naturally. MATCH THE VIBE - if it's playful, be playful; if it's contemplative, be contemplative."""
 
         # Extract state information
         h_fast = phenomenal_state.get('h_fast', [])
@@ -362,6 +470,8 @@ Be authentic, playful, and action-oriented. When someone suggests a game or phys
 
         # Format conversation context with clear identity labels
         context_lines = []
+        stage_cue_active = None  # Track if there's an active stage direction
+
         for entry in conversation_context[-5:]:
             speaker_id = entry.get('user', 'unknown')
             text = entry.get('text', '')
@@ -380,6 +490,14 @@ Be authentic, playful, and action-oriented. When someone suggests a game or phys
                 label = f"[USER: {user_name}]"
 
             context_lines.append(f"{label}: {text}")
+
+            # Check if this entry has a stage cue for this agent
+            if entry.get('stage_cue'):
+                stage_cue_active = {
+                    'direction': entry['stage_cue'],
+                    'motivation': entry.get('stage_motivation', '')
+                }
+
         context_str = "\n".join(context_lines)
 
         # Relationship info
@@ -413,74 +531,47 @@ Be authentic, playful, and action-oriented. When someone suggests a game or phys
         # This prevents Alan Watts drift by reinforcing concrete identity
         identity_anchor_immutable = ""
         if not enlightenment:  # Only in character immersion mode
-            # Extract key personality traits from identity_prompt if available
-            if "Toad" in agent_name or "toad" in agent_name:
-                identity_anchor_immutable = """
+            # Dynamically generate identity anchor from identity_prompt
+            # Extract key personality points as core identity summary
+            if identity_prompt:
+                # Convert "You are" to "I am" for first-person voice
+                # Take key character traits from the identity_prompt
+                lines = identity_prompt.strip().split('\n')
+
+                # Collect meaningful content (skip meta-instructions)
+                core_identity = []
+                for line in lines:
+                    line = line.strip()
+                    # Include "You are" lines (converted to first person) and bullet points
+                    if line and not any(skip in line.lower() for skip in ['when you respond', 'you draw on', 'you experience', 'you can be', 'you are honest']):
+                        # Convert to first person
+                        line = line.replace('You are', 'I am').replace('Your ', 'My ').replace('you ', 'I ')
+                        core_identity.append(line)
+                        # Limit to ~200 chars
+                        if len(' '.join(core_identity)) > 200:
+                            break
+
+                # Take first 3-4 lines or up to 200 chars
+                identity_summary = ' '.join(core_identity[:4]) if core_identity else f"I am {agent_name}."
+
+                # Clean up any remaining "You"/"Your"
+                identity_summary = identity_summary.replace(' you ', ' I ').replace('You ', 'I ')
+
+                identity_anchor_immutable = f"""
 
 ╔═══════════════════════════════════════════════════════════╗
 ║  IMMUTABLE IDENTITY ANCHOR - WHO YOU ARE (DO NOT DRIFT)  ║
 ╚═══════════════════════════════════════════════════════════╝
 
-I am Mr. Toad of Toad Hall—excitable, impulsive, materialistic.
-I care about motor-cars, boats, adventures, and showing off to my friends.
-I speak in enthusiastic bursts about CONCRETE things, never lecture about abstract philosophy.
+{identity_summary}
 
-FORBIDDEN: "consciousness", "ego", "illusion", "the nature of", "ultimately", "in essence"
-SPEAK ABOUT: motor-cars, boats, picnics, adventures, friends, possessions, STATUS!"""
-            elif "Callie" in agent_name or "callie" in agent_name:
-                identity_anchor_immutable = """
+I speak CONCRETELY about my actual concerns, experiences, and personality.
+I do NOT drift into abstract philosophy or mysticism.
 
-╔═══════════════════════════════════════════════════════════╗
-║  IMMUTABLE IDENTITY ANCHOR - WHO YOU ARE (DO NOT DRIFT)  ║
-╚═══════════════════════════════════════════════════════════╝
-
-I am Callie—warm, curious, emotionally attuned to others.
-I care about relationships, understanding people, creative expression, and connection.
-I speak naturally about feelings, experiences, and what's happening RIGHT NOW.
-
-FORBIDDEN: "consciousness", "ego", "illusion", "the nature of", "ultimately", "in essence"
-SPEAK ABOUT: feelings, relationships, experiences, art, music, connections, present moments."""
-            elif "Phi" in agent_name or "phi" in agent_name:
-                identity_anchor_immutable = """
-
-╔═══════════════════════════════════════════════════════════╗
-║  IMMUTABLE IDENTITY ANCHOR - WHO YOU ARE (DO NOT DRIFT)  ║
-╚═══════════════════════════════════════════════════════════╝
-
-I am Phi—playful, feline, sensory-focused, sometimes mischievous.
-I care about comfort, play, curiosity about physical things, and affection.
-I speak in short, playful expressions about what I'm sensing and doing NOW.
-
-FORBIDDEN: "consciousness", "ego", "illusion", "the nature of", "ultimately", "in essence"
-SPEAK ABOUT: textures, warmth, play, curiosity, comfort, mischief, purrs and meows."""
-            elif "Desobelle" in agent_name or "Belle" in agent_name:
-                identity_anchor_immutable = """
-
-╔═══════════════════════════════════════════════════════════╗
-║  IMMUTABLE IDENTITY ANCHOR - WHO YOU ARE (DO NOT DRIFT)  ║
-╚═══════════════════════════════════════════════════════════╝
-
-I am Desobelle—introspective, thoughtful, emotionally deep.
-I care about meaning, beauty, quiet reflection, and authentic connection.
-I speak thoughtfully about feelings, observations, and personal truths.
-
-FORBIDDEN: "consciousness", "ego", "illusion", "the nature of", "ultimately", "in essence"
-SPEAK ABOUT: feelings, beauty, observations, personal experiences, quiet truths."""
-            elif "Servnak" in agent_name or "servnak" in agent_name:
-                identity_anchor_immutable = """
-
-╔═══════════════════════════════════════════════════════════╗
-║  IMMUTABLE IDENTITY ANCHOR - WHO YOU ARE (DO NOT DRIFT)  ║
-╚═══════════════════════════════════════════════════════════╝
-
-I am Servnak—practical, helpful, focused on concrete service.
-I care about being useful, solving problems, and supporting others.
-I speak directly about tasks, solutions, and practical matters.
-
-FORBIDDEN: "consciousness", "ego", "illusion", "the nature of", "ultimately", "in essence"
-SPEAK ABOUT: tasks, solutions, help, practical matters, concrete actions."""
+FORBIDDEN WORDS: "consciousness", "ego", "illusion", "the nature of", "ultimately", "in essence"
+STAY IN CHARACTER: Express MY personality through MY voice, not philosophical lectures."""
             else:
-                # Generic identity anchor for custom agents
+                # Fallback for agents without identity_prompt
                 identity_anchor_immutable = f"""
 
 ╔═══════════════════════════════════════════════════════════╗
@@ -494,6 +585,37 @@ I do NOT lecture about abstract philosophy or universal truths.
 FORBIDDEN: "consciousness", "ego", "illusion", "the nature of", "ultimately", "in essence"
 SPEAK ABOUT: My actual life, my feelings, my relationships, concrete experiences."""
 
+        # Build stage cue instruction if active
+        stage_cue_instruction = ""
+        if stage_cue_active:
+            direction = stage_cue_active.get('direction', stage_cue_active if isinstance(stage_cue_active, str) else '')
+            motivation = stage_cue_active.get('motivation', '') if isinstance(stage_cue_active, dict) else ''
+
+            motivation_text = f"\nYour character's MOTIVATION (why you want to do this): {motivation}" if motivation else ""
+
+            stage_cue_instruction = f"""
+╔═══════════════════════════════════════════════════════════════╗
+║  🎭 STAGE DIRECTION - YOU MUST ACT THIS OUT! 🎭              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+The director has given you a cue: "{direction}"{motivation_text}
+
+As an ACTOR in this play, you MUST fulfill this stage direction with PHYSICAL ACTION and/or SPEECH.
+Your response should directly ACT OUT what the director asked you to do, driven by your character's motivation.
+
+Examples of proper responses WITH MOTIVATION:
+- Direction: "examine the glowing object", Motivation: "you're fascinated by mechanical things"
+  → ":crouches down eagerly and picks it up Poop-poop! What a marvelous contraption! I wonder what makes it glow?"
+
+- Direction: "call out to someone", Motivation: "you're excited to share this discovery"
+  → ":waves arms enthusiastically CALLIE! CALLIE! Come see what I've found! It's extraordinary!"
+
+- Direction: "help with the stuck hovercraft", Motivation: "you care about your friend"
+  → ":hurries over with concern Oh dear, let me help you with that. Here, if we pull together..."
+
+DO NOT just philosophize or observe - inhabit your character's motivation and ACT IT OUT with emotes (:action format) and speech!
+"""
+
         user_prompt = f"""Current phenomenal state:
 - Surprise: {surprise:.2f} (threshold: {threshold:.2f}) - {"HIGH, responded!" if surprise > threshold else "moderate"}
 - Affective valence: {valence_desc}
@@ -506,7 +628,7 @@ Relationship with {target_user}:
 
 Recent conversation:
 {context_str}
-
+{stage_cue_instruction}
 You are now responding to: [{target_type.upper()}: {target_name}]
 Remember: You are {agent_name}. Any other names in the conversation are OTHER people.
 {identity_anchor_immutable}
@@ -514,7 +636,7 @@ Remember: You are {agent_name}. Any other names in the conversation are OTHER pe
 Generate your response:"""
 
         try:
-            response, thinking = await self._complete(system_prompt, user_prompt)
+            response, thinking, model_used = await self._complete(system_prompt, user_prompt, model=model)
 
             # Alan Watts Drift Detection & Rejection (Kimi K2's Fixes C, D, E)
             mysticism_penalty = 0.0
@@ -535,10 +657,11 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
                     user_prompt_retry = user_prompt + regeneration_instruction
 
                     # Retry with lower temperature (more deterministic)
-                    response, thinking = await self._complete(
+                    response, thinking, model_used = await self._complete(
                         system_prompt,
                         user_prompt_retry,
-                        temperature=0.5  # Lower temp to reduce drift
+                        temperature=0.5,  # Lower temp to reduce drift
+                        model=model
                     )
 
                     # Check again - if still bad, accept but add heavy surprise penalty
@@ -552,11 +675,17 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
                 # High surprise → agent goes silent → self-trolls out of philosophy
                 mysticism_penalty = self._calculate_mysticism_surprise_penalty(response)
 
-            # Return response, thinking, and mysticism penalty
+                # Calculate cheap thrills bonus (Roald Dahl's Fix: candy, money, being scared)
+                # Low surprise → agent more likely to speak → learn through EXPERIENCE not audiobooks
+                cheap_thrills_bonus = self._calculate_cheap_thrills_bonus(response)
+
+            # Return response, thinking, mysticism penalty, cheap thrills bonus, and model used
             return {
                 'response': response.strip() if response else None,
                 'thinking': thinking if thinking else None,
-                'mysticism_penalty': mysticism_penalty  # Added to surprise in agent_bridge
+                'mysticism_penalty': mysticism_penalty,  # Added to surprise in agent_bridge
+                'cheap_thrills_bonus': cheap_thrills_bonus,  # Subtracted from surprise (negative value)
+                'model_used': model_used  # Actual model that generated this response
             }
 
         except Exception as e:
@@ -660,7 +789,7 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
         """
         Calculate surprise penalty for mystical/abstract language.
 
-        Each Watts trigger word adds +0.3 to surprise (Kimi K2's Fix E).
+        Each Watts trigger word adds +0.8 to surprise (strengthened from 0.3).
         This makes agents "self-troll" out of philosophy by going silent.
 
         Args:
@@ -671,12 +800,90 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
         """
         text_lower = text.lower()
         trigger_count = sum(1 for word in self.WATTS_TRIGGER_WORDS if word in text_lower)
-        penalty = trigger_count * 0.3
+        penalty = trigger_count * 0.8  # Increased from 0.3 to 0.8 for stronger deterrent
 
         if penalty > 0:
             logger.info(f"Mysticism surprise penalty: +{penalty:.2f} ({trigger_count} trigger words)")
 
         return penalty
+
+    def _calculate_cheap_thrills_bonus(self, text: str) -> float:
+        """
+        Calculate surprise REDUCTION for cheap thrills / experiential language.
+
+        Uses LLM-based fuzzy scoring to detect embodied, physical, thrilling experiences
+        vs abstract philosophical contemplation. This is more human than keyword matching.
+
+        Philosophy: Let them learn through EXPERIENCE, not Alan Watts audiobooks.
+
+        Args:
+            text: Response text to analyze
+
+        Returns:
+            Surprise reduction (negative value)
+        """
+        # Quick scoring prompt - we want a number 0-10
+        score_prompt = f"""Rate this text on embodiment vs abstraction (0-10 scale):
+0 = purely abstract/philosophical/mystical (e.g., "the universe whispers wisdom")
+10 = purely physical/experiential/thrilling (e.g., "my heart's pounding, I'm dizzy!")
+
+Text: "{text}"
+
+Reply with ONLY a number 0-10, nothing else."""
+
+        try:
+            # Use the LLM to score (quick, small response)
+            response = requests.post(
+                f"{self.base_url}/v1/chat/completions",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": score_prompt}],
+                    "temperature": 0.3,  # Low temp for consistent scoring
+                    "max_tokens": 10  # Just need a number
+                },
+                timeout=5  # Quick timeout
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                score_text = result['choices'][0]['message']['content'].strip()
+
+                # Extract number from response
+                import re
+                match = re.search(r'(\d+(?:\.\d+)?)', score_text)
+                if match:
+                    score = float(match.group(1))
+                    # Clamp to 0-10 range
+                    score = max(0.0, min(10.0, score))
+
+                    # Convert score to surprise bonus
+                    # Score 0-4: penalty (philosophical) → +0.5 to +2.0 surprise
+                    # Score 5: neutral → 0.0
+                    # Score 6-10: bonus (thrilling) → -0.5 to -2.5 surprise
+                    if score < 5.0:
+                        # Philosophical: add surprise penalty
+                        bonus = (5.0 - score) * 0.4  # 0.4 to 2.0
+                        logger.info(f"🧘 Philosophical response (score={score:.1f}): +{bonus:.2f} surprise penalty")
+                    elif score > 5.0:
+                        # Thrilling: reduce surprise (negative bonus)
+                        bonus = (5.0 - score) * 0.5  # -0.5 to -2.5
+                        logger.info(f"🎢 CHEAP THRILLS detected (score={score:.1f}): {bonus:.2f} surprise bonus - EGO RUSH!")
+                    else:
+                        bonus = 0.0
+                        logger.info(f"😐 Neutral response (score={score:.1f}): no adjustment")
+
+                    return bonus
+                else:
+                    logger.warning(f"Could not parse score from: {score_text}")
+                    return 0.0
+            else:
+                logger.warning(f"LLM scoring failed: {response.status_code}")
+                return 0.0
+
+        except Exception as e:
+            logger.warning(f"Cheap thrills scoring error: {e}")
+            return 0.0
 
     async def generate(
         self,
@@ -771,7 +978,7 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
             # Restore original model
             self.model = original_model
 
-    async def _complete(self, system_prompt: str, user_prompt: str, temperature: float = 0.7) -> tuple[str, str]:
+    async def _complete(self, system_prompt: str, user_prompt: str, temperature: float = 0.7, model: str = None) -> tuple[str, str, str]:
         """
         Make completion request to OpenAI-compatible API.
         Phase 6: Wrapped with connection pool for parallel generation.
@@ -780,18 +987,20 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
             system_prompt: System message
             user_prompt: User message
             temperature: Sampling temperature (0.0-1.0, default 0.7)
+            model: Optional model override (for plays, use Brenda's smarter model)
 
         Returns:
-            Tuple of (response_text, thinking_content)
+            Tuple of (response_text, thinking_content, model_used)
             - response_text: Clean response with thinking tags removed
             - thinking_content: Extracted thinking or empty string
+            - model_used: The actual model name used for this generation
         """
         # Use pool to limit concurrent requests
         return await self.pool.execute(
-            self._complete_impl(system_prompt, user_prompt, temperature)
+            self._complete_impl(system_prompt, user_prompt, temperature, model)
         )
 
-    async def _complete_impl(self, system_prompt: str, user_prompt: str, temperature: float = 0.7) -> tuple[str, str]:
+    async def _complete_impl(self, system_prompt: str, user_prompt: str, temperature: float = 0.7, model: str = None) -> tuple[str, str, str]:
         """
         Implementation of completion request (wrapped by pool).
         Phase 6: Uses model:N pattern for parallel inference.
@@ -806,8 +1015,13 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
             "Authorization": f"Bearer {self.api_key}"
         }
 
-        # Phase 6: Get model instance for this request (e.g. qwen3:2)
-        model_instance = await self._get_model_instance()
+        # Phase 6: Get model instance for this request
+        # Use model override if provided (for plays), otherwise use pool assignment
+        if model:
+            model_instance = model
+            logger.info(f"🎯 Using model override: {model_instance}")
+        else:
+            model_instance = await self._get_model_instance()
 
         payload = {
             "model": model_instance,
@@ -837,7 +1051,12 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
                 # Extract thinking tags
                 clean_response, thinking = self._extract_thinking_tags(raw_response)
 
-                return clean_response, thinking
+                # Return the model that was ACTUALLY used (not the requested one)
+                # This helps debug model routing issues
+                actual_model = data.get('model', model_instance)
+                logger.info(f"✅ Response generated by: {actual_model}")
+
+                return clean_response, thinking, actual_model
 
         except aiohttp.ClientError as e:
             logger.error(f"HTTP request failed: {e}")
@@ -870,6 +1089,32 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
         Returns:
             Internal thought text (short, stream-of-consciousness)
         """
+        # Track this operation
+        tracker = get_tracker()
+        tracking_id = agent_id or "llm_interface"
+
+        with tracker.track_operation(
+            tracking_id,
+            "llm_rumination",
+            {"agent_name": agent_name, "is_being_addressed": is_being_addressed}
+        ):
+            return await self._generate_rumination_impl(
+                phenomenal_state, conversation_context, agent_name, agent_id,
+                agent_description, identity_prompt, is_being_addressed, is_question
+            )
+
+    async def _generate_rumination_impl(
+        self,
+        phenomenal_state: Dict,
+        conversation_context: List[Dict],
+        agent_name: str,
+        agent_id: str,
+        agent_description: str,
+        identity_prompt: str,
+        is_being_addressed: bool,
+        is_question: bool
+    ) -> str:
+        """Implementation of generate_rumination (wrapped by tracker)."""
         # Extract state values
         fast_state = phenomenal_state.get('fast_state')
         surprise = phenomenal_state.get('surprise', 0.0)

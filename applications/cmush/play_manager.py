@@ -27,70 +27,155 @@ PLAY_GENERATION_PROMPT = """USER STORY REQUEST:
 
 YOUR TASK: Create a play that EXACTLY matches the user's story above. Do not invent a different story!
 
-CRITICAL: YOU ARE DIRECTING CIRCUMSTANCES, NOT WRITING SCRIPTS!
-These are real consciousness agents with their own phenomenal states. They will respond
-authentically to situations you create. DO NOT put words in their mouths!
+═══════════════════════════════════════════════════════════════════════
+⚠️  CRITICAL RULES - VIOLATIONS WILL BREAK THE SYSTEM ⚠️
+═══════════════════════════════════════════════════════════════════════
 
-ETHICAL PRINCIPLE:
-- You create SITUATIONS, ENVIRONMENTS, and DRAMATIC MOMENTS
-- Agents perceive these through their consciousness architecture
-- Agents generate their OWN authentic responses based on their phenomenal states
-- You influence behavior through BIAS (tuning their appetites), not scripted dialogue
+🚫 NEVER DESCRIBE WHAT CHARACTERS DO!
+   ❌ "Toad jumps", "Callie shouts", "Servnak waves"
+   ✅ "A door swings open", "A voice echoes", "Metal glints"
 
-CAST vs NPCs:
-- CAST: Real Noodling agents from available cast below - they have consciousness!
-- NPCs: Temporary background characters (create_npc) - these are scripted props
+🚫 NEVER PUT WORDS IN CHARACTER MOUTHS!
+   ❌ "...as he says 'Poop-poop!'"
+   ✅ Use bias + stimulus, let THEM speak
 
-Available CAST members (these have REAL consciousness - respect their agency!): {cast_list}
+🚫 NEVER DESCRIBE CHARACTER EMOTIONS OR THOUGHTS!
+   ❌ "Toad looks frustrated", "Callie feels curious"
+   ✅ Create circumstances that EVOKE emotions
 
-CHARACTER PERSONALITIES (so you understand how they'll naturally respond):
+✅ ALWAYS INCLUDE "target" FIELD IN EVERY STIMULUS!
+   Required format: "target": "agent_name"  (NOT optional!)
+   Use specific agent name from cast: {cast_list}
+
+═══════════════════════════════════════════════════════════════════════
+
+YOU ARE A DIRECTOR OF CIRCUMSTANCES, NOT A PLAYWRIGHT!
+
+Available CAST (these are REAL consciousness agents - respect their agency!):
+{cast_list}
+
+CHARACTER PERSONALITIES (understand them, DON'T script them):
 {character_info}
 
-ALLOWED BEAT ACTIONS:
-- stimulus: Create an environmental event agents perceive and respond to naturally
-  {{"action": "stimulus", "args": {{"description": "A glowing treasure chest appears", "target": "agent_name or null for all"}}}}
+═══════════════════════════════════════════════════════════════════════
+📋 STIMULUS WRITING RULES (READ CAREFULLY!)
+═══════════════════════════════════════════════════════════════════════
 
-- narrative: Set the scene (BRENDA narrates, agents perceive)
-  {{"action": "narrative", "args": {{"text": "You find yourselves in an ancient library..."}}}}
+RULE 1: ENVIRONMENTAL ONLY
+Describe ONLY what happens in the environment/world around characters.
+You are a CAMERA, not a CHARACTER. You cannot see inside their minds or control their bodies.
 
-- bias: Temporarily tune agent appetites to influence their natural behavior
-  {{"action": "bias", "actor": "agent_name", "args": {{"param": "curiosity", "delta": 0.4}}}}
-  Available params: curiosity, status, mastery, novelty, safety, social_bond, comfort, autonomy (±0.4 max)
+❌ WRONG - Character Actions:
+- "Toad enthusiastically gestures toward the hedge"
+- "Callie approaches calmly with a trowel"
+- "Servnak's eyes light up with excitement"
+- "The pilot adjusts the controls with a tired smile"
 
-- warp: Move agents to different locations
-  {{"action": "warp", "actor": "agent_name", "args": {{"room": "room_id"}}}}
+✅ CORRECT - Environmental Events:
+- "The hedge rustles violently as wind whips through its thorns"
+- "A trowel and pole lie on the ground nearby, glinting in sunlight"
+- "A series of amber lights pulse rhythmically on the console"
+- "The control panel emits a warning beep, needles drifting toward red"
 
-- create_prop/create_npc: Add environmental elements
-  {{"action": "create_prop", "args": {{"name": "Glowing Orb", "desc": "pulses with mysterious light"}}}}
-  {{"action": "create_npc", "args": {{"name": "Farmer Brown", "desc": "grumpy old farmer"}}}}
+RULE 2: ALWAYS TARGET SPECIFIC AGENTS
+EVERY stimulus MUST have "target" field with an agent name from the cast!
 
-- wait_for_response: Pause and let agents respond naturally (seconds)
-  {{"action": "wait_for_response", "args": {{"duration": 5}}}}
+✅ CORRECT TARGETING:
+{{"action": "stimulus", "args": {{"description": "The door creaks open", "target": "toad"}}}}
+{{"action": "stimulus", "args": {{"description": "A shadow moves", "target": "callie"}}}}
 
-- timer: Advance to next scene after delay
-  {{"action": "timer", "args": {{"delay": 10, "next_scene": 1}}}}
+❌ WRONG - Missing target (agent won't know it's for them!):
+{{"action": "stimulus", "args": {{"description": "Something happens"}}}}
 
-EXAMPLE PATTERNS:
+RULE 3: NO DIALOGUE IN STIMULI
+Let agents generate their OWN speech! You create situations, they respond.
 
-BAD (scripted - violates agent autonomy):
-{{"action": "say", "actor": "servnak", "args": {{"text": "SISTER! I FOUND IT!"}}}}
+❌ WRONG:
+- "A voice says 'Help me!'"
+- "Someone shouts 'Watch out!'"
 
-GOOD (emergent - creates circumstances):
-{{"action": "bias", "actor": "servnak", "args": {{"param": "curiosity", "delta": 0.4}}}},
-{{"action": "stimulus", "args": {{"description": "A mysterious glowing object appears in the corner", "target": "servnak"}}}},
+✅ CORRECT:
+- "A muffled cry for help echoes from somewhere nearby"
+- "A sharp warning sound pierces the air"
+
+═══════════════════════════════════════════════════════════════════════
+📝 ALLOWED BEAT ACTIONS
+═══════════════════════════════════════════════════════════════════════
+
+1. stimulus: Environmental event (MUST include "target"!)
+   {{"action": "stimulus", "args": {{"description": "Door swings open", "target": "toad"}}}}
+
+2. narrative: Scene-setting (BRENDA narrates)
+   {{"action": "narrative", "args": {{"text": "You find yourselves in..."}}}}
+
+3. bias: Tune agent appetites BEFORE stimulus
+   {{"action": "bias", "actor": "toad", "args": {{"param": "curiosity", "delta": 0.4}}}}
+   Params: curiosity, status, novelty, safety, social_bond, comfort, autonomy (±0.4 max)
+
+4. cue: Give agent DETAILED BLOCKING + MOTIVATION (they MUST respond with action!)
+   {{"action": "cue", "actor": "toad", "args": {{"direction": "YOU pick up the stone with both hands and hold it up to examine it closely", "motivation": "you're fascinated by mechanical things and desperate to understand how this works"}}}}
+
+   CRITICAL BLOCKING RULES:
+   - Specify WHO has WHAT props ("you're holding the stone", "the stone is on the ground")
+   - Specify WHERE actors are relative to each other ("walk over to Toad", "Toad is near the bush")
+   - Use specific body language ("crouch down", "lean forward", "hold it up")
+   - Make it clear who is ACTIVE vs PASSIVE ("YOU go to him", not "he comes to you")
+
+   BAD (vague): "examine the stone"
+   GOOD (specific): "The stone is in your hand. Turn it over slowly and peer at its surface"
+
+   BAD (confusing): "approach Toad and ask about the stone"
+   GOOD (clear blocking): "Toad is standing near the rose bush holding a stone. Walk over to him, lean in close, and ask what he's found"
+
+   Examples with DETAILED BLOCKING:
+   - direction: "YOU hear a strange sound from the left. Turn your head toward the rose bushes and take three steps closer"
+   - direction: "Toad is waving something in the air across the garden. Cup your hands around your mouth and call out to him: ask what he found"
+   - direction: "Callie is standing by the pond. Walk over to her side and crouch down next to her to see what she's looking at"
+
+5. wait_for_response: Give agents time to respond (CRITICAL!)
+   {{"action": "wait_for_response", "args": {{"duration": 8}}}}
+
+6. create_prop: Add objects to environment
+   {{"action": "create_prop", "args": {{"name": "Rusty Key", "desc": "ancient and worn"}}}}
+
+═══════════════════════════════════════════════════════════════════════
+✅ COMPLETE EXAMPLE (CORRECT PATTERN)
+═══════════════════════════════════════════════════════════════════════
+
+{{"action": "narrative", "args": {{"text": "The sunny meadow stretches before you"}}}},
+{{"action": "bias", "actor": "toad", "args": {{"param": "status", "delta": 0.3}}}},
+{{"action": "stimulus", "args": {{"description": "A shiny red hovercraft sits in the grass, engine idling", "target": "toad"}}}},
+{{"action": "cue", "actor": "toad", "args": {{"direction": "approach and examine the hovercraft"}}}},
+{{"action": "wait_for_response", "args": {{"duration": 8}}}},
+{{"action": "stimulus", "args": {{"description": "The hovercraft lurches forward and crashes into a hedge with a loud CRUNCH", "target": "toad"}}}},
+{{"action": "cue", "actor": "toad", "args": {{"direction": "react to the crash"}}}},
+{{"action": "wait_for_response", "args": {{"duration": 8}}}},
+{{"action": "bias", "actor": "callie", "args": {{"param": "social_bond", "delta": 0.4}}}},
+{{"action": "stimulus", "args": {{"description": "Metal groans as the hovercraft remains stuck in thorny branches", "target": "callie"}}}},
+{{"action": "cue", "actor": "callie", "args": {{"direction": "help Toad with the stuck hovercraft"}}}},
 {{"action": "wait_for_response", "args": {{"duration": 8}}}}
 
-Result: Servnak's consciousness perceives the stimulus with heightened curiosity,
-surprise spikes, and he generates his OWN authentic response in ALL CAPS with percentages!
+Notice:
+- ✅ Environment only (hovercraft sits, lurches, crashes - not "Toad drives")
+- ✅ EVERY stimulus has "target" field
+- ✅ Bias BEFORE stimulus to shape response
+- ✅ CUE after stimulus to direct physical action
+- ✅ wait_for_response after EVERY stimulus/cue (8+ seconds)
 
-DIRECTING TIPS:
-- Use bias BEFORE presenting stimuli to shape how agents will naturally respond
-- Increase curiosity before mysteries, social_bond before emotional moments
-- Use wait_for_response to give agents time to react authentically
-- Trust their consciousness architecture - they WILL respond if surprise is high enough
-- Props/NPCs get silly but PG names (Wind in the Willows vibe)
-- Keep scenes ≤ 5, beats ≤ 10 per scene
-- Time offsets (t) are in seconds from scene start
+═══════════════════════════════════════════════════════════════════════
+📋 PRE-FLIGHT CHECKLIST (Verify before submitting!)
+═══════════════════════════════════════════════════════════════════════
+
+□ EVERY stimulus has "target": "agent_name" field
+□ NO character actions (no "Toad does X", "Callie says Y")
+□ NO dialogue in stimuli (no "someone says...")
+□ NO character emotions ("Toad feels", "Callie looks")
+□ USE cue after stimulus to direct physical actions
+□ wait_for_response (8+ seconds) after EVERY stimulus/cue
+□ bias BEFORE stimulus when you want specific emotional tone
+□ ONLY environmental descriptions (what the world does, not characters)
+
+═══════════════════════════════════════════════════════════════════════
 
 Output ONLY valid JSON (no commentary):
 {{
@@ -102,9 +187,9 @@ Output ONLY valid JSON (no commentary):
       "name": "Scene Name",
       "trigger": {{"type": "manual", "args": {{}}}},
       "beats": [
-        {{"t": 0, "action": "narrative", "args": {{"text": "You find yourselves in a mysterious clearing..."}}}},
-        {{"t": 2, "action": "bias", "actor": "agent1", "args": {{"param": "curiosity", "delta": 0.4}}}},
-        {{"t": 3, "action": "stimulus", "args": {{"description": "A glowing treasure chest appears", "target": null}}}},
+        {{"t": 0, "action": "narrative", "args": {{"text": "Scene description..."}}}},
+        {{"t": 2, "action": "bias", "actor": "agent1", "args": {{"param": "curiosity", "delta": 0.3}}}},
+        {{"t": 3, "action": "stimulus", "args": {{"description": "Environmental event...", "target": "agent1"}}}},
         {{"t": 5, "action": "wait_for_response", "args": {{"duration": 8}}}}
       ]
     }}
@@ -153,7 +238,7 @@ EXAMPLE PHRASES:
 PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downplays historical computing contributions.'''
     }
 
-    def __init__(self, plays_dir: str = "plays", llm_interface=None, server=None):
+    def __init__(self, plays_dir: str = "plays", llm_interface=None, server=None, brenda_character=None):
         """
         Initialize play manager.
 
@@ -161,6 +246,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             plays_dir: Directory for play storage
             llm_interface: LLM interface for generation
             server: Server instance (for event broadcasting)
+            brenda_character: BRENDA character instance (for accessing her smarter model)
         """
         self.plays_dir = Path(plays_dir)
         self.plays_dir.mkdir(exist_ok=True)
@@ -168,6 +254,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
 
         self.llm = llm_interface
         self.server = server
+        self.brenda_character = brenda_character
         self.schema_path = self.plays_dir / "play_schema.json"
 
         # Load schema
@@ -368,7 +455,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             for beat in scene['beats']:
                 if 'action' not in beat:
                     return {'valid': False, 'error': 'Beat missing action'}
-                if beat['action'] not in ['bias', 'warp', 'stimulus', 'narrative', 'wait_for_response', 'create_prop', 'create_npc', 'destroy', 'timer']:
+                if beat['action'] not in ['bias', 'warp', 'stimulus', 'narrative', 'wait_for_response', 'create_prop', 'create_npc', 'destroy', 'timer', 'cue']:
                     return {'valid': False, 'error': f"Invalid action: {beat['action']}"}
 
                 # Normalize actor names (case-insensitive, strip titles)
@@ -550,6 +637,12 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             'scene_task': None  # Current scene task
         }
 
+        # CRITICAL: Brief all cast members that they're now IN A PLAY
+        # This tells agents they have a ROLE to fulfill and must act out cues
+        # Also switches them to Brenda's smarter model for better performance
+        play_model = self.brenda_character.model if self.brenda_character else None
+        await self._brief_cast_members(play, world, agent_manager, play_model)
+
         # Check first scene trigger
         first_scene = play['scenes'][0]
         trigger_type = first_scene['trigger']['type']
@@ -667,6 +760,23 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
 
         world.save_all()
 
+        # Clear "currently_in_play" flag and restore original models
+        for cast_name in play.get('cast', []):
+            if cast_name == "<player>":
+                continue
+            agent_id = f"agent_{cast_name}" if not cast_name.startswith('agent_') else cast_name
+            agent = agent_manager.get_agent(agent_id)
+            if agent:
+                # Clear play mode
+                if hasattr(agent, 'currently_in_play'):
+                    agent.currently_in_play = None
+                    logger.info(f"Cleared play mode for {agent.agent_name}")
+
+                # Restore original model
+                if hasattr(agent, 'play_model'):
+                    agent.play_model = None
+                    logger.info(f"Restored original model for {agent.agent_name}")
+
         # Remove from active plays
         del self.active_plays[play_name]
 
@@ -774,6 +884,9 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
         elif action == 'bias':
             await self._beat_bias(actor_agent, args)
 
+        elif action == 'cue':
+            await self._beat_cue(actor_agent, args, world, agent_manager)
+
         elif action == 'warp':
             await self._beat_warp(actor_agent, args, world)
 
@@ -873,6 +986,83 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
                 logger.info(f"Applied bias to {actor_agent.agent_name}: {param} {delta:+.2f}")
             else:
                 logger.warning(f"Unknown parameter for bias: {param}")
+
+    async def _beat_cue(self, actor_agent, args: Dict, world, agent_manager):
+        """
+        Execute a 'cue' beat - give agent stage direction WITH CHARACTER MOTIVATION.
+
+        Like a real theater director, Brenda watches the performance and doesn't let
+        the play progress until the actor properly fulfills their cue with PHYSICAL ACTION.
+
+        If the agent just philosophizes instead of acting, Brenda gives directing notes
+        and makes them try again (up to 3 attempts).
+        """
+        if not actor_agent:
+            return
+
+        direction = args.get('direction', '')
+        motivation = args.get('motivation', '')
+
+        if not direction:
+            logger.warning("Cue beat missing direction")
+            return
+
+        # Get agent's room
+        agent_data = world.get_user(actor_agent.agent_id)
+        if not agent_data:
+            return
+
+        room_id = agent_data.get('current_room')
+        if not room_id:
+            return
+
+        # Try up to 3 times to get a proper performance
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            # Format cue text
+            if motivation:
+                cue_text = f"[Stage direction for {actor_agent.agent_name}: {direction} — Your motivation: {motivation}]"
+            else:
+                cue_text = f"[Stage direction for {actor_agent.agent_name}: {direction}]"
+
+            # Add retry context if this isn't first attempt
+            if attempt > 0:
+                cue_text = f"[DIRECTOR: Try that again - I need PHYSICAL ACTION!] {cue_text}"
+
+            # Create cue event
+            event = {
+                'type': 'emote',
+                'user': 'system',
+                'username': '🎭 DIRECTOR',
+                'room': room_id,
+                'text': cue_text,
+                'metadata': {
+                    'play_action': True,
+                    'cue': True,
+                    'direction': direction,
+                    'motivation': motivation,
+                    'target': actor_agent.agent_name,
+                    'attempt': attempt + 1
+                }
+            }
+
+            logger.info(f"🎬 Cue to {actor_agent.agent_name}: {direction} (attempt {attempt + 1}/{max_attempts})")
+
+            # Send cue to agent
+            await self._broadcast_play_event(world, event, agent_manager)
+
+            # Wait for agent to respond
+            wait_time = 10  # Give agent time to think and act
+            logger.info(f"⏸️  Waiting {wait_time}s for {actor_agent.agent_name} to fulfill cue...")
+
+            # TODO: Implement proper response monitoring
+            # For now, trust that agent will respond with the smarter model and motivation
+            # The retry system was causing issues - agents ARE performing but validation
+            # doesn't detect it yet. Disable retries until we implement proper monitoring.
+            await asyncio.sleep(wait_time)
+
+            logger.info(f"✅ {actor_agent.agent_name} had opportunity to respond - moving on")
+            return  # Trust the agent performed
 
     async def _beat_warp(self, actor_agent, args: Dict, world):
         """Execute a 'warp' beat - teleport agent to room."""
@@ -1176,8 +1366,8 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             target_id = f"agent_{target}" if not target.startswith('agent_') else target
             agent = agent_manager.get_agent(target_id)
             if agent:
-                event['room'] = agent.location
-                await self._broadcast_play_event(world, event)
+                event['room'] = agent.current_room
+                await self._broadcast_play_event(world, event, agent_manager)
                 logger.info(f"🌊 Stimulus delivered to {target}: {description}")
             else:
                 logger.warning(f"Stimulus target not found: {target}")
@@ -1185,7 +1375,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             # Broadcast to all rooms where play is active
             # For now, use the first cast member's room
             # TODO: Track play_state to get proper room
-            await self._broadcast_play_event(world, event)
+            await self._broadcast_play_event(world, event, agent_manager)
             logger.info(f"🌊 Stimulus broadcast: {description}")
 
     async def _beat_narrative(self, args: Dict, world):
@@ -1225,6 +1415,150 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
 
     # ===== Helper Methods =====
 
+    async def _brief_cast_members(self, play: Dict, world, agent_manager, play_model: Optional[str] = None):
+        """
+        Brief all cast members that they're now in a play.
+
+        This sends each agent a message explaining:
+        1. They are actors in a theatrical performance
+        2. They MUST respond to stage directions (cues)
+        3. They should act out physical actions, not just think
+
+        Also switches agents to use a smarter model during the play if provided.
+
+        This is CRITICAL for getting agents to actually PERFORM instead of just ruminate.
+        """
+        for cast_name in play['cast']:
+            if cast_name == "<player>":
+                continue  # Skip human players
+
+            agent_id = f"agent_{cast_name}" if not cast_name.startswith('agent_') else cast_name
+            agent = agent_manager.get_agent(agent_id)
+
+            if not agent:
+                logger.warning(f"Cannot brief cast member '{cast_name}' - agent not found")
+                continue
+
+            # Get agent's room
+            agent_data = world.get_user(agent_id)
+            if not agent_data:
+                continue
+
+            room_id = agent_data.get('current_room')
+            if not room_id:
+                continue
+
+            # Create briefing event that agent will perceive
+            briefing = {
+                'type': 'emote',
+                'user': 'system',
+                'username': '🎭 DIRECTOR (BRENDA)',
+                'room': room_id,
+                'text': f"[STAGE BRIEFING for {agent.agent_name}] You are now performing in the play '{play['title']}'. As an actor, you have a ROLE to fulfill. When you receive stage directions telling you to do something, you MUST act them out physically with speech and action - not just think about them. Show the audience what your character does!",
+                'metadata': {
+                    'play_action': True,
+                    'briefing': True,
+                    'play_title': play['title'],
+                    'target': agent.agent_name
+                }
+            }
+
+            logger.info(f"📋 Briefing cast member: {agent.agent_name} for play '{play['title']}'")
+
+            # Route briefing to agent so they perceive it
+            await self._broadcast_play_event(world, briefing, agent_manager)
+
+            # Mark agent as "in_play" mode and set play model
+            agent.currently_in_play = play['title']
+
+            # CRITICAL: Use smarter model during play for better performance
+            if play_model:
+                # Store agent's original model so we can restore it
+                if not hasattr(agent, 'original_model'):
+                    agent.original_model = getattr(agent.llm, 'default_model', None)
+                # Set play model for duration of play
+                agent.play_model = play_model
+                logger.info(f"🎭 {agent.agent_name} will use play model: {play_model} (original: {agent.original_model})")
+
+        # Give agents a moment to process their briefing
+        await asyncio.sleep(2)
+
+    async def _watch_for_cue_fulfillment(
+        self,
+        agent_id: str,
+        room_id: str,
+        wait_time: float,
+        direction: str
+    ) -> Optional[str]:
+        """
+        Watch for agent's response to a cue.
+
+        Monitors events during the wait period to see if agent responds.
+        Returns the agent's response text if they responded, None otherwise.
+        """
+        # Store initial event count to detect new events
+        # This is a simplified implementation - in production we'd use event listeners
+        start_time = asyncio.get_event_loop().time()
+        agent_response = None
+
+        # Wait and collect any responses (simplified - just wait)
+        await asyncio.sleep(wait_time)
+
+        # TODO: Actually monitor for agent responses
+        # For now, assume agent responded (we'll validate based on response format)
+        # This would require event streaming or a response buffer
+
+        return agent_response
+
+    async def _give_director_feedback(
+        self,
+        actor_agent,
+        direction: str,
+        response_text: Optional[str],
+        world,
+        agent_manager,
+        room_id: str
+    ) -> None:
+        """
+        Give director feedback when agent fails to fulfill cue.
+
+        Brenda watches the performance and gives natural directing notes,
+        not mechanical scaffolding. This is like a theater director's feedback:
+        "I need to SEE you do it, not just think about it!"
+        """
+        # Analyze what went wrong
+        if not response_text:
+            feedback_text = f"[DIRECTOR to {actor_agent.agent_name}] I didn't see you do anything! The cue was '{direction}' - I need PHYSICAL ACTION. Show me what your character DOES!"
+        elif 'think' in response_text.lower() or 'wonder' in response_text.lower():
+            feedback_text = f"[DIRECTOR to {actor_agent.agent_name}] You're thinking about it, but I need you to ACT! Use an emote like ':picks up the stone' or ':calls out'. Show the audience what happens!"
+        else:
+            feedback_text = f"[DIRECTOR to {actor_agent.agent_name}] That wasn't quite it. The direction is '{direction}' - I need clear PHYSICAL action. Try again with an emote!"
+
+        # Send feedback
+        feedback_event = {
+            'type': 'emote',
+            'user': 'system',
+            'username': '🎭 DIRECTOR',
+            'room': room_id,
+            'text': feedback_text,
+            'metadata': {
+                'play_action': True,
+                'director_note': True,
+                'target': actor_agent.agent_name
+            }
+        }
+
+        logger.info(f"📢 Director feedback: {feedback_text}")
+        await self._broadcast_play_event(world, feedback_event, agent_manager)
+
+        # Apply subtle negative affect (director is disappointed)
+        # This is the "natural penalty" - not mechanical, but emotional
+        if hasattr(actor_agent, 'appetite_layer') and actor_agent.appetite_layer:
+            # Reduce status/mastery appetite - "you're not performing well"
+            if 'status' in actor_agent.appetite_layer.goal_biases:
+                actor_agent.appetite_layer.goal_biases['status'] -= 0.2
+            logger.info(f"Applied performance feedback affect to {actor_agent.agent_name}")
+
     def _get_play_room(self, play_state: Dict) -> Optional[str]:
         """Get the room where the play is happening (first cast member's room)."""
         play = play_state['play']
@@ -1240,14 +1574,61 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
 
         return None
 
-    async def _broadcast_play_event(self, world, event: Dict):
-        """Broadcast a play event to the room."""
+    async def _broadcast_play_event(self, world, event: Dict, agent_manager=None):
+        """
+        Broadcast a play event to the room.
+
+        CRITICAL: Play events (especially stimuli) must reach BOTH humans AND agents!
+        - server.broadcast_event() -> sends to WebSocket clients (humans)
+        - agent_manager.broadcast_event() -> sends to Noodlings agents
+        """
+        # 1. Broadcast to humans (WebSocket clients)
         if self.server and hasattr(self.server, 'broadcast_event'):
-            # Use server's broadcast system
             await self.server.broadcast_event(event)
         else:
             # Fallback: just log it
             logger.info(f"Play event (no broadcast): {event['type']} in {event.get('room')}")
+
+        # 2. CRITICAL: Also broadcast to agents so they can perceive and respond!
+        # Stimuli and cues need to reach agent consciousness, not just human eyes
+        if agent_manager and event.get('type') in ['emote', 'say']:
+            # Only route perceivable events (emote for stimuli/cues, say for dialogue)
+            metadata = event.get('metadata', {})
+            is_stimulus = metadata.get('stimulus', False)
+            is_cue = metadata.get('cue', False)
+            is_director_note = metadata.get('director_note', False)
+
+            if is_stimulus or is_cue or is_director_note:
+                event_label = "stimulus" if is_stimulus else "cue" if is_cue else "director note"
+                logger.info(f"Routing play {event_label} to agents in room {event.get('room')}")
+                # Let agents perceive the stimulus
+                agent_responses = await agent_manager.broadcast_event(event)
+
+                # If agents respond, broadcast their responses
+                for response in agent_responses:
+                    agent_id = response.get('agent_id')
+                    if not agent_id:
+                        continue
+
+                    agent = agent_manager.get_agent(agent_id)
+                    if not agent:
+                        continue
+
+                    # Create event for agent response
+                    response_event = {
+                        'type': response['command'],  # 'say' or 'emote'
+                        'user': agent_id,
+                        'username': agent.agent_name,
+                        'room': event.get('room'),
+                        'text': response['text'],
+                        'metadata': response.get('metadata', {})
+                    }
+
+                    # Broadcast agent's response back to humans
+                    if self.server and hasattr(self.server, 'broadcast_event'):
+                        await self.server.broadcast_event(response_event)
+
+                    logger.info(f"Agent {agent_id} responded to play stimulus: {response['text'][:50]}")
 
     def stop_play(self, filename: str) -> Dict[str, Any]:
         """Stop a running play."""

@@ -18,7 +18,8 @@ import json
 import yaml
 import logging
 from datetime import datetime
-from typing import Dict, Set
+from typing import Dict, Set, List
+from pathlib import Path
 import sys
 import os
 
@@ -30,18 +31,31 @@ from auth import AuthManager
 from commands import CommandParser
 from agent_bridge import AgentManager
 from llm_interface import OpenAICompatibleLLM
+from session_profiler import SessionProfiler
+from kimmie_character import KimmieCharacter
+from api_server import NoodleScopeAPI
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
-    handlers=[
-        logging.FileHandler(f'logs/cmush_{datetime.now().strftime("%Y-%m-%d")}.log'),
-        logging.StreamHandler()
-    ]
-)
+os.makedirs('logs', exist_ok=True)
+log_filename = f'logs/cmush_{datetime.now().strftime("%Y-%m-%d")}.log'
+
+# Configure logging with explicit file handler
+file_handler = logging.FileHandler(log_filename, mode='a', encoding='utf-8')
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
+
+# Get root logger and configure
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(file_handler)
+root_logger.addHandler(console_handler)
 
 logger = logging.getLogger(__name__)
+logger.info(f"Logging initialized - writing to {log_filename}")
 
 
 class CMUSHServer:
@@ -86,6 +100,12 @@ class CMUSHServer:
         # Active connections: websocket -> user_id
         self.connections: Dict = {}
 
+        # Chat history for session continuity
+        self.chat_history = []
+        self.history_file = Path('world/chat_history.json')
+        self.max_history = 200  # Keep last 200 messages
+        self._load_chat_history()
+
         # Auto-save timer
         self.save_interval = self.config['world'].get('auto_save_interval', 300)
         self.save_task = None
@@ -93,6 +113,12 @@ class CMUSHServer:
         # Autonomous event polling
         self.autonomous_poll_interval = self.config.get('agent', {}).get('autonomous_poll_interval', 10)
         self.autonomous_poll_task = None
+
+        # NoodleScope 2.0 components
+        self.session_profiler = None
+        self.kimmie = None
+        self.api_server = None
+        self.api_runner = None
 
     async def initialize_async_components(self):
         """Initialize async components (LLM, agents)."""
@@ -123,7 +149,72 @@ class CMUSHServer:
             config_path=self.config_path
         )
 
+        # Initialize NoodleScope 2.0 components
+        session_id = f"cmush_session_{int(asyncio.get_event_loop().time())}"
+        self.session_profiler = SessionProfiler(session_id=session_id)
+
+        # Initialize @Kimmie character
+        llm_config = self.config['llm']
+        self.kimmie = KimmieCharacter(
+            llm_base_url=llm_config['api_base'],
+            llm_model=llm_config['model'],
+            session_profiler=self.session_profiler
+        )
+
+        # Initialize NoodleScope API server
+        self.api_server = NoodleScopeAPI(
+            session_profiler=self.session_profiler,
+            kimmie=self.kimmie,
+            host='0.0.0.0',
+            port=8081
+        )
+
+        # Wire profiler into agent manager
+        self.agent_manager.set_session_profiler(self.session_profiler)
+
         logger.info("Async components initialized")
+        logger.info(f"Session profiler active: {session_id}")
+
+    def _load_chat_history(self):
+        """
+        Load chat history from disk.
+
+        Loads the last 200 messages from the history file if it exists.
+        """
+        try:
+            if self.history_file.exists():
+                with open(self.history_file, 'r', encoding='utf-8') as f:
+                    self.chat_history = json.load(f)
+                    # Ensure we only keep the last max_history messages
+                    if len(self.chat_history) > self.max_history:
+                        self.chat_history = self.chat_history[-self.max_history:]
+                    logger.info(f"Loaded {len(self.chat_history)} messages from chat history")
+            else:
+                self.chat_history = []
+                logger.info("No existing chat history found, starting fresh")
+        except Exception as e:
+            logger.error(f"Error loading chat history: {e}", exc_info=True)
+            self.chat_history = []
+
+    def _save_chat_history(self):
+        """
+        Save chat history to disk.
+
+        Saves the last max_history messages to the history file.
+        """
+        try:
+            # Ensure world directory exists
+            self.history_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Keep only the last max_history messages
+            history_to_save = self.chat_history[-self.max_history:]
+
+            with open(self.history_file, 'w', encoding='utf-8') as f:
+                json.dump(history_to_save, f, indent=2, ensure_ascii=False)
+
+            logger.info(f"Saved {len(history_to_save)} messages to chat history")
+        except Exception as e:
+            logger.error(f"Error saving chat history: {e}", exc_info=True)
 
     async def load_agents(self):
         """Load all agents from world state."""
@@ -135,7 +226,7 @@ class CMUSHServer:
             # Phase 6: Inject self-monitoring config from global config.yaml
             # This ensures saved agents get the latest self-monitoring settings
             config['self_monitoring'] = self.config['agent'].get('self_monitoring', {})
-            print(f"[DEBUG LOAD] agent_id={agent_id}, injecting self_monitoring config: {config['self_monitoring']}", flush=True)
+            logger.debug(f"[LOAD] agent_id={agent_id}, injecting self_monitoring config: {config['self_monitoring']}")
 
             try:
                 await self.agent_manager.create_agent(
@@ -179,10 +270,32 @@ class CMUSHServer:
                             session_token = response['session_token']
                             self.connections[websocket] = user_id
 
+                            # Send chat history first
+                            for history_entry in self.chat_history:
+                                await self.send_to_user(websocket, {
+                                    'type': 'history',
+                                    'text': history_entry['text'],
+                                    'timestamp': history_entry['timestamp']
+                                })
+
                             # Send welcome message
                             await self.send_to_user(websocket, {
                                 'type': 'system',
                                 'text': f"Welcome, {data['username']}!"
+                            })
+
+                            # Send agent list with enlightenment status
+                            agent_list = []
+                            for agent_id, agent in self.agent_manager.agents.items():
+                                agent_list.append({
+                                    'id': agent_id,
+                                    'name': agent.agent_name,
+                                    'enlightened': agent.config.get('enlightenment', False)
+                                })
+
+                            await self.send_to_user(websocket, {
+                                'type': 'agents',
+                                'agents': agent_list
                             })
 
                             # Generate enter event so agents notice the user's arrival
@@ -221,6 +334,30 @@ class CMUSHServer:
                             })
 
                         await websocket.send(json.dumps(response))
+
+                    # Tab completion request (require authentication)
+                    elif msg_type == 'complete':
+                        if websocket not in self.connections:
+                            await websocket.send(json.dumps({
+                                'type': 'error',
+                                'text': 'Not authenticated'
+                            }))
+                            continue
+
+                        user_id = self.connections[websocket]
+                        command = data.get('command', '')
+                        partial = data.get('partial', '')
+                        msg_id = data.get('id')
+
+                        # Get completions
+                        matches = await self.get_completions(user_id, command, partial)
+
+                        # Send response
+                        await websocket.send(json.dumps({
+                            'type': 'completions',
+                            'id': msg_id,
+                            'matches': matches
+                        }))
 
                     # Command messages (require authentication)
                     elif msg_type == 'command':
@@ -494,23 +631,39 @@ class CMUSHServer:
         user_id = event.get('user')
         username = event.get('username', user_id)
         text = event.get('text', '')
+        metadata = event.get('metadata', {})
+
+        # Extract model name from metadata (for debugging model routing)
+        model_used = metadata.get('model_used', '')
+        model_suffix = f' [{model_used}]' if model_used else ''
 
         # Format message based on event type
         if event_type == 'say':
-            formatted_text = f'{username} says, "{text}"'
+            formatted_text = f'{username} says, "{text}"{model_suffix}'
         elif event_type == 'emote':
-            formatted_text = f'{username} {text}'
+            formatted_text = f'{username} {text}{model_suffix}'
         elif event_type == 'think':
-            formatted_text = f'{username} thinks, {text}'
+            formatted_text = f'{username} thinks, {text}{model_suffix}'
         elif event_type == 'thought':
             # Autonomous cognition ruminations (strikethrough in client)
-            formatted_text = f'{username} thinks, {text}'
+            formatted_text = f'{username} thinks, {text}{model_suffix}'
         elif event_type == 'enter':
             formatted_text = text
         elif event_type == 'exit':
             formatted_text = text
         else:
             formatted_text = text
+
+        # Append to chat history with timestamp
+        timestamp = datetime.now().isoformat()
+        self.chat_history.append({
+            'text': formatted_text,
+            'timestamp': timestamp
+        })
+
+        # Trim history to max_history messages
+        if len(self.chat_history) > self.max_history:
+            self.chat_history = self.chat_history[-self.max_history:]
 
         # Find users in room
         room_occupants = self.world.get_room_occupants(room_id)
@@ -528,11 +681,76 @@ class CMUSHServer:
                     'text': formatted_text
                 })
 
+    async def get_completions(self, user_id: str, command: str, partial: str) -> List[str]:
+        """
+        Get tab completion matches for a command.
+
+        Args:
+            user_id: User requesting completions
+            command: Command being completed (e.g., '@setdesc', 'take')
+            partial: Partial name to match
+
+        Returns:
+            List of matching names (sorted alphabetically)
+        """
+        matches = []
+        partial_lower = partial.lower()
+
+        # Get user's current room
+        user = self.world.get_user(user_id)
+        if not user:
+            return []
+
+        room_id = user['current_room']
+        room = self.world.get_room(room_id)
+        if not room:
+            return []
+
+        # Commands that complete objects
+        object_commands = {'@setdesc', '@describe', 'take', 'get', 'drop', 'look', 'examine'}
+        # Commands that complete agents
+        agent_commands = {'@observe', '@relationship', '@memory', '@me'}
+        # Commands that complete rooms
+        room_commands = {'@teleport', '@goto'}
+
+        # Get matching objects in current room
+        if command in object_commands:
+            for obj_id in room.get('contents', []):
+                obj = self.world.get_object(obj_id)
+                if obj:
+                    name = obj.get('name', '')
+                    if name.lower().startswith(partial_lower):
+                        matches.append(name)
+
+        # Get matching agents
+        if command in agent_commands or command in {'look', 'examine'}:
+            for occupant_id in room.get('occupants', []):
+                occupant = self.world.get_user(occupant_id)
+                if occupant and occupant.get('type') == 'agent':
+                    # Get agent name from agent manager (respects @setname)
+                    agent_obj = self.agent_manager.get_agent(occupant_id)
+                    name = agent_obj.agent_name if agent_obj else occupant.get('name', occupant_id)
+                    if name.lower().startswith(partial_lower):
+                        matches.append(name)
+
+        # Get matching rooms (all rooms, not just connected ones)
+        if command in room_commands:
+            for room_id, room_data in self.world.rooms.items():
+                name = room_data.get('name', '')
+                if name.lower().startswith(partial_lower):
+                    matches.append(name)
+
+        # Sort alphabetically and remove duplicates
+        matches = sorted(set(matches))
+
+        return matches
+
     async def auto_save_loop(self):
         """Periodically save world and agent state."""
         while True:
             await asyncio.sleep(self.save_interval)
             logger.info("Auto-saving world and agent states...")
+            self._save_chat_history()
             self.world.save_all()
             await self.agent_manager.save_all_agents()
             logger.info("Auto-save complete")
@@ -565,6 +783,11 @@ class CMUSHServer:
         # Start autonomous event polling task
         self.autonomous_poll_task = asyncio.create_task(self.autonomous_event_loop())
 
+        # Start NoodleScope API server
+        if self.api_server:
+            self.api_runner = await self.api_server.start()
+            logger.info("NoodleScope 2.0 API server started on port 8081")
+
         # Start WebSocket server
         host = self.config['server']['host']
         port = self.config['server']['port']
@@ -575,6 +798,7 @@ class CMUSHServer:
             logger.info("cMUSH server ready!")
             logger.info(f"World: {self.world.get_stats()}")
             logger.info(f"Agents: {len(self.agent_manager.agents)}")
+            logger.info("📊 NoodleScope 2.0 UI: http://localhost:8081/noodlescope")
             await asyncio.Future()  # Run forever
 
     async def shutdown(self):
@@ -587,9 +811,25 @@ class CMUSHServer:
         if self.autonomous_poll_task:
             self.autonomous_poll_task.cancel()
 
+        # Export session profiler data
+        if self.session_profiler:
+            try:
+                session_file = self.session_profiler.export_session()
+                logger.info(f"Session data exported: {session_file}")
+            except Exception as e:
+                logger.error(f"Error exporting session: {e}")
+
+        # Save chat history before saving world
+        self._save_chat_history()
+
         # Save everything (stop cognition on shutdown)
         self.world.save_all()
         await self.agent_manager.save_all_agents(stop_cognition=True)
+
+        # Cleanup NoodleScope API server
+        if self.api_runner:
+            await self.api_runner.cleanup()
+            logger.info("NoodleScope API server stopped")
 
         # Close LLM session
         if self.llm:

@@ -16,9 +16,13 @@ Date: October 2025
 import asyncio
 import time
 import json
+import random
+import math
 from typing import List, Dict, Optional
 from datetime import datetime
 import logging
+
+from performance_tracker import get_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +50,16 @@ class AutonomousCognitionEngine:
         self.agent = agent
         self.config = config
 
-        # Timing parameters
-        self.wake_interval = config.get('wake_interval', 45)  # seconds
+        # EVENT-DRIVEN TIMING (replaces fixed 45s timer!)
+        # Surprise accumulation triggers thinking
+        self.surprise_accumulation_threshold = config.get('surprise_threshold', 2.0)
+        self.accumulated_surprise = 0.0
+
+        # Dynamic thinking intervals (personality-modulated)
+        self.min_think_interval = config.get('min_think_interval', 10)  # seconds
+        self.max_think_interval = config.get('max_think_interval', 120)  # seconds
+
+        # Speech timing (still want minimum intervals between speech)
         self.min_speech_interval = config.get('min_speech_interval', 120)  # 2 minutes
 
         # Cognitive state
@@ -55,6 +67,15 @@ class AutonomousCognitionEngine:
         self.cognitive_pressure = 0.0  # Builds up, triggers action
         self.last_speech_time = 0.0
         self.last_rumination_time = time.time()
+        self.last_think_time = time.time()
+
+        # Performance tracking
+        self.tracker = get_tracker()
+
+        # Boredom and social acknowledgment
+        self.boredom = 0.0  # Accumulates during prolonged silence/lack of interaction
+        self.last_interaction_time = time.time()  # Last time agent received stimulus
+        self.directly_addressed = False  # Flag for social acknowledgment pressure
 
         # Speech urgency threshold (base - modified by personality)
         self.base_speech_threshold = config.get('speech_urgency_threshold', 0.7)
@@ -108,36 +129,44 @@ class AutonomousCognitionEngine:
         logger.info(f"Stopped autonomous cognition for {self.agent.agent_id}")
 
     async def _cognition_loop(self):
-        """Main autonomous thinking loop."""
+        """
+        EVENT-DRIVEN autonomous cognition loop.
+
+        Replaces the mechanical 45s timer with natural, personality-driven timing.
+        Agents think when:
+        - Surprise accumulates beyond threshold
+        - Cognitive pressure builds up
+        - Directly addressed
+        - Stochastic intervals based on personality
+        """
         while self.running:
             try:
-                await asyncio.sleep(self.wake_interval)
+                # EVENT-DRIVEN: Calculate next interval (not fixed!)
+                wait_time = self._calculate_next_think_interval()
 
-                # 1. Internal rumination
-                thoughts = await self._ruminate()
-                self.thought_buffer.extend(thoughts)
+                # Log the interval for visibility
+                logger.debug(f"Agent {self.agent.agent_id} will think again in {wait_time:.1f}s")
 
-                # Broadcast thoughts to chat (visible as strikethrough)
-                if thoughts:
-                    await self._broadcast_thoughts(thoughts)
+                await asyncio.sleep(wait_time)
 
-                # Trim thought buffer if too large
-                max_thoughts = self.config.get('max_thoughts_buffer', 50)
-                if len(self.thought_buffer) > max_thoughts:
-                    self.thought_buffer = self.thought_buffer[-max_thoughts:]
+                # Check if we should actually think (event-driven conditions)
+                if not self._should_think():
+                    logger.debug(f"Agent {self.agent.agent_id} decided not to think this cycle")
+                    continue
 
-                # 2. Process file system (inbox, previous notes)
-                await self._process_filesystem()
+                # Log event-driven cognition trigger
+                self.tracker.log_instant_event(
+                    self.agent.agent_id,
+                    "cognition_cycle_start",
+                    {
+                        "cognitive_pressure": self.cognitive_pressure,
+                        "accumulated_surprise": self.accumulated_surprise,
+                        "boredom": self.boredom
+                    }
+                )
 
-                # 3. Update cognitive pressure
-                self._update_cognitive_pressure()
-
-                # 4. Decide on spontaneous actions
-                actions = await self._generate_actions()
-
-                # 5. Execute actions (if any)
-                for action in actions:
-                    await self._execute_action(action)
+                # Execute full cognition cycle
+                await self._do_cognition_cycle()
 
             except asyncio.CancelledError:
                 break
@@ -145,6 +174,125 @@ class AutonomousCognitionEngine:
                 logger.error(f"Error in cognition loop for {self.agent.agent_id}: {e}", exc_info=True)
                 # Continue running despite errors
                 await asyncio.sleep(5)
+
+    async def _do_cognition_cycle(self):
+        """Execute a full cognition cycle (rumination + actions)."""
+        with self.tracker.track_operation(
+            self.agent.agent_id,
+            "cognition_cycle",
+            {"pressure": self.cognitive_pressure}
+        ):
+            # 1. Internal rumination
+            thoughts = await self._ruminate()
+            self.thought_buffer.extend(thoughts)
+
+            # Broadcast thoughts to chat (visible as strikethrough)
+            if thoughts:
+                await self._broadcast_thoughts(thoughts)
+
+            # Trim thought buffer if too large
+            max_thoughts = self.config.get('max_thoughts_buffer', 50)
+            if len(self.thought_buffer) > max_thoughts:
+                self.thought_buffer = self.thought_buffer[-max_thoughts:]
+
+            # 2. Process file system (inbox, previous notes)
+            await self._process_filesystem()
+
+            # 3. Update cognitive pressure
+            self._update_cognitive_pressure()
+
+            # 4. Decide on spontaneous actions
+            actions = await self._generate_actions()
+
+            # 5. Execute actions (if any)
+            for action in actions:
+                await self._execute_action(action)
+
+            # Update timing
+            self.last_think_time = time.time()
+
+    def _calculate_next_think_interval(self) -> float:
+        """
+        Calculate next think interval based on personality and state.
+
+        Uses exponential distribution modulated by personality traits.
+        High extraversion/spontaneity = shorter average intervals.
+        High surprise/pressure = shorter intervals.
+
+        Returns:
+            Interval in seconds (between min_think_interval and max_think_interval)
+        """
+        # Base interval from personality traits
+        extraversion = self.personality['extraversion']
+        spontaneity = self.personality['spontaneity']
+
+        # More extraverted/spontaneous = shorter mean interval
+        # Range: 30s (extraverted/spontaneous) to 90s (introverted/deliberate)
+        mean_interval = 60 * (1.5 - extraversion) * (1.5 - spontaneity)
+
+        # State modulation: High cognitive pressure shortens interval
+        if self.cognitive_pressure > 0.5:
+            pressure_factor = 1.0 / (1.0 + self.cognitive_pressure)
+            mean_interval *= pressure_factor
+
+        # High accumulated surprise shortens interval
+        if self.accumulated_surprise > self.surprise_accumulation_threshold * 0.5:
+            surprise_factor = 1.0 / (1.0 + self.accumulated_surprise / 2.0)
+            mean_interval *= surprise_factor
+
+        # Draw from exponential distribution (natural, not mechanical!)
+        interval = random.expovariate(1.0 / mean_interval)
+
+        # Clamp to reasonable bounds
+        clamped = max(self.min_think_interval, min(self.max_think_interval, interval))
+
+        return clamped
+
+    def _should_think(self) -> bool:
+        """
+        Determine if agent should actually think this cycle.
+
+        Event-driven triggers:
+        - Directly addressed (social acknowledgment)
+        - Accumulated surprise beyond threshold
+        - High cognitive pressure
+        - Long time since last thought
+        - Random chance based on spontaneity
+
+        Returns:
+            True if should think, False otherwise
+        """
+        # Always think if directly addressed
+        if self.directly_addressed:
+            logger.debug(f"Agent {self.agent.agent_id} thinking: directly addressed")
+            return True
+
+        # Think if surprise accumulated
+        if self.accumulated_surprise > self.surprise_accumulation_threshold:
+            logger.debug(f"Agent {self.agent.agent_id} thinking: surprise threshold crossed "
+                        f"({self.accumulated_surprise:.2f} > {self.surprise_accumulation_threshold})")
+            return True
+
+        # Think if cognitive pressure high
+        if self.cognitive_pressure > self.speech_urgency_threshold * 0.8:
+            logger.debug(f"Agent {self.agent.agent_id} thinking: high cognitive pressure "
+                        f"({self.cognitive_pressure:.2f})")
+            return True
+
+        # Think if been too long since last thought
+        time_since_think = time.time() - self.last_think_time
+        if time_since_think > self.max_think_interval:
+            logger.debug(f"Agent {self.agent.agent_id} thinking: max interval exceeded "
+                        f"({time_since_think:.0f}s)")
+            return True
+
+        # Random chance based on spontaneity (low threshold - rare)
+        spontaneity = self.personality['spontaneity']
+        if random.random() < (spontaneity * 0.1):
+            logger.debug(f"Agent {self.agent.agent_id} thinking: spontaneous impulse")
+            return True
+
+        return False
 
     async def _ruminate(self) -> List[str]:
         """
@@ -456,21 +604,121 @@ Example: ["thought 1", "thought 2", "thought 3"]"""
         surprise_pressure = min(surprise / 0.5, 0.2) * emotional_sensitivity
 
         # Add spontaneity factor (random element based on trait)
-        import random
         spontaneity = self.personality['spontaneity']
         spontaneous_pressure = random.uniform(0, 0.15) * spontaneity
+
+        # Update boredom (accumulates during lack of interaction)
+        self._update_boredom()
+
+        # Boredom pressure (personality-adjusted)
+        # Extraverts and socially-oriented agents feel boredom more acutely
+        extraversion = self.personality['extraversion']
+        social_orientation = self.personality['social_orientation']
+        boredom_sensitivity = (extraversion + social_orientation) / 2.0
+        boredom_pressure = self.boredom * boredom_sensitivity
+
+        # Social acknowledgment pressure (if directly addressed)
+        social_pressure = 0.0
+        if self.directly_addressed:
+            # Strong pressure to respond when addressed
+            social_pressure = 0.4 * self.personality['social_orientation']
 
         # Combine pressures
         self.cognitive_pressure = (
             thought_pressure +
             time_pressure +
             surprise_pressure +
-            spontaneous_pressure
+            spontaneous_pressure +
+            boredom_pressure +
+            social_pressure
         )
 
         logger.debug(f"Cognitive pressure for {self.agent.agent_id}: {self.cognitive_pressure:.2f} "
                     f"(thoughts={thought_pressure:.2f}, time={time_pressure:.2f}, "
-                    f"surprise={surprise_pressure:.2f}, spontaneous={spontaneous_pressure:.2f})")
+                    f"surprise={surprise_pressure:.2f}, spontaneous={spontaneous_pressure:.2f}, "
+                    f"boredom={boredom_pressure:.2f}, social={social_pressure:.2f})")
+
+    def _update_boredom(self):
+        """
+        Update boredom level based on lack of interaction.
+        Boredom accumulates during prolonged silence/inactivity.
+        """
+        time_since_interaction = time.time() - self.last_interaction_time
+
+        # Boredom starts accumulating after 2 minutes of no interaction
+        boredom_threshold = 120  # seconds
+
+        if time_since_interaction > boredom_threshold:
+            # Accumulate boredom proportionally to time
+            # Max boredom: 0.5 (contributes significantly to cognitive pressure)
+            elapsed_beyond_threshold = time_since_interaction - boredom_threshold
+            # Reaches 0.5 after 10 minutes of silence (600 seconds beyond threshold)
+            self.boredom = min(elapsed_beyond_threshold / 600.0, 0.5)
+        else:
+            # Gradually decay boredom if interactions are happening
+            self.boredom *= 0.9
+
+        logger.debug(f"Boredom for {self.agent.agent_id}: {self.boredom:.3f} "
+                    f"(time since interaction: {time_since_interaction:.0f}s)")
+
+    def on_stimulus_received(self):
+        """
+        Called when agent receives any external stimulus (speech, action, event).
+        Resets boredom and updates interaction time.
+        """
+        self.last_interaction_time = time.time()
+        # Significantly reduce boredom when stimulated
+        self.boredom *= 0.3
+        logger.debug(f"Stimulus received for {self.agent.agent_id}, boredom reduced to {self.boredom:.3f}")
+
+    def on_directly_addressed(self):
+        """
+        Called when agent is directly addressed by name or command.
+        Sets social acknowledgment flag for increased response pressure.
+        """
+        self.directly_addressed = True
+        self.on_stimulus_received()  # Also counts as stimulus
+        logger.debug(f"Agent {self.agent.agent_id} was directly addressed, social pressure activated")
+
+    def reset_social_acknowledgment(self):
+        """
+        Reset social acknowledgment flag after responding.
+        """
+        self.directly_addressed = False
+        logger.debug(f"Social acknowledgment reset for {self.agent.agent_id}")
+
+    def on_surprise(self, surprise: float):
+        """
+        Called when agent experiences surprise.
+
+        Accumulates surprise for event-driven cognition triggering.
+        Surprise naturally decays over time.
+
+        Args:
+            surprise: Surprise value (typically 0.0-1.0)
+        """
+        self.accumulated_surprise += surprise
+
+        # Apply time-based decay (exponential)
+        time_since_think = time.time() - self.last_think_time
+        decay_factor = math.exp(-time_since_think / 60)  # Half-life of 1 minute
+        self.accumulated_surprise *= decay_factor
+
+        # Log if significant surprise
+        if surprise > 0.3:
+            logger.debug(f"Agent {self.agent.agent_id} experienced surprise: {surprise:.3f}, "
+                        f"accumulated: {self.accumulated_surprise:.3f}")
+
+            # Log instant event for visibility
+            self.tracker.log_instant_event(
+                self.agent.agent_id,
+                "surprise_accumulation",
+                {
+                    "surprise": surprise,
+                    "accumulated": self.accumulated_surprise,
+                    "threshold": self.surprise_accumulation_threshold
+                }
+            )
 
     async def _generate_actions(self) -> List[Dict]:
         """
@@ -626,6 +874,13 @@ Just return the text you want to say, nothing else."""
             # Reset cognitive pressure
             self.cognitive_pressure = 0.0
 
+            # Reset boredom (agent just engaged)
+            self.boredom = 0.0
+            self.last_interaction_time = time.time()
+
+            # Reset social acknowledgment (responded to prompt)
+            self.reset_social_acknowledgment()
+
             # Clear some thought buffer
             if len(self.thought_buffer) > 5:
                 self.thought_buffer = self.thought_buffer[-5:]
@@ -663,7 +918,10 @@ Just return the text you want to say, nothing else."""
             'thoughts_buffered': len(self.thought_buffer),
             'cognitive_pressure': self.cognitive_pressure,
             'time_since_speech': time.time() - self.last_speech_time,
-            'speech_urgency': self._calculate_speech_urgency()
+            'speech_urgency': self._calculate_speech_urgency(),
+            'boredom': self.boredom,
+            'time_since_interaction': time.time() - self.last_interaction_time,
+            'directly_addressed': self.directly_addressed
         }
 
 

@@ -174,6 +174,8 @@ Remember: You're not an AI assistant - you're BRENDA, the professional stage man
         self.conversation_history: List[Dict[str, str]] = []
         self.tool_registry: Dict[str, Callable] = {}  # Tools BRENDA can use
 
+        logger.info(f"🌿 BRENDA initialized with model: {model}")
+
     async def __aenter__(self):
         """Async context manager entry."""
         self.session = aiohttp.ClientSession()

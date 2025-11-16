@@ -11,10 +11,11 @@
     "occupants": [
       "user_caitlyn",
       "user_caity",
-      "agent_phi",
+      "user_Claude",
+      "agent_toad",
       "agent_callie",
-      "agent_sevnak",
-      "agent_phido"
+      "agent_servnak",
+      "agent_phi"
     ],
     "owner": "system",
     "created": "2025-10-26T13:51:25.550264"

@@ -1,4 +1,79 @@
 {
+  "agent_toad": {
+    "uid": "agent_toad",
+    "name": "toad",
+    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "current_room": "room_000",
+    "inventory": [],
+    "config": {
+      "self_monitoring": {
+        "agent_phi": {
+          "enabled": true
+        },
+        "agent_callie": {
+          "enabled": true
+        },
+        "agent_servnak": {
+          "enabled": true
+        },
+        "agent_toad": {
+          "enabled": true
+        }
+      }
+    },
+    "created": "2025-11-15T15:42:07.719264",
+    "last_active": "2025-11-15T15:42:07.719283"
+  },
+  "agent_callie": {
+    "uid": "agent_callie",
+    "name": "callie",
+    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "current_room": "room_000",
+    "inventory": [],
+    "config": {
+      "self_monitoring": {
+        "agent_phi": {
+          "enabled": true
+        },
+        "agent_callie": {
+          "enabled": true
+        },
+        "agent_servnak": {
+          "enabled": true
+        },
+        "agent_toad": {
+          "enabled": true
+        }
+      }
+    },
+    "created": "2025-11-15T15:42:07.729857",
+    "last_active": "2025-11-15T15:42:07.729864"
+  },
+  "agent_servnak": {
+    "uid": "agent_servnak",
+    "name": "servnak",
+    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "current_room": "room_000",
+    "inventory": [],
+    "config": {
+      "self_monitoring": {
+        "agent_phi": {
+          "enabled": true
+        },
+        "agent_callie": {
+          "enabled": true
+        },
+        "agent_servnak": {
+          "enabled": true
+        },
+        "agent_toad": {
+          "enabled": true
+        }
+      }
+    },
+    "created": "2025-11-15T16:44:45.613395",
+    "last_active": "2025-11-15T16:44:45.613412"
+  },
   "agent_phi": {
     "uid": "agent_phi",
     "name": "phi",
@@ -21,37 +96,7 @@
         }
       }
     },
-    "created": "2025-11-14T12:50:10.569240",
-    "last_active": "2025-11-14T12:50:10.569265"
-  },
-  "agent_callie": {
-    "uid": "agent_callie",
-    "name": "callie",
-    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
-    "current_room": "room_000",
-    "inventory": [],
-    "config": {},
-    "created": "2025-11-14T15:46:45.319654",
-    "last_active": "2025-11-14T15:46:45.319671"
-  },
-  "agent_sevnak": {
-    "uid": "agent_sevnak",
-    "name": "sevnak",
-    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
-    "current_room": "room_000",
-    "inventory": [],
-    "config": {},
-    "created": "2025-11-14T15:46:45.325333",
-    "last_active": "2025-11-14T15:46:45.325338"
-  },
-  "agent_phido": {
-    "uid": "agent_phido",
-    "name": "phido",
-    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
-    "current_room": "room_000",
-    "inventory": [],
-    "config": {},
-    "created": "2025-11-14T15:50:19.692844",
-    "last_active": "2025-11-14T15:50:19.692863"
+    "created": "2025-11-15T16:45:54.708515",
+    "last_active": "2025-11-15T16:45:54.708536"
   }
 }
