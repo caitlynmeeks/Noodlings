@@ -1,0 +1,36 @@
+# NoodleSTUDIO Dependencies
+
+# Core Qt Framework
+PyQt6>=6.6.0
+PyQt6-WebEngine>=6.6.0
+PyQt6-Charts>=6.6.0
+
+# Data Processing
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Configuration & Serialization
+PyYAML>=6.0
+toml>=0.10.2
+
+# HTTP & WebSocket Clients
+aiohttp>=3.9.0
+websockets>=12.0
+
+# Plotting & Visualization
+matplotlib>=3.8.0
+plotly>=5.18.0
+
+# Development Tools
+pytest>=7.4.0
+pytest-qt>=4.2.0
+pytest-asyncio>=0.21.0
+black>=23.12.0
+mypy>=1.7.0
+pylint>=3.0.0
+
+# Optional: Performance Profiling
+py-spy>=0.3.14
+
+# Optional: Packaging
+pyinstaller>=6.0.0

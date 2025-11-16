@@ -1,0 +1,226 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.NoodleStudio-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "fileList" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.build/sources",
+      "importPath" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/Sources/NoodleStudio/NoodleStudioApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "NoodleStudio",
+      "moduleOutputPath" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/Modules/NoodleStudio.swiftmodule",
+      "objects" : [
+        "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.build/NoodleStudioApp.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j32",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-module-cache-path",
+        "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "NoodleStudio_main",
+        "-parse-as-library",
+        "-swift-version",
+        "5",
+        "-F",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-sdk",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "noodlestudio"
+      ],
+      "outputFileMapPath" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.build/NoodleStudioApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/Modules/NoodleStudio.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/Sources/NoodleStudio/NoodleStudioApp.swift"
+      ],
+      "tempsPath" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "NoodleStudio" : [
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "-module-name",
+      "NoodleStudio",
+      "-package-name",
+      "noodlestudio",
+      "-incremental",
+      "-c",
+      "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/Sources/NoodleStudio/NoodleStudioApp.swift",
+      "-I",
+      "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-enable-batch-mode",
+      "-index-store-path",
+      "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j32",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-module-cache-path",
+      "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "NoodleStudio_main",
+      "-parse-as-library",
+      "-swift-version",
+      "5",
+      "-F",
+      "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+      "-sdk",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "noodlestudio",
+      "-driver-use-frontend-path",
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "NoodleStudio" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "enableAllTraits" : false
+  },
+  "writeCommands" : {
+    "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio-entitlement.plist" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<entitlement-plist>"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<com.apple.security.get-task-allow>"
+        }
+      ],
+      "outputFilePath" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio-entitlement.plist"
+    },
+    "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/Sources/NoodleStudio/NoodleStudioApp.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.build/sources"
+    },
+    "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.build/NoodleStudioApp.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/NoodleStudio.product/Objects.LinkFileList"
+    },
+    "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/thistlequell/git/noodlings_clean/applications/noodlestudio/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+    }
+  }
+}

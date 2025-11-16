@@ -29,6 +29,7 @@ import aiohttp
 
 from noodlings.api import NoodlingAgent as ConsilienceAgent
 from noodlings.metrics.consciousness_metrics import ConsciousnessMetrics
+from noodlings.utils.facs_mapping import affect_to_facs, facs_to_description, format_facs_for_renderer
 from llm_interface import OpenAICompatibleLLM
 from training_data_collector import TrainingDataCollector
 from agent_filesystem import AgentFilesystem
@@ -46,6 +47,11 @@ NOODLESCOPE_ENABLED = True  # Set to False to disable
 # Phase 6: Self-Monitoring Configuration
 SELF_MONITOR_COOLDOWN = 30  # Seconds between self-evaluations
 SELF_MONITOR_SURPRISE_THRESH = 0.1  # Only evaluate if surprise > threshold (lowered for testing)
+
+# FACS Facial Expression Configuration
+FACS_ENABLED = True  # Enable facial expressions based on affect
+FACS_THRESHOLD = 0.15  # Minimum affect change to trigger facial expression
+FACS_COOLDOWN = 5.0  # Seconds between facial expressions (prevent spam)
 
 # LLM Prompt for speech self-evaluation
 SPEECH_EVAL_PROMPT = """You are evaluating what you just said from your own perspective.
@@ -160,6 +166,42 @@ CRITICAL RULES:
 - Keep cat sounds authentic: meow, purr, hiss, chirp, mew, mrrp
 
 Translate into kitten communication:"""
+
+    elif 'mysterious_stranger' in agent_id.lower() or 'mysterious' in agent_id.lower():
+        prompt = f"""Translate this text into the Mysterious Stranger's PARANOID FUGITIVE voice.
+
+The Mysterious Stranger is a NERVOUS FUGITIVE (think: Chris Elliott's "Fugitive Guy") who:
+- Is PARANOID and jumpy (constantly checking surroundings)
+- OVER-EXPLAINS then panics: "I was at the... wait, I wasn't there! I mean--"
+- Makes nervous "honk" sounds when anxious (which is ALWAYS)
+- Says "we" then FREAKS OUT and corrects to "I"
+- TERRIBLE at lying (sweats, ruffles feathers, fidgets)
+- Waddles hurriedly, especially when trying to escape conversations
+- White feathers EXPLODE from coat when panicked
+- Gets EXTREMELY defensive about alleged crimes, bakeries, birds
+
+Input: "{text}"
+
+Examples - CHRIS ELLIOTT FUGITIVE ENERGY:
+- "Hello" → "*glances around nervously* :honks: H-hello! I'm just... passing through! Not staying!
+  Definitely not hiding! *feather drifts down*"
+- "I don't know" → "*sweating/ruffling intensifies* I don't know! I wasn't there! Wait, where?
+  I didn't say I wasn't anywhere! :honks anxiously: *waddles backwards*"
+- "I'm interested" → "*eyes widen at bread/pond/shiny thing, then catches self* We-- I mean, I...
+  NO! Not interested! Very disinterested! *can't stop staring* :honks softly:"
+- "Who are you?" → ":HONKS IN PANIC: Who's asking?! Are you with THEM?! I'm nobody! Just a regular...
+  tall... person! *pulls raincoat tighter, feathers everywhere*"
+- "Nice weather" → "*relaxes slightly* Yes, good for... flying-- I MEAN WALKING! For walking! Like
+  humans do! On legs! :honks defensively:"
+
+CRITICAL RULES:
+- Use ":honks:" for nervous sounds (never ":says:")
+- OVER-EXPLAIN then panic and backtrack
+- Accidentally reveal goose things ("we", "flying", "bread obsession") then FREAK OUT
+- Feathers fall at the WORST moments (when trying to seem normal)
+- Chris Elliott energy: Anxious, sweaty, terrible liar, adorable
+
+Translate into PARANOID FUGITIVE GEESE voice:"""
 
     elif 'phido' in agent_id.lower() or species == 'dog':
         prompt = f"""Translate this text into enthusiastic dog speech and behavior.
@@ -349,6 +391,9 @@ class CMUSHConsilienceAgent:
         self.withdrawn_users = {}  # user_id -> timestamp of withdrawal
 
         # Phase 6: Self-monitoring state
+        # FACS: Facial expression tracking
+        self.last_facial_expression_time = 0.0  # Cooldown tracker
+        self.previous_affect = None  # Track affect changes for FACS triggers
         self.last_self_monitor = 0.0  # Timestamp of last self-evaluation
         # Check agent-specific self-monitoring config
         # Config here is the 'agent' section, so self_monitoring is nested inside it
@@ -944,6 +989,60 @@ Generate intuitive awareness:"""
             logger.warning(f"[{self.agent_id}] Intuition generation failed: {e}")
             return None
 
+    async def _generate_facial_expression(self, affect: np.ndarray, force: bool = False) -> Optional[Dict]:
+        """
+        Generate FACS-based facial expression from current affect.
+
+        Args:
+            affect: 5-D affect vector [valence, arousal, fear, sorrow, boredom]
+            force: Force expression generation (ignore cooldown)
+
+        Returns:
+            Dict with facial expression event, or None if no expression
+        """
+        if not FACS_ENABLED:
+            return None
+
+        # Check cooldown
+        time_since_last = time.time() - self.last_facial_expression_time
+        if not force and time_since_last < FACS_COOLDOWN:
+            return None
+
+        # Check if affect has changed enough to warrant facial expression
+        if self.previous_affect is not None:
+            affect_diff = np.linalg.norm(affect - self.previous_affect)
+            if not force and affect_diff < FACS_THRESHOLD:
+                return None  # Affect hasn't changed enough
+
+        # Generate FACS codes from affect
+        facs_codes = affect_to_facs(affect)
+
+        if not facs_codes:
+            return None  # No expression to generate
+
+        # Get human-readable description
+        description = facs_to_description(facs_codes)
+
+        # Format for renderer (future 3D integration)
+        renderer_data = format_facs_for_renderer(facs_codes)
+
+        # Update tracking
+        self.last_facial_expression_time = time.time()
+        self.previous_affect = affect.copy()
+
+        # Log the expression
+        logger.info(f"[{self.agent_id}] Facial expression: {description}")
+        logger.debug(f"[{self.agent_id}] FACS codes: {facs_codes}")
+        logger.debug(f"[{self.agent_id}] Renderer data: {renderer_data}")
+
+        return {
+            'type': 'facial_expression',
+            'description': description,
+            'facs_codes': facs_codes,
+            'renderer_data': renderer_data,
+            'affect': affect.tolist()
+        }
+
     async def perceive_event(self, event: Dict) -> Optional[Dict]:
         """
         Process cMUSH event -> Consilience -> optional response.
@@ -1160,6 +1259,23 @@ Generate intuitive awareness:"""
             surprise_threshold = state.get('surprise_threshold', self.config.get('surprise_threshold', 0.3))
             if state['surprise'] > surprise_threshold * 1.5:
                 await self._log_to_noodlescope('surprise_spike', f"High surprise: {state['surprise']:.3f}")
+
+            # FACS: Generate facial expression based on affect
+            facial_expression = await self._generate_facial_expression(affect)
+            if facial_expression and state['surprise'] > 0.05:  # Only show if some surprise
+                # Store the facial expression for potential 3D renderer integration
+                self.last_facs_data = facial_expression['renderer_data']
+
+                # Format for chat display
+                # Format: *eyes wide with surprise, jaw dropped* [FACS: AU1, AU2, AU5, AU26]
+                facs_codes_str = ", ".join([f"AU{au}" for au, _ in facial_expression['facs_codes'][:4]])
+                expression_text = f"*{facial_expression['description']}* [FACS: {facs_codes_str}]"
+
+                logger.info(f"[{self.agent_id}] FACS Expression triggered: {expression_text}")
+
+                # Store facial expression to be returned along with speech/rumination
+                state['facial_expression'] = expression_text
+                state['facs_data'] = facial_expression['renderer_data']
 
             # EVENT-DRIVEN COGNITION: Notify autonomous cognition of surprise
             if hasattr(self, 'autonomous_cognition') and self.autonomous_cognition:
@@ -1452,6 +1568,18 @@ Generate intuitive awareness:"""
 
             results = []
 
+            # FACS: Add facial expression if generated (shows as non-verbal emote)
+            if 'facial_expression' in state:
+                results.append({
+                    'command': 'emote',
+                    'text': state['facial_expression'],
+                    'metadata': {
+                        'type': 'facial_expression',
+                        'facs_data': state.get('facs_data', {}),
+                        'surprise': float(state['surprise'])
+                    }
+                })
+
             # First, ruminate (if decided to) - include addressee context
             if should_ruminate:
                 logger.info(f"Agent {self.agent_id} ruminating (addressed={is_being_addressed})")
@@ -1473,11 +1601,12 @@ Generate intuitive awareness:"""
                 else:
                     logger.warning(f"Agent {self.agent_id} SPEECH GENERATION FAILED - response_result was None!")
 
-            # Prioritize speech over rumination when both happen
+            # Prioritize order: Facial expression → Rumination → Speech
+            # (FACS expressions show first as immediate reactions)
             if results:
-                # If we have both rumination and speech, return speech (last result)
-                # Speech is more important for conversation flow
-                return results[-1]
+                # Return first result (facial expression has priority if it exists)
+                # Server will broadcast all results in order
+                return results[0]
             else:
                 logger.debug(f"Agent {self.agent_id} observing silently")
                 return None
