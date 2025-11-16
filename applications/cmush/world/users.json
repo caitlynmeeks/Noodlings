@@ -7,24 +7,9 @@
     "inventory": [],
     "created": "2025-10-26T14:49:36.366158",
     "last_seen": "2025-11-14T03:17:36.224678",
-    "description": "A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)"
-  },
-  "user_caitlyn": {
-    "uid": "user_caitlyn",
-    "username": "caitlyn",
-    "password_hash": "d73c40a33ee84052e736db30b1eed25bade6786f3e37a04a472ccac94121864e:83bf81591e75bfb568fcd3343ffa036c",
-    "current_room": "room_000",
-    "inventory": [],
-    "created": "2025-11-10T18:29:58.590861",
-    "last_seen": "2025-11-10T18:29:58.590873"
-  },
-  "user_Claude": {
-    "uid": "user_Claude",
-    "username": "Claude",
-    "password_hash": "2229c84a0ea3894ce637713fd5be4378fe53d46c239669542d089cda2f406a0e:78cae0061b7781b31f092fcbc40ae324",
-    "current_room": "room_000",
-    "inventory": [],
-    "created": "2025-11-15T00:21:11.194622",
-    "last_seen": "2025-11-15T00:21:11.194625"
+    "description": "A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+    "species": "human",
+    "age": "9 years old",
+    "pronoun": "she"
   }
 }

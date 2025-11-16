@@ -239,6 +239,7 @@ class CommandParser:
             '@whoami': self.cmd_whoami,
             '@setname': self.cmd_setname,
             '@setdesc': self.cmd_setdesc,
+            '@profile': self.cmd_profile,
             '@remove': self.cmd_remove,
             '@reset': self.cmd_reset,
             '@tpinvite': self.cmd_tpinvite,
@@ -749,11 +750,10 @@ class CommandParser:
             exits = ', '.join(room['exits'].keys())
             lines.append(f"\nExits: {exits}")
 
-        # Show occupants
+        # Show occupants (including yourself so you can see your profile)
         occupants = [
             self.world.get_user(uid)
             for uid in room['occupants']
-            if uid != user_id
         ]
 
         if occupants:
@@ -761,8 +761,26 @@ class CommandParser:
             for occ in occupants:
                 if occ:
                     name = occ.get('username', occ.get('name', occ['uid']))
-                    occ_type = 'agent' if occ['uid'].startswith('agent_') else 'user'
-                    lines.append(f"  {name} [{occ_type}]")
+                    is_agent = occ['uid'].startswith('agent_')
+
+                    # Determine role (Noodler or Noodling)
+                    role = 'Noodling' if is_agent else 'Noodler'
+
+                    # Get metadata (species, age, pronoun)
+                    if is_agent:
+                        # For agents, check config in agent data
+                        config = occ.get('config', {})
+                        species = config.get('species', 'unknown')
+                        age = config.get('age', 'unknown')
+                        pronoun = config.get('pronoun', 'they')
+                    else:
+                        # For users, check user data directly
+                        species = occ.get('species', 'human')
+                        age = occ.get('age', 'unknown')
+                        pronoun = occ.get('pronoun', 'they')
+
+                    # Format: name [Role, species, age, pronoun]
+                    lines.append(f"  {name} [{role}, {species}, {age}, {pronoun}]")
 
         # Show objects
         if room['objects']:
@@ -3185,6 +3203,79 @@ class CommandParser:
             'events': []
         }
 
+    async def cmd_profile(self, user_id: str, args: str) -> Dict:
+        """Set your species, pronoun, and age metadata."""
+        # Parse flags: -s species -p pronoun -a age
+        # Usage: @profile -s human -p she -a "9 years old"
+
+        if not args:
+            # Show current profile
+            user = self.world.get_user(user_id)
+            if not user:
+                return {'success': False, 'output': 'Error: User not found.', 'events': []}
+
+            species = user.get('species', 'unknown')
+            pronoun = user.get('pronoun', 'they')
+            age = user.get('age', 'unknown')
+
+            return {
+                'success': True,
+                'output': f"Your profile:\n  Species: {species}\n  Pronoun: {pronoun}\n  Age: {age}\n\nUsage: @profile -s <species> -p <pronoun> -a <age>",
+                'events': []
+            }
+
+        # Parse arguments
+        import shlex
+        try:
+            tokens = shlex.split(args)
+        except ValueError as e:
+            return {'success': False, 'output': f'Error parsing arguments: {e}\nUsage: @profile -s <species> -p <pronoun> -a <age>', 'events': []}
+
+        species = None
+        pronoun = None
+        age = None
+
+        i = 0
+        while i < len(tokens):
+            if tokens[i] == '-s' and i + 1 < len(tokens):
+                species = tokens[i + 1]
+                i += 2
+            elif tokens[i] == '-p' and i + 1 < len(tokens):
+                pronoun = tokens[i + 1]
+                i += 2
+            elif tokens[i] == '-a' and i + 1 < len(tokens):
+                age = tokens[i + 1]
+                i += 2
+            else:
+                return {'success': False, 'output': f'Unknown argument: {tokens[i]}\nUsage: @profile -s <species> -p <pronoun> -a <age>', 'events': []}
+
+        # Update user profile
+        user = self.world.get_user(user_id)
+        if not user:
+            return {'success': False, 'output': 'Error: User not found.', 'events': []}
+
+        updated = []
+        if species is not None:
+            user['species'] = species
+            updated.append(f"Species: {species}")
+        if pronoun is not None:
+            user['pronoun'] = pronoun
+            updated.append(f"Pronoun: {pronoun}")
+        if age is not None:
+            user['age'] = age
+            updated.append(f"Age: {age}")
+
+        if not updated:
+            return {'success': False, 'output': 'No changes made.\nUsage: @profile -s <species> -p <pronoun> -a <age>', 'events': []}
+
+        self.world.save_all()
+
+        return {
+            'success': True,
+            'output': f"Profile updated:\n  " + "\n  ".join(updated),
+            'events': []
+        }
+
     # ===== Agent Tool Commands =====
 
     async def cmd_think(self, user_id: str, args: str) -> Dict:
@@ -4687,11 +4778,11 @@ class CommandParser:
 
         target_name = args.strip().lower()
 
-        # Find user by name
+        # Find user by username
         target_id = None
         target_user = None
         for uid, user in self.world.users.items():
-            if user.get('name', '').lower() == target_name:
+            if user.get('username', '').lower() == target_name:
                 target_id = uid
                 target_user = user
                 break
@@ -4702,8 +4793,8 @@ class CommandParser:
         # Create yeet event - server will handle disconnection
         return {
             'success': True,
-            'output': f"👋 Yeeting {target_user.get('name', target_id)} from the server...",
-            'events': [{'type': 'yeet', 'user': target_id, 'username': target_user.get('name', target_id)}]
+            'output': f"👋 Yeeting {target_user.get('username', target_id)} from the server...",
+            'events': [{'type': 'yeet', 'user': target_id, 'username': target_user.get('username', target_id)}]
         }
 
     async def cmd_scope(self, user_id: str, args: str) -> Dict:

@@ -75,7 +75,28 @@
             font-size: 12px;
         }
 
-        #output {
+        #view-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 10px;
+            background-color: #001a00;
+            border: 1px solid #00ff00;
+            margin-bottom: 5px;
+        }
+
+        #view-mode-indicator {
+            font-weight: bold;
+            color: #00ff00;
+            letter-spacing: 2px;
+        }
+
+        .view-hint {
+            color: #00aa00;
+            font-size: 12px;
+        }
+
+        .view-container {
             flex: 1;
             overflow-y: auto;
             padding: 10px;
@@ -84,15 +105,25 @@
             background-color: #001100;
         }
 
-        #output::-webkit-scrollbar {
+        #output {
+            /* Inherits from .view-container */
+        }
+
+        #log-output {
+            /* Inherits from .view-container */
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .view-container::-webkit-scrollbar {
             width: 10px;
         }
 
-        #output::-webkit-scrollbar-track {
+        .view-container::-webkit-scrollbar-track {
             background: #001100;
         }
 
-        #output::-webkit-scrollbar-thumb {
+        .view-container::-webkit-scrollbar-thumb {
             background: #00ff00;
         }
 
@@ -206,6 +237,51 @@
             color: #00ff00;
             padding: 10px;
             font-size: 16px;
+        }
+
+        /* Log entry styles */
+        .log-entry {
+            margin-bottom: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .log-entry.log-INFO {
+            color: #00ff00;
+        }
+
+        .log-entry.log-DEBUG {
+            color: #00aa00;
+        }
+
+        .log-entry.log-WARNING {
+            color: #ffff00;
+        }
+
+        .log-entry.log-ERROR {
+            color: #ff0000;
+        }
+
+        .log-entry.log-CRITICAL {
+            color: #ff0000;
+            font-weight: bold;
+        }
+
+        .log-level {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .log-name {
+            color: #00aaaa;
+            margin-right: 5px;
+        }
+
+        .log-message {
+            /* Inherit color from parent */
         }
 
         #input {
@@ -452,7 +528,18 @@
             <!-- Brain indicators will be dynamically added here -->
         </div>
 
-        <div id="output"></div>
+        <!-- View mode indicator and controls -->
+        <div id="view-controls">
+            <span id="view-mode-indicator">CHAT VIEW</span>
+            <span class="view-hint">[TAB to toggle]</span>
+            <button id="verbose-toggle" class="font-btn" style="display: none;">Verbose Mode</button>
+        </div>
+
+        <!-- Chat view (default) -->
+        <div id="output" class="view-container"></div>
+
+        <!-- Log view (hidden by default) -->
+        <div id="log-output" class="view-container" style="display: none;"></div>
 
         <div id="input-area">
             <div id="prompt">&gt;</div>
@@ -494,14 +581,23 @@
         // Font size control
         let currentFontSize = 18; // Default from CSS
 
+        // Log view control
+        let currentView = 'chat'; // 'chat' or 'log'
+        let logSubscribed = false;
+        let verboseMode = localStorage.getItem('verboseLogMode') === 'true';
+
         function applyFontSize(size) {
-            // Update CSS rule so ALL messages (existing and future) use this size
+            // Update CSS rules so ALL messages (existing and future) use this size
             const styleSheet = document.styleSheets[0];
-            // Find and update the .line rule
+
+            // Find and update the .line rule (chat view)
             for (let i = 0; i < styleSheet.cssRules.length; i++) {
                 if (styleSheet.cssRules[i].selectorText === '.line') {
                     styleSheet.cssRules[i].style.fontSize = size + 'px';
-                    break;
+                }
+                // Also update .log-entry rule (log view)
+                if (styleSheet.cssRules[i].selectorText === '.log-entry') {
+                    styleSheet.cssRules[i].style.fontSize = (size - 5) + 'px'; // Slightly smaller for logs
                 }
             }
         }
@@ -535,9 +631,16 @@
             }
         });
 
-        // Keyboard shortcuts for font size
+        // Keyboard shortcuts for font size and view toggle
         document.addEventListener('keydown', (e) => {
-            // Only trigger if not typing in input field
+            // TAB key toggles between chat and log view (works even when input is focused)
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                toggleView();
+                return;
+            }
+
+            // Only trigger font shortcuts if not typing in input field
             if (document.activeElement.id === 'input') return;
 
             if (e.key === '+' || e.key === '=') {
@@ -548,6 +651,88 @@
                 decreaseFontSize();
             }
         });
+
+        // Toggle between chat view and log view
+        function toggleView() {
+            const outputDiv = document.getElementById('output');
+            const logOutputDiv = document.getElementById('log-output');
+            const viewIndicator = document.getElementById('view-mode-indicator');
+            const verboseToggle = document.getElementById('verbose-toggle');
+
+            if (currentView === 'chat') {
+                // Switch to log view
+                outputDiv.style.display = 'none';
+                logOutputDiv.style.display = 'block';
+                viewIndicator.textContent = 'LOG VIEW';
+                verboseToggle.style.display = 'inline-block';
+                currentView = 'log';
+
+                // Subscribe to logs if not already subscribed
+                if (!logSubscribed && authenticated && ws) {
+                    ws.send(JSON.stringify({ type: 'subscribe_logs' }));
+                    logSubscribed = true;
+                }
+            } else {
+                // Switch to chat view
+                outputDiv.style.display = 'block';
+                logOutputDiv.style.display = 'none';
+                viewIndicator.textContent = 'CHAT VIEW';
+                verboseToggle.style.display = 'none';
+                currentView = 'chat';
+            }
+        }
+
+        // Toggle verbose/compact log mode
+        function toggleVerboseMode() {
+            verboseMode = !verboseMode;
+            localStorage.setItem('verboseLogMode', verboseMode);
+            const button = document.getElementById('verbose-toggle');
+            button.textContent = verboseMode ? 'Compact Mode' : 'Verbose Mode';
+
+            // TODO: Could filter existing log entries if needed
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Add log entry to log output
+        function addLogEntry(level, name, message, timestamp = null) {
+            const logOutputDiv = document.getElementById('log-output');
+
+            // Check if user is at bottom before adding new content
+            const isAtBottom = logOutputDiv.scrollHeight - logOutputDiv.scrollTop <= logOutputDiv.clientHeight + 50;
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${level}`;
+
+            // Format timestamp
+            let timeStr = '';
+            if (timestamp) {
+                const date = new Date(timestamp * 1000); // Convert Unix timestamp to JS Date
+                timeStr = date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } else {
+                const now = new Date();
+                timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+
+            // In compact mode, abbreviate long messages
+            let displayMessage = message;
+            if (!verboseMode && message.length > 200) {
+                displayMessage = message.substring(0, 197) + '...';
+            }
+
+            entry.innerHTML = `<span class="log-timestamp" style="color: #666; margin-right: 5px;">[${timeStr}]</span><span class="log-level">[${level}]</span><span class="log-name">[${name}]</span><span class="log-message">${escapeHtml(displayMessage)}</span>`;
+            logOutputDiv.appendChild(entry);
+
+            // Only auto-scroll if user was already at bottom
+            if (isAtBottom) {
+                logOutputDiv.scrollTop = logOutputDiv.scrollHeight;
+            }
+        }
 
         // DOM elements
         const authModal = document.getElementById('auth-modal');
@@ -706,6 +891,23 @@
                     // Keepalive response
                     break;
 
+                case 'log':
+                    // Log entry from server
+                    if (currentView === 'log') {
+                        addLogEntry(data.level, data.name, data.message, data.timestamp);
+                    }
+                    break;
+
+                case 'subscribed':
+                    // Log subscription confirmed
+                    addLogEntry('INFO', 'system', data.message || 'Log streaming enabled', null);
+                    break;
+
+                case 'unsubscribed':
+                    // Log unsubscription confirmed
+                    console.log('Unsubscribed from logs:', data.message);
+                    break;
+
                 default:
                     console.log('Unknown message type:', data);
             }
@@ -733,10 +935,6 @@
             // Check if user was scrolled to bottom before redrawing
             const wasAtBottom = outputDiv.scrollHeight - outputDiv.scrollTop - outputDiv.clientHeight < 50;
 
-            // Store current scroll position
-            const oldScrollHeight = outputDiv.scrollHeight;
-            const oldScrollTop = outputDiv.scrollTop;
-
             // Clear output
             outputDiv.innerHTML = '';
 
@@ -751,12 +949,8 @@
             // Only auto-scroll if user was already at bottom
             if (wasAtBottom) {
                 outputDiv.scrollTop = outputDiv.scrollHeight;
-            } else {
-                // Preserve scroll position relative to content growth
-                const newScrollHeight = outputDiv.scrollHeight;
-                const heightDifference = newScrollHeight - oldScrollHeight;
-                outputDiv.scrollTop = oldScrollTop + heightDifference;
             }
+            // Otherwise, don't adjust scroll - let user keep reading where they were
         }
 
         // Update brain indicator for an agent
@@ -1163,8 +1357,13 @@
 
         // Event listeners
         telepathyToggle.addEventListener('click', toggleTelepathy);
+        document.getElementById('verbose-toggle').addEventListener('click', toggleVerboseMode);
         loginBtn.addEventListener('click', login);
         registerBtn.addEventListener('click', register);
+
+        // Initialize verbose toggle button text
+        const verboseToggle = document.getElementById('verbose-toggle');
+        verboseToggle.textContent = verboseMode ? 'Compact Mode' : 'Verbose Mode';
 
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {

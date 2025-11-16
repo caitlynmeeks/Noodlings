@@ -59,6 +59,47 @@ logger = logging.getLogger(__name__)
 logger.info(f"Logging initialized - writing to {log_filename}")
 
 
+class WebSocketLogHandler(logging.Handler):
+    """
+    Custom logging handler that broadcasts log messages to subscribed WebSocket clients.
+    """
+
+    def __init__(self, server=None):
+        super().__init__()
+        self.server = server
+        self.log_buffer = []  # Recent logs for new subscribers
+        self.max_buffer = 100  # Keep last 100 log entries
+
+    def emit(self, record):
+        """Emit a log record to subscribed WebSocket clients."""
+        try:
+            log_entry = self.format(record)
+
+            # Add to buffer
+            self.log_buffer.append({
+                'level': record.levelname,
+                'name': record.name,
+                'message': record.getMessage(),
+                'timestamp': record.created
+            })
+
+            # Trim buffer if needed
+            if len(self.log_buffer) > self.max_buffer:
+                self.log_buffer = self.log_buffer[-self.max_buffer:]
+
+            # Broadcast to subscribed clients (if server is set)
+            if self.server:
+                asyncio.create_task(self.server.broadcast_log({
+                    'type': 'log',
+                    'level': record.levelname,
+                    'name': record.name,
+                    'message': record.getMessage(),
+                    'timestamp': record.created
+                }))
+        except Exception:
+            self.handleError(record)
+
+
 class CMUSHServer:
     """
     cMUSH WebSocket server.
@@ -104,11 +145,20 @@ class CMUSHServer:
         # Active connections: websocket -> user_id
         self.connections: Dict = {}
 
+        # Log subscribers: websockets that want to receive log streams
+        self.log_subscribers: Set = set()
+
         # Chat history for session continuity
         self.chat_history = []
         self.history_file = Path('world/chat_history.json')
         self.max_history = 200  # Keep last 200 messages
         self._load_chat_history()
+
+        # Setup WebSocket log handler
+        self.ws_log_handler = WebSocketLogHandler(server=self)
+        self.ws_log_handler.setLevel(logging.INFO)
+        self.ws_log_handler.setFormatter(logging.Formatter('[%(levelname)s] [%(name)s] %(message)s'))
+        root_logger.addHandler(self.ws_log_handler)
 
         # Auto-save timer
         self.save_interval = self.config['world'].get('auto_save_interval', 300)
@@ -500,6 +550,39 @@ class CMUSHServer:
 
                                         await self.broadcast_event(other_agent_event)
 
+                    # Log subscription
+                    elif msg_type == 'subscribe_logs':
+                        if websocket not in self.connections:
+                            await websocket.send(json.dumps({
+                                'type': 'error',
+                                'text': 'Not authenticated'
+                            }))
+                            continue
+
+                        self.log_subscribers.add(websocket)
+                        logger.info(f"Client subscribed to logs: {self.connections[websocket]}")
+
+                        # Send recent log buffer
+                        for log_entry in self.ws_log_handler.log_buffer:
+                            await websocket.send(json.dumps({
+                                'type': 'log',
+                                **log_entry
+                            }))
+
+                        await websocket.send(json.dumps({
+                            'type': 'subscribed',
+                            'message': 'Log streaming enabled'
+                        }))
+
+                    elif msg_type == 'unsubscribe_logs':
+                        self.log_subscribers.discard(websocket)
+                        logger.info(f"Client unsubscribed from logs: {self.connections.get(websocket, 'unknown')}")
+
+                        await websocket.send(json.dumps({
+                            'type': 'unsubscribed',
+                            'message': 'Log streaming disabled'
+                        }))
+
                     # Ping/pong for keepalive
                     elif msg_type == 'ping':
                         await websocket.send(json.dumps({'type': 'pong'}))
@@ -696,6 +779,21 @@ class CMUSHServer:
                     'event_type': event_type,
                     'text': formatted_text
                 })
+
+    async def broadcast_log(self, log_entry: Dict):
+        """
+        Broadcast log entry to subscribed WebSocket clients.
+
+        Args:
+            log_entry: Log entry dictionary with type, level, name, message, timestamp
+        """
+        for ws in list(self.log_subscribers):
+            try:
+                await ws.send(json.dumps(log_entry))
+            except Exception as e:
+                # Remove disconnected websocket
+                self.log_subscribers.discard(ws)
+                logger.debug(f"Removed disconnected log subscriber: {e}")
 
     async def get_completions(self, user_id: str, command: str, partial: str) -> List[str]:
         """

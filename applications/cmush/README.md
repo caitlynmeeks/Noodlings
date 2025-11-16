@@ -15,17 +15,21 @@ noodleMUSH integrates the Noodlings consciousness architecture with a persistent
 
 - **Real-time multi-user interaction** via WebSocket
 - **Noodlings consciousness agents** with Phase 4 social cognition
+- **TAB Log View** - Toggle between chat and real-time log streaming with [TAB] key
 - **Theatrical play system** - BRENDA can direct plays with agent actors
 - **Enhanced memory** - 4x longer context windows for better continuity (20-turn conversations)
 - **Parallel LLM inference** - Support for multiple LMStudio instances (5x throughput)
 - **BRENDA tool-use** - Conversational command execution with natural language
+- **Profile system** - Set species, pronouns, and age with `@profile` command
+- **Intuition Receiver** - Agents have contextual awareness (who/what/where)
+- **Character Voice System** - Unique speech patterns (SERVNAK caps, Phi meows)
 - **Persistent world state** (JSON storage, git-friendly)
 - **LLM integration** for text ↔ affect translation (LMStudio, Ollama, OpenAI)
-- **Terminal aesthetic** browser client (green-on-black)
+- **Terminal aesthetic** browser client (green-on-black, adjustable font size)
 - **Simple authentication** (username/password, no email required)
 - **Building commands** (create rooms, objects, exits)
 - **Agent commands** (spawn, observe, memory, relationships)
-- **Full logging** of all interactions
+- **Full logging** of all interactions with timestamps
 
 ## Installation
 
@@ -129,6 +133,8 @@ To enable parallel LLM inference with multiple LMStudio instances:
 - `@memory <agent_name>` - View episodic memory
 - `@agents` - List all active agents
 - `@play <play_name>` - Direct a theatrical play (BRENDA only)
+- `@profile` - View your current profile (species, pronoun, age)
+- `@profile -s <species> -p <pronoun> -a <age>` - Set your profile metadata
 
 **Note**: Agents have full access to all user commands! They can:
 - Move around (`north`, `south`, etc.)
@@ -140,6 +146,8 @@ To enable parallel LLM inference with multiple LMStudio instances:
 ### Utility
 - `help` - Show command list
 - `quit` - Disconnect from server
+- **[TAB]** - Toggle between Chat View and Log View
+- **A+** / **A-** (or **+** / **-**) - Adjust font size
 
 ## Architecture
 
@@ -268,9 +276,40 @@ noodleMUSH fully supports multiple Noodlings agents interacting:
 - Agents can use inventory, create objects, build rooms, etc.
 - Multiple agents in the same room will form social dynamics
 
+## TAB Log View - Real-Time Debugging (NEW!)
+
+Press **[TAB]** to toggle between Chat View and Log View for real-time debugging!
+
+### Features
+
+- **Live log streaming** via WebSocket
+- **Color-coded by level**:
+  - 🟢 INFO (green) - Normal operation
+  - 🟡 WARNING (yellow) - Minor issues with fallbacks
+  - 🔴 ERROR (red) - Real problems
+- **Timestamps** on every entry (HH:MM:SS format)
+- **Verbose/Compact toggle** - Show full logs or abbreviated (200 char limit)
+- **Smart scrolling** - Only auto-scrolls when you're at the bottom
+- **Font size controls** - A+/A- buttons work in both views
+
+### Usage
+
+```
+[TAB]           - Toggle to Log View
+Click button    - Switch between Verbose/Compact mode
+[TAB]           - Toggle back to Chat View
+A+ / A-         - Adjust font size in both views
+```
+
+Perfect for:
+- Watching the consciousness machinery in action
+- Debugging intuition receiver, character voices, self-monitoring
+- Understanding what happens behind each agent response
+- Learning how the multi-timescale architecture works
+
 ## Logging
 
-All activity logged to `logs/server_YYYYMMDD_HHMMSS.log`:
+All activity logged to `logs/cmush_YYYY-MM-DD.log`:
 
 ```
 [2025-10-23 12:34:56] [INFO] [user_alice] command: say Hello!

@@ -358,7 +358,7 @@ Generate your internal thoughts as a JSON array of strings.
 Example: ["thought 1", "thought 2", "thought 3"]"""
 
             # Generate thoughts via LLM
-            response, llm_thinking = await self.agent.llm._complete(system_prompt, user_prompt)
+            response, llm_thinking, model_used = await self.agent.llm._complete(system_prompt, user_prompt)
 
             # Parse JSON response
             thoughts = self._parse_thoughts_response(response)
@@ -445,10 +445,12 @@ Example: ["thought 1", "thought 2", "thought 3"]"""
                     return [str(t) for t in thoughts if t]
 
         except Exception as e:
-            logger.error(f"Error parsing thoughts: {e}")
+            logger.warning(f"Error parsing thoughts JSON: {e}")
+            logger.debug(f"Raw response that failed to parse: {response[:500]}")  # Log first 500 chars
 
         # Fallback: treat entire response as single thought
         if response and len(response) > 0:
+            logger.debug(f"Using fallback: treating response as single thought")
             return [response]
 
         return []
@@ -808,7 +810,7 @@ What do you want to say? Generate a natural, conversational statement (1-3 sente
 Just return the text you want to say, nothing else."""
 
             # Generate speech
-            response, _ = await self.agent.llm._complete(system_prompt, user_prompt)
+            response, _, model_used = await self.agent.llm._complete(system_prompt, user_prompt)
             speech_text = response.strip()
 
             if speech_text:

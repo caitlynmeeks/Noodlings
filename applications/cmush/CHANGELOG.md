@@ -7,8 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Next Session
-- TAB toggle log view for debugging visibility
+---
+
+## [Phase 6.7] - 2025-11-15 (Evening Session)
+
+Polish session + TAB Log View implementation!
+
+### Added
+
+- **📊 TAB Log View - Real-Time Debugging**
+  - Press [TAB] to toggle between Chat View and Log View
+  - Live WebSocket log streaming from server
+  - Color-coded logs: INFO (green), WARNING (yellow), ERROR (red)
+  - Timestamps on every entry (HH:MM:SS format)
+  - Verbose/Compact mode toggle (200 char limit in compact)
+  - Smart scrolling (only auto-scrolls when at bottom)
+  - Font size controls (A+/A-) work in both views
+  - Perfect for debugging intuition, voices, self-monitoring
+
+- **👤 @profile Command**
+  - Set your species, pronoun, and age as a Noodler
+  - `@profile` - View current profile
+  - `@profile -s <species> -p <pronoun> -a <age>` - Update profile
+  - Example: `@profile -s human -p she -a "9 years old"`
+  - Supports quoted multi-word values
+
+- **📋 Enhanced "People here:" Display**
+  - Format: `name [Role, species, age, pronoun]`
+  - Example: `phi [Noodling, kitten, 6 months old, she]`
+  - Shows Noodlers (humans) vs Noodlings (AI agents)
+  - Current user now included in room occupant list
+
+- **🎭 Age Metadata System**
+  - All agents now have age field in recipes
+  - Intuition broadcasts age: "Phi (kitten, 6 months old, she)"
+  - Look command shows age for all occupants
+  - User profiles support age field
+
+### Fixed
+
+- **5 unpacking errors** where code expected 2 values but `_complete()` returns 3:
+  - autonomous_cognition.py:361 (rumination) ✅
+  - autonomous_cognition.py:811 (autonomous speech) ✅
+  - llm_interface.py:246 (affect extraction) ✅
+  - agent_bridge.py:2009 (self-monitoring) ✅
+  - llm_interface.py:1607 (toxicity detection) ✅
+- **@yeet command** now uses 'username' instead of 'name' field
+- **Chat view scroll behavior** - Simplified logic, no more jumps when reading history
+- **JSON parsing errors** - Changed ERROR → WARNING for graceful degradation
+- Removed duplicate users (user_caitlyn, user_Claude)
+
+### Changed
+
+- Log view font size synced with chat view controls
+- Improved error handling with better log levels
+- Smart scroll behavior in both chat and log views
+- Log streaming only to subscribed clients
+
+### Files Modified
+
+- server.py - WebSocket log streaming
+- agent_bridge.py - Age in intuition, self-monitoring fix
+- commands.py - @profile command, enhanced look, @yeet fix
+- llm_interface.py - Unpacking fixes, toxicity detection
+- autonomous_cognition.py - Multiple unpacking fixes, better error logging
+- web/index.html - TAB toggle, log view UI, timestamps, scroll fixes
+- world/agents.json - Age/pronoun metadata for all agents
+- world/users.json - Age/pronoun/species fields, removed duplicates
+
+### Statistics
+
+- 8 files modified
+- ~600 lines added
+- 5 critical unpacking errors fixed
+- 1 new command (@profile)
+- 100% error-free autonomous cognition achieved
 
 ---
 

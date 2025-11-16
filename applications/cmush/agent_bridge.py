@@ -827,23 +827,30 @@ class CMUSHConsilienceAgent:
                             agent_data = world_state.get('agents', {}).get(occ_id, {})
                             config = agent_data.get('config', {})
                             species = config.get('species', 'noodling')
-                            pronouns = config.get('pronouns', 'they/them')
+                            age = config.get('age', 'unknown')
+                            pronoun = config.get('pronoun', 'they')
 
-                            # Infer pronouns from common character names if not specified
-                            if pronouns == 'they/them':
+                            # Infer pronoun from common character names if not specified
+                            if pronoun == 'they':
                                 name_lower = occ_name.lower()
                                 if name_lower in ['phi', 'callie', 'desobelle']:
-                                    pronouns = 'she/her'
+                                    pronoun = 'she'
                                 elif name_lower in ['toad', 'mr. toad', 'phido']:
-                                    pronouns = 'he/him'
+                                    pronoun = 'he'
                                 elif name_lower in ['servnak']:
-                                    pronouns = 'they/them'  # SERVNAK is non-binary robot
+                                    pronoun = 'they'  # SERVNAK is non-binary robot
 
                             # Build descriptive string with useful metadata
-                            details = f"{occ_name} ({species}, {pronouns})"
+                            details = f"{occ_name} ({species}, {age}, {pronoun})"
                             occupant_details.append(details)
                         else:
-                            occupant_details.append(f"{occ_name} (human)")
+                            # Get user metadata
+                            user_data = world_state.get('users', {}).get(occ_id, {})
+                            species = user_data.get('species', 'human')
+                            age = user_data.get('age', 'unknown')
+                            pronoun = user_data.get('pronoun', 'they')
+                            details = f"{occ_name} ({species}, {age}, {pronoun})"
+                            occupant_details.append(details)
 
                     context_info.append(f"Present in room: {', '.join(occupant_details)}")
 
@@ -1999,7 +2006,7 @@ Generate intuitive awareness:"""
             )
 
             # Call LLM for quick self-evaluation
-            response, _ = await self.llm._complete(
+            response, _, model_used = await self.llm._complete(
                 system_prompt="You are evaluating your own speech/thoughts metacognitively.",
                 user_prompt=eval_prompt,
                 temperature=0.7

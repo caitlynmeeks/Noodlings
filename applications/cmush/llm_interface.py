@@ -243,7 +243,7 @@ Return ONLY the JSON, no other text."""
             user_prompt += f"\n\nRecent context:\n" + "\n".join(context[-3:])
 
         try:
-            response, _ = await self._complete(system_prompt, user_prompt)
+            response, _, model_used = await self._complete(system_prompt, user_prompt)
 
             # Parse JSON from response
             # Try to extract JSON if model adds extra text
@@ -1604,7 +1604,7 @@ Be calibrated: Most text should score low. Reserve high scores for genuine abuse
             )
 
             # Extract JSON from response
-            clean_response, _ = response  # _complete returns (response, thinking)
+            clean_response, _, model_used = response  # _complete returns (response, thinking, model)
 
             # Try to parse JSON
             try:
