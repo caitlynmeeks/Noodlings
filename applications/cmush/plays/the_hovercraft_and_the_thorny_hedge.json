@@ -1,0 +1,100 @@
+{
+  "title": "The Hovercraft and the Thorny Hedge",
+  "cast": [
+    "toad",
+    "callie"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Sunny Meadow",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "Toad arrives at a sunny meadow with a bright blue hovercraft. The wind gently stirs the flowers, and the sunlight dapples through the tall, thorny hedge that stretches like a living wall."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "status",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad enthusiastically gestures toward the hedge, his eyes wide with excitement as he says 'Poop-poop! To the Open Road!'"
+          }
+        },
+        {
+          "t": 3,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad attempts to fly the hovercraft over the tall, thorny hedge, but misjudges the height and the craft crashes into the hedge with a loud *sproing!*"
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "The hovercraft becomes stuck in the hedge, tangled like a nest of barbed wire and metal fragments, while Toad is covered in mud and thorns."
+          }
+        },
+        {
+          "t": 5,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad looks frustrated, his voice trembling slightly as he mutters, 'This is the most ridiculous thing ever!'"
+          }
+        },
+        {
+          "t": 6,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "social_bond",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 7,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie approaches calmly, her movements slow and deliberate. She holds a garden trowel in one hand and a long pole in the other, her eyes focused on the hovercraft and the hedge."
+          }
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "A soft breeze passes through the flowers, and a bee lands gently on Toad's hat, buzzing softly."
+          }
+        },
+        {
+          "t": 9,
+          "action": "stimulus",
+          "args": {
+            "description": "The bee lands on Toad's hat and tilts its head, then chirps in a clear, curious tone \u2014 'The most ridiculous thing ever'."
+          }
+        },
+        {
+          "t": 10,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 15
+          }
+        }
+      ]
+    }
+  ]
+}

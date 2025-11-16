@@ -1,0 +1,112 @@
+# DEMO CONFIG - Fast & Smart for Steve DiPaola Demo
+# Copy this to config.yaml before the demo!
+
+server:
+  host: 0.0.0.0
+  port: 8765
+  web_port: 8080
+paths:
+  world_dir: world
+  logs_dir: logs
+  checkpoint: null
+llm:
+  # DEMO MODE: Use OpenRouter for FAST responses!
+  provider: openrouter  # ← CHANGE THIS TO 'openrouter' for demo!
+
+  # Local LMStudio settings (development on Caledonia)
+  local:
+    api_base: http://localhost:1234/v1
+    api_key: not-needed
+    model: qwen/qwen3-4b-2507
+    timeout: 60
+
+  # OpenRouter settings (DEMO MODE - FAST!)
+  openrouter:
+    api_base: https://openrouter.ai/api/v1
+    api_key: YOUR_OPENROUTER_API_KEY_HERE  # ← PUT YOUR KEY HERE!
+    model: deepseek/deepseek-chat  # DeepSeek v3.1 - 2-3 second responses!
+    timeout: 30
+
+brenda:
+  model: deepseek-v3.1@q2_k_xl
+
+agent:
+  surprise_threshold: 0.0
+  memory_capacity: 100
+  response_cooldown: 1.5  # ← FASTER for demo (was 2.0)
+  autonomous_poll_interval: 10
+  rumination_frequency: 0.5  # ← LESS rumination for demo (was 0.7, faster responses)
+  addressed_speech_chance: 0.9  # ← HIGHER chance to respond (was 0.8)
+  question_speech_chance: 0.5  # ← HIGHER (was 0.3)
+  unaddressed_speech_chance: 0.15  # ← SLIGHTLY higher (was 0.1)
+  memory_windows:
+    affect_extraction: 10
+    response_generation: 20
+    rumination: 10
+    self_reflection: 10
+    disk_save: 500
+    affect_trim_threshold: 500
+  autonomous_cognition:
+    enabled: false  # ← DISABLE for demo (less random thoughts, cleaner)
+    wake_interval: 60
+    min_speech_interval: 180
+    speech_urgency_threshold: 0.75
+    max_thoughts_buffer: 50
+  personalities:
+    agent_desobelle:
+      extraversion: 0.35
+      emotional_sensitivity: 0.75
+      curiosity: 0.7
+      spontaneity: 0.4
+      reflection_depth: 0.8
+      social_orientation: 0.6
+    agent_callie:
+      extraversion: 0.7
+      emotional_sensitivity: 0.55
+      curiosity: 0.65
+      spontaneity: 0.75
+      reflection_depth: 0.5
+      social_orientation: 0.8
+  self_monitoring:
+    agent_phi:
+      enabled: false  # ← DISABLE for demo (cleaner)
+    agent_callie:
+      enabled: false
+    agent_servnak:
+      enabled: false
+    agent_toad:
+      enabled: false
+  filesystem:
+    enabled: true
+    max_file_size: 1048576
+    max_total_storage: 104857600
+    command_timeout: 5
+  messaging:
+    enabled: true
+    max_message_size: 10000
+    inbox_retention_days: 30
+  intuition_receiver:
+    enabled: true
+    model: qwen/qwen3-4b-2507  # Keep this local/fast
+    timeout: 5
+  appetites:
+    curiosity: 0.3
+    status: 0.1
+    mastery: 0.2
+    novelty: 0.3
+    safety: 0.2
+    social_bond: 0.4
+    comfort: 0.2
+    autonomy: 0.2
+  observers:
+    enabled: true
+    use_meta_observer: true
+    observe_hierarchical_states: true
+    injection_strength: 0.1
+    observer_loss_weight: 0.5
+    meta_loss_weight: 0.2
+    enable_online_learning: false
+    learning_rate: 0.0001
+world:
+  spawn_room: room_000
+  auto_save_interval: 300

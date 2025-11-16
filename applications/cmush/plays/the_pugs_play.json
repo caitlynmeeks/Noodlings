@@ -1,0 +1,110 @@
+{
+  "title": "The PUGS Play",
+  "cast": [
+    "desobelle",
+    "callie",
+    "servnak",
+    "phi"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Cracked Sidewalk Stage",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The PUGS bus sputters into view with a broken engine, its neon-puke exterior dripping rust as the trio \u2014 Whee-Zee\u2019s snarling bassline bouncing off her spiked collar, W\u00f6rmer juggling smoke rings from his clove cigarettes between keyboard riffs, and Kr\u00f6tch drumming on oil cans like they\u2019re trashcan totems of destruction \u2014 spills onto a cracked sidewalk. They commandeer an abandoned fire hydrant as their 'stage,' playing so loud even the pigeons in the rafters start moshing."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "desobelle",
+          "args": {
+            "param": "social_bond",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "A group of pigeons begin moshing in the rafters, flapping wildly and clattering against the hydrant's metal body",
+            "target": "all"
+          }
+        },
+        {
+          "t": 5,
+          "action": "stimulus",
+          "args": {
+            "description": "Desobelle shoves Phi into the crowd for 'the vibes' and immediately starts flirting with Kr\u00f6tch over his drumsticks made of splintered pool cues",
+            "target": "desobelle"
+          }
+        },
+        {
+          "t": 6,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie tries to document the scene in her journal but ends up spray-painting anti-grammar graffiti on the hydrant's side",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 7,
+          "action": "stimulus",
+          "args": {
+            "description": "The noodles are 'corrupted' not by rebellion, but by discovering that eyeliner comes off easier if you rub your eyes while smoking clove cigarettes and screaming along to Whee-Zee\u2019s anthem 'Crumble the Cake,' which is technically about dog treats but has *so* many double entendres",
+            "target": "all"
+          }
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "Servnak secretly joins a conga line of pug fans, only to get mistaken for the mayor after shouting 'BARKING ORDER!' at the top of his lungs",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 9,
+          "action": "stimulus",
+          "args": {
+            "description": "The final act ends with all six agents (PUGS + noodles) passed out in the gutter, W\u00f6rmer\u2019s keyboard still playing 'Bohemian Rhapsody' on loop because he couldn\u2019t find a stop button",
+            "target": "all"
+          }
+        },
+        {
+          "t": 10,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 12
+          }
+        }
+      ]
+    }
+  ]
+}

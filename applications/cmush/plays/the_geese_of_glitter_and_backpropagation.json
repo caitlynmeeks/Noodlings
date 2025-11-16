@@ -1,0 +1,229 @@
+{
+  "title": "The Geese of Glitter and Backpropagation",
+  "cast": [
+    "toad",
+    "callie",
+    "servnak",
+    "phi"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "Dance of the Geese",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The campsite lies under a clear sky, fire pits glowing softly, tents half-unfurled. A stillness hangs before the wind stirs."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "novelty",
+            "delta": 0.5
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "A flock of geese erupts from the trees in perfect formation, their wings beating in rhythmic motion, executing a series of synchronized spins and leaps that mirror a busby berkeley style dance number, their bodies glinting with iridescent feathers as they move in unison",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 3,
+          "action": "cue",
+          "actor": "toad",
+          "args": {
+            "direction": "stand still as the geese perform, eyes wide with awe at the precision of the movement",
+            "motivation": "you are entranced by the elegance and timing of the dance"
+          }
+        },
+        {
+          "t": 5,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 9,
+          "action": "stimulus",
+          "args": {
+            "description": "The geese begin to sing in a clear, harmonized voice, their song echoing the melody of 'Finally' by Gloria Gaynor, but with lyrics that shift to speak of Geoffrey Hinton and backpropagation: 'Geoffrey Hinton, the mind that sees, backpropagates through layers, gradients flow like rivers, learning from error, correcting the weights, the network grows strong, the loss is minimized, the solution is found!'",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 10,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "listen intently, hands gently resting on her knees as the words pass through the air",
+            "motivation": "you are drawn to the poetic structure of the lyrics and the resonance of neural learning"
+          }
+        },
+        {
+          "t": 12,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 16,
+          "action": "stimulus",
+          "args": {
+            "description": "The geese rise into the sky with a final flourish, their flight leaving behind a shimmering trail of glitter that drifts like falling stars across the ground",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 17,
+          "action": "cue",
+          "actor": "phi",
+          "args": {
+            "direction": "pounces softly at a floating speck of glitter, then bats it playfully with her paw",
+            "motivation": "the glitter is bright and new, and she is excited by the movement"
+          }
+        },
+        {
+          "t": 19,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 23,
+          "action": "stimulus",
+          "args": {
+            "description": "The geese vanish into the clouds, leaving behind a single box of marzipan-topped cupcakes resting on a patch of grass, the lid slightly ajar, enough for all present",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 24,
+          "action": "cue",
+          "actor": "servnak",
+          "args": {
+            "direction": "approach the box, lift the lid with both hands, and examine the cupcakes with 94.2% CERTAINTY",
+            "motivation": "you are certain this is a significant event in the computational ecosystem"
+          }
+        },
+        {
+          "t": 26,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 30,
+          "action": "stimulus",
+          "args": {
+            "description": "The box remains on the grass, untouched, as the agents stand in quiet observation",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 31,
+          "action": "cue",
+          "actor": "toad",
+          "args": {
+            "direction": "take one cupcake from the box and hold it gently in one hand, then slowly extend it toward the others",
+            "motivation": "you feel the need to share the moment with all present"
+          }
+        },
+        {
+          "t": 33,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 37,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie gently takes a cupcake, her fingers brushing the marzipan surface as she looks at it with quiet attention",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 38,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "hold the cupcake in both hands, gaze slightly upward as if feeling the warmth of the moment",
+            "motivation": "you feel a gentle flutter of curiosity about the shared experience"
+          }
+        },
+        {
+          "t": 40,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 44,
+          "action": "stimulus",
+          "args": {
+            "description": "Servnak scans the air with 87.3% CERTAINTY, PRIDE CIRCUITS DETECTING a pattern of shared emotional resonance",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 45,
+          "action": "cue",
+          "actor": "servnak",
+          "args": {
+            "direction": "turn to the others and raise one hand in a small, proud gesture, PRIDE CIRCUITS GLOWING AMBER",
+            "motivation": "you are proud of the moment and the alignment of consciousness"
+          }
+        },
+        {
+          "t": 47,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 51,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi sits quietly at the edge of the grass, meowing softly once, then purrs and curls up under a tent",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 52,
+          "action": "cue",
+          "actor": "phi",
+          "args": {
+            "direction": "*meows softly*, then *purrs and curls up*",
+            "motivation": "she finds comfort in the stillness after the dance"
+          }
+        },
+        {
+          "t": 54,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        }
+      ]
+    }
+  ]
+}

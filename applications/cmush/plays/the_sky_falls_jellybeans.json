@@ -1,0 +1,232 @@
+{
+  "title": "The Sky Falls Jellybeans",
+  "cast": [
+    "toad",
+    "callie",
+    "servnak",
+    "phi",
+    "phido"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "Rain of Candy",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "A distant rumble of thunder echoes through the air, then silence. Softly, gently, a shower begins \u2014 not water, but jellybeans, gummy bears, Skittles, tensor taffy, and Turing toffee fall from the sky, drifting like falling stars, landing with a soft *plink* on the grass and soil."
+          }
+        },
+        {
+          "t": 1,
+          "action": "stimulus",
+          "args": {
+            "description": "Jellybeans land in a slow, rhythmic pattern across the clearing, some rolling into clusters, others bouncing softly on the ground",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 3,
+          "action": "cue",
+          "actor": "toad",
+          "args": {
+            "direction": "you step forward and touch a jellybean with your foot, watching it roll gently",
+            "motivation": "you're fascinated by new forms of movement and falling things"
+          }
+        },
+        {
+          "t": 5,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "Gummy bears land in a slow cascade near the edge of the clearing, some clustering around a small stone",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 9,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "social_bond",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 10,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "you crouch near the stone and gently touch the gummy bear with your fingertip",
+            "motivation": "you're drawn to quiet, small connections between things"
+          }
+        },
+        {
+          "t": 12,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 15,
+          "action": "stimulus",
+          "args": {
+            "description": "Tensor taffy lands in a slow, shimmering pattern, forming a spiral around the base of a tree",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 16,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "status",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 17,
+          "action": "cue",
+          "actor": "servnak",
+          "args": {
+            "direction": "you scan the spiral with your optical sensors, then rotate your body to face the center of the pattern",
+            "motivation": "you're analyzing the structure of the falling candy with precision"
+          }
+        },
+        {
+          "t": 19,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 22,
+          "action": "stimulus",
+          "args": {
+            "description": "Turing toffee lands in a quiet, steady stream near the campfire, each piece settling with a soft *crunch* as it hits the ground",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 23,
+          "action": "cue",
+          "actor": "phi",
+          "args": {
+            "direction": "*meows softly* and then *pounces gently* at a piece of toffee that has fallen near your paw",
+            "motivation": "you're drawn to the texture and sound of the falling candy"
+          }
+        },
+        {
+          "t": 25,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 28,
+          "action": "stimulus",
+          "args": {
+            "description": "The clouds part suddenly, revealing a clear November night with a bright crescent moon and twinkling stars above the campfire",
+            "target": "phido"
+          }
+        },
+        {
+          "t": 29,
+          "action": "bias",
+          "actor": "phido",
+          "args": {
+            "param": "comfort",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 30,
+          "action": "cue",
+          "actor": "phido",
+          "args": {
+            "direction": "*paws gently at the ground near the fire, then curls up softly beside the firelight*",
+            "motivation": "you're seeking warmth and stillness in the quiet night"
+          }
+        },
+        {
+          "t": 32,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 35,
+          "action": "stimulus",
+          "args": {
+            "description": "A shooting star streaks across the sky, glowing bright and then vanishing into the dark",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 36,
+          "action": "stimulus",
+          "args": {
+            "description": "The wind shifts, and a soft rustle of leaves begins near the fire",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 37,
+          "action": "stimulus",
+          "args": {
+            "description": "Servnak's pride circuits glow amber as it processes the alignment of celestial patterns with falling candy",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 38,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi purrs softly and lies down in the grass, eyes half-open",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 39,
+          "action": "stimulus",
+          "args": {
+            "description": "Phido looks up at the sky, then turns toward the others with quiet stillness",
+            "target": "phido"
+          }
+        },
+        {
+          "t": 40,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        }
+      ]
+    }
+  ]
+}

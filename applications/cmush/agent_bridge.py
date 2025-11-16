@@ -30,6 +30,7 @@ import aiohttp
 from noodlings.api import NoodlingAgent as ConsilienceAgent
 from noodlings.metrics.consciousness_metrics import ConsciousnessMetrics
 from noodlings.utils.facs_mapping import affect_to_facs, facs_to_description, format_facs_for_renderer
+from noodlings.utils.body_language_mapping import affect_to_body_language, body_language_to_description, format_body_language_for_renderer
 from llm_interface import OpenAICompatibleLLM
 from training_data_collector import TrainingDataCollector
 from agent_filesystem import AgentFilesystem
@@ -50,8 +51,8 @@ SELF_MONITOR_SURPRISE_THRESH = 0.1  # Only evaluate if surprise > threshold (low
 
 # FACS Facial Expression Configuration
 FACS_ENABLED = True  # Enable facial expressions based on affect
-FACS_THRESHOLD = 0.15  # Minimum affect change to trigger facial expression
-FACS_COOLDOWN = 5.0  # Seconds between facial expressions (prevent spam)
+FACS_THRESHOLD = 0.35  # Minimum affect change to trigger facial expression (higher = less frequent, more meaningful)
+FACS_COOLDOWN = 8.0  # Seconds between facial expressions (prevent spam)
 
 # LLM Prompt for speech self-evaluation
 SPEECH_EVAL_PROMPT = """You are evaluating what you just said from your own perspective.
@@ -1021,25 +1022,39 @@ Generate intuitive awareness:"""
             return None  # No expression to generate
 
         # Get human-readable description
-        description = facs_to_description(facs_codes)
+        face_description = facs_to_description(facs_codes)
+
+        # Generate body language codes
+        body_codes = affect_to_body_language(affect, species=self.species)
+        body_description = body_language_to_description(body_codes)
 
         # Format for renderer (future 3D integration)
-        renderer_data = format_facs_for_renderer(facs_codes)
+        facs_renderer_data = format_facs_for_renderer(facs_codes)
+        body_renderer_data = format_body_language_for_renderer(body_codes)
+
+        # Combine descriptions
+        combined_description = face_description
+        if body_codes and body_description != "stands still":
+            combined_description = f"{face_description}, {body_description}"
 
         # Update tracking
         self.last_facial_expression_time = time.time()
         self.previous_affect = affect.copy()
 
         # Log the expression
-        logger.info(f"[{self.agent_id}] Facial expression: {description}")
-        logger.debug(f"[{self.agent_id}] FACS codes: {facs_codes}")
-        logger.debug(f"[{self.agent_id}] Renderer data: {renderer_data}")
+        logger.info(f"[{self.agent_id}] Full expression: {combined_description}")
+        logger.debug(f"[{self.agent_id}] FACS: {facs_codes}")
+        logger.debug(f"[{self.agent_id}] BODY: {body_codes}")
 
         return {
-            'type': 'facial_expression',
-            'description': description,
+            'type': 'full_expression',
+            'description': combined_description,
             'facs_codes': facs_codes,
-            'renderer_data': renderer_data,
+            'body_codes': body_codes,
+            'renderer_data': {
+                'face': facs_renderer_data,
+                'body': body_renderer_data
+            },
             'affect': affect.tolist()
         }
 
@@ -1262,20 +1277,25 @@ Generate intuitive awareness:"""
 
             # FACS: Generate facial expression based on affect
             facial_expression = await self._generate_facial_expression(affect)
-            if facial_expression and state['surprise'] > 0.05:  # Only show if some surprise
+            if facial_expression and state['surprise'] > 0.02:  # Show if any notable surprise (lowered to catch more reactions)
                 # Store the facial expression for potential 3D renderer integration
                 self.last_facs_data = facial_expression['renderer_data']
 
                 # Format for chat display
-                # Format: *eyes wide with surprise, jaw dropped* [FACS: AU1, AU2, AU5, AU26]
+                # Format: *eyes wide, waddles nervously* [FACE: AU1, AU2 | BODY: BL44, BL14]
                 facs_codes_str = ", ".join([f"AU{au}" for au, _ in facial_expression['facs_codes'][:4]])
-                expression_text = f"*{facial_expression['description']}* [FACS: {facs_codes_str}]"
+                body_codes_str = ", ".join([f"BL{bl}" for bl, _ in facial_expression.get('body_codes', [])[:3]])
 
-                logger.info(f"[{self.agent_id}] FACS Expression triggered: {expression_text}")
+                if body_codes_str:
+                    expression_text = f"*{facial_expression['description']}* [FACE: {facs_codes_str} | BODY: {body_codes_str}]"
+                else:
+                    expression_text = f"*{facial_expression['description']}* [FACE: {facs_codes_str}]"
 
-                # Store facial expression to be returned along with speech/rumination
+                logger.info(f"[{self.agent_id}] Full Expression triggered: {expression_text}")
+
+                # Store full expression to be returned
                 state['facial_expression'] = expression_text
-                state['facs_data'] = facial_expression['renderer_data']
+                state['expression_data'] = facial_expression['renderer_data']
 
             # EVENT-DRIVEN COGNITION: Notify autonomous cognition of surprise
             if hasattr(self, 'autonomous_cognition') and self.autonomous_cognition:

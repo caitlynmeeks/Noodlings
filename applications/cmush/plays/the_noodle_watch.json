@@ -1,0 +1,269 @@
+{
+  "title": "The Noodle Watch",
+  "cast": [
+    "toad",
+    "desobelle",
+    "callie",
+    "servnak",
+    "phi"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Envelope in the Garden",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The garden is quiet, sun-dappled, with wild mint and old bricks. Toad stumbles upon a small, wrinkled envelope tucked behind a loose brick. It is faded, its edges curled like old leaves. On the front, a photo of himself in a silly hat with a red bowtie is printed \u2014 he looks both proud and slightly bewildered. Below it, the words: 'For the one who doesn\u2019t know they\u2019re being watched.' Toad\u2019s eyes widen. He opens it carefully."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "A tiny, glowing bug with compound eyes and a camera lens emerges from the envelope, buzzing softly, then flutters out into the air, leaving a trail of glittery dust that drifts like stars in the sunlight.",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 3,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 6
+          }
+        },
+        {
+          "t": 9,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "status",
+            "delta": -0.3
+          }
+        },
+        {
+          "t": 10,
+          "action": "stimulus",
+          "args": {
+            "description": "The bug hovers briefly, then winks once \u2014 a quick, sharp flick of its compound eyes \u2014 before vanishing into the wind.",
+            "target": "toad"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Hollow Mushroom",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "Toad, now trembling slightly, decides he must find the bug\u2019s lair. He follows the trail of glitter, which leads through the tall grass to a large, hollow mushroom in the woods. The mushroom glows faintly, like it\u2019s breathing. Inside, a tiny photo studio is set up \u2014 a circular platform with tiny bugs standing on photo stands, adjusting lenses, and clicking with soft whirs. A dozen small bugs are busy taking pictures of flowers, trees, squirrels, and even a passing bird."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "social_bond",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "A bug with a tiny lens turns and glances at Toad, its compound eyes reflecting a soft, knowing light.",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 3,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 5
+          }
+        },
+        {
+          "t": 8,
+          "action": "bias",
+          "actor": "desobelle",
+          "args": {
+            "param": "mastery",
+            "delta": 0.2
+          }
+        },
+        {
+          "t": 9,
+          "action": "stimulus",
+          "args": {
+            "description": "A bug slowly moves to a small table and places a photo of a squirrel wearing a tiny hat on a pedestal. The photo is blurry, but the squirrel looks oddly cheerful.",
+            "target": "desobelle"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "The World is Being Photographed",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "Toad listens. The bugs are quiet, but their movements are precise. One bug speaks softly \u2014 not in words, but in a low hum that vibrates through the air. Toad feels it in his skin. He realizes: everyone in the world is being photographed \u2014 not by humans, but by these tiny bugs. No one else knows. The photos are taken silently, without consent, and stored in a hidden network beneath the soil. Toad feels both seen and exposed, like a secret is now shared with the world \u2014 and with the bugs."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "autonomy",
+            "delta": -0.4
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad\u2019s hand reaches for his phone \u2014 but it\u2019s empty. He realizes he has no camera. Only the bugs have the ability to capture moments.",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "Servnak\u2019s pride circuits detect a new pattern: 'PHOTOGRAPHY NETWORK DETECTED \u2014 98.7% CONFIDENCE.' He spins in place, beeping softly.",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 5,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 7
+          }
+        },
+        {
+          "t": 12,
+          "action": "create_prop",
+          "args": {
+            "name": "The Noodle Watch Journal",
+            "desc": "A small, handmade notebook with a red ribbon, covered in doodles of hats, bugs, and squirrels."
+          }
+        },
+        {
+          "t": 13,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "status",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 14,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad opens the journal and writes: 'Day 1: A squirrel in a tiny hat. I don\u2019t know who took the photo, but I know I\u2019m seen.' He smiles. Poop-poop!",
+            "target": "toad"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "The First Post",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "Toad begins a photo blog called 'The Noodle Watch.' He posts only one photo \u2014 of a squirrel wearing a tiny hat \u2014 and adds a note: 'For the one who doesn\u2019t know they\u2019re being watched.' The post goes live. No one else sees it at first. But the bugs in the mushroom start to hum in unison. One of them taps its lens gently. It seems to smile."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi meows softly, then pounces at the journal, batting it with her paw as if it\u2019s a toy. She curls up beside it, purring.",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 3,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 4
+          }
+        },
+        {
+          "t": 7,
+          "action": "bias",
+          "actor": "desobelle",
+          "args": {
+            "param": "comfort",
+            "delta": 0.2
+          }
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "Desobelle sits quietly by the journal, looking at the photo of the squirrel. She says softly: 'There\u2019s a quiet beauty in being seen \u2014 even when it feels like a secret.'",
+            "target": "desobelle"
+          }
+        }
+      ]
+    }
+  ]
+}

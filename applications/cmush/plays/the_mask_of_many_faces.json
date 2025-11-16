@@ -1,0 +1,130 @@
+{
+  "title": "The Mask of Many Faces",
+  "cast": [
+    "phi",
+    "callie",
+    "servnak",
+    "phido"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Town Square Parade",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "You find yourselves in a sunny town square, where a cart pulled by a donkey named Puddles stands at the center. The cart is adorned with gilded masks and costumes, glowing faintly under the afternoon sun. A flimflam man in a velvet coat steps forward, his voice booming with a 1940s mid-Atlantic accent, humming a playful rhyme."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "phido",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "mastery",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "A pirate's hat gently falls from the cart, catching the light",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 5,
+          "action": "stimulus",
+          "args": {
+            "description": "A tiny bunny mask bounces slightly on the cart floor",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 6,
+          "action": "stimulus",
+          "args": {
+            "description": "A top hat with a monocle glints under the sun",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 7,
+          "action": "stimulus",
+          "args": {
+            "description": "A balloon hat wobbles near the edge of the cart",
+            "target": "phido"
+          }
+        },
+        {
+          "t": 8,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 18,
+          "action": "stimulus",
+          "args": {
+            "description": "The donkey Puddles sneezes loudly, causing the cart to wobble"
+          }
+        },
+        {
+          "t": 19,
+          "action": "stimulus",
+          "args": {
+            "description": "A stack of masks and costumes flies into the air like confetti"
+          }
+        },
+        {
+          "t": 20,
+          "action": "narrative",
+          "args": {
+            "text": "The flimflam man shouts, 'That\u2019s the magic of the mask! Now go out there and be someone else!' The crowd laughs and cheers. The agents leap into the wind, chasing each other with their new disguises."
+          }
+        },
+        {
+          "t": 26,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 5
+          }
+        },
+        {
+          "t": 31,
+          "action": "timer",
+          "args": {
+            "delay": 0,
+            "next_scene": 1
+          }
+        }
+      ]
+    }
+  ]
+}

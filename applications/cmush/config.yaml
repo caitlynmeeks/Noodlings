@@ -7,10 +7,22 @@ paths:
   logs_dir: logs
   checkpoint: null
 llm:
-  api_base: http://localhost:1234/v1
-  api_key: not-needed
-  model: qwen/qwen3-4b-2507
-  timeout: 60
+  # Provider: 'local' or 'openrouter'
+  provider: local  # Switch to 'openrouter' for Steve demo!
+
+  # Local LMStudio settings (development on Caledonia)
+  local:
+    api_base: http://localhost:1234/v1
+    api_key: not-needed
+    model: qwen/qwen3-4b-2507
+    timeout: 60
+
+  # OpenRouter settings (production demos - FAST!)
+  openrouter:
+    api_base: https://openrouter.ai/api/v1
+    api_key: YOUR_OPENROUTER_API_KEY_HERE  # Get from openrouter.ai
+    model: deepseek/deepseek-chat  # DeepSeek v3.1 - FAST and SMART!
+    timeout: 30
 brenda:
   model: deepseek-v3.1@q2_k_xl
 agent:

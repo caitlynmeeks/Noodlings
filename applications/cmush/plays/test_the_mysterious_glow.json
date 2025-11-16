@@ -1,0 +1,156 @@
+{
+  "title": "The Mysterious Glow (TEST PLAY)",
+  "cast": ["toad", "callie"],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Moonlit Garden",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The moonlit garden stretches before you, fragrant with night-blooming jasmine. Shadows dance across ancient stone paths."
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "A soft golden glow emanates from behind a cluster of rose bushes, pulsing gently like a heartbeat",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 6,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 17,
+          "action": "stimulus",
+          "args": {
+            "description": "The glow brightens suddenly, casting dancing shadows across the garden walls. A faint humming sound accompanies the light",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 19,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 30,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 31,
+          "action": "stimulus",
+          "args": {
+            "description": "A trail of luminescent footprints appears on the stone path, leading deeper into the garden. Each print glows briefly before fading",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 33,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 44,
+          "action": "stimulus",
+          "args": {
+            "description": "The rose bushes rustle violently despite the still air. A strange crystalline object rolls out onto the path, glittering in the moonlight",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 46,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 57,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "status",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 58,
+          "action": "stimulus",
+          "args": {
+            "description": "The crystalline object suddenly projects a beam of light upward, forming shimmering patterns in the air above the garden",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 60,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 12
+          }
+        },
+        {
+          "t": 73,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "social_bond",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 74,
+          "action": "stimulus",
+          "args": {
+            "description": "The light patterns shift and coalesce into something that looks almost like writing, glowing softly against the night sky",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 76,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 12
+          }
+        },
+        {
+          "t": 89,
+          "action": "narrative",
+          "args": {
+            "text": "The light gradually fades as dawn approaches. The mysterious crystal remains on the path, its glow now dormant. The garden returns to peaceful silence."
+          }
+        }
+      ]
+    }
+  ]
+}

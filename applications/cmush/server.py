@@ -176,13 +176,26 @@ class CMUSHServer:
 
     async def initialize_async_components(self):
         """Initialize async components (LLM, agents)."""
-        # Initialize LLM
+        # Initialize LLM with provider switching
         llm_config = self.config['llm']
+
+        # Determine which provider to use
+        provider = llm_config.get('provider', 'local')
+        logger.info(f"LLM provider: {provider}")
+
+        # Get provider-specific config
+        if provider == 'openrouter':
+            provider_config = llm_config.get('openrouter', {})
+            logger.info(f"🌐 Using OpenRouter with model: {provider_config.get('model')}")
+        else:  # default to 'local'
+            provider_config = llm_config.get('local', llm_config)  # Fallback to root llm config for backward compat
+            logger.info(f"💻 Using local LMStudio with model: {provider_config.get('model')}")
+
         self.llm = OpenAICompatibleLLM(
-            api_base=llm_config['api_base'],
-            api_key=llm_config.get('api_key', 'not-needed'),
-            model=llm_config['model'],
-            timeout=llm_config.get('timeout', 30),
+            api_base=provider_config.get('api_base', 'http://localhost:1234/v1'),
+            api_key=provider_config.get('api_key', 'not-needed'),
+            model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
+            timeout=provider_config.get('timeout', 30),
             max_concurrent=5,  # Match number of LMStudio instances
             use_model_instances=True  # Enable model:N pattern for parallel inference
         )

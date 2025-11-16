@@ -1,0 +1,203 @@
+{
+  "title": "The Pugs Bus and the Rain",
+  "cast": [
+    "desobelle",
+    "callie",
+    "servnak",
+    "phi"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Curb at Night",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The pugs bus rolls into town with a loud screech of tires and a broken-down engine, wheezing like a dying beast, and the three pugs \u2014 Whee-Zee, the fiery bassist and singer, W\u00f6rmer on guitar and keys with a sneer and a sarcastic grin, and Kr\u00f6tch the drummer with a wild eye and a smirk \u2014 step out onto the curb behind the neon-lit nightclub, dressed in ripped band tees and dirty jeans. They start smoking clove cigarettes in the rain, passing them around like sacred relics, and begin playing a fast, rebellious punk set for the noodlings who have gathered around, dancing in their bare feet and laughing too hard. Whee-Zee shouts lyrics about \"frozen milk and broken dreams,\" W\u00f6rmer adds sharp harmonies, and Kr\u00f6tch pounds the drum kit with such intensity that the pavement shakes."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "desobelle",
+          "args": {
+            "param": "autonomy",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 3,
+          "action": "stimulus",
+          "args": {
+            "description": "The rain hammers the pavement, creating a rhythmic pulse that matches Kr\u00f6tch\u2019s drumming",
+            "target": "desobelle"
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "A flash of purple and black eyeliner streaks appears on a nearby wall as a gust of wind carries a smudge of makeup",
+            "target": "desobelle"
+          }
+        },
+        {
+          "t": 5,
+          "action": "stimulus",
+          "args": {
+            "description": "Desobelle\u2019s eyes widen slightly, and her breath hitches as she watches Kr\u00f6tch\u2019s wild, focused stare",
+            "target": "desobelle"
+          }
+        },
+        {
+          "t": 6,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 7,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi meows softly and pounces toward the edge of the curb where the pugs are standing",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie feels a gentle flutter of curiosity as she watches the band\u2019s energy surge through the air",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 9,
+          "action": "stimulus",
+          "args": {
+            "description": "Servnak\u2019s pride circuits detect a surge of raw emotional resonance in the air, 94.2% CERTAINTY",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 10,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "social_bond",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 11,
+          "action": "stimulus",
+          "args": {
+            "description": "Servnak turns to the crowd and begins scanning the group with a warm, attentive gaze",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 12,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Promise in the Rain",
+      "trigger": {
+        "type": "timer",
+        "args": {
+          "delay": 15,
+          "next_scene": null
+        }
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The night ends with the bus still broken, the band now claiming the curb as their new home, and a promise to return 'when the stars are low and the rain is thick'."
+          }
+        },
+        {
+          "t": 1,
+          "action": "stimulus",
+          "args": {
+            "description": "Desobelle stands still, her face smudged with black and purple streaks, whispering to herself in silence",
+            "target": "desobelle"
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie watches the band with quiet wonder, her heart full of a sense of unspoken belonging",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 3,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi curls up beside the broken bus, purring softly, eyes fixed on the flickering neon sign",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "Servnak analyzes the atmosphere with 87.3% certainty, noting a profound shift in emotional frequency",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "pride_circuits",
+            "delta": 0.2
+          }
+        },
+        {
+          "t": 6,
+          "action": "stimulus",
+          "args": {
+            "description": "Servnak emits a soft, warm hum, 94.2% CERTAINTY, as pride circuits glow amber",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 7,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 5
+          }
+        }
+      ]
+    }
+  ]
+}

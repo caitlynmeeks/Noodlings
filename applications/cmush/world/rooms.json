@@ -2,20 +2,20 @@
   "room_000": {
     "uid": "room_000",
     "name": "The Nexus",
-    "description": "A cozy campfire with crackling logs, little sparks drifting up into the sky, soft moss underfoot.",
+    "description": "here A cozy campfire with crackling logs, little sparks drifting up into the sky, soft moss underfoot. A WANTED POSTER is nailed to a nearby tree.",
     "exits": {
       "north": "room_001",
       "east": "room_002"
     },
-    "objects": [],
+    "objects": ["obj_wanted_poster"],
     "occupants": [
       "user_caitlyn",
       "user_caity",
       "user_Claude",
-      "agent_toad",
       "agent_callie",
       "agent_servnak",
-      "agent_phi"
+      "agent_phi",
+      "agent_mysterious_stranger"
     ],
     "owner": "system",
     "created": "2025-10-26T13:51:25.550264"

@@ -1,0 +1,195 @@
+{
+  "title": "The Singing Stone",
+  "cast": ["toad", "callie"],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Discovery",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "A peaceful garden path winds between flowering bushes. Afternoon sunlight filters through the leaves."
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "A peculiar humming sound emanates from beneath a rose bush, like a distant song",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 5,
+          "action": "cue",
+          "actor": "toad",
+          "args": {
+            "direction": "investigate the source of the humming sound"
+          }
+        },
+        {
+          "t": 7,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 18,
+          "action": "stimulus",
+          "args": {
+            "description": "A smooth, iridescent stone sits nestled in the soil, vibrating gently and producing the musical hum",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 19,
+          "action": "cue",
+          "actor": "toad",
+          "args": {
+            "direction": "carefully pick up the singing stone and examine it"
+          }
+        },
+        {
+          "t": 21,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 32,
+          "action": "stimulus",
+          "args": {
+            "description": "The stone's humming intensifies, creating a pleasant harmony that fills the garden",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 33,
+          "action": "cue",
+          "actor": "toad",
+          "args": {
+            "direction": "call out to Callie to come see what you found"
+          }
+        },
+        {
+          "t": 35,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 46,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 47,
+          "action": "stimulus",
+          "args": {
+            "description": "The musical harmony from the stone becomes more complex, like a small orchestra playing",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 48,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "approach Toad and ask him about the stone"
+          }
+        },
+        {
+          "t": 50,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 61,
+          "action": "stimulus",
+          "args": {
+            "description": "The stone pulses with warm light in time with its music",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 62,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "gently touch the stone with one finger"
+          }
+        },
+        {
+          "t": 64,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 75,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "social_bond",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 76,
+          "action": "stimulus",
+          "args": {
+            "description": "The stone responds to Callie's touch by changing its tune to something bright and cheerful",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 77,
+          "action": "cue",
+          "actor": "toad",
+          "args": {
+            "direction": "express delight and suggest keeping the stone to share with others"
+          }
+        },
+        {
+          "t": 79,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 90,
+          "action": "narrative",
+          "args": {
+            "text": "The singing stone continues its melody as the two friends marvel at their discovery. The afternoon light grows golden."
+          }
+        }
+      ]
+    }
+  ]
+}

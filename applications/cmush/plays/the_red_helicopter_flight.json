@@ -1,0 +1,131 @@
+{
+  "title": "The Red Helicopter Flight",
+  "cast": [
+    "toad",
+    "callie"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "Soaring Above the Forest",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "Toad and Callie board a small red helicopter at the edge of the forest clearing. The pilot, a gruff but kind man named Flick, adjusts the controls with a tired smile. The rotor hums to life as they rise into the sky."
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 7,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 9,
+          "action": "stimulus",
+          "args": {
+            "description": "The helicopter soars high above the treetops and the glowing rivers below begin to shimmer in the twilight light",
+            "target": "all"
+          }
+        },
+        {
+          "t": 12,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 23,
+          "action": "stimulus",
+          "args": {
+            "description": "The helicopter dips low and passes over a hidden waterfall, the water cascading in silver ribbons",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 25,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie looks out at the valley with a quiet wonder",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 28,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "autonomy",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 30,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad jumps out of the helicopter and runs toward the waterfall",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 32,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie shouts after him, her voice carrying through the valley",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 35,
+          "action": "narrative",
+          "args": {
+            "text": "The helicopter flies back up and lands safely. The two share a quiet moment as the sun sets behind the mountains. The air is still, and the valley glows in the golden light."
+          }
+        },
+        {
+          "t": 40,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "social_bond",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 42,
+          "action": "narrative",
+          "args": {
+            "text": "They agree to fly again next week."
+          }
+        },
+        {
+          "t": 45,
+          "action": "timer",
+          "args": {
+            "delay": 5,
+            "next_scene": 1
+          }
+        }
+      ]
+    }
+  ]
+}

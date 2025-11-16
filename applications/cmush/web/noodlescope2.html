@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>NoodleScope 2.0 - Phenomenal State Timeline v2.8 WIDTH FIX</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            background: #0a0e1a;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header with tabs */
+        .header {
+            background: #131824;
+            border-bottom: 2px solid #2a3f5f;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #64b5f6;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background: #1e2938;
+            border: 1px solid #2a3f5f;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .tab:hover {
+            background: #2a3f5f;
+            transform: translateY(-1px);
+        }
+
+        .tab.active {
+            background: #2a5f8f;
+            border-color: #64b5f6;
+            color: #fff;
+        }
+
+        .session-selector {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .session-selector select {
+            background: #1e2938;
+            border: 1px solid #2a3f5f;
+            color: #e0e0e0;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Main content area */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Timeline visualization */
+        .timeline-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: #0a0e1a;
+            height: auto;
+        }
+
+        #timeline-plot {
+            width: 100%;
+            height: 350px;
+            box-sizing: border-box;
+        }
+
+        /* Timeline controls */
+        .timeline-controls {
+            background: #131824;
+            padding: 12px;
+            border-top: 1px solid #2a3f5f;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-shrink: 0;
+            min-height: 50px;
+            position: relative;
+            z-index: 1000 !important;
+        }
+
+        .slider-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .playhead-slider {
+            width: 100%;  /* Fill the wrapper, not flex */
+            height: 20px;
+            background: #1e2938;
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+            display: block !important;
+            visibility: visible !important;
+            border: 2px solid #00ff00;  /* DEBUG: Green border to see exact slider position */
+        }
+
+        .playhead-thumb {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #64b5f6;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            transition: background 0.2s;
+        }
+
+        .playhead-thumb:active {
+            cursor: grabbing;
+            background: #42a5f5;
+        }
+
+        .time-display {
+            font-size: 14px;
+            color: #64b5f6;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        #ask-kimmie-btn {
+            padding: 8px 16px;
+            background: #ba68c8;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        /* Kimmie interpretation panel */
+        .interpretation-panel {
+            background: #131824;
+            border-top: 2px solid #2a3f5f;
+            max-height: 40%;
+            overflow-y: auto;
+            transition: max-height 0.3s;
+        }
+
+        .interpretation-panel.collapsed {
+            max-height: 40px;
+        }
+
+        .interpretation-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #2a3f5f;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .interpretation-header:hover {
+            background: #1a2230;
+        }
+
+        .kimmie-title {
+            font-size: 16px;
+            color: #ba68c8;
+            font-weight: bold;
+        }
+
+        .kimmie-subtitle {
+            font-size: 12px;
+            color: #9575cd;
+            margin-top: 2px;
+        }
+
+        .collapse-btn {
+            background: none;
+            border: none;
+            color: #ba68c8;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .interpretation-content {
+            padding: 16px;
+            line-height: 1.6;
+        }
+
+        .kimmie-loading {
+            color: #ba68c8;
+            font-style: italic;
+        }
+
+        .kimmie-message {
+            background: #1e2938;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #ba68c8;
+            margin-bottom: 12px;
+        }
+
+        /* Metrics panel */
+        .metrics-panel {
+            background: #1a2230;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+
+        .metric-card {
+            background: #131824;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #2a3f5f;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: #9e9e9e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #64b5f6;
+        }
+
+        .metric-status {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .metric-status.good {
+            color: #66bb6a;
+        }
+
+        .metric-status.warning {
+            color: #ffa726;
+        }
+
+        .metric-status.bad {
+            color: #ef5350;
+        }
+
+        /* Event markers */
+        .event-marker {
+            background: #ba68c8;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 16px;
+            color: #64b5f6;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #1e2938;
+            border-top-color: #64b5f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0e1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2a3f5f;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a5f8f;
+        }
+
+        /* Operations Console Panel */
+        .console-panel {
+            background: #131824;
+            border-top: 2px solid #2a3f5f;
+            max-height: 300px;
+            display: flex;
+            flex-direction: column;
+            transition: max-height 0.3s;
+        }
+
+        .console-panel.collapsed {
+            max-height: 42px;
+        }
+
+        .console-header {
+            background: #1a2230;
+            padding: 8px 16px;
+            border-bottom: 1px solid #2a3f5f;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .console-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #64b5f6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .console-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .console-filter {
+            background: #1e2938;
+            border: 1px solid #2a3f5f;
+            color: #e0e0e0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .console-btn {
+            padding: 4px 10px;
+            background: #2a5f8f;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .console-btn:hover {
+            background: #3a7faf;
+        }
+
+        .console-btn.pause {
+            background: #ffa726;
+        }
+
+        .console-btn.pause:hover {
+            background: #ffb74d;
+        }
+
+        .console-btn.paused {
+            background: #66bb6a;
+        }
+
+        .console-btn.paused:hover {
+            background: #81c784;
+        }
+
+        .console-btn.clear {
+            background: #ef5350;
+        }
+
+        .console-btn.clear:hover {
+            background: #f44336;
+        }
+
+        .console-btn.toggle {
+            background: transparent;
+            border: 1px solid #2a3f5f;
+            padding: 4px 8px;
+        }
+
+        .console-btn.toggle:hover {
+            background: #2a3f5f;
+        }
+
+        .console-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            background: #0a0e1a;
+        }
+
+        .console-line {
+            padding: 2px 4px;
+            margin-bottom: 1px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border-left: 2px solid transparent;
+        }
+
+        .console-line:hover {
+            background: #1a2230;
+        }
+
+        .console-line.green {
+            border-left-color: #66bb6a;
+            color: #66bb6a;
+        }
+
+        .console-line.yellow {
+            border-left-color: #ffa726;
+            color: #ffa726;
+        }
+
+        .console-line.orange {
+            border-left-color: #ff7043;
+            color: #ff7043;
+        }
+
+        .console-line.red {
+            border-left-color: #ef5350;
+            color: #ef5350;
+        }
+
+        .console-line.blue {
+            border-left-color: #64b5f6;
+            color: #64b5f6;
+        }
+
+        .console-timestamp {
+            color: #9e9e9e;
+        }
+
+        .console-agent {
+            color: #ba68c8;
+            font-weight: bold;
+        }
+
+        .console-operation {
+            color: #e0e0e0;
+        }
+
+        .console-duration {
+            font-weight: bold;
+        }
+
+        .console-status {
+            color: #9e9e9e;
+            font-style: italic;
+        }
+
+        .console-empty {
+            color: #9e9e9e;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Phenomenal State Knobs Panel */
+        .state-panel {
+            background: #131824;
+            border-right: 2px solid #2a3f5f;
+            width: 300px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .state-panel-header {
+            background: #1a2230;
+            padding: 12px 16px;
+            border-bottom: 1px solid #2a3f5f;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .state-panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #64b5f6;
+            margin-bottom: 8px;
+        }
+
+        .state-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .state-btn {
+            flex: 1;
+            padding: 6px 8px;
+            background: #2a5f8f;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .state-btn:hover {
+            background: #3a7faf;
+            transform: translateY(-1px);
+        }
+
+        .state-btn.import {
+            background: #ba68c8;
+        }
+
+        .state-btn.import:hover {
+            background: #ca78d8;
+        }
+
+        .knobs-container {
+            padding: 12px;
+        }
+
+        .knobs-section {
+            margin-bottom: 16px;
+        }
+
+        .knobs-section-title {
+            font-size: 11px;
+            color: #9e9e9e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+            padding-bottom: 4px;
+        }
+
+        .knob-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 8px;
+        }
+
+        .knob-label {
+            font-size: 10px;
+            color: #9e9e9e;
+            width: 40px;
+            text-align: right;
+        }
+
+        .knob-bar-container {
+            flex: 1;
+            height: 16px;
+            background: #1e2938;
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .knob-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #2a5f8f, #64b5f6);
+            transition: width 0.15s ease-out;
+            border-radius: 3px;
+        }
+
+        .knob-bar.fast {
+            background: linear-gradient(90deg, #66bb6a, #81c784);
+        }
+
+        .knob-bar.medium {
+            background: linear-gradient(90deg, #ffa726, #ffb74d);
+        }
+
+        .knob-bar.slow {
+            background: linear-gradient(90deg, #ab47bc, #ba68c8);
+        }
+
+        .knob-value {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            color: #0a0e1a;
+            font-weight: bold;
+        }
+
+        /* Make timeline container flex to accommodate state panel */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .timeline-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Conversation Context Panel */
+        .context-panel {
+            background: #131824;
+            border-bottom: 1px solid #2a3f5f;
+            max-height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .context-panel-header {
+            background: #1a2230;
+            padding: 8px 16px;
+            border-bottom: 1px solid #2a3f5f;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .context-panel-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #ffa726;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .context-content {
+            padding: 12px 16px;
+            font-family: 'SF Mono', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+            color: #b0b0b0;
+        }
+
+        .context-message {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #1e2938;
+            border-radius: 4px;
+            border-left: 3px solid #2a5f8f;
+        }
+
+        .context-message.user {
+            border-left-color: #66bb6a;
+        }
+
+        .context-message.agent {
+            border-left-color: #64b5f6;
+        }
+
+        .context-message.system {
+            border-left-color: #ffa726;
+        }
+
+        .context-role {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            opacity: 0.7;
+        }
+
+        .context-text {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .context-empty {
+            color: #9e9e9e;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with tabs and session selector -->
+        <div class="header">
+            <div class="title">NoodleScope 2.0 - Phenomenal State Timeline</div>
+            <div class="tabs" id="agent-tabs">
+                <!-- Tabs will be dynamically generated -->
+            </div>
+            <div class="session-selector">
+                <label>Session:</label>
+                <select id="session-select">
+                    <option value="">Loading...</option>
+                </select>
+                <button id="refresh-btn" style="padding: 6px 12px; background: #2a5f8f; border: none; border-radius: 4px; color: #fff; cursor: pointer;">Refresh</button>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="content">
+            <div class="main-layout">
+                <!-- Phenomenal State Knobs Panel -->
+                <div class="state-panel" id="state-panel">
+                    <div class="state-panel-header">
+                        <div class="state-panel-title">Phenomenal State (40-D)</div>
+                        <div class="state-actions">
+                            <button class="state-btn" id="export-state-btn">↓ SAVE</button>
+                            <button class="state-btn import" id="import-state-btn">↑ LOAD</button>
+                        </div>
+                    </div>
+                    <div class="knobs-container" id="knobs-container">
+                        <!-- Knobs will be dynamically generated -->
+                        <div style="color: #9e9e9e; font-style: italic; font-size: 12px; text-align: center; padding: 20px;">
+                            No state loaded
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline Section -->
+                <div class="timeline-section">
+                    <!-- Conversation Context Panel -->
+                    <div class="context-panel" id="context-panel">
+                        <div class="context-panel-header">
+                            <div class="context-panel-title">🗨️ LLM Conversation Context</div>
+                        </div>
+                        <div class="context-content" id="context-content">
+                            <div class="context-empty">No context at this timestep</div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics panel -->
+                    <div class="metrics-panel" id="metrics-panel">
+                <div class="metric-card">
+                    <div class="metric-label">HSI (Slow/Fast)</div>
+                    <div class="metric-value" id="hsi-value">--</div>
+                    <div class="metric-status" id="hsi-status">--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Surprise</div>
+                    <div class="metric-value" id="surprise-value">--</div>
+                    <div class="metric-status" id="surprise-status">--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Valence</div>
+                    <div class="metric-value" id="valence-value">--</div>
+                    <div class="metric-status" id="valence-status">--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Arousal</div>
+                    <div class="metric-value" id="arousal-value">--</div>
+                    <div class="metric-status" id="arousal-status">--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Cheap Thrills</div>
+                    <div class="metric-value" id="thrills-value">--</div>
+                    <div class="metric-status" id="thrills-status">--</div>
+                </div>
+            </div>
+
+            <!-- Timeline visualization with integrated controls -->
+            <div class="timeline-container">
+                <div id="timeline-plot" class="loading">
+                    <div class="spinner"></div>
+                    <div>Loading session data...</div>
+                </div>
+
+                <!-- Timeline controls (directly beneath graph) -->
+                <div class="timeline-controls">
+                    <div class="time-display" id="time-display">0.0s / 0.0s</div>
+                    <div class="slider-wrapper" id="slider-wrapper">
+                        <div class="playhead-slider" id="playhead-slider">
+                            <div class="playhead-thumb" id="playhead-thumb"></div>
+                        </div>
+                    </div>
+                    <button id="ask-kimmie-btn">Ask @Kimmie</button>
+                </div>
+            </div>
+
+            <!-- Operations Console Panel -->
+            <div class="console-panel" id="console-panel">
+                <div class="console-header">
+                    <div class="console-title">⚡ Operations Timeline</div>
+                    <div class="console-controls">
+                        <select class="console-filter" id="console-filter">
+                            <option value="all">All</option>
+                            <option value="llm">LLM</option>
+                            <option value="neural">Neural</option>
+                            <option value="events">Events</option>
+                        </select>
+                        <button class="console-btn pause" id="console-pause-btn">Pause</button>
+                        <button class="console-btn clear" id="console-clear-btn">Clear</button>
+                        <button class="console-btn toggle" id="console-toggle-btn">▼</button>
+                    </div>
+                </div>
+                <div class="console-content" id="console-content">
+                    <div class="console-empty">No operations logged yet</div>
+                </div>
+            </div>
+
+            <!-- Kimmie interpretation panel -->
+            <div class="interpretation-panel" id="interpretation-panel">
+                <div class="interpretation-header" id="interpretation-header">
+                    <div>
+                        <div class="kimmie-title">@Kimmie - Phenomenal State Interpreter</div>
+                        <div class="kimmie-subtitle">Select a timeline segment and click "Ask @Kimmie" to understand what happened</div>
+                    </div>
+                    <button class="collapse-btn" id="collapse-btn">▼</button>
+                </div>
+                <div class="interpretation-content" id="interpretation-content">
+                    <div style="color: #9e9e9e; font-style: italic;">
+                        No interpretation yet. Select a timeline segment and click "Ask @Kimmie" above.
+                    </div>
+                </div>
+            </div>
+                </div> <!-- Close timeline-section -->
+            </div> <!-- Close main-layout -->
+        </div> <!-- Close content -->
+    </div> <!-- Close container -->
+
+    <script>
+        // Global state
+        let sessionData = null;
+        let currentAgent = null;
+        let currentPlayhead = 0;
+        let isDraggingPlayhead = false;
+        let selectedRange = null;
+
+        // Console state
+        let consoleOperations = [];
+        let consoleFilter = 'all';
+        let consolePaused = false;
+        let consoleRefreshInterval = null;
+        let lastOperationId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSessions();
+            setupEventListeners();
+        });
+
+        // Load available sessions
+        async function loadSessions() {
+            try {
+                // Try to load live session first
+                const liveResponse = await fetch('/api/profiler/live-session');
+                const sessions = [];
+
+                if (liveResponse.ok) {
+                    const liveData = await liveResponse.json();
+                    // Always include live session if it exists, even if empty
+                    if (liveData.metadata) {
+                        const agentList = Object.keys(liveData.timelines || {}).length > 0
+                            ? Object.keys(liveData.timelines)
+                            : (liveData.metadata.agents || ['No agents yet']);
+                        sessions.push({
+                            id: '__LIVE__',
+                            name: '🔴 LIVE SESSION',
+                            agents: agentList,
+                            isLive: true
+                        });
+                    }
+                }
+
+                // Load saved sessions
+                const savedResponse = await fetch('/api/profiler/sessions');
+                const savedSessions = await savedResponse.json();
+                sessions.push(...savedSessions.map(s => ({
+                    id: s.id,
+                    name: s.id,
+                    agents: s.agents,
+                    isLive: false
+                })));
+
+                const select = document.getElementById('session-select');
+                select.innerHTML = sessions.map(s =>
+                    `<option value="${s.id}">${s.name || s.id} (${s.agents.join(', ')})</option>`
+                ).join('');
+
+                if (sessions.length > 0) {
+                    select.value = sessions[0].id;
+                    loadSession(sessions[0].id);
+                } else {
+                    select.innerHTML = '<option>No sessions available</option>';
+                }
+            } catch (error) {
+                console.error('Failed to load sessions:', error);
+                document.getElementById('session-select').innerHTML = '<option>Error loading sessions</option>';
+            }
+        }
+
+        // Load session data
+        async function loadSession(sessionId) {
+            try {
+                let response;
+                if (sessionId === '__LIVE__') {
+                    response = await fetch('/api/profiler/live-session');
+                } else {
+                    response = await fetch(`/api/profiler/session/${sessionId}`);
+                }
+                sessionData = await response.json();
+
+                // Create tabs for each agent
+                createAgentTabs();
+
+                // Load first agent by default, or show empty state
+                if (sessionData.timelines && Object.keys(sessionData.timelines).length > 0) {
+                    const firstAgent = Object.keys(sessionData.timelines)[0];
+                    switchAgent(firstAgent);
+                } else {
+                    // No timeline data yet - show waiting message
+                    document.getElementById('timeline-plot').innerHTML =
+                        '<div style="text-align: center; padding: 40px; color: #9e9e9e;">' +
+                        '<div style="font-size: 18px; margin-bottom: 16px;">⏳ Waiting for agent activity...</div>' +
+                        '<div>The session is active but no phenomenal state data has been logged yet.</div>' +
+                        '<div style="margin-top: 8px;">Interact with agents in noodleMUSH to see their timeline.</div>' +
+                        '</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load session:', error);
+                document.getElementById('timeline-plot').innerHTML = '<div>Failed to load session data</div>';
+            }
+        }
+
+        // Create agent tabs
+        function createAgentTabs() {
+            const tabsContainer = document.getElementById('agent-tabs');
+            const agents = Object.keys(sessionData.timelines);
+
+            tabsContainer.innerHTML = agents.map(agentId =>
+                `<div class="tab" data-agent="${agentId}" onclick="switchAgent('${agentId}')">
+                    ${agentId.replace('agent_', '')}
+                </div>`
+            ).join('');
+        }
+
+        // Switch to a different agent
+        function switchAgent(agentId) {
+            currentAgent = agentId;
+
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.agent === agentId);
+            });
+
+            // Render timeline
+            renderTimeline(agentId);
+
+            // Reset playhead
+            currentPlayhead = 0;
+            updatePlayheadPosition();
+            updateMetrics();
+
+            // Reset and start console refresh for new agent
+            consoleOperations = [];
+            lastOperationId = null;
+            renderConsole();
+            startConsoleRefresh();
+        }
+
+        // Render timeline visualization
+        function renderTimeline(agentId) {
+            const timeline = sessionData.timelines[agentId];
+            if (!timeline || timeline.length === 0) {
+                document.getElementById('timeline-plot').innerHTML = '<div>No data available for this agent</div>';
+                return;
+            }
+
+            const timestamps = timeline.map(t => t.timestamp);
+
+            // Calculate Y-axis range based on actual data
+            const allValues = [];
+            timeline.forEach(t => {
+                allValues.push(t.affect.valence, t.affect.arousal, t.affect.fear, t.surprise);
+            });
+            const minVal = Math.min(...allValues);
+            const maxVal = Math.max(...allValues);
+            const padding = (maxVal - minVal) * 0.1 || 0.1; // 10% padding, or 0.1 if no range
+            const yMin = minVal - padding;
+            const yMax = maxVal + padding;
+
+            // Create traces for each affect dimension
+            const traces = [
+                {
+                    x: timestamps,
+                    y: timeline.map(t => t.affect.valence),
+                    name: 'Valence',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#66bb6a', width: 2 }
+                },
+                {
+                    x: timestamps,
+                    y: timeline.map(t => t.affect.arousal),
+                    name: 'Arousal',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#ffa726', width: 2 }
+                },
+                {
+                    x: timestamps,
+                    y: timeline.map(t => t.affect.fear),
+                    name: 'Fear',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#ef5350', width: 2 }
+                },
+                {
+                    x: timestamps,
+                    y: timeline.map(t => t.surprise),
+                    name: 'Surprise',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#64b5f6', width: 2 }
+                }
+            ];
+
+            // Add event markers for different agent activities
+            // Speech (utterances)
+            const utterances = timeline.filter(t => t.speech && t.speech.did_speak);
+            if (utterances.length > 0) {
+                traces.push({
+                    x: utterances.map(t => t.timestamp),
+                    y: utterances.map(() => yMax - padding * 0.3),
+                    text: utterances.map(t => `💬 ${t.speech.utterance || 'spoke'}`),
+                    name: '💬 Speech',
+                    type: 'scatter',
+                    mode: 'markers+text',
+                    textposition: 'top center',
+                    textfont: { size: 10 },
+                    marker: { color: '#ba68c8', size: 12, symbol: 'diamond' },
+                    hovertemplate: '<b>Speech</b><br>%{text}<extra></extra>'
+                });
+            }
+
+            // Thoughts (high surprise without speech)
+            const thoughts = timeline.filter(t => t.surprise > 0.15 && (!t.speech || !t.speech.did_speak));
+            if (thoughts.length > 0) {
+                traces.push({
+                    x: thoughts.map(t => t.timestamp),
+                    y: thoughts.map(() => yMax - padding * 0.6),
+                    text: thoughts.map(t => '💭'),
+                    name: '💭 Thought',
+                    type: 'scatter',
+                    mode: 'markers+text',
+                    textposition: 'top center',
+                    textfont: { size: 10 },
+                    marker: { color: '#90caf9', size: 10, symbol: 'circle' },
+                    hovertemplate: '<b>Thought</b><br>Surprise: %{customdata:.3f}<extra></extra>',
+                    customdata: thoughts.map(t => t.surprise)
+                });
+            }
+
+            // Event context markers (when something happens in the world)
+            const events = timeline.filter(t => t.event_context && t.event_context.length > 10);
+            if (events.length > 0) {
+                traces.push({
+                    x: events.map(t => t.timestamp),
+                    y: events.map(() => yMin + padding * 0.3),
+                    text: events.map(() => '⚡'),
+                    name: '⚡ Event',
+                    type: 'scatter',
+                    mode: 'markers+text',
+                    textposition: 'bottom center',
+                    textfont: { size: 10 },
+                    marker: { color: '#ffb74d', size: 10, symbol: 'star' },
+                    hovertemplate: '<b>Event</b><br>%{customdata}<extra></extra>',
+                    customdata: events.map(t => t.event_context.substring(0, 50) + '...')
+                });
+            }
+
+            // Playhead indicator line (vertical line at current playhead position)
+            const playheadTimestamp = timestamps[Math.floor(currentPlayhead * (timeline.length - 1))];
+            const playheadTrace = {
+                x: [playheadTimestamp, playheadTimestamp],
+                y: [yMin, yMax],
+                name: 'Playhead',
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#ffffff', width: 2, dash: 'dot' },
+                hoverinfo: 'skip',
+                showlegend: false
+            };
+            traces.push(playheadTrace);
+
+            const layout = {
+                title: null,
+                xaxis: {
+                    title: 'Time (seconds)',
+                    color: '#e0e0e0',
+                    gridcolor: '#2a3f5f',
+                    fixedrange: false,  // Allow zooming
+                    titlefont: { size: 11 },
+                    range: [Math.min(...timestamps), Math.max(...timestamps)],  // Fit to actual data range
+                    domain: [0, 1],  // Use full width (0% to 100%)
+                    showline: false,
+                    zeroline: false
+                },
+                yaxis: {
+                    title: 'Value',
+                    color: '#e0e0e0',
+                    gridcolor: '#2a3f5f',
+                    range: [yMin, yMax],  // Auto-fit to data range
+                    titlefont: { size: 11 },
+                    domain: [0, 1],  // Use full height (0% to 100%)
+                    showline: false,
+                    zeroline: false
+                },
+                plot_bgcolor: '#0a0e1a',
+                paper_bgcolor: '#0a0e1a',
+                font: { color: '#e0e0e0', family: 'SF Mono, monospace', size: 10 },
+                margin: { t: 20, l: 50, r: 20, b: 40 },  // Minimal margins for axis labels
+                legend: {
+                    orientation: 'h',
+                    y: -0.15,
+                    x: 0.5,
+                    xanchor: 'center',
+                    font: { size: 9 }
+                },
+                dragmode: 'select',
+                hovermode: 'closest',
+                autosize: true
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['lasso2d', 'autoScale2d'],
+                displaylogo: false
+            };
+
+            const plotDiv = document.getElementById('timeline-plot');
+            Plotly.newPlot(plotDiv, traces, layout, config).then(() => {
+                // Force resize to fit container properly
+                window.dispatchEvent(new Event('resize'));
+
+                // Dynamically align slider with plot area
+                setTimeout(() => {
+                    // Try multiple selectors to find the plot area
+                    let plotArea = plotDiv.querySelector('.xy');
+                    if (!plotArea) {
+                        plotArea = plotDiv.querySelector('.plot .draglayer');
+                    }
+                    if (!plotArea) {
+                        plotArea = plotDiv.querySelector('.cartesianlayer');
+                    }
+
+                    const sliderWrapper = document.getElementById('slider-wrapper');
+
+                    console.log('DEBUG: plotArea found?', !!plotArea);
+                    console.log('DEBUG: sliderWrapper found?', !!sliderWrapper);
+
+                    if (plotArea && sliderWrapper) {
+                        const plotRect = plotArea.getBoundingClientRect();
+                        const containerRect = plotDiv.getBoundingClientRect();
+
+                        const leftOffset = plotRect.left - containerRect.left;
+                        const rightOffset = containerRect.right - plotRect.right;
+
+                        console.log('DEBUG: Plot area left offset:', leftOffset, 'px');
+                        console.log('DEBUG: Plot area right offset:', rightOffset, 'px');
+                        console.log('DEBUG: Plot area width:', plotRect.width, 'px');
+                        console.log('DEBUG: Container width:', containerRect.width, 'px');
+
+                        // Apply calculated padding to slider wrapper only
+                        sliderWrapper.style.paddingLeft = `${leftOffset}px`;
+                        sliderWrapper.style.paddingRight = `${rightOffset}px`;
+                        sliderWrapper.style.backgroundColor = '#ff00ff';  // DEBUG: Magenta to see wrapper
+
+                        console.log('DEBUG: Applied padding-left:', leftOffset, 'px');
+                        console.log('DEBUG: Applied padding-right:', rightOffset, 'px');
+                    } else {
+                        console.error('DEBUG: Could not find plotArea or sliderWrapper!');
+                    }
+                }, 500);
+            });
+
+            // Handle selection for @Kimmie queries
+            document.getElementById('timeline-plot').on('plotly_selected', (eventData) => {
+                if (eventData && eventData.range) {
+                    selectedRange = {
+                        start: eventData.range.x[0],
+                        end: eventData.range.x[1]
+                    };
+                }
+            });
+        }
+
+        // Render phenomenal state knobs
+        function renderPhenomenalStateKnobs() {
+            if (!sessionData || !currentAgent) return;
+
+            const timeline = sessionData.timelines[currentAgent];
+            const index = Math.floor(currentPlayhead * (timeline.length - 1));
+            const dataPoint = timeline[index];
+
+            if (!dataPoint) {
+                document.getElementById('knobs-container').innerHTML =
+                    '<div style="color: #9e9e9e; font-style: italic; font-size: 12px; text-align: center; padding: 20px;">No data available</div>';
+                return;
+            }
+
+            // Check if we have actual phenomenal state data (40-D neural network states)
+            const state = dataPoint.phenomenal_state;
+            if (!state || state.length === 0) {
+                // No trained model loaded - show affect data instead
+                const affect = dataPoint.affect;
+                let html = '<div style="padding: 20px;">';
+                html += '<div style="color: #ffb74d; margin-bottom: 16px; font-size: 11px;">⚠️ Phenomenal State (40-D) not available - temporal model not loaded. Showing 5-D affect vector instead:</div>';
+                html += '<div class="knobs-section">';
+                html += '<div class="knobs-section-title">Affect Vector (5-D)</div>';
+
+                const affectDims = [
+                    { name: 'Valence', value: affect.valence, color: 'fast' },
+                    { name: 'Arousal', value: affect.arousal, color: 'medium' },
+                    { name: 'Fear', value: affect.fear, color: 'slow' },
+                    { name: 'Sorrow', value: affect.sorrow || 0, color: 'fast' },
+                    { name: 'Boredom', value: affect.boredom || 0, color: 'medium' }
+                ];
+
+                affectDims.forEach((dim, idx) => {
+                    const normalized = Math.max(0, Math.min(1, (dim.value + 1) / 2)); // Normalize from [-1,1] to [0,1]
+                    html += `
+                        <div class="knob-row">
+                            <div class="knob-label">${dim.name}</div>
+                            <div class="knob-bar-container">
+                                <div class="knob-bar ${dim.color}" style="width: ${normalized * 100}%"></div>
+                                <div class="knob-value">${dim.value.toFixed(3)}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div></div>';
+                document.getElementById('knobs-container').innerHTML = html;
+                return;
+            }
+
+            // Build knobs HTML
+            let html = '';
+
+            // Fast layer (16-D) - green
+            html += '<div class="knobs-section">';
+            html += '<div class="knobs-section-title">Fast Layer (16-D)</div>';
+            for (let i = 0; i < 16; i++) {
+                const val = state[i] || 0;
+                const normalized = (val + 1) / 2; // Normalize from [-1, 1] to [0, 1]
+                html += `
+                    <div class="knob-row">
+                        <div class="knob-label">F${i}</div>
+                        <div class="knob-bar-container">
+                            <div class="knob-bar fast" style="width: ${normalized * 100}%"></div>
+                            <div class="knob-value">${val.toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+
+            // Medium layer (16-D) - orange
+            html += '<div class="knobs-section">';
+            html += '<div class="knobs-section-title">Medium Layer (16-D)</div>';
+            for (let i = 16; i < 32; i++) {
+                const val = state[i] || 0;
+                const normalized = (val + 1) / 2;
+                html += `
+                    <div class="knob-row">
+                        <div class="knob-label">M${i-16}</div>
+                        <div class="knob-bar-container">
+                            <div class="knob-bar medium" style="width: ${normalized * 100}%"></div>
+                            <div class="knob-value">${val.toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+
+            // Slow layer (8-D) - purple
+            html += '<div class="knobs-section">';
+            html += '<div class="knobs-section-title">Slow Layer (8-D)</div>';
+            for (let i = 32; i < 40; i++) {
+                const val = state[i] || 0;
+                const normalized = (val + 1) / 2;
+                html += `
+                    <div class="knob-row">
+                        <div class="knob-label">S${i-32}</div>
+                        <div class="knob-bar-container">
+                            <div class="knob-bar slow" style="width: ${normalized * 100}%"></div>
+                            <div class="knob-value">${val.toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+
+            document.getElementById('knobs-container').innerHTML = html;
+        }
+
+        // Export phenomenal state to JSON file
+        function exportPhenomenalState() {
+            if (!sessionData || !currentAgent) {
+                alert('No state to export');
+                return;
+            }
+
+            const timeline = sessionData.timelines[currentAgent];
+            const index = Math.floor(currentPlayhead * (timeline.length - 1));
+            const dataPoint = timeline[index];
+
+            if (!dataPoint || !dataPoint.phenomenal_state) {
+                alert('No phenomenal state data at this timestep');
+                return;
+            }
+
+            const exportData = {
+                agent: currentAgent,
+                timestamp: dataPoint.timestamp,
+                phenomenal_state: dataPoint.phenomenal_state,
+                affect: dataPoint.affect,
+                hsi: dataPoint.hsi,
+                surprise: dataPoint.surprise,
+                exported_at: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `phenomenal_state_${currentAgent}_t${dataPoint.timestamp.toFixed(1)}s.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Import phenomenal state from JSON file
+        function importPhenomenalState() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+
+                        if (!importedData.phenomenal_state || !Array.isArray(importedData.phenomenal_state)) {
+                            alert('Invalid state file: missing phenomenal_state array');
+                            return;
+                        }
+
+                        if (importedData.phenomenal_state.length !== 40) {
+                            alert(`Invalid state file: expected 40 dimensions, got ${importedData.phenomenal_state.length}`);
+                            return;
+                        }
+
+                        // Show loaded state in knobs panel
+                        alert(`Loaded phenomenal state from ${importedData.agent || 'unknown agent'} at t=${importedData.timestamp || 0}s\\n\\nNote: This visualization shows the imported state, but it's not applied to the agent. This is a read-only preview.`);
+
+                        // Temporarily render the imported state
+                        const container = document.getElementById('knobs-container');
+                        let html = '<div style="background: #2a3f5f; padding: 8px; margin-bottom: 12px; border-radius: 4px; font-size: 11px; color: #64b5f6;">📂 IMPORTED STATE (Preview Only)</div>';
+
+                        const state = importedData.phenomenal_state;
+
+                        // Fast layer
+                        html += '<div class="knobs-section">';
+                        html += '<div class="knobs-section-title">Fast Layer (16-D)</div>';
+                        for (let i = 0; i < 16; i++) {
+                            const val = state[i] || 0;
+                            const normalized = (val + 1) / 2;
+                            html += `
+                                <div class="knob-row">
+                                    <div class="knob-label">F${i}</div>
+                                    <div class="knob-bar-container">
+                                        <div class="knob-bar fast" style="width: ${normalized * 100}%"></div>
+                                        <div class="knob-value">${val.toFixed(2)}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        html += '</div>';
+
+                        // Medium layer
+                        html += '<div class="knobs-section">';
+                        html += '<div class="knobs-section-title">Medium Layer (16-D)</div>';
+                        for (let i = 16; i < 32; i++) {
+                            const val = state[i] || 0;
+                            const normalized = (val + 1) / 2;
+                            html += `
+                                <div class="knob-row">
+                                    <div class="knob-label">M${i-16}</div>
+                                    <div class="knob-bar-container">
+                                        <div class="knob-bar medium" style="width: ${normalized * 100}%"></div>
+                                        <div class="knob-value">${val.toFixed(2)}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        html += '</div>';
+
+                        // Slow layer
+                        html += '<div class="knobs-section">';
+                        html += '<div class="knobs-section-title">Slow Layer (8-D)</div>';
+                        for (let i = 32; i < 40; i++) {
+                            const val = state[i] || 0;
+                            const normalized = (val + 1) / 2;
+                            html += `
+                                <div class="knob-row">
+                                    <div class="knob-label">S${i-32}</div>
+                                    <div class="knob-bar-container">
+                                        <div class="knob-bar slow" style="width: ${normalized * 100}%"></div>
+                                        <div class="knob-value">${val.toFixed(2)}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        html += '</div>';
+
+                        container.innerHTML = html;
+
+                    } catch (error) {
+                        alert(`Error loading state file: ${error.message}`);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        // Render conversation context
+        function renderConversationContext() {
+            if (!sessionData || !currentAgent) return;
+
+            const timeline = sessionData.timelines[currentAgent];
+            const index = Math.floor(currentPlayhead * (timeline.length - 1));
+            const dataPoint = timeline[index];
+
+            const contextContainer = document.getElementById('context-content');
+
+            if (!dataPoint || !dataPoint.conversation_context || dataPoint.conversation_context.length === 0) {
+                contextContainer.innerHTML = '<div class="context-empty">No conversation context at this timestep</div>';
+                return;
+            }
+
+            const messages = dataPoint.conversation_context;
+            let html = '';
+
+            messages.forEach((msg, idx) => {
+                const role = msg.role || 'unknown';
+                const content = msg.content || '';
+                const roleClass = role === 'user' ? 'user' : (role === 'assistant' ? 'agent' : 'system');
+
+                html += `
+                    <div class="context-message ${roleClass}">
+                        <div class="context-role">${role}</div>
+                        <div class="context-text">${escapeHtml(content)}</div>
+                    </div>
+                `;
+            });
+
+            contextContainer.innerHTML = html;
+        }
+
+        // HTML escape helper
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Update metrics display
+        function updateMetrics() {
+            if (!sessionData || !currentAgent) return;
+
+            const timeline = sessionData.timelines[currentAgent];
+            const index = Math.floor(currentPlayhead * (timeline.length - 1));
+            const dataPoint = timeline[index];
+
+            if (!dataPoint) return;
+
+            // Update phenomenal state knobs
+            renderPhenomenalStateKnobs();
+
+            // Update conversation context
+            renderConversationContext();
+
+            // HSI
+            const hsi = dataPoint.hsi?.hsi_slow_fast || 0;
+            document.getElementById('hsi-value').textContent = hsi.toFixed(4);
+            document.getElementById('hsi-status').textContent = dataPoint.hsi?.status || '';
+            document.getElementById('hsi-status').className = 'metric-status ' +
+                (dataPoint.hsi?.status === 'good' ? 'good' : 'warning');
+
+            // Surprise
+            document.getElementById('surprise-value').textContent = dataPoint.surprise.toFixed(3);
+            document.getElementById('surprise-status').textContent =
+                dataPoint.surprise > 0.5 ? 'High' : dataPoint.surprise > 0.2 ? 'Medium' : 'Low';
+            document.getElementById('surprise-status').className = 'metric-status ' +
+                (dataPoint.surprise > 0.5 ? 'bad' : dataPoint.surprise > 0.2 ? 'warning' : 'good');
+
+            // Valence
+            document.getElementById('valence-value').textContent = dataPoint.affect.valence.toFixed(2);
+            document.getElementById('valence-status').textContent =
+                dataPoint.affect.valence > 0 ? 'Positive' : 'Negative';
+            document.getElementById('valence-status').className = 'metric-status ' +
+                (dataPoint.affect.valence > 0 ? 'good' : 'warning');
+
+            // Arousal
+            document.getElementById('arousal-value').textContent = dataPoint.affect.arousal.toFixed(2);
+            document.getElementById('arousal-status').textContent =
+                dataPoint.affect.arousal > 0.5 ? 'Excited' : 'Calm';
+            document.getElementById('arousal-status').className = 'metric-status ' +
+                (dataPoint.affect.arousal > 0.5 ? 'warning' : 'good');
+
+            // Cheap Thrills
+            const thrills = dataPoint.cheap_thrills_score || 0;
+            document.getElementById('thrills-value').textContent = thrills.toFixed(1);
+            document.getElementById('thrills-status').textContent =
+                thrills > 6 ? 'Experiential' : 'Philosophical';
+            document.getElementById('thrills-status').className = 'metric-status ' +
+                (thrills > 6 ? 'good' : 'warning');
+
+            // Update time display
+            const maxTime = timeline[timeline.length - 1].timestamp;
+            const currentTime = dataPoint.timestamp;
+            document.getElementById('time-display').textContent =
+                `${currentTime.toFixed(1)}s / ${maxTime.toFixed(1)}s`;
+        }
+
+        // Update playhead position
+        function updatePlayheadPosition() {
+            const thumb = document.getElementById('playhead-thumb');
+            thumb.style.left = `${currentPlayhead * 100}%`;
+
+            // Update the playhead line on the graph
+            if (sessionData && currentAgent) {
+                const timeline = sessionData.timelines[currentAgent];
+                if (timeline && timeline.length > 0) {
+                    const timestamps = timeline.map(t => t.timestamp);
+                    const playheadTimestamp = timestamps[Math.floor(currentPlayhead * (timeline.length - 1))];
+
+                    // Calculate Y-axis range (same as in renderTimeline)
+                    const allValues = [];
+                    timeline.forEach(t => {
+                        allValues.push(t.affect.valence, t.affect.arousal, t.affect.fear, t.surprise);
+                    });
+                    const minVal = Math.min(...allValues);
+                    const maxVal = Math.max(...allValues);
+                    const padding = (maxVal - minVal) * 0.1 || 0.1;
+                    const yMin = minVal - padding;
+                    const yMax = maxVal + padding;
+
+                    // Update the playhead line using Plotly's update method
+                    const plotDiv = document.getElementById('timeline-plot');
+                    if (plotDiv && plotDiv.data) {
+                        const playheadTraceIndex = plotDiv.data.length - 1;
+                        Plotly.restyle('timeline-plot', {
+                            x: [[playheadTimestamp, playheadTimestamp]],
+                            y: [[yMin, yMax]]
+                        }, playheadTraceIndex).catch(err => console.log('Playhead update skipped:', err));
+                    }
+                }
+            }
+
+            updateMetrics();
+        }
+
+        // Ask @Kimmie
+        async function askKimmie() {
+            if (!selectedRange) {
+                alert('Please select a timeline segment first by clicking and dragging on the plot');
+                return;
+            }
+
+            const content = document.getElementById('interpretation-content');
+            content.innerHTML = '<div class="kimmie-loading">@Kimmie is analyzing the timeline segment...</div>';
+
+            try {
+                const response = await fetch('/api/kimmie/interpret', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        agent_id: currentAgent,
+                        start_time: selectedRange.start,
+                        end_time: selectedRange.end,
+                        question: 'What happened during this timeline segment?'
+                    })
+                });
+
+                const result = await response.json();
+                content.innerHTML = `<div class="kimmie-message">${result.interpretation}</div>`;
+            } catch (error) {
+                console.error('Failed to get interpretation:', error);
+                content.innerHTML = '<div style="color: #ef5350;">Failed to get interpretation from @Kimmie</div>';
+            }
+        }
+
+        // Console functions
+        async function fetchConsoleOperations() {
+            if (!currentAgent || consolePaused) return;
+
+            try {
+                const response = await fetch(`/api/profiler/operations/${currentAgent}?last_n=50`);
+                if (!response.ok) return;
+
+                const data = await response.json();
+
+                // Check if we have new operations
+                if (data.operations && data.operations.length > 0) {
+                    const newOps = data.operations.filter(op => {
+                        // If we have a last operation ID, only include operations after it
+                        if (lastOperationId !== null) {
+                            return op.id > lastOperationId;
+                        }
+                        return true;
+                    });
+
+                    if (newOps.length > 0) {
+                        consoleOperations.push(...newOps);
+
+                        // Keep only last 200 operations in memory
+                        if (consoleOperations.length > 200) {
+                            consoleOperations = consoleOperations.slice(-200);
+                        }
+
+                        // Update last operation ID
+                        lastOperationId = Math.max(...newOps.map(op => op.id || 0));
+
+                        // Render console
+                        renderConsole();
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch console operations:', error);
+            }
+        }
+
+        function getOperationColor(operation) {
+            // Events (duration_ms = 0) are blue
+            if (operation.duration_ms === 0) {
+                return 'blue';
+            }
+
+            // Color by duration
+            if (operation.duration_ms < 100) {
+                return 'green';
+            } else if (operation.duration_ms < 500) {
+                return 'yellow';
+            } else if (operation.duration_ms < 1000) {
+                return 'orange';
+            } else {
+                return 'red';
+            }
+        }
+
+        function getOperationType(operation) {
+            const opType = operation.operation_type || operation.type || 'unknown';
+
+            // Categorize operations
+            if (opType.toLowerCase().includes('llm') ||
+                opType.toLowerCase().includes('generate') ||
+                opType.toLowerCase().includes('completion')) {
+                return 'llm';
+            } else if (opType.toLowerCase().includes('neural') ||
+                       opType.toLowerCase().includes('forward') ||
+                       opType.toLowerCase().includes('predict')) {
+                return 'neural';
+            } else if (operation.duration_ms === 0) {
+                return 'events';
+            }
+            return 'other';
+        }
+
+        function shouldShowOperation(operation) {
+            if (consoleFilter === 'all') return true;
+
+            const opCategory = getOperationType(operation);
+            return opCategory === consoleFilter;
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            const ms = String(date.getMilliseconds()).padStart(3, '0');
+            return `${hours}:${minutes}:${seconds}.${ms}`;
+        }
+
+        function renderConsole() {
+            const content = document.getElementById('console-content');
+
+            // Filter operations
+            const filteredOps = consoleOperations.filter(shouldShowOperation);
+
+            if (filteredOps.length === 0) {
+                content.innerHTML = '<div class="console-empty">No operations logged yet</div>';
+                return;
+            }
+
+            // Build console lines
+            let html = '';
+            for (const op of filteredOps) {
+                const color = getOperationColor(op);
+                const timestamp = formatTimestamp(op.timestamp || Date.now());
+                const agentName = op.agent_name || op.agent_id || currentAgent;
+                const opType = op.operation_type || op.type || 'unknown';
+                const duration = op.duration_ms === 0 ? 'event' : `${op.duration_ms.toFixed(1)}ms`;
+                const status = op.status || 'completed';
+
+                html += `<div class="console-line ${color}">` +
+                    `<span class="console-timestamp">[${timestamp}]</span> ` +
+                    `<span class="console-agent">${agentName}</span> | ` +
+                    `<span class="console-operation">${opType}</span> | ` +
+                    `<span class="console-duration">${duration}</span> | ` +
+                    `<span class="console-status">${status}</span>` +
+                    `</div>`;
+            }
+
+            content.innerHTML = html;
+
+            // Auto-scroll to bottom if not manually scrolled up
+            const isScrolledToBottom = content.scrollHeight - content.clientHeight <= content.scrollTop + 50;
+            if (isScrolledToBottom || consoleOperations.length <= filteredOps.length) {
+                content.scrollTop = content.scrollHeight;
+            }
+        }
+
+        function clearConsole() {
+            consoleOperations = [];
+            lastOperationId = null;
+            renderConsole();
+        }
+
+        function toggleConsolePause() {
+            consolePaused = !consolePaused;
+            const btn = document.getElementById('console-pause-btn');
+
+            if (consolePaused) {
+                btn.textContent = 'Resume';
+                btn.classList.remove('pause');
+                btn.classList.add('paused');
+            } else {
+                btn.textContent = 'Pause';
+                btn.classList.remove('paused');
+                btn.classList.add('pause');
+            }
+        }
+
+        function toggleConsolePanel() {
+            const panel = document.getElementById('console-panel');
+            const btn = document.getElementById('console-toggle-btn');
+            panel.classList.toggle('collapsed');
+            btn.textContent = panel.classList.contains('collapsed') ? '▲' : '▼';
+        }
+
+        function startConsoleRefresh() {
+            if (consoleRefreshInterval) {
+                clearInterval(consoleRefreshInterval);
+            }
+
+            // Fetch immediately
+            fetchConsoleOperations();
+
+            // Then fetch every 2 seconds
+            consoleRefreshInterval = setInterval(fetchConsoleOperations, 2000);
+        }
+
+        function stopConsoleRefresh() {
+            if (consoleRefreshInterval) {
+                clearInterval(consoleRefreshInterval);
+                consoleRefreshInterval = null;
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Session selector
+            document.getElementById('session-select').addEventListener('change', (e) => {
+                loadSession(e.target.value);
+            });
+
+            // Refresh button
+            document.getElementById('refresh-btn').addEventListener('click', () => {
+                loadSessions();
+            });
+
+            // Playhead dragging
+            const slider = document.getElementById('playhead-slider');
+            const thumb = document.getElementById('playhead-thumb');
+
+            thumb.addEventListener('mousedown', (e) => {
+                isDraggingPlayhead = true;
+                e.preventDefault();
+            });
+
+            slider.addEventListener('click', (e) => {
+                if (e.target === slider) {
+                    const rect = slider.getBoundingClientRect();
+                    currentPlayhead = (e.clientX - rect.left) / rect.width;
+                    updatePlayheadPosition();
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDraggingPlayhead) {
+                    const rect = slider.getBoundingClientRect();
+                    currentPlayhead = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                    updatePlayheadPosition();
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDraggingPlayhead = false;
+            });
+
+            // Ask @Kimmie button
+            document.getElementById('ask-kimmie-btn').addEventListener('click', askKimmie);
+
+            // Collapse/expand interpretation panel
+            document.getElementById('interpretation-header').addEventListener('click', () => {
+                const panel = document.getElementById('interpretation-panel');
+                const btn = document.getElementById('collapse-btn');
+                panel.classList.toggle('collapsed');
+                btn.textContent = panel.classList.contains('collapsed') ? '▲' : '▼';
+            });
+
+            // Export/Import phenomenal state
+            document.getElementById('export-state-btn').addEventListener('click', exportPhenomenalState);
+            document.getElementById('import-state-btn').addEventListener('click', importPhenomenalState);
+
+            // Console controls
+            document.getElementById('console-filter').addEventListener('change', (e) => {
+                consoleFilter = e.target.value;
+                renderConsole();
+            });
+
+            document.getElementById('console-pause-btn').addEventListener('click', toggleConsolePause);
+            document.getElementById('console-clear-btn').addEventListener('click', clearConsole);
+            document.getElementById('console-toggle-btn').addEventListener('click', toggleConsolePanel);
+        }
+    </script>
+</body>
+</html>

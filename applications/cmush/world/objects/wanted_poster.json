@@ -1,0 +1,21 @@
+{
+  "id": "obj_wanted_poster",
+  "name": "Wanted Poster",
+  "description": "A weathered poster nailed to a wooden post. The parchment is slightly water-stained and has what appear to be... beak marks?",
+  "long_description": "═══════════════════════════════════════════════════════\n\n   ⚠️  WANTED: THE HONKING BANDITS  ⚠️\n\n        REWARD: 500 loaves of bread\n              (or equivalent grain)\n\n═══════════════════════════════════════════════════════\n\n    DESCRIPTION OF SUSPECTS:\n\n    • HEIGHT: Approximately 6 feet tall (when stacked)\n    • BUILD: Unusually wide at the middle\n    • DISTINCTIVE FEATURES: \n      - Long raincoat (beige, slightly damp)\n      - Wide-brimmed hat (pulled suspiciously low)\n      - Odd waddling gait\n      - Tendency to travel in pairs (never seen apart)\n      - White feathers found at crime scenes\n      - Responds to name with nervous honking sounds\n\n    KNOWN CRIMES:\n\n    🍞 BAKERY OFFENSES:\n       - Grand Theft Baguette (×12 incidents)\n       - Breaking and Entering (Artisan Bread Co.)\n       - Unauthorized Croissant Consumption\n       - Sourdough Smuggling Ring (alleged)\n       - Left suspicious footprints (webbed)\n\n    🦆 PUBLIC DISTURBANCES:\n       - Aggressive Honking in Municipal Parks (×47 violations)\n       - Intimidating Picnickers (demanded bread tribute)\n       - Blocking Traffic (refused to leave crosswalk)\n       - Chasing Joggers While Honking\n       - Formation Flying in No-Fly Zones\n\n    💧 POND-RELATED INCIDENTS:\n       - Trespassing on Private Pond Property\n       - Unauthorized Swimming (×23 incidents)\n       - Defecating on Waterfront Promenades\n       - Displacing Native Ducks (turf war)\n\n    🪶 LITTERING:\n       - Excessive Feather Dispersal in Public Spaces\n       - Refusing to Clean Up After Molting Season\n       - Feather Evidence Left at Every Crime Scene\n\n    😱 ADDITIONAL OFFENSES:\n       - Identity Fraud (posing as \"One Tall Human\")\n       - Conspiracy to Commit Goosery\n       - Resisting Arrest (took flight when cornered)\n       - Contempt of Court (honked at judge)\n       - Failure to Appear (literally flew away)\n\n═══════════════════════════════════════════════════════\n\n    LAST SEEN:\n    Near SFU Campus Bakery, Vancouver, BC\n    Witnesses report two suspects in single raincoat\n    acting \"suspiciously well-coordinated\"\n\n    APPROACH WITH CAUTION:\n    Suspects are considered:\n    - ARMED (with beaks)\n    - DANGEROUS (will honk aggressively)\n    - DESPERATE (for bread)\n\n    May attempt to flee via:\n    - Waddling at high speed\n    - Taking flight if coat removed\n    - Diving into nearest body of water\n\n    DO NOT:\n    - Offer bread (they cannot resist)\n    - Mention bakeries (triggers panic)\n    - Ask about feathers (they get defensive)\n    - Inquire about \"the other one\"\n\n    If spotted, contact:\n    🚨 Waterfowl Enforcement Division\n    📞 1-800-HONK-911\n\n    \"These aren't ordinary criminals.\n     These are GEESE with a PLAN.\"\n\n    - Chief Quacksworth, Avian Crimes Unit\n\n═══════════════════════════════════════════════════════\n\n[At bottom, in tiny text:]\n\n*Actual sketch unavailable - witnesses too terrified to draw*\n*Artist's rendering shows: \"very tall person, definitely human\"*\n*[Sketch is clearly two geese stacked, poorly disguised]*\n\n[Water-stained corner has suspicious honk-print]\n\n═══════════════════════════════════════════════════════",
+  "portable": true,
+  "takeable": true,
+  "room": "room_000",
+  "keywords": ["poster", "wanted", "notice", "sign"],
+  "metadata": {
+    "author": "Waterfowl Enforcement Division",
+    "crimes": [
+      "Grand Theft Baguette",
+      "Aggressive Honking",
+      "Identity Fraud",
+      "Conspiracy to Commit Goosery"
+    ],
+    "reward": "500 loaves",
+    "last_seen": "SFU Campus Bakery"
+  }
+}

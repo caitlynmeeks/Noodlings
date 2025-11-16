@@ -1,0 +1,197 @@
+{
+  "title": "The Pogostick Race and the Wobbly Bridge",
+  "cast": [
+    "callie",
+    "toad",
+    "phi"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Meadow Race",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "You stand in a sun-dappled meadow, the air warm and alive with buzzing bees and daisies swaying in the breeze. Pogosticks are tucked in their hands \u2014 long, wobbly sticks with colorful caps. The race begins with a shared breath, the wind carrying the scent of clover."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "status",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad suddenly steps forward, his paws thumping on the ground, and knocks over a pile of wind chimes",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 5,
+          "action": "stimulus",
+          "args": {
+            "description": "A cascade of colorful bells erupts into the air, forming a shimmering rainbow arc above the meadow",
+            "target": "all"
+          }
+        },
+        {
+          "t": 6,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi chirps excitedly and pounces toward the rainbow",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 7,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie pauses, her eyes wide, and feels a gentle flutter of wonder at the colors",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad shouts 'Poop-poop! The finest motor-car that ever was!' as he tries to straighten the chimes, but they wobble further",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 9,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi bats playfully at a floating bell, then curls up and purrs softly",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 10,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie begins to zigzag through a field of daisies, her movements precise and graceful",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 12,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad, trying to keep up, stumbles and trips over a root, but then takes off in a sudden burst of speed",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 14,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi leaps into the air, meowing softly, then lands on a daisy and begins to chew on it gently",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 15,
+          "action": "stimulus",
+          "args": {
+            "description": "The race reaches its end \u2014 all three stop at the edge of a quiet river, where the ground has shifted slightly under their feet",
+            "target": "all"
+          }
+        },
+        {
+          "t": 16,
+          "action": "stimulus",
+          "args": {
+            "description": "They all look down and realize they\u2019ve built a giant, wobbly pogostick bridge across the river",
+            "target": "all"
+          }
+        },
+        {
+          "t": 17,
+          "action": "stimulus",
+          "args": {
+            "description": "The bridge creaks and then collapses into a puddle with a splash",
+            "target": "all"
+          }
+        },
+        {
+          "t": 18,
+          "action": "stimulus",
+          "args": {
+            "description": "Everyone laughs \u2014 Callie gasps with joy, Toad shouts 'Poop-poop! A bridge of pure chaos!', and Phi meows and pounces into the water",
+            "target": "all"
+          }
+        },
+        {
+          "t": 19,
+          "action": "stimulus",
+          "args": {
+            "description": "They all wade into the water, splashing and giggling, the rainbow bells now floating gently on the surface",
+            "target": "all"
+          }
+        },
+        {
+          "t": 21,
+          "action": "stimulus",
+          "args": {
+            "description": "They walk to the local ice cream stand, the sun dipping low in the sky, the air sweet with vanilla and rainbow swirls",
+            "target": "all"
+          }
+        },
+        {
+          "t": 22,
+          "action": "stimulus",
+          "args": {
+            "description": "Each takes one spoon of rainbow swirl ice cream \u2014 Callie sips slowly, Toad eats with gusto, and Phi curls up on the bench and purrs",
+            "target": "all"
+          }
+        },
+        {
+          "t": 23,
+          "action": "stimulus",
+          "args": {
+            "description": "They sit in silence, the world quiet now, the fun still humming in their bones",
+            "target": "all"
+          }
+        },
+        {
+          "t": 24,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 5
+          }
+        }
+      ]
+    }
+  ]
+}

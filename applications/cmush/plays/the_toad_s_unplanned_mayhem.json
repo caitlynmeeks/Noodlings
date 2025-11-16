@@ -1,0 +1,261 @@
+{
+  "title": "The Toad's Unplanned Mayhem",
+  "cast": [
+    "toad",
+    "callie",
+    "phi"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Shed and the Drone",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "Toad stands in the dimly lit shed, surrounded by spare parts: old motors, broken propellers, and a flickering circuit board. He grins, tapping his fingers on a piece of scrap metal. The air hums with possibility."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "mastery",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 2,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 3,
+          "action": "stimulus",
+          "args": {
+            "description": "A small RC drone assembles itself from the parts, whirring to life with a soft buzz",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad\u2019s eyes flash with excitement; he slaps the drone with a hand, yelling 'POOP-POOP!'",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 5,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 6
+          }
+        },
+        {
+          "t": 11,
+          "action": "stimulus",
+          "args": {
+            "description": "The drone takes off with a sudden burst of power, soaring upward into the sky",
+            "target": "all"
+          }
+        },
+        {
+          "t": 12,
+          "action": "stimulus",
+          "args": {
+            "description": "A pile of colorful laundry hanging to dry sways violently, then collapses with a soft crash",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 13,
+          "action": "stimulus",
+          "args": {
+            "description": "A paper airplane, tucked in a window, is flung into the air by the gust and crashes into a floating drone-powered airship",
+            "target": "all"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "The Airship Incident",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The airship, a whimsical vessel with sails made of old sails and a garden gnome at the helm, bounces gently as it lands. Three squirrels, a raccoon, and the serious-looking garden gnome emerge, blinking in confusion."
+          }
+        },
+        {
+          "t": 1,
+          "action": "stimulus",
+          "args": {
+            "description": "The raccoon adjusts his hat and squints at Toad, who is hovering near the ground, breathless",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "The garden gnome steps forward, his hat slightly askew, and says in a calm, firm voice: 'I have 12 laws of aerial etiquette'",
+            "target": "all"
+          }
+        },
+        {
+          "t": 3,
+          "action": "bias",
+          "actor": "toad",
+          "args": {
+            "param": "status",
+            "delta": -0.3
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad tries to explain, hands flailing, 'I was just having fun!'",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 5,
+          "action": "stimulus",
+          "args": {
+            "description": "The squirrels exchange glances, then begin a slow, rhythmic drumming on the roof with sticks",
+            "target": "squirrels"
+          }
+        },
+        {
+          "t": 6,
+          "action": "stimulus",
+          "args": {
+            "description": "The raccoon steps forward and offers a peanut butter sandwich, placing it gently on a small plate",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 7,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "The Loop and the Transformer",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The drone, now buzzing with a wild energy, darts toward the power lines, attempting a looping maneuver."
+          }
+        },
+        {
+          "t": 1,
+          "action": "stimulus",
+          "args": {
+            "description": "The drone crashes into a transformer with a loud *crack*, sparking briefly",
+            "target": "all"
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "Everyone gasps, but the power lines remain intact, glowing faintly",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 3,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "The New Rule and Ice Cream",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The group gathers in the backyard, now quiet and calm. Each brings a small pet toy: a squirrel with a tiny hat, a raccoon with a toy pipe, the gnome with a magnifying glass, and Toad with a twisted propeller."
+          }
+        },
+        {
+          "t": 1,
+          "action": "stimulus",
+          "args": {
+            "description": "They all look at each other, then slowly agree: 'No drones near laundry or airships'",
+            "target": "all"
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "Toad beams, receiving a special badge that reads 'Most Unplanned Mayhem'",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 3,
+          "action": "stimulus",
+          "args": {
+            "description": "The group gathers around a small ice cream cart. The raccoon offers a peanut butter sandwich with a smile",
+            "target": "toad"
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi pounces lightly on a leaf, then curls up in the grass, purring softly",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 5,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 3
+          }
+        }
+      ]
+    }
+  ]
+}

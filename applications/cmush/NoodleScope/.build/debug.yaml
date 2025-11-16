@@ -1,0 +1,81 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "NoodleScope-arm64-apple-macosx15.0-debug.exe": ["<NoodleScope-arm64-apple-macosx15.0-debug.exe>"]
+  "NoodleScope-arm64-apple-macosx15.0-debug.module": ["<NoodleScope-arm64-apple-macosx15.0-debug.module>"]
+  "PackageStructure": ["<PackageStructure>"]
+  "main": ["<NoodleScope-arm64-apple-macosx15.0-debug.exe>","<NoodleScope-arm64-apple-macosx15.0-debug.module>"]
+  "test": ["<NoodleScope-arm64-apple-macosx15.0-debug.exe>","<NoodleScope-arm64-apple-macosx15.0-debug.module>"]
+default: "main"
+nodes:
+  "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/Sources/NoodleScope/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope":
+    is-mutated: true
+commands:
+  "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope-entitlement.plist":
+    tool: write-auxiliary-file
+    inputs: ["<entitlement-plist>","<com.apple.security.get-task-allow>"]
+    outputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope-entitlement.plist"]
+    description: "Write auxiliary file /Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope-entitlement.plist"
+
+  "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/Sources/NoodleScope/NoodleScopeApp.swift"]
+    outputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/sources"]
+    description: "Write auxiliary file /Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/sources"
+
+  "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/NoodleScopeApp.swift.o"]
+    outputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.product/Objects.LinkFileList"
+
+  "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Library/Developer/CommandLineTools/usr/bin/swiftc"]
+    outputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+
+  "<NoodleScope-arm64-apple-macosx15.0-debug.exe>":
+    tool: phony
+    inputs: ["<NoodleScope-arm64-apple-macosx15.0-debug.exe-CodeSigning>"]
+    outputs: ["<NoodleScope-arm64-apple-macosx15.0-debug.exe>"]
+
+  "<NoodleScope-arm64-apple-macosx15.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/NoodleScopeApp.swift.o","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/Modules/NoodleScope.swiftmodule"]
+    outputs: ["<NoodleScope-arm64-apple-macosx15.0-debug.module>"]
+
+  "C.NoodleScope-arm64-apple-macosx15.0-debug.exe":
+    tool: shell
+    inputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/NoodleScopeApp.swift.o","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.product/Objects.LinkFileList"]
+    outputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope"]
+    description: "Linking ./.build/arm64-apple-macosx/debug/NoodleScope"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-L","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug","-o","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope","-module-name","NoodleScope","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-alias","-Xlinker","_NoodleScope_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.product/Objects.LinkFileList","-target","arm64-apple-macosx14.0","-Xlinker","-add_ast_path","-Xlinker","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/Modules/NoodleScope.swiftmodule","-F","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g","-Xlinker","-rpath","-Xlinker","/Library/Developer/CommandLineTools/Library/Developer/Frameworks"]
+
+  "C.NoodleScope-arm64-apple-macosx15.0-debug.exe-entitlements":
+    tool: shell
+    inputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope-entitlement.plist"]
+    outputs: ["<NoodleScope-arm64-apple-macosx15.0-debug.exe-CodeSigning>"]
+    description: "Applying debug entitlements to ./.build/arm64-apple-macosx/debug/NoodleScope"
+    args: ["codesign","--force","--sign","-","--entitlements","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope-entitlement.plist","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope"]
+
+  "C.NoodleScope-arm64-apple-macosx15.0-debug.module":
+    tool: shell
+    inputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/Sources/NoodleScope/NoodleScopeApp.swift","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/sources"]
+    outputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/NoodleScopeApp.swift.o","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/Modules/NoodleScope.swiftmodule"]
+    description: "Compiling Swift Module 'NoodleScope' (1 sources)"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-module-name","NoodleScope","-emit-dependencies","-emit-module","-emit-module-path","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/Modules/NoodleScope.swiftmodule","-output-file-map","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/output-file-map.json","-incremental","-c","@/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/sources","-I","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-enable-batch-mode","-index-store-path","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j32","-DSWIFT_PACKAGE","-DDEBUG","-module-cache-path","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","NoodleScope_main","-parse-as-library","-swift-version","5","-F","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g","-Xcc","-isysroot","-Xcc","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-Xcc","-fPIC","-Xcc","-g","-package-name","noodlescope"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/Sources/NoodleScope/","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/Package.swift","/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+

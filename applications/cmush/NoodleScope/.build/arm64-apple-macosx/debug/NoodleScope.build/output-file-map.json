@@ -1,0 +1,11 @@
+{
+  "": {
+    "swift-dependencies": "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/master.swiftdeps"
+  },
+  "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/Sources/NoodleScope/NoodleScopeApp.swift": {
+    "dependencies": "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/NoodleScopeApp.d",
+    "object": "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/NoodleScopeApp.swift.o",
+    "swiftmodule": "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/NoodleScopeApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/thistlequell/git/noodlings_clean/applications/cmush/NoodleScope/.build/arm64-apple-macosx/debug/NoodleScope.build/NoodleScopeApp.swiftdeps"
+  }
+}

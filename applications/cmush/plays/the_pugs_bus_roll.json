@@ -1,0 +1,191 @@
+{
+  "title": "The Pugs Bus Roll",
+  "cast": [
+    "desobelle",
+    "callie",
+    "servnak",
+    "phi"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Honk and the Wobble",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The Pugs Bus rolls into town with a loud honk and a broken-down engine, wheezing through the streets, its tires screeching on wet pavement. Three pugs \u2014 Whee-Zee, the fiery bassist and singer, W\u00f6rmer on keys and backup vocals, and Kr\u00f6tch on drums \u2014 emerge from the back with mismatched leather jackets, ripped jeans, and smudged eyeliner. They stop behind the neon-lit nightclub, set up a makeshift stage on the curb, and begin playing a raw, fast punk song with loud drums and a bass line that shakes the ground."
+          }
+        },
+        {
+          "t": 5,
+          "action": "bias",
+          "actor": "desobelle",
+          "args": {
+            "param": "novelty",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 6,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 7,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "status",
+            "delta": 0.2
+          }
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "The music vibrates through the sidewalk, causing nearby street lamps to flicker and the neon sign above the club to pulse in rhythm",
+            "target": "all"
+          }
+        },
+        {
+          "t": 10,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 12
+          }
+        },
+        {
+          "t": 22,
+          "action": "stimulus",
+          "args": {
+            "description": "Desobelle pauses mid-step, her eyes locking on Kr\u00f6tch as he slams his drumstick down, a spark of something deeper than admiration in her gaze",
+            "target": "desobelle"
+          }
+        },
+        {
+          "t": 24,
+          "action": "bias",
+          "actor": "desobelle",
+          "args": {
+            "param": "social_bond",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 25,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie steps forward, her hands lightly touching the edge of the stage, feeling a gentle flutter of curiosity in her chest",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 27,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "mastery",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 28,
+          "action": "stimulus",
+          "args": {
+            "description": "W\u00f6rmer leans in, smirking, and offers a clove cigarette to Callie, the smoke curling like a question into the air",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 30,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 10
+          }
+        },
+        {
+          "t": 40,
+          "action": "stimulus",
+          "args": {
+            "description": "Kr\u00f6tch begins teaching the group how to rock with a 'no-attention' attitude, his voice low and steady, a rhythm forming in the air like a command",
+            "target": "all"
+          }
+        },
+        {
+          "t": 42,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 43,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi *meows softly*, then *pounces* at a discarded drumstick, batting it playfully with her paw",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 45,
+          "action": "stimulus",
+          "args": {
+            "description": "The noodlings begin to do eyeliner, wearing mismatched socks, forming a circle around the stage, their movements synchronized to the beat",
+            "target": "all"
+          }
+        },
+        {
+          "t": 47,
+          "action": "create_prop",
+          "args": {
+            "name": "Slogan Post",
+            "desc": "A half-painted wall with the words 'NO MORE CLEAN LIVES' and 'EYELINER IS POWER' in bold, dripping paint"
+          }
+        },
+        {
+          "t": 48,
+          "action": "stimulus",
+          "args": {
+            "description": "Desobelle joins the dance, her movements slow and deliberate, yet deeply connected to the music",
+            "target": "desobelle"
+          }
+        },
+        {
+          "t": 50,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 58,
+          "action": "stimulus",
+          "args": {
+            "description": "The group gathers on the curb, sharing a cigarette. The smoke drifts into the night air. A whisper passes between them \u2014 not spoken, but felt \u2014 'Next stop, the library. We\u2019re going to burn the books of rules.'",
+            "target": "all"
+          }
+        },
+        {
+          "t": 60,
+          "action": "timer",
+          "args": {
+            "delay": 5,
+            "next_scene": 1
+          }
+        }
+      ]
+    }
+  ]
+}
