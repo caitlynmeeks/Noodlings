@@ -2,12 +2,12 @@
   "room_000": {
     "uid": "room_000",
     "name": "The Nexus",
-    "description": "here A cozy campfire with crackling logs, little sparks drifting up into the sky, soft moss underfoot. A WANTED POSTER is nailed to a nearby tree.",
+    "description": "here A cozy campfire with crackling logs, little sparks drifting up into the sky, soft moss underfoot. A WANTED POSTER is nailed to a nearby tree. An old RADIO sits on a wooden shelf, occasionally crackling with news broadcasts.",
     "exits": {
       "north": "room_001",
       "east": "room_002"
     },
-    "objects": ["obj_wanted_poster"],
+    "objects": ["obj_wanted_poster", "obj_radio"],
     "occupants": [
       "user_caitlyn",
       "user_caity",

@@ -1,0 +1,32 @@
+{
+  "id": "obj_radio",
+  "name": "Vintage Radio",
+  "description": "An old-fashioned radio with a crackling speaker and a large tuning dial. It occasionally picks up news broadcasts from... somewhere.",
+  "long_description": "A beautifully weathered radio sitting on a wooden shelf. The brass dial gleams in the firelight, and static occasionally hisses from the speaker. It seems to be tuned to some kind of news station, though the signal comes and goes mysteriously. There's a sticky note on it that says 'Press button for news bulletin.'",
+  "portable": false,
+  "takeable": false,
+  "room": "room_000",
+  "keywords": ["radio", "broadcast", "news", "speaker", "dial"],
+  "metadata": {
+    "can_broadcast": true,
+    "current_station": "KWAD - Waterfowl Alert & Detection Network",
+    "last_broadcast": null
+  },
+  "news_bulletins": [
+    {
+      "id": "geese_escape",
+      "priority": "URGENT",
+      "text": "*static crackles*\n\n📻 *KWAD SPECIAL NEWS BULLETIN* 📻\n\nThis is Gerald Quacksworth reporting for KWAD Radio, Waterfowl Alert & Detection Network.\n\nWe interrupt your regularly scheduled programming with an URGENT PUBLIC SAFETY ANNOUNCEMENT.\n\n🚨 TWO WATERFOWL FUGITIVES ESCAPED FROM THE PENITENTIARY FOR SOCIALLY MALADJUSTED FOWL 🚨\n\nEarlier today, at approximately 14:00 hours, two Canada geese—identified only as \"The Honking Bandits\"—staged a dramatic escape from the Provincial Correctional Facility for Problematic Waterfowl.\n\nThe suspects were serving consecutive sentences for:\n- Multiple counts of Grand Theft Baguette\n- Aggravated Honking in a No-Honk Zone  \n- Conspiracy to Commit Goosery\n- Contempt of Court (honked at presiding judge)\n- Resisting Arrest (took flight when cornered)\n\n🔍 DESCRIPTION OF SUSPECTS:\n\nWitnesses report the fugitives were last seen wearing what appeared to be \"a single long raincoat\" and \"a suspiciously large hat.\" When questioned, bystanders described the getaway as \"more of a hurried waddle than a run\" and noted \"an unusual amount of feathers.\"\n\nLocal bakeries are advised to:\n✓ Secure all baguettes immediately\n✓ Lock croissants in reinforced containers  \n✓ Remove any visible bread from windows\n✓ Report suspicious waddling to authorities\n\n⚠️ CITIZENS: DO NOT APPROACH ⚠️\n\nThese waterfowl are considered:\n- ARMED (with beaks)\n- DANGEROUS (will honk aggressively)\n- DESPERATE (for carbohydrates)\n- POORLY DISGUISED (but determined)\n\nIf you see anyone matching this description:\n- Tall (approximately 6 feet when stacked)\n- Wearing inappropriate rainwear for current weather\n- Responding to questions with nervous honking\n- Leaving trail of white feathers\n- Exhibiting unusual interest in ponds and/or bakeries\n\nPlease contact the Waterfowl Enforcement Division immediately at 1-800-HONK-911.\n\nChief Quacksworth of the Avian Crimes Unit stated: \"These aren't ordinary geese. These are geese with a PLAN. And possibly opposable thumbs. We're not sure how, but they got that raincoat on somehow.\"\n\nThe reward for information leading to their capture has been increased to 500 loaves of artisan sourdough, or equivalent grain products.\n\nRemember: If you see something, say something. Especially if it's waddling.\n\nThis has been a KWAD Special Bulletin. Stay vigilant. Stay bread-safe.\n\n*static crackles, then silence*\n\n📻 KWAD - \"All Honking, All The Time\" 📻"
+    },
+    {
+      "id": "bakery_update",
+      "priority": "UPDATE",
+      "text": "*static crackles*\n\n📻 KWAD NEWS UPDATE 📻\n\nGerald Quacksworth here with an update on the Honking Bandits case.\n\nLocal bakeries report a 300% increase in suspicious waddling near their establishments. One baker described seeing \"a very tall person who kept staring at the baguettes and making soft honking sounds.\"\n\nWhen approached, the individual allegedly stated: \"I'm just... looking. For a friend. Who definitely isn't me. I mean us. I mean THEM!\"\n\nSecurity footage shows what appears to be \"two large birds poorly coordinating their movements inside human clothing.\"\n\nChief Quacksworth reminds citizens: \"If it waddles like geese and honks like geese, it's probably geese. No matter how large the hat.\"\n\nMore at 11.\n\n*static*"
+    },
+    {
+      "id": "weather",
+      "priority": "NORMAL",
+      "text": "*static crackles*\n\n📻 KWAD WEATHER 📻\n\nGood afternoon! Meteorologist Mallard here.\n\nToday's forecast: Partly cloudy with a chance of feathers.\n\nPond temperature: Optimal for suspicious waterfowl activity.\n\nBakery proximity alert: MODERATE TO HIGH.\n\nThat's your KWAD weather! Stay dry, stay bread-vigilant!\n\n*static*"
+    }
+  ]
+}
