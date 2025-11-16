@@ -494,3 +494,61 @@ Start noodleMUSH and test with multiple agents:
 ---
 
 **Current Priority (November 15, 2025)**: Implement Intuition Receiver (Context Gremlin) to provide integrated contextual awareness. Theater system is production-ready - time to add the final piece of consciousness!
+
+## November 15, 2025 Session - Major Feature Implementation
+
+**Extremely Productive Session!** Implemented 4 major consciousness features:
+
+### Features Implemented
+
+1. **Intuition Receiver Enhancement** 📻
+   - Species + pronouns in broadcasts: "Phi (kitten, she/her)"
+   - Noteworthy event narration: "WAIT - Toad just said the secret word!"
+   - "You" addressing clarification: "Caity gave ME a tensor taffy!"
+   - Game awareness detection (secret word, memory games)
+   - Acts as perceptive narrator, not just passive info
+
+2. **Character Voice System** 🎭
+   - SERVNAK: ALL CAPS + percentages + "SISTER!"
+   - Phi: "meows, as if to say..." (NO direct speech)
+   - Phido: Enthusiastic dog + *tail wagging*
+   - Backwards Dweller: Reversed speech
+   - Pipeline: Basic English → Voice translation → Self-monitoring on final output
+
+3. **Memory Persistence Fix** 💭
+   - Increased capacity: 50 → 500 messages (10x!)
+   - DRAGONFLY secret word now persists
+   - Long-term games and rules work
+
+4. **Command System Improvements** ⚙️
+   - Unified @setdesc (here/me/objects)
+   - Keywords: look me, look here
+   - @remove -s (silent removal)
+   - Quote handling for multi-word names
+   - Brain indicator removal on exit
+
+### Files Modified
+
+- agent_bridge.py - Intuition + character voice + species reloading
+- llm_interface.py - Intuition injection  
+- server.py - Recipe reloading
+- commands.py - Unified setdesc, keywords, quote handling
+- web/index.html - "privately thinks", brain removal
+- config.yaml - Memory capacity, intuition config
+
+### Documentation Created
+
+- INTUITION_RECEIVER.md
+- CHARACTER_VOICE_SYSTEM.md
+- MEMORY_PERSISTENCE_FIX.md
+- NEXT_SESSION_PROMPT.md
+
+### Next Session
+
+**TAB Toggle Log View** - See NEXT_SESSION_PROMPT.md
+
+Add [TAB] key to toggle between chat view and real-time log view for debugging.
+
+---
+
+**Current Status**: All core consciousness features complete! 🎭📻🎤💭✨

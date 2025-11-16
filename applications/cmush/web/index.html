@@ -654,6 +654,14 @@
 
                 case 'event':
                     addLine('event', data.text);
+
+                    // Check if this is an agent exit event (agent removal)
+                    // Pattern: "agent_name remembers something and hurries off"
+                    const exitMatch = data.text.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(remembers|suddenly|realizes|gets|mutters|hears|decides)/);
+                    if (exitMatch) {
+                        const departingAgent = exitMatch[1].trim();
+                        removeBrainIndicator(departingAgent);
+                    }
                     break;
 
                 case 'thought':
@@ -684,6 +692,13 @@
                             }
                             createBrainIndicator(agent.name);
                         });
+                    }
+                    break;
+
+                case 'agent_removed':
+                    // Handle silent agent removal - remove brain indicator
+                    if (data.username) {
+                        removeBrainIndicator(data.username);
                     }
                     break;
 
@@ -862,6 +877,33 @@
             return indicator;
         }
 
+        // Remove brain indicator for an agent
+        function removeBrainIndicator(agentName) {
+            const normalizedName = agentName.toLowerCase();
+            const indicator = document.getElementById(`brain-${normalizedName}`);
+
+            if (indicator) {
+                // Clear any pending timeout
+                if (agentBrainStatus[normalizedName]?.timeout) {
+                    clearTimeout(agentBrainStatus[normalizedName].timeout);
+                }
+
+                // Remove from DOM
+                indicator.remove();
+
+                // Clean up tracking data
+                delete agentBrainStatus[normalizedName];
+
+                // Remove from enlightened list if present
+                const enlightenedIndex = enlightenedAgents.indexOf(normalizedName);
+                if (enlightenedIndex !== -1) {
+                    enlightenedAgents.splice(enlightenedIndex, 1);
+                }
+
+                console.log(`Removed brain indicator for ${agentName}`);
+            }
+        }
+
         // Collapse consecutive thoughts from same speaker (Unity-style)
         function collapseThoughts(messages) {
             const processed = [];
@@ -1002,7 +1044,8 @@
                 verbSpan.style.fontStyle = 'italic';
                 verbSpan.style.color = speakerColor;
                 verbSpan.style.marginRight = '8px';
-                verbSpan.textContent = verb;
+                // Add "privately" before "thinks" for thoughts
+                verbSpan.textContent = verb === 'thinks' ? 'privately thinks' : verb;
 
                 line.appendChild(badge);
                 line.appendChild(verbSpan);

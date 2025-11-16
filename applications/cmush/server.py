@@ -34,6 +34,7 @@ from llm_interface import OpenAICompatibleLLM
 from session_profiler import SessionProfiler
 from kimmie_character import KimmieCharacter
 from api_server import NoodleScopeAPI
+from recipe_loader import RecipeLoader
 
 # Setup logging
 os.makedirs('logs', exist_ok=True)
@@ -87,6 +88,9 @@ class CMUSHServer:
 
         # Initialize auth
         self.auth = AuthManager(self.world)
+
+        # Initialize recipe loader (for reloading species on agent load)
+        self.recipe_loader = RecipeLoader("recipes")
 
         # Initialize LLM (will be created in async context)
         self.llm = None
@@ -227,6 +231,18 @@ class CMUSHServer:
             # This ensures saved agents get the latest self-monitoring settings
             config['self_monitoring'] = self.config['agent'].get('self_monitoring', {})
             logger.debug(f"[LOAD] agent_id={agent_id}, injecting self_monitoring config: {config['self_monitoring']}")
+
+            # Reload recipe to get species and other critical parameters
+            # This ensures character voice translation works for loaded agents
+            agent_name = agent_data.get('name', agent_id.replace('agent_', ''))
+            recipe = self.recipe_loader.load_recipe(agent_name)
+            if recipe:
+                # Reload species from recipe (critical for character voice!)
+                config['species'] = recipe.species
+                # Also reload identity_prompt if not already in config
+                if 'identity_prompt' not in config:
+                    config['identity_prompt'] = recipe.identity_prompt
+                logger.info(f"[LOAD] Reloaded recipe for {agent_id}: species={recipe.species}")
 
             try:
                 await self.agent_manager.create_agent(

@@ -28,7 +28,7 @@ agent:
     rumination: 10
     self_reflection: 10
     disk_save: 500
-    affect_trim_threshold: 50
+    affect_trim_threshold: 500  # Keep up to 500 messages in memory before trimming (was 50)
   autonomous_cognition:
     enabled: true
     wake_interval: 60

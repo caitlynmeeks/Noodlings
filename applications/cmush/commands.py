@@ -645,6 +645,43 @@ class CommandParser:
         if args:
             target_name = args.strip().lower()
 
+            # Handle "here" keyword - look at current room
+            if target_name == 'here':
+                args = ''  # Fall through to room description below
+
+            # Handle "me" keyword - look at yourself
+            elif target_name == 'me':
+                user = self.world.get_user(user_id)
+                if not user:
+                    return {'success': False, 'output': 'Error: User not found.', 'events': []}
+
+                lines = []
+                display_name = user.get('username', user.get('name', user_id))
+                user_type = 'agent' if user_id.startswith('agent_') else 'user'
+                lines.append(f"\n{display_name} [{user_type}]")
+                lines.append("=" * (len(display_name) + len(user_type) + 3))
+
+                # Get description
+                if user_id.startswith('agent_'):
+                    agent = self.agent_manager.get_agent(user_id)
+                    if agent and hasattr(agent, 'agent_description') and agent.agent_description:
+                        lines.append(agent.agent_description)
+                    else:
+                        lines.append("You haven't set a description yet.")
+                else:
+                    desc = user.get('description', '')
+                    lines.append(desc if desc else "You haven't set a description yet.")
+
+                return {
+                    'success': True,
+                    'output': '\n'.join(lines),
+                    'events': []
+                }
+
+        # Process target if not "here" or "me"
+        if args and target_name not in ['here', 'me']:
+            target_name = args.strip().lower()
+
             # Check occupants in the room
             for occ_id in room['occupants']:
                 occ = self.world.get_user(occ_id)
@@ -911,24 +948,12 @@ class CommandParser:
             return {'success': False, 'output': 'Usage: @create <room|object> <name>', 'events': []}
 
     async def cmd_describe(self, user_id: str, args: str) -> Dict:
-        """Set description of current room or object."""
+        """Deprecated: Use @setdesc instead. This redirects to @setdesc here <description>."""
         if not args:
-            return {'success': False, 'output': 'Usage: @describe <text>', 'events': []}
+            return {'success': False, 'output': 'Usage: @setdesc here <description> (or @setdesc me, @setdesc "object")\n\nNote: @describe is deprecated, use @setdesc instead.', 'events': []}
 
-        room = self.world.get_user_room(user_id)
-        if not room:
-            return {'success': False, 'output': 'Error getting location.', 'events': []}
-
-        # Allow anyone to describe any room (shared world building)
-        # Removed ownership check - everyone can contribute to world descriptions
-        room['description'] = args
-        self.world.save_all()
-
-        return {
-            'success': True,
-            'output': 'Room description updated.',
-            'events': []
-        }
+        # Redirect to @setdesc here <description>
+        return await self.cmd_setdesc(user_id, f"here {args}")
 
     async def cmd_dig(self, user_id: str, args: str) -> Dict:
         """Create an exit to a new or existing room."""
@@ -1078,19 +1103,26 @@ class CommandParser:
             if not args:
                 return {'success': False, 'output': 'Error: No agent name provided after -e flag.', 'events': []}
 
-        # Check if multiple agent names are provided (all lowercase words before description)
-        parts = args.split()
+        # Parse agent names - support quoted names for multi-word agents like "Backwards Dweller"
+        import shlex
+        try:
+            # Use shlex to properly handle quoted strings
+            parts = shlex.split(args)
+        except ValueError:
+            # If shlex fails (unmatched quotes), fall back to simple split
+            parts = args.split()
+
         agent_names = []
         description_parts = []
 
-        # Collect agent names (assume they're recipe names or simple names without spaces)
+        # Collect agent names (assume they're recipe names or simple names)
         for i, part in enumerate(parts):
             part_lower = part.lower()
             # Check if this looks like a recipe name or simple agent name
-            if self.recipe_loader.load_recipe(part_lower) or (i == 0 or part_lower.isalpha()):
-                # If it's the first word, or a known recipe, or a simple alphabetic word
+            if self.recipe_loader.load_recipe(part_lower) or (i == 0 or part_lower.replace(' ', '_').replace('-', '_').isalpha()):
+                # If it's the first word, or a known recipe, or a simple alphabetic word (with spaces/hyphens ok)
                 if i < 3:  # Limit to first 3 words as potential agent names
-                    agent_names.append(part_lower)
+                    agent_names.append(part_lower.replace(' ', '_'))  # Convert spaces to underscores for agent_id
                 else:
                     # Rest is description
                     description_parts = parts[i:]
@@ -1102,7 +1134,7 @@ class CommandParser:
 
         # If no agent names found, treat first word as agent name
         if not agent_names:
-            agent_names = [parts[0].lower()]
+            agent_names = [parts[0].lower().replace(' ', '_')]
             description_parts = parts[1:] if len(parts) > 1 else []
 
         agent_description = ' '.join(description_parts) if description_parts else None
@@ -1253,9 +1285,27 @@ class CommandParser:
     async def cmd_remove(self, user_id: str, args: str) -> Dict:
         """Remove an agent from the world."""
         if not args:
-            return {'success': False, 'output': 'Usage: @remove <agent_name>', 'events': []}
+            return {'success': False, 'output': 'Usage: @remove [-s] <agent_name>\n  -s: Silent removal (no departure message)', 'events': []}
 
-        agent_name = args.strip()
+        # Check for -s flag (silent removal)
+        silent = False
+        if args.startswith('-s ') or args == '-s':
+            silent = True
+            args = args[2:].strip()  # Remove -s flag
+            if not args:
+                return {'success': False, 'output': 'Error: No agent name provided after -s flag.', 'events': []}
+
+        # Parse agent name - support quoted names like @spawn does
+        import shlex
+        try:
+            parts = shlex.split(args)
+            agent_name = parts[0] if parts else args.strip()
+        except ValueError:
+            # If shlex fails, use simple strip
+            agent_name = args.strip()
+
+        # Convert spaces to underscores (matches @spawn behavior)
+        agent_name = agent_name.lower().replace(' ', '_')
         agent_id = f"agent_{agent_name}"
 
         # Check if agent exists
@@ -1280,29 +1330,43 @@ class CommandParser:
         # Save world state
         self.world.save_all()
 
-        # Wind in the Willows-style natural departure
-        import random
-        departure_phrases = [
-            "remembers something urgent and hurries off",
-            "suddenly recalls an appointment and dashes away",
-            "realizes they're expected elsewhere and scurries off",
-            "gets that look of sudden remembering and trots away",
-            "mutters about forgetting something and bustles off",
-            "hears a distant call and wanders away",
-            "decides it's time for a ramble and ambles off"
-        ]
-        departure = random.choice(departure_phrases)
+        # Build exit event
+        events = []
+        if not silent:
+            # Wind in the Willows-style natural departure
+            import random
+            departure_phrases = [
+                "remembers something urgent and hurries off",
+                "suddenly recalls an appointment and dashes away",
+                "realizes they're expected elsewhere and scurries off",
+                "gets that look of sudden remembering and trots away",
+                "mutters about forgetting something and bustles off",
+                "hears a distant call and wanders away",
+                "decides it's time for a ramble and ambles off"
+            ]
+            departure = random.choice(departure_phrases)
 
-        return {
-            'success': True,
-            'output': f"Agent '{agent_name}' removed.",
-            'events': [{
+            events.append({
                 'type': 'exit',
                 'user': agent_id,
                 'username': agent_name,
                 'room': room['uid'] if room else 'unknown',
                 'text': f"{agent_name} {departure}."
-            }]
+            })
+        else:
+            # Silent removal - still send exit event but with metadata flag
+            events.append({
+                'type': 'agent_removed',  # Different event type for silent removal
+                'user': agent_id,
+                'username': agent_name,
+                'room': room['uid'] if room else 'unknown',
+                'silent': True
+            })
+
+        return {
+            'success': True,
+            'output': f"Agent '{agent_name}' removed{' silently' if silent else ''}.",
+            'events': events
         }
 
     async def cmd_reset(self, user_id: str, args: str) -> Dict:
@@ -3020,7 +3084,7 @@ class CommandParser:
     async def cmd_setdesc(self, user_id: str, args: str) -> Dict:
         """Set description of self, object, or room."""
         if not args:
-            return {'success': False, 'output': 'Usage: @setdesc <target> <description> OR @setdesc <description> (if you\'re an agent)\nFor multi-word names, use quotes: @setdesc "AI Ham" <description>', 'events': []}
+            return {'success': False, 'output': 'Usage: @setdesc <target> <description>\n\nTargets:\n  here - Current room\n  me - Yourself\n  "object name" - An object (use quotes for multi-word names)\n\nExamples:\n  @setdesc here A cozy garden with blooming roses\n  @setdesc me A curious explorer\n  @setdesc "pink poodle" A cute pink poodle statue made of marble', 'events': []}
 
         # Parse args - could be "me <desc>", "<object> <desc>", or just "<desc>" for agents
         # Support quoted names: @setdesc "AI Ham" description
@@ -3063,6 +3127,21 @@ class CommandParser:
             target, description = parts
 
         target_lower = target.lower()
+
+        # Setting current room description
+        if target_lower == 'here':
+            room = self.world.get_user_room(user_id)
+            if not room:
+                return {'success': False, 'output': 'Error getting location.', 'events': []}
+
+            room['description'] = description
+            self.world.save_all()
+
+            return {
+                'success': True,
+                'output': f"Room description updated to:\n{description}",
+                'events': []
+            }
 
         # Setting user's own description
         if target_lower == 'me':

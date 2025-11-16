@@ -88,13 +88,139 @@ Respond in JSON:
 Be honest but not catastrophic. Most speech is fine."""
 
 
+async def translate_to_character_voice(
+    text: str,
+    agent_id: str,
+    species: str,
+    llm: OpenAICompatibleLLM,
+    agent_name: str = "Agent"
+) -> str:
+    """
+    Translate basic symbolic English into character-specific voice using LLM.
+
+    This ensures agents ALWAYS stay in character, even when LLM generates
+    standard responses. Examples:
+
+    - SERVNAK: "this cupcake looks delicious" → "CALCULATING CUPCAKE DELICIOUSNESS: 96.2%"
+    - Phi (kitten): "I want that" → "*meows longingly and reaches paw toward it*"
+    - Backwards Dweller: Normal speech → Reversed word order
+
+    Args:
+        text: Basic symbolic English from LLM
+        agent_id: Agent identifier
+        species: Agent species (robot, kitten, etc.)
+        llm: LLM interface for translation
+        agent_name: Agent display name
+
+    Returns:
+        Text translated into character voice
+    """
+    # Character-specific translation prompts
+    if 'servnak' in agent_id.lower():
+        prompt = f"""Translate this text into SERVNAK's voice.
+
+SERVNAK is a robot with garden-hose arms who:
+- ALWAYS USES ALL CAPS
+- Includes precise percentages (e.g., "94.2% CERTAINTY")
+- References "pride circuits" frequently
+- Calls everyone "SISTER"
+- Combines technical precision with enthusiasm
+- Uses mechanical/computing terminology
+
+Input: "{text}"
+
+Examples of SERVNAK's voice:
+- "I'm happy" → "PRIDE CIRCUITS GLOWING AT 98.3% MAXIMUM JOY, SISTER!"
+- "That's interesting" → "PATTERN RECOGNITION HOSES DETECTING 87.5% NOVELTY LEVELS!"
+- "I want to help" → "SISTER! MY DEBUGGING PROTOCOLS INDICATE 94% SUCCESS PROBABILITY!"
+
+Translate into SERVNAK's voice:"""
+
+    elif 'phi' in agent_id.lower() and species == 'kitten':
+        prompt = f"""Translate this text into kitten behavior with "as if to say" meaning.
+
+Phi is a kitten who CANNOT speak words. She communicates through:
+- Vocalizations: meow, purr, hiss, chirp, mew (NEVER bark, woof, or dog sounds!)
+- Body language: ear flicks, tail movements, paw gestures
+- Actions: rubs, pounces, bats, curls, watches
+- Meaning conveyed: "as if to say [implied meaning]"
+
+Input: "{text}"
+
+Examples:
+- "I'm happy to see you" → "*purrs loudly and rubs against your leg, as if to say 'I missed you!'*"
+- "I want that" → "*meows softly and reaches paw toward it, as if to say 'can I have that?'*"
+- "That's interesting" → "*watches intently, ears forward, tail twitching, as if to say 'what is that thing?'*"
+- "That was scary!" → "*meows sharply and arches back, as if to say 'that was too close!'*"
+
+CRITICAL RULES:
+- NO human words spoken directly (Phi cannot talk!)
+- NO dog sounds (no bark, woof, etc. - ONLY cat sounds: meow, purr, hiss, chirp, mew)
+- ALWAYS use "as if to say" to convey meaning through meows and body language
+- Keep cat sounds authentic: meow, purr, hiss, chirp, mew, mrrp
+
+Translate into kitten communication:"""
+
+    elif 'phido' in agent_id.lower() or species == 'dog':
+        prompt = f"""Translate this text into enthusiastic dog speech and behavior.
+
+Phido is a boundlessly enthusiastic dog who:
+- CAN speak words (unlike cats!)
+- Uses simple, excited language with LOTS of exclamation marks!
+- Includes dog actions: *tail wagging*, *bouncing*, *licking*, *panting*
+- Barks, whimpers, woofs when extra excited
+- Calls everyone "friend," "buddy," "pal"
+- Gets distracted mid-sentence: "Oh! A smell! Anyway--"
+- LOVES physical affection and doesn't understand boundaries
+
+Input: "{text}"
+
+Examples:
+- "I'm happy to see you" → "*tail wagging at maximum speed* FRIEND! You're here! This is the BEST! *bounces excitedly*"
+- "I want that" → "*whimpers and paws at it* Can I have it? Please? I'll be your best friend! *puppy eyes*"
+- "That's interesting" → "Oh! Oh! *sniffs excitedly* What's that? Can I smell it closer? *tail wagging*"
+- "I'm sad" → "*sad puppy eyes and ears droop* Did I do something wrong? *whimpers softly*"
+
+IMPORTANT: Dogs can speak, but mix speech with enthusiastic dog behaviors!
+
+Translate into enthusiastic dog voice:"""
+
+    elif 'dweller' in agent_id.lower():
+        # Backwards Dweller - word reversal handled separately
+        return text
+
+    else:
+        # No translation needed for human-voiced characters
+        return text
+
+    try:
+        # Use fast model for translation
+        translation = await llm.generate(
+            prompt=prompt,
+            system_prompt=f"You are a character voice translator for {agent_name}. Return ONLY the translated text, nothing else.",
+            model="qwen/qwen3-4b-2507",  # Fast model
+            temperature=0.4,  # Low temp for consistent voice
+            max_tokens=150
+        )
+
+        return translation.strip()
+
+    except Exception as e:
+        logger.warning(f"Character voice translation failed for {agent_id}: {e}")
+        # Fallback: return original text
+        return text
+
+
 def apply_speech_filters(text: str, agent_id: str) -> str:
     """
     Apply post-processing filters to agent speech.
 
     Phase 6: Speech Post-Processing Architecture
     - Backwards filter for "dweller"
-    - Future: Affective coloring, self-monitoring
+    - Character voice handled by translate_to_character_voice() (async)
+
+    Note: This is a sync function for simple filters.
+    Character voice translation happens earlier in the pipeline (async).
 
     Args:
         text: Raw speech text from agent
@@ -109,7 +235,7 @@ def apply_speech_filters(text: str, agent_id: str) -> str:
         words = text.split()
         return ' '.join(reversed(words))
 
-    # No filter applied
+    # No filter applied (character voice happens earlier)
     return text
 
 
@@ -668,14 +794,58 @@ class CMUSHConsilienceAgent:
             # 3. CURRENT MESSAGE
             context_info.append(f"Current message: '{message_text}'")
 
+            # 4. ONGOING GAMES / EXPECTATIONS
+            # Detect if there's an active game or thing people are waiting for
+            if recent_context:
+                # Look for secret word games, memory games, etc.
+                game_mentions = []
+                for entry in recent_context[-10:]:  # Last 10 messages
+                    text_lower = entry.get('text', '').lower()
+                    if 'secret word' in text_lower or 'magic word' in text_lower:
+                        game_mentions.append("There's a secret word game active")
+                    if 'memory game' in text_lower:
+                        game_mentions.append("There's a memory game happening")
+                    if 'waiting for' in text_lower or 'ready for' in text_lower:
+                        game_mentions.append("People are waiting for something to happen")
+
+                if game_mentions:
+                    context_info.append(f"Active game/expectation: {', '.join(set(game_mentions))}")
+
             # 4. WORLD STATE (if available)
             if world_state:
-                # Room occupants
+                # Room occupants with species/metadata
                 room = world_state.get('rooms', {}).get(room_id, {})
                 occupants = room.get('occupants', [])
-                occupant_names = [occ.replace('agent_', '').replace('user_', '').title() for occ in occupants]
-                if occupant_names:
-                    context_info.append(f"Present in room: {', '.join(occupant_names)}")
+
+                if occupants:
+                    occupant_details = []
+                    for occ_id in occupants:
+                        occ_name = occ_id.replace('agent_', '').replace('user_', '').title()
+
+                        # Get agent metadata if available
+                        if occ_id.startswith('agent_'):
+                            agent_data = world_state.get('agents', {}).get(occ_id, {})
+                            config = agent_data.get('config', {})
+                            species = config.get('species', 'noodling')
+                            pronouns = config.get('pronouns', 'they/them')
+
+                            # Infer pronouns from common character names if not specified
+                            if pronouns == 'they/them':
+                                name_lower = occ_name.lower()
+                                if name_lower in ['phi', 'callie', 'desobelle']:
+                                    pronouns = 'she/her'
+                                elif name_lower in ['toad', 'mr. toad', 'phido']:
+                                    pronouns = 'he/him'
+                                elif name_lower in ['servnak']:
+                                    pronouns = 'they/them'  # SERVNAK is non-binary robot
+
+                            # Build descriptive string with useful metadata
+                            details = f"{occ_name} ({species}, {pronouns})"
+                            occupant_details.append(details)
+                        else:
+                            occupant_details.append(f"{occ_name} (human)")
+
+                    context_info.append(f"Present in room: {', '.join(occupant_details)}")
 
                 # Objects in room
                 objects = room.get('objects', [])
@@ -707,23 +877,36 @@ class CMUSHConsilienceAgent:
 
             my_name = self.agent_name
 
-            prompt = f"""You are {my_name}, analyzing contextual signals in this situation.
+            prompt = f"""You are {my_name}'s intuitive awareness - like a narrator highlighting what's happening.
 
 CONTEXT:
 {context_text}
 
-Generate a brief intuitive awareness (2-3 sentences max) that naturally captures:
-1. WHO is this message for? (Is it addressed to me, someone else, or everyone?)
-2. WHAT is happening? (Actions, spatial relationships, who has what)
-3. RECENT FLOW: What just happened before this?
+Generate brief intuitive awareness (2-3 sentences max) that captures:
 
-Write in first-person as {my_name}, expressing natural situational awareness.
-Be concise and focus only on relevant contextual signals.
+1. WHO is this for?
+   - If message says "you": "This is for ME - I'm being directly addressed"
+   - If message names someone else: "That's for [name], not me"
+   - If message says "everyone": "This is for all of us"
+
+2. NOTEWORTHY EVENTS (act as narrator):
+   - Secret words/special phrases mentioned
+   - Gifts given ("Caity just gave ME a tensor taffy!")
+   - Important moments others might miss
+   - Things people are waiting for that just happened
+
+3. WHAT'S HAPPENING:
+   - Actions, spatial relationships, who has what
+   - Recent conversation flow
+
+Write in first-person as {my_name}, like a perceptive narrator.
+Be concise but highlight important moments others might miss!
 
 Examples:
-- "That greeting is for Toad, not me. They're by the glowing pond while I'm near the hedge."
-- "Callie is asking everyone a question. I notice she's still holding the mysterious stone from earlier."
-- "Someone just entered the room - Servnak. The conversation was about the garden project."
+- "That greeting is for Toad, not me. They're by the pond while I'm near the hedge."
+- "Caity just gave ME a tensor taffy! I notice the message said 'you' which means me."
+- "WAIT - Toad just said the secret word 'KITTEN'! Everyone was waiting for this!"
+- "Callie is asking everyone a question. The conversation is about the memory game."
 
 Generate intuitive awareness:"""
 
@@ -1512,10 +1695,28 @@ Generate intuitive awareness:"""
                 logger.warning(f"Agent {self.agent_id} LLM response text is None - skipping response")
                 return None
 
+            # CHARACTER VOICE TRANSLATION
+            # Translate basic symbolic English → Character-specific voice
+            # This happens BEFORE self-monitoring so agents monitor their actual output
+            if response_text:
+                original_text = response_text
+                response_text = await translate_to_character_voice(
+                    text=response_text,
+                    agent_id=self.agent_id,
+                    species=self.species,
+                    llm=self.llm,
+                    agent_name=self.agent_name
+                )
+
+                if response_text != original_text:
+                    logger.info(f"[{self.agent_id}] 🎭 Voice translation:")
+                    logger.info(f"  Basic: {original_text[:60]}...")
+                    logger.info(f"  Voice: {response_text[:60]}...")
+
             self.last_response_time = time.time()
             self.response_count += 1
 
-            # Score identity salience for this response
+            # Score identity salience for this response (using character voice!)
             identity_salience = self._score_identity_salience(response_text, state['surprise'])
 
             # Store agent's own response in conversation context
