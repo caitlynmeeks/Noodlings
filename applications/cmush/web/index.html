@@ -17,7 +17,7 @@
         body {
             font-family: 'Courier New', monospace;
             background-color: #000;
-            color: #00ff00;
+            color: #ffb000;  /* WYSE AMBER! */
             height: 100vh;
             overflow: hidden;
         }
@@ -32,7 +32,7 @@
         #header {
             text-align: center;
             padding: 10px;
-            border-bottom: 2px solid #00ff00;
+            border-bottom: 2px solid #ffb000;  /* AMBER BORDER */
             margin-bottom: 10px;
             position: relative;
         }
@@ -40,11 +40,12 @@
         #header h1 {
             font-size: 24px;
             letter-spacing: 2px;
+            color: #ffd700;  /* BRIGHT AMBER */
         }
 
         #header p {
             font-size: 12px;
-            color: #00aa00;
+            color: #cc8800;  /* DIM AMBER */
         }
 
         .font-controls {
@@ -56,9 +57,9 @@
         }
 
         .font-btn {
-            background: #001100;
-            border: 1px solid #00ff00;
-            color: #00ff00;
+            background: #1a0f00;  /* DARK AMBER BG */
+            border: 1px solid #ffb000;  /* AMBER BORDER */
+            color: #ffb000;  /* AMBER TEXT */
             padding: 5px 10px;
             cursor: pointer;
             font-family: 'Courier New', monospace;
@@ -66,11 +67,12 @@
         }
 
         .font-btn:hover {
-            background: #003300;
+            background: #332200;  /* AMBER HOVER */
+            color: #ffd700;  /* BRIGHT AMBER */
         }
 
         .font-size-display {
-            color: #00aa00;
+            color: #cc8800;  /* DIM AMBER */
             padding: 5px 10px;
             font-size: 12px;
         }
@@ -80,19 +82,19 @@
             align-items: center;
             gap: 10px;
             padding: 5px 10px;
-            background-color: #001a00;
-            border: 1px solid #00ff00;
+            background-color: #1a0f00;  /* DARK AMBER BG */
+            border: 1px solid #ffb000;  /* AMBER BORDER */
             margin-bottom: 5px;
         }
 
         #view-mode-indicator {
             font-weight: bold;
-            color: #00ff00;
+            color: #ffd700;  /* BRIGHT AMBER */
             letter-spacing: 2px;
         }
 
         .view-hint {
-            color: #00aa00;
+            color: #cc8800;  /* DIM AMBER */
             font-size: 12px;
         }
 
@@ -100,9 +102,9 @@
             flex: 1;
             overflow-y: auto;
             padding: 10px;
-            border: 1px solid #00ff00;
+            border: 1px solid #ffb000;  /* AMBER BORDER */
             margin-bottom: 10px;
-            background-color: #001100;
+            background-color: #000;  /* PURE BLACK BG */
         }
 
         #output {
@@ -722,14 +724,14 @@
         }
 
         function increaseFontSize() {
-            currentFontSize = Math.min(currentFontSize + 2, 32); // Max 32px
+            currentFontSize = Math.min(currentFontSize + 2, 48); // Max 48px (BIGGER!)
             applyFontSize(currentFontSize);
             document.getElementById('fontSizeDisplay').textContent = currentFontSize + 'px';
             localStorage.setItem('noodleMUSH_fontSize', currentFontSize);
         }
 
         function decreaseFontSize() {
-            currentFontSize = Math.max(currentFontSize - 2, 10); // Min 10px
+            currentFontSize = Math.max(currentFontSize - 2, 8); // Min 8px (smaller minimum)
             applyFontSize(currentFontSize);
             document.getElementById('fontSizeDisplay').textContent = currentFontSize + 'px';
             localStorage.setItem('noodleMUSH_fontSize', currentFontSize);
