@@ -59,9 +59,9 @@ language_mode: "verbal"
 
 # LLM Configuration - Smart model for bright, thoughtful character!
 llm:
-  provider: openrouter  # Cloud for intelligence
-  model: deepseek/deepseek-chat  # DeepSeek v3.1 - fast and smart!
-  # Alternative: anthropic/claude-3-5-sonnet for MAXIMUM depth
+  provider: local  # For testing, use local (switch to openrouter for demo!)
+  model: qwen/qwen3-8b-2507  # Different model than default (so we can see routing works!)
+  # For production: provider: openrouter, model: deepseek/deepseek-chat
 
 # Enlightenment: Can agent discuss its own phenomenal states?
 # Callie is metacognitive by design - she can discuss her consciousness
