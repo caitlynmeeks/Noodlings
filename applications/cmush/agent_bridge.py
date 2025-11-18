@@ -333,6 +333,14 @@ class CMUSHConsilienceAgent:
         self.identity_prompt = config.get('identity_prompt', '')
         self.species = config.get('species', 'noodling')
 
+        # Per-agent LLM configuration (optional override)
+        llm_override = config.get('llm_override', {})
+        self.llm_model = llm_override.get('model')  # None = use global default
+        self.llm_provider = llm_override.get('provider')  # None = use global default
+
+        if self.llm_model:
+            logger.info(f"[{agent_id}] Custom LLM: {self.llm_provider}/{self.llm_model}")
+
         # Get personality traits for this agent
         personalities = config.get('personalities', {})
         self.personality = personalities.get(agent_id, {
@@ -1744,10 +1752,10 @@ Generate intuitive awareness:"""
             # Use configurable memory window for response generation
             response_window = self.config.get('memory_windows', {}).get('response_generation', 5)
 
-            # Use smarter model during plays for better theatrical performance
-            model_override = getattr(self, 'play_model', None)
+            # Model priority: play_model > agent model > global default
+            model_override = getattr(self, 'play_model', None) or self.llm_model
             if model_override:
-                logger.info(f"🎭 {self.agent_id} using play model: {model_override}")
+                logger.info(f"🎭 {self.agent_id} using model: {model_override}")
 
             llm_result = await self.llm.generate_response(
                 phenomenal_state=state,
@@ -1761,7 +1769,7 @@ Generate intuitive awareness:"""
                 identity_memories=identity_memories,
                 name_mentioned=name_mentioned,
                 enlightenment=self.config.get('enlightenment', False),
-                model=model_override  # Use play model if in a play
+                model=model_override  # Use play model if in play, else agent model, else global
             )
 
             # If LLM failed (returned None), skip response gracefully
@@ -2005,6 +2013,7 @@ Generate intuitive awareness:"""
             # Use configurable memory window for rumination
             rumination_window = self.config.get('memory_windows', {}).get('rumination', 2)
             thought_text = await self.llm.generate_rumination(
+                model=self.llm_model,  # Per-agent model override!
                 phenomenal_state=state,
                 conversation_context=self.conversation_context[-rumination_window:],
                 agent_name=self.agent_name,

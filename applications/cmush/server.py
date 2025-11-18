@@ -302,6 +302,15 @@ class CMUSHServer:
             if recipe:
                 # Reload species from recipe (critical for character voice!)
                 config['species'] = recipe.species
+
+                # Per-agent LLM configuration (if specified in recipe)
+                if recipe.llm_provider or recipe.llm_model:
+                    config['llm_override'] = {
+                        'provider': recipe.llm_provider,
+                        'model': recipe.llm_model
+                    }
+                    logger.info(f"[LOAD] {agent_id} will use custom LLM: {recipe.llm_provider}/{recipe.llm_model}")
+
                 # Also reload identity_prompt if not already in config
                 if 'identity_prompt' not in config:
                     config['identity_prompt'] = recipe.identity_prompt

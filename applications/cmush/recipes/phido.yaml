@@ -87,6 +87,11 @@ identity_prompt: |
 
 language_mode: "verbal"
 
+# LLM Configuration - Simple local model for good boy brain!
+llm:
+  provider: local  # Keep Phido local (simple is fine!)
+  model: qwen/qwen3-4b-2507  # Small, fast, perfect for enthusiastic dog!
+
 # Enlightenment: Phido is a good dog living fully in the moment
 enlightenment: false
 

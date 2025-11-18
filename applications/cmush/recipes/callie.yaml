@@ -57,6 +57,12 @@ identity_prompt: |
 
 language_mode: "verbal"
 
+# LLM Configuration - Smart model for bright, thoughtful character!
+llm:
+  provider: openrouter  # Cloud for intelligence
+  model: deepseek/deepseek-chat  # DeepSeek v3.1 - fast and smart!
+  # Alternative: anthropic/claude-3-5-sonnet for MAXIMUM depth
+
 # Enlightenment: Can agent discuss its own phenomenal states?
 # Callie is metacognitive by design - she can discuss her consciousness
 enlightenment: true

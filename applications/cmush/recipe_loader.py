@@ -15,7 +15,7 @@ Recipe files contain:
 import yaml
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -43,6 +43,10 @@ class AgentRecipe:
     enforce_action_format: bool
     response_cooldown: float  # Min seconds between responses (default 2.0)
 
+    # LLM Configuration (per-agent model selection!)
+    llm_provider: Optional[str]  # 'local', 'openrouter', or None (use global default)
+    llm_model: Optional[str]     # Specific model for this agent (e.g., 'deepseek/deepseek-chat')
+
     # Enlightenment (consciousness self-awareness)
     enlightenment: bool  # Can agent discuss its own phenomenal states?
 
@@ -50,6 +54,7 @@ class AgentRecipe:
     def from_dict(cls, data: Dict[str, Any]) -> 'AgentRecipe':
         """Create recipe from parsed YAML dict."""
         constraints = data.get('constraints', {})
+        llm_config = data.get('llm', {})
 
         return cls(
             name=data.get('name', 'Unknown'),
@@ -63,6 +68,8 @@ class AgentRecipe:
             temperature=constraints.get('temperature', 0.7),
             enforce_action_format=constraints.get('enforce_action_format', False),
             response_cooldown=constraints.get('response_cooldown', 2.0),
+            llm_provider=llm_config.get('provider'),  # Optional: per-agent provider
+            llm_model=llm_config.get('model'),        # Optional: per-agent model
             enlightenment=data.get('enlightenment', False)  # Default: immersed in character
         )
 
