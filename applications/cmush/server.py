@@ -220,11 +220,10 @@ class CMUSHServer:
         session_id = f"cmush_session_{int(asyncio.get_event_loop().time())}"
         self.session_profiler = SessionProfiler(session_id=session_id)
 
-        # Initialize @Kimmie character
-        llm_config = self.config['llm']
+        # Initialize @Kimmie character (use provider config from above)
         self.kimmie = KimmieCharacter(
-            llm_base_url=llm_config['api_base'],
-            llm_model=llm_config['model'],
+            llm_base_url=provider_config.get('api_base', 'http://localhost:1234/v1'),
+            llm_model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
             session_profiler=self.session_profiler
         )
 
@@ -232,6 +231,8 @@ class CMUSHServer:
         self.api_server = NoodleScopeAPI(
             session_profiler=self.session_profiler,
             kimmie=self.kimmie,
+            config=self.config,  # Pass config for LLM config UI
+            agent_manager=self.agent_manager,  # Pass agent manager for agent list
             host='0.0.0.0',
             port=8081
         )

@@ -115,6 +115,13 @@
             font-size: 14px;
         }
 
+        #llm-config {
+            /* VT100 terminal aesthetic! */
+            font-family: 'Courier New', monospace;
+            font-size: 18px;  /* CHUNKY! */
+            line-height: 1.4;
+        }
+
         .view-container::-webkit-scrollbar {
             width: 10px;
         }
@@ -541,6 +548,89 @@
         <!-- Log view (hidden by default) -->
         <div id="log-output" class="view-container" style="display: none;"></div>
 
+        <!-- LLM Config view (hidden by default) - VT100 AESTHETIC! -->
+        <div id="llm-config" class="view-container" style="display: none; font-family: 'Courier New', monospace;">
+            <div style="border: 2px solid #00ff00; padding: 15px; margin-bottom: 15px; background-color: #000;">
+                <div style="text-align: center; border-bottom: 1px solid #00ff00; padding-bottom: 10px; margin-bottom: 15px;">
+                    <span style="color: #00ff00; font-size: 16px; letter-spacing: 3px;">═══════════════════════════════════════</span><br>
+                    <span style="color: #00ff00; font-size: 20px; font-weight: bold;">⚙️  LLM CONFIGURATION PANEL  ⚙️</span><br>
+                    <span style="color: #00ff00; font-size: 16px; letter-spacing: 3px;">═══════════════════════════════════════</span><br>
+                    <span style="color: #00aa00; font-size: 12px;">noodleMUSH v1.1 • Multi-Model Consciousness System</span>
+                </div>
+
+                <!-- Global LLM Settings -->
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #00ff00; font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #00aa00; padding-bottom: 5px;">
+                        ┌─ GLOBAL CONFIGURATION ────────────────────────┐
+                    </div>
+                    <table style="width: 100%; color: #00ff00; font-size: 14px;">
+                        <tr>
+                            <td style="color: #00aa00; width: 200px;">► Provider:</td>
+                            <td id="global-provider" style="color: #00ff00; font-weight: bold;">local</td>
+                        </tr>
+                        <tr>
+                            <td style="color: #00aa00;">► API Base:</td>
+                            <td id="global-api-base" style="color: #00ff00;">http://localhost:1234/v1</td>
+                        </tr>
+                        <tr>
+                            <td style="color: #00aa00;">► Model:</td>
+                            <td id="global-model" style="color: #00ff00; font-weight: bold;">qwen/qwen3-4b-2507</td>
+                        </tr>
+                        <tr>
+                            <td style="color: #00aa00;">► Timeout:</td>
+                            <td id="global-timeout" style="color: #00ff00;">60s</td>
+                        </tr>
+                    </table>
+                    <div style="color: #00aa00; font-size: 12px; margin-top: 8px; border-top: 1px dashed #00aa00; padding-top: 5px;">
+                        └──────────────────────────────────────────────┘
+                    </div>
+                </div>
+
+                <!-- Per-Agent Settings -->
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #00ff00; font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #00aa00; padding-bottom: 5px;">
+                        ┌─ PER-AGENT MODELS ────────────────────────────┐
+                    </div>
+                    <div id="agent-models" style="color: #00ff00; font-size: 14px; line-height: 1.8;">
+                        <div style="color: #00aa00; font-style: italic;">Loading agent configurations...</div>
+                    </div>
+                    <div style="color: #00aa00; font-size: 12px; margin-top: 8px; border-top: 1px dashed #00aa00; padding-top: 5px;">
+                        └──────────────────────────────────────────────┘
+                    </div>
+                </div>
+
+                <!-- Brenda (Special) -->
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #00ff00; font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #00aa00; padding-bottom: 5px;">
+                        ┌─ BRENDA (Director/Storyteller) ───────────────┐
+                    </div>
+                    <table style="width: 100%; color: #00ff00; font-size: 14px;">
+                        <tr>
+                            <td style="color: #00aa00; width: 200px;">► Model:</td>
+                            <td id="brenda-model" style="color: #ffaa00; font-weight: bold;">deepseek-v3.1@q2_k_xl</td>
+                        </tr>
+                        <tr>
+                            <td style="color: #00aa00;">► Purpose:</td>
+                            <td style="color: #00aa00;">Complex storytelling, play generation</td>
+                        </tr>
+                    </table>
+                    <div style="color: #00aa00; font-size: 12px; margin-top: 8px; border-top: 1px dashed #00aa00; padding-top: 5px;">
+                        └──────────────────────────────────────────────┘
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #00ff00;">
+                    <div style="color: #00aa00; font-size: 12px; text-align: center;">
+                        <span style="color: #00ff00;">●</span> System Status: <span style="color: #00ff00; font-weight: bold;">OPERATIONAL</span><br>
+                        <span style="color: #00aa00; font-style: italic;">Multi-model consciousness routing active</span><br>
+                        <br>
+                        <span style="color: #00aa00;">[TAB] to cycle views • [ESC] to return to chat</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="input-area">
             <div id="prompt">&gt;</div>
             <input type="text" id="input" placeholder="Type a command..." autocomplete="off" />
@@ -582,7 +672,7 @@
         let currentFontSize = 18; // Default from CSS
 
         // Log view control
-        let currentView = 'chat'; // 'chat' or 'log'
+        let currentView = 'chat'; // 'chat', 'log', or 'llm'
         let logSubscribed = false;
         let verboseMode = localStorage.getItem('verboseLogMode') === 'true';
 
@@ -652,17 +742,20 @@
             }
         });
 
-        // Toggle between chat view and log view
+        // Toggle between chat, log, and LLM config views (cycles)
         function toggleView() {
             const outputDiv = document.getElementById('output');
             const logOutputDiv = document.getElementById('log-output');
+            const llmConfigDiv = document.getElementById('llm-config');
             const viewIndicator = document.getElementById('view-mode-indicator');
             const verboseToggle = document.getElementById('verbose-toggle');
 
+            // Cycle: chat → log → llm → chat
             if (currentView === 'chat') {
                 // Switch to log view
                 outputDiv.style.display = 'none';
                 logOutputDiv.style.display = 'block';
+                llmConfigDiv.style.display = 'none';
                 viewIndicator.textContent = 'LOG VIEW';
                 verboseToggle.style.display = 'inline-block';
                 currentView = 'log';
@@ -672,10 +765,22 @@
                     ws.send(JSON.stringify({ type: 'subscribe_logs' }));
                     logSubscribed = true;
                 }
+            } else if (currentView === 'log') {
+                // Switch to LLM config view
+                outputDiv.style.display = 'none';
+                logOutputDiv.style.display = 'none';
+                llmConfigDiv.style.display = 'block';
+                viewIndicator.textContent = 'LLM CONFIG';
+                verboseToggle.style.display = 'none';
+                currentView = 'llm';
+
+                // Load LLM config data
+                loadLLMConfig();
             } else {
-                // Switch to chat view
+                // Switch back to chat view
                 outputDiv.style.display = 'block';
                 logOutputDiv.style.display = 'none';
+                llmConfigDiv.style.display = 'none';
                 viewIndicator.textContent = 'CHAT VIEW';
                 verboseToggle.style.display = 'none';
                 currentView = 'chat';
@@ -761,6 +866,59 @@
 
         function deleteCookie(name) {
             document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        }
+
+        // Load LLM configuration and display in VT100 style
+        async function loadLLMConfig() {
+            try {
+                // Fetch config from API
+                const response = await fetch('http://localhost:8081/api/config');
+                const config = await response.json();
+
+                // Populate global config (from YAML)
+                const llmConfig = config.llm || {};
+                const provider = llmConfig.provider || 'local';
+                const providerConfig = llmConfig[provider] || llmConfig.local || {};
+
+                document.getElementById('global-provider').textContent = provider.toUpperCase();
+                document.getElementById('global-api-base').textContent = providerConfig.api_base || 'N/A';
+                document.getElementById('global-model').textContent = providerConfig.model || 'N/A';
+                document.getElementById('global-timeout').textContent = (providerConfig.timeout || 60) + 's';
+
+                // Fetch agent list and their models
+                const agentsResponse = await fetch('http://localhost:8081/api/agents');
+                const agentsData = await agentsResponse.json();
+                const agents = agentsData.agents || [];
+
+                // Build per-agent display (VT100 table style!)
+                let agentHTML = '';
+                for (const agent of agents) {
+                    const agentName = agent.name || agent.id.replace('agent_', '');
+                    const agentModel = agent.llm_model || `<span style="color: #00aa00;">(global default)</span>`;
+                    const agentProvider = agent.llm_provider || `<span style="color: #00aa00;">(global)</span>`;
+
+                    agentHTML += `
+                        <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #00aa00; background-color: #001100;">
+                            <div style="color: #ffaa00; font-weight: bold;">► ${agentName.toUpperCase()}</div>
+                            <div style="margin-left: 20px; color: #00aa00; font-size: 13px;">
+                                Provider: <span style="color: #00ff00;">${agentProvider}</span><br>
+                                Model: <span style="color: #00ff00; font-weight: bold;">${agentModel}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (agents.length === 0) {
+                    agentHTML = '<div style="color: #00aa00; font-style: italic;">No agents spawned yet.</div>';
+                }
+
+                document.getElementById('agent-models').innerHTML = agentHTML;
+
+            } catch (error) {
+                console.error('Failed to load LLM config:', error);
+                document.getElementById('agent-models').innerHTML =
+                    '<div style="color: #ff0000;">⚠️  Error loading config. Is API server running?</div>';
+            }
         }
 
         // Connect to WebSocket server

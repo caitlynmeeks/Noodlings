@@ -38,6 +38,8 @@ class NoodleScopeAPI:
         self,
         session_profiler: Optional[SessionProfiler] = None,
         kimmie: Optional[KimmieCharacter] = None,
+        config: Optional[Dict] = None,
+        agent_manager = None,
         host: str = '0.0.0.0',
         port: int = 8081
     ):
@@ -47,11 +49,15 @@ class NoodleScopeAPI:
         Args:
             session_profiler: Active session profiler instance
             kimmie: @Kimmie character instance
+            config: Server configuration dict
+            agent_manager: Agent manager instance
             host: Server host
             port: Server port
         """
         self.session_profiler = session_profiler
         self.kimmie = kimmie
+        self.config = config or {}
+        self.agent_manager = agent_manager
         self.host = host
         self.port = port
 
@@ -72,6 +78,10 @@ class NoodleScopeAPI:
 
         # @Kimmie interpretation endpoint
         self.app.router.add_post('/api/kimmie/interpret', self.kimmie_interpret)
+
+        # LLM configuration endpoints (for UI)
+        self.app.router.add_get('/api/config', self.get_config)
+        self.app.router.add_get('/api/agents', self.get_agents)
 
         # Health check
         self.app.router.add_get('/api/health', self.health_check)
@@ -98,6 +108,31 @@ class NoodleScopeAPI:
         for route in list(self.app.router.routes()):
             if not isinstance(route.resource, web.StaticResource):
                 cors.add(route)
+
+    async def get_config(self, request: web.Request) -> web.Response:
+        """Get server configuration (for LLM config UI)."""
+        return web.json_response({
+            'llm': self.config.get('llm', {}),
+            'brenda': self.config.get('brenda', {}),
+            'agent': self.config.get('agent', {})
+        })
+
+    async def get_agents(self, request: web.Request) -> web.Response:
+        """Get list of agents and their LLM configurations."""
+        if not self.agent_manager:
+            return web.json_response({'agents': []})
+
+        agents_data = []
+        for agent_id, agent in self.agent_manager.agents.items():
+            agents_data.append({
+                'id': agent_id,
+                'name': agent.agent_name,
+                'species': agent.species,
+                'llm_provider': agent.llm_provider,
+                'llm_model': agent.llm_model
+            })
+
+        return web.json_response({'agents': agents_data})
 
     async def health_check(self, request: web.Request) -> web.Response:
         """Health check endpoint."""
