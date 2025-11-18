@@ -586,11 +586,15 @@
                     <table style="width: 100%; font-size: 16px;" class="config-table-text">
                         <tr>
                             <td class="amber-dim" style="width: 200px;">&gt; Provider:</td>
-                            <td id="global-provider" class="amber-bright" style="font-weight: bold;">local</td>
+                            <td id="global-provider" class="amber-bright" style="font-weight: bold; cursor: pointer;" title="Click to change provider">local</td>
                         </tr>
                         <tr>
                             <td class="amber-dim">&gt; API Base:</td>
-                            <td id="global-api-base" class="amber-bright">http://localhost:1234/v1</td>
+                            <td id="global-api-base" class="amber-bright" style="cursor: pointer;" title="Click to edit">http://localhost:1234/v1</td>
+                        </tr>
+                        <tr>
+                            <td class="amber-dim">&gt; API Key:</td>
+                            <td id="global-api-key" class="amber-bright" style="cursor: pointer;" title="Click to edit">••••••••</td>
                         </tr>
                         <tr>
                             <td class="amber-dim">&gt; Model:</td>
@@ -696,6 +700,177 @@
         let logSubscribed = false;
         let verboseMode = localStorage.getItem('verboseLogMode') === 'true';
         let logEntries = []; // Store full log entries for verbose toggle
+
+        // Provider presets with default endpoints
+        const PROVIDER_PRESETS = {
+            'local': {
+                name: 'Local (LMStudio)',
+                api_base: 'http://localhost:1234/v1',
+                requires_key: false
+            },
+            'openrouter': {
+                name: 'OpenRouter',
+                api_base: 'https://openrouter.ai/api/v1',
+                requires_key: true
+            },
+            'openai': {
+                name: 'OpenAI',
+                api_base: 'https://api.openai.com/v1',
+                requires_key: true
+            },
+            'anthropic': {
+                name: 'Anthropic',
+                api_base: 'https://api.anthropic.com/v1',
+                requires_key: true
+            },
+            'together': {
+                name: 'Together AI',
+                api_base: 'https://api.together.xyz/v1',
+                requires_key: true
+            },
+            'groq': {
+                name: 'Groq',
+                api_base: 'https://api.groq.com/openai/v1',
+                requires_key: true
+            }
+        };
+
+        // Get stored API key for provider
+        function getProviderAPIKey(provider) {
+            return localStorage.getItem(`noodlemush_api_key_${provider}`) || '';
+        }
+
+        // Save API key for provider
+        function setProviderAPIKey(provider, key) {
+            if (key) {
+                localStorage.setItem(`noodlemush_api_key_${provider}`, key);
+            } else {
+                localStorage.removeItem(`noodlemush_api_key_${provider}`);
+            }
+        }
+
+        // Make provider field show dropdown
+        function makeProviderEditable(elementId, currentProvider) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            element.onclick = () => {
+                const providers = Object.keys(PROVIDER_PRESETS);
+                showProviderPicker(element, currentProvider, providers);
+            };
+        }
+
+        // Show provider picker dropdown
+        function showProviderPicker(element, currentProvider, providers) {
+            const rect = element.getBoundingClientRect();
+            const dropdown = document.createElement('div');
+            dropdown.style.cssText = `
+                position: fixed;
+                left: ${rect.left}px;
+                top: ${rect.bottom + 5}px;
+                background: #1a0f00;
+                border: 2px solid #ffd700;
+                padding: 8px;
+                z-index: 10000;
+                max-height: 300px;
+                overflow-y: auto;
+                font-family: 'Courier New', monospace;
+            `;
+
+            providers.forEach(providerId => {
+                const preset = PROVIDER_PRESETS[providerId];
+                const option = document.createElement('div');
+                option.style.cssText = `
+                    padding: 8px;
+                    cursor: pointer;
+                    color: ${providerId === currentProvider ? '#ffd700' : '#ffb000'};
+                    font-weight: ${providerId === currentProvider ? 'bold' : 'normal'};
+                `;
+                option.textContent = preset.name;
+                option.onmouseover = () => option.style.backgroundColor = '#2a1800';
+                option.onmouseout = () => option.style.backgroundColor = 'transparent';
+                option.onclick = async () => {
+                    await switchProvider(providerId);
+                    document.body.removeChild(dropdown);
+                };
+                dropdown.appendChild(option);
+            });
+
+            document.body.appendChild(dropdown);
+
+            // Close on ESC or click outside
+            const closeHandler = (e) => {
+                if (e.key === 'Escape' || !dropdown.contains(e.target)) {
+                    if (document.body.contains(dropdown)) {
+                        document.body.removeChild(dropdown);
+                    }
+                    document.removeEventListener('keydown', closeHandler);
+                    document.removeEventListener('click', closeHandler);
+                }
+            };
+            setTimeout(() => {
+                document.addEventListener('keydown', closeHandler);
+                document.addEventListener('click', closeHandler);
+            }, 100);
+        }
+
+        // Switch to new provider
+        async function switchProvider(newProvider) {
+            const preset = PROVIDER_PRESETS[newProvider];
+
+            // Save provider to config
+            await saveConfigField('llm.provider', newProvider);
+
+            // Auto-populate API base from preset
+            await saveConfigField(`llm.${newProvider}.api_base`, preset.api_base);
+
+            // Load stored API key if available
+            const storedKey = getProviderAPIKey(newProvider);
+            if (storedKey && preset.requires_key) {
+                await saveConfigField(`llm.${newProvider}.api_key`, storedKey);
+            }
+
+            // Reload config display
+            await loadLLMConfig();
+        }
+
+        // Make API key field editable
+        function makeAPIKeyEditable(elementId, currentProvider) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            element.onclick = () => {
+                const storedKey = getProviderAPIKey(currentProvider);
+                const input = document.createElement('input');
+                input.type = 'password';
+                input.value = storedKey;
+                input.placeholder = 'Enter API key...';
+                input.style.cssText = 'background: #1a0f00; color: #ffd700; border: 2px solid #ffd700; padding: 4px; font-family: "Courier New"; font-size: 16px; font-weight: bold; width: 100%;';
+
+                element.innerHTML = '';
+                element.appendChild(input);
+                input.focus();
+                input.select();
+
+                input.onkeydown = async (e) => {
+                    if (e.key === 'Enter') {
+                        const newKey = input.value.trim();
+                        // Save to localStorage
+                        setProviderAPIKey(currentProvider, newKey);
+                        // Save to config YAML
+                        await saveConfigField(`llm.${currentProvider}.api_key`, newKey);
+                        // Update display
+                        const displayText = newKey ? '••••' + newKey.slice(-4) : '(not set)';
+                        element.textContent = displayText;
+                        element.onclick = () => makeAPIKeyEditable(elementId, currentProvider);
+                    } else if (e.key === 'Escape') {
+                        const displayText = storedKey ? '••••' + storedKey.slice(-4) : '(not set)';
+                        element.textContent = displayText;
+                        element.onclick = () => makeAPIKeyEditable(elementId, currentProvider);
+                    }
+                };
+            };
+        }
 
         function applyFontSize(size) {
             // Update CSS rules so ALL messages (existing and future) use this size
@@ -1147,16 +1322,24 @@
                 const modelText = providerConfig.model || 'N/A';
                 const timeoutText = (providerConfig.timeout || 60) + 's';
 
+                // Get stored API key for current provider
+                const storedKey = getProviderAPIKey(provider);
+                const apiKeyText = storedKey ? '••••' + storedKey.slice(-4) : '(not set)';
+
                 document.getElementById('global-provider').textContent = providerText;
                 document.getElementById('global-api-base').textContent = apiBaseText;
+                document.getElementById('global-api-key').textContent = apiKeyText;
                 document.getElementById('global-model').textContent = modelText;
                 document.getElementById('global-timeout').textContent = timeoutText;
 
-                // Make fields editable
-                makeEditable('global-provider', 'llm.provider', providerText);
-                makeEditable('global-api-base', 'llm.local.api_base', apiBaseText);
-                makeEditable('global-model', 'llm.local.model', modelText);
-                makeEditable('global-timeout', 'llm.local.timeout', timeoutText);
+                // Make provider clickable (special handler for dropdown)
+                makeProviderEditable('global-provider', provider);
+
+                // Make other fields editable
+                makeAPIKeyEditable('global-api-key', provider);
+                makeEditable('global-api-base', `llm.${provider}.api_base`, apiBaseText);
+                makeEditable('global-model', `llm.${provider}.model`, modelText);
+                makeEditable('global-timeout', `llm.${provider}.timeout`, timeoutText);
 
                 // Make Brenda's model editable
                 const brendaModel = config.brenda?.model || 'deepseek-v3.1@q2_k_xl';

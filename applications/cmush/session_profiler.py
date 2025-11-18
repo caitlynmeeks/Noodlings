@@ -174,8 +174,17 @@ class SessionProfiler:
             "event": event_context,
             "conversation_context": conversation_context if conversation_context else [],
 
+            # FACS/Body Language (NEW - for Krugerrand Profiler!)
+            "facs_codes": kwargs.get('facs_codes', []),
+            "body_codes": kwargs.get('body_codes', []),
+            "expression_description": kwargs.get('expression_description', ''),
+            "event_type": kwargs.get('event_type', 'unknown'),
+            "responding_to": kwargs.get('responding_to', ''),
+
             # Additional metadata
-            "metadata": kwargs
+            "metadata": {k: v for k, v in kwargs.items()
+                        if k not in ['facs_codes', 'body_codes', 'expression_description',
+                                   'event_type', 'responding_to']}
         }
 
         self.agent_timelines[agent_id].append(record)

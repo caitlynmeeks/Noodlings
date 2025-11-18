@@ -1340,6 +1340,15 @@ Generate intuitive awareness:"""
                     # Extract affect from state or use the affect vector we calculated
                     affect_vector = np.array(affect) if not isinstance(affect, np.ndarray) else affect
 
+                    # Extract FACS/body data if available
+                    facs_data = None
+                    body_data = None
+                    expression_desc = None
+                    if facial_expression:
+                        facs_data = facial_expression.get('facs_codes', [])
+                        body_data = facial_expression.get('body_codes', [])
+                        expression_desc = facial_expression.get('description', '')
+
                     self.session_profiler.log_timestep(
                         agent_id=self.agent_id,
                         phenomenal_state=phenomenal_state_vector,
@@ -1352,7 +1361,12 @@ Generate intuitive awareness:"""
                         cheap_thrills_score=0.0,
                         mysticism_penalty=0.0,
                         event_context=f"{user_id}: {text[:100]}",
-                        conversation_context=self.conversation_context[-5:]  # Last 5 messages
+                        conversation_context=self.conversation_context[-5:],  # Last 5 messages
+                        facs_codes=facs_data,
+                        body_codes=body_data,
+                        expression_description=expression_desc,
+                        event_type=event_type,
+                        responding_to=user_id
                     )
                     logger.info(f"[{self.agent_id}] Logged timestep to session profiler")
                 except Exception as e:

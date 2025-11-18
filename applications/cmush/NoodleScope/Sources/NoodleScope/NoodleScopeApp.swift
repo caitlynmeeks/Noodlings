@@ -18,35 +18,19 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            // Header with scrub controller (Logic Pro style!)
             HeaderView(viewModel: viewModel)
                 .frame(height: 60)
                 .background(Color(hex: "#131824"))
 
-            HStack(spacing: 0) {
-                // Left panel: Phenomenal State
-                PhenomenalStatePanel(viewModel: viewModel)
-                    .frame(width: 300)
-                    .background(Color(hex: "#131824"))
+            // MAIN TIMELINE AREA (Audacity/Logic Pro style)
+            MultiTrackTimelineView(viewModel: viewModel)
+                .background(Color(hex: "#0a0e1a"))
 
-                // Main timeline area
-                VStack(spacing: 0) {
-                    // Conversation context
-                    ConversationContextPanel(viewModel: viewModel)
-                        .frame(maxHeight: 200)
-
-                    // Metrics
-                    MetricsPanel(viewModel: viewModel)
-                        .frame(height: 120)
-
-                    // Timeline graph + slider
-                    TimelineView(viewModel: viewModel)
-
-                    // Operations console
-                    OperationsPanel(viewModel: viewModel)
-                        .frame(height: 250)
-                }
-            }
+            // Bottom console for inspecting clicked events
+            InspectorConsolePanel(viewModel: viewModel)
+                .frame(height: 250)
+                .background(Color(hex: "#131824"))
         }
         .background(Color(hex: "#0a0e1a"))
         .task {
@@ -67,17 +51,17 @@ struct HeaderView: View {
 
             Spacer()
 
-            // Agent tabs
+            // Noodling tabs
             HStack(spacing: 4) {
-                ForEach(viewModel.agents, id: \.self) { agent in
+                ForEach(viewModel.agents, id: \.self) { noodlingId in
                     Button(action: {
-                        viewModel.selectedAgent = agent
+                        viewModel.selectedAgent = noodlingId
                     }) {
-                        Text(agent.replacingOccurrences(of: "agent_", with: ""))
+                        Text(noodlingId.replacingOccurrences(of: "agent_", with: ""))
                             .font(.system(size: 14, design: .monospaced))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .background(viewModel.selectedAgent == agent ?
+                            .background(viewModel.selectedAgent == noodlingId ?
                                        Color(hex: "#2a5f8f") : Color(hex: "#1e2938"))
                             .foregroundColor(.white)
                             .cornerRadius(4)
@@ -106,69 +90,515 @@ struct HeaderView: View {
     }
 }
 
+// MARK: - Multi-Track Timeline (Logic Pro / Audacity style!)
+struct MultiTrackTimelineView: View {
+    @ObservedObject var viewModel: NoodleScopeViewModel
+    @State private var expandedTracks: Set<String> = []
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // SCRUB CONTROLLER (top bar like Logic Pro)
+            ScrubController(viewModel: viewModel)
+                .frame(height: 60)
+                .background(Color(hex: "#131824"))
+                .border(Color(hex: "#2a3f5f"), width: 1)
+
+            // TRACK LIST (scrollable like Audacity)
+            ScrollView {
+                VStack(spacing: 2) {
+                    ForEach(viewModel.agents, id: \.self) { noodlingId in
+                        NoodlingTrack(
+                            noodlingId: noodlingId,
+                            viewModel: viewModel,
+                            isExpanded: expandedTracks.contains(noodlingId),
+                            onToggle: {
+                                if expandedTracks.contains(noodlingId) {
+                                    expandedTracks.remove(noodlingId)
+                                } else {
+                                    expandedTracks.insert(noodlingId)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Scrub Controller (playhead with timecode)
+struct ScrubController: View {
+    @ObservedObject var viewModel: NoodleScopeViewModel
+
+    var body: some View {
+        VStack(spacing: 8) {
+            // Timecode display
+            HStack {
+                Text(String(format: "%02d:%02d.%01d",
+                           Int(viewModel.playheadTime) / 60,
+                           Int(viewModel.playheadTime) % 60,
+                           Int((viewModel.playheadTime.truncatingRemainder(dividingBy: 1)) * 10)))
+                    .font(.system(size: 20, weight: .bold, design: .monospaced))
+                    .foregroundColor(Color(hex: "#64b5f6"))
+
+                Text("/")
+                    .foregroundColor(.gray)
+
+                Text(String(format: "%02d:%02d",
+                           Int(viewModel.maxTime) / 60,
+                           Int(viewModel.maxTime) % 60))
+                    .font(.system(size: 16, design: .monospaced))
+                    .foregroundColor(.gray)
+            }
+
+            // Playhead slider
+            Slider(value: $viewModel.playheadTime,
+                   in: 0...max(viewModel.maxTime, 0.1),
+                   step: 0.1)
+                .tint(Color(hex: "#64b5f6"))
+                .padding(.horizontal, 12)
+        }
+        .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - Noodling Track (collapsible per-Noodling track)
+struct NoodlingTrack: View {
+    let noodlingId: String
+    @ObservedObject var viewModel: NoodleScopeViewModel
+    let isExpanded: Bool
+    let onToggle: () -> Void
+
+    var noodlingName: String {
+        noodlingId.replacingOccurrences(of: "agent_", with: "").capitalized
+    }
+
+    var noodlingData: [TimelinePoint] {
+        viewModel.timelineData.filter { _ in viewModel.selectedAgent == noodlingId }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // TRACK HEADER (like Logic Pro track name)
+            Button(action: onToggle) {
+                HStack {
+                    // Expand/collapse indicator
+                    Text(isExpanded ? "▼" : "▶")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.gray)
+                        .frame(width: 20)
+
+                    // Noodling name
+                    Text(noodlingName.uppercased())
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundColor(viewModel.selectedAgent == noodlingId ? Color(hex: "#64b5f6") : .white)
+
+                    // Enlightenment indicator (no emoji - just text!)
+                    if viewModel.isEnlightened(noodlingId) {
+                        Text("[ENLIGHTENED]")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(Color(hex: "#ba68c8"))
+                    }
+
+                    Spacer()
+
+                    // Track controls
+                    Text("5-D AFFECT")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(viewModel.selectedAgent == noodlingId ?
+                           Color(hex: "#1e2938") : Color(hex: "#131824"))
+            }
+            .buttonStyle(.plain)
+
+            // EXPANDED TRACK CONTENT
+            if isExpanded {
+                VStack(spacing: 4) {
+                    // 5-D Affect mini-tracks
+                    AffectMiniTrack(title: "V", color: "#66bb6a", data: noodlingData, keyPath: \.valence, viewModel: viewModel)
+                    AffectMiniTrack(title: "A", color: "#ffa726", data: noodlingData, keyPath: \.arousal, viewModel: viewModel)
+                    AffectMiniTrack(title: "F", color: "#ef5350", data: noodlingData, keyPath: \.fear, viewModel: viewModel)
+                    AffectMiniTrack(title: "So", color: "#9c27b0", data: noodlingData, keyPath: \.sorrow, viewModel: viewModel)
+                    AffectMiniTrack(title: "Su", color: "#64b5f6", data: noodlingData, keyPath: \.surprise, viewModel: viewModel, highlightSpikes: true)
+
+                    // EVENT TRAFFIC TIMELINE (LLM calls, intuition, etc.)
+                    EventTrafficTimeline(noodlingId: noodlingId, data: noodlingData, viewModel: viewModel)
+                }
+                .padding(.horizontal, 32)
+                .padding(.vertical, 8)
+                .background(Color(hex: "#0f1419"))
+            }
+        }
+        .border(Color(hex: "#2a3f5f"), width: 1)
+    }
+}
+
+// MARK: - Affect Mini Track (compact single-line chart)
+struct AffectMiniTrack: View {
+    let title: String
+    let color: String
+    let data: [TimelinePoint]
+    let keyPath: KeyPath<TimelinePoint, Double>
+    @ObservedObject var viewModel: NoodleScopeViewModel
+    var highlightSpikes: Bool = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            // Label
+            Text(title)
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundColor(Color(hex: color))
+                .frame(width: 30, alignment: .trailing)
+
+            // Mini chart
+            Chart {
+                ForEach(data) { point in
+                    LineMark(
+                        x: .value("Time", point.timestamp),
+                        y: .value(title, point[keyPath: keyPath])
+                    )
+                    .foregroundStyle(Color(hex: color))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5))
+
+                    // Highlight spikes
+                    if highlightSpikes && point[keyPath: keyPath] > 0.3 {
+                        PointMark(
+                            x: .value("Time", point.timestamp),
+                            y: .value(title, point[keyPath: keyPath])
+                        )
+                        .foregroundStyle(Color(hex: "#ffeb3b"))
+                        .symbol(.circle)
+                        .symbolSize(40)
+                    }
+                }
+
+                // Playhead
+                RuleMark(x: .value("Playhead", viewModel.playheadTime))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+            }
+            .chartXScale(domain: 0...max(viewModel.maxTime, 0.1))
+            .chartYScale(domain: -1.0...1.0)
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .chartPlotStyle { plotArea in
+                plotArea.background(Color(hex: "#0a0e1a"))
+            }
+            .frame(height: 40)
+            .overlay(
+                Rectangle()
+                    .stroke(Color(hex: color).opacity(0.2), lineWidth: 1)
+            )
+        }
+    }
+}
+
+// MARK: - Event Traffic Timeline (LLM calls, intuition, speech/thought markers)
+struct EventTrafficTimeline: View {
+    let noodlingId: String
+    let data: [TimelinePoint]
+    @ObservedObject var viewModel: NoodleScopeViewModel
+    @State private var hoveredEventIndex: Int? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("EVENT TRAFFIC")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(.gray)
+
+            // Event markers on timeline
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background
+                    Rectangle()
+                        .fill(Color(hex: "#0a0e1a"))
+                        .border(Color(hex: "#2a3f5f"), width: 1)
+
+                    // Event markers
+                    ForEach(Array(data.enumerated()), id: \.element.id) { index, point in
+                        let x = (point.timestamp / max(viewModel.maxTime, 0.1)) * geometry.size.width
+
+                        // Event node
+                        Circle()
+                            .fill(eventColor(for: point))
+                            .frame(width: 8, height: 8)
+                            .position(x: x, y: geometry.size.height / 2)
+                            .onTapGesture {
+                                viewModel.selectEvent(point)
+                            }
+                            .onHover { hovering in
+                                hoveredEventIndex = hovering ? index : nil
+                            }
+                            .overlay(
+                                // Tooltip on hover
+                                Group {
+                                    if hoveredEventIndex == index {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(point.eventType.uppercased())
+                                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                            if let utterance = point.utterance {
+                                                Text(String(utterance.prefix(60)) + (utterance.count > 60 ? "..." : ""))
+                                                    .font(.system(size: 9, design: .monospaced))
+                                                    .lineLimit(2)
+                                            }
+                                        }
+                                        .padding(6)
+                                        .background(Color(hex: "#1e2938"))
+                                        .cornerRadius(4)
+                                        .shadow(radius: 4)
+                                        .offset(x: 0, y: -40)
+                                    }
+                                }
+                            )
+                    }
+
+                    // Playhead line
+                    let playheadX = (viewModel.playheadTime / max(viewModel.maxTime, 0.1)) * geometry.size.width
+                    Rectangle()
+                        .fill(.white.opacity(0.6))
+                        .frame(width: 2)
+                        .position(x: playheadX, y: geometry.size.height / 2)
+                }
+            }
+            .frame(height: 30)
+        }
+    }
+
+    func eventColor(for point: TimelinePoint) -> Color {
+        if point.didSpeak {
+            return Color(hex: "#64b5f6")  // Speech = blue
+        } else if point.isThought {
+            return Color.gray.opacity(0.5)  // Thought = gray
+        } else if point.eventType == "enter" || point.eventType == "exit" {
+            return Color(hex: "#ba68c8")  // Movement = purple
+        } else if !point.facsCodes.isEmpty {
+            return Color(hex: "#66bb6a")  // Expression = green
+        } else {
+            return Color.gray.opacity(0.3)  // Other = dim gray
+        }
+    }
+}
+
+// MARK: - Inspector Console Panel (bottom panel for clicked events)
+struct InspectorConsolePanel: View {
+    @ObservedObject var viewModel: NoodleScopeViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("EVENT INSPECTOR")
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundColor(Color(hex: "#64b5f6"))
+
+            if let event = viewModel.selectedEvent {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Event metadata
+                        HStack {
+                            Text("TYPE:")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            Text(event.eventType.uppercased())
+                                .foregroundColor(Color(hex: "#ffa726"))
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+
+                            Spacer()
+
+                            Text("TIME:")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 10, design: .monospaced))
+                            Text(String(format: "%.2fs", event.timestamp))
+                                .foregroundColor(Color(hex: "#64b5f6"))
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+
+                            if !event.respondingTo.isEmpty {
+                                Text("|")
+                                    .foregroundColor(.gray)
+                                Text("RESPONDING TO:")
+                                    .foregroundColor(.gray)
+                                    .font(.system(size: 10, design: .monospaced))
+                                Text(event.respondingTo.replacingOccurrences(of: "agent_", with: "").replacingOccurrences(of: "user_", with: ""))
+                                    .foregroundColor(Color(hex: "#ba68c8"))
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            }
+                        }
+
+                        Divider().background(.gray)
+
+                        // FACS + Body Language
+                        if !event.facsCodes.isEmpty || !event.bodyCodes.isEmpty {
+                            HStack(alignment: .top, spacing: 12) {
+                                if !event.facsCodes.isEmpty {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("FACIAL (FACS):")
+                                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                            .foregroundColor(.gray)
+                                        ForEach(event.facsCodes.prefix(6), id: \.0) { code in
+                                            Text("\(code.0): \(code.1)")
+                                                .font(.system(size: 10, design: .monospaced))
+                                                .foregroundColor(Color(hex: "#66bb6a"))
+                                        }
+                                    }
+                                }
+
+                                if !event.bodyCodes.isEmpty {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("BODY (LABAN):")
+                                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                            .foregroundColor(.gray)
+                                        ForEach(event.bodyCodes.prefix(6), id: \.0) { code in
+                                            Text("\(code.0): \(code.1)")
+                                                .font(.system(size: 10, design: .monospaced))
+                                                .foregroundColor(Color(hex: "#ffa726"))
+                                        }
+                                    }
+                                }
+                            }
+
+                            if !event.expressionDescription.isEmpty {
+                                Text(event.expressionDescription)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .foregroundColor(Color(hex: "#e0e0e0"))
+                                    .italic()
+                            }
+
+                            Divider().background(.gray)
+                        }
+
+                        // Speech/Thought
+                        if let utterance = event.utterance, !utterance.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(event.didSpeak ? "SPEECH:" : "PRIVATE THOUGHT:")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundColor(event.didSpeak ? Color(hex: "#64b5f6") : .gray)
+
+                                Text(utterance)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .foregroundColor(Color(hex: "#e0e0e0"))
+                            }
+
+                            Divider().background(.gray)
+                        }
+
+                        // 5-D Affect values
+                        HStack(spacing: 10) {
+                            CompactMetric(label: "VALENCE", value: event.valence, color: "#66bb6a")
+                            CompactMetric(label: "AROUSAL", value: event.arousal, color: "#ffa726")
+                            CompactMetric(label: "FEAR", value: event.fear, color: "#ef5350")
+                            CompactMetric(label: "SORROW", value: event.sorrow, color: "#9c27b0")
+                            CompactMetric(label: "BOREDOM", value: event.boredom, color: "#999")
+                        }
+
+                        HStack(spacing: 10) {
+                            CompactMetric(label: "SURPRISE", value: event.surprise, color: "#64b5f6")
+                        }
+
+                        // Trigger context
+                        if !event.triggerText.isEmpty {
+                            Divider().background(.gray)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("TRIGGER CONTEXT:")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.gray)
+                                Text(event.triggerText)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(Color(hex: "#999"))
+                            }
+                        }
+                    }
+                    .padding(12)
+                }
+            } else {
+                Text("Click an event marker to inspect")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.gray)
+                    .italic()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .padding(12)
+    }
+}
+
+// MARK: - Compact Metric (simple label + value)
+struct CompactMetric: View {
+    let label: String
+    let value: Double
+    let color: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundColor(.gray)
+            Text(String(format: "%.3f", value))
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(Color(hex: color))
+        }
+        .padding(6)
+        .background(Color(hex: "#0f1419"))
+        .cornerRadius(4)
+    }
+}
+
 // MARK: - Timeline View (Graph + Slider)
 struct TimelineView: View {
     @ObservedObject var viewModel: NoodleScopeViewModel
 
     var body: some View {
         VStack(spacing: 0) {
-            // Timeline chart
+            // KRUGERRAND MULTI-TRACK TIMELINE!
             if !viewModel.timelineData.isEmpty {
-                Chart {
-                    ForEach(viewModel.timelineData) { point in
-                        LineMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Valence", point.valence)
-                        )
-                        .foregroundStyle(Color(hex: "#66bb6a"))
+                ScrollView {
+                    VStack(spacing: 4) {
+                        // Track 1: Valence
+                        AffectTrack(title: "VALENCE", color: "#66bb6a",
+                                   data: viewModel.timelineData,
+                                   valueKeyPath: \.valence,
+                                   playheadTime: viewModel.playheadTime,
+                                   maxTime: viewModel.maxTime)
 
-                        LineMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Arousal", point.arousal)
-                        )
-                        .foregroundStyle(Color(hex: "#ffa726"))
+                        // Track 2: Arousal
+                        AffectTrack(title: "AROUSAL", color: "#ffa726",
+                                   data: viewModel.timelineData,
+                                   valueKeyPath: \.arousal,
+                                   playheadTime: viewModel.playheadTime,
+                                   maxTime: viewModel.maxTime)
 
-                        LineMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Fear", point.fear)
-                        )
-                        .foregroundStyle(Color(hex: "#ef5350"))
+                        // Track 3: Fear
+                        AffectTrack(title: "FEAR", color: "#ef5350",
+                                   data: viewModel.timelineData,
+                                   valueKeyPath: \.fear,
+                                   playheadTime: viewModel.playheadTime,
+                                   maxTime: viewModel.maxTime)
 
-                        LineMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Surprise", point.surprise)
-                        )
-                        .foregroundStyle(Color(hex: "#64b5f6"))
+                        // Track 4: Sorrow
+                        AffectTrack(title: "SORROW", color: "#9c27b0",
+                                   data: viewModel.timelineData,
+                                   valueKeyPath: \.sorrow,
+                                   playheadTime: viewModel.playheadTime,
+                                   maxTime: viewModel.maxTime)
+
+                        // Track 5: Surprise (with spike highlights!)
+                        AffectTrack(title: "SURPRISE", color: "#64b5f6",
+                                   data: viewModel.timelineData,
+                                   valueKeyPath: \.surprise,
+                                   playheadTime: viewModel.playheadTime,
+                                   maxTime: viewModel.maxTime,
+                                   highlightSpikes: true)
                     }
+                    .padding(.horizontal, 12)
+                }
+                .frame(height: 500)
+                .background(Color(hex: "#0a0e1a"))
 
-                    // Playhead line
-                    RuleMark(x: .value("Playhead", viewModel.playheadTime))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 5]))
-                }
-                .chartXAxis {
-                    AxisMarks(values: .automatic) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1))
-                            .foregroundStyle(Color(hex: "#2a3f5f"))
-                        AxisValueLabel()
-                            .foregroundStyle(Color(hex: "#e0e0e0"))
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(values: .automatic) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1))
-                            .foregroundStyle(Color(hex: "#2a3f5f"))
-                        AxisValueLabel()
-                            .foregroundStyle(Color(hex: "#e0e0e0"))
-                    }
-                }
-                .chartPlotStyle { plotArea in
-                    plotArea
-                        .background(Color(hex: "#0a0e1a"))
-                }
-                .frame(height: 350)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                // Event Inspector at playhead position
+                EventInspectorPanel(viewModel: viewModel)
+                    .frame(height: 200)
+                    .background(Color(hex: "#131824"))
             } else {
                 Text("Loading session data...")
                     .foregroundColor(Color(hex: "#64b5f6"))
@@ -199,6 +629,213 @@ struct TimelineView: View {
             .background(Color(hex: "#131824"))
             .border(Color(hex: "#2a3f5f"), width: 1)
         }
+    }
+}
+
+// MARK: - Affect Track (Single labeled timeline track)
+struct AffectTrack: View {
+    let title: String
+    let color: String
+    let data: [TimelinePoint]
+    let valueKeyPath: KeyPath<TimelinePoint, Double>
+    let playheadTime: Double
+    let maxTime: Double
+    var highlightSpikes: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // Label
+            Text(title)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(Color(hex: color))
+                .padding(.leading, 4)
+
+            // Mini chart for this dimension
+            Chart {
+                ForEach(data) { point in
+                    LineMark(
+                        x: .value("Time", point.timestamp),
+                        y: .value(title, point[keyPath: valueKeyPath])
+                    )
+                    .foregroundStyle(Color(hex: color))
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+
+                    // Highlight spikes for surprise track
+                    if highlightSpikes && point[keyPath: valueKeyPath] > 0.3 {
+                        PointMark(
+                            x: .value("Time", point.timestamp),
+                            y: .value(title, point[keyPath: valueKeyPath])
+                        )
+                        .foregroundStyle(Color(hex: "#ffeb3b"))
+                        .symbol(.circle)
+                        .symbolSize(60)
+                    }
+                }
+
+                // Playhead
+                RuleMark(x: .value("Playhead", playheadTime))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+            }
+            .chartXScale(domain: 0...max(maxTime, 0.1))
+            .chartYScale(domain: -1.0...1.0)
+            .chartXAxis(.hidden)
+            .chartYAxis {
+                AxisMarks(values: [-1, 0, 1]) { value in
+                    AxisValueLabel()
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(Color.gray.opacity(0.6))
+                }
+            }
+            .chartPlotStyle { plotArea in
+                plotArea.background(Color(hex: "#0f1419"))
+            }
+            .frame(height: 60)
+            .overlay(
+                Rectangle()
+                    .stroke(Color(hex: color).opacity(0.3), lineWidth: 1)
+            )
+        }
+    }
+}
+
+// MARK: - Event Inspector (shows details at playhead)
+struct EventInspectorPanel: View {
+    @ObservedObject var viewModel: NoodleScopeViewModel
+
+    var currentEvent: TimelinePoint? {
+        viewModel.timelineData.min(by: { abs($0.timestamp - viewModel.playheadTime) < abs($1.timestamp - viewModel.playheadTime) })
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("EVENT INSPECTOR @ \(String(format: "%.1fs", viewModel.playheadTime))")
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundColor(Color(hex: "#64b5f6"))
+                .padding(.bottom, 4)
+
+            if let event = currentEvent {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        // Event type and trigger
+                        HStack {
+                            Text("Type:")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 11, design: .monospaced))
+                            Text(event.eventType.uppercased())
+                                .foregroundColor(Color(hex: "#ffa726"))
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+
+                            Spacer()
+
+                            if !event.respondingTo.isEmpty {
+                                Text("→")
+                                    .foregroundColor(.gray)
+                                Text(event.respondingTo.replacingOccurrences(of: "agent_", with: "").replacingOccurrences(of: "user_", with: ""))
+                                    .foregroundColor(Color(hex: "#ba68c8"))
+                                    .font(.system(size: 11, design: .monospaced))
+                            }
+                        }
+
+                        // FACS codes
+                        if !event.facsCodes.isEmpty {
+                            HStack(alignment: .top, spacing: 4) {
+                                Text("FACE:")
+                                    .foregroundColor(.gray)
+                                    .font(.system(size: 10, design: .monospaced))
+                                Text(event.facsCodes.map { $0.0 }.joined(separator: ", "))
+                                    .foregroundColor(Color(hex: "#66bb6a"))
+                                    .font(.system(size: 10, design: .monospaced))
+                            }
+                        }
+
+                        // Body codes
+                        if !event.bodyCodes.isEmpty {
+                            HStack(alignment: .top, spacing: 4) {
+                                Text("BODY:")
+                                    .foregroundColor(.gray)
+                                    .font(.system(size: 10, design: .monospaced))
+                                Text(event.bodyCodes.map { $0.0 }.joined(separator: ", "))
+                                    .foregroundColor(Color(hex: "#ffa726"))
+                                    .font(.system(size: 10, design: .monospaced))
+                            }
+                        }
+
+                        // Expression description
+                        if !event.expressionDescription.isEmpty {
+                            Text(event.expressionDescription)
+                                .foregroundColor(Color(hex: "#e0e0e0"))
+                                .font(.system(size: 11, design: .monospaced))
+                                .italic()
+                        }
+
+                        // Speech/Thought
+                        if let utterance = event.utterance, !utterance.isEmpty {
+                            HStack(alignment: .top, spacing: 4) {
+                                Text(event.didSpeak ? "SPEECH:" : "THOUGHT:")
+                                    .foregroundColor(event.didSpeak ? Color(hex: "#64b5f6") : .gray)
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                Text(utterance)
+                                    .foregroundColor(Color(hex: "#e0e0e0"))
+                                    .font(.system(size: 11, design: .monospaced))
+                            }
+                        }
+
+                        // Affect values
+                        HStack(spacing: 12) {
+                            MetricBadge(label: "V", value: event.valence, color: "#66bb6a")
+                            MetricBadge(label: "A", value: event.arousal, color: "#ffa726")
+                            MetricBadge(label: "F", value: event.fear, color: "#ef5350")
+                            MetricBadge(label: "So", value: event.sorrow, color: "#9c27b0")
+                            MetricBadge(label: "B", value: event.boredom, color: "#999")
+                            Spacer()
+                            MetricBadge(label: "SURPRISE", value: event.surprise, color: "#64b5f6", large: true)
+                        }
+
+                        // Trigger text
+                        if !event.triggerText.isEmpty {
+                            HStack(alignment: .top, spacing: 4) {
+                                Text("TRIGGER:")
+                                    .foregroundColor(.gray)
+                                    .font(.system(size: 10, design: .monospaced))
+                                Text(event.triggerText)
+                                    .foregroundColor(Color(hex: "#999"))
+                                    .font(.system(size: 10, design: .monospaced))
+                            }
+                        }
+                    }
+                    .padding(8)
+                }
+            } else {
+                Text("No event at playhead")
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .padding(12)
+    }
+}
+
+// MARK: - Metric Badge (compact value display)
+struct MetricBadge: View {
+    let label: String
+    let value: Double
+    let color: String
+    var large: Bool = false
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Text(label)
+                .font(.system(size: large ? 11 : 9, weight: .bold, design: .monospaced))
+                .foregroundColor(.gray)
+            Text(String(format: "%.2f", value))
+                .font(.system(size: large ? 12 : 10, weight: large ? .bold : .regular, design: .monospaced))
+                .foregroundColor(Color(hex: color))
+        }
+        .padding(.horizontal, large ? 8 : 4)
+        .padding(.vertical, large ? 4 : 2)
+        .background(Color(hex: "#0f1419"))
+        .cornerRadius(4)
     }
 }
 
@@ -364,7 +1001,7 @@ struct OperationsPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("⚡ OPERATIONS TIMELINE")
+            Text("OPERATIONS TIMELINE")
                 .font(.system(size: 12, weight: .bold, design: .monospaced))
                 .foregroundColor(Color(hex: "#64b5f6"))
 
@@ -403,6 +1040,8 @@ class NoodleScopeViewModel: ObservableObject {
     @Published var conversationContext: [ConversationMessage] = []
     @Published var metrics = Metrics()
     @Published var operations: [Operation] = []
+    @Published var selectedEvent: TimelinePoint? = nil  // For inspector console
+    @Published var enlightenedAgents: Set<String> = []  // Track enlightenment status
 
     private let baseURL = "http://localhost:8081/api"
 
@@ -437,12 +1076,37 @@ class NoodleScopeViewModel: ObservableObject {
 
             if let timeline = response.timelines[selectedAgent] {
                 self.timelineData = timeline.map { point in
-                    TimelinePoint(
+                    // Parse FACS codes
+                    let facs = (point.facs_codes ?? []).map { arr -> (String, String) in
+                        (arr.count > 0 ? arr[0] : "", arr.count > 1 ? arr[1] : "")
+                    }
+
+                    // Parse body codes
+                    let body = (point.body_codes ?? []).map { arr -> (String, String) in
+                        (arr.count > 0 ? arr[0] : "", arr.count > 1 ? arr[1] : "")
+                    }
+
+                    // Convert conversation context (placeholder for now)
+                    let context: [ConversationMessage] = []
+
+                    return TimelinePoint(
                         timestamp: point.timestamp,
                         valence: point.affect.valence,
                         arousal: point.affect.arousal,
                         fear: point.affect.fear,
-                        surprise: point.surprise
+                        sorrow: point.affect.sorrow ?? 0.0,
+                        boredom: point.affect.boredom ?? 0.0,
+                        surprise: point.surprise,
+                        facsCodes: facs,
+                        bodyCodes: body,
+                        expressionDescription: point.expression_description ?? "",
+                        utterance: point.utterance,
+                        didSpeak: point.did_speak ?? false,
+                        isThought: !(point.did_speak ?? false),
+                        eventType: point.event_type ?? "unknown",
+                        respondingTo: point.responding_to ?? "",
+                        conversationContext: context,
+                        triggerText: point.event ?? ""
                     )
                 }
 
@@ -459,6 +1123,15 @@ class NoodleScopeViewModel: ObservableObject {
         // TODO: Implement Kimmie interpretation
         print("Asking Kimmie about timeline segment...")
     }
+
+    func selectEvent(_ event: TimelinePoint) {
+        selectedEvent = event
+        playheadTime = event.timestamp  // Jump playhead to clicked event
+    }
+
+    func isEnlightened(_ agentId: String) -> Bool {
+        return enlightenedAgents.contains(agentId)
+    }
 }
 
 // MARK: - Data Models
@@ -468,7 +1141,25 @@ struct TimelinePoint: Identifiable {
     let valence: Double
     let arousal: Double
     let fear: Double
+    let sorrow: Double
+    let boredom: Double
     let surprise: Double
+
+    // FACS/Body Language (Krugerrand upgrade!)
+    let facsCodes: [(String, String)]  // [(code, description)]
+    let bodyCodes: [(String, String)]
+    let expressionDescription: String
+
+    // Speech/Thought/Action
+    let utterance: String?
+    let didSpeak: Bool
+    let isThought: Bool
+    let eventType: String
+    let respondingTo: String
+
+    // Full context for inspector
+    let conversationContext: [ConversationMessage]
+    let triggerText: String
 }
 
 struct ConversationMessage {
@@ -499,12 +1190,22 @@ struct TimelineData: Codable {
     let timestamp: Double
     let affect: Affect
     let surprise: Double
+    let did_speak: Bool?
+    let utterance: String?
+    let event: String?
+    let event_type: String?
+    let responding_to: String?
+    let facs_codes: [[String]]?  // Array of [code, description] pairs
+    let body_codes: [[String]]?
+    let expression_description: String?
 }
 
 struct Affect: Codable {
     let valence: Double
     let arousal: Double
     let fear: Double
+    let sorrow: Double?
+    let boredom: Double?
 }
 
 // MARK: - Color Extension

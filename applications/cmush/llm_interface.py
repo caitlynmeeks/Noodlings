@@ -177,12 +177,20 @@ class OpenAICompatibleLLM:
             self._instance_counter += 1
 
         # LMStudio convention: first instance has no suffix, others use :N starting at 2
-        if instance_num == 0:
-            model_instance = self.model
-        else:
-            model_instance = f"{self.model}:{instance_num + 1}"
+        # BUT: Don't add suffix if model already has one (e.g., "qwen3:2" from config)
+        base_model = self.model
 
-        logger.debug(f"Using model instance: {model_instance}")
+        # Strip existing instance suffix if present (e.g., "qwen3:2" -> "qwen3")
+        if ':' in base_model and base_model.split(':')[-1].isdigit():
+            # Model already has instance number - use base name
+            base_model = ':'.join(base_model.split(':')[:-1])
+
+        if instance_num == 0:
+            model_instance = base_model
+        else:
+            model_instance = f"{base_model}:{instance_num + 1}"
+
+        logger.debug(f"Using model instance: {model_instance} (base: {self.model})")
         return model_instance
 
     async def text_to_affect(
