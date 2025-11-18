@@ -703,6 +703,21 @@
                 if (styleSheet.cssRules[i].selectorText === '.log-entry') {
                     styleSheet.cssRules[i].style.fontSize = (size - 5) + 'px'; // Slightly smaller for logs
                 }
+                // Update LLM config view (WYSE amber!)
+                if (styleSheet.cssRules[i].selectorText === '#llm-config') {
+                    styleSheet.cssRules[i].style.fontSize = size + 'px';
+                }
+            }
+
+            // ALSO directly update #llm-config for inline styles
+            const llmConfig = document.getElementById('llm-config');
+            if (llmConfig) {
+                llmConfig.style.fontSize = size + 'px';
+                // Update tables too
+                const tables = llmConfig.getElementsByTagName('table');
+                for (let table of tables) {
+                    table.style.fontSize = (size - 2) + 'px';
+                }
             }
         }
 
