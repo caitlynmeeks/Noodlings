@@ -576,62 +576,62 @@
 
                 <!-- Global LLM Settings -->
                 <div style="margin-bottom: 20px;">
-                    <div class="amber-bright" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px;">
-                        ┌─ GLOBAL CONFIGURATION ────────────────────────┐
+                    <div class="amber-bright config-section-text" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px; white-space: nowrap; overflow: hidden;">
+                        ┌─ GLOBAL CONFIGURATION ────────────────────────────────────────┐
                     </div>
-                    <table style="width: 100%; font-size: 16px;">
+                    <table style="width: 100%; font-size: 16px;" class="config-table-text">
                         <tr>
-                            <td class="amber-dim" style="width: 200px;">► Provider:</td>
+                            <td class="amber-dim" style="width: 200px;">&gt; Provider:</td>
                             <td id="global-provider" class="amber-bright" style="font-weight: bold;">local</td>
                         </tr>
                         <tr>
-                            <td class="amber-dim">► API Base:</td>
+                            <td class="amber-dim">&gt; API Base:</td>
                             <td id="global-api-base" class="amber-bright">http://localhost:1234/v1</td>
                         </tr>
                         <tr>
-                            <td class="amber-dim">► Model:</td>
+                            <td class="amber-dim">&gt; Model:</td>
                             <td id="global-model" class="amber-bright" style="font-weight: bold;">qwen/qwen3-4b-2507</td>
                         </tr>
                         <tr>
-                            <td class="amber-dim">► Timeout:</td>
+                            <td class="amber-dim">&gt; Timeout:</td>
                             <td id="global-timeout" class="amber-bright">60s</td>
                         </tr>
                     </table>
-                    <div class="amber-dim" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
-                        └──────────────────────────────────────────────┘
+                    <div class="amber-dim config-section-text" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
+                        └────────────────────────────────────────────────────────────────┘
                     </div>
                 </div>
 
                 <!-- Per-Agent Settings -->
                 <div style="margin-bottom: 20px;">
-                    <div class="amber-bright" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px;">
-                        ┌─ PER-AGENT MODELS ────────────────────────────┐
+                    <div class="amber-bright config-section-text" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px; white-space: nowrap; overflow: hidden;">
+                        ┌─ PER-AGENT MODELS ────────────────────────────────────────────┐
                     </div>
-                    <div id="agent-models" class="amber-bright" style="font-size: 16px; line-height: 1.8;">
+                    <div id="agent-models" class="amber-bright agent-config-text" style="line-height: 1.8;">
                         <div class="amber-dim" style="font-style: italic;">Loading agent configurations...</div>
                     </div>
-                    <div class="amber-dim" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
-                        └──────────────────────────────────────────────┘
+                    <div class="amber-dim config-section-text" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
+                        └────────────────────────────────────────────────────────────────┘
                     </div>
                 </div>
 
                 <!-- Brenda (Special) -->
                 <div style="margin-bottom: 20px;">
-                    <div class="amber-bright" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px;">
-                        ┌─ BRENDA (Director/Storyteller) ───────────────┐
+                    <div class="amber-bright config-section-text" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px; white-space: nowrap; overflow: hidden;">
+                        ┌─ BRENDA (Director/Storyteller) ───────────────────────────────┐
                     </div>
-                    <table style="width: 100%; font-size: 16px;">
+                    <table style="width: 100%; font-size: 16px;" class="config-table-text">
                         <tr>
-                            <td class="amber-dim" style="width: 200px;">► Model:</td>
+                            <td class="amber-dim" style="width: 200px;">&gt; Model:</td>
                             <td id="brenda-model" class="amber-bright" style="font-weight: bold;">deepseek-v3.1@q2_k_xl</td>
                         </tr>
                         <tr>
-                            <td class="amber-dim">► Purpose:</td>
+                            <td class="amber-dim">&gt; Purpose:</td>
                             <td class="amber-dim">Complex storytelling, play generation</td>
                         </tr>
                     </table>
-                    <div class="amber-dim" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
-                        └──────────────────────────────────────────────┘
+                    <div class="amber-dim config-section-text" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
+                        └────────────────────────────────────────────────────────────────┘
                     </div>
                 </div>
 
@@ -715,12 +715,23 @@
             const llmConfig = document.getElementById('llm-config');
             if (llmConfig) {
                 llmConfig.style.fontSize = size + 'px';
-                // Update tables too
-                const tables = llmConfig.getElementsByTagName('table');
-                for (let table of tables) {
-                    table.style.fontSize = (size - 2) + 'px';
-                }
+
+                // Update ALL text elements in config
+                const configSections = llmConfig.querySelectorAll('.config-section-text');
+                configSections.forEach(elem => elem.style.fontSize = (size - 2) + 'px');
+
+                const configTables = llmConfig.querySelectorAll('.config-table-text');
+                configTables.forEach(elem => elem.style.fontSize = (size - 2) + 'px');
+
+                const agentText = llmConfig.querySelectorAll('.agent-config-text');
+                agentText.forEach(elem => elem.style.fontSize = (size - 2) + 'px');
             }
+
+            // Update input area
+            const prompt = document.getElementById('prompt');
+            const input = document.getElementById('input');
+            if (prompt) prompt.style.fontSize = size + 'px';
+            if (input) input.style.fontSize = size + 'px';
         }
 
         function increaseFontSize() {
@@ -930,8 +941,8 @@
 
                     agentHTML += `
                         <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #cc8800; background-color: #000;">
-                            <div class="amber-bright" style="font-weight: bold;">► ${agentName.toUpperCase()}</div>
-                            <div style="margin-left: 20px; font-size: 15px;">
+                            <div class="amber-bright agent-config-text" style="font-weight: bold;">&gt; ${agentName.toUpperCase()}</div>
+                            <div class="agent-config-text" style="margin-left: 20px;">
                                 <span class="amber-dim">Provider:</span> <span class="amber-bright">${agentProvider}</span><br>
                                 <span class="amber-dim">Model:</span> <span class="amber-bright" style="font-weight: bold;">${agentModel}</span>
                             </div>
