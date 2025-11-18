@@ -1086,7 +1086,8 @@ Reply with ONLY a number 0-10, nothing else."""
         agent_description: str = None,
         identity_prompt: str = "",
         is_being_addressed: bool = False,
-        is_question: bool = False
+        is_question: bool = False,
+        model: str = None  # Per-agent model override
     ) -> str:
         """
         Generate internal rumination (thoughts) when agent observes but doesn't speak.
