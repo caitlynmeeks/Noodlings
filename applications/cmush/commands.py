@@ -1389,11 +1389,17 @@ class CommandParser:
 
     async def cmd_reset(self, user_id: str, args: str) -> Dict:
         """Reset the world to default settings (removes all agents and custom objects)."""
+        # Check for -c flag (clear screen after reset)
+        clear_screen = False
+        if args.strip().lower().startswith('-c '):
+            clear_screen = True
+            args = args.strip()[3:]  # Remove '-c ' prefix
+
         # Confirmation check
         if args.strip().lower() != 'confirm':
             return {
                 'success': False,
-                'output': 'WARNING: This will remove all agents and reset the world!\nType: @reset confirm',
+                'output': 'WARNING: This will remove all agents and reset the world!\nType: @reset confirm (or @reset -c confirm to clear screen)',
                 'events': []
             }
 
@@ -1427,13 +1433,26 @@ class CommandParser:
         # Save state
         self.world.save_all()
 
+        # Build output message
+        output_msg = 'World reset complete. All agents removed, objects cleared.'
+
+        # Build events list
+        reset_events = [{
+            'type': 'system',
+            'text': 'The world shimmers and resets to its original state.'
+        }]
+
+        # Add clear screen event if -c flag was used
+        if clear_screen:
+            reset_events.append({
+                'type': 'clear_screen',
+                'user_id': user_id
+            })
+
         return {
             'success': True,
-            'output': 'World reset complete. All agents removed, objects cleared.',
-            'events': [{
-                'type': 'system',
-                'text': 'The world shimmers and resets to its original state.'
-            }]
+            'output': output_msg,
+            'events': reset_events
         }
 
     async def cmd_observe_agent(self, user_id: str, args: str) -> Dict:

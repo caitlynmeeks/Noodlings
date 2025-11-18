@@ -967,6 +967,11 @@ Reply with ONLY a number 0-10, nothing else."""
             "max_tokens": max_tokens
         }
 
+        # Log ALL context going to LLM
+        logger.info(f"🤖 LLM REQUEST → {model_instance}")
+        logger.info(f"📋 SYSTEM: {system_prompt[:200]}{'...' if len(system_prompt) > 200 else ''}")
+        logger.info(f"💬 USER: {prompt[:200]}{'...' if len(prompt) > 200 else ''}")
+
         try:
             async with self.session.post(
                 url,
@@ -984,6 +989,10 @@ Reply with ONLY a number 0-10, nothing else."""
 
                 # Strip thinking tags (LLM meta-cognition, not phenomenal cognition)
                 clean_response, _ = self._extract_thinking_tags(raw_response)
+
+                # Log LLM response
+                logger.info(f"✅ LLM RESPONSE ← {model_instance}: {clean_response[:200]}{'...' if len(clean_response) > 200 else ''}")
+
                 return clean_response
 
         except aiohttp.ClientError as e:
@@ -1275,7 +1284,7 @@ What are you thinking? (1-2 sentences, stream of consciousness, not spoken)"""
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.8,  # Slightly higher for more varied thoughts
-            "max_tokens": 100   # Keep thoughts brief
+            "max_tokens": 200   # Increased for verbose characters like Servnak
         }
 
         try:

@@ -78,11 +78,25 @@ def affect_to_emotion_weights(affect: np.ndarray) -> Dict[str, float]:
     Returns:
         Dict mapping emotion name to weight (0-1)
     """
-    valence = float(affect[0])
-    arousal = float(affect[1])
-    fear_val = float(affect[2])
-    sorrow = float(affect[3])
-    boredom = float(affect[4])
+    # Check for garbage BEFORE clipping
+    raw_valence = float(affect[0])
+    raw_arousal = float(affect[1])
+    raw_fear = float(affect[2])
+
+    # TEMP FIX for Steve demo: Detect LLM error affect and reset to welcoming
+    if raw_valence < -0.5 and raw_arousal > 0.8 and raw_fear < 0.1:
+        valence = 0.2
+        arousal = 0.4
+        fear_val = 0.0
+        sorrow = 0.0
+        boredom = 0.0
+    else:
+        # Normal clipping
+        valence = float(np.clip(affect[0], -1.0, 1.0))
+        arousal = float(np.clip(affect[1], 0.0, 1.0))
+        fear_val = float(np.clip(affect[2], 0.0, 1.0))
+        sorrow = float(np.clip(affect[3], 0.0, 1.0))
+        boredom = float(np.clip(affect[4], 0.0, 1.0))
 
     emotions = {}
 

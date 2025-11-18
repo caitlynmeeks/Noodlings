@@ -143,11 +143,15 @@
         }
 
         .view-container::-webkit-scrollbar-track {
-            background: #001100;
+            background: #1a0f00;  /* Dark amber */
         }
 
         .view-container::-webkit-scrollbar-thumb {
-            background: #00ff00;
+            background: #ffb000;  /* WYSE amber! */
+        }
+
+        .view-container::-webkit-scrollbar-thumb:hover {
+            background: #ffd700;  /* Bright amber on hover */
         }
 
         .line {
@@ -573,12 +577,6 @@
         <!-- LLM Config view (hidden by default) - WYSE AMBER AESTHETIC! -->
         <div id="llm-config" class="view-container" style="display: none; font-family: 'Courier New', monospace; background-color: #000;">
             <div style="border: 2px solid #ffb000; padding: 15px; margin-bottom: 15px; background-color: #000;">
-                <div style="text-align: center; border-bottom: 1px solid #ffb000; padding-bottom: 10px; margin-bottom: 15px;">
-                    <span class="amber-bright" style="font-size: 16px; letter-spacing: 3px;">═══════════════════════════════════════</span><br>
-                    <span class="amber-bright" style="font-size: 20px; font-weight: bold;">⚙️  LLM CONFIGURATION PANEL  ⚙️</span><br>
-                    <span class="amber-bright" style="font-size: 16px; letter-spacing: 3px;">═══════════════════════════════════════</span><br>
-                    <span class="amber-dim" style="font-size: 12px;">noodleMUSH v1.1 • Multi-Model Consciousness System</span>
-                </div>
 
                 <!-- Global LLM Settings -->
                 <div style="margin-bottom: 20px;">
@@ -608,19 +606,6 @@
                     </div>
                 </div>
 
-                <!-- Per-Agent Settings -->
-                <div style="margin-bottom: 20px;">
-                    <div class="amber-bright config-section-text" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px; white-space: nowrap; overflow: hidden;">
-                        ┌─ PER-AGENT MODELS ────────────────────────────────────────────┐
-                    </div>
-                    <div id="agent-models" class="amber-bright agent-config-text" style="line-height: 1.8;">
-                        <div class="amber-dim" style="font-style: italic;">Loading agent configurations...</div>
-                    </div>
-                    <div class="amber-dim config-section-text" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
-                        └────────────────────────────────────────────────────────────────┘
-                    </div>
-                </div>
-
                 <!-- Brenda (Special) -->
                 <div style="margin-bottom: 20px;">
                     <div class="amber-bright config-section-text" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px; white-space: nowrap; overflow: hidden;">
@@ -629,7 +614,7 @@
                     <table style="width: 100%; font-size: 16px;" class="config-table-text">
                         <tr>
                             <td class="amber-dim" style="width: 200px;">&gt; Model:</td>
-                            <td id="brenda-model" class="amber-bright" style="font-weight: bold;">deepseek-v3.1@q2_k_xl</td>
+                            <td id="brenda-model" class="amber-bright" style="font-weight: bold; cursor: pointer;">deepseek-v3.1@q2_k_xl</td>
                         </tr>
                         <tr>
                             <td class="amber-dim">&gt; Purpose:</td>
@@ -641,13 +626,26 @@
                     </div>
                 </div>
 
+                <!-- Noodlings À La Carte (Per-Agent Overrides) -->
+                <div style="margin-bottom: 20px;">
+                    <div class="amber-bright config-section-text" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px; white-space: nowrap; overflow: hidden;">
+                        ┌─ NOODLINGS À LA CARTE ─────────────────────────────────────────┐
+                    </div>
+                    <div id="agent-models" class="amber-bright agent-config-text" style="line-height: 1.8;">
+                        <div class="amber-dim" style="font-style: italic;">Loading Noodlings...</div>
+                    </div>
+                    <div class="amber-dim config-section-text" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
+                        └────────────────────────────────────────────────────────────────┘
+                    </div>
+                </div>
+
                 <!-- Status -->
                 <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #ffb000;">
                     <div class="amber-dim" style="font-size: 14px; text-align: center;">
                         <span class="amber-bright">●</span> System Status: <span class="amber-bright" style="font-weight: bold;">OPERATIONAL</span><br>
-                        <span class="amber-dim" style="font-style: italic;">Multi-model consciousness routing active</span><br>
+                        <span class="amber-dim" style="font-style: italic;">Per-Noodling model routing active</span><br>
                         <br>
-                        <span class="amber-dim">[TAB] to cycle views • [+/-] to zoom • [ESC] to return to chat</span>
+                        <span class="amber-dim">[TAB] to cycle views • [+/-] to zoom</span>
                     </div>
                 </div>
             </div>
@@ -697,6 +695,7 @@
         let currentView = 'chat'; // 'chat', 'log', or 'llm'
         let logSubscribed = false;
         let verboseMode = localStorage.getItem('verboseLogMode') === 'true';
+        let logEntries = []; // Store full log entries for verbose toggle
 
         function applyFontSize(size) {
             // Update CSS rules so ALL messages (existing and future) use this size
@@ -767,10 +766,22 @@
                     display.textContent = currentFontSize + 'px';
                 }
             }
+
+            // ALWAYS scroll chat to bottom on page load!
+            const outputDiv = document.getElementById('output');
+            if (outputDiv) {
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            }
         });
 
         // Keyboard shortcuts for font size and view toggle
         document.addEventListener('keydown', (e) => {
+            // ESC closes any open dropdowns
+            if (e.key === 'Escape') {
+                closeAllDropdowns();
+                return;
+            }
+
             // TAB key toggles between chat and log view (works even when input is focused)
             if (e.key === 'Tab') {
                 e.preventDefault();
@@ -790,8 +801,19 @@
             }
         });
 
+        // Close any open dropdowns
+        function closeAllDropdowns() {
+            document.querySelectorAll('.model-picker-dropdown').forEach(el => {
+                if (el.parentElement === document.body) {
+                    document.body.removeChild(el);
+                }
+            });
+        }
+
         // Toggle between chat, log, and LLM config views (cycles)
         function toggleView() {
+            closeAllDropdowns();  // Close model picker when switching views!
+
             const outputDiv = document.getElementById('output');
             const logOutputDiv = document.getElementById('log-output');
             const llmConfigDiv = document.getElementById('llm-config');
@@ -807,6 +829,7 @@
                 viewIndicator.textContent = 'LOG VIEW';
                 verboseToggle.style.display = 'inline-block';
                 currentView = 'log';
+                logOutputDiv.scrollTop = logOutputDiv.scrollHeight;
 
                 // Subscribe to logs if not already subscribed
                 if (!logSubscribed && authenticated && ws) {
@@ -832,6 +855,8 @@
                 viewIndicator.textContent = 'CHAT VIEW';
                 verboseToggle.style.display = 'none';
                 currentView = 'chat';
+                // Auto-scroll to bottom so you see latest messages!
+                outputDiv.scrollTop = outputDiv.scrollHeight;
             }
         }
 
@@ -842,7 +867,26 @@
             const button = document.getElementById('verbose-toggle');
             button.textContent = verboseMode ? 'Compact Mode' : 'Verbose Mode';
 
-            // TODO: Could filter existing log entries if needed
+            // Redraw all log entries with new mode
+            redrawLogEntries();
+        }
+
+        // Redraw all log entries (for verbose toggle)
+        function redrawLogEntries() {
+            const logOutputDiv = document.getElementById('log-output');
+            const wasAtBottom = logOutputDiv.scrollHeight - logOutputDiv.scrollTop <= logOutputDiv.clientHeight + 50;
+
+            // Clear and redraw
+            logOutputDiv.innerHTML = '';
+
+            for (const entry of logEntries) {
+                addLogEntryToDOM(entry.level, entry.name, entry.message, entry.timestamp);
+            }
+
+            // Restore scroll position
+            if (wasAtBottom) {
+                logOutputDiv.scrollTop = logOutputDiv.scrollHeight;
+            }
         }
 
         // Escape HTML to prevent XSS
@@ -854,6 +898,20 @@
 
         // Add log entry to log output
         function addLogEntry(level, name, message, timestamp = null) {
+            // Store the full entry data
+            logEntries.push({ level, name, message, timestamp });
+
+            // Trim buffer to last 500 entries
+            if (logEntries.length > 500) {
+                logEntries.shift();
+            }
+
+            // Add to DOM
+            addLogEntryToDOM(level, name, message, timestamp);
+        }
+
+        // Add log entry to DOM (separate for redraw)
+        function addLogEntryToDOM(level, name, message, timestamp = null) {
             const logOutputDiv = document.getElementById('log-output');
 
             // Check if user is at bottom before adding new content
@@ -917,6 +975,162 @@
         }
 
         // Load LLM configuration and display in VT100 style
+        // Fetch available models from LMStudio
+        async function fetchAvailableModels() {
+            try {
+                const response = await fetch('http://localhost:1234/v1/models');
+                const data = await response.json();
+                if (data.data && Array.isArray(data.data)) {
+                    return data.data.map(m => m.id);
+                }
+                return [];
+            } catch (error) {
+                console.error('Failed to fetch models:', error);
+                return [];
+            }
+        }
+
+        // Make a config field editable (with model picker for model fields)
+        function makeEditable(elementId, fieldPath, currentValue) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            element.style.cursor = 'pointer';
+            element.title = 'Click to edit';
+
+            element.onclick = async () => {
+                // If this is a model field, show dropdown
+                if (fieldPath.includes('.model')) {
+                    const models = await fetchAvailableModels();
+                    if (models.length > 0) {
+                        showModelPicker(element, fieldPath, currentValue, models);
+                        return;
+                    }
+                }
+
+                // Regular text input
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentValue;
+                input.style.cssText = 'background: #1a0f00; color: #ffd700; border: 2px solid #ffd700; padding: 4px; font-family: "Courier New"; font-size: 16px; font-weight: bold; width: 100%;';
+
+                element.innerHTML = '';
+                element.appendChild(input);
+                input.focus();
+                input.select();
+
+                input.onkeydown = async (e) => {
+                    if (e.key === 'Enter') {
+                        const newValue = input.value.trim();
+                        await saveConfigField(fieldPath, newValue);
+                        element.textContent = newValue;
+                        element.onclick = () => makeEditable(elementId, fieldPath, newValue);
+                    } else if (e.key === 'Escape') {
+                        element.textContent = currentValue;
+                        element.onclick = () => makeEditable(elementId, fieldPath, currentValue);
+                    }
+                };
+
+                input.onblur = () => {
+                    element.textContent = currentValue;
+                    element.onclick = () => makeEditable(elementId, fieldPath, currentValue);
+                };
+            };
+        }
+
+        // Show model picker dropdown
+        function showModelPicker(element, fieldPath, currentValue, models) {
+            const dropdown = document.createElement('div');
+            dropdown.className = 'model-picker-dropdown';
+            dropdown.style.cssText = `
+                position: fixed;
+                background: #000;
+                border: 3px solid #ffd700;
+                max-height: 400px;
+                overflow-y: auto;
+                z-index: 1000;
+                min-width: 500px;
+                max-width: 700px;
+            `;
+
+            const rect = element.getBoundingClientRect();
+            // Position below the element, not to the right
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.top = (rect.bottom + 5) + 'px';
+
+            models.forEach(model => {
+                const option = document.createElement('div');
+                option.textContent = model;
+                option.style.cssText = `
+                    padding: 10px 15px;
+                    color: ${model === currentValue ? '#000' : '#cc8800'};
+                    background: ${model === currentValue ? '#ffd700' : '#000'};
+                    font-size: 16px;
+                    cursor: pointer;
+                    border-bottom: 1px solid #cc8800;
+                    font-weight: ${model === currentValue ? 'bold' : 'normal'};
+                `;
+
+                option.onmouseenter = () => {
+                    option.style.background = '#ffd700';
+                    option.style.color = '#000';
+                    option.style.fontWeight = 'bold';
+                };
+
+                option.onmouseleave = () => {
+                    if (model !== currentValue) {
+                        option.style.background = '#000';
+                        option.style.color = '#cc8800';
+                        option.style.fontWeight = 'normal';
+                    }
+                };
+
+                option.onclick = async () => {
+                    await saveConfigField(fieldPath, model);
+                    element.textContent = model;
+                    document.body.removeChild(dropdown);
+                    element.onclick = () => makeEditable(elementId, fieldPath, model);
+                };
+
+                dropdown.appendChild(option);
+            });
+
+            document.body.appendChild(dropdown);
+
+            // Close on click outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!dropdown.contains(e.target) && e.target !== element) {
+                        if (document.body.contains(dropdown)) {
+                            document.body.removeChild(dropdown);
+                        }
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                }, {once: true});
+            }, 100);
+        }
+
+        // Save config field to server
+        async function saveConfigField(fieldPath, value) {
+            try {
+                const response = await fetch('http://localhost:8081/api/config/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        field: fieldPath,
+                        value: value
+                    })
+                });
+
+                const result = await response.json();
+                console.log('Config saved:', result);
+                return result.success;
+            } catch (error) {
+                console.error('Failed to save config:', error);
+                return false;
+            }
+        }
+
         async function loadLLMConfig() {
             try {
                 // Fetch config from API
@@ -928,39 +1142,67 @@
                 const provider = llmConfig.provider || 'local';
                 const providerConfig = llmConfig[provider] || llmConfig.local || {};
 
-                document.getElementById('global-provider').textContent = provider.toUpperCase();
-                document.getElementById('global-api-base').textContent = providerConfig.api_base || 'N/A';
-                document.getElementById('global-model').textContent = providerConfig.model || 'N/A';
-                document.getElementById('global-timeout').textContent = (providerConfig.timeout || 60) + 's';
+                const providerText = provider.toUpperCase();
+                const apiBaseText = providerConfig.api_base || 'N/A';
+                const modelText = providerConfig.model || 'N/A';
+                const timeoutText = (providerConfig.timeout || 60) + 's';
+
+                document.getElementById('global-provider').textContent = providerText;
+                document.getElementById('global-api-base').textContent = apiBaseText;
+                document.getElementById('global-model').textContent = modelText;
+                document.getElementById('global-timeout').textContent = timeoutText;
+
+                // Make fields editable
+                makeEditable('global-provider', 'llm.provider', providerText);
+                makeEditable('global-api-base', 'llm.local.api_base', apiBaseText);
+                makeEditable('global-model', 'llm.local.model', modelText);
+                makeEditable('global-timeout', 'llm.local.timeout', timeoutText);
+
+                // Make Brenda's model editable
+                const brendaModel = config.brenda?.model || 'deepseek-v3.1@q2_k_xl';
+                document.getElementById('brenda-model').textContent = brendaModel;
+                makeEditable('brenda-model', 'brenda.model', brendaModel);
 
                 // Fetch agent list and their models
                 const agentsResponse = await fetch('http://localhost:8081/api/agents');
                 const agentsData = await agentsResponse.json();
                 const agents = agentsData.agents || [];
 
-                // Build per-agent display (WYSE AMBER style!)
+                // Build per-Noodling display (WYSE AMBER style!)
                 let agentHTML = '';
-                for (const agent of agents) {
+                for (let i = 0; i < agents.length; i++) {
+                    const agent = agents[i];
                     const agentName = agent.name || agent.id.replace('agent_', '');
-                    const agentModel = agent.llm_model || `<span class="amber-dim">(global default)</span>`;
-                    const agentProvider = agent.llm_provider || `<span class="amber-dim">(global)</span>`;
+                    const agentModel = agent.llm_model || '(global default)';
+                    const agentProvider = agent.llm_provider || '(global)';
+                    const agentId = `agent-model-${i}`;
 
                     agentHTML += `
                         <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #cc8800; background-color: #000;">
                             <div class="amber-bright agent-config-text" style="font-weight: bold;">&gt; ${agentName.toUpperCase()}</div>
                             <div class="agent-config-text" style="margin-left: 20px;">
                                 <span class="amber-dim">Provider:</span> <span class="amber-bright">${agentProvider}</span><br>
-                                <span class="amber-dim">Model:</span> <span class="amber-bright" style="font-weight: bold;">${agentModel}</span>
+                                <span class="amber-dim">Model:</span> <span id="${agentId}" class="amber-bright" style="font-weight: bold; cursor: pointer;" title="Click to edit">${agentModel}</span>
                             </div>
                         </div>
                     `;
                 }
 
                 if (agents.length === 0) {
-                    agentHTML = '<div class="amber-dim" style="font-style: italic;">No agents spawned yet.</div>';
+                    agentHTML = '<div class="amber-dim" style="font-style: italic;">No Noodlings spawned yet.</div>';
                 }
 
                 document.getElementById('agent-models').innerHTML = agentHTML;
+
+                // Make each Noodling's model editable
+                for (let i = 0; i < agents.length; i++) {
+                    const agent = agents[i];
+                    const agentName = agent.name || agent.id.replace('agent_', '');
+                    const agentModel = agent.llm_model || '(global default)';
+                    const agentId = `agent-model-${i}`;
+                    const recipePath = `recipes.${agentName}.llm.model`;
+                    makeEditable(agentId, recipePath, agentModel);
+                }
 
             } catch (error) {
                 console.error('Failed to load LLM config:', error);
@@ -1029,6 +1271,12 @@
                             setCookie('noodlemush_username', username);
                             setCookie('noodlemush_password', password);
                         }
+
+                        // Subscribe to logs immediately on login
+                        if (!logSubscribed && ws) {
+                            ws.send(JSON.stringify({ type: 'subscribe_logs' }));
+                            logSubscribed = true;
+                        }
                     } else {
                         statusDiv.textContent = data.message;
                         statusDiv.style.color = '#ff0000';
@@ -1058,6 +1306,13 @@
                 case 'thought':
                     // Add thought class for strikethrough styling
                     addLine('event thought', data.text);
+                    break;
+
+                case 'clear_screen':
+                    // Clear screen command from server (e.g., @reset -c)
+                    messageHistory = [];
+                    outputDiv.innerHTML = '';
+                    addLine('system', 'Screen cleared.');
                     break;
 
                 case 'error':
@@ -1098,10 +1353,8 @@
                     break;
 
                 case 'log':
-                    // Log entry from server
-                    if (currentView === 'log') {
-                        addLogEntry(data.level, data.name, data.message, data.timestamp);
-                    }
+                    // Log entry from server - ALWAYS buffer, not just when viewing
+                    addLogEntry(data.level, data.name, data.message, data.timestamp);
                     break;
 
                 case 'subscribed':
@@ -1620,7 +1873,7 @@
                         // Clear screen
                         messageHistory = [];
                         outputDiv.innerHTML = '';
-                        addLine('system', '🧹 Screen cleared.');
+                        addLine('system', 'Screen cleared.');
                         inputField.value = '';
                         return;
                     }

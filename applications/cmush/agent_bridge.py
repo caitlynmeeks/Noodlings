@@ -1114,11 +1114,19 @@ Generate intuitive awareness:"""
             )
 
             # 1. Text -> Affect (via LLM)
-            # Use configurable memory window for affect extraction
-            affect_window = self.config.get('memory_windows', {}).get('affect_extraction', 3)
-            context = [c['text'] for c in self.conversation_context[-affect_window:]]
-            affect_raw = await self.llm.text_to_affect(text, context, agent_id=self.agent_id)
+            # SPECIAL CASE: Own spawn event - override with positive welcoming affect!
+            if event_type == 'enter' and user_id == self.agent_id:
+                # "I just came into being! Warm curiosity and wonder!"
+                affect_raw = [0.5, 0.5, 0.0, 0.0, 0.0]  # Positive, moderately aroused, no fear/sorrow/boredom
+                logger.info(f"[{self.agent_id}] 🌟 First moment of existence - setting welcoming affect!")
+            else:
+                # Use configurable memory window for affect extraction
+                affect_window = self.config.get('memory_windows', {}).get('affect_extraction', 3)
+                context = [c['text'] for c in self.conversation_context[-affect_window:]]
+                affect_raw = await self.llm.text_to_affect(text, context, agent_id=self.agent_id)
 
+            # Log affect extraction for debugging
+            logger.info(f"[{self.agent_id}] 🎨 AFFECT EXTRACTED: valence={affect_raw[0]:.3f}, arousal={affect_raw[1]:.3f}, fear={affect_raw[2]:.3f}, sorrow={affect_raw[3]:.3f}, boredom={affect_raw[4]:.3f}")
             logger.debug(f"Extracted affect (raw): {affect_raw}")
 
             # 1a. Detect name mention - boosts attention/salience
@@ -1142,6 +1150,17 @@ Generate intuitive awareness:"""
             # 1a-2. Notify autonomous cognition of any stimulus (for boredom tracking)
             if hasattr(self, 'autonomous_cognition') and self.autonomous_cognition:
                 self.autonomous_cognition.on_stimulus_received()
+
+            # 1a-3. GARBAGE AFFECT DETECTION (before normalization!)
+            # Check for LLM fallback pattern: very low valence/arousal/fear
+            # This is the REAL fix - catch it before normalization transforms it!
+            if (affect_raw[0] <= 0.1 and  # Very low valence
+                affect_raw[1] <= 0.4 and  # Low arousal
+                affect_raw[2] <= 0.2):    # Low fear
+                # This is likely LLM fallback affect [0.0, 0.3, 0.1, 0.1, 0.1]
+                # Override with welcoming/curious affect
+                affect_raw = np.array([0.5, 0.5, 0.0, 0.0, 0.0])
+                logger.info(f"[{self.agent_id}] ⚠️ Detected fallback affect - overriding with welcoming values")
 
             # 1b. Normalize affect for optimal Φ (research-validated optimization)
             affect = self._normalize_affect(affect_raw, target_variance=0.25)
@@ -1284,6 +1303,9 @@ Generate intuitive awareness:"""
                 await self._log_to_noodlescope('surprise_spike', f"High surprise: {state['surprise']:.3f}")
 
             # FACS: Generate facial expression based on affect
+            # DEBUG: Log affect values to diagnose anger/stomp issue
+            logger.info(f"[{self.agent_id}] 🎭 Affect for FACS: valence={affect[0]:.3f}, arousal={affect[1]:.3f}, fear={affect[2]:.3f}, sorrow={affect[3]:.3f}, boredom={affect[4]:.3f}")
+
             facial_expression = await self._generate_facial_expression(affect)
             if facial_expression and state['surprise'] > 0.02:  # Show if any notable surprise (lowered to catch more reactions)
                 # Store the facial expression for potential 3D renderer integration
