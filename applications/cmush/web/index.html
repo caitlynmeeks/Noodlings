@@ -116,10 +116,24 @@
         }
 
         #llm-config {
-            /* VT100 terminal aesthetic! */
+            /* VT100 terminal aesthetic - WYSE AMBER! */
             font-family: 'Courier New', monospace;
-            font-size: 18px;  /* CHUNKY! */
+            font-size: 18px;  /* CHUNKY! Will be updated by applyFontSize() */
             line-height: 1.4;
+            color: #ffb000;  /* AMBER PHOSPHOR GLOW! */
+        }
+
+        /* WYSE amber color overrides for LLM config */
+        #llm-config * {
+            color: #ffb000 !important;  /* Everything amber! */
+        }
+
+        #llm-config .amber-bright {
+            color: #ffd700 !important;  /* Bright amber for highlights */
+        }
+
+        #llm-config .amber-dim {
+            color: #cc8800 !important;  /* Dim amber for secondary text */
         }
 
         .view-container::-webkit-scrollbar {
@@ -548,84 +562,84 @@
         <!-- Log view (hidden by default) -->
         <div id="log-output" class="view-container" style="display: none;"></div>
 
-        <!-- LLM Config view (hidden by default) - VT100 AESTHETIC! -->
-        <div id="llm-config" class="view-container" style="display: none; font-family: 'Courier New', monospace;">
-            <div style="border: 2px solid #00ff00; padding: 15px; margin-bottom: 15px; background-color: #000;">
-                <div style="text-align: center; border-bottom: 1px solid #00ff00; padding-bottom: 10px; margin-bottom: 15px;">
-                    <span style="color: #00ff00; font-size: 16px; letter-spacing: 3px;">═══════════════════════════════════════</span><br>
-                    <span style="color: #00ff00; font-size: 20px; font-weight: bold;">⚙️  LLM CONFIGURATION PANEL  ⚙️</span><br>
-                    <span style="color: #00ff00; font-size: 16px; letter-spacing: 3px;">═══════════════════════════════════════</span><br>
-                    <span style="color: #00aa00; font-size: 12px;">noodleMUSH v1.1 • Multi-Model Consciousness System</span>
+        <!-- LLM Config view (hidden by default) - WYSE AMBER AESTHETIC! -->
+        <div id="llm-config" class="view-container" style="display: none; font-family: 'Courier New', monospace; background-color: #000;">
+            <div style="border: 2px solid #ffb000; padding: 15px; margin-bottom: 15px; background-color: #000;">
+                <div style="text-align: center; border-bottom: 1px solid #ffb000; padding-bottom: 10px; margin-bottom: 15px;">
+                    <span class="amber-bright" style="font-size: 16px; letter-spacing: 3px;">═══════════════════════════════════════</span><br>
+                    <span class="amber-bright" style="font-size: 20px; font-weight: bold;">⚙️  LLM CONFIGURATION PANEL  ⚙️</span><br>
+                    <span class="amber-bright" style="font-size: 16px; letter-spacing: 3px;">═══════════════════════════════════════</span><br>
+                    <span class="amber-dim" style="font-size: 12px;">noodleMUSH v1.1 • Multi-Model Consciousness System</span>
                 </div>
 
                 <!-- Global LLM Settings -->
                 <div style="margin-bottom: 20px;">
-                    <div style="color: #00ff00; font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #00aa00; padding-bottom: 5px;">
+                    <div class="amber-bright" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px;">
                         ┌─ GLOBAL CONFIGURATION ────────────────────────┐
                     </div>
-                    <table style="width: 100%; color: #00ff00; font-size: 14px;">
+                    <table style="width: 100%; font-size: 16px;">
                         <tr>
-                            <td style="color: #00aa00; width: 200px;">► Provider:</td>
-                            <td id="global-provider" style="color: #00ff00; font-weight: bold;">local</td>
+                            <td class="amber-dim" style="width: 200px;">► Provider:</td>
+                            <td id="global-provider" class="amber-bright" style="font-weight: bold;">local</td>
                         </tr>
                         <tr>
-                            <td style="color: #00aa00;">► API Base:</td>
-                            <td id="global-api-base" style="color: #00ff00;">http://localhost:1234/v1</td>
+                            <td class="amber-dim">► API Base:</td>
+                            <td id="global-api-base" class="amber-bright">http://localhost:1234/v1</td>
                         </tr>
                         <tr>
-                            <td style="color: #00aa00;">► Model:</td>
-                            <td id="global-model" style="color: #00ff00; font-weight: bold;">qwen/qwen3-4b-2507</td>
+                            <td class="amber-dim">► Model:</td>
+                            <td id="global-model" class="amber-bright" style="font-weight: bold;">qwen/qwen3-4b-2507</td>
                         </tr>
                         <tr>
-                            <td style="color: #00aa00;">► Timeout:</td>
-                            <td id="global-timeout" style="color: #00ff00;">60s</td>
+                            <td class="amber-dim">► Timeout:</td>
+                            <td id="global-timeout" class="amber-bright">60s</td>
                         </tr>
                     </table>
-                    <div style="color: #00aa00; font-size: 12px; margin-top: 8px; border-top: 1px dashed #00aa00; padding-top: 5px;">
+                    <div class="amber-dim" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
                         └──────────────────────────────────────────────┘
                     </div>
                 </div>
 
                 <!-- Per-Agent Settings -->
                 <div style="margin-bottom: 20px;">
-                    <div style="color: #00ff00; font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #00aa00; padding-bottom: 5px;">
+                    <div class="amber-bright" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px;">
                         ┌─ PER-AGENT MODELS ────────────────────────────┐
                     </div>
-                    <div id="agent-models" style="color: #00ff00; font-size: 14px; line-height: 1.8;">
-                        <div style="color: #00aa00; font-style: italic;">Loading agent configurations...</div>
+                    <div id="agent-models" class="amber-bright" style="font-size: 16px; line-height: 1.8;">
+                        <div class="amber-dim" style="font-style: italic;">Loading agent configurations...</div>
                     </div>
-                    <div style="color: #00aa00; font-size: 12px; margin-top: 8px; border-top: 1px dashed #00aa00; padding-top: 5px;">
+                    <div class="amber-dim" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
                         └──────────────────────────────────────────────┘
                     </div>
                 </div>
 
                 <!-- Brenda (Special) -->
                 <div style="margin-bottom: 20px;">
-                    <div style="color: #00ff00; font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #00aa00; padding-bottom: 5px;">
+                    <div class="amber-bright" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px;">
                         ┌─ BRENDA (Director/Storyteller) ───────────────┐
                     </div>
-                    <table style="width: 100%; color: #00ff00; font-size: 14px;">
+                    <table style="width: 100%; font-size: 16px;">
                         <tr>
-                            <td style="color: #00aa00; width: 200px;">► Model:</td>
-                            <td id="brenda-model" style="color: #ffaa00; font-weight: bold;">deepseek-v3.1@q2_k_xl</td>
+                            <td class="amber-dim" style="width: 200px;">► Model:</td>
+                            <td id="brenda-model" class="amber-bright" style="font-weight: bold;">deepseek-v3.1@q2_k_xl</td>
                         </tr>
                         <tr>
-                            <td style="color: #00aa00;">► Purpose:</td>
-                            <td style="color: #00aa00;">Complex storytelling, play generation</td>
+                            <td class="amber-dim">► Purpose:</td>
+                            <td class="amber-dim">Complex storytelling, play generation</td>
                         </tr>
                     </table>
-                    <div style="color: #00aa00; font-size: 12px; margin-top: 8px; border-top: 1px dashed #00aa00; padding-top: 5px;">
+                    <div class="amber-dim" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
                         └──────────────────────────────────────────────┘
                     </div>
                 </div>
 
                 <!-- Status -->
-                <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #00ff00;">
-                    <div style="color: #00aa00; font-size: 12px; text-align: center;">
-                        <span style="color: #00ff00;">●</span> System Status: <span style="color: #00ff00; font-weight: bold;">OPERATIONAL</span><br>
-                        <span style="color: #00aa00; font-style: italic;">Multi-model consciousness routing active</span><br>
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #ffb000;">
+                    <div class="amber-dim" style="font-size: 14px; text-align: center;">
+                        <span class="amber-bright">●</span> System Status: <span class="amber-bright" style="font-weight: bold;">OPERATIONAL</span><br>
+                        <span class="amber-dim" style="font-style: italic;">Multi-model consciousness routing active</span><br>
                         <br>
-                        <span style="color: #00aa00;">[TAB] to cycle views • [ESC] to return to chat</span>
+                        <span class="amber-dim">[TAB] to cycle views • [+/-] to zoom • [ESC] to return to chat</span>
                     </div>
                 </div>
             </div>
@@ -890,26 +904,26 @@
                 const agentsData = await agentsResponse.json();
                 const agents = agentsData.agents || [];
 
-                // Build per-agent display (VT100 table style!)
+                // Build per-agent display (WYSE AMBER style!)
                 let agentHTML = '';
                 for (const agent of agents) {
                     const agentName = agent.name || agent.id.replace('agent_', '');
-                    const agentModel = agent.llm_model || `<span style="color: #00aa00;">(global default)</span>`;
-                    const agentProvider = agent.llm_provider || `<span style="color: #00aa00;">(global)</span>`;
+                    const agentModel = agent.llm_model || `<span class="amber-dim">(global default)</span>`;
+                    const agentProvider = agent.llm_provider || `<span class="amber-dim">(global)</span>`;
 
                     agentHTML += `
-                        <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #00aa00; background-color: #001100;">
-                            <div style="color: #ffaa00; font-weight: bold;">► ${agentName.toUpperCase()}</div>
-                            <div style="margin-left: 20px; color: #00aa00; font-size: 13px;">
-                                Provider: <span style="color: #00ff00;">${agentProvider}</span><br>
-                                Model: <span style="color: #00ff00; font-weight: bold;">${agentModel}</span>
+                        <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #cc8800; background-color: #000;">
+                            <div class="amber-bright" style="font-weight: bold;">► ${agentName.toUpperCase()}</div>
+                            <div style="margin-left: 20px; font-size: 15px;">
+                                <span class="amber-dim">Provider:</span> <span class="amber-bright">${agentProvider}</span><br>
+                                <span class="amber-dim">Model:</span> <span class="amber-bright" style="font-weight: bold;">${agentModel}</span>
                             </div>
                         </div>
                     `;
                 }
 
                 if (agents.length === 0) {
-                    agentHTML = '<div style="color: #00aa00; font-style: italic;">No agents spawned yet.</div>';
+                    agentHTML = '<div class="amber-dim" style="font-style: italic;">No agents spawned yet.</div>';
                 }
 
                 document.getElementById('agent-models').innerHTML = agentHTML;
@@ -917,7 +931,7 @@
             } catch (error) {
                 console.error('Failed to load LLM config:', error);
                 document.getElementById('agent-models').innerHTML =
-                    '<div style="color: #ff0000;">⚠️  Error loading config. Is API server running?</div>';
+                    '<div style="color: #ff6600;">⚠️  Error loading config. Is API server running?</div>';
             }
         }
 
