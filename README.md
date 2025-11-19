@@ -67,7 +67,7 @@ Each layer predicts the next state. Prediction error drives behavior.
 
 ### 2. Surprise-Driven Behavior
 
-Agents don't speak on every turn. They predict what will happen next, and only respond when prediction error (surprise) crosses a threshold. This creates autonomous behavior - they speak when *they* have something to say.
+Noodlings don't speak on every turn. They predict what will happen next, and only respond when prediction error (surprise) crosses an adaptive threshold determined by their internal state. This creates autonomous behavior - they speak when *they* have something to say, based on how surprised they are relative to their recent experience.
 
 ### 3. Appetite-Driven Motivation (Phase 6)
 
