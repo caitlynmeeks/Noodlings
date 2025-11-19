@@ -26,7 +26,7 @@ class ChatPanel(MaximizableDock):
     """
 
     def __init__(self, parent: QWidget = None):
-        super().__init__("Chat View", parent)
+        super().__init__("World View", parent)
 
         # Allow moving and floating
         self.setFeatures(
@@ -34,7 +34,99 @@ class ChatPanel(MaximizableDock):
             QDockWidget.DockWidgetFeature.DockWidgetFloatable
         )
 
+        # Set dock background to black and ZERO margins
+        self.setStyleSheet("""
+            QDockWidget {
+                background-color: #000000;
+            }
+            QDockWidget::widget {
+                padding: 0px;
+                margin: 0px;
+            }
+        """)
+
+        # Force zero content margins
+        self.setContentsMargins(0, 0, 0, 0)
+
+        # Create custom title bar with renderer selector
+        self._create_custom_title_bar()
+
         self._setup_ui()
+
+    def _create_custom_title_bar(self):
+        """Create custom title bar with renderer selector."""
+        from PyQt6.QtWidgets import QComboBox, QHBoxLayout
+
+        title_widget = QWidget()
+        title_layout = QHBoxLayout(title_widget)
+        title_layout.setContentsMargins(8, 4, 8, 4)
+        title_layout.setSpacing(8)
+
+        # Left side - World View title
+        title_label = QLabel("World View")
+        title_label.setStyleSheet("color: #D2D2D2; font-size: 11px; font-weight: bold;")
+        title_layout.addWidget(title_label)
+
+        # Push to right
+        title_layout.addStretch()
+
+        # Right side - Renderer label + dropdown
+        renderer_label = QLabel("Renderer")
+        renderer_label.setStyleSheet("color: #888; font-size: 11px;")
+        title_layout.addWidget(renderer_label)
+
+        self.renderer_selector = QComboBox()
+        self.renderer_selector.addItem("Reductive Text")
+        self.renderer_selector.insertSeparator(1)
+        self.renderer_selector.addItem("Generative Renderers")
+        self.renderer_selector.insertSeparator(3)
+        self.renderer_selector.addItem("Manage Renderers...")
+        self.renderer_selector.setStyleSheet("""
+            QComboBox {
+                background: #2a2a2a;
+                color: #D2D2D2;
+                border: 1px solid #444;
+                padding: 0px;
+                border-radius: 2px;
+                font-size: 11px;
+                min-height: 20px;
+            }
+            QComboBox:hover {
+                background: #3a3a3a;
+                border: 1px solid #555;
+            }
+            QComboBox::drop-down {
+                border: none;
+                padding-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background: #2a2a2a;
+                color: #D2D2D2;
+                border: 1px solid #555;
+                selection-background-color: #4a4a4a;
+                padding-top: 8px;
+                padding-bottom: 4px;
+            }
+            QComboBox QAbstractItemView::item {
+                padding: 4px 8px;
+                min-height: 20px;
+            }
+        """)
+        self.renderer_selector.currentTextChanged.connect(self.on_renderer_changed)
+
+        # Disable future options (grayed out placeholders)
+        model = self.renderer_selector.model()
+        item = model.item(2)
+        if item:
+            item.setEnabled(False)
+        item = model.item(4)
+        if item:
+            item.setEnabled(False)
+
+        title_layout.addWidget(self.renderer_selector)
+
+        # Set as custom title bar
+        self.setTitleBarWidget(title_widget)
 
     def _setup_ui(self):
         """Build UI components."""
@@ -49,144 +141,85 @@ class ChatPanel(MaximizableDock):
 
         # Main container
         container = QWidget()
+
+        # Force container to expand fully
+        from PyQt6.QtWidgets import QSizePolicy
+        container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        container.setMinimumHeight(0)
+
         main_layout = QVBoxLayout(container)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # Renderer selector toolbar (left-aligned, compact)
-        toolbar = QHBoxLayout()
-        toolbar.setContentsMargins(4, 2, 4, 2)
-        toolbar.setSpacing(6)
-
-        self.renderer_selector = QComboBox()
-        self.renderer_selector.addItem("Chat")
-        self.renderer_selector.insertSeparator(1)
-        self.renderer_selector.addItem("Manage Renderers...")
-        self.renderer_selector.setStyleSheet("""
-            QComboBox {
-                background: #2a2a2a;
-                color: #D2D2D2;
-                border: 1px solid #444;
-                padding: 3px 8px;
-                border-radius: 2px;
-                font-size: 11px;
-            }
-            QComboBox:hover {
-                background: #3a3a3a;
-                border: 1px solid #555;
-            }
-            QComboBox::drop-down {
-                border: none;
-            }
-            QComboBox QAbstractItemView {
-                background: #2a2a2a;
-                color: #D2D2D2;
-                border: 1px solid #555;
-                selection-background-color: #4a4a4a;
-            }
-        """)
-        self.renderer_selector.currentTextChanged.connect(self.on_renderer_changed)
-
-        # Disable "Manage Renderers..." option (grayed out)
-        model = self.renderer_selector.model()
-        item = model.item(2)
-        if item:
-            item.setEnabled(False)
-
-        toolbar.addWidget(self.renderer_selector)
-        toolbar.addStretch()
-
-        main_layout.addLayout(toolbar)
-
-        # Web view directly (fills remaining space)
+        # Web view directly (fills all space - renderer is in title bar)
         self.web_view = QWebEngineView()
+
+        # Force web view to expand fully
+        from PyQt6.QtWidgets import QSizePolicy, QWIDGETSIZE_MAX
+        self.web_view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.web_view.setMinimumSize(0, 0)
+        self.web_view.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX)
+
+        # Ensure web view background is black
+        self.web_view.setStyleSheet("background-color: #000000;")
 
         # Enable console message forwarding
         page = self.web_view.page()
         page.javaScriptConsoleMessage = self._on_console_message
 
-        # Create error overlay (shown when server is down)
-        stack = QStackedWidget()
+        # Fix viewport height issue (100vh doesn't work in QWebEngineView)
+        def fix_viewport_height(ok):
+            if ok:
+                self.web_view.page().runJavaScript("""
+                    // Force html and body to use 100% height instead of 100vh
+                    document.documentElement.style.height = '100%';
+                    document.body.style.height = '100%';
+                    // Also fix any containers using 100vh
+                    document.querySelectorAll('[style*="100vh"]').forEach(el => {
+                        el.style.height = '100%';
+                    });
 
-        self.error_overlay = self._create_error_overlay()
+                    // DEBUG: Log all WebSocket messages
+                    const originalOnMessage = ws.onmessage;
+                    ws.onmessage = function(event) {
+                        console.log('[STUDIO DEBUG] WebSocket message received:', event.data);
+                        if (originalOnMessage) {
+                            originalOnMessage.call(this, event);
+                        }
+                    };
+                    console.log('[STUDIO DEBUG] Message logging enabled');
+                """)
 
-        stack.addWidget(self.web_view)
-        stack.addWidget(self.error_overlay)
-        stack.setCurrentWidget(self.web_view)
+        # Inject fix after page loads
+        self.web_view.loadFinished.connect(fix_viewport_height)
 
-        self.stack = stack
+        # Try to load noodleMUSH (with studio=true parameter)
+        self.web_view.setUrl(QUrl("http://localhost:8080?studio=true"))
 
-        # Try to load noodleMUSH
-        self.web_view.setUrl(QUrl("http://localhost:8080"))
+        # Add web view directly without stack (simpler = better)
+        main_layout.addWidget(self.web_view, stretch=1)
 
-        # Check if page loads successfully
-        self.web_view.loadFinished.connect(self._on_load_finished)
-
-        main_layout.addWidget(stack, stretch=1)  # Stretch to fill
+        # Set background to black (no gray areas)
+        container.setStyleSheet("background-color: #000000;")
 
         self.setWidget(container)
 
-    def _create_error_overlay(self):
-        """Create error overlay for when server is down."""
-        overlay = QWidget()
-        overlay_layout = QVBoxLayout()
-        overlay_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Store container reference for resize events
+        self.container = container
 
-        # Error icon
-        error_icon = QLabel("🔌")
-        error_icon.setFont(QFont("", 72))
-        error_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        overlay_layout.addWidget(error_icon)
+        # Debug: Log sizes after a short delay
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(500, lambda: self._debug_sizes(container))
 
-        # Title
-        title = QLabel("noodleMUSH Server Offline")
-        title.setFont(QFont("Arial", 32, QFont.Weight.Bold))
-        title.setStyleSheet("color: #ffa726; margin: 20px;")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        overlay_layout.addWidget(title)
-
-        # Message
-        message = QLabel(
-            "The noodleMUSH server is not running.\n\n"
-            "Use the toggle switch in the status bar (bottom-right)\n"
-            "to start the server, or run manually:\n\n"
-            "cd applications/cmush && ./start.sh"
-        )
-        message.setFont(QFont("Arial", 16))
-        message.setStyleSheet("color: #b0b0b0; padding: 30px;")
-        message.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        message.setWordWrap(True)
-        overlay_layout.addWidget(message)
-
-        # Retry button
-        retry_btn = QPushButton("Retry Connection")
-        retry_btn.setStyleSheet("""
-            QPushButton {
-                background: #4CAF50;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background: #45a049;
-            }
-        """)
-        retry_btn.clicked.connect(self.reload)
-        overlay_layout.addWidget(retry_btn, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        overlay.setLayout(overlay_layout)
-        overlay.setStyleSheet("background: #2a2a2a;")
-        return overlay
-
-    def _on_load_finished(self, ok: bool):
-        """Handle page load completion."""
-        if not ok:
-            # Page failed to load - show error overlay
-            self.stack.setCurrentWidget(self.error_overlay)
-        else:
-            # Page loaded successfully - show web view
-            self.stack.setCurrentWidget(self.web_view)
+    def resizeEvent(self, event):
+        """Handle resize to force web view to fill space."""
+        super().resizeEvent(event)
+        if hasattr(self, 'web_view') and hasattr(self, 'container'):
+            # Force web view to match container size exactly
+            self.web_view.setFixedSize(self.container.size())
+            # Then immediately unfix it so it can resize again
+            from PyQt6.QtWidgets import QWIDGETSIZE_MAX
+            self.web_view.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX)
 
     def _setup_fallback(self):
         """Setup fallback UI when WebEngine is not available."""
@@ -234,6 +267,31 @@ class ChatPanel(MaximizableDock):
         if WEBENGINE_AVAILABLE and hasattr(self, 'web_view'):
             self.web_view.reload()
 
+    def _debug_sizes(self, container):
+        """Debug size information to identify layout issues."""
+        debug_info = [
+            "\n=== CHAT PANEL SIZE DEBUG ===",
+            f"Dock widget size: {self.size().width()} x {self.size().height()}",
+            f"Container size: {container.size().width()} x {container.size().height()}",
+            f"Web view size: {self.web_view.size().width()} x {self.web_view.size().height()}",
+            f"Container min height: {container.minimumHeight()}",
+            f"Web view min height: {self.web_view.minimumHeight()}",
+            f"Container size policy: {container.sizePolicy().verticalPolicy().name}",
+            f"Web view size policy: {self.web_view.sizePolicy().verticalPolicy().name}",
+            "============================\n"
+        ]
+
+        # Print to console
+        for line in debug_info:
+            print(line)
+
+        # Also write to file for app launch debugging
+        try:
+            with open('/tmp/noodlestudio_chat_debug.log', 'w') as f:
+                f.write('\n'.join(debug_info))
+        except Exception as e:
+            print(f"Failed to write debug log: {e}")
+
     def _on_console_message(self, level, message, line, source):
         """Forward browser console messages to our console."""
         level_str = {0: "INFO", 1: "WARNING", 2: "ERROR"}.get(level, "LOG")
@@ -242,20 +300,23 @@ class ChatPanel(MaximizableDock):
     def on_renderer_changed(self, renderer_name: str):
         """Handle renderer selection change."""
         if renderer_name == "Manage Renderers...":
-            # Reset to Chat
-            self.renderer_selector.setCurrentText("Chat")
-            # TODO: Open renderer management dialog
+            # Reset to Reductive Text
+            self.renderer_selector.setCurrentText("Reductive Text")
+            # Show development dialog
             from PyQt6.QtWidgets import QMessageBox
             QMessageBox.information(
                 self,
                 "Manage Renderers",
-                "Renderer management coming soon!\n\n"
-                "Future renderers:\n"
-                "- 3D View (USD scene)\n"
-                "- Graph View (relationship network)\n"
-                "- Timeline (affect over time)\n"
-                "- Custom (user-created)"
+                "Feature in development\n\n"
+                "Planned generative renderers:\n"
+                "- Runway AI (video generation)\n"
+                "- Luma AI (real-time 3D)\n"
+                "- Sora (cinematic video)\n"
+                "- Custom renderer pipeline"
             )
-        elif renderer_name == "Chat":
-            # Default chat renderer (already active)
+        elif renderer_name == "Reductive Text":
+            # Default text renderer (already active)
             pass
+        elif renderer_name == "Generative Renderers":
+            # This is a header, reset to current renderer
+            self.renderer_selector.setCurrentText("Reductive Text")

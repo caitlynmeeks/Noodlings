@@ -4,6 +4,7 @@ Main Window for NoodleSTUDIO.
 The primary application window with menu bar, toolbar, dock area, and status bar.
 """
 
+import os
 from typing import Optional
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QMessageBox
@@ -17,10 +18,12 @@ from ..panels.profiler_panel import ProfilerPanel
 from ..panels.scene_hierarchy import SceneHierarchy
 from ..panels.inspector_panel import InspectorPanel
 from ..panels.console_panel import ConsolePanel
+from ..panels.assets_panel import AssetsPanel
 from .theme import DARK_THEME
 from .unity_theme import UNITY_DARK_THEME
 from .layout_manager import LayoutManager
-from PyQt6.QtWidgets import QDialog
+from .project_manager import ProjectManager
+from PyQt6.QtWidgets import QDialog, QFileDialog, QInputDialog
 
 
 class MainWindow(QMainWindow):
@@ -45,6 +48,11 @@ class MainWindow(QMainWindow):
         # Layout manager for saving configurations
         self.layout_manager = LayoutManager()
 
+        # Project manager
+        self.project_manager = ProjectManager()
+        self.project_manager.projectOpened.connect(self.on_project_opened)
+        self.project_manager.projectClosed.connect(self.on_project_closed)
+
         self._setup_ui()
         self._setup_menu_bar()
         self._setup_tool_bar()
@@ -68,20 +76,27 @@ class MainWindow(QMainWindow):
 
         # File Menu
         file_menu = menu_bar.addMenu("&File")
+
+        # Project management
+        file_menu.addAction(self._create_action("&New Project...", slot=self.new_project))
+        file_menu.addAction(self._create_action("&Open Project...", slot=self.open_project))
+        file_menu.addSeparator()
+
+        # Stage management
         file_menu.addAction(self._create_action("&New Stage", "Ctrl+N"))
         file_menu.addAction(self._create_action("&Open Stage...", "Ctrl+O"))
         file_menu.addAction(self._create_action("&Save Stage", "Ctrl+S"))
 
-        # Character section
+        # Import section
         file_menu.addSeparator()
-        file_menu.addSection("Character")
-        file_menu.addAction(self._create_action("Import Noodling (.nood)...", slot=self.import_noodling_file))
-        file_menu.addAction(self._create_action("Export Noodling(s)...", slot=self.export_noodlings_dialog))
-
-        # Ensemble section
-        file_menu.addSeparator()
-        file_menu.addSection("Ensemble")
+        file_menu.addSection("Import")
         file_menu.addAction(self._create_action("Import Ensemble (.ensemble)...", slot=self.import_ensemble))
+        file_menu.addAction(self._create_action("Import Noodling (.json)...", slot=self.import_noodling_file))
+
+        # Export section
+        file_menu.addSeparator()
+        file_menu.addSection("Export")
+        file_menu.addAction(self._create_action("Export Noodling(s)...", slot=self.export_noodlings_dialog))
 
         # USD export/import
         file_menu.addSeparator()
@@ -188,6 +203,7 @@ class MainWindow(QMainWindow):
         help_menu.addAction(self._create_action("Noodlings Architecture Guide"))
         help_menu.addAction(self._create_action("Report Issue..."))
         help_menu.addSeparator()
+        help_menu.addAction(self._create_action("Credits (Demo Scene Style)", slot=self.show_credits))
         help_menu.addAction(self._create_action("About NoodleStudio", slot=self.show_about))
 
     def _setup_tool_bar(self):
@@ -284,10 +300,20 @@ class MainWindow(QMainWindow):
         self.setCorner(Qt.Corner.BottomLeftCorner, Qt.DockWidgetArea.BottomDockWidgetArea)
         self.setCorner(Qt.Corner.BottomRightCorner, Qt.DockWidgetArea.RightDockWidgetArea)
 
-        # LEFT COLUMN (narrow): Scene Hierarchy
+        # LEFT COLUMN (narrow): Scene Hierarchy + Assets (tabbed)
         self.hierarchy = SceneHierarchy(self)
         self.hierarchy.setObjectName("SceneHierarchy")  # Required for saveState
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.hierarchy)
+
+        # Assets panel (tabbed with hierarchy)
+        self.assets = AssetsPanel(self)
+        self.assets.setObjectName("Assets")  # Required for saveState
+        self.assets.project_manager = self.project_manager  # Connect to project manager
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.assets)
+        self.tabifyDockWidget(self.hierarchy, self.assets)
+
+        # Make Scene Hierarchy the active tab by default
+        self.hierarchy.raise_()
 
         # CENTER-LEFT (LARGE - 75% width): World View (noodleMUSH chat)
         self.world_view = ChatPanel(self)
@@ -974,52 +1000,49 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Export Failed", f"Error: {e}\n\nCheck Console for details.")
 
     def import_ensemble(self):
-        """Import an ensemble prefab (.ensemble file)."""
-        from PyQt6.QtWidgets import QFileDialog
-        from pathlib import Path
+        """Import an ensemble file into the project."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(
+                self,
+                "No Project Open",
+                "Please create or open a project first."
+            )
+            return
+
+        # Default to cmush ensembles directory
+        default_dir = os.path.join(
+            os.path.dirname(__file__),
+            "../../../cmush/ensembles"
+        )
+        default_dir = os.path.abspath(default_dir)
 
         filename, _ = QFileDialog.getOpenFileName(
             self,
             "Import Ensemble",
-            str(Path.home() / ".noodlestudio" / "ensembles"),
+            default_dir,
             "Ensemble Files (*.ensemble);;All Files (*)"
         )
 
         if filename:
             try:
-                from ..data.ensemble_format import EnsembleFormat, EnsembleSpawner
-
-                # Load ensemble from .ens file
-                pack = EnsembleFormat.load_ensemble(Path(filename))
-
-                # Ask which room to spawn into
-                from PyQt6.QtWidgets import QInputDialog
-                room_id, ok = QInputDialog.getText(
-                    self,
-                    "Spawn Ensemble",
-                    f"Spawn '{pack.name}' ensemble into which room?",
-                    text="room_000"
-                )
-
-                if ok and room_id:
-                    # Rez all archetypes
-                    rezzed_ids = EnsembleSpawner.rez_ensemble(pack, room_id)
-
-                    QMessageBox.information(
+                # Import using project manager
+                if self.project_manager.import_ensemble(filename):
+                    basename = os.path.basename(filename)
+                    self.statusBar().showMessage(f"Imported ensemble: {basename}", 3000)
+                    # Refresh assets panel
+                    if hasattr(self, 'assets'):
+                        self.assets.refresh()
+                else:
+                    QMessageBox.warning(
                         self,
-                        "Ensemble Imported",
-                        f"Rezzed ensemble: {pack.name}\n\n"
-                        f"Archetypes:\n" + "\n".join([f"  - {a.name}" for a in pack.archetypes]) + "\n\n"
-                        f"Room: {room_id}\n\n"
-                        f"Suggested scene: {pack.scene_suggestions[0] if pack.scene_suggestions else 'None'}\n\n"
-                        f"(API integration not yet implemented)"
+                        "Import Failed",
+                        f"Failed to import ensemble."
                     )
-
             except Exception as e:
                 QMessageBox.critical(
                     self,
                     "Import Failed",
-                    f"Error importing ensemble:\n{e}\n\nCheck that the .ens file is valid."
+                    f"Error importing ensemble:\n{e}"
                 )
 
     def show_ensemble_store(self):
@@ -1203,15 +1226,102 @@ class MainWindow(QMainWindow):
 
                 dialog.close()
 
+    def new_project(self):
+        """Create a new NoodleStudio project."""
+        # Get project name
+        project_name, ok = QInputDialog.getText(
+            self,
+            "New Project",
+            "Project Name:",
+            text="MyNoodlingProject"
+        )
+
+        if not ok or not project_name:
+            return
+
+        # Get location
+        parent_dir = QFileDialog.getExistingDirectory(
+            self,
+            "Choose Project Location",
+            os.path.expanduser("~/Documents")
+        )
+
+        if not parent_dir:
+            return
+
+        # Create project
+        if self.project_manager.create_project(parent_dir, project_name):
+            self.statusBar().showMessage(f"Created project: {project_name}", 3000)
+        else:
+            QMessageBox.warning(
+                self,
+                "Error",
+                f"Failed to create project.\nProject may already exist at that location."
+            )
+
+    def open_project(self):
+        """Open an existing NoodleStudio project."""
+        project_path = QFileDialog.getExistingDirectory(
+            self,
+            "Open Project",
+            os.path.expanduser("~/Documents")
+        )
+
+        if not project_path:
+            return
+
+        # Open project
+        if self.project_manager.open_project(project_path):
+            self.statusBar().showMessage(f"Opened project: {self.project_manager.current_project_name}", 3000)
+        else:
+            QMessageBox.warning(
+                self,
+                "Error",
+                f"Failed to open project.\nNot a valid NoodleStudio project."
+            )
+
+    def on_project_opened(self, project_path: str):
+        """Handle project opened event."""
+        # Update window title
+        self.setWindowTitle(f"NoodleSTUDIO - {self.project_manager.current_project_name}")
+
+        # Refresh assets panel
+        if hasattr(self, 'assets'):
+            self.assets.refresh()
+
+        print(f"Project opened: {project_path}")
+
+    def on_project_closed(self):
+        """Handle project closed event."""
+        # Reset window title
+        self.setWindowTitle("NoodleSTUDIO - Noodlings IDE")
+
+        # Refresh assets panel
+        if hasattr(self, 'assets'):
+            self.assets.refresh()
+
+        print("Project closed")
+
+    def show_credits(self):
+        """Show demo scene style credits with music."""
+        from ..panels.credits_panel import show_credits
+        self.credits_window = show_credits(self)
+
     def show_about(self):
-        """Show About dialog."""
+        """Show About dialog with Bjork's tentacles quote."""
+        about_text = (
+            "NoodleSTUDIO v1.0.0-alpha\n\n"
+            "Symbiosis of Tendrils:\n"
+            "Unfurling, Developing,\n"
+            "Interconnected Organisms\n\n"
+            "IDE for Noodlings\n"
+            "Built with PyQt6"
+        )
+
         QMessageBox.about(
             self,
-            "About NoodleStudio",
-            "NoodleStudio v1.0.0-alpha\n\n"
-            "Professional IDE for Noodlings\n\n"
-            "Built with PyQt6 | The Krugerrand Edition\n"
-            "Worth its weight in gold!"
+            "About NoodleSTUDIO",
+            about_text
         )
 
     def _show_preferences(self):

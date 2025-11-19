@@ -10,6 +10,22 @@
     "description": "A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
     "species": "human",
     "age": "9 years old",
-    "pronoun": "she"
+    "pronoun": "she",
+    "invisible": false
+  },
+  "user_admin": {
+    "uid": "user_admin",
+    "username": "admin",
+    "password_hash": "e986a11fb81e659f1c12cc1ba7aa867f296c6de54cfc967a7886f58d68d96201:6515a0ea3f24b477d4e9a22e7876ea28",
+    "current_room": "room_000",
+    "inventory": [],
+    "created": "2025-11-18T20:00:00.000000",
+    "last_seen": "2025-11-18T20:00:00.000000",
+    "description": "The project administrator. By default appears as a resourceful squirrel architect wearing a bright yellow hard hat and tool belt, with a glowing cinnamon candy heart pendant. Appearance is customizable per project to fit the world's theme.",
+    "species": "squirrel architect",
+    "age": "timeless",
+    "pronoun": "they",
+    "invisible": false,
+    "is_admin": true
   }
 }

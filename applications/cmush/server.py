@@ -35,6 +35,7 @@ from session_profiler import SessionProfiler
 from kimmie_character import KimmieCharacter
 from api_server import NoodleScopeAPI
 from recipe_loader import RecipeLoader
+from script_manager import ScriptManager
 
 # Setup logging
 os.makedirs('logs', exist_ok=True)
@@ -142,6 +143,9 @@ class CMUSHServer:
         # Initialize command parser (after agent manager)
         self.command_parser = None
 
+        # Initialize script manager (after agent manager)
+        self.script_manager = None
+
         # Active connections: websocket -> user_id
         self.connections: Dict = {}
 
@@ -207,13 +211,18 @@ class CMUSHServer:
         # Load existing agents
         await self.load_agents()
 
+        # Initialize script manager (server-authoritative scripting)
+        self.script_manager = ScriptManager(self.world, self.agent_manager)
+        logger.info("✅ ScriptManager initialized")
+
         # Initialize command parser (with config for persistence)
         self.command_parser = CommandParser(
             self.world,
             self.agent_manager,
             server=self,
             config=self.config,
-            config_path=self.config_path
+            config_path=self.config_path,
+            script_manager=self.script_manager  # Pass script_manager
         )
 
         # Initialize NoodleScope 2.0 components
@@ -367,10 +376,20 @@ class CMUSHServer:
                                     'timestamp': history_entry['timestamp']
                                 })
 
-                            # Send welcome message
+                            # Send welcome message with ASCII banner
+                            banner = """:::.    :::.    ...         ...    :::::::-.   :::    .,::::::      .        :    ...    ::: .::::::.   ::   .:
+`;;;;,  `;;; .;;;;;;;.   .;;;;;;;.  ;;,   `';, ;;;    ;;;;''''      ;;,.    ;;;   ;;     ;;;;;;`    `  ,;;   ;;,
+  [[[[[. '[[,[[     \[[,,[[     \[[,`[[     [[ [[[     [[cccc       [[[[, ,[[[[, [['     [[['[==/[[[[,,[[[,,,[[[
+  $$$ "Y$c$$$$$,     $$$$$$,     $$$ $$,    $$ $$'     $$""""       $$$$$$$$"$$$ $$      $$$  '''    $"$$$"""$$$
+  888    Y88"888,_ _,88P"888,_ _,88P 888_,o8P'o88oo,.__888oo,__     888 Y88" 888o88    .d888 88b    dP 888   "88o
+  MMM     YM  "YMMMMMP"   "YMMMMMP"  MMMMP"`  """"YUMMM""""YUMMM    MMM  M'  "MMM "YmmMMMM""  "YMmMY"  MMM    YMM
+
+Welcome, {data['username']}!
+Noodlings Multi-User Shared Hallucination"""
+
                             await self.send_to_user(websocket, {
                                 'type': 'system',
-                                'text': f"Welcome, {data['username']}!"
+                                'text': banner
                             })
 
                             # Send agent list with enlightenment status
@@ -657,18 +676,30 @@ class CMUSHServer:
         Handle user login.
 
         Args:
-            data: Login data
+            data: Login data (includes optional 'invisible' flag for admin)
 
         Returns:
             Response dict
         """
         username = data.get('username', '')
         password = data.get('password', '')
+        invisible = data.get('invisible', False)  # Admin invisible mode
 
         success, user_id, message = self.auth.authenticate(username, password)
 
         if success:
             session_token = self.auth.create_session(user_id)
+
+            # Set invisible mode for this user if requested
+            user = self.world.get_user(user_id)
+            if user:
+                user['invisible'] = invisible
+                self.world.save_all()
+
+                if invisible:
+                    logger.info(f"Admin {username} logged in (INVISIBLE MODE)")
+                else:
+                    logger.info(f"User {username} logged in")
 
             return {
                 'type': 'login_response',

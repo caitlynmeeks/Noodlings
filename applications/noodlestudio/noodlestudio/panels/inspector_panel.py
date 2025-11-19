@@ -76,12 +76,6 @@ class InspectorPanel(MaximizableDock):
         scroll.setWidget(self.properties_widget)
         layout.addWidget(scroll)
 
-        # Save button
-        self.save_button = QPushButton("Apply Changes")
-        self.save_button.clicked.connect(self.save_changes)
-        self.save_button.setEnabled(False)
-        layout.addWidget(self.save_button)
-
     @pyqtSlot(str, dict)
     def load_entity(self, entity_type: str, entity_data: dict):
         """Load entity properties into inspector."""
@@ -104,17 +98,15 @@ class InspectorPanel(MaximizableDock):
             self.entity_header.setText("User: caity")
             self.load_user_properties(entity_data)
 
-        elif entity_type == 'object':
-            obj_name = entity_data.get('id', 'Unknown Object')
-            self.entity_header.setText(f"Object: {obj_name}")
+        elif entity_type == 'prim' or entity_type == 'object':
+            obj_name = entity_data.get('id', 'Unknown Object').replace('obj_', '').replace('_', ' ').title()
+            self.entity_header.setText(f"Prim: {obj_name}")
             self.load_object_properties(entity_data)
 
         elif entity_type == 'exit':
             direction = entity_data.get('direction', 'unknown')
             self.entity_header.setText(f"Exit: {direction}")
             self.load_exit_properties(entity_data)
-
-        self.save_button.setEnabled(True)
 
     def load_noodling_properties(self, entity_data):
         """Show Noodling properties (FULL CONTROL!)."""
@@ -171,6 +163,10 @@ class InspectorPanel(MaximizableDock):
         noodle_component = self.create_noodle_component(agent_id)
         self.properties_layout.addWidget(noodle_component)
 
+        # ===== MMCR COMPONENT (Multimodal Context Reference) =====
+        mmcr_component = self.create_mmcr_component(agent_id)
+        self.properties_layout.addWidget(mmcr_component)
+
         self.properties_layout.addStretch()
 
     def load_user_properties(self, entity_data):
@@ -201,12 +197,18 @@ class InspectorPanel(MaximizableDock):
 
     def load_object_properties(self, entity_data):
         """Show object properties."""
-        obj_group = self.create_property_group("Object Properties")
         obj_id = entity_data.get('id', '')
+
+        # Basic properties
+        obj_group = self.create_property_group("Object Properties")
         self.add_text_field(obj_group, "ID", obj_id)
         self.add_text_field(obj_group, "Name", obj_id.replace('obj_', '').replace('_', ' ').title())
         self.add_text_area(obj_group, "Description", "An object in the world...")
         self.properties_layout.addWidget(obj_group)
+
+        # Arbitrary metadata editor
+        metadata_component = self.create_metadata_component(obj_id)
+        self.properties_layout.addWidget(metadata_component)
 
         self.properties_layout.addStretch()
 
@@ -241,32 +243,35 @@ class InspectorPanel(MaximizableDock):
         return group
 
     def add_text_field(self, group: QGroupBox, label: str, value: str):
-        """Add editable text field to group."""
+        """Add editable text field to group (Unity-style instant updates)."""
         field = QLineEdit(value)
         field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-        field.textChanged.connect(lambda: self.save_button.setEnabled(True))
+        # Use editingFinished for instant update when user finishes editing
+        field.editingFinished.connect(self.save_changes)
         group.layout().addRow(f"{label}:", field)
         return field
 
     def add_text_area(self, group: QGroupBox, label: str, value: str):
-        """Add editable text area to group."""
+        """Add editable text area to group (Unity-style instant updates)."""
         field = QTextEdit()
         field.setPlainText(value)
         field.setMaximumHeight(100)
         field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-        field.textChanged.connect(lambda: self.save_button.setEnabled(True))
+        # Text areas update when focus is lost (avoid spamming API)
+        field.focusOutEvent = lambda e: (QTextEdit.focusOutEvent(field, e), self.save_changes())
         group.layout().addRow(f"{label}:", field)
         return field
 
     def add_slider_field(self, group: QGroupBox, label: str, value: float, min_val: float, max_val: float):
-        """Add slider + numeric field."""
+        """Add slider + numeric field (Unity-style instant updates)."""
         spin = QDoubleSpinBox()
         spin.setRange(min_val, max_val)
         spin.setValue(value)
         spin.setSingleStep(0.05)
         spin.setDecimals(2)
         spin.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2;")
-        spin.valueChanged.connect(lambda: self.save_button.setEnabled(True))
+        # Instant update when value changes (Unity-style)
+        spin.valueChanged.connect(lambda: self.save_changes())
         group.layout().addRow(f"{label}:", spin)
         return spin
 
@@ -316,8 +321,6 @@ class InspectorPanel(MaximizableDock):
                 print(f"Would save to {agent_id}:")
                 print(f"  Updates: {updates}")
                 print(f"  Personality: {personality}")
-
-                self.save_button.setEnabled(False)
 
             except Exception as e:
                 print(f"Error saving: {e}")
@@ -790,4 +793,426 @@ class InspectorPanel(MaximizableDock):
 
         component.setLayout(layout)
         return component
+
+    def create_mmcr_component(self, agent_id: str) -> QGroupBox:
+        """
+        Create MMCR (Multimodal Context Reference) component.
+
+        Holds arbitrary media that scripts can access via API:
+        - Images (concept art, reference photos, environment maps)
+        - Audio (voice clips, sound effects, music)
+        - Video (animations, cutscenes)
+        - Text (notes, dialogue snippets)
+
+        Unlike Artbook (which is for visual reference), MMCR is for
+        runtime-accessible context that affects behavior.
+        """
+        component = QGroupBox("Multimodal Context Reference")
+        component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        component.setStyleSheet("""
+            QGroupBox {
+                color: #2196F3;
+                border: 2px solid #2196F3;
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 12px;
+                background: #1a1a1a;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 6px;
+            }
+        """)
+
+        layout = QVBoxLayout()
+
+        # Description
+        desc = QLabel("Runtime-accessible media for scripts and LLM context")
+        desc.setStyleSheet("color: #B0B0B0; font-size: 10px; margin-bottom: 8px;")
+        desc.setWordWrap(True)
+        layout.addWidget(desc)
+
+        # Images section
+        images_label = QLabel("Images")
+        images_label.setStyleSheet("color: #64B5F6; font-weight: bold; margin-top: 4px;")
+        layout.addWidget(images_label)
+
+        self.mmcr_images = QListWidget()
+        self.mmcr_images.setMaximumHeight(100)
+        self.mmcr_images.setStyleSheet("""
+            QListWidget {
+                background: #2a2a2a;
+                border: 1px solid #555;
+                border-radius: 4px;
+                color: #D2D2D2;
+                font-size: 10px;
+            }
+            QListWidget::item {
+                padding: 4px;
+            }
+        """)
+        layout.addWidget(self.mmcr_images)
+
+        # Audio section
+        audio_label = QLabel("Audio")
+        audio_label.setStyleSheet("color: #64B5F6; font-weight: bold; margin-top: 8px;")
+        layout.addWidget(audio_label)
+
+        self.mmcr_audio = QListWidget()
+        self.mmcr_audio.setMaximumHeight(80)
+        self.mmcr_audio.setStyleSheet("""
+            QListWidget {
+                background: #2a2a2a;
+                border: 1px solid #555;
+                border-radius: 4px;
+                color: #D2D2D2;
+                font-size: 10px;
+            }
+            QListWidget::item {
+                padding: 4px;
+            }
+        """)
+        layout.addWidget(self.mmcr_audio)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        add_media_btn = QPushButton("Add Media")
+        add_media_btn.clicked.connect(lambda: self.add_mmcr_media(agent_id))
+        add_media_btn.setStyleSheet("""
+            QPushButton {
+                background: #2196F3;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: #64B5F6;
+            }
+        """)
+        button_layout.addWidget(add_media_btn)
+
+        remove_media_btn = QPushButton("Remove")
+        remove_media_btn.clicked.connect(lambda: self.remove_mmcr_media())
+        remove_media_btn.setStyleSheet("""
+            QPushButton {
+                background: #555;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background: #666;
+            }
+        """)
+        button_layout.addWidget(remove_media_btn)
+
+        layout.addLayout(button_layout)
+
+        # API access info
+        info_label = QLabel("Scripts access via: noodlings.getComponent('mmcr').images[0]")
+        info_label.setStyleSheet("color: #888; font-size: 9px; margin-top: 8px;")
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+
+        component.setLayout(layout)
+
+        # Load existing MMCR data if any
+        self.load_mmcr_data(agent_id)
+
+        return component
+
+    def add_mmcr_media(self, agent_id: str):
+        """Add media files to MMCR component."""
+        from PyQt6.QtWidgets import QFileDialog
+        from pathlib import Path
+
+        filenames, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Add Media to MMCR",
+            str(Path.home()),
+            "Media Files (*.png *.jpg *.jpeg *.gif *.webp *.wav *.mp3 *.mp4 *.mov);;All Files (*)"
+        )
+
+        for filename in filenames:
+            if filename:
+                file_path = Path(filename)
+                ext = file_path.suffix.lower()
+
+                # Categorize by file type
+                if ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
+                    item = QListWidgetItem(file_path.name)
+                    item.setData(Qt.ItemDataRole.UserRole, filename)
+                    self.mmcr_images.addItem(item)
+                elif ext in ['.wav', '.mp3', '.ogg', '.m4a']:
+                    item = QListWidgetItem(file_path.name)
+                    item.setData(Qt.ItemDataRole.UserRole, filename)
+                    self.mmcr_audio.addItem(item)
+
+        # Save MMCR state
+        self.save_mmcr_data(agent_id)
+
+    def remove_mmcr_media(self):
+        """Remove selected media from MMCR."""
+        # Check images list
+        current = self.mmcr_images.currentItem()
+        if current:
+            self.mmcr_images.takeItem(self.mmcr_images.row(current))
+            return
+
+        # Check audio list
+        current = self.mmcr_audio.currentItem()
+        if current:
+            self.mmcr_audio.takeItem(self.mmcr_audio.row(current))
+
+    def load_mmcr_data(self, agent_id: str):
+        """Load MMCR data from storage."""
+        # TODO: Implement when components dict is added to world structure
+        # Would load from: agent_data['components']['mmcr']
+        pass
+
+    def save_mmcr_data(self, agent_id: str):
+        """Save MMCR data to storage."""
+        # Collect all media files
+        images = []
+        for i in range(self.mmcr_images.count()):
+            item = self.mmcr_images.item(i)
+            path = item.data(Qt.ItemDataRole.UserRole)
+            if path:
+                images.append(path)
+
+        audio = []
+        for i in range(self.mmcr_audio.count()):
+            item = self.mmcr_audio.item(i)
+            path = item.data(Qt.ItemDataRole.UserRole)
+            if path:
+                audio.append(path)
+
+        # TODO: Save via API to agent's components.mmcr
+        # POST /api/agents/{agent_id}/components/mmcr
+        print(f"MMCR data for {agent_id}:")
+        print(f"  Images: {images}")
+        print(f"  Audio: {audio}")
+
+    def create_metadata_component(self, entity_id: str) -> QGroupBox:
+        """
+        Create Metadata component for arbitrary key-value pairs.
+
+        Like USD custom attributes - author can add any field they want:
+        - asteroid.mass_kg = 8500000000
+        - asteroid.minerals = ["iron: 45%", "platinum: 0.02%"]
+        - asteroid.appearance_far = "A dark speck..."
+
+        Scripts access via: prim.metadata["mass_kg"]
+        """
+        component = QGroupBox("Custom Metadata")
+        component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        component.setStyleSheet("""
+            QGroupBox {
+                color: #9E9E9E;
+                border: 2px solid #757575;
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 12px;
+                background: #1a1a1a;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 6px;
+            }
+        """)
+
+        layout = QVBoxLayout()
+
+        # Description
+        desc = QLabel("Arbitrary key-value pairs accessible to scripts and renderers")
+        desc.setStyleSheet("color: #B0B0B0; font-size: 10px; margin-bottom: 8px;")
+        desc.setWordWrap(True)
+        layout.addWidget(desc)
+
+        # Metadata list (shows key: value pairs)
+        self.metadata_list = QListWidget()
+        self.metadata_list.setMaximumHeight(150)
+        self.metadata_list.setStyleSheet("""
+            QListWidget {
+                background: #2a2a2a;
+                border: 1px solid #555;
+                border-radius: 4px;
+                color: #D2D2D2;
+                font-size: 10px;
+                font-family: 'Courier New';
+            }
+            QListWidget::item {
+                padding: 4px;
+            }
+            QListWidget::item:hover {
+                background: #333;
+            }
+            QListWidget::item:selected {
+                background: #555;
+            }
+        """)
+        layout.addWidget(self.metadata_list)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        add_meta_btn = QPushButton("Add Field")
+        add_meta_btn.clicked.connect(lambda: self.add_metadata_field(entity_id))
+        add_meta_btn.setStyleSheet("""
+            QPushButton {
+                background: #757575;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: #9E9E9E;
+            }
+        """)
+        button_layout.addWidget(add_meta_btn)
+
+        edit_meta_btn = QPushButton("Edit")
+        edit_meta_btn.clicked.connect(lambda: self.edit_metadata_field(entity_id))
+        edit_meta_btn.setStyleSheet("""
+            QPushButton {
+                background: #555;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background: #666;
+            }
+        """)
+        button_layout.addWidget(edit_meta_btn)
+
+        remove_meta_btn = QPushButton("Remove")
+        remove_meta_btn.clicked.connect(lambda: self.remove_metadata_field(entity_id))
+        remove_meta_btn.setStyleSheet("""
+            QPushButton {
+                background: #555;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background: #666;
+            }
+        """)
+        button_layout.addWidget(remove_meta_btn)
+
+        layout.addLayout(button_layout)
+
+        # Access info
+        info_label = QLabel("Example: asteroid.metadata['mass_kg'] or asteroid.metadata['minerals']")
+        info_label.setStyleSheet("color: #888; font-size: 9px; margin-top: 8px;")
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+
+        component.setLayout(layout)
+
+        # Load existing metadata
+        self.load_metadata(entity_id)
+
+        return component
+
+    def add_metadata_field(self, entity_id: str):
+        """Add a new metadata field."""
+        from PyQt6.QtWidgets import QInputDialog
+
+        # Get field name
+        field_name, ok = QInputDialog.getText(
+            self,
+            "Add Metadata Field",
+            "Field name (e.g., 'mass_kg', 'minerals', 'velocity'):"
+        )
+
+        if ok and field_name:
+            # Get field value
+            field_value, ok = QInputDialog.getText(
+                self,
+                "Add Metadata Field",
+                f"Value for '{field_name}':"
+            )
+
+            if ok:
+                # Add to list
+                item = QListWidgetItem(f"{field_name}: {field_value}")
+                item.setData(Qt.ItemDataRole.UserRole, {'key': field_name, 'value': field_value})
+                self.metadata_list.addItem(item)
+
+                # Save
+                self.save_metadata(entity_id)
+
+    def edit_metadata_field(self, entity_id: str):
+        """Edit selected metadata field."""
+        from PyQt6.QtWidgets import QInputDialog
+
+        current = self.metadata_list.currentItem()
+        if not current:
+            return
+
+        data = current.data(Qt.ItemDataRole.UserRole)
+        field_name = data['key']
+        old_value = data['value']
+
+        # Get new value
+        new_value, ok = QInputDialog.getText(
+            self,
+            "Edit Metadata Field",
+            f"New value for '{field_name}':",
+            text=old_value
+        )
+
+        if ok:
+            # Update item
+            current.setText(f"{field_name}: {new_value}")
+            current.setData(Qt.ItemDataRole.UserRole, {'key': field_name, 'value': new_value})
+
+            # Save
+            self.save_metadata(entity_id)
+
+    def remove_metadata_field(self, entity_id: str):
+        """Remove selected metadata field."""
+        current = self.metadata_list.currentItem()
+        if current:
+            self.metadata_list.takeItem(self.metadata_list.row(current))
+            self.save_metadata(entity_id)
+
+    def load_metadata(self, entity_id: str):
+        """Load metadata from world state."""
+        # TODO: Load from world state when metadata dict is added
+        # For now, show example for demonstration
+        if entity_id.startswith('obj_'):
+            # Example metadata
+            examples = {
+                'type': 'vending_machine',
+                'portable': 'true',
+                'takeable': 'true'
+            }
+            for key, value in examples.items():
+                item = QListWidgetItem(f"{key}: {value}")
+                item.setData(Qt.ItemDataRole.UserRole, {'key': key, 'value': value})
+                self.metadata_list.addItem(item)
+
+    def save_metadata(self, entity_id: str):
+        """Save metadata to world state."""
+        # Collect all metadata fields
+        metadata = {}
+        for i in range(self.metadata_list.count()):
+            item = self.metadata_list.item(i)
+            data = item.data(Qt.ItemDataRole.UserRole)
+            if data:
+                metadata[data['key']] = data['value']
+
+        # TODO: Save via API
+        # POST /api/objects/{entity_id}/metadata
+        print(f"Metadata for {entity_id}:")
+        for key, value in metadata.items():
+            print(f"  {key}: {value}")
 

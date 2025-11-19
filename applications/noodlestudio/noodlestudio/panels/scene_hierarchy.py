@@ -19,6 +19,7 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon, QAction
 import requests
 import sys
+import os
 sys.path.append('..')
 from noodlestudio.widgets.maximizable_dock import MaximizableDock
 
@@ -46,9 +47,15 @@ class SceneHierarchy(MaximizableDock):
     entitySelected = pyqtSignal(str, dict)  # (entity_type, entity_data)
 
     def __init__(self, parent=None):
-        super().__init__("Scene Hierarchy", parent)
+        super().__init__("Stage Hierarchy", parent)
         self.api_base = "http://localhost:8081/api"
         self.current_room = "room_000"  # Start at Nexus
+
+        # Track expanded state (survives tree rebuild)
+        self.expanded_items = set()
+
+        # Track selected item (survives tree rebuild)
+        self.selected_item_path = None
 
         # Create central widget
         widget = QWidget()
@@ -69,7 +76,7 @@ class SceneHierarchy(MaximizableDock):
         layout.setContentsMargins(4, 4, 4, 4)
 
         # Header
-        header = QLabel("SCENE HIERARCHY")
+        header = QLabel("STAGE HIERARCHY")
         header.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         header.setStyleSheet("color: #B4B4B4; padding: 4px;")
         layout.addWidget(header)
@@ -106,9 +113,54 @@ class SceneHierarchy(MaximizableDock):
         refresh_btn.clicked.connect(self.refresh_scene)
         layout.addWidget(refresh_btn)
 
+    def save_expanded_state(self):
+        """Save which items are currently expanded and selected."""
+        def get_expanded_paths(item, path=""):
+            """Recursively collect paths of expanded items."""
+            current_path = path + "/" + item.text(0) if path else item.text(0)
+            if item.isExpanded():
+                self.expanded_items.add(current_path)
+            # Check if this is the selected item
+            if item.isSelected():
+                self.selected_item_path = current_path
+            for i in range(item.childCount()):
+                get_expanded_paths(item.child(i), current_path)
+
+        self.expanded_items.clear()
+        for i in range(self.tree.topLevelItemCount()):
+            get_expanded_paths(self.tree.topLevelItem(i))
+
+    def restore_expanded_state(self):
+        """Restore expanded state and selection for items that match saved paths."""
+        # If no saved state (first load), set sensible defaults
+        if not self.expanded_items:
+            self.expanded_items = {
+                "Scene: The Nexus",
+                "Scene: The Nexus/Connected Users",
+                "Scene: The Nexus/Noodlings"
+            }
+
+        def restore_item(item, path=""):
+            """Recursively restore expanded state and selection."""
+            current_path = path + "/" + item.text(0) if path else item.text(0)
+            if current_path in self.expanded_items:
+                item.setExpanded(True)
+            # Restore selection
+            if self.selected_item_path and current_path == self.selected_item_path:
+                item.setSelected(True)
+                self.tree.setCurrentItem(item)
+            for i in range(item.childCount()):
+                restore_item(item.child(i), current_path)
+
+        for i in range(self.tree.topLevelItemCount()):
+            restore_item(self.tree.topLevelItem(i))
+
     def refresh_scene(self):
         """Refresh scene hierarchy from noodleMUSH world state."""
         try:
+            # Save expanded state before clearing
+            self.save_expanded_state()
+
             # TODO: Create proper world API endpoint
             # For now, use agents API and build structure
             agents_resp = requests.get(f"{self.api_base}/agents", timeout=2)
@@ -121,13 +173,11 @@ class SceneHierarchy(MaximizableDock):
             room_item.setFont(0, QFont("Arial", 12, QFont.Weight.Bold))
             room_item.setForeground(0, Qt.GlobalColor.white)
             self.tree.addTopLevelItem(room_item)
-            room_item.setExpanded(True)
 
-            # Users folder
-            users_folder = QTreeWidgetItem(["Users"])
+            # Connected Users folder
+            users_folder = QTreeWidgetItem(["Connected Users"])
             users_folder.setForeground(0, Qt.GlobalColor.gray)
             room_item.addChild(users_folder)
-            users_folder.setExpanded(True)
 
             # Add current user
             user_item = QTreeWidgetItem(["caity [Noodler, 9yo, she/her]"])
@@ -138,7 +188,6 @@ class SceneHierarchy(MaximizableDock):
             noodlings_folder = QTreeWidgetItem(["Noodlings"])
             noodlings_folder.setForeground(0, Qt.GlobalColor.gray)
             room_item.addChild(noodlings_folder)
-            noodlings_folder.setExpanded(True)
 
             # Add each Noodling
             for agent in agents_data:
@@ -196,6 +245,9 @@ class SceneHierarchy(MaximizableDock):
             })
             exits_folder.addChild(east_exit)
 
+            # Restore expanded state after rebuilding tree
+            self.restore_expanded_state()
+
         except Exception as e:
             print(f"Error refreshing scene: {e}")
 
@@ -231,6 +283,8 @@ class SceneHierarchy(MaximizableDock):
             if entity_type == 'noodling':
                 menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
                 menu.addAction("Toggle Enlightenment", lambda d=entity_data: self.toggle_enlightenment_data(d))
+                menu.addSeparator()
+                menu.addAction("Export Noodling", lambda d=entity_data: self.export_noodling_data(d))
                 menu.addSeparator()
                 menu.addAction("Duplicate Noodling", lambda d=entity_data: self.duplicate_prim_data(d))
                 menu.addAction("Reset State", lambda d=entity_data: self.reset_prim_state_data(d))
@@ -278,6 +332,46 @@ class SceneHierarchy(MaximizableDock):
         print(f"Toggle enlightenment for {noodling_id}")
         # TODO: Send to noodleMUSH API
 
+    def export_noodling_data(self, entity_data):
+        """Export Noodling to YAML file."""
+        from PyQt6.QtWidgets import QFileDialog
+        from pathlib import Path
+        import json
+        import yaml
+
+        noodling_id = entity_data.get('id')
+        noodling_data = entity_data.get('data', {})
+
+        # Get agent name for default filename
+        agent_name = noodling_data.get('name', noodling_id.replace('agent_', ''))
+
+        # Open file save dialog
+        default_path = str(Path.home() / f"{agent_name}.yaml")
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Noodling",
+            default_path,
+            "YAML Files (*.yaml);;All Files (*)"
+        )
+
+        if file_path:
+            try:
+                # Fetch full agent data from API
+                import requests
+                resp = requests.get(f"{self.api_base}/agents/{noodling_id}", timeout=2)
+                if resp.status_code == 200:
+                    full_data = resp.json()
+
+                    # Export to YAML (recipe format)
+                    with open(file_path, 'w') as f:
+                        yaml.dump(full_data, f, default_flow_style=False, sort_keys=False)
+
+                    print(f"Exported {agent_name} to {file_path}")
+                else:
+                    print(f"Failed to fetch agent data: {resp.status_code}")
+            except Exception as e:
+                print(f"Error exporting noodling: {e}")
+
     def duplicate_prim_data(self, entity_data):
         """Duplicate a prim (uses data)."""
         prim_type = entity_data.get('type')
@@ -292,22 +386,67 @@ class SceneHierarchy(MaximizableDock):
         # TODO: Send to noodleMUSH API
 
     def delete_prim_data(self, entity_data):
-        """Delete a prim (uses data)."""
+        """De-rez a prim or Noodling (delete from scene)."""
         prim_id = entity_data.get('id')
         prim_type = entity_data.get('type')
 
         from PyQt6.QtWidgets import QMessageBox
-        reply = QMessageBox.question(
-            self,
-            "Delete Prim",
-            f"Delete {prim_type} '{prim_id}'?\n\nThis cannot be undone.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
+        msgBox = QMessageBox(self)
+        msgBox.setWindowTitle("De-Rez")
+        msgBox.setText(f"De-rez {prim_type} '{prim_id}'?\n\nThis will remove it from the scene.")
+        msgBox.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msgBox.setIcon(QMessageBox.Icon.NoIcon)  # No icon!
+        reply = msgBox.exec()
 
         if reply == QMessageBox.StandardButton.Yes:
-            print(f"Delete {prim_type}: {prim_id}")
-            # TODO: Send to noodleMUSH API
-            self.refresh_scene()
+            # Send @remove command to noodleMUSH
+            import subprocess
+            try:
+                # Use the @remove command via the running server
+                # For now, just remove from the scene data and refresh
+                print(f"De-rezzing {prim_type}: {prim_id}")
+
+                # De-rez by directly modifying world data AND removing from tree
+                if prim_type == 'agent':
+                    # Load agents.json and remove the agent
+                    import json
+                    agents_path = os.path.join(
+                        os.path.dirname(__file__),
+                        "../../../cmush/world/agents.json"
+                    )
+                    agents_path = os.path.abspath(agents_path)
+
+                    try:
+                        with open(agents_path, 'r') as f:
+                            agents = json.load(f)
+
+                        if prim_id in agents:
+                            del agents[prim_id]
+
+                            with open(agents_path, 'w') as f:
+                                json.dump(agents, f, indent=2)
+
+                            print(f"De-rezzed {prim_id}")
+
+                            # Remove from tree immediately
+                            current_item = self.tree.currentItem()
+                            if current_item:
+                                parent = current_item.parent()
+                                if parent:
+                                    parent.removeChild(current_item)
+                                else:
+                                    index = self.tree.indexOfTopLevelItem(current_item)
+                                    if index >= 0:
+                                        self.tree.takeTopLevelItem(index)
+
+                    except Exception as e:
+                        print(f"Error de-rezzing: {e}")
+                else:
+                    # For other types, just refresh
+                    self.refresh_scene()
+
+            except Exception as e:
+                QMessageBox.warning(self, "De-Rez Failed", f"Error: {e}")
 
     def edit_description_data(self, entity_data):
         """Edit description (uses data)."""

@@ -14,18 +14,22 @@
             box-sizing: border-box;
         }
 
+        html {
+            height: 100%;
+        }
+
         body {
             font-family: 'Courier New', monospace;
             background-color: #000;
-            color: #ffb000;  /* WYSE AMBER! */
-            height: 100vh;
+            color: #00ff00;  /* GREEN TUI! */
+            height: 100%;
             overflow: hidden;
         }
 
         #container {
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: 100%;
             padding: 20px;
         }
 
@@ -338,15 +342,17 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
+            background-color: #000000;  /* Fully opaque black */
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 10000;  /* Higher z-index */
+            pointer-events: all;  /* Block all events */
         }
 
         #auth-modal.hidden {
             display: none;
+            pointer-events: none;  /* Allow events when hidden */
         }
 
         #auth-form {
@@ -457,20 +463,9 @@
             color: #ffff00;
         }
 
-        #telepathy-toggle::before {
-            content: '🧠 ';
-        }
-
-        /* Brain status bar */
+        /* Brain status bar - hidden (profiler coming soon) */
         #brain-status-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            padding: 10px;
-            border-bottom: 1px solid #003300;
-            margin-bottom: 10px;
-            min-height: 40px;
+            display: none;
         }
 
         .brain-indicator {
@@ -542,6 +537,23 @@
                 <button id="register-btn">Register</button>
             </div>
             <div id="status"></div>
+
+            <!-- Admin Login (only shown when running in NoodleStudio) -->
+            <div id="admin-login-container" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #00ff00;">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <span style="color: #00ff00; font-size: 14px;">Admin</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <label id="invisible-checkbox-label" style="display: flex; align-items: center; gap: 5px; font-size: 14px; color: #00ff00; cursor: pointer; user-select: none;">
+                        <span id="invisible-checkbox-display">[ ]</span>
+                        <span>invisible</span>
+                    </label>
+                    <input type="checkbox" id="invisible-mode-checkbox" style="display: none;" />
+                    <button id="admin-login-btn" style="background: #000; border: 1px solid #00ff00; color: #00ff00; padding: 8px 16px; font-family: 'Courier New', monospace; cursor: pointer;">
+                        Login as Admin
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -553,7 +565,7 @@
                 <button class="font-btn" onclick="increaseFontSize()">A+</button>
             </div>
             <h1>noodleMUSH</h1>
-            <p>Noodlings Multi-User Shared Hallucination</p>
+            <p style="color: #008800;">Noodlings Multi-User Shared Hallucination</p>
             <button id="telepathy-toggle" title="Toggle telepathy (read others' thoughts)">Telepathy: OFF</button>
         </div>
 
@@ -985,22 +997,20 @@
             });
         }
 
-        // Toggle between chat, log, and LLM config views (cycles)
+        // Toggle between chat and log views (LLM config removed - use NoodleStudio for that)
         function toggleView() {
             closeAllDropdowns();  // Close model picker when switching views!
 
             const outputDiv = document.getElementById('output');
             const logOutputDiv = document.getElementById('log-output');
-            const llmConfigDiv = document.getElementById('llm-config');
             const viewIndicator = document.getElementById('view-mode-indicator');
             const verboseToggle = document.getElementById('verbose-toggle');
 
-            // Cycle: chat → log → llm → chat
+            // Cycle: chat → log → chat
             if (currentView === 'chat') {
                 // Switch to log view
                 outputDiv.style.display = 'none';
                 logOutputDiv.style.display = 'block';
-                llmConfigDiv.style.display = 'none';
                 viewIndicator.textContent = 'LOG VIEW';
                 verboseToggle.style.display = 'inline-block';
                 currentView = 'log';
@@ -1011,22 +1021,10 @@
                     ws.send(JSON.stringify({ type: 'subscribe_logs' }));
                     logSubscribed = true;
                 }
-            } else if (currentView === 'log') {
-                // Switch to LLM config view
-                outputDiv.style.display = 'none';
-                logOutputDiv.style.display = 'none';
-                llmConfigDiv.style.display = 'block';
-                viewIndicator.textContent = 'LLM CONFIG';
-                verboseToggle.style.display = 'none';
-                currentView = 'llm';
-
-                // Load LLM config data
-                loadLLMConfig();
             } else {
                 // Switch back to chat view
                 outputDiv.style.display = 'block';
                 logOutputDiv.style.display = 'none';
-                llmConfigDiv.style.display = 'none';
                 viewIndicator.textContent = 'CHAT VIEW';
                 verboseToggle.style.display = 'none';
                 currentView = 'chat';
@@ -1952,11 +1950,21 @@
                 return;
             }
 
-            ws.send(JSON.stringify({
+            // Build login message
+            const loginMsg = {
                 type: 'login',
                 username: username,
                 password: password
-            }));
+            };
+
+            // Add invisible mode flag if admin is logging in
+            if (window.adminInvisibleMode !== undefined) {
+                loginMsg.invisible = window.adminInvisibleMode;
+                // Clear the flag after using it
+                delete window.adminInvisibleMode;
+            }
+
+            ws.send(JSON.stringify(loginMsg));
 
             statusDiv.textContent = 'Logging in...';
             statusDiv.style.color = '#ffff00';
@@ -2234,6 +2242,41 @@
                 ws.send(JSON.stringify({ type: 'ping' }));
             }
         }, 30000);
+
+        // ========== NOODLESTUDIO DETECTION ==========
+        // Check if running inside NoodleStudio
+        const urlParams = new URLSearchParams(window.location.search);
+        const isInStudio = urlParams.get('studio') === 'true';
+
+        if (isInStudio) {
+            // Show admin login section
+            document.getElementById('admin-login-container').style.display = 'block';
+
+            // Handle TUI-style checkbox toggle
+            const checkboxLabel = document.getElementById('invisible-checkbox-label');
+            const checkboxDisplay = document.getElementById('invisible-checkbox-display');
+            const hiddenCheckbox = document.getElementById('invisible-mode-checkbox');
+
+            checkboxLabel.addEventListener('click', () => {
+                hiddenCheckbox.checked = !hiddenCheckbox.checked;
+                checkboxDisplay.textContent = hiddenCheckbox.checked ? '[X]' : '[ ]';
+            });
+
+            // Handle admin login
+            document.getElementById('admin-login-btn').addEventListener('click', () => {
+                const invisibleMode = document.getElementById('invisible-mode-checkbox').checked;
+
+                // Auto-fill username and password for admin
+                document.getElementById('username').value = 'admin';
+                document.getElementById('password').value = 'admin';  // Use default password
+
+                // Set invisible mode flag (will be sent with login)
+                window.adminInvisibleMode = invisibleMode;
+
+                // Trigger login
+                login();
+            });
+        }
 
         // Initial connection
         connect();

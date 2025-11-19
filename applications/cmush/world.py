@@ -166,6 +166,31 @@ class World:
         room = self.get_room(room_id)
         return room['occupants'] if room else []
 
+    def get_visible_occupants(self, room_id: str) -> List[str]:
+        """
+        Get visible occupants (users + agents) in a room.
+        Excludes invisible admin users.
+
+        Args:
+            room_id: Room to check
+
+        Returns:
+            List of visible user/agent IDs
+        """
+        all_occupants = self.get_room_occupants(room_id)
+        visible = []
+
+        for occupant_id in all_occupants:
+            # Check if this is an invisible user
+            if occupant_id.startswith('user_'):
+                user = self.get_user(occupant_id)
+                if user and user.get('invisible', False):
+                    # Skip invisible users
+                    continue
+            visible.append(occupant_id)
+
+        return visible
+
     # ===== Object Methods =====
 
     def get_object(self, obj_id: str) -> Optional[Dict]:
@@ -179,10 +204,12 @@ class World:
         owner: str,
         location: Optional[str] = None,
         portable: bool = True,
-        takeable: bool = True
+        takeable: bool = True,
+        obj_type: str = "prop",
+        script: Optional[str] = None
     ) -> str:
         """
-        Create a new object.
+        Create a new object (prim).
 
         Args:
             name: Object name
@@ -191,6 +218,8 @@ class World:
             location: Initial location (room_id or user_id)
             portable: Can be moved
             takeable: Can be picked up
+            obj_type: Prim type (prop, furniture, container, vending_machine, etc.)
+            script: Optional script name attached to this prim
 
         Returns:
             Object ID
@@ -201,9 +230,17 @@ class World:
             'uid': obj_id,
             'name': name,
             'description': description,
+            'type': obj_type,
             'location': location,
             'owner': owner,
             'created': datetime.now().isoformat(),
+            'script': {
+                'name': script,  # Script class name (e.g., "AnklebiterVendingMachine")
+                'code': None,  # Python source code (stored when uploaded)
+                'state': {},  # Persistent instance variables
+                'version': 1,  # Script version for migrations
+                'compiled': False  # Whether backend has successfully compiled
+            } if script else None,
             'properties': {
                 'portable': portable,
                 'takeable': takeable

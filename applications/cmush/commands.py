@@ -137,7 +137,7 @@ class CommandParser:
     the world state, returning formatted output for the user.
     """
 
-    def __init__(self, world, agent_manager, server=None, config=None, config_path=None):
+    def __init__(self, world, agent_manager, server=None, config=None, config_path=None, script_manager=None):
         """
         Initialize command parser.
 
@@ -147,12 +147,14 @@ class CommandParser:
             server: Server instance (for shutdown command)
             config: Server config dict (for saving changes)
             config_path: Path to config.yaml (for persistence)
+            script_manager: Script manager instance (for scripting system)
         """
         self.world = world
         self.agent_manager = agent_manager
         self.server = server
         self.config = config
         self.config_path = config_path
+        self.script_manager = script_manager
         self.recipe_loader = RecipeLoader("recipes")
 
         # BRENDA state tracking (lazy parameter tweaking)
@@ -564,6 +566,10 @@ class CommandParser:
 
         # Check for play chat triggers
         await self.play_manager.check_chat_trigger(args, room['uid'])
+
+        # Trigger OnHear for scripted prims in room
+        if self.script_manager:
+            self.script_manager.broadcast_hear_to_room(room['uid'], user_id, args)
 
         return {
             'success': True,
@@ -1083,27 +1089,37 @@ class CommandParser:
     # ===== Agent Commands =====
 
     async def cmd_rez_agent(self, user_id: str, args: str) -> Dict:
-        """Spawn one or more Noodling agents (with optional recipe)."""
+        """Unified rez command - spawns Noodlings, prims, directions, ensembles."""
         if not args:
             return {
                 'success': False,
                 'output': (
-                    'Usage: @rez [-f] [-e] <agent_name> [agent_name2 ...] [description]\n\n'
+                    'Usage: @rez [-f] [-e] <agent_name> [agent_name2 ...] [description]\n'
+                    '       @rez -p <type> "<name>" [script:<ScriptName>]\n'
+                    '       @rez -d <direction> "<room_name>" (TODO)\n'
+                    '       @rez -e "<ensemble_name>" (TODO)\n\n'
                     'Options:\n'
                     '  -f    Force fresh state (skip loading saved phenomenal state)\n'
-                    '  -e    Enable enlightenment (agent is self-aware and metacognitive)\n\n'
+                    '  -e    Enable enlightenment (agent is self-aware and metacognitive)\n'
+                    '  -p    Rez prim (prop, furniture, vending_machine, etc.)\n'
+                    '  -d    Rez direction/exit (TODO)\n'
+                    '  -e    Rez ensemble (TODO)\n\n'
                     'Available recipes:\n' +
                     '\n'.join(f'  - {name}' for name in self.recipe_loader.list_recipes()) +
                     '\n\nExamples:\n'
                     '  @rez phi\n'
                     '  @rez -f phi        (fresh rez, ignores saved state)\n'
                     '  @rez -e phi        (spawn with enlightenment)\n'
-                    '  @rez -f -e phi     (fresh AND enlightened)\n'
                     '  @rez phi toad callie\n'
-                    '  @rez phi curious and thoughtful'
+                    '  @rez -p vending_machine "Anklebiter Dispenser" script:AnklebiterVendingMachine\n'
+                    '  @rez -p prop "Magic Sword"\n'
                 ),
                 'events': []
             }
+
+        # Check for -p flag (rez prim)
+        if args.startswith('-p '):
+            return await self._rez_prim(user_id, args[3:].strip())
 
         # Check for -f flag (force fresh state)
         skip_phenomenal_state = False
@@ -1299,6 +1315,68 @@ class CommandParser:
                 'output': f"Failed to spawn agents. Errors: {', '.join(errors)}",
                 'events': []
             }
+
+    async def _rez_prim(self, user_id: str, args: str) -> Dict:
+        """
+        Helper method for @rez -p (rez prim).
+
+        Usage: @rez -p <type> "<name>" [script:<ScriptName>]
+        Example: @rez -p vending_machine "Anklebiter Dispenser" script:AnklebiterVendingMachine
+        """
+        if not args:
+            return {
+                'success': False,
+                'output': 'Usage: @rez -p <type> "<name>" [script:<ScriptName>]\n'
+                         'Types: prop, furniture, container, vending_machine, etc.\n'
+                         'Example: @rez -p vending_machine "Anklebiter Dispenser" script:AnklebiterVendingMachine',
+                'events': []
+            }
+
+        # Parse: type "<name>" script:ScriptName
+        import re
+        match = re.match(r'^(\w+)\s+"([^"]+)"(?:\s+script:(\w+))?$', args)
+
+        if not match:
+            return {
+                'success': False,
+                'output': 'Invalid syntax. Use: @rez -p <type> "<name>" [script:<ScriptName>]',
+                'events': []
+            }
+
+        prim_type = match.group(1)
+        name = match.group(2)
+        script_name = match.group(3)
+
+        # Get user's current room
+        room = self.world.get_user_room(user_id)
+        if not room:
+            return {'success': False, 'output': 'Error getting location.', 'events': []}
+
+        # Create prim
+        obj_id = self.world.create_object(
+            name=name,
+            description=f"A {prim_type} prim.",
+            owner=user_id,
+            location=room['uid'],
+            obj_type=prim_type,
+            script=script_name  # Will be None if not provided
+        )
+
+        # Attach script if specified
+        if script_name and self.script_manager:
+            success = self.script_manager.attach_script(obj_id, script_name)
+            if success:
+                output = f"✅ Rezzed {prim_type} '{name}' ({obj_id}) with script '{script_name}'"
+            else:
+                output = f"⚠️  Rezzed {prim_type} '{name}' ({obj_id}) but script '{script_name}' failed to attach"
+        else:
+            output = f"Rezzed {prim_type} '{name}' ({obj_id})"
+
+        return {
+            'success': True,
+            'output': output,
+            'events': []
+        }
 
     async def cmd_remove(self, user_id: str, args: str) -> Dict:
         """Remove an agent from the world."""

@@ -11,6 +11,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.build/
 *.pyc
 venv/
 env/
@@ -60,6 +61,11 @@ server_debug.log
 # Session notes (development only)
 2025-*.txt
 *-oh-hi-there-*.txt
+CLAUDE.md
+HANDOFF_*.md
+
+# User's Noodlings Stage (personal data, not in repo)
+# This is created in ~/Noodlings/ on user's machine
 
 # Draft documents (keep only published versions)
 KODING.md

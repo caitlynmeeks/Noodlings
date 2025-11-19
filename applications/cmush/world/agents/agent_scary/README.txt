@@ -1,4 +1,4 @@
-Agent Filesystem for agent_callie
+Agent Filesystem for agent_scary
 ============================================================
 
 Directory Structure:
@@ -12,4 +12,4 @@ Directory Structure:
 Storage Quota: 100MB
 Max File Size: 1024KB
 
-Created: 2025-11-18T22:58:20.545884
+Created: 2025-11-19T00:15:12.283072

@@ -869,7 +869,16 @@ class CMUSHConsilienceAgent:
             if world_state:
                 # Room occupants with species/metadata
                 room = world_state.get('rooms', {}).get(room_id, {})
-                occupants = room.get('occupants', [])
+                all_occupants = room.get('occupants', [])
+
+                # Filter out invisible users (admin stealth mode)
+                occupants = []
+                for occ_id in all_occupants:
+                    if occ_id.startswith('user_'):
+                        user_data = world_state.get('users', {}).get(occ_id, {})
+                        if user_data.get('invisible', False):
+                            continue  # Skip invisible admin users
+                    occupants.append(occ_id)
 
                 if occupants:
                     occupant_details = []
