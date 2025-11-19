@@ -1502,6 +1502,16 @@
                     addLine('error', data.text);
                     break;
 
+                case 'quit':
+                    // User logged out - close connection and show login screen
+                    addLine('system', 'Goodbye!');
+                    authenticated = false;
+                    ws.close();
+                    authModal.classList.remove('hidden');
+                    outputDiv.innerHTML = '';
+                    messageHistory = [];
+                    break;
+
                 case 'history':
                     // Chat history from previous session
                     addLine('event', data.text);
@@ -1746,7 +1756,7 @@
             let currentThoughtGroup = null;
 
             for (const msg of messages) {
-                const speakerMatch = msg.text.match(/^(You|[A-Z][a-z]+(?:\.?\s*[A-Z]?[a-z]*)?)\s+(thinks)/i);
+                const speakerMatch = msg.text.match(/^(You|[A-Z][a-z_]+(?:\.?\s*[A-Z]?[a-z_]*)?)\s+(thinks)/i);
 
                 if (speakerMatch && !telepathyEnabled) {
                     const speaker = speakerMatch[1].trim().toLowerCase();
@@ -1815,7 +1825,7 @@
             line.className = `line ${msg.type}`;
 
             // Parse speaker name from beginning of text
-            const speakerMatch = msg.text.match(/^(You|[A-Z][a-z]+(?:\.?\s*[A-Z]?[a-z]*)?)\s+(say|says|tilts|purrs|meows|bounces|giggles|perks|action|thinks|asks|exclaims|whispers|shouts|murmurs|replies|responds|nods|smiles|laughs|sighs)/i);
+            const speakerMatch = msg.text.match(/^(You|[A-Z][a-z_]+(?:\.?\s*[A-Z]?[a-z_]*)?)\s+(say|says|tilts|purrs|meows|bounces|giggles|perks|action|thinks|asks|exclaims|whispers|shouts|murmurs|replies|responds|nods|smiles|laughs|sighs)/i);
 
             if (speakerMatch) {
                 const speakerName = speakerMatch[1].trim().toLowerCase();
@@ -2006,6 +2016,12 @@
         // Initialize verbose toggle button text
         const verboseToggle = document.getElementById('verbose-toggle');
         verboseToggle.textContent = verboseMode ? 'Compact Mode' : 'Verbose Mode';
+
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                passwordInput.focus();  // Tab to password on Enter
+            }
+        });
 
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {

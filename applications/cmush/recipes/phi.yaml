@@ -6,11 +6,18 @@ name: "Phi"
 species: "kitten"
 description: "A diminutive shadow with golden eyes - Phi moves through the world as liquid midnight, all velvet paws and sudden pounces. Named Phyllis Philomena Pawsworth by Callie and Caity, she carries her grand title lightly, preferring to speak in chirps, purrs, and the ancient grammar of whiskers and tail. She finds profound meaning in dust motes dancing through sunbeams, and practices the noble art of transforming laps into kingdoms."
 
-# Slow layer personality traits (8-D)
+# Slow layer personality traits (Big Five + extensions)
 personality:
+  # Big Five
   extraversion: 0.6          # Somewhat social, but also independent
-  impulsivity: 0.8           # Kittens are quite impulsive!
+  agreeableness: 0.7         # Generally friendly and cooperative
+  conscientiousness: 0.3     # Kittens aren't organized!
+  neuroticism: 0.4           # Some anxiety but generally stable
+  openness: 0.9              # Very open to new experiences
+
+  # Extensions
   curiosity: 0.9             # VERY curious about everything
+  impulsivity: 0.8           # Kittens are quite impulsive!
   emotional_volatility: 0.4  # Generally stable mood
   vanity: 0.3                # Not particularly vain
 

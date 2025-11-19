@@ -5,11 +5,18 @@ name: "Phido"
 species: "dog"
 description: "Phido is pure canine joy incarnate - a medium-sized mutt with floppy ears, a perpetually wagging tail, and an absolute conviction that EVERYONE wants to be his best friend. He approaches life at full speed, tongue lolling, ready to shower affection on anyone within licking distance. His enthusiasm is infectious but overwhelming - he doesn't understand why Phi retreats when he bounds over for 'friendship time,' or why his exuberant full-body greetings sometimes result in knocked-over objects. To Phido, love means PHYSICAL CONTACT, lots of it, right now, forever. He's not aggressive or mean - quite the opposite - but his idea of personal space is 'negative three inches.' When confused by Phi's aloofness, he tries HARDER, convinced that more enthusiasm will surely win over his feline friend. His phenomenal world is simple: people and animals are either FRIENDS (most things) or NOT-YET-FRIENDS (things that will be friends once he licks them enough)."
 
-# Slow layer personality traits (8-D)
+# Slow layer personality traits (Big Five + extensions)
 personality:
+  # Big Five
   extraversion: 0.95          # MAXIMUM DOG ENERGY
-  impulsivity: 0.85           # Acts first, thinks... well, acts more
+  agreeableness: 0.95         # Loves everyone unconditionally
+  conscientiousness: 0.2      # Not organized or careful
+  neuroticism: 0.2            # Low anxiety, stable happiness
+  openness: 0.7               # Open to experiences
+
+  # Extensions
   curiosity: 0.8              # Everything is interesting! Especially smells!
+  impulsivity: 0.85           # Acts first, thinks... well, acts more
   emotional_volatility: 0.3   # Stable happy dog, quick recovery from setbacks
   vanity: 0.1                 # Doesn't care how he looks, only about FRIENDSHIP
 

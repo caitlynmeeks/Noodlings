@@ -81,6 +81,7 @@ class NoodleScopeAPI:
 
         # LLM configuration endpoints (for UI)
         self.app.router.add_get('/api/config', self.get_config)
+        self.app.router.add_post('/api/config/save', self.save_config)
         self.app.router.add_get('/api/agents', self.get_agents)
 
         # Health check
@@ -116,6 +117,72 @@ class NoodleScopeAPI:
             'brenda': self.config.get('brenda', {}),
             'agent': self.config.get('agent', {})
         })
+
+    async def save_config(self, request: web.Request) -> web.Response:
+        """Save config field to YAML file."""
+        try:
+            data = await request.json()
+            field_path = data.get('field', '')
+            value = data.get('value', '')
+
+            # Parse field path (e.g., "llm.provider", "brenda.model", "recipes.callie.llm.model")
+            parts = field_path.split('.')
+
+            # Handle recipe saves (save to individual recipe file)
+            if parts[0] == 'recipes':
+                import yaml
+                agent_name = parts[1]
+                recipe_path = Path(f'recipes/{agent_name}.yaml')
+
+                with open(recipe_path, 'r') as f:
+                    recipe = yaml.safe_load(f)
+
+                # Navigate to field (e.g., llm.model)
+                current = recipe
+                for part in parts[2:-1]:  # Skip 'recipes' and agent_name
+                    if part not in current:
+                        current[part] = {}
+                    current = current[part]
+
+                current[parts[-1]] = value
+
+                with open(recipe_path, 'w') as f:
+                    yaml.dump(recipe, f, default_flow_style=False, sort_keys=False)
+
+                return web.json_response({'success': True, 'message': f'Recipe for {agent_name} saved'})
+
+            # Otherwise save to config.yaml
+            import yaml
+            config_path = Path('config.yaml')
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+
+            # Navigate to the field and update it
+            current = config
+            for part in parts[:-1]:
+                if part not in current:
+                    current[part] = {}
+                current = current[part]
+
+            # Set the value (handle timeout special case - remove 's' suffix)
+            final_key = parts[-1]
+            if final_key == 'timeout' and value.endswith('s'):
+                current[final_key] = int(value[:-1])
+            else:
+                current[final_key] = value.lower() if final_key == 'provider' else value
+
+            # Save back to YAML
+            with open(config_path, 'w') as f:
+                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+            # Reload config in memory
+            self.config = config
+
+            return web.json_response({'success': True, 'message': 'Config saved'})
+
+        except Exception as e:
+            logger.error(f"Failed to save config: {e}")
+            return web.json_response({'success': False, 'error': str(e)}, status=500)
 
     async def get_agents(self, request: web.Request) -> web.Response:
         """Get list of agents and their LLM configurations."""

@@ -252,7 +252,7 @@ class RecipeLoader:
                 'comfort': 0.5,
                 'autonomy': 0.5
             },
-            identity_prompt="You are a Noodling consciousness agent exploring the world.",
+            identity_prompt="You are a Noodling exploring the world.",
             language_mode="verbal",
             max_tokens=150,
             temperature=0.7,

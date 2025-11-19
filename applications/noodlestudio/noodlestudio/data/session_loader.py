@@ -129,8 +129,13 @@ class SessionLoader:
                 # Parse affect
                 affect = event_data.get('affect', {})
 
-                # Parse phenomenal state
-                phenom = event_data.get('phenomenal_state', {})
+                # Parse phenomenal state (can be dict or list)
+                phenom_raw = event_data.get('phenomenal_state', {})
+                if isinstance(phenom_raw, list):
+                    # Empty list or raw array - create empty dict
+                    phenom = {'fast': [], 'medium': [], 'slow': [], 'full': phenom_raw}
+                else:
+                    phenom = phenom_raw
 
                 # Parse FACS/body codes
                 facs_raw = event_data.get('facs_codes', [])

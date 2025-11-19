@@ -28,6 +28,9 @@ class LayoutManager:
         self.layouts_dir = Path.home() / ".noodlestudio" / "layouts"
         self.layouts_dir.mkdir(parents=True, exist_ok=True)
 
+        # Preference file for "last used layout"
+        self.prefs_file = self.layouts_dir / "preferences.json"
+
     def save_layout(self, window, layout_name: str):
         """
         Save current window layout.
@@ -50,7 +53,7 @@ class LayoutManager:
 
     def load_layout(self, window, layout_name: str) -> bool:
         """
-        Load saved layout.
+        Load saved layout with improved error handling.
 
         Args:
             window: QMainWindow instance
@@ -62,24 +65,58 @@ class LayoutManager:
         layout_file = self.layouts_dir / f"{layout_name}.json"
 
         if not layout_file.exists():
-            print(f"Layout '{layout_name}' not found")
+            print(f"Layout '{layout_name}' not found at {layout_file}")
             return False
 
         try:
             with open(layout_file, 'r') as f:
                 layout_data = json.load(f)
 
-            geometry = bytes.fromhex(layout_data['geometry'])
-            state = bytes.fromhex(layout_data['state'])
+            print(f"Loading layout '{layout_name}'...")
 
-            window.restoreGeometry(geometry)
-            window.restoreState(state)
+            # Validate data before attempting restore
+            if 'geometry' not in layout_data or 'state' not in layout_data:
+                print(f"  Invalid layout file - missing geometry or state")
+                return False
 
-            print(f"Layout '{layout_name}' loaded")
-            return True
+            success = False
+
+            # Restore geometry first (safer)
+            try:
+                geometry = bytes.fromhex(layout_data['geometry'])
+                result_geo = window.restoreGeometry(geometry)
+                print(f"  Geometry restored: {result_geo}")
+                if result_geo:
+                    success = True
+            except Exception as e:
+                print(f"  Geometry restore failed: {e}")
+                # Continue anyway - state might still work
+
+            # Restore state (this is where crashes happen)
+            # Wrap in try-catch to prevent app crash
+            try:
+                state = bytes.fromhex(layout_data['state'])
+                result_state = window.restoreState(state)
+                print(f"  State restored: {result_state}")
+                if result_state:
+                    success = True
+            except Exception as e:
+                print(f"  State restore failed (non-fatal): {e}")
+                # Don't return False - geometry might have worked
+
+            if success:
+                print(f"Layout '{layout_name}' loaded (partial or full)")
+                # Save as last used
+                self.set_last_used_layout(layout_name)
+                return True
+            else:
+                print(f"Layout '{layout_name}' failed to load")
+                return False
 
         except Exception as e:
-            print(f"Error loading layout: {e}")
+            print(f"Error loading layout '{layout_name}': {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def list_layouts(self) -> list:
@@ -92,3 +129,42 @@ class LayoutManager:
         if layout_file.exists():
             layout_file.unlink()
             print(f"Layout '{layout_name}' deleted")
+
+    def set_last_used_layout(self, layout_name: str):
+        """
+        Save the last used layout name (like Unity's last scene).
+
+        Args:
+            layout_name: The layout that was just loaded
+        """
+        prefs = {}
+        if self.prefs_file.exists():
+            try:
+                with open(self.prefs_file, 'r') as f:
+                    prefs = json.load(f)
+            except:
+                pass
+
+        prefs['last_used_layout'] = layout_name
+
+        with open(self.prefs_file, 'w') as f:
+            json.dump(prefs, f, indent=2)
+
+        print(f"Last used layout: '{layout_name}'")
+
+    def get_last_used_layout(self) -> str | None:
+        """
+        Get the last used layout (like Unity reopening last scene).
+
+        Returns:
+            Layout name or None if no preference saved
+        """
+        if not self.prefs_file.exists():
+            return None
+
+        try:
+            with open(self.prefs_file, 'r') as f:
+                prefs = json.load(f)
+                return prefs.get('last_used_layout')
+        except:
+            return None

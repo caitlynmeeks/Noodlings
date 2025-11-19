@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>noodleMUSH</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #000000;
+            overflow: hidden;
+            height: 100vh;
+        }
+        #terminal-container {
+            width: 100%;
+            height: 100%;
+        }
+        #terminal {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal-container">
+        <div id="terminal"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
+    <script>
+        // PURE TUI - Everything rendered IN the terminal!
+        const term = new Terminal({
+            cursorBlink: true,
+            cursorStyle: 'block',
+            fontSize: 18,
+            fontFamily: '"Courier New", monospace',
+            theme: {
+                background: '#000000',
+                foreground: '#ffb000',
+                cursor: '#ffd700',
+                cursorAccent: '#000000',
+                selectionBackground: '#ffb000',
+                selectionForeground: '#000000',
+                brightYellow: '#ffd700',
+                brightWhite: '#ffd700',
+                yellow: '#ffb000',
+                white: '#ffb000'
+            },
+            allowProposedApi: true,
+            scrollback: 10000
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(document.getElementById('terminal'));
+        fitAddon.fit();
+        window.addEventListener('resize', () => fitAddon.fit());
+
+        // State
+        let currentView = 'chat';  // 'chat', 'log', 'config'
+        let authenticated = false;
+        let telepathyEnabled = localStorage.getItem('telepathyEnabled') === 'true';
+        let enlightenedAgents = [];
+        let chatBuffer = [];
+        let logBuffer = [];
+        let inputBuffer = '';
+        let ws = null;
+
+        // ANSI escape codes
+        const ANSI = {
+            CLEAR: '\x1b[2J',
+            HOME: '\x1b[H',
+            CLEAR_LINE: '\x1b[2K',
+            SAVE_CURSOR: '\x1b7',
+            RESTORE_CURSOR: '\x1b8',
+            HIDE_CURSOR: '\x1b[?25l',
+            SHOW_CURSOR: '\x1b[?25h',
+            YELLOW: '\x1b[33m',
+            BRIGHT_YELLOW: '\x1b[1;33m',
+            BRIGHT_WHITE: '\x1b[1;37m',
+            DIM: '\x1b[2m',
+            RESET: '\x1b[0m',
+            GREEN: '\x1b[32m',
+            RED: '\x1b[31m'
+        };
+
+        // Track last render to avoid unnecessary redraws
+        let lastFullRender = 0;
+
+        // Render full UI (WordStar style)
+        function render(force = false) {
+            // Only full render every 100ms unless forced
+            const now = Date.now();
+            if (!force && now - lastFullRender < 100) {
+                updateInputLine();
+                return;
+            }
+            lastFullRender = now;
+
+            term.write(ANSI.CLEAR + ANSI.HOME);
+
+            const rows = term.rows;
+            const cols = term.cols;
+
+            // Header (line 1)
+            const header = '═ noodleMUSH - Noodlings Multi-User Shared Hallucination ═';
+            const headerPadded = header.padEnd(cols, '═');
+            term.writeln(`${ANSI.BRIGHT_YELLOW}${headerPadded}${ANSI.RESET}`);
+
+            // Status bar (line 2)
+            const viewName = { chat: 'CHAT', log: 'LOG', config: 'CONFIG' }[currentView];
+            const telepathy = telepathyEnabled ? 'ON' : 'OFF';
+            const status = `[${viewName}]  [TAB] cycle • [+/-] zoom • Telepathy: ${telepathy}`;
+            term.writeln(`${ANSI.YELLOW}${status.padEnd(cols)}${ANSI.RESET}`);
+
+            // Separator (line 3)
+            term.writeln(`${ANSI.YELLOW}${'─'.repeat(cols)}${ANSI.RESET}`);
+
+            // Main content area (lines 4 to rows-3)
+            const contentHeight = rows - 6;  // Leave room for header, status, separator, input line, separator
+
+            if (currentView === 'chat') {
+                renderChatView(contentHeight);
+            } else if (currentView === 'log') {
+                renderLogView(contentHeight);
+            } else if (currentView === 'config') {
+                renderConfigView(contentHeight);
+            }
+
+            // Bottom separator (row - 2)
+            term.write(`\r\n${ANSI.YELLOW}${'─'.repeat(cols)}${ANSI.RESET}\r\n`);
+
+            // Input line (row - 1)
+            term.write(`${ANSI.BRIGHT_YELLOW}> ${ANSI.RESET}${inputBuffer}${ANSI.SHOW_CURSOR}`);
+        }
+
+        function renderChatView(height) {
+            const startIndex = Math.max(0, chatBuffer.length - height);
+            const visibleLines = chatBuffer.slice(startIndex);
+
+            for (let i = 0; i < height; i++) {
+                if (i < visibleLines.length) {
+                    term.writeln(visibleLines[i]);
+                } else {
+                    term.writeln('');
+                }
+            }
+        }
+
+        function renderLogView(height) {
+            const startIndex = Math.max(0, logBuffer.length - height);
+            const visibleLines = logBuffer.slice(startIndex);
+
+            for (let i = 0; i < height; i++) {
+                if (i < visibleLines.length) {
+                    term.writeln(visibleLines[i]);
+                } else {
+                    term.writeln('');
+                }
+            }
+        }
+
+        async function renderConfigView(height) {
+            term.writeln(`${ANSI.BRIGHT_YELLOW}╔═══ GLOBAL CONFIGURATION ═══╗${ANSI.RESET}`);
+            term.writeln('');
+
+            try {
+                const response = await fetch('http://localhost:8081/api/config');
+                const config = await response.json();
+
+                term.writeln(`  ${ANSI.DIM}Provider:${ANSI.RESET}  ${ANSI.BRIGHT_WHITE}${config.llm?.provider || 'local'}${ANSI.RESET}`);
+                term.writeln(`  ${ANSI.DIM}Model:${ANSI.RESET}     ${ANSI.BRIGHT_WHITE}${config.llm?.local?.model || 'N/A'}${ANSI.RESET}`);
+                term.writeln(`  ${ANSI.DIM}API Base:${ANSI.RESET}  ${ANSI.BRIGHT_WHITE}${config.llm?.local?.api_base || 'N/A'}${ANSI.RESET}`);
+                term.writeln('');
+
+                // Agents
+                const agentResp = await fetch('http://localhost:8081/api/agents');
+                const agentData = await agentResp.json();
+                const agents = agentData.agents || [];
+
+                if (agents.length > 0) {
+                    term.writeln(`${ANSI.BRIGHT_YELLOW}╔═══ AGENTS ═══╗${ANSI.RESET}`);
+                    term.writeln('');
+
+                    agents.forEach(agent => {
+                        const name = (agent.name || agent.id).toUpperCase();
+                        const model = agent.llm_model || '(global)';
+                        const enlightened = enlightenedAgents.includes((agent.name || agent.id).toLowerCase());
+                        const marker = enlightened ? '*' : ' ';
+
+                        term.writeln(`  ${marker}${name}: ${ANSI.BRIGHT_WHITE}${model}${ANSI.RESET}`);
+                    });
+                }
+
+            } catch (err) {
+                term.writeln(`${ANSI.RED}✗ Failed to load config${ANSI.RESET}`);
+            }
+        }
+
+        // Update just the input line (fast, no flicker)
+        function updateInputLine() {
+            const rows = term.rows;
+            const cols = term.cols;
+
+            // Move to input line (second to last row)
+            term.write(`\x1b[${rows}H`);  // Move to last row
+            term.write(ANSI.CLEAR_LINE);
+            term.write(`${ANSI.BRIGHT_YELLOW}> ${ANSI.RESET}${inputBuffer}`);
+        }
+
+        // Add line to chat buffer
+        function addChatLine(line) {
+            chatBuffer.push(line);
+            if (currentView === 'chat') {
+                render(true);  // Force full render for new messages
+            }
+        }
+
+        // Add line to log buffer
+        function addLogLine(line) {
+            logBuffer.push(line);
+            if (currentView === 'log') {
+                render();
+            }
+        }
+
+        // Connect to server
+        function connect() {
+            ws = new WebSocket('ws://localhost:8765');
+
+            ws.onopen = () => {
+                addChatLine(`${ANSI.YELLOW}Connected to server!${ANSI.RESET}`);
+                addChatLine('');
+
+                // Auto-login (check cookies first, then localStorage)
+                function getCookie(name) {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) return parts.pop().split(';').shift();
+                    return null;
+                }
+
+                const savedUser = getCookie('noodlemush_username') || localStorage.getItem('noodlemush_username');
+                const savedPass = getCookie('noodlemush_password') || localStorage.getItem('noodlemush_password');
+
+                if (savedUser && savedPass) {
+                    addChatLine(`${ANSI.DIM}Attempting auto-login as ${savedUser}...${ANSI.RESET}`);
+                    console.log('Sending login:', savedUser);
+                    ws.send(JSON.stringify({
+                        type: 'login',
+                        username: savedUser,
+                        password: savedPass
+                    }));
+                } else {
+                    addChatLine(`${ANSI.YELLOW}Please type: login caity PASSWORD${ANSI.RESET}`);
+                    addChatLine('');
+                }
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('WS received:', data);
+
+                if (data.type === 'login_response') {
+                    if (data.success) {
+                        authenticated = true;
+                        localStorage.setItem('noodlemush_username', data.user_id);
+                        addChatLine('');
+                        addChatLine(`${ANSI.GREEN}✓ ${data.message || 'Logged in!'}${ANSI.RESET}`);
+                        addChatLine('');
+
+                        // Request enlightenment status
+                        ws.send(JSON.stringify({ type: 'get_enlightenment_status' }));
+                    } else {
+                        addChatLine(`${ANSI.RED}✗ ${data.message || 'Login failed'}${ANSI.RESET}`);
+                    }
+
+                } else if (data.type === 'output') {
+                    const output = data.text || data.content || '';
+                    if (output) {
+                        output.split('\n').forEach(line => addChatLine(line));
+                    }
+
+                } else if (data.type === 'message') {
+                    const sender = data.sender || data.username || 'Unknown';
+                    const content = data.content || data.text || '';
+                    const isThought = data.is_thought || false;
+
+                    const isEnlightened = enlightenedAgents.includes(sender.toLowerCase());
+                    const displayName = isEnlightened ? `${sender}*` : sender;
+
+                    if (isThought) {
+                        if (telepathyEnabled) {
+                            addChatLine(`${ANSI.DIM}🧠 ${displayName} privately thinks: ${content}${ANSI.RESET}`);
+                        }
+                    } else {
+                        addChatLine(`${ANSI.BRIGHT_YELLOW}${displayName}${ANSI.RESET}: ${content}`);
+                    }
+
+                } else if (data.type === 'system') {
+                    const sysMsg = data.content || data.text || '';
+                    addChatLine(`${ANSI.DIM}${sysMsg}${ANSI.RESET}`);
+
+                } else if (data.type === 'log') {
+                    const level = data.level || 'INFO';
+                    const logMsg = data.message || data.content || '';
+                    addLogLine(`[${ANSI.YELLOW}${level}${ANSI.RESET}] ${logMsg}`);
+
+                } else if (data.type === 'enlightenment_status') {
+                    enlightenedAgents = data.enlightened || [];
+                }
+            };
+
+            ws.onerror = () => {
+                addChatLine(`${ANSI.RED}Connection error!${ANSI.RESET}`);
+            };
+
+            ws.onclose = () => {
+                addChatLine(`${ANSI.YELLOW}Connection closed${ANSI.RESET}`);
+            };
+        }
+
+        // Keyboard input handling
+        term.onData((data) => {
+            console.log('Key pressed:', data, 'charCode:', data.charCodeAt(0));
+
+            if (data === '\r') {  // Enter
+                console.log('ENTER pressed, buffer:', inputBuffer, 'authenticated:', authenticated);
+                const cmd = inputBuffer.trim();
+
+                if (cmd) {
+                    // Echo command
+                    addChatLine(`${ANSI.DIM}> ${cmd}${ANSI.RESET}`);
+
+                    // Handle login command manually
+                    if (cmd.startsWith('login ')) {
+                        const parts = cmd.split(' ');
+                        if (parts.length >= 3) {
+                            const username = parts[1];
+                            const password = parts[2];
+                            console.log('Manual login:', username);
+                            ws.send(JSON.stringify({
+                                type: 'login',
+                                username: username,
+                                password: password
+                            }));
+                        } else {
+                            addChatLine(`${ANSI.RED}Usage: login USERNAME PASSWORD${ANSI.RESET}`);
+                        }
+
+                    } else if (authenticated) {
+                        // Send regular command
+                        console.log('Sending command:', cmd);
+                        ws.send(JSON.stringify({
+                            type: 'command',
+                            command: cmd
+                        }));
+
+                    } else {
+                        addChatLine(`${ANSI.RED}Not logged in! Type: login caity PASSWORD${ANSI.RESET}`);
+                    }
+
+                    inputBuffer = '';
+                    render();
+                }
+
+            } else if (data === '\x7f') {  // Backspace
+                if (inputBuffer.length > 0) {
+                    inputBuffer = inputBuffer.slice(0, -1);
+                    render();
+                }
+
+            } else if (data === '\t') {  // TAB - switch views
+                currentView = { chat: 'log', log: 'config', config: 'chat' }[currentView];
+                render();
+
+            } else if (data === '+' || data === '=') {  // Zoom in
+                term.options.fontSize = Math.min(48, term.options.fontSize + 2);
+                fitAddon.fit();
+                render();
+
+            } else if (data === '-' || data === '_') {  // Zoom out
+                term.options.fontSize = Math.max(8, term.options.fontSize - 2);
+                fitAddon.fit();
+                render();
+
+            } else if (data === '\x1b[A') {  // Up arrow
+                // TODO: Command history
+
+            } else if (data === '\x1b[B') {  // Down arrow
+                // TODO: Command history
+
+            } else {
+                // Regular character
+                inputBuffer += data;
+                render();
+            }
+        });
+
+        // Initial render
+        addChatLine(`${ANSI.BRIGHT_YELLOW}Welcome to noodleMUSH!${ANSI.RESET}`);
+        addChatLine('');
+        addChatLine(`${ANSI.DIM}Connecting to server...${ANSI.RESET}`);
+        render();
+
+        // Connect
+        connect();
+    </script>
+</body>
+</html>

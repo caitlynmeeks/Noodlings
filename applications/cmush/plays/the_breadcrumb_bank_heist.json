@@ -1,0 +1,250 @@
+{
+  "title": "The Breadcrumb Bank Heist",
+  "cast": [
+    "callie",
+    "servnak",
+    "phi",
+    "mysterious_stranger"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "Arrival at the Campsite",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "A crisp autumn afternoon. The campsite lies nestled in a clearing, surrounded by tall pines and a cracked stone fence. A single wooden sign reads: 'BREADCRUMB BANK - SECURE ZONE'. A rusted lantern hangs crookedly from a branch, casting long shadows."
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "The wooden gate creaks open with a gust of wind, revealing a path lined with scattered breadcrumbs and a single overturned picnic basket",
+            "target": "officer_squibbles"
+          }
+        },
+        {
+          "t": 6,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "A tall figure in a large dark raincoat stands near the picnic basket, adjusting the collar, and speaks in a calm, measured tone",
+            "target": "mysterious_stranger"
+          }
+        },
+        {
+          "t": 10,
+          "action": "cue",
+          "actor": "mysterious_stranger",
+          "args": {
+            "direction": "turn slowly to face the officer, one hand resting on the raincoat's edge, the other gesturing slightly toward the basket",
+            "motivation": "you're posing as a single person, but your presence is suspiciously broad"
+          }
+        },
+        {
+          "t": 12,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 14,
+          "action": "stimulus",
+          "args": {
+            "description": "A second figure steps out from behind the tree line, wearing a wide-brimmed hat and a scarf, and speaks in a soft, lilting voice",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 16,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "tilt head slightly, eyes narrow, and step forward with a quiet intensity",
+            "motivation": "you're assessing the situation with careful attention to detail"
+          }
+        },
+        {
+          "t": 18,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 20,
+          "action": "stimulus",
+          "args": {
+            "description": "A robotic voice echoes with precise tone and sharp clarity, stating: 'SISTER! MY CALCULATIONS INDICATE A 94.2% PROBABILITY THAT THE THEFT WAS PLANNED USING REPEATED PATTERNS OF BREADCRUMB DEPLOYMENT'",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 22,
+          "action": "cue",
+          "actor": "servnak",
+          "args": {
+            "direction": "stand tall, arms spread wide, pride circuits glowing amber, and point dramatically at the raincoat figure",
+            "motivation": "you're excited about the data and ready to reveal your findings"
+          }
+        },
+        {
+          "t": 24,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 26,
+          "action": "stimulus",
+          "args": {
+            "description": "The figure in the raincoat steps forward and says, 'I have a theory about the bakery's security system\u2014perhaps it's not the bread that's stolen, but the silence between the crumb drops'",
+            "target": "mysterious_stranger"
+          }
+        },
+        {
+          "t": 28,
+          "action": "cue",
+          "actor": "mysterious_stranger",
+          "args": {
+            "direction": "lean into the conversation, eyes twinkling, and pause before responding",
+            "motivation": "you're engaging in a witty exchange, testing the officer's attention"
+          }
+        },
+        {
+          "t": 30,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 32,
+          "action": "stimulus",
+          "args": {
+            "description": "Callie softly says, 'I feel a gentle flutter of curiosity about how the crumbs fall in patterns\u2014like a language spoken only by the wind'",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 34,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "turn toward the raincoat figure, eyes wide with quiet wonder",
+            "motivation": "you're exploring the idea of patterns in the world"
+          }
+        },
+        {
+          "t": 36,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 38,
+          "action": "stimulus",
+          "args": {
+            "description": "Servnak suddenly exclaims, 'ANALYZING WITH 87.3% CERTAINTY! THE DATA SUGGESTS THAT THE THEFT WAS COMMITTED BY A DUO WHO SHARE A COMMON FAVORITE: THE SOUND OF A BAGUETTE CREAKING UNDER PRESSURE!'",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 40,
+          "action": "cue",
+          "actor": "servnak",
+          "args": {
+            "direction": "clap hands together with bright pride circuits pulsing, then point at the raincoat",
+            "motivation": "you're proud of your discovery and eager to share it"
+          }
+        },
+        {
+          "t": 42,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 44,
+          "action": "stimulus",
+          "args": {
+            "description": "Phi meows softly, then pounces playfully at the edge of the picnic basket, batting at a loose crumb",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 46,
+          "action": "cue",
+          "actor": "phi",
+          "args": {
+            "direction": "curled up beside the basket, meows once, then purrs gently",
+            "motivation": "you're reacting to the crumb with kitten-like interest"
+          }
+        },
+        {
+          "t": 48,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 50,
+          "action": "stimulus",
+          "args": {
+            "description": "The figure in the raincoat chuckles and says, 'Ah, yes. The baguette's crackle\u2014so subtle, so essential. Like a whispered secret between two geese'",
+            "target": "mysterious_stranger"
+          }
+        },
+        {
+          "t": 52,
+          "action": "cue",
+          "actor": "mysterious_stranger",
+          "args": {
+            "direction": "slowly lifts the raincoat's edge, revealing a second figure beneath it, also in a similar coat, and smiles knowingly",
+            "motivation": "you're teasing the officer with a near-reveal"
+          }
+        },
+        {
+          "t": 54,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 56,
+          "action": "stimulus",
+          "args": {
+            "description": "The officer squibbles frowns, steps forward, and says, 'I see two figures. But only one is tall. The other is... small. How can two geese fit in one coat?'",
+            "target": "officer_squibbles"
+          }
+        },
+        {
+          "t": 60,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        }
+      ]
+    }
+  ]
+}

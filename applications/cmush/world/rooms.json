@@ -7,15 +7,19 @@
       "north": "room_001",
       "east": "room_002"
     },
-    "objects": ["obj_wanted_poster", "obj_radio"],
+    "objects": [],
     "occupants": [
       "user_caitlyn",
       "user_caity",
       "user_Claude",
-      "agent_callie",
-      "agent_servnak",
       "agent_phi",
-      "agent_mysterious_stranger"
+      "agent_servnak",
+      "agent_callie",
+      "agent_mysterious_stranger",
+      "agent_blue_fire_anklebiter",
+      "agent_red_fire_anklebiter",
+      "agent_phido",
+      "agent_desobelle"
     ],
     "owner": "system",
     "created": "2025-10-26T13:51:25.550264"

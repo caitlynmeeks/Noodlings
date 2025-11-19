@@ -18,8 +18,21 @@ def main():
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
 
+    # macOS: Set process name BEFORE creating QApplication
+    import platform
+    if platform.system() == "Darwin":
+        try:
+            from Foundation import NSBundle
+            bundle = NSBundle.mainBundle()
+            if bundle:
+                info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+                if info:
+                    info['CFBundleName'] = 'NoodleStudio'
+        except ImportError:
+            pass  # PyObjC not available
+
     app = QApplication(sys.argv)
-    app.setApplicationName("NoodleSTUDIO")
+    app.setApplicationName("NoodleStudio")
     app.setApplicationVersion("1.0.0-alpha")
     app.setOrganizationName("Consilience")
     app.setOrganizationDomain("noodlings.ai")

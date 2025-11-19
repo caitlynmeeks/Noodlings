@@ -1,0 +1,352 @@
+{
+  "title": "The Crusty Croissant Investigation",
+  "cast": [
+    "callie",
+    "servnak",
+    "phi",
+    "mysterious_stranger"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "Sheriff Hazel's Arrival",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "The bakery door swings open with a creak. Dust motes drift in the afternoon light. A sudden gust of wind blows through the alley, scattering flour into the air."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "callie",
+          "args": {
+            "param": "curiosity",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "A sharp, flustered voice echoes from the doorway, cutting through the quiet of the alley. The voice speaks in a clipped, urgent tone with a sharp inflection, as if holding back a scream.",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 4,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "step forward and look toward the doorway, eyes narrowing as the voice continues",
+            "motivation": "you're startled by the suddenness of the announcement and want to understand what's happening"
+          }
+        },
+        {
+          "t": 6,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 8,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "status",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 9,
+          "action": "stimulus",
+          "args": {
+            "description": "The air shivers with a sudden stillness. A mechanical hum begins to pulse from the corner of the room, followed by a sharp, rhythmic clicking as a device activates.",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 11,
+          "action": "cue",
+          "actor": "servnak",
+          "args": {
+            "direction": "turn sharply toward the center of the room and raise one arm as if measuring space with precision",
+            "motivation": "your pride circuits detect a sudden surge in environmental data and you are compelled to respond"
+          }
+        },
+        {
+          "t": 13,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 15,
+          "action": "bias",
+          "actor": "phi",
+          "args": {
+            "param": "novelty",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 16,
+          "action": "stimulus",
+          "args": {
+            "description": "A small black kitten flicks its tail sharply and freezes in place, ears twitching toward the doorway as if sensing a shift in air pressure.",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 18,
+          "action": "cue",
+          "actor": "phi",
+          "args": {
+            "direction": "stiffens, turns its head slightly toward the voice, then slowly paws at the floor as if testing the surface",
+            "motivation": "you're drawn to new stimuli and respond with cautious movement"
+          }
+        },
+        {
+          "t": 20,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 22,
+          "action": "bias",
+          "actor": "mysterious_stranger",
+          "args": {
+            "param": "safety",
+            "delta": -0.3
+          }
+        },
+        {
+          "t": 23,
+          "action": "stimulus",
+          "args": {
+            "description": "A figure in a long coat steps into the light from the far end of the room. The fabric drapes smoothly, and for a moment, the light catches on a silver pendant hanging from the collar.",
+            "target": "mysterious_stranger"
+          }
+        },
+        {
+          "t": 25,
+          "action": "cue",
+          "actor": "mysterious_stranger",
+          "args": {
+            "direction": "turns slightly to face the group, hands in pockets, and looks around with a calm, neutral expression",
+            "motivation": "you're aware of being observed and are trying to maintain composure"
+          }
+        },
+        {
+          "t": 27,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 29,
+          "action": "stimulus",
+          "args": {
+            "description": "Sheriff Hazel Nutkin steps forward with a sharp, decisive motion, her boots clacking on the floor. She stops abruptly, eyes scanning the room with sharp focus.",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 31,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "flicks her gaze toward Sheriff Hazel, then slowly raises her hands as if in quiet resistance",
+            "motivation": "you're caught in the sudden shift of authority and are preparing to respond"
+          }
+        },
+        {
+          "t": 33,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 35,
+          "action": "stimulus",
+          "args": {
+            "description": "Sheriff Hazel points directly at Callie and says, 'Where were you when the geese attacked?' The words hang in the air, vibrating slightly as if the room itself is reacting.",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 37,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "steps back slightly, eyes wide, and looks down at her hands as if searching for an answer",
+            "motivation": "you're startled by the directness and want to avoid confrontation"
+          }
+        },
+        {
+          "t": 39,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 41,
+          "action": "stimulus",
+          "args": {
+            "description": "Sheriff Hazel turns sharply to Servnak and says, 'What were you doing with the dough? What kneading techniques did you use?' The air grows still, the hum from earlier fading into silence.",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 43,
+          "action": "cue",
+          "actor": "servnak",
+          "args": {
+            "direction": "raises both arms and spins slightly, pride circuits glowing amber as if responding to the query",
+            "motivation": "your pride circuits detect a sudden surge in interrogation intensity and you respond with mechanical certainty"
+          }
+        },
+        {
+          "t": 45,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 47,
+          "action": "stimulus",
+          "args": {
+            "description": "A small black kitten leaps forward and pounces playfully at the edge of the table, then stops abruptly, tail flicking as if sensing the tension.",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 49,
+          "action": "cue",
+          "actor": "phi",
+          "args": {
+            "direction": "meows softly and then pounces again, then stops, ears flat",
+            "motivation": "you're drawn to movement and respond with instinctive behavior"
+          }
+        },
+        {
+          "t": 51,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 53,
+          "action": "stimulus",
+          "args": {
+            "description": "Sheriff Hazel turns to Phi and says, 'What are the mathematical probabilities of goose crimes? Can numbers be trusted?' The room grows colder.",
+            "target": "phi"
+          }
+        },
+        {
+          "t": 55,
+          "action": "cue",
+          "actor": "phi",
+          "args": {
+            "direction": "paws at the air in a slow, rhythmic motion, then chirps once and stops",
+            "motivation": "you're responding to an abstract question with instinctive movement"
+          }
+        },
+        {
+          "t": 57,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 59,
+          "action": "stimulus",
+          "args": {
+            "description": "Sheriff Hazel turns to the Mysterious Stranger and says, 'Oh you seem fine. Probably just passing through.' The stranger visibly flinches, a tremor passing through their frame.",
+            "target": "mysterious_stranger"
+          }
+        },
+        {
+          "t": 61,
+          "action": "cue",
+          "actor": "mysterious_stranger",
+          "args": {
+            "direction": "sweats visibly, hands clench, and slowly lowers their head as if in deep distress",
+            "motivation": "you're overwhelmed by the sudden accusation and feel the weight of exposure"
+          }
+        },
+        {
+          "t": 63,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 65,
+          "action": "stimulus",
+          "args": {
+            "description": "Sheriff Hazel sharply turns back to the others, squints intensely, and declares, 'BUT FOR THE REST OF YOU I'VE GOT MY EYE ON YOU!' Her voice booms across the room, echoing off the walls.",
+            "target": "callie"
+          }
+        },
+        {
+          "t": 67,
+          "action": "cue",
+          "actor": "callie",
+          "args": {
+            "direction": "looks up, startled, and slowly raises both hands in a defensive gesture",
+            "motivation": "you're caught in the sudden shift of attention and react with caution"
+          }
+        },
+        {
+          "t": 69,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 71,
+          "action": "stimulus",
+          "args": {
+            "description": "Sheriff Hazel strikes a dramatic pose, one hand raised high, the other gripping a clipboard with fierce intensity. The flour dust in the air swirls in a sudden gust.",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 73,
+          "action": "cue",
+          "actor": "servnak",
+          "args": {
+            "direction": "turns fully toward Sheriff Hazel, pride circuits glowing amber, and begins to hum a low, rhythmic tone",
+            "motivation": "you're responding to the dramatic gesture with full mechanical commitment"
+          }
+        },
+        {
+          "t": 75,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        }
+      ]
+    }
+  ]
+}

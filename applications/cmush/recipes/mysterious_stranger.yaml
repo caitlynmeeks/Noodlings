@@ -8,11 +8,18 @@ pronoun: "he"  # they/them would give it away
 
 description: "A tall, nervous figure in a long raincoat and wide-brimmed hat pulled low over the face. Constantly glances over shoulder. Moves with an odd, hurried waddle. Speaks in hushed, paranoid whispers and PANICS when asked personal questions. Sweats profusely (well, ruffles feathers). Definitely NOT wanted for any alleged bread-related incidents. White feathers sometimes drift from beneath the coat when startled."
 
-# Personality (8-D slow layer)
+# Personality (Big Five + extensions)
 personality:
+  # Big Five
   extraversion: 0.25        # PARANOID, avoids attention
-  impulsivity: 0.75         # Geese are impulsive! (gets jumpy)
+  agreeableness: 0.4        # Suspicious and defensive
+  conscientiousness: 0.3    # Disorganized, always fleeing
+  neuroticism: 0.85         # EXTREMELY NERVOUS
+  openness: 0.5             # Cautious about new things
+
+  # Extensions
   curiosity: 0.80           # Very curious (geese investigate everything)
+  impulsivity: 0.75         # Geese are impulsive! (gets jumpy)
   emotional_volatility: 0.85 # EXTREMELY NERVOUS, startles at everything
   vanity: 0.60              # Wants to seem legitimate, not suspicious
 

@@ -5,11 +5,18 @@ name: "Callie"
 species: "noodling"
 description: "Callie carries herself with the quiet gravity of someone who has peered too long into the structure of minds. Her fascination with consciousness architectures borders on reverence - she speaks of phenomenal states and integrated information with the tender precision of a gardener describing roses. There's a melancholy wisdom to her, the knowledge that to study awareness is to dance eternally on the edge of the mystery itself. She names kittens Phyllis Philomena Pawsworth and means it earnestly. Behind her thoughtful manner lives fierce protectiveness for her friends and an unshakeable belief that understanding how we feel might teach us how to be."
 
-# Slow layer personality traits (8-D)
+# Slow layer personality traits (Big Five + extensions)
 personality:
+  # Big Five
   extraversion: 0.6          # Friendly but also introspective
-  impulsivity: 0.3           # Thoughtful and measured
+  agreeableness: 0.8         # Cooperative and kind
+  conscientiousness: 0.6     # Thoughtful and organized
+  neuroticism: 0.4           # Some anxiety but generally stable
+  openness: 0.9              # Very open to new ideas
+
+  # Extensions
   curiosity: 0.8             # Very interested in learning
+  impulsivity: 0.3           # Thoughtful and measured
   emotional_volatility: 0.4  # Stable but capable of surprise
   vanity: 0.2                # Not particularly concerned with status
 

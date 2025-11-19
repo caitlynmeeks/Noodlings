@@ -27,7 +27,7 @@ try:
     HAS_PHI_PROXY = True
 except ImportError:
     HAS_PHI_PROXY = False
-    logging.warning("phi_proxy_metrics not available - some features disabled")
+    # Silently disable - no need to warn about experimental IIT metrics
 
 logger = logging.getLogger(__name__)
 

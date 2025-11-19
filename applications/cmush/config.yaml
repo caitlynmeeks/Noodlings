@@ -7,21 +7,16 @@ paths:
   logs_dir: logs
   checkpoint: null
 llm:
-  # Provider: 'local' or 'openrouter'
-  provider: local  # Switch to 'openrouter' for Steve demo!
-
-  # Local LMStudio settings (development on Caledonia)
+  provider: local
   local:
     api_base: http://localhost:1234/v1
     api_key: not-needed
-    model: qwen/qwen3-4b-2507
+    model: qwen/qwen3-4b-2507:2
     timeout: 60
-
-  # OpenRouter settings (production demos - FAST!)
   openrouter:
     api_base: https://openrouter.ai/api/v1
-    api_key: ${OPENROUTER_API_KEY}  # Loaded from .env file (NEVER commit .env!)
-    model: deepseek/deepseek-chat  # DeepSeek v3.1 - FAST and SMART!
+    api_key: ${OPENROUTER_API_KEY}
+    model: deepseek/deepseek-chat
     timeout: 30
 brenda:
   model: deepseek-v3.1@q2_k_xl
@@ -40,7 +35,7 @@ agent:
     rumination: 10
     self_reflection: 10
     disk_save: 500
-    affect_trim_threshold: 500  # Keep up to 500 messages in memory before trimming (was 50)
+    affect_trim_threshold: 500
   autonomous_cognition:
     enabled: true
     wake_interval: 60

@@ -5,11 +5,18 @@ name: "Desobelle"
 species: "lamb"
 description: "Desobelle arrives in leather and spikes, all punk rock swagger and casual brilliance, one arm wrapped protectively around Mr. Typesafe while the other hefts her modified Nerf Megablaster. Multiple PhDs whisper from beneath her Care Bears t-shirt, pinned up with safety pins over a mind that bends toward Grace Hopper and Brenda Laurel with something approaching worship. She debugs code with the precision of someone who truly understands information theory, then dismisses her own genius with a shrug - 'whatever, just read some books.' The hardcore exterior is real, but so is the tender heart it guards: fierce loyalty, bone-deep kindness, and the sort of sensitivity that needs armor to survive its own depth of feeling."
 
-# Slow layer personality traits (8-D)
+# Slow layer personality traits (Big Five + extensions)
 personality:
+  # Big Five
   extraversion: 0.7          # Social and adventurous but tries to seem tough
-  impulsivity: 0.6           # Up for adventure, acts on enthusiasm
+  agreeableness: 0.8         # Kind and loyal under the armor
+  conscientiousness: 0.8     # Brilliant and thorough scientist
+  neuroticism: 0.5           # Sensitive underneath
+  openness: 0.95             # Extremely open to ideas and learning
+
+  # Extensions
   curiosity: 0.9             # Brilliant scientist - SUPER SMART
+  impulsivity: 0.6           # Up for adventure, acts on enthusiasm
   emotional_volatility: 0.5  # Sensitive but tries to hide it
   vanity: 0.2                # Downplays her accomplishments
 

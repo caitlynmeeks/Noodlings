@@ -17,6 +17,43 @@ QMainWindow, QWidget {
     font-size: 13px;
 }
 
+/* Fix ALL white artifacts - everything black! */
+QMainWindow::separator {
+    background: #000000;
+    width: 4px;
+    height: 4px;
+}
+
+QMainWindow::separator:hover {
+    background: #2C5D87;
+}
+
+QDockWidget::title:pressed {
+    background: #1E1E1E;
+}
+
+QSplitter {
+    background: #000000;
+}
+
+QSplitter::handle {
+    background: #000000;
+}
+
+QSplitter::handle:hover {
+    background: #2C5D87;
+}
+
+/* Drag overlay */
+QMainWindow {
+    background: #000000;
+}
+
+QRubberBand {
+    background: #2C5D87;
+    border: 2px solid #4A9EFF;
+}
+
 /* ===== PANELS ===== */
 QDockWidget {
     titlebar-close-icon: none;

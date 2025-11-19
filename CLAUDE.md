@@ -10,7 +10,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Framework**: MLX (Apple Metal optimized)
 **Hardware**: M3 Ultra (512GB RAM) + M2 Ultra (192GB RAM)
 **Parameter Budget**: ~132.5K params (Phase 4 with observer loops)
-**Last Updated**: November 15, 2025 (Major theater system implementation)
+**Last Updated**: November 17, 2025
+
+## 🔥 **ACTIVE SESSION HANDOFF**
+
+**👉 See `HANDOFF_SESSION_NOV18_MORNING.md` for current work! 👈**
+
+**Status**: NoodleStudio IDE complete! The Krugerrand Edition - worth its weight in gold!
+- Unity-style Qt IDE with Scene/Inspector/Console
+- Multi-track Timeline Profiler
+- USD export for animation studios
+- All affect bugs fixed!
+
+Fresh Claude starting a new session? **Read that handoff file first!**
 
 ## Epistemic Humility
 

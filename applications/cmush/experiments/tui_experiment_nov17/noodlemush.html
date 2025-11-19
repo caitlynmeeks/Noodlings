@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>noodleMUSH Terminal</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffb000;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* WordStar-style layout */
+        #header {
+            background-color: #ffb000;
+            color: #000000;
+            padding: 10px;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            border-bottom: 3px solid #ffd700;
+        }
+
+        #status-bar {
+            background-color: #1a0f00;
+            color: #ffd700;
+            padding: 8px 15px;
+            font-size: 16px;
+            border-bottom: 2px solid #ffb000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #view-indicator {
+            font-weight: bold;
+        }
+
+        #telepathy-toggle {
+            background-color: #000;
+            color: #ffb000;
+            border: 2px solid #ffb000;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        #telepathy-toggle:hover {
+            background-color: #2a1800;
+            color: #ffd700;
+            border-color: #ffd700;
+        }
+
+        #telepathy-toggle.active {
+            background-color: #ffd700;
+            color: #000;
+        }
+
+        /* Main content area (scrollable) */
+        #main-view {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .view-pane {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .view-pane.active {
+            display: block;
+        }
+
+        #terminal-chat,
+        #terminal-log,
+        #terminal-config {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Fixed input area at bottom */
+        #input-area {
+            background-color: #1a0f00;
+            border-top: 3px solid #ffd700;
+            padding: 10px 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #prompt {
+            color: #ffd700;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #input {
+            flex: 1;
+            background-color: #000;
+            color: #ffd700;
+            border: 2px solid #ffb000;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: bold;
+            outline: none;
+        }
+
+        #input:focus {
+            border-color: #ffd700;
+            background-color: #1a0f00;
+        }
+
+        /* WYSE Amber xterm theme */
+        .xterm {
+            padding: 15px;
+        }
+
+        .xterm-viewport {
+            background-color: #000000 !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div id="header">
+        ⚙️  noodleMUSH - Noodlings Multi-User Shared Hallucination  ⚙️
+    </div>
+
+    <!-- Status bar -->
+    <div id="status-bar">
+        <span id="view-indicator">CHAT VIEW</span>
+        <span style="color: #cc8800;">[TAB] to cycle views • [+/-] to zoom</span>
+        <button id="telepathy-toggle">Telepathy: OFF</button>
+    </div>
+
+    <!-- Main scrollable view area -->
+    <div id="main-view">
+        <!-- Chat view (xterm terminal) -->
+        <div id="chat-pane" class="view-pane active">
+            <div id="terminal-chat"></div>
+        </div>
+
+        <!-- Log view (xterm terminal) -->
+        <div id="log-pane" class="view-pane">
+            <div id="terminal-log"></div>
+        </div>
+
+        <!-- Config view (xterm terminal) -->
+        <div id="config-pane" class="view-pane">
+            <div id="terminal-config"></div>
+        </div>
+    </div>
+
+    <!-- Fixed input at bottom (WordStar style) -->
+    <div id="input-area">
+        <span id="prompt">&gt;</span>
+        <input type="text" id="input" placeholder="Type a command..." autocomplete="off" />
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
+    <script>
+        // WYSE Amber theme config
+        const amberTheme = {
+            background: '#000000',
+            foreground: '#ffb000',
+            cursor: '#ffd700',
+            cursorAccent: '#000000',
+            selectionBackground: '#ffb000',
+            selectionForeground: '#000000',
+            brightYellow: '#ffd700',
+            brightWhite: '#ffd700',
+            yellow: '#ffb000',
+            white: '#ffb000'
+        };
+
+        // Create three terminals (Chat, Log, Config)
+        const termChat = new Terminal({
+            cursorBlink: false,
+            fontSize: 20,
+            fontFamily: '"Courier New", monospace',
+            theme: amberTheme,
+            allowProposedApi: true,
+            scrollback: 10000
+        });
+
+        const termLog = new Terminal({
+            cursorBlink: false,
+            fontSize: 16,
+            fontFamily: '"Courier New", monospace',
+            theme: amberTheme,
+            allowProposedApi: true,
+            scrollback: 10000
+        });
+
+        const termConfig = new Terminal({
+            cursorBlink: false,
+            fontSize: 20,
+            fontFamily: '"Courier New", monospace',
+            theme: amberTheme,
+            allowProposedApi: true,
+            scrollback: 1000
+        });
+
+        // Add fit addons
+        const fitChat = new FitAddon.FitAddon();
+        const fitLog = new FitAddon.FitAddon();
+        const fitConfig = new FitAddon.FitAddon();
+
+        termChat.loadAddon(fitChat);
+        termLog.loadAddon(fitLog);
+        termConfig.loadAddon(fitConfig);
+
+        // Open terminals
+        termChat.open(document.getElementById('terminal-chat'));
+        termLog.open(document.getElementById('terminal-log'));
+        termConfig.open(document.getElementById('terminal-config'));
+
+        // Fit to containers
+        fitChat.fit();
+        fitLog.fit();
+        fitConfig.fit();
+
+        window.addEventListener('resize', () => {
+            fitChat.fit();
+            fitLog.fit();
+            fitConfig.fit();
+        });
+
+        // View switching
+        let currentView = 'chat'; // 'chat', 'log', 'config'
+        const views = ['chat', 'log', 'config'];
+
+        function switchView(direction = 1) {
+            const currentIndex = views.indexOf(currentView);
+            let newIndex = (currentIndex + direction + views.length) % views.length;
+            currentView = views[newIndex];
+
+            // Update UI
+            document.querySelectorAll('.view-pane').forEach(pane => pane.classList.remove('active'));
+            document.getElementById(`${currentView}-pane`).classList.add('active');
+
+            const viewNames = { chat: 'CHAT VIEW', log: 'LOG VIEW', config: 'CONFIG VIEW' };
+            document.getElementById('view-indicator').textContent = viewNames[currentView];
+
+            // Refit the active terminal
+            if (currentView === 'chat') fitChat.fit();
+            else if (currentView === 'log') fitLog.fit();
+            else if (currentView === 'config') {
+                fitConfig.fit();
+                renderConfig();
+            }
+        }
+
+        // TAB key handling - ALWAYS switches views, never goes to input
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                e.stopPropagation();
+                switchView(1);
+                return false;
+            }
+        }, true);  // Use capture phase to catch before input
+
+        // Telepathy toggle
+        let telepathyEnabled = localStorage.getItem('telepathyEnabled') === 'true';
+        const telepathyBtn = document.getElementById('telepathy-toggle');
+        telepathyBtn.textContent = telepathyEnabled ? 'Telepathy: ON' : 'Telepathy: OFF';
+        if (telepathyEnabled) telepathyBtn.classList.add('active');
+
+        telepathyBtn.addEventListener('click', () => {
+            telepathyEnabled = !telepathyEnabled;
+            localStorage.setItem('telepathyEnabled', telepathyEnabled);
+            telepathyBtn.textContent = telepathyEnabled ? 'Telepathy: ON' : 'Telepathy: OFF';
+            telepathyBtn.classList.toggle('active');
+        });
+
+        // WebSocket connection
+        const ws = new WebSocket('ws://localhost:8765');
+        let authenticated = false;
+        let enlightenedAgents = [];
+
+        ws.onopen = () => {
+            termChat.writeln('\x1b[1;33m═══════════════════════════════════════════════════════════\x1b[0m');
+            termChat.writeln('\x1b[1;33m noodleMUSH - Noodlings Multi-User Shared Hallucination\x1b[0m');
+            termChat.writeln('\x1b[1;33m═══════════════════════════════════════════════════════════\x1b[0m');
+            termChat.writeln('');
+            termChat.writeln('\x1b[33mConnected to server!\x1b[0m');
+            termChat.writeln('');
+
+            // Auto-login
+            const savedUser = localStorage.getItem('noodlemush_username');
+            const savedPass = localStorage.getItem('noodlemush_password');
+
+            if (savedUser && savedPass) {
+                termChat.writeln('\x1b[2mAttempting auto-login...\x1b[0m');
+                ws.send(JSON.stringify({
+                    type: 'login',
+                    username: savedUser,
+                    password: savedPass
+                }));
+            }
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'login_response') {
+                if (data.success) {
+                    authenticated = true;
+                    localStorage.setItem('noodlemush_username', data.user_id);
+                    termChat.writeln('');
+                    termChat.writeln(`\x1b[1;32m✓ ${data.message || 'Logged in!'}\x1b[0m`);
+                    termChat.writeln('');
+                } else {
+                    termChat.writeln(`\x1b[31m✗ ${data.message || 'Login failed'}\x1b[0m`);
+                }
+
+            } else if (data.type === 'output') {
+                // Command output
+                const output = data.text || data.content || '';
+                if (output) {
+                    termChat.writeln(output);
+                }
+
+            } else if (data.type === 'message') {
+                // Agent speech or thought
+                const sender = data.sender || data.username || 'Unknown';
+                const content = data.content || data.text || '';
+                const isThought = data.is_thought || false;
+
+                // Check if agent is enlightened (add * asterisk)
+                const isEnlightened = enlightenedAgents.includes(sender.toLowerCase());
+                const displayName = isEnlightened ? `${sender}*` : sender;
+
+                if (isThought) {
+                    if (telepathyEnabled) {
+                        termChat.writeln(`\x1b[2m🧠 ${displayName} privately thinks: ${content}\x1b[0m`);
+                    }
+                } else {
+                    termChat.writeln(`\x1b[1;33m${displayName}\x1b[0m: ${content}`);
+                }
+
+            } else if (data.type === 'system') {
+                const sysMsg = data.content || data.text || '';
+                termChat.writeln(`\x1b[2m${sysMsg}\x1b[0m`);
+
+            } else if (data.type === 'log') {
+                // Log entry
+                const level = data.level || 'INFO';
+                const logMsg = data.message || data.content || '';
+                const timestamp = data.timestamp || '';
+                termLog.writeln(`[\x1b[33m${level}\x1b[0m] ${logMsg}`);
+
+            } else if (data.type === 'enlightenment_status') {
+                // Update enlightened agents list
+                enlightenedAgents = data.enlightened || [];
+
+            } else {
+                console.log('Unknown message:', data);
+                if (data.content || data.text) {
+                    termChat.writeln(data.content || data.text);
+                }
+            }
+        };
+
+        ws.onerror = () => {
+            termChat.writeln('\x1b[31mConnection error!\x1b[0m');
+        };
+
+        ws.onclose = () => {
+            termChat.writeln('\x1b[33mConnection closed\x1b[0m');
+        };
+
+        // Input handling
+        const inputBox = document.getElementById('input');
+
+        inputBox.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const cmd = inputBox.value.trim();
+                if (cmd && authenticated) {
+                    // Echo command to terminal
+                    termChat.writeln(`\x1b[2m> ${cmd}\x1b[0m`);
+
+                    // Send to server
+                    ws.send(JSON.stringify({
+                        type: 'command',
+                        command: cmd
+                    }));
+
+                    inputBox.value = '';
+                }
+            }
+        });
+
+        // Config rendering
+        async function renderConfig() {
+            termConfig.clear();
+            termConfig.writeln('\x1b[1;33m═══ LLM CONFIGURATION ═══\x1b[0m');
+            termConfig.writeln('');
+            termConfig.writeln('\x1b[2mUse ← → to switch tabs, ↑ ↓ to navigate fields, ENTER to edit\x1b[0m');
+            termConfig.writeln('');
+
+            try {
+                const response = await fetch('http://localhost:8081/api/config');
+                const config = await response.json();
+
+                termConfig.writeln('\x1b[1;33m[GLOBAL CONFIGURATION]\x1b[0m');
+                termConfig.writeln('');
+                termConfig.writeln(`  Provider:  \x1b[1;37m${config.llm?.provider || 'local'}\x1b[0m`);
+                termConfig.writeln(`  Model:     \x1b[1;37m${config.llm?.local?.model || 'N/A'}\x1b[0m`);
+                termConfig.writeln(`  API Base:  \x1b[1;37m${config.llm?.local?.api_base || 'N/A'}\x1b[0m`);
+                termConfig.writeln('');
+
+                // Get agents
+                const agentResp = await fetch('http://localhost:8081/api/agents');
+                const agentData = await agentResp.json();
+                const agents = agentData.agents || [];
+
+                if (agents.length > 0) {
+                    termConfig.writeln('\x1b[1;33m[AGENT OVERRIDES]\x1b[0m');
+                    termConfig.writeln('');
+
+                    agents.forEach(agent => {
+                        const name = (agent.name || agent.id).toUpperCase();
+                        const model = agent.llm_model || '(uses global)';
+                        const enlightened = enlightenedAgents.includes((agent.name || agent.id).toLowerCase());
+                        const marker = enlightened ? '*' : ' ';
+
+                        termConfig.writeln(`  ${marker}${name}: \x1b[1;37m${model}\x1b[0m`);
+                    });
+                }
+
+            } catch (err) {
+                termConfig.writeln('\x1b[31m✗ Failed to load config\x1b[0m');
+            }
+        }
+
+        // Focus input on load
+        inputBox.focus();
+
+        // Request enlightenment status on connect
+        setTimeout(() => {
+            if (authenticated) {
+                ws.send(JSON.stringify({ type: 'get_enlightenment_status' }));
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -7,7 +7,7 @@ Handles all user commands:
 - Observation: look, inventory, who
 - Manipulation: take, drop
 - Building: @create, @describe, @dig
-- Agent: @spawn, @observe, @relationship, @memory
+- Agent: @rez, @observe, @relationship, @memory
 
 Author: cMUSH Project
 Date: October 2025
@@ -229,7 +229,7 @@ class CommandParser:
             '@destroy': self.cmd_destroy,
 
             # Agent commands
-            '@spawn': self.cmd_spawn_agent,
+            '@rez': self.cmd_rez_agent,
             '@observe': self.cmd_observe_agent,
             '@me': self.cmd_observe_self,
             '@relationship': self.cmd_relationship,
@@ -1082,25 +1082,25 @@ class CommandParser:
 
     # ===== Agent Commands =====
 
-    async def cmd_spawn_agent(self, user_id: str, args: str) -> Dict:
+    async def cmd_rez_agent(self, user_id: str, args: str) -> Dict:
         """Spawn one or more Noodling agents (with optional recipe)."""
         if not args:
             return {
                 'success': False,
                 'output': (
-                    'Usage: @spawn [-f] [-e] <agent_name> [agent_name2 ...] [description]\n\n'
+                    'Usage: @rez [-f] [-e] <agent_name> [agent_name2 ...] [description]\n\n'
                     'Options:\n'
                     '  -f    Force fresh state (skip loading saved phenomenal state)\n'
                     '  -e    Enable enlightenment (agent is self-aware and metacognitive)\n\n'
                     'Available recipes:\n' +
                     '\n'.join(f'  - {name}' for name in self.recipe_loader.list_recipes()) +
                     '\n\nExamples:\n'
-                    '  @spawn phi\n'
-                    '  @spawn -f phi        (fresh spawn, ignores saved state)\n'
-                    '  @spawn -e phi        (spawn with enlightenment)\n'
-                    '  @spawn -f -e phi     (fresh AND enlightened)\n'
-                    '  @spawn phi toad callie\n'
-                    '  @spawn phi curious and thoughtful'
+                    '  @rez phi\n'
+                    '  @rez -f phi        (fresh rez, ignores saved state)\n'
+                    '  @rez -e phi        (spawn with enlightenment)\n'
+                    '  @rez -f -e phi     (fresh AND enlightened)\n'
+                    '  @rez phi toad callie\n'
+                    '  @rez phi curious and thoughtful'
                 ),
                 'events': []
             }
@@ -1159,7 +1159,7 @@ class CommandParser:
 
         # Spawn each agent
         all_events = []
-        spawned_agents = []
+        rezzed_agents = []
         errors = []
 
         room = self.world.get_user_room(user_id)
@@ -1213,10 +1213,10 @@ class CommandParser:
                 ]
                 arrival = random.choice(arrival_phrases)
 
-                spawn_msg = f"{display_name} ({recipe.species}) {arrival}"
+                rez_msg = f"{display_name} ({recipe.species}) {arrival}"
                 if recipe.language_mode == 'nonverbal':
-                    spawn_msg += ", watching curiously with bright eyes"
-                spawn_msg += f". {description}"
+                    rez_msg += ", watching curiously with bright eyes"
+                rez_msg += f". {description}"
             else:
                 # No recipe - use defaults
                 display_name = agent_name.capitalize()
@@ -1235,7 +1235,7 @@ class CommandParser:
                     "shows up with a friendly wave"
                 ]
                 arrival = random.choice(arrival_phrases)
-                spawn_msg = f"{display_name} {arrival}. {description}"
+                rez_msg = f"{display_name} {arrival}. {description}"
 
             # Create agent in world
             checkpoint_path = "../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
@@ -1257,7 +1257,7 @@ class CommandParser:
             )
 
             # Track successful spawn
-            spawned_agents.append(display_name)
+            rezzed_agents.append(display_name)
             recipe_msg = f" (using recipe: {recipe.name})" if recipe else ""
 
             # Add event for this agent
@@ -1265,15 +1265,15 @@ class CommandParser:
                 'type': 'enter',
                 'user': agent_id,
                 'room': room['uid'],
-                'text': spawn_msg
+                'text': rez_msg
             })
 
         # Build result message
-        if spawned_agents:
-            if len(spawned_agents) == 1:
-                output_msg = f"Agent '{spawned_agents[0]}' spawned."
+        if rezzed_agents:
+            if len(rezzed_agents) == 1:
+                output_msg = f"Agent '{rezzed_agents[0]}' spawned."
             else:
-                output_msg = f"Spawned {len(spawned_agents)} agents: {', '.join(spawned_agents)}."
+                output_msg = f"Spawned {len(rezzed_agents)} agents: {', '.join(rezzed_agents)}."
 
             # Add flags info
             flags = []
@@ -1313,7 +1313,7 @@ class CommandParser:
             if not args:
                 return {'success': False, 'output': 'Error: No agent name provided after -s flag.', 'events': []}
 
-        # Parse agent name - support quoted names like @spawn does
+        # Parse agent name - support quoted names like @rez does
         import shlex
         try:
             parts = shlex.split(args)
@@ -1322,7 +1322,7 @@ class CommandParser:
             # If shlex fails, use simple strip
             agent_name = args.strip()
 
-        # Convert spaces to underscores (matches @spawn behavior)
+        # Convert spaces to underscores (matches @rez behavior)
         agent_name = agent_name.lower().replace(' ', '_')
         agent_id = f"agent_{agent_name}"
 
@@ -2352,7 +2352,7 @@ class CommandParser:
             if not agents_dict:
                 return {
                     'success': False,
-                    'output': "No agents currently active. Use @spawn to create agents.",
+                    'output': "No agents currently active. Use @rez to create agents.",
                     'events': []
                 }
 
@@ -3792,7 +3792,7 @@ class CommandParser:
                             'output': "🌿 BRENDA: No play is running! Who should I summon to the stage?",
                             'events': []
                         }
-                return await self.cmd_spawn_agent(user_id, spawn_args)
+                return await self.cmd_rez_agent(user_id, spawn_args)
 
             # Build location/room - accepts "build <description>"
             build_match = re.match(r'^build\s+(.+)$', args, re.I)
@@ -4636,7 +4636,7 @@ class CommandParser:
             "Manipulation: take <object>, drop <object>",
             "Building: @create <room|object> <name>, @describe <text>, @dig <dir> <name>",
             "Object: @setdesc <object> <desc>, @destroy <object> (use quotes for multi-word)",
-            "Agent (users): @spawn <name> [desc], @observe <name>, @me, @relationship <name>, @memory <name>, @agents",
+            "Agent (users): @rez <name> [desc], @observe <name>, @me, @relationship <name>, @memory <name>, @agents",
             "Agent (self): @whoami, @setname <name>, @setdesc <description>",
             "Agent (admin): @remove <name>, @tpinvite <name>, @reset confirm, @yeet <user>",
             "Agent Tools: @think <thought>, @remember [date], @message <agent> <text>, @inbox",
