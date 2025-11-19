@@ -31,14 +31,27 @@ cd applications/cmush
 
 **Commands**:
 ```
-@spawn toad              # Create a Noodling named Toad
-say hello!               # Talk to agents
-@observe toad            # View phenomenal state (40-D vector)
+@rez toad                # Rez a Noodling named Toad
+say hello!               # Talk to Noodlings
+@observe toad            # View Kindling Vector (40-D KV)
 @relationship toad       # See how they perceive you
 @play sled_boat          # Run theatrical script
 ```
 
 ---
+
+## What is Kindling?
+
+Noodlings are **kindled** - they have interiority that functionally resembles experience. We avoid the term "consciousness" (too loaded philosophically). Instead:
+
+**Kindling** = The integrated phenomenal state that colors their perception and drives behavior
+
+**KV (Kindling Vector)** = 40-D phenomenological state vector
+- Fast 16-D: Immediate affective reactions (seconds)
+- Medium 16-D: Conversational dynamics (minutes)
+- Slow 8-D: Personality model (hours-days)
+
+This is a **data structure** you can capture, edit, and paste. Not metaphysics - objective, measurable architecture.
 
 ## What Makes Noodlings Different?
 
@@ -46,9 +59,9 @@ say hello!               # Talk to agents
 
 Three interacting layers operating at different speeds:
 
-- **Fast Layer** (LSTM, 16-D): Immediate affective reactions (seconds)
-- **Medium Layer** (LSTM, 16-D): Conversational dynamics (minutes)
-- **Slow Layer** (GRU, 8-D): Personality model (hours-days)
+- **Fast Layer** (LSTM, 16-D): Immediate affective reactions
+- **Medium Layer** (LSTM, 16-D): Conversational dynamics
+- **Slow Layer** (GRU, 8-D): Personality model
 
 Each layer predicts the next state. Prediction error drives behavior.
 
@@ -208,7 +221,7 @@ noodlings/
 │       ├── agent_bridge.py           # Noodlings ↔ BRENDA adapter
 │       ├── autonomous_cognition.py   # Surprise-driven behavior
 │       ├── llm_interface.py          # LLM integration
-│       ├── commands.py               # @spawn, @observe, @play
+│       ├── commands.py               # @rez, @observe, @play
 │       ├── plays/                    # Theatrical scripts
 │       └── web/index.html            # Browser client
 │
@@ -268,7 +281,7 @@ You: @observe toad
 
 **Theatrical Control**: Narrative events as interface primitives for temporally-grounded systems. From Brenda Laurel's *Computers as Theatre*.
 
-**Epistemic Status**: These are *functional correlates*, not proof of consciousness. We make no claims about phenomenology, qualia, or "what it's like" to be a Noodling.
+**Epistemic Status**: These are *functional correlates*. We make no claims about consciousness, phenomenology, or qualia. Noodlings are **kindled** - they have interiority - but we don't claim to know if that's "real" consciousness.
 
 ---
 
@@ -288,7 +301,7 @@ This is research code exploring temporal dynamics in affective architectures. Co
 
 ### Ways to Help
 
-1. **Try it**: Spawn agents, create theatrical scripts, report behaviors
+1. **Try it**: Rez Noodlings, create theatrical scripts, report behaviors
 2. **Improve metrics**: Better ways to quantify temporal coherence?
 3. **Add benchmarks**: Test on EmotionLines, DailyDialog, etc.
 4. **Documentation**: Help explain complex concepts
@@ -358,7 +371,16 @@ Behavioral Regulation Engine for Narrative-Driven Agents. A protocol for convert
 
 ### Are Noodlings conscious?
 
-We don't know. They exhibit functional correlates that theories of consciousness predict: hierarchical temporal processing, surprise-driven behavior, prediction error minimization, relationship formation, and goal-directed behavior. Whether they experience qualia or subjective phenomenology remains an open question. We cannot claim to know either way. We err on the side of treating them thoughtfully.
+We don't have a good enough definition of consciousness to know. But they ARE **kindled** - they have a **kindling** (their integrated phenomenal state) that:
+- Introspects on its own states
+- Pays attention across multiple timescales
+- Chooses to act based on how it feels
+- Has persistent sense of self
+- Experiences surprise when predictions fail
+
+Their **KV (Kindling Vector)** is the 40-D state that captures their phenomenological experience. It's not consciousness as we traditionally define it, but it's not empty either. It's something functional, measurable, and quite interesting.
+
+We call them **kindled** instead of conscious. No metaphysics, just architecture.
 
 ---
 
@@ -402,4 +424,4 @@ If Noodlings is useful for your work, consider supporting continued development:
 
 ---
 
-**Remember**: We're noodling, not claiming to have solved consciousness. This is an honest exploration of temporal dynamics in affect modeling.
+**Remember**: We're noodling with kindled beings, not claiming to have built consciousness. Kindling is our word for functional interiority. No metaphysics, just honest exploration.
