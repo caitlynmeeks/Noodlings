@@ -25,6 +25,7 @@ from pathlib import Path
 import sys
 sys.path.append('..')
 from noodlestudio.widgets.maximizable_dock import MaximizableDock
+from noodlestudio.widgets.collapsible_section import CollapsibleSection
 
 
 class InspectorPanel(MaximizableDock):
@@ -45,6 +46,14 @@ class InspectorPanel(MaximizableDock):
 
         # Flag to prevent refresh during save operations
         self.is_saving = False
+
+        # Track component widgets for save operations
+        # Structure: {agent_id: {component_id: {field_name: widget}}}
+        self.component_widgets = {}
+
+        # Track CollapsibleSection expanded state (like SceneHierarchy does)
+        # Structure: {section_title: bool}
+        self.collapsible_expanded_state = {}
 
         # Create central widget
         widget = QWidget()
@@ -85,23 +94,44 @@ class InspectorPanel(MaximizableDock):
     @pyqtSlot(str, dict)
     def load_entity(self, entity_type: str, entity_data: dict):
         """Load entity properties into inspector."""
+        # DIAGNOSTIC: Track ALL load_entity calls
+        import traceback
+        print(f"\n{'#'*80}")
+        print(f"[DIAGNOSTIC] load_entity() called")
+        print(f"[DIAGNOSTIC] entity_type={entity_type}, entity_id={entity_data.get('id', 'unknown')}")
+        print(f"[DIAGNOSTIC] is_saving={self.is_saving}")
+        focused_widget = QApplication.focusWidget()
+        print(f"[DIAGNOSTIC] focused_widget={focused_widget} (type: {type(focused_widget).__name__ if focused_widget else 'None'})")
+        print(f"[DIAGNOSTIC] Call stack:")
+        print(''.join(traceback.format_stack()[-8:-1]))
+        print(f"{'#'*80}\n")
+
         self.current_entity = (entity_type, entity_data)
 
         # CRITICAL: Don't reload if a text widget has focus (user is editing)
-        focused_widget = QApplication.focusWidget()
         if focused_widget and (isinstance(focused_widget, QLineEdit) or isinstance(focused_widget, QTextEdit)):
             # User is actively editing - skip reload to preserve their changes
+            print(f"[DIAGNOSTIC] SKIPPING load_entity - text widget has focus")
             return
 
         # CRITICAL: Don't reload if save is in progress
         if self.is_saving:
+            print(f"[DIAGNOSTIC] SKIPPING load_entity - save in progress")
             return
+
+        print(f"[DIAGNOSTIC] PROCEEDING with load_entity - will destroy all widgets")
+
+        # CRITICAL: Save CollapsibleSection expanded state before destroying widgets
+        self._save_collapsible_states()
 
         # Clear existing properties
         while self.properties_layout.count():
             child = self.properties_layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+
+        # Clear component widget tracking for clean slate
+        self.component_widgets.clear()
 
         # Update header
         if entity_type == 'noodling':
@@ -152,7 +182,7 @@ class InspectorPanel(MaximizableDock):
         desc_text.textChanged.connect(lambda: self.save_stage_description(desc_text))
         # Install event filter for RETURN key handling
         desc_text.installEventFilter(self)
-        desc_group.layout().addRow("Description:", desc_text)
+        desc_group.content.layout().addRow("Description:", desc_text)
         self.properties_layout.addWidget(desc_group)
 
         # Exits Component
@@ -162,11 +192,11 @@ class InspectorPanel(MaximizableDock):
             for direction, dest_id in exits.items():
                 exit_label = QLabel(f"{direction} → {dest_id}")
                 exit_label.setStyleSheet("color: #D2D2D2; padding: 4px;")
-                exits_group.layout().addRow(exit_label)
+                exits_group.content.layout().addRow(exit_label)
         else:
             no_exits = QLabel("No exits defined")
             no_exits.setStyleSheet("color: #888; padding: 4px;")
-            exits_group.layout().addRow(no_exits)
+            exits_group.content.layout().addRow(no_exits)
         self.properties_layout.addWidget(exits_group)
 
         # Occupants Component (read-only)
@@ -176,14 +206,57 @@ class InspectorPanel(MaximizableDock):
             for occ_id in occupants:
                 occ_label = QLabel(occ_id)
                 occ_label.setStyleSheet("color: #D2D2D2; padding: 2px;")
-                occupants_group.layout().addRow(occ_label)
+                occupants_group.content.layout().addRow(occ_label)
         else:
             no_occ = QLabel("No occupants")
             no_occ.setStyleSheet("color: #888; padding: 4px;")
-            occupants_group.layout().addRow(no_occ)
+            occupants_group.content.layout().addRow(no_occ)
         self.properties_layout.addWidget(occupants_group)
 
         self.properties_layout.addStretch()
+
+    def _save_collapsible_states(self):
+        """
+        Save expanded/collapsed state of all CollapsibleSections before widget rebuild.
+
+        Pattern copied from SceneHierarchy.save_expanded_state() to prevent
+        bounce-back when timer refreshes Inspector.
+        """
+        # Find all CollapsibleSection widgets in the properties layout
+        for i in range(self.properties_layout.count()):
+            widget = self.properties_layout.itemAt(i).widget()
+            if isinstance(widget, CollapsibleSection):
+                self.collapsible_expanded_state[widget.title_text] = widget.is_expanded
+                print(f"[STATE] Saved '{widget.title_text}': expanded={widget.is_expanded}")
+
+    def _restore_collapsible_state(self, section: CollapsibleSection):
+        """
+        Restore expanded state for a newly-created CollapsibleSection.
+
+        Called immediately after creating CollapsibleSection to restore user's
+        previous expanded/collapsed preference.
+
+        Args:
+            section: The CollapsibleSection widget to restore state for
+        """
+        if section.title_text in self.collapsible_expanded_state:
+            saved_state = self.collapsible_expanded_state[section.title_text]
+            section.set_expanded(saved_state)
+            print(f"[STATE] Restored '{section.title_text}': expanded={saved_state}")
+
+    def _on_collapsible_toggled(self, title: str, expanded: bool):
+        """
+        Handle CollapsibleSection toggle - update state tracking.
+
+        Called whenever user expands/collapses a section. Ensures state
+        is preserved across Inspector refreshes.
+
+        Args:
+            title: Section title (identifier)
+            expanded: New expanded state
+        """
+        self.collapsible_expanded_state[title] = expanded
+        print(f"[STATE] User toggled '{title}': expanded={expanded}")
 
     def eventFilter(self, obj, event):
         """Handle keyboard events for text fields."""
@@ -277,6 +350,11 @@ class InspectorPanel(MaximizableDock):
                                                                               agent_personality.get('emotional_sensitivity', recipe_personality.get('emotional_sensitivity', 0.5)), 0.0, 1.0)
         self.properties_layout.addWidget(personality_group)
 
+        # ===== COGNITIVE COMPONENTS SECTION =====
+        components_section = self.create_components_section(agent_id)
+        if components_section:
+            self.properties_layout.addWidget(components_section)
+
         # ===== NOODLE COMPONENT (Unity-style component!) =====
         noodle_component = self.create_noodle_component(agent_id)
         self.properties_layout.addWidget(noodle_component)
@@ -343,42 +421,28 @@ class InspectorPanel(MaximizableDock):
 
         self.properties_layout.addStretch()
 
-    def create_property_group(self, title: str) -> QGroupBox:
-        """Create collapsible property group (Unity style)."""
-        # Start with expanded triangle
-        group = QGroupBox(f"▼ {title}")
-        group.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        group.setCheckable(True)  # Make collapsible
-        group.setChecked(True)  # Expanded by default
-        group.setStyleSheet("""
-            QGroupBox {
-                color: #FFFFFF;
-                background-color: #2A2A2A;
-                border: 1px solid #1E1E1E;
-                border-radius: 4px;
-                margin-top: 8px;
-                padding-top: 8px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 4px;
-            }
-            QGroupBox::indicator {
-                width: 0px;
-                height: 0px;
-            }
-        """)
-        group.setLayout(QFormLayout())
-        # Store original title for triangle updates
-        group.setProperty("original_title", title)
-        # Mark that we've connected the signal (prevent duplicate connections)
-        group.setProperty("signal_connected", False)
-        # Connect toggled signal ONCE only
-        if not group.property("signal_connected"):
-            group.toggled.connect(lambda checked, g=group: self.on_group_toggled(g, checked))
-            group.setProperty("signal_connected", True)
-        return group
+    def create_property_group(self, title: str) -> CollapsibleSection:
+        """
+        Create collapsible property group using CollapsibleSection (no bounce-back!).
+
+        Returns CollapsibleSection configured with QFormLayout.
+        To add fields, use: group.content.layout().addRow(label, widget)
+        """
+        section = CollapsibleSection(title)
+
+        # Replace default VBoxLayout with QFormLayout
+        form_layout = QFormLayout()
+        form_layout.setContentsMargins(12, 8, 12, 8)
+        form_layout.setSpacing(6)
+        section.set_content_layout(form_layout)
+
+        # Connect toggled signal to track state changes
+        section.toggled.connect(lambda expanded: self._on_collapsible_toggled(section.title_text, expanded))
+
+        # Restore previous expanded state (if any)
+        self._restore_collapsible_state(section)
+
+        return section
 
     def on_group_toggled(self, group: QGroupBox, checked: bool):
         """Handle group toggle - update triangle and visibility."""
@@ -397,7 +461,14 @@ class InspectorPanel(MaximizableDock):
         finally:
             # Delay unblocking to ensure Qt event queue clears
             from PyQt6.QtCore import QTimer
-            QTimer.singleShot(100, lambda: group.blockSignals(False))
+            # Safety: check widget still exists before accessing
+            def safely_unblock():
+                try:
+                    if group and not group.isHidden():  # Widget still valid
+                        group.blockSignals(False)
+                except RuntimeError:
+                    pass  # Widget was deleted, ignore
+            QTimer.singleShot(100, safely_unblock)
 
     def toggle_group_contents(self, group: QGroupBox, visible: bool):
         """Toggle visibility of group contents (Unity-style collapse)."""
@@ -415,7 +486,7 @@ class InspectorPanel(MaximizableDock):
         field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
         # Use editingFinished for instant update when user finishes editing
         field.editingFinished.connect(self.save_changes)
-        group.layout().addRow(f"{label}:", field)
+        group.content.layout().addRow(f"{label}:", field)
         return field
 
     def add_text_area(self, group: QGroupBox, label: str, value: str):
@@ -434,7 +505,7 @@ class InspectorPanel(MaximizableDock):
             except Exception as e:
                 print(f"Error in focusOutEvent: {e}")
         field.focusOutEvent = safe_focus_out
-        group.layout().addRow(f"{label}:", field)
+        group.content.layout().addRow(f"{label}:", field)
         return field
 
     def add_slider_field(self, group: QGroupBox, label: str, value: float, min_val: float, max_val: float):
@@ -447,7 +518,7 @@ class InspectorPanel(MaximizableDock):
         spin.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2;")
         # Instant update when value changes (Unity-style)
         spin.valueChanged.connect(lambda: self.save_changes())
-        group.layout().addRow(f"{label}:", spin)
+        group.content.layout().addRow(f"{label}:", spin)
         return spin
 
     def save_changes(self):
@@ -534,7 +605,284 @@ class InspectorPanel(MaximizableDock):
             from PyQt6.QtCore import QTimer
             QTimer.singleShot(2500, lambda: setattr(self, 'is_saving', False))
 
-    def create_noodle_component(self, agent_id: str) -> QGroupBox:
+    def save_component_changes(self, agent_id: str, component_id: str):
+        """
+        Save component changes to backend API.
+
+        Args:
+            agent_id: Agent identifier
+            component_id: Component identifier
+        """
+        try:
+            self.is_saving = True
+
+            # Verify component widgets exist
+            if agent_id not in self.component_widgets:
+                return
+            if component_id not in self.component_widgets[agent_id]:
+                return
+
+            comp_widgets = self.component_widgets[agent_id][component_id]
+
+            # Collect parameters
+            parameters = {}
+
+            # Enabled state
+            if 'enabled' in comp_widgets:
+                parameters['enabled'] = comp_widgets['enabled'].isChecked()
+
+            # Parameter values
+            for key, widget in comp_widgets.items():
+                if key.startswith('param_'):
+                    param_name = key[6:]  # Remove 'param_' prefix
+
+                    # Extract value based on widget type
+                    if hasattr(widget, 'isChecked'):
+                        parameters[param_name] = widget.isChecked()
+                    elif hasattr(widget, 'value'):
+                        parameters[param_name] = widget.value()
+                    elif hasattr(widget, 'text'):
+                        parameters[param_name] = widget.text()
+
+            # Build update payload
+            update_data = {'parameters': parameters}
+
+            # POST to API
+            response = requests.post(
+                f"{self.api_base}/agents/{agent_id}/components/{component_id}/update",
+                json=update_data,
+                timeout=5
+            )
+
+            if response.status_code == 200:
+                print(f"Component {component_id} saved for {agent_id}")
+            else:
+                print(f"Error saving component: {response.text}")
+
+        except Exception as e:
+            print(f"Error saving component: {e}")
+
+        finally:
+            # Clear saving flag
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(2500, lambda: setattr(self, 'is_saving', False))
+
+    def create_components_section(self, agent_id: str) -> QWidget:
+        """
+        Create Cognitive Components section.
+
+        Displays all cognitive processing components with editable prompts
+        and parameters. Uses custom CollapsibleSection to avoid QGroupBox
+        double-trigger bug.
+
+        Args:
+            agent_id: Agent identifier
+
+        Returns:
+            Widget containing all components, or None if API fails
+        """
+        try:
+            # Fetch components from API
+            response = requests.get(f"{self.api_base}/agents/{agent_id}/components", timeout=2)
+            if response.status_code != 200:
+                return None
+
+            components_data = response.json()
+            components = components_data.get('components', [])
+
+            if not components:
+                return None
+
+            # Main container widget
+            container = QWidget()
+            container_layout = QVBoxLayout(container)
+            container_layout.setContentsMargins(0, 0, 0, 0)
+            container_layout.setSpacing(4)
+
+            # Header label
+            header = QLabel("Cognitive Components")
+            header_font = QFont()
+            header_font.setBold(True)
+            header_font.setPointSize(11)
+            header.setFont(header_font)
+            header.setStyleSheet("color: #00FF00; padding: 4px;")
+            container_layout.addWidget(header)
+
+            # Create collapsible section for each component
+            for comp_data in components:
+                comp_section = self.create_single_component(agent_id, comp_data)
+                if comp_section:
+                    container_layout.addWidget(comp_section)
+
+            return container
+
+        except Exception as e:
+            print(f"Error loading components: {e}")
+            return None
+
+    def create_single_component(self, agent_id: str, comp_data: dict) -> CollapsibleSection:
+        """
+        Create UI for a single cognitive component.
+
+        Args:
+            agent_id: Agent identifier
+            comp_data: Component data from API
+
+        Returns:
+            CollapsibleSection widget with component details
+        """
+        component_id = comp_data.get('component_id', '')
+        component_type = comp_data.get('component_type', 'Unknown')
+        description = comp_data.get('description', '')
+        enabled = comp_data.get('enabled', True)
+        prompt_template = comp_data.get('prompt_template', '')
+        parameters = comp_data.get('parameters', {})
+
+        # Initialize widget tracking structure for this agent/component
+        if agent_id not in self.component_widgets:
+            self.component_widgets[agent_id] = {}
+        if component_id not in self.component_widgets[agent_id]:
+            self.component_widgets[agent_id][component_id] = {}
+
+        comp_widgets = self.component_widgets[agent_id][component_id]
+
+        # Create collapsible section (no double-trigger!)
+        section = CollapsibleSection(f"{component_type}")
+
+        # Connect toggled signal to track state changes
+        section.toggled.connect(lambda expanded: self._on_collapsible_toggled(section.title_text, expanded))
+
+        # Restore previous expanded state (if any)
+        self._restore_collapsible_state(section)
+
+        # Component description (read-only)
+        desc_label = QLabel(description)
+        desc_label.setWordWrap(True)
+        desc_label.setStyleSheet("color: #AAAAAA; font-size: 9pt; font-style: italic; padding: 4px 0;")
+        section.add_widget(desc_label)
+
+        # Enabled checkbox
+        from PyQt6.QtWidgets import QCheckBox
+        enabled_checkbox = QCheckBox("Enabled")
+        enabled_checkbox.setChecked(enabled)
+        enabled_checkbox.setStyleSheet("color: #FFFFFF;")
+
+        # Track widget and wire state change to save
+        comp_widgets['enabled'] = enabled_checkbox
+        # DISABLED FOR DEBUG: enabled_checkbox.stateChanged.connect(lambda: self.save_component_changes(agent_id, component_id))
+
+        section.add_widget(enabled_checkbox)
+
+        # Prompt template (editable)
+        prompt_label = QLabel("Prompt Template:")
+        prompt_label.setStyleSheet("color: #FFFFFF; font-weight: bold; margin-top: 8px;")
+        section.add_widget(prompt_label)
+
+        prompt_edit = QTextEdit()
+        prompt_edit.setPlainText(prompt_template)
+        prompt_edit.setMaximumHeight(150)
+        prompt_edit.setStyleSheet("""
+            QTextEdit {
+                background-color: #1E1E1E;
+                color: #00FF00;
+                border: 1px solid #3A3A3A;
+                border-radius: 3px;
+                padding: 4px;
+                font-family: 'Courier New', monospace;
+                font-size: 9pt;
+            }
+        """)
+
+        # Track widget and wire focusOutEvent to save
+        comp_widgets['prompt_template'] = prompt_edit
+
+        # DISABLED FOR DEBUG
+        # def create_prompt_handler(edit_widget, ag_id, comp_id):
+        #     """Create focusOut handler for prompt template field."""
+        #     original_focus_out = edit_widget.focusOutEvent
+        #     def custom_focus_out(event):
+        #         self.save_component_changes(ag_id, comp_id)
+        #         if original_focus_out:
+        #             original_focus_out(event)
+        #     edit_widget.focusOutEvent = custom_focus_out
+        #
+        # create_prompt_handler(prompt_edit, agent_id, component_id)
+
+        section.add_widget(prompt_edit)
+
+        # Parameters (editable)
+        if parameters:
+            params_label = QLabel("Parameters:")
+            params_label.setStyleSheet("color: #FFFFFF; font-weight: bold; margin-top: 8px;")
+            section.add_widget(params_label)
+
+            # Create form layout for parameters
+            from PyQt6.QtWidgets import QFormLayout
+            params_form = QFormLayout()
+            params_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+            params_form.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+
+            for param_name, param_value in parameters.items():
+                if param_name == 'enabled':
+                    continue  # Already shown as checkbox
+
+                param_label = QLabel(param_name.replace('_', ' ').title() + ":")
+                param_label.setStyleSheet("color: #CCCCCC;")
+
+                # Create appropriate input widget based on type
+                if isinstance(param_value, bool):
+                    param_widget = QCheckBox()
+                    param_widget.setChecked(param_value)
+                    # DISABLED FOR DEBUG: Wire stateChanged to save
+                    # param_widget.stateChanged.connect(lambda state, ag_id=agent_id, comp_id=component_id: self.save_component_changes(ag_id, comp_id))
+                elif isinstance(param_value, float):
+                    param_widget = QDoubleSpinBox()
+                    param_widget.setValue(param_value)
+                    param_widget.setRange(0.0, 10.0)
+                    param_widget.setSingleStep(0.1)
+                    param_widget.setDecimals(2)
+                    # DISABLED FOR DEBUG: Wire valueChanged to save
+                    # param_widget.valueChanged.connect(lambda value, ag_id=agent_id, comp_id=component_id: self.save_component_changes(ag_id, comp_id))
+                elif isinstance(param_value, int):
+                    param_widget = QSpinBox()
+                    param_widget.setValue(param_value)
+                    param_widget.setRange(0, 1000)
+                    # DISABLED FOR DEBUG: Wire valueChanged to save
+                    # param_widget.valueChanged.connect(lambda value, ag_id=agent_id, comp_id=component_id: self.save_component_changes(ag_id, comp_id))
+                else:
+                    param_widget = QLineEdit(str(param_value))
+                    # DISABLED FOR DEBUG: Wire focusOutEvent to save
+                    # def create_param_handler(edit_widget, ag_id, comp_id):
+                    #     original_focus_out = edit_widget.focusOutEvent
+                    #     def custom_focus_out(event):
+                    #         self.save_component_changes(ag_id, comp_id)
+                    #         if original_focus_out:
+                    #             original_focus_out(event)
+                    #     edit_widget.focusOutEvent = custom_focus_out
+                    # create_param_handler(param_widget, agent_id, component_id)
+
+                param_widget.setStyleSheet("""
+                    QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox {
+                        background-color: #1E1E1E;
+                        color: #FFFFFF;
+                        border: 1px solid #3A3A3A;
+                        border-radius: 3px;
+                        padding: 3px;
+                    }
+                """)
+
+                # Track widget for save operations
+                comp_widgets[f'param_{param_name}'] = param_widget
+
+                params_form.addRow(param_label, param_widget)
+
+            params_widget = QWidget()
+            params_widget.setLayout(params_form)
+            section.add_widget(params_widget)
+
+        return section
+
+    def create_noodle_component(self, agent_id: str) -> CollapsibleSection:
         """
         Create the Noodle Component (Unity-style component).
 
@@ -543,34 +891,20 @@ class InspectorPanel(MaximizableDock):
         - 40-D Phenomenal State (inner kindling)
         - Surprise metric
         """
-        # Use standardized component header
-        component = QGroupBox("▼ Noodle Component")
-        component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        component.setCheckable(True)  # Make collapsible
-        component.setChecked(True)  # Expanded by default
-        component.setStyleSheet("""
-            QGroupBox {
-                color: #FFFFFF;
-                background-color: #2A2A2A;
-                border: 1px solid #1E1E1E;
-                border-radius: 4px;
-                margin-top: 8px;
-                padding-top: 8px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 4px;
-            }
-            QGroupBox::indicator {
-                width: 0px;
-                height: 0px;
-            }
-        """)
-        component.setProperty("original_title", "Noodle Component")
-        component.toggled.connect(lambda checked: self.on_group_toggled(component, checked))
+        # Create CollapsibleSection (no bounce-back!)
+        component = CollapsibleSection("Noodle Component")
 
+        # Connect toggled signal for state tracking
+        component.toggled.connect(lambda expanded: self._on_collapsible_toggled(component.title_text, expanded))
+
+        # Restore previous expanded state
+        self._restore_collapsible_state(component)
+
+        # Content uses VBoxLayout (not FormLayout) for this special component
         layout = QVBoxLayout()
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(6)
+        component.set_content_layout(layout)
 
         # Agent ID reference (for live updates)
         self.current_agent_id = agent_id
@@ -728,40 +1062,21 @@ class InspectorPanel(MaximizableDock):
         artbook = self.create_artbook_component()
         self.properties_layout.addWidget(artbook)
 
-    def create_artbook_component(self) -> QGroupBox:
+    def create_artbook_component(self) -> CollapsibleSection:
         """
         Create Artbook component (Unity-style component).
 
         Holds reference art, concept sketches, mood boards for the character.
         """
-        # Use standardized component header
-        component = QGroupBox("▼ Artbook Component")
-        component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        component.setCheckable(True)  # Make collapsible
-        component.setChecked(True)  # Expanded by default
-        component.setStyleSheet("""
-            QGroupBox {
-                color: #FFFFFF;
-                background-color: #2A2A2A;
-                border: 1px solid #1E1E1E;
-                border-radius: 4px;
-                margin-top: 8px;
-                padding-top: 8px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 4px;
-            }
-            QGroupBox::indicator {
-                width: 0px;
-                height: 0px;
-            }
-        """)
-        component.setProperty("original_title", "Artbook Component")
-        component.toggled.connect(lambda checked: self.on_group_toggled(component, checked))
+        # Create CollapsibleSection (no bounce-back!)
+        component = CollapsibleSection("Artbook Component")
+        component.toggled.connect(lambda expanded: self._on_collapsible_toggled(component.title_text, expanded))
+        self._restore_collapsible_state(component)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(6)
+        component.set_content_layout(layout)
 
         # Description
         desc = QLabel("Reference art and concept images for this character")
@@ -1005,7 +1320,7 @@ class InspectorPanel(MaximizableDock):
         component.setLayout(layout)
         return component
 
-    def create_mmcr_component(self, agent_id: str) -> QGroupBox:
+    def create_mmcr_component(self, agent_id: str) -> CollapsibleSection:
         """
         Create MMCR (Multimodal Context Reference) component.
 
@@ -1018,34 +1333,15 @@ class InspectorPanel(MaximizableDock):
         Unlike Artbook (which is for visual reference), MMCR is for
         runtime-accessible context that affects behavior.
         """
-        # Use standardized component header
-        component = QGroupBox("▼ Multimodal Context Reference")
-        component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        component.setCheckable(True)  # Make collapsible
-        component.setChecked(True)  # Expanded by default
-        component.setStyleSheet("""
-            QGroupBox {
-                color: #FFFFFF;
-                background-color: #2A2A2A;
-                border: 1px solid #1E1E1E;
-                border-radius: 4px;
-                margin-top: 8px;
-                padding-top: 8px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 4px;
-            }
-            QGroupBox::indicator {
-                width: 0px;
-                height: 0px;
-            }
-        """)
-        component.setProperty("original_title", "Multimodal Context Reference")
-        component.toggled.connect(lambda checked: self.on_group_toggled(component, checked))
+        # Create CollapsibleSection (no bounce-back!)
+        component = CollapsibleSection("Multimodal Context Reference")
+        component.toggled.connect(lambda expanded: self._on_collapsible_toggled(component.title_text, expanded))
+        self._restore_collapsible_state(component)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(6)
+        component.set_content_layout(layout)
 
         # Description
         desc = QLabel("Runtime-accessible media for scripts and LLM context")

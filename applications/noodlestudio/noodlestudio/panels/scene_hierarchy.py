@@ -134,6 +134,9 @@ class SceneHierarchy(MaximizableDock):
         # Use itemSelectionChanged to avoid interfering with expand/collapse
         self.tree.itemSelectionChanged.connect(self.on_selection_changed)
 
+        # Single-click on text to toggle expansion (consistent with Inspector CollapsibleSection)
+        self.tree.itemClicked.connect(self.on_item_clicked_for_expansion)
+
         # Double-click to unpack ensembles or inspect entities
         self.tree.itemDoubleClicked.connect(self.on_item_double_clicked)
 
@@ -438,6 +441,17 @@ class SceneHierarchy(MaximizableDock):
             elif isinstance(entity_data, dict):
                 # Regular entity - inspect it
                 self.inspect_entity(entity_data)
+
+    def on_item_clicked_for_expansion(self, item: QTreeWidgetItem, column: int):
+        """
+        Handle item click to toggle expansion (consistent with Inspector CollapsibleSection).
+
+        Clicking text on items with children will expand/collapse them.
+        Leaf items (no children) are unaffected - only selection occurs.
+        """
+        if item.childCount() > 0:
+            # Item has children - toggle expanded state
+            item.setExpanded(not item.isExpanded())
 
     def on_item_clicked(self, item: QTreeWidgetItem, column: int = 0):
         """Handle direct item clicks (used by context menu)."""
