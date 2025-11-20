@@ -1,0 +1,2302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>noodleMUSH - Noodlings Multi-User Shared Hallucination v1.1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #00ff00;  /* GREEN TUI! */
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+        }
+
+        #header {
+            text-align: center;
+            padding: 10px;
+            border-bottom: 2px solid #ffb000;  /* AMBER BORDER */
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        #header h1 {
+            font-size: 24px;
+            letter-spacing: 2px;
+            color: #ffd700;  /* BRIGHT AMBER */
+        }
+
+        #header p {
+            font-size: 12px;
+            color: #cc8800;  /* DIM AMBER */
+        }
+
+        .font-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .font-btn {
+            background: #1a0f00;  /* DARK AMBER BG */
+            border: 1px solid #ffb000;  /* AMBER BORDER */
+            color: #ffb000;  /* AMBER TEXT */
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .font-btn:hover {
+            background: #332200;  /* AMBER HOVER */
+            color: #ffd700;  /* BRIGHT AMBER */
+        }
+
+        .font-size-display {
+            color: #cc8800;  /* DIM AMBER */
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        #view-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 10px;
+            background-color: #1a0f00;  /* DARK AMBER BG */
+            border: 1px solid #ffb000;  /* AMBER BORDER */
+            margin-bottom: 5px;
+        }
+
+        #view-mode-indicator {
+            font-weight: bold;
+            color: #ffd700;  /* BRIGHT AMBER */
+            letter-spacing: 2px;
+        }
+
+        .view-hint {
+            color: #cc8800;  /* DIM AMBER */
+            font-size: 12px;
+        }
+
+        .view-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ffb000;  /* AMBER BORDER */
+            margin-bottom: 10px;
+            background-color: #000;  /* PURE BLACK BG */
+        }
+
+        #output {
+            /* Inherits from .view-container */
+        }
+
+        #log-output {
+            /* Inherits from .view-container */
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        #llm-config {
+            /* VT100 terminal aesthetic - WYSE AMBER! */
+            font-family: 'Courier New', monospace;
+            font-size: 18px;  /* CHUNKY! Will be updated by applyFontSize() */
+            line-height: 1.4;
+            color: #ffb000;  /* AMBER PHOSPHOR GLOW! */
+        }
+
+        /* WYSE amber color overrides for LLM config */
+        #llm-config * {
+            color: #ffb000 !important;  /* Everything amber! */
+        }
+
+        #llm-config .amber-bright {
+            color: #ffd700 !important;  /* Bright amber for highlights */
+        }
+
+        #llm-config .amber-dim {
+            color: #cc8800 !important;  /* Dim amber for secondary text */
+        }
+
+        .view-container::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .view-container::-webkit-scrollbar-track {
+            background: #1a0f00;  /* Dark amber */
+        }
+
+        .view-container::-webkit-scrollbar-thumb {
+            background: #ffb000;  /* WYSE amber! */
+        }
+
+        .view-container::-webkit-scrollbar-thumb:hover {
+            background: #ffd700;  /* Bright amber on hover */
+        }
+
+        .line {
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 5px;
+            border-left: 3px solid transparent;
+            font-size: 18px;
+        }
+
+        .line.system {
+            color: #ffff00;
+        }
+
+        .line.error {
+            color: #ff0000;
+        }
+
+        .line.event {
+            color: #00dddd;
+        }
+
+        .line.output {
+            color: #00ff00;
+        }
+
+        /* Speaker-specific colors */
+        .line.speaker-you {
+            border-left-color: #00ff00;
+            background-color: #001a00;
+        }
+
+        .line.speaker-callie {
+            border-left-color: #ffaa00;
+            background-color: #1a1000;
+        }
+
+        .line.speaker-phi {
+            border-left-color: #ff00ff;
+            background-color: #1a001a;
+        }
+
+        .line.speaker-toad {
+            border-left-color: #00ffff;
+            background-color: #001a1a;
+        }
+
+        .line.speaker-desobelle {
+            border-left-color: #ff88ff;
+            background-color: #1a001a;
+        }
+
+        .line.speaker-servnak {
+            border-left-color: #88ff88;
+            background-color: #001a0a;
+        }
+
+        .line.speaker-other {
+            border-left-color: #aaaaaa;
+            background-color: #0a0a0a;
+        }
+
+        .speaker-name {
+            font-weight: bold;
+            margin-right: 5px;
+            text-transform: capitalize;
+        }
+
+        /* Thought/rumination styling */
+        .line.thought {
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        .speaker-you .speaker-name {
+            color: #00ff00;
+        }
+
+        .speaker-callie .speaker-name {
+            color: #ffaa00;
+        }
+
+        .speaker-phi .speaker-name {
+            color: #ff00ff;
+        }
+
+        .speaker-toad .speaker-name {
+            color: #00ffff;
+        }
+
+        .speaker-desobelle .speaker-name {
+            color: #ff88ff;
+        }
+
+        .speaker-servnak .speaker-name {
+            color: #88ff88;
+        }
+
+        .speaker-other .speaker-name {
+            color: #aaaaaa;
+        }
+
+        #input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        #prompt {
+            color: #ffd700;  /* BRIGHT AMBER */
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        /* Log entry styles */
+        .log-entry {
+            margin-bottom: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .log-entry.log-INFO {
+            color: #00ff00;
+        }
+
+        .log-entry.log-DEBUG {
+            color: #00aa00;
+        }
+
+        .log-entry.log-WARNING {
+            color: #ffff00;
+        }
+
+        .log-entry.log-ERROR {
+            color: #ff0000;
+        }
+
+        .log-entry.log-CRITICAL {
+            color: #ff0000;
+            font-weight: bold;
+        }
+
+        .log-level {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .log-name {
+            color: #00aaaa;
+            margin-right: 5px;
+        }
+
+        .log-message {
+            /* Inherit color from parent */
+        }
+
+        #input {
+            flex: 1;
+            background-color: #1a0f00;  /* DARK AMBER BG */
+            color: #ffb000;  /* AMBER TEXT */
+            border: 1px solid #ffb000;  /* AMBER BORDER */
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+        }
+
+        #input::selection {
+            background-color: #ffb000;  /* AMBER SELECTION! */
+            color: #000;  /* BLACK ON AMBER */
+        }
+
+        #input:focus {
+            outline: 2px solid #ffd700;  /* BRIGHT AMBER OUTLINE */
+            border-color: #ffd700;
+            background-color: #2a1800;  /* BRIGHTER WHEN TYPING */
+        }
+
+        #auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;  /* Fully opaque black */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;  /* Higher z-index */
+            pointer-events: all;  /* Block all events */
+        }
+
+        #auth-modal.hidden {
+            display: none;
+            pointer-events: none;  /* Allow events when hidden */
+        }
+
+        #auth-form {
+            background-color: #001100;
+            border: 2px solid #00ff00;
+            padding: 30px;
+            min-width: 400px;
+        }
+
+        #auth-form h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #00ff00;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ff00;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            background-color: #000;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #00ffff;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            background-color: #003300;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #005500;
+            border-color: #00ffff;
+        }
+
+        button:active {
+            background-color: #007700;
+        }
+
+        #status {
+            text-align: center;
+            margin-top: 10px;
+            color: #ffff00;
+            font-size: 12px;
+        }
+
+        .blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Telepathy toggle */
+        #telepathy-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #003300;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        #telepathy-toggle:hover {
+            background-color: #005500;
+            border-color: #00ffff;
+        }
+
+        #telepathy-toggle.active {
+            background-color: #005500;
+            border-color: #ffff00;
+            color: #ffff00;
+        }
+
+        /* Brain status bar - hidden (profiler coming soon) */
+        #brain-status-bar {
+            display: none;
+        }
+
+        .brain-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brain-indicator .agent-name-label {
+            opacity: 1 !important;  /* Names always bright for readability */
+        }
+
+        .brain-indicator .brain-icon {
+            opacity: 0.2;  /* Dim when idle */
+            transition: opacity 0.6s ease;
+        }
+
+        .brain-indicator.thinking .brain-icon {
+            opacity: 1;  /* Bright when thinking */
+            animation: brain-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes brain-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }  /* Darker pulse for more visibility */
+        }
+
+        .brain-indicator .agent-name-label {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .brain-indicator .brain-icon {
+            font-size: 20px;
+            display: inline-block;
+        }
+
+        .brain-indicator.thinking .brain-icon {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="auth-modal">
+        <div id="auth-form">
+            <h2>noodleMUSH Login</h2>
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" autocomplete="username" />
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" autocomplete="current-password" />
+            </div>
+            <div class="button-group">
+                <button id="login-btn">Login</button>
+                <button id="register-btn">Register</button>
+            </div>
+            <div id="status"></div>
+
+            <!-- Admin Login (only shown when running in NoodleStudio) -->
+            <div id="admin-login-container" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #00ff00;">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <span style="color: #00ff00; font-size: 14px;">Admin</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <label id="invisible-checkbox-label" style="display: flex; align-items: center; gap: 5px; font-size: 14px; color: #00ff00; cursor: pointer; user-select: none;">
+                        <span id="invisible-checkbox-display">[ ]</span>
+                        <span>invisible</span>
+                    </label>
+                    <input type="checkbox" id="invisible-mode-checkbox" style="display: none;" />
+                    <button id="admin-login-btn" style="background: #000; border: 1px solid #00ff00; color: #00ff00; padding: 8px 16px; font-family: 'Courier New', monospace; cursor: pointer;">
+                        Login as Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="container">
+        <div id="header">
+            <div class="font-controls">
+                <button class="font-btn" onclick="decreaseFontSize()">A-</button>
+                <span class="font-size-display" id="fontSizeDisplay">18px</span>
+                <button class="font-btn" onclick="increaseFontSize()">A+</button>
+            </div>
+            <h1>noodleMUSH</h1>
+            <p>Noodlings Multi-User Shared Hallucination</p>
+            <button id="telepathy-toggle" title="Toggle telepathy (read others' thoughts)">Telepathy: OFF</button>
+        </div>
+
+        <div id="brain-status-bar">
+            <!-- Brain indicators will be dynamically added here -->
+        </div>
+
+        <!-- View mode indicator and controls -->
+        <div id="view-controls">
+            <span id="view-mode-indicator">CHAT VIEW</span>
+            <span class="view-hint">[TAB to toggle]</span>
+            <button id="verbose-toggle" class="font-btn" style="display: none;">Verbose Mode</button>
+        </div>
+
+        <!-- Chat view (default) -->
+        <div id="output" class="view-container"></div>
+
+        <!-- Log view (hidden by default) -->
+        <div id="log-output" class="view-container" style="display: none;"></div>
+
+        <!-- LLM Config view (hidden by default) - WYSE AMBER AESTHETIC! -->
+        <div id="llm-config" class="view-container" style="display: none; font-family: 'Courier New', monospace; background-color: #000;">
+            <div style="border: 2px solid #ffb000; padding: 15px; margin-bottom: 15px; background-color: #000;">
+
+                <!-- Global LLM Settings -->
+                <div style="margin-bottom: 20px;">
+                    <div class="amber-bright config-section-text" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px; white-space: nowrap; overflow: hidden;">
+                        ┌─ GLOBAL CONFIGURATION ────────────────────────────────────────┐
+                    </div>
+                    <table style="width: 100%; font-size: 16px;" class="config-table-text">
+                        <tr>
+                            <td class="amber-dim" style="width: 200px;">&gt; Provider:</td>
+                            <td id="global-provider" class="amber-bright" style="font-weight: bold; cursor: pointer;" title="Click to change provider">local</td>
+                        </tr>
+                        <tr>
+                            <td class="amber-dim">&gt; API Base:</td>
+                            <td id="global-api-base" class="amber-bright" style="cursor: pointer;" title="Click to edit">http://localhost:1234/v1</td>
+                        </tr>
+                        <tr>
+                            <td class="amber-dim">&gt; API Key:</td>
+                            <td id="global-api-key" class="amber-bright" style="cursor: pointer;" title="Click to edit">••••••••</td>
+                        </tr>
+                        <tr>
+                            <td class="amber-dim">&gt; Model:</td>
+                            <td id="global-model" class="amber-bright" style="font-weight: bold;">qwen/qwen3-4b-2507</td>
+                        </tr>
+                        <tr>
+                            <td class="amber-dim">&gt; Timeout:</td>
+                            <td id="global-timeout" class="amber-bright">60s</td>
+                        </tr>
+                    </table>
+                    <div class="amber-dim config-section-text" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
+                        └────────────────────────────────────────────────────────────────┘
+                    </div>
+                </div>
+
+                <!-- Brenda (Special) -->
+                <div style="margin-bottom: 20px;">
+                    <div class="amber-bright config-section-text" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px; white-space: nowrap; overflow: hidden;">
+                        ┌─ BRENDA (Director/Storyteller) ───────────────────────────────┐
+                    </div>
+                    <table style="width: 100%; font-size: 16px;" class="config-table-text">
+                        <tr>
+                            <td class="amber-dim" style="width: 200px;">&gt; Model:</td>
+                            <td id="brenda-model" class="amber-bright" style="font-weight: bold; cursor: pointer;">deepseek-v3.1@q2_k_xl</td>
+                        </tr>
+                        <tr>
+                            <td class="amber-dim">&gt; Purpose:</td>
+                            <td class="amber-dim">Complex storytelling, play generation</td>
+                        </tr>
+                    </table>
+                    <div class="amber-dim config-section-text" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
+                        └────────────────────────────────────────────────────────────────┘
+                    </div>
+                </div>
+
+                <!-- Noodlings À La Carte (Per-Agent Overrides) -->
+                <div style="margin-bottom: 20px;">
+                    <div class="amber-bright config-section-text" style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px dashed #cc8800; padding-bottom: 5px; white-space: nowrap; overflow: hidden;">
+                        ┌─ NOODLINGS À LA CARTE ─────────────────────────────────────────┐
+                    </div>
+                    <div id="agent-models" class="amber-bright agent-config-text" style="line-height: 1.8;">
+                        <div class="amber-dim" style="font-style: italic;">Loading Noodlings...</div>
+                    </div>
+                    <div class="amber-dim config-section-text" style="font-size: 12px; margin-top: 8px; border-top: 1px dashed #cc8800; padding-top: 5px;">
+                        └────────────────────────────────────────────────────────────────┘
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #ffb000;">
+                    <div class="amber-dim" style="font-size: 14px; text-align: center;">
+                        <span class="amber-bright">●</span> System Status: <span class="amber-bright" style="font-weight: bold;">OPERATIONAL</span><br>
+                        <span class="amber-dim" style="font-style: italic;">Per-Noodling model routing active</span><br>
+                        <br>
+                        <span class="amber-dim">[TAB] to cycle views • [+/-] to zoom</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="input-area">
+            <div id="prompt">&gt;</div>
+            <input type="text" id="input" placeholder="Type a command..." autocomplete="off" />
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        let ws = null;
+        let authenticated = false;
+
+        // Command history with localStorage persistence
+        let commandHistory = JSON.parse(localStorage.getItem('noodleMUSH_commandHistory') || '[]');
+        let historyIndex = commandHistory.length;
+        const MAX_HISTORY_SIZE = 500; // Keep last 500 commands
+
+        // Telepathy mode (can read others' thoughts)
+        let telepathyEnabled = localStorage.getItem('telepathyEnabled') === 'true';
+
+        // Message history for redrawing when telepathy toggles
+        let messageHistory = [];
+
+        // Brain status tracking with different processing states
+        let agentBrainStatus = {}; // { agentName: { state: 'idle'|'input'|'generating'|'thinking', timeout: timeoutId } }
+        const THINKING_TIMEOUT = 3000; // Clear thinking status after 3 seconds of no activity
+
+        // Enlightened agents (meta-aware) - populated from server
+        let enlightenedAgents = [];
+
+        // Status icon mapping
+        const STATUS_ICONS = {
+            'idle': '🧠',
+            'input': '👂',      // Processing language input
+            'generating': '👄', // Generating speech/action
+            'thinking': '🧠'    // Ruminating
+        };
+
+        // Font size control
+        let currentFontSize = 18; // Default from CSS
+
+        // Log view control
+        let currentView = 'chat'; // 'chat', 'log', or 'llm'
+        let logSubscribed = false;
+        let verboseMode = localStorage.getItem('verboseLogMode') === 'true';
+        let logEntries = []; // Store full log entries for verbose toggle
+
+        // Provider presets with default endpoints
+        const PROVIDER_PRESETS = {
+            'local': {
+                name: 'Local (LMStudio)',
+                api_base: 'http://localhost:1234/v1',
+                requires_key: false
+            },
+            'openrouter': {
+                name: 'OpenRouter',
+                api_base: 'https://openrouter.ai/api/v1',
+                requires_key: true
+            },
+            'openai': {
+                name: 'OpenAI',
+                api_base: 'https://api.openai.com/v1',
+                requires_key: true
+            },
+            'anthropic': {
+                name: 'Anthropic',
+                api_base: 'https://api.anthropic.com/v1',
+                requires_key: true
+            },
+            'together': {
+                name: 'Together AI',
+                api_base: 'https://api.together.xyz/v1',
+                requires_key: true
+            },
+            'groq': {
+                name: 'Groq',
+                api_base: 'https://api.groq.com/openai/v1',
+                requires_key: true
+            }
+        };
+
+        // Get stored API key for provider
+        function getProviderAPIKey(provider) {
+            return localStorage.getItem(`noodlemush_api_key_${provider}`) || '';
+        }
+
+        // Save API key for provider
+        function setProviderAPIKey(provider, key) {
+            if (key) {
+                localStorage.setItem(`noodlemush_api_key_${provider}`, key);
+            } else {
+                localStorage.removeItem(`noodlemush_api_key_${provider}`);
+            }
+        }
+
+        // Make provider field show dropdown
+        function makeProviderEditable(elementId, currentProvider) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            element.onclick = () => {
+                const providers = Object.keys(PROVIDER_PRESETS);
+                showProviderPicker(element, currentProvider, providers);
+            };
+        }
+
+        // Show provider picker dropdown
+        function showProviderPicker(element, currentProvider, providers) {
+            const rect = element.getBoundingClientRect();
+            const dropdown = document.createElement('div');
+            dropdown.style.cssText = `
+                position: fixed;
+                left: ${rect.left}px;
+                top: ${rect.bottom + 5}px;
+                background: #1a0f00;
+                border: 2px solid #ffd700;
+                padding: 8px;
+                z-index: 10000;
+                max-height: 300px;
+                overflow-y: auto;
+                font-family: 'Courier New', monospace;
+            `;
+
+            providers.forEach(providerId => {
+                const preset = PROVIDER_PRESETS[providerId];
+                const option = document.createElement('div');
+                option.style.cssText = `
+                    padding: 8px;
+                    cursor: pointer;
+                    color: ${providerId === currentProvider ? '#ffd700' : '#ffb000'};
+                    font-weight: ${providerId === currentProvider ? 'bold' : 'normal'};
+                `;
+                option.textContent = preset.name;
+                option.onmouseover = () => option.style.backgroundColor = '#2a1800';
+                option.onmouseout = () => option.style.backgroundColor = 'transparent';
+                option.onclick = async () => {
+                    await switchProvider(providerId);
+                    document.body.removeChild(dropdown);
+                };
+                dropdown.appendChild(option);
+            });
+
+            document.body.appendChild(dropdown);
+
+            // Close on ESC or click outside
+            const closeHandler = (e) => {
+                if (e.key === 'Escape' || !dropdown.contains(e.target)) {
+                    if (document.body.contains(dropdown)) {
+                        document.body.removeChild(dropdown);
+                    }
+                    document.removeEventListener('keydown', closeHandler);
+                    document.removeEventListener('click', closeHandler);
+                }
+            };
+            setTimeout(() => {
+                document.addEventListener('keydown', closeHandler);
+                document.addEventListener('click', closeHandler);
+            }, 100);
+        }
+
+        // Switch to new provider
+        async function switchProvider(newProvider) {
+            const preset = PROVIDER_PRESETS[newProvider];
+
+            // Save provider to config
+            await saveConfigField('llm.provider', newProvider);
+
+            // Auto-populate API base from preset
+            await saveConfigField(`llm.${newProvider}.api_base`, preset.api_base);
+
+            // Load stored API key if available
+            const storedKey = getProviderAPIKey(newProvider);
+            if (storedKey && preset.requires_key) {
+                await saveConfigField(`llm.${newProvider}.api_key`, storedKey);
+            }
+
+            // Reload config display
+            await loadLLMConfig();
+        }
+
+        // Make API key field editable
+        function makeAPIKeyEditable(elementId, currentProvider) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            element.onclick = () => {
+                const storedKey = getProviderAPIKey(currentProvider);
+                const input = document.createElement('input');
+                input.type = 'password';
+                input.value = storedKey;
+                input.placeholder = 'Enter API key...';
+                input.style.cssText = 'background: #1a0f00; color: #ffd700; border: 2px solid #ffd700; padding: 4px; font-family: "Courier New"; font-size: 16px; font-weight: bold; width: 100%;';
+
+                element.innerHTML = '';
+                element.appendChild(input);
+                input.focus();
+                input.select();
+
+                input.onkeydown = async (e) => {
+                    if (e.key === 'Enter') {
+                        const newKey = input.value.trim();
+                        // Save to localStorage
+                        setProviderAPIKey(currentProvider, newKey);
+                        // Save to config YAML
+                        await saveConfigField(`llm.${currentProvider}.api_key`, newKey);
+                        // Update display
+                        const displayText = newKey ? '••••' + newKey.slice(-4) : '(not set)';
+                        element.textContent = displayText;
+                        element.onclick = () => makeAPIKeyEditable(elementId, currentProvider);
+                    } else if (e.key === 'Escape') {
+                        const displayText = storedKey ? '••••' + storedKey.slice(-4) : '(not set)';
+                        element.textContent = displayText;
+                        element.onclick = () => makeAPIKeyEditable(elementId, currentProvider);
+                    }
+                };
+            };
+        }
+
+        function applyFontSize(size) {
+            // Update CSS rules so ALL messages (existing and future) use this size
+            const styleSheet = document.styleSheets[0];
+
+            // Find and update the .line rule (chat view)
+            for (let i = 0; i < styleSheet.cssRules.length; i++) {
+                if (styleSheet.cssRules[i].selectorText === '.line') {
+                    styleSheet.cssRules[i].style.fontSize = size + 'px';
+                }
+                // Also update .log-entry rule (log view)
+                if (styleSheet.cssRules[i].selectorText === '.log-entry') {
+                    styleSheet.cssRules[i].style.fontSize = (size - 5) + 'px'; // Slightly smaller for logs
+                }
+                // Update LLM config view (WYSE amber!)
+                if (styleSheet.cssRules[i].selectorText === '#llm-config') {
+                    styleSheet.cssRules[i].style.fontSize = size + 'px';
+                }
+            }
+
+            // ALSO directly update #llm-config for inline styles
+            const llmConfig = document.getElementById('llm-config');
+            if (llmConfig) {
+                llmConfig.style.fontSize = size + 'px';
+
+                // Update ALL text elements in config
+                const configSections = llmConfig.querySelectorAll('.config-section-text');
+                configSections.forEach(elem => elem.style.fontSize = (size - 2) + 'px');
+
+                const configTables = llmConfig.querySelectorAll('.config-table-text');
+                configTables.forEach(elem => elem.style.fontSize = (size - 2) + 'px');
+
+                const agentText = llmConfig.querySelectorAll('.agent-config-text');
+                agentText.forEach(elem => elem.style.fontSize = (size - 2) + 'px');
+            }
+
+            // Update input area
+            const prompt = document.getElementById('prompt');
+            const input = document.getElementById('input');
+            if (prompt) prompt.style.fontSize = size + 'px';
+            if (input) input.style.fontSize = size + 'px';
+        }
+
+        function increaseFontSize() {
+            currentFontSize = Math.min(currentFontSize + 2, 48); // Max 48px (BIGGER!)
+            applyFontSize(currentFontSize);
+            document.getElementById('fontSizeDisplay').textContent = currentFontSize + 'px';
+            localStorage.setItem('noodleMUSH_fontSize', currentFontSize);
+        }
+
+        function decreaseFontSize() {
+            currentFontSize = Math.max(currentFontSize - 2, 8); // Min 8px (smaller minimum)
+            applyFontSize(currentFontSize);
+            document.getElementById('fontSizeDisplay').textContent = currentFontSize + 'px';
+            localStorage.setItem('noodleMUSH_fontSize', currentFontSize);
+        }
+
+        // Load saved font size on startup
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedSize = localStorage.getItem('noodleMUSH_fontSize');
+            if (savedSize) {
+                currentFontSize = parseInt(savedSize);
+                // Apply to CSS rule so all messages use it
+                applyFontSize(currentFontSize);
+                // Update display
+                const display = document.getElementById('fontSizeDisplay');
+                if (display) {
+                    display.textContent = currentFontSize + 'px';
+                }
+            }
+
+            // ALWAYS scroll chat to bottom on page load!
+            const outputDiv = document.getElementById('output');
+            if (outputDiv) {
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            }
+        });
+
+        // Keyboard shortcuts for font size and view toggle
+        document.addEventListener('keydown', (e) => {
+            // ESC closes any open dropdowns
+            if (e.key === 'Escape') {
+                closeAllDropdowns();
+                return;
+            }
+
+            // TAB key toggles between chat and log view (works even when input is focused)
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                toggleView();
+                return;
+            }
+
+            // Only trigger font shortcuts if not typing in input field
+            if (document.activeElement.id === 'input') return;
+
+            if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                increaseFontSize();
+            } else if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                decreaseFontSize();
+            }
+        });
+
+        // Close any open dropdowns
+        function closeAllDropdowns() {
+            document.querySelectorAll('.model-picker-dropdown').forEach(el => {
+                if (el.parentElement === document.body) {
+                    document.body.removeChild(el);
+                }
+            });
+        }
+
+        // Toggle between chat and log views (LLM config removed - use NoodleStudio for that)
+        function toggleView() {
+            closeAllDropdowns();  // Close model picker when switching views!
+
+            const outputDiv = document.getElementById('output');
+            const logOutputDiv = document.getElementById('log-output');
+            const viewIndicator = document.getElementById('view-mode-indicator');
+            const verboseToggle = document.getElementById('verbose-toggle');
+
+            // Cycle: chat → log → chat
+            if (currentView === 'chat') {
+                // Switch to log view
+                outputDiv.style.display = 'none';
+                logOutputDiv.style.display = 'block';
+                viewIndicator.textContent = 'LOG VIEW';
+                verboseToggle.style.display = 'inline-block';
+                currentView = 'log';
+                logOutputDiv.scrollTop = logOutputDiv.scrollHeight;
+
+                // Subscribe to logs if not already subscribed
+                if (!logSubscribed && authenticated && ws) {
+                    ws.send(JSON.stringify({ type: 'subscribe_logs' }));
+                    logSubscribed = true;
+                }
+            } else {
+                // Switch back to chat view
+                outputDiv.style.display = 'block';
+                logOutputDiv.style.display = 'none';
+                viewIndicator.textContent = 'CHAT VIEW';
+                verboseToggle.style.display = 'none';
+                currentView = 'chat';
+                // Auto-scroll to bottom so you see latest messages!
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            }
+        }
+
+        // Toggle verbose/compact log mode
+        function toggleVerboseMode() {
+            verboseMode = !verboseMode;
+            localStorage.setItem('verboseLogMode', verboseMode);
+            const button = document.getElementById('verbose-toggle');
+            button.textContent = verboseMode ? 'Compact Mode' : 'Verbose Mode';
+
+            // Redraw all log entries with new mode
+            redrawLogEntries();
+        }
+
+        // Redraw all log entries (for verbose toggle)
+        function redrawLogEntries() {
+            const logOutputDiv = document.getElementById('log-output');
+            const wasAtBottom = logOutputDiv.scrollHeight - logOutputDiv.scrollTop <= logOutputDiv.clientHeight + 50;
+
+            // Clear and redraw
+            logOutputDiv.innerHTML = '';
+
+            for (const entry of logEntries) {
+                addLogEntryToDOM(entry.level, entry.name, entry.message, entry.timestamp);
+            }
+
+            // Restore scroll position
+            if (wasAtBottom) {
+                logOutputDiv.scrollTop = logOutputDiv.scrollHeight;
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Add log entry to log output
+        function addLogEntry(level, name, message, timestamp = null) {
+            // Store the full entry data
+            logEntries.push({ level, name, message, timestamp });
+
+            // Trim buffer to last 500 entries
+            if (logEntries.length > 500) {
+                logEntries.shift();
+            }
+
+            // Add to DOM
+            addLogEntryToDOM(level, name, message, timestamp);
+        }
+
+        // Add log entry to DOM (separate for redraw)
+        function addLogEntryToDOM(level, name, message, timestamp = null) {
+            const logOutputDiv = document.getElementById('log-output');
+
+            // Check if user is at bottom before adding new content
+            const isAtBottom = logOutputDiv.scrollHeight - logOutputDiv.scrollTop <= logOutputDiv.clientHeight + 50;
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${level}`;
+
+            // Format timestamp
+            let timeStr = '';
+            if (timestamp) {
+                const date = new Date(timestamp * 1000); // Convert Unix timestamp to JS Date
+                timeStr = date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } else {
+                const now = new Date();
+                timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+
+            // In compact mode, abbreviate long messages
+            let displayMessage = message;
+            if (!verboseMode && message.length > 200) {
+                displayMessage = message.substring(0, 197) + '...';
+            }
+
+            entry.innerHTML = `<span class="log-timestamp" style="color: #666; margin-right: 5px;">[${timeStr}]</span><span class="log-level">[${level}]</span><span class="log-name">[${name}]</span><span class="log-message">${escapeHtml(displayMessage)}</span>`;
+            logOutputDiv.appendChild(entry);
+
+            // Only auto-scroll if user was already at bottom
+            if (isAtBottom) {
+                logOutputDiv.scrollTop = logOutputDiv.scrollHeight;
+            }
+        }
+
+        // DOM elements
+        const authModal = document.getElementById('auth-modal');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const statusDiv = document.getElementById('status');
+        const outputDiv = document.getElementById('output');
+        const inputField = document.getElementById('input');
+        const telepathyToggle = document.getElementById('telepathy-toggle');
+        const brainStatusBar = document.getElementById('brain-status-bar');
+
+        // Cookie helpers
+        function setCookie(name, value, days = 30) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Strict`;
+        }
+
+        function getCookie(name) {
+            return document.cookie.split('; ').reduce((r, c) => {
+                const [key, val] = c.split('=');
+                return key === name ? decodeURIComponent(val) : r;
+            }, '');
+        }
+
+        function deleteCookie(name) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        }
+
+        // Load LLM configuration and display in VT100 style
+        // Fetch available models from LMStudio
+        async function fetchAvailableModels() {
+            try {
+                const response = await fetch('http://localhost:1234/v1/models');
+                const data = await response.json();
+                if (data.data && Array.isArray(data.data)) {
+                    return data.data.map(m => m.id);
+                }
+                return [];
+            } catch (error) {
+                console.error('Failed to fetch models:', error);
+                return [];
+            }
+        }
+
+        // Make a config field editable (with model picker for model fields)
+        function makeEditable(elementId, fieldPath, currentValue) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            element.style.cursor = 'pointer';
+            element.title = 'Click to edit';
+
+            element.onclick = async () => {
+                // If this is a model field, show dropdown
+                if (fieldPath.includes('.model')) {
+                    const models = await fetchAvailableModels();
+                    if (models.length > 0) {
+                        showModelPicker(element, fieldPath, currentValue, models);
+                        return;
+                    }
+                }
+
+                // Regular text input
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentValue;
+                input.style.cssText = 'background: #1a0f00; color: #ffd700; border: 2px solid #ffd700; padding: 4px; font-family: "Courier New"; font-size: 16px; font-weight: bold; width: 100%;';
+
+                element.innerHTML = '';
+                element.appendChild(input);
+                input.focus();
+                input.select();
+
+                input.onkeydown = async (e) => {
+                    if (e.key === 'Enter') {
+                        const newValue = input.value.trim();
+                        await saveConfigField(fieldPath, newValue);
+                        element.textContent = newValue;
+                        element.onclick = () => makeEditable(elementId, fieldPath, newValue);
+                    } else if (e.key === 'Escape') {
+                        element.textContent = currentValue;
+                        element.onclick = () => makeEditable(elementId, fieldPath, currentValue);
+                    }
+                };
+
+                input.onblur = () => {
+                    element.textContent = currentValue;
+                    element.onclick = () => makeEditable(elementId, fieldPath, currentValue);
+                };
+            };
+        }
+
+        // Show model picker dropdown
+        function showModelPicker(element, fieldPath, currentValue, models) {
+            const dropdown = document.createElement('div');
+            dropdown.className = 'model-picker-dropdown';
+            dropdown.style.cssText = `
+                position: fixed;
+                background: #000;
+                border: 3px solid #ffd700;
+                max-height: 400px;
+                overflow-y: auto;
+                z-index: 1000;
+                min-width: 500px;
+                max-width: 700px;
+            `;
+
+            const rect = element.getBoundingClientRect();
+            // Position below the element, not to the right
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.top = (rect.bottom + 5) + 'px';
+
+            models.forEach(model => {
+                const option = document.createElement('div');
+                option.textContent = model;
+                option.style.cssText = `
+                    padding: 10px 15px;
+                    color: ${model === currentValue ? '#000' : '#cc8800'};
+                    background: ${model === currentValue ? '#ffd700' : '#000'};
+                    font-size: 16px;
+                    cursor: pointer;
+                    border-bottom: 1px solid #cc8800;
+                    font-weight: ${model === currentValue ? 'bold' : 'normal'};
+                `;
+
+                option.onmouseenter = () => {
+                    option.style.background = '#ffd700';
+                    option.style.color = '#000';
+                    option.style.fontWeight = 'bold';
+                };
+
+                option.onmouseleave = () => {
+                    if (model !== currentValue) {
+                        option.style.background = '#000';
+                        option.style.color = '#cc8800';
+                        option.style.fontWeight = 'normal';
+                    }
+                };
+
+                option.onclick = async () => {
+                    await saveConfigField(fieldPath, model);
+                    element.textContent = model;
+                    document.body.removeChild(dropdown);
+                    element.onclick = () => makeEditable(elementId, fieldPath, model);
+                };
+
+                dropdown.appendChild(option);
+            });
+
+            document.body.appendChild(dropdown);
+
+            // Close on click outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!dropdown.contains(e.target) && e.target !== element) {
+                        if (document.body.contains(dropdown)) {
+                            document.body.removeChild(dropdown);
+                        }
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                }, {once: true});
+            }, 100);
+        }
+
+        // Save config field to server
+        async function saveConfigField(fieldPath, value) {
+            try {
+                const response = await fetch('http://localhost:8081/api/config/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        field: fieldPath,
+                        value: value
+                    })
+                });
+
+                const result = await response.json();
+                console.log('Config saved:', result);
+                return result.success;
+            } catch (error) {
+                console.error('Failed to save config:', error);
+                return false;
+            }
+        }
+
+        async function loadLLMConfig() {
+            try {
+                // Fetch config from API
+                const response = await fetch('http://localhost:8081/api/config');
+                const config = await response.json();
+
+                // Populate global config (from YAML)
+                const llmConfig = config.llm || {};
+                const provider = llmConfig.provider || 'local';
+                const providerConfig = llmConfig[provider] || llmConfig.local || {};
+
+                const providerText = provider.toUpperCase();
+                const apiBaseText = providerConfig.api_base || 'N/A';
+                const modelText = providerConfig.model || 'N/A';
+                const timeoutText = (providerConfig.timeout || 60) + 's';
+
+                // Get stored API key for current provider
+                const storedKey = getProviderAPIKey(provider);
+                const apiKeyText = storedKey ? '••••' + storedKey.slice(-4) : '(not set)';
+
+                document.getElementById('global-provider').textContent = providerText;
+                document.getElementById('global-api-base').textContent = apiBaseText;
+                document.getElementById('global-api-key').textContent = apiKeyText;
+                document.getElementById('global-model').textContent = modelText;
+                document.getElementById('global-timeout').textContent = timeoutText;
+
+                // Make provider clickable (special handler for dropdown)
+                makeProviderEditable('global-provider', provider);
+
+                // Make other fields editable
+                makeAPIKeyEditable('global-api-key', provider);
+                makeEditable('global-api-base', `llm.${provider}.api_base`, apiBaseText);
+                makeEditable('global-model', `llm.${provider}.model`, modelText);
+                makeEditable('global-timeout', `llm.${provider}.timeout`, timeoutText);
+
+                // Make Brenda's model editable
+                const brendaModel = config.brenda?.model || 'deepseek-v3.1@q2_k_xl';
+                document.getElementById('brenda-model').textContent = brendaModel;
+                makeEditable('brenda-model', 'brenda.model', brendaModel);
+
+                // Fetch agent list and their models
+                const agentsResponse = await fetch('http://localhost:8081/api/agents');
+                const agentsData = await agentsResponse.json();
+                const agents = agentsData.agents || [];
+
+                // Build per-Noodling display (WYSE AMBER style!)
+                let agentHTML = '';
+                for (let i = 0; i < agents.length; i++) {
+                    const agent = agents[i];
+                    const agentName = agent.name || agent.id.replace('agent_', '');
+                    const agentModel = agent.llm_model || '(global default)';
+                    const agentProvider = agent.llm_provider || '(global)';
+                    const agentId = `agent-model-${i}`;
+
+                    agentHTML += `
+                        <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #cc8800; background-color: #000;">
+                            <div class="amber-bright agent-config-text" style="font-weight: bold;">&gt; ${agentName.toUpperCase()}</div>
+                            <div class="agent-config-text" style="margin-left: 20px;">
+                                <span class="amber-dim">Provider:</span> <span class="amber-bright">${agentProvider}</span><br>
+                                <span class="amber-dim">Model:</span> <span id="${agentId}" class="amber-bright" style="font-weight: bold; cursor: pointer;" title="Click to edit">${agentModel}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (agents.length === 0) {
+                    agentHTML = '<div class="amber-dim" style="font-style: italic;">No Noodlings spawned yet.</div>';
+                }
+
+                document.getElementById('agent-models').innerHTML = agentHTML;
+
+                // Make each Noodling's model editable
+                for (let i = 0; i < agents.length; i++) {
+                    const agent = agents[i];
+                    const agentName = agent.name || agent.id.replace('agent_', '');
+                    const agentModel = agent.llm_model || '(global default)';
+                    const agentId = `agent-model-${i}`;
+                    const recipePath = `recipes.${agentName}.llm.model`;
+                    makeEditable(agentId, recipePath, agentModel);
+                }
+
+            } catch (error) {
+                console.error('Failed to load LLM config:', error);
+                document.getElementById('agent-models').innerHTML =
+                    '<div style="color: #ff6600;">⚠️  Error loading config. Is API server running?</div>';
+            }
+        }
+
+        // Connect to WebSocket server
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname || 'localhost';
+            const port = 8765;
+            const url = `${protocol}//${host}:${port}`;
+
+            addLine('system', `Connecting to ${url}...`);
+
+            ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                addLine('system', 'Connected to noodleMUSH server!');
+
+                // Try auto-login with saved credentials
+                const savedUsername = getCookie('noodlemush_username');
+                const savedPassword = getCookie('noodlemush_password');
+
+                if (savedUsername && savedPassword) {
+                    addLine('system', 'Attempting auto-login...');
+                    ws.send(JSON.stringify({
+                        type: 'login',
+                        username: savedUsername,
+                        password: savedPassword
+                    }));
+                }
+            };
+
+            ws.onmessage = (event) => {
+                handleMessage(JSON.parse(event.data));
+            };
+
+            ws.onerror = (error) => {
+                addLine('error', `Connection error: ${error.message || 'Unknown error'}`);
+            };
+
+            ws.onclose = () => {
+                addLine('system', 'Disconnected from server.');
+                authenticated = false;
+                authModal.classList.remove('hidden');
+            };
+        }
+
+        // Handle incoming messages
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'register_response':
+                case 'login_response':
+                    if (data.success) {
+                        authenticated = true;
+                        authModal.classList.add('hidden');
+                        inputField.focus();
+
+                        // Save credentials for auto-login
+                        const username = usernameInput.value.trim() || getCookie('noodlemush_username');
+                        const password = passwordInput.value || getCookie('noodlemush_password');
+                        if (username && password) {
+                            setCookie('noodlemush_username', username);
+                            setCookie('noodlemush_password', password);
+                        }
+
+                        // Subscribe to logs immediately on login
+                        if (!logSubscribed && ws) {
+                            ws.send(JSON.stringify({ type: 'subscribe_logs' }));
+                            logSubscribed = true;
+                        }
+                    } else {
+                        statusDiv.textContent = data.message;
+                        statusDiv.style.color = '#ff0000';
+                    }
+                    break;
+
+                case 'system':
+                    addLine('system', data.text);
+                    break;
+
+                case 'output':
+                    addLine('output', data.text);
+                    break;
+
+                case 'event':
+                    addLine('event', data.text);
+
+                    // Check if this is an agent exit event (agent removal)
+                    // Pattern: "agent_name remembers something and hurries off"
+                    const exitMatch = data.text.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(remembers|suddenly|realizes|gets|mutters|hears|decides)/);
+                    if (exitMatch) {
+                        const departingAgent = exitMatch[1].trim();
+                        removeBrainIndicator(departingAgent);
+                    }
+                    break;
+
+                case 'thought':
+                    // Add thought class for strikethrough styling
+                    addLine('event thought', data.text);
+                    break;
+
+                case 'clear_screen':
+                    // Clear screen command from server (e.g., @reset -c)
+                    messageHistory = [];
+                    outputDiv.innerHTML = '';
+                    addLine('system', 'Screen cleared.');
+                    break;
+
+                case 'error':
+                    addLine('error', data.text);
+                    break;
+
+                case 'quit':
+                    // User logged out - close connection and show login screen
+                    addLine('system', 'Goodbye!');
+                    authenticated = false;
+                    ws.close();
+                    authModal.classList.remove('hidden');
+                    outputDiv.innerHTML = '';
+                    messageHistory = [];
+                    break;
+
+                case 'history':
+                    // Chat history from previous session
+                    addLine('event', data.text);
+                    break;
+
+                case 'agents':
+                    // Create brain indicators for all agents
+                    // Clear any existing indicators first to prevent duplicates
+                    brainStatusBar.innerHTML = '';
+                    enlightenedAgents = [];  // Reset enlightened list
+                    agentBrainStatus = {};   // Reset status tracking
+
+                    if (data.agents && Array.isArray(data.agents)) {
+                        data.agents.forEach(agent => {
+                            if (agent.enlightened) {
+                                enlightenedAgents.push(agent.name.toLowerCase());
+                            }
+                            createBrainIndicator(agent.name);
+                        });
+                    }
+                    break;
+
+                case 'agent_removed':
+                    // Handle silent agent removal - remove brain indicator
+                    if (data.username) {
+                        removeBrainIndicator(data.username);
+                    }
+                    break;
+
+                case 'pong':
+                    // Keepalive response
+                    break;
+
+                case 'log':
+                    // Log entry from server - ALWAYS buffer, not just when viewing
+                    addLogEntry(data.level, data.name, data.message, data.timestamp);
+                    break;
+
+                case 'subscribed':
+                    // Log subscription confirmed
+                    addLogEntry('INFO', 'system', data.message || 'Log streaming enabled', null);
+                    break;
+
+                case 'unsubscribed':
+                    // Log unsubscription confirmed
+                    console.log('Unsubscribed from logs:', data.message);
+                    break;
+
+                default:
+                    console.log('Unknown message type:', data);
+            }
+        }
+
+        // Add line to output (stores in history and redraws)
+        function addLine(type, text) {
+            // Store in message history
+            messageHistory.push({ type, text, timestamp: Date.now() });
+
+            // Limit history to 500 messages
+            if (messageHistory.length > 500) {
+                messageHistory.shift();
+            }
+
+            // Brain indicators now created from server's agent list on login
+            // (Removed spawn detection to prevent duplicates)
+
+            // Redraw all messages
+            redrawMessages();
+        }
+
+        // Redraw all messages from history with current telepathy state
+        function redrawMessages() {
+            // Check if user was scrolled to bottom before redrawing
+            const wasAtBottom = outputDiv.scrollHeight - outputDiv.scrollTop - outputDiv.clientHeight < 50;
+
+            // Clear output
+            outputDiv.innerHTML = '';
+
+            // Process messages with thought collapsing
+            const processedMessages = collapseThoughts(messageHistory);
+
+            // Render each processed message
+            processedMessages.forEach(msg => {
+                renderMessage(msg);
+            });
+
+            // Only auto-scroll if user was already at bottom
+            if (wasAtBottom) {
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            }
+            // Otherwise, don't adjust scroll - let user keep reading where they were
+        }
+
+        // Update brain indicator for an agent
+        function updateBrainStatus(agentName, isThinking, metadata = {}) {
+            const normalizedName = agentName.toLowerCase();
+
+            // Get or create brain indicator
+            let indicator = document.getElementById(`brain-${normalizedName}`);
+            if (!indicator) {
+                indicator = createBrainIndicator(normalizedName);
+            }
+
+            // Clear any existing timeout
+            if (agentBrainStatus[normalizedName]?.timeout) {
+                clearTimeout(agentBrainStatus[normalizedName].timeout);
+            }
+
+            // Determine state type from metadata
+            let state = 'thinking';  // Default for thought events
+
+            // Check for different processing states
+            if (metadata.processing_input) {
+                state = 'input';  // 👂 Processing language
+            } else if (metadata.generating_output) {
+                state = 'generating';  // 👄 Generating speech
+            }
+
+            if (isThinking) {
+                // Set thinking state
+                indicator.classList.add('thinking');
+
+                // Update brain icon to reflect state
+                const brainIcon = indicator.querySelector('.brain-icon');
+                if (brainIcon) {
+                    brainIcon.textContent = STATUS_ICONS[state] || '🧠';
+                }
+
+                agentBrainStatus[normalizedName] = {
+                    state: state,
+                    timeout: setTimeout(() => {
+                        indicator.classList.remove('thinking');
+                        if (brainIcon) {
+                            brainIcon.textContent = STATUS_ICONS['idle'];
+                        }
+                        agentBrainStatus[normalizedName].state = 'idle';
+                    }, THINKING_TIMEOUT)
+                };
+            } else {
+                // Clear thinking state immediately
+                indicator.classList.remove('thinking');
+                const brainIcon = indicator.querySelector('.brain-icon');
+                if (brainIcon) {
+                    brainIcon.textContent = STATUS_ICONS['idle'];
+                }
+                if (agentBrainStatus[normalizedName]) {
+                    agentBrainStatus[normalizedName].state = 'idle';
+                }
+            }
+        }
+
+        // Create brain indicator element for an agent
+        function createBrainIndicator(agentName) {
+            const normalizedName = agentName.toLowerCase();
+
+            // Don't create if already exists (prevents duplicates)
+            if (document.getElementById(`brain-${normalizedName}`)) {
+                return document.getElementById(`brain-${normalizedName}`);
+            }
+
+            // Get color for agent
+            let color = '#aaaaaa';
+            if (normalizedName === 'callie') {
+                color = '#ffaa00';
+            } else if (normalizedName === 'phi') {
+                color = '#ff00ff';
+            } else if (normalizedName.includes('toad') || normalizedName === 'mr. toad') {
+                color = '#00ffff';
+            } else if (normalizedName === 'desobelle' || normalizedName === 'belle') {
+                color = '#ff88ff';
+            } else if (normalizedName === 'servnak' || normalizedName.includes('servnak')) {
+                color = '#88ff88';
+            }
+
+            const indicator = document.createElement('div');
+            indicator.className = 'brain-indicator';
+            indicator.id = `brain-${normalizedName}`;
+
+            const nameLabel = document.createElement('span');
+            nameLabel.className = 'agent-name-label';
+            nameLabel.style.color = color;
+            nameLabel.textContent = agentName.toUpperCase();
+
+            // Check if agent is enlightened (from server data)
+            const isEnlightened = enlightenedAgents.includes(normalizedName.toLowerCase());
+
+            // Add star for enlightened agents
+            if (isEnlightened) {
+                const starIcon = document.createElement('span');
+                starIcon.textContent = '⭐';
+                starIcon.style.fontSize = '16px';
+                starIcon.title = 'Enlightened (meta-aware)';
+                indicator.appendChild(nameLabel);
+                indicator.appendChild(starIcon);
+            } else {
+                indicator.appendChild(nameLabel);
+            }
+
+            const brainIcon = document.createElement('span');
+            brainIcon.className = 'brain-icon';
+            brainIcon.textContent = '🧠';
+
+            indicator.appendChild(brainIcon);
+            brainStatusBar.appendChild(indicator);
+
+            // Initialize status
+            agentBrainStatus[normalizedName] = { state: 'idle', timeout: null };
+
+            return indicator;
+        }
+
+        // Remove brain indicator for an agent
+        function removeBrainIndicator(agentName) {
+            const normalizedName = agentName.toLowerCase();
+            const indicator = document.getElementById(`brain-${normalizedName}`);
+
+            if (indicator) {
+                // Clear any pending timeout
+                if (agentBrainStatus[normalizedName]?.timeout) {
+                    clearTimeout(agentBrainStatus[normalizedName].timeout);
+                }
+
+                // Remove from DOM
+                indicator.remove();
+
+                // Clean up tracking data
+                delete agentBrainStatus[normalizedName];
+
+                // Remove from enlightened list if present
+                const enlightenedIndex = enlightenedAgents.indexOf(normalizedName);
+                if (enlightenedIndex !== -1) {
+                    enlightenedAgents.splice(enlightenedIndex, 1);
+                }
+
+                console.log(`Removed brain indicator for ${agentName}`);
+            }
+        }
+
+        // Collapse consecutive thoughts from same speaker (Unity-style)
+        function collapseThoughts(messages) {
+            const processed = [];
+            let currentThoughtGroup = null;
+
+            for (const msg of messages) {
+                const speakerMatch = msg.text.match(/^(You|[A-Z][a-z_]+(?:\.?\s*[A-Z]?[a-z_]*)?)\s+(thinks)/i);
+
+                if (speakerMatch && !telepathyEnabled) {
+                    const speaker = speakerMatch[1].trim().toLowerCase();
+
+                    // Skip "you" - always show your own thoughts
+                    if (speaker === 'you') {
+                        processed.push(msg);
+                        currentThoughtGroup = null;
+                        continue;
+                    }
+
+                    // Check if we can group with current thought group
+                    if (currentThoughtGroup && currentThoughtGroup.speaker === speaker) {
+                        // Add to existing group
+                        currentThoughtGroup.count++;
+                        currentThoughtGroup.thoughts.push(msg.text);
+                    } else {
+                        // Start new group
+                        currentThoughtGroup = {
+                            type: msg.type,
+                            speaker: speaker,
+                            text: msg.text,
+                            thoughts: [msg.text],
+                            count: 1,
+                            isCollapsedThought: true
+                        };
+                        processed.push(currentThoughtGroup);
+                    }
+                } else {
+                    // Not a thought, or telepathy is on - break grouping
+                    currentThoughtGroup = null;
+                    processed.push(msg);
+                }
+            }
+
+            return processed;
+        }
+
+        // Process >>highlight<< markers in text
+        function processHighlighting(text) {
+            const fragment = document.createDocumentFragment();
+            const parts = text.split(/(>>.*?<<)/g);
+
+            for (const part of parts) {
+                if (part.startsWith('>>') && part.endsWith('<<')) {
+                    // Highlighted text
+                    const highlightedText = part.slice(2, -2);
+                    const span = document.createElement('span');
+                    span.style.color = '#ffaa00';
+                    span.style.fontWeight = 'bold';
+                    span.style.textShadow = '0 0 8px rgba(255, 170, 0, 0.6)';
+                    span.textContent = highlightedText;
+                    fragment.appendChild(span);
+                } else {
+                    // Regular text
+                    fragment.appendChild(document.createTextNode(part));
+                }
+            }
+
+            return fragment;
+        }
+
+        // Render a single message to the output div
+        function renderMessage(msg) {
+            const line = document.createElement('div');
+            line.className = `line ${msg.type}`;
+
+            // Parse speaker name from beginning of text
+            const speakerMatch = msg.text.match(/^(You|[A-Z][a-z_]+(?:\.?\s*[A-Z]?[a-z_]*)?)\s+(say|says|tilts|purrs|meows|bounces|giggles|perks|action|thinks|asks|exclaims|whispers|shouts|murmurs|replies|responds|nods|smiles|laughs|sighs)/i);
+
+            if (speakerMatch) {
+                const speakerName = speakerMatch[1].trim().toLowerCase();
+                const verb = speakerMatch[2].trim().toLowerCase();
+                const restOfText = msg.text.substring(speakerMatch[0].length).trimStart();
+
+                // Determine speaker class and color
+                let speakerClass = 'speaker-other';
+                let speakerColor = '#aaaaaa';
+
+                if (speakerName === 'you') {
+                    speakerClass = 'speaker-you';
+                    speakerColor = '#00ff00';
+                } else if (speakerName === 'callie') {
+                    speakerClass = 'speaker-callie';
+                    speakerColor = '#ffaa00';
+                } else if (speakerName === 'phi') {
+                    speakerClass = 'speaker-phi';
+                    speakerColor = '#ff00ff';
+                } else if (speakerName.includes('toad') || speakerName === 'mr. toad') {
+                    speakerClass = 'speaker-toad';
+                    speakerColor = '#00ffff';
+                } else if (speakerName === 'desobelle' || speakerName === 'belle') {
+                    speakerClass = 'speaker-desobelle';
+                    speakerColor = '#ff88ff';
+                } else if (speakerName === 'servnak' || speakerName.includes('servnak')) {
+                    speakerClass = 'speaker-servnak';
+                    speakerColor = '#88ff88';
+                }
+
+                line.className += ` ${speakerClass}`;
+
+                // Add thought class if this is a rumination
+                if (verb === 'thinks') {
+                    line.className += ' thought';
+
+                    // Update brain status indicator
+                    if (speakerName !== 'you') {
+                        updateBrainStatus(speakerName, true);
+                    }
+                }
+
+                // Check if we should hide this thinking message
+                const shouldHideThought = (verb === 'thinks' && !telepathyEnabled && speakerName !== 'you');
+
+                if (shouldHideThought) {
+                    // Don't add this line to output at all - only show brain indicator
+                    return;
+                }
+
+                // Format with prominent speaker badge and action
+                const badge = document.createElement('span');
+                badge.className = 'speaker-name';
+                badge.style.backgroundColor = speakerColor;
+                badge.style.color = '#000000';
+                badge.style.padding = '2px 8px';
+                badge.style.borderRadius = '3px';
+                badge.style.marginRight = '8px';
+                badge.textContent = speakerMatch[1].toUpperCase();
+
+                const verbSpan = document.createElement('span');
+                verbSpan.style.fontStyle = 'italic';
+                verbSpan.style.color = speakerColor;
+                verbSpan.style.marginRight = '8px';
+                // Add "privately" before "thinks" for thoughts
+                verbSpan.textContent = verb === 'thinks' ? 'privately thinks' : verb;
+
+                line.appendChild(badge);
+                line.appendChild(verbSpan);
+
+                // Show full text (telepathy on, or not a thought, or user's own thought)
+                // Process highlighting markers >>text<<
+                const processedText = processHighlighting(restOfText);
+                line.appendChild(processedText);
+            } else {
+                // No speaker detected, just add text as-is
+                line.textContent = msg.text;
+            }
+
+            outputDiv.appendChild(line);
+        }
+
+        // Send command
+        function sendCommand(command) {
+            if (!authenticated || !ws || ws.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            // Add to history (avoid consecutive duplicates)
+            if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command) {
+                commandHistory.push(command);
+
+                // Keep history size manageable
+                if (commandHistory.length > MAX_HISTORY_SIZE) {
+                    commandHistory.shift();
+                }
+
+                // Save to localStorage
+                localStorage.setItem('noodleMUSH_commandHistory', JSON.stringify(commandHistory));
+            }
+            historyIndex = commandHistory.length;
+
+            // Echo command to chat (so user can see what they typed)
+            addLine('you', `> ${command}`);
+
+            // Send to server
+            ws.send(JSON.stringify({
+                type: 'command',
+                command: command
+            }));
+
+            // Clear input
+            inputField.value = '';
+        }
+
+        // Authentication
+        function login() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                statusDiv.textContent = 'Please enter username and password';
+                statusDiv.style.color = '#ff0000';
+                return;
+            }
+
+            // Build login message
+            const loginMsg = {
+                type: 'login',
+                username: username,
+                password: password
+            };
+
+            // Add invisible mode flag if admin is logging in
+            if (window.adminInvisibleMode !== undefined) {
+                loginMsg.invisible = window.adminInvisibleMode;
+                // Clear the flag after using it
+                delete window.adminInvisibleMode;
+            }
+
+            ws.send(JSON.stringify(loginMsg));
+
+            statusDiv.textContent = 'Logging in...';
+            statusDiv.style.color = '#ffff00';
+        }
+
+        function register() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                statusDiv.textContent = 'Please enter username and password';
+                statusDiv.style.color = '#ff0000';
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'register',
+                username: username,
+                password: password
+            }));
+
+            statusDiv.textContent = 'Registering...';
+            statusDiv.style.color = '#ffff00';
+        }
+
+        // Telepathy toggle
+        function toggleTelepathy() {
+            telepathyEnabled = !telepathyEnabled;
+            localStorage.setItem('telepathyEnabled', telepathyEnabled);
+            updateTelepathyButton();
+
+            // Redraw all messages with new telepathy state
+            redrawMessages();
+        }
+
+        function updateTelepathyButton() {
+            if (telepathyEnabled) {
+                telepathyToggle.textContent = 'Telepathy: ON';
+                telepathyToggle.classList.add('active');
+                telepathyToggle.title = 'You can read others\' thoughts (click to disable)';
+            } else {
+                telepathyToggle.textContent = 'Telepathy: OFF';
+                telepathyToggle.classList.remove('active');
+                telepathyToggle.title = 'You cannot read others\' thoughts (click to enable)';
+            }
+        }
+
+        // Initialize telepathy button state
+        updateTelepathyButton();
+
+        // Event listeners
+        telepathyToggle.addEventListener('click', toggleTelepathy);
+        document.getElementById('verbose-toggle').addEventListener('click', toggleVerboseMode);
+        loginBtn.addEventListener('click', login);
+        registerBtn.addEventListener('click', register);
+
+        // Initialize verbose toggle button text
+        const verboseToggle = document.getElementById('verbose-toggle');
+        verboseToggle.textContent = verboseMode ? 'Compact Mode' : 'Verbose Mode';
+
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                passwordInput.focus();  // Tab to password on Enter
+            }
+        });
+
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl-T: Toggle telepathy
+            if (e.ctrlKey && e.key === 't') {
+                e.preventDefault();
+                toggleTelepathy();
+                return;
+            }
+        });
+
+        // Tab completion state
+        let tabCompletionState = {
+            active: false,
+            originalInput: '',
+            matches: [],
+            currentIndex: 0,
+            commandPrefix: '',
+            partialName: ''
+        };
+
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = inputField.value.trim();
+                if (command) {
+                    // Reset tab completion
+                    tabCompletionState.active = false;
+
+                    // Check for client-side commands
+                    if (command === '/clearhistory' || command === '@clearhistory') {
+                        // Clear command history
+                        const historySize = commandHistory.length;
+                        commandHistory = [];
+                        historyIndex = 0;
+                        localStorage.removeItem('noodleMUSH_commandHistory');
+                        addLine('system', `🗑️  Cleared ${historySize} commands from history.`);
+                        inputField.value = '';
+                        return;
+                    }
+
+                    if (command === '/clear' || command === '@clear' || command === 'clear') {
+                        // Clear screen
+                        messageHistory = [];
+                        outputDiv.innerHTML = '';
+                        addLine('system', 'Screen cleared.');
+                        inputField.value = '';
+                        return;
+                    }
+
+                    sendCommand(command);
+                }
+            } else if (e.key === 'Tab') {
+                e.preventDefault();
+                handleTabCompletion();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    inputField.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    inputField.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    inputField.value = '';
+                }
+            } else {
+                // Any other key resets tab completion
+                if (tabCompletionState.active && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    tabCompletionState.active = false;
+                }
+            }
+        });
+
+        // Handle tab completion
+        async function handleTabCompletion() {
+            const input = inputField.value;
+            const cursorPos = inputField.selectionStart;
+
+            // If not active, start new completion
+            if (!tabCompletionState.active) {
+                // Parse the command to find what we're completing
+                const parsed = parseCompletionContext(input, cursorPos);
+                if (!parsed) return;
+
+                // Request completions from server
+                const matches = await requestCompletions(parsed.command, parsed.partial);
+                if (!matches || matches.length === 0) return;
+
+                // Initialize completion state
+                tabCompletionState = {
+                    active: true,
+                    originalInput: input,
+                    matches: matches,
+                    currentIndex: 0,
+                    commandPrefix: parsed.prefix,
+                    partialName: parsed.partial
+                };
+
+                // Apply first match
+                applyCompletion(tabCompletionState.matches[0]);
+            } else {
+                // Cycle to next match
+                tabCompletionState.currentIndex = (tabCompletionState.currentIndex + 1) % tabCompletionState.matches.length;
+                applyCompletion(tabCompletionState.matches[tabCompletionState.currentIndex]);
+            }
+        }
+
+        // Parse command to determine what we're completing
+        function parseCompletionContext(input, cursorPos) {
+            // Commands that take object/agent/room names as arguments
+            const completionCommands = {
+                // Objects
+                '@setdesc': 'object',
+                '@describe': 'object',
+                'take': 'object',
+                'get': 'object',
+                'drop': 'object',
+                'look': 'mixed',  // can be object, agent, or empty
+                'examine': 'mixed',
+                // Agents
+                '@observe': 'agent',
+                '@relationship': 'agent',
+                '@memory': 'agent',
+                '@me': 'agent',
+                // Rooms
+                '@teleport': 'room',
+                '@goto': 'room'
+            };
+
+            // Find the command word
+            const words = input.trim().split(/\s+/);
+            if (words.length === 0) return null;
+
+            const command = words[0].toLowerCase();
+            const completionType = completionCommands[command];
+            if (!completionType) return null;
+
+            // Get the partial name (everything after the command)
+            const commandEndPos = input.indexOf(words[0]) + words[0].length;
+            const afterCommand = input.substring(commandEndPos).trimStart();
+            const partial = afterCommand.replace(/^["']|["']$/g, ''); // Remove quotes
+
+            return {
+                command: command,
+                type: completionType,
+                prefix: input.substring(0, commandEndPos) + ' ',
+                partial: partial
+            };
+        }
+
+        // Request completions from server
+        async function requestCompletions(command, partial) {
+            if (!authenticated || !ws || ws.readyState !== WebSocket.OPEN) {
+                return [];
+            }
+
+            return new Promise((resolve) => {
+                const msgId = Date.now();
+                const timeout = setTimeout(() => {
+                    resolve([]);
+                }, 1000);
+
+                // Listen for completion response
+                const handler = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'completions' && data.id === msgId) {
+                        clearTimeout(timeout);
+                        ws.removeEventListener('message', handler);
+                        resolve(data.matches || []);
+                    }
+                };
+
+                ws.addEventListener('message', handler);
+
+                // Send completion request
+                ws.send(JSON.stringify({
+                    type: 'complete',
+                    id: msgId,
+                    command: command,
+                    partial: partial
+                }));
+            });
+        }
+
+        // Apply a completion to the input field
+        function applyCompletion(match) {
+            // Auto-quote if name contains spaces
+            let completedName = match;
+            if (match.includes(' ')) {
+                completedName = `"${match}"`;
+            }
+
+            inputField.value = tabCompletionState.commandPrefix + completedName;
+            inputField.selectionStart = inputField.selectionEnd = inputField.value.length;
+        }
+
+        // Keepalive ping every 30 seconds
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }));
+            }
+        }, 30000);
+
+        // ========== NOODLESTUDIO DETECTION ==========
+        // Check if running inside NoodleStudio
+        const urlParams = new URLSearchParams(window.location.search);
+        const isInStudio = urlParams.get('studio') === 'true';
+
+        if (isInStudio) {
+            // Show admin login section
+            document.getElementById('admin-login-container').style.display = 'block';
+
+            // Handle TUI-style checkbox toggle
+            const checkboxLabel = document.getElementById('invisible-checkbox-label');
+            const checkboxDisplay = document.getElementById('invisible-checkbox-display');
+            const hiddenCheckbox = document.getElementById('invisible-mode-checkbox');
+
+            checkboxLabel.addEventListener('click', () => {
+                hiddenCheckbox.checked = !hiddenCheckbox.checked;
+                checkboxDisplay.textContent = hiddenCheckbox.checked ? '[X]' : '[ ]';
+            });
+
+            // Handle admin login
+            document.getElementById('admin-login-btn').addEventListener('click', () => {
+                const invisibleMode = document.getElementById('invisible-mode-checkbox').checked;
+
+                // Auto-fill username and password for admin
+                document.getElementById('username').value = 'admin';
+                document.getElementById('password').value = 'admin';  // Use default password
+
+                // Set invisible mode flag (will be sent with login)
+                window.adminInvisibleMode = invisibleMode;
+
+                // Trigger login
+                login();
+            });
+        }
+
+        // Initial connection
+        connect();
+
+        // Welcome message
+        addLine('system', '═══════════════════════════════════════════════');
+        addLine('system', 'noodleMUSH - Noodlings Multi-User Shared Hallucination');
+        addLine('system', '═══════════════════════════════════════════════');
+        addLine('system', '');
+        addLine('system', 'A text-based world where experimental AI agents');
+        addLine('system', 'explore the boundaries of machine phenomenology.');
+        addLine('system', '');
+        addLine('system', 'These agents run affective consciousness models -');
+        addLine('system', 'we make no claims about "real" consciousness, but');
+        addLine('system', 'we\'re noodling with functional correlates of it.');
+        addLine('system', '');
+        addLine('system', 'Type "help" for commands.');
+        addLine('system', 'Type "@scope" to launch native NoodleScope visualization! 🔬');
+        addLine('system', '═══════════════════════════════════════════════');
+        addLine('system', '');
+    </script>
+</body>
+</html>

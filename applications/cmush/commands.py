@@ -243,6 +243,7 @@ class CommandParser:
             '@setdesc': self.cmd_setdesc,
             '@profile': self.cmd_profile,
             '@remove': self.cmd_remove,
+            '@derez': self.cmd_remove,  # Alias for @remove (consistent rez/derez terminology)
             '@reset': self.cmd_reset,
             '@tpinvite': self.cmd_tpinvite,
             '@scope': self.cmd_launch_noodlescope,

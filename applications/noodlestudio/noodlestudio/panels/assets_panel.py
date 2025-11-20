@@ -56,6 +56,10 @@ class AssetsPanel(QDockWidget):
         self.tree.customContextMenuRequested.connect(self._show_context_menu)
         self.tree.itemClicked.connect(self._on_item_clicked)
 
+        # Enable drag
+        self.tree.setDragEnabled(True)
+        self.tree.setDragDropMode(QTreeWidget.DragDropMode.DragOnly)
+
         # Style to match Unity
         self.tree.setStyleSheet("""
             QTreeWidget {
@@ -177,7 +181,7 @@ class AssetsPanel(QDockWidget):
 
         # Common actions for all assets
         if asset_type == "noodling":
-            spawn_action = QAction("Spawn in World", self)
+            spawn_action = QAction("Rez in World", self)
             spawn_action.triggered.connect(lambda: self._spawn_noodling(asset_name))
             menu.addAction(spawn_action)
 
@@ -193,7 +197,7 @@ class AssetsPanel(QDockWidget):
 
             menu.addSeparator()
 
-            delete_action = QAction("Delete", self)
+            delete_action = QAction("De-Rez", self)
             delete_action.setEnabled(False)  # TODO
             menu.addAction(delete_action)
 
@@ -214,19 +218,80 @@ class AssetsPanel(QDockWidget):
 
             menu.addSeparator()
 
-            delete_action = QAction("Delete", self)
+            delete_action = QAction("De-Rez", self)
             delete_action.setEnabled(False)  # TODO
             menu.addAction(delete_action)
 
         menu.exec(self.tree.viewport().mapToGlobal(position))
 
     def _spawn_noodling(self, name):
-        """Spawn a noodling in the world (placeholder)."""
-        QMessageBox.information(
-            self,
-            "Spawn Noodling",
-            f"Feature in development\n\nWill spawn {name} into noodleMUSH world."
-        )
+        """Rez a noodling in the world."""
+        if not self.project_manager or not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Open a project first.")
+            return
+
+        try:
+            import json
+            from datetime import datetime
+
+            # Load recipe from project
+            noodlings_path = self.project_manager.get_assets_path("Noodlings")
+            recipe_path = os.path.join(noodlings_path, f"{name}.json")
+
+            if not os.path.exists(recipe_path):
+                QMessageBox.warning(self, "Recipe Not Found", f"Can't find recipe: {name}.json")
+                return
+
+            with open(recipe_path, 'r') as f:
+                recipe = json.load(f)
+
+            # Generate agent ID
+            agent_id = f"agent_{name.lower()}"
+
+            # Load current agents from noodleMUSH
+            mush_base = os.path.join(
+                os.path.dirname(__file__),
+                "../../../cmush/world"
+            )
+            agents_path = os.path.join(mush_base, "agents.json")
+
+            with open(agents_path, 'r') as f:
+                agents = json.load(f)
+
+            # Check if already exists
+            if agent_id in agents:
+                QMessageBox.warning(self, "Already Rezzed", f"{name} is already in the world.")
+                return
+
+            # Create agent entry
+            agent_entry = {
+                "name": recipe.get("name", name),
+                "species": recipe.get("species", "human"),
+                "pronouns": recipe.get("pronouns", "they/them"),
+                "description": recipe.get("description", "A Noodling."),
+                "personality": recipe.get("personality", ""),
+                "voice": recipe.get("voice", ""),
+                "perspective": recipe.get("perspective", ""),
+                "created": datetime.now().isoformat()
+            }
+
+            # Add to agents
+            agents[agent_id] = agent_entry
+
+            # Save
+            with open(agents_path, 'w') as f:
+                json.dump(agents, f, indent=2)
+
+            print(f"Rezzed {name} as {agent_id}")
+
+            QMessageBox.information(
+                self,
+                "Rezzed!",
+                f"{name} has been rezzed into noodleMUSH.\n\nRefresh Scene Hierarchy to see them."
+            )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Rez Failed", f"Error: {e}")
 
     def _edit_noodling(self, name):
         """Edit noodling recipe (placeholder)."""
@@ -237,13 +302,88 @@ class AssetsPanel(QDockWidget):
         )
 
     def _load_ensemble(self, filename):
-        """Load an ensemble to the stage (placeholder)."""
-        QMessageBox.information(
-            self,
-            "Load Ensemble",
-            f"Feature in development\n\nWill load {filename} to stage.\n"
-            f"All agents will be spawned and ready for interaction."
-        )
+        """Load an ensemble to the stage (rez all agents)."""
+        if not self.project_manager or not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Open a project first.")
+            return
+
+        try:
+            import json
+            from datetime import datetime
+
+            # Load ensemble file
+            ensembles_path = self.project_manager.get_assets_path("Ensembles")
+            ensemble_path = os.path.join(ensembles_path, filename)
+
+            with open(ensemble_path, 'r') as f:
+                ensemble = json.load(f)
+
+            # Load current agents from noodleMUSH
+            mush_base = os.path.join(
+                os.path.dirname(__file__),
+                "../../../cmush/world"
+            )
+            agents_path = os.path.join(mush_base, "agents.json")
+
+            with open(agents_path, 'r') as f:
+                agents = json.load(f)
+
+            # Rez each agent in the ensemble
+            rezzed = []
+            skipped = []
+
+            for agent_recipe in ensemble.get("agents", []):
+                name = agent_recipe.get("name", "Unknown")
+                agent_id = f"agent_{name.lower().replace(' ', '_')}"
+
+                # Skip if already exists
+                if agent_id in agents:
+                    skipped.append(name)
+                    continue
+
+                # Create agent entry with ensemble metadata AND all required fields
+                agent_entry = {
+                    "name": name,
+                    "species": agent_recipe.get("species", "human"),
+                    "pronouns": agent_recipe.get("pronouns", "they/them"),
+                    "description": agent_recipe.get("description", "A Noodling."),
+                    "personality": agent_recipe.get("personality", ""),
+                    "voice": agent_recipe.get("voice", ""),
+                    "perspective": agent_recipe.get("perspective", ""),
+                    "created": datetime.now().isoformat(),
+                    "current_room": "room_000",  # Start in Nexus
+                    "inventory": [],  # Empty inventory
+                    "checkpoint_path": f"world/agents/{agent_id}/checkpoint.npz",
+                    "state_path": f"world/agents/{agent_id}/agent_state.json",
+                    "ensemble": {
+                        "name": ensemble.get("name"),
+                        "type": ensemble.get("ensemble_type"),
+                        "mission": ensemble.get("shared_mission"),
+                        "dynamics": ensemble.get("ensemble_dynamics"),
+                        "knowledge": ensemble.get("shared_knowledge"),
+                        "role": ensemble.get("ensemble_dynamics", {}).get("role_distribution", {}).get(name, "member")
+                    }
+                }
+
+                agents[agent_id] = agent_entry
+                rezzed.append(name)
+
+            # Save
+            with open(agents_path, 'w') as f:
+                json.dump(agents, f, indent=2)
+
+            # Show results
+            message = f"Rezzed {len(rezzed)} agents from {ensemble.get('name', filename)}\n\n"
+            if rezzed:
+                message += "Rezzed:\n" + "\n".join(f"  - {n}" for n in rezzed)
+            if skipped:
+                message += "\n\nAlready in world:\n" + "\n".join(f"  - {n}" for n in skipped)
+            message += "\n\nRefresh Scene Hierarchy to see them."
+
+            QMessageBox.information(self, "Ensemble Loaded!", message)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Load Failed", f"Error: {e}")
 
     def _view_ensemble(self, filename):
         """View ensemble details."""

@@ -12,12 +12,10 @@
       "user_caitlyn",
       "user_caity",
       "user_Claude",
-      "agent_callie",
+      "agent_mysterious_stranger",
       "agent_servnak",
       "agent_desobelle",
-      "agent_-n",
-      "agent_big",
-      "agent_scary"
+      "agent_callie"
     ],
     "owner": "system",
     "created": "2025-10-26T13:51:25.550264"
@@ -105,5 +103,10 @@
     "occupants": [],
     "owner": "user_caity",
     "created": "2025-11-14T01:36:23.903069"
+  },
+  "newroom": {
+    "name": "NewRoom",
+    "description": "A newly created room.",
+    "exits": {}
   }
 }

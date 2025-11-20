@@ -566,7 +566,25 @@
             </div>
             <h1>noodleMUSH</h1>
             <p style="color: #008800;">Noodlings Multi-User Shared Hallucination</p>
-            <button id="telepathy-toggle" title="Toggle telepathy (read others' thoughts)">Telepathy: OFF</button>
+
+            <!-- TUI-style toggles -->
+            <div style="display: flex; gap: 20px; margin-top: 10px; font-family: 'Courier New', monospace; font-size: 14px;">
+                <label id="timestamp-label" style="display: flex; align-items: center; gap: 8px; color: #00ff00; cursor: pointer; user-select: none;">
+                    <span id="timestamp-checkbox-display">[X]</span>
+                    <span>Time</span>
+                </label>
+                <label id="expressions-label" style="display: flex; align-items: center; gap: 8px; color: #00ff00; cursor: pointer; user-select: none;">
+                    <span id="expressions-checkbox-display">[X]</span>
+                    <span>Expressions</span>
+                </label>
+                <label id="telepathy-label" style="display: flex; align-items: center; gap: 8px; color: #00ff00; cursor: pointer; user-select: none;">
+                    <span id="telepathy-checkbox-display">[X]</span>
+                    <span>Thoughts</span>
+                </label>
+            </div>
+            <input type="checkbox" id="telepathy-checkbox" checked style="display: none;" />
+            <input type="checkbox" id="timestamp-checkbox" checked style="display: none;" />
+            <input type="checkbox" id="expressions-checkbox" checked style="display: none;" />
         </div>
 
         <div id="brain-status-bar">
@@ -1127,7 +1145,12 @@
         const statusDiv = document.getElementById('status');
         const outputDiv = document.getElementById('output');
         const inputField = document.getElementById('input');
-        const telepathyToggle = document.getElementById('telepathy-toggle');
+        const telepathyCheckbox = document.getElementById('telepathy-checkbox');
+        const telepathyDisplay = document.getElementById('telepathy-checkbox-display');
+        const timestampCheckbox = document.getElementById('timestamp-checkbox');
+        const timestampDisplay = document.getElementById('timestamp-checkbox-display');
+        const expressionsCheckbox = document.getElementById('expressions-checkbox');
+        const expressionsDisplay = document.getElementById('expressions-checkbox-display');
         const brainStatusBar = document.getElementById('brain-status-bar');
 
         // Cookie helpers
@@ -1819,8 +1842,25 @@
 
         // Render a single message to the output div
         function renderMessage(msg) {
+            // Filter out expression messages if disabled
+            if (!showExpressions && msg.text.includes('[expression]')) {
+                return;  // Skip this message entirely
+            }
+
             const line = document.createElement('div');
             line.className = `line ${msg.type}`;
+
+            // Add timestamp if enabled (for ALL messages)
+            if (showTimestamps && msg.timestamp) {
+                const timestamp = new Date(msg.timestamp);
+                const timeStr = timestamp.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const timeSpan = document.createElement('span');
+                timeSpan.style.color = '#ffffff';
+                timeSpan.style.marginRight = '8px';
+                timeSpan.style.fontFamily = 'Courier New, monospace';
+                timeSpan.textContent = `[${timeStr}]`;
+                line.appendChild(timeSpan);
+            }
 
             // Parse speaker name from beginning of text
             const speakerMatch = msg.text.match(/^(You|[A-Z][a-z_]+(?:\.?\s*[A-Z]?[a-z_]*)?)\s+(say|says|tilts|purrs|meows|bounces|giggles|perks|action|thinks|asks|exclaims|whispers|shouts|murmurs|replies|responds|nods|smiles|laughs|sighs)/i);
@@ -1990,33 +2030,51 @@
             statusDiv.style.color = '#ffff00';
         }
 
-        // Telepathy toggle
-        function toggleTelepathy() {
-            telepathyEnabled = !telepathyEnabled;
+        // Settings toggles - default all to true
+        let showTimestamps = localStorage.getItem('showTimestamps') !== 'false';
+        let showExpressions = localStorage.getItem('showExpressions') !== 'false';
+
+        function updateCheckboxDisplay(checkbox, display) {
+            display.textContent = checkbox.checked ? '[X]' : '[ ]';
+        }
+
+        // Telepathy toggle (Thoughts)
+        telepathyCheckbox.checked = telepathyEnabled !== false;  // Default true
+        updateCheckboxDisplay(telepathyCheckbox, telepathyDisplay);
+        document.getElementById('telepathy-label').addEventListener('click', (e) => {
+            e.stopPropagation();
+            telepathyCheckbox.checked = !telepathyCheckbox.checked;
+            telepathyEnabled = telepathyCheckbox.checked;
             localStorage.setItem('telepathyEnabled', telepathyEnabled);
-            updateTelepathyButton();
-
-            // Redraw all messages with new telepathy state
+            updateCheckboxDisplay(telepathyCheckbox, telepathyDisplay);
             redrawMessages();
-        }
+        });
 
-        function updateTelepathyButton() {
-            if (telepathyEnabled) {
-                telepathyToggle.textContent = 'Telepathy: ON';
-                telepathyToggle.classList.add('active');
-                telepathyToggle.title = 'You can read others\' thoughts (click to disable)';
-            } else {
-                telepathyToggle.textContent = 'Telepathy: OFF';
-                telepathyToggle.classList.remove('active');
-                telepathyToggle.title = 'You cannot read others\' thoughts (click to enable)';
-            }
-        }
+        // Timestamp toggle
+        timestampCheckbox.checked = showTimestamps;
+        updateCheckboxDisplay(timestampCheckbox, timestampDisplay);
+        document.getElementById('timestamp-label').addEventListener('click', (e) => {
+            e.stopPropagation();
+            timestampCheckbox.checked = !timestampCheckbox.checked;
+            showTimestamps = timestampCheckbox.checked;
+            localStorage.setItem('showTimestamps', showTimestamps);
+            updateCheckboxDisplay(timestampCheckbox, timestampDisplay);
+            redrawMessages();
+        });
 
-        // Initialize telepathy button state
-        updateTelepathyButton();
+        // Expressions toggle
+        expressionsCheckbox.checked = showExpressions;
+        updateCheckboxDisplay(expressionsCheckbox, expressionsDisplay);
+        document.getElementById('expressions-label').addEventListener('click', (e) => {
+            e.stopPropagation();
+            expressionsCheckbox.checked = !expressionsCheckbox.checked;
+            showExpressions = expressionsCheckbox.checked;
+            localStorage.setItem('showExpressions', showExpressions);
+            updateCheckboxDisplay(expressionsCheckbox, expressionsDisplay);
+            redrawMessages();
+        });
 
         // Event listeners
-        telepathyToggle.addEventListener('click', toggleTelepathy);
         document.getElementById('verbose-toggle').addEventListener('click', toggleVerboseMode);
         loginBtn.addEventListener('click', login);
         registerBtn.addEventListener('click', register);

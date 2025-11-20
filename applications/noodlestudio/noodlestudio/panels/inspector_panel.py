@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QFormLayout, QHB
                              QSpinBox, QDoubleSpinBox, QGroupBox, QProgressBar, QListWidget,
                              QFileDialog, QListWidgetItem)
 from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QSize
-from PyQt6.QtGui import QFont, QPixmap, QIcon
+from PyQt6.QtGui import QFont, QPixmap, QIcon, QFontMetrics
 import requests
 import yaml
 from pathlib import Path
@@ -223,11 +223,15 @@ class InspectorPanel(MaximizableDock):
 
     def create_property_group(self, title: str) -> QGroupBox:
         """Create collapsible property group (Unity style)."""
-        group = QGroupBox(title)
+        # Start with expanded triangle
+        group = QGroupBox(f"▼ {title}")
         group.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        group.setCheckable(True)  # Make collapsible
+        group.setChecked(True)  # Expanded by default
         group.setStyleSheet("""
             QGroupBox {
-                color: #D2D2D2;
+                color: #FFFFFF;
+                background-color: #2A2A2A;
                 border: 1px solid #1E1E1E;
                 border-radius: 4px;
                 margin-top: 8px;
@@ -238,9 +242,41 @@ class InspectorPanel(MaximizableDock):
                 left: 10px;
                 padding: 0 4px;
             }
+            QGroupBox::indicator {
+                width: 0px;
+                height: 0px;
+            }
         """)
         group.setLayout(QFormLayout())
+        # Store original title for triangle updates
+        group.setProperty("original_title", title)
+        # Connect toggled signal to hide/show contents and update triangle
+        group.toggled.connect(lambda checked: self.on_group_toggled(group, checked))
         return group
+
+    def on_group_toggled(self, group: QGroupBox, checked: bool):
+        """Handle group toggle - update triangle and visibility."""
+        # Update triangle in title (block signals to prevent re-triggering)
+        original_title = group.property("original_title")
+        group.blockSignals(True)
+        if checked:
+            group.setTitle(f"▼ {original_title}")
+        else:
+            group.setTitle(f"▶ {original_title}")
+        group.blockSignals(False)
+
+        # Toggle visibility of contents
+        self.toggle_group_contents(group, checked)
+
+    def toggle_group_contents(self, group: QGroupBox, visible: bool):
+        """Toggle visibility of group contents (Unity-style collapse)."""
+        # Hide/show all child widgets in the group's layout
+        layout = group.layout()
+        if layout:
+            for i in range(layout.count()):
+                item = layout.itemAt(i)
+                if item and item.widget():
+                    item.widget().setVisible(visible)
 
     def add_text_field(self, group: QGroupBox, label: str, value: str):
         """Add editable text field to group (Unity-style instant updates)."""
@@ -308,19 +344,19 @@ class InspectorPanel(MaximizableDock):
             if 'emotional_sensitivity' in self.property_fields:
                 personality['emotional_sensitivity'] = self.property_fields['emotional_sensitivity'].value()
 
-            # Save via API (using config endpoint for now)
+            # Save via API
             try:
-                # Update recipe file
-                url = f"{self.api_base}/config/save"
+                url = f"{self.api_base}/agents/{agent_id}/update"
                 payload = {
-                    'path': f'recipes.{agent_id}',
-                    'value': updates
+                    **updates,
+                    'personality': personality
                 }
-                # Note: This endpoint needs to be created in api_server.py
-                # For now, just print what we would save
-                print(f"Would save to {agent_id}:")
-                print(f"  Updates: {updates}")
-                print(f"  Personality: {personality}")
+
+                response = requests.post(url, json=payload, timeout=2)
+                if response.status_code == 200:
+                    print(f"Saved changes for {agent_id}")
+                else:
+                    print(f"Error saving: {response.json().get('error', 'Unknown error')}")
 
             except Exception as e:
                 print(f"Error saving: {e}")
@@ -334,23 +370,32 @@ class InspectorPanel(MaximizableDock):
         - 40-D Phenomenal State (inner kindling)
         - Surprise metric
         """
-        component = QGroupBox("🧠 Noodle Component")
+        # Use standardized component header
+        component = QGroupBox("▼ Noodle Component")
         component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        component.setCheckable(True)  # Make collapsible
+        component.setChecked(True)  # Expanded by default
         component.setStyleSheet("""
             QGroupBox {
-                color: #4CAF50;
-                border: 2px solid #4CAF50;
-                border-radius: 6px;
-                margin-top: 10px;
-                padding-top: 12px;
-                background: #1a1a1a;
+                color: #FFFFFF;
+                background-color: #2A2A2A;
+                border: 1px solid #1E1E1E;
+                border-radius: 4px;
+                margin-top: 8px;
+                padding-top: 8px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
                 left: 10px;
-                padding: 0 6px;
+                padding: 0 4px;
+            }
+            QGroupBox::indicator {
+                width: 0px;
+                height: 0px;
             }
         """)
+        component.setProperty("original_title", "Noodle Component")
+        component.toggled.connect(lambda checked: self.on_group_toggled(component, checked))
 
         layout = QVBoxLayout()
 
@@ -359,7 +404,7 @@ class InspectorPanel(MaximizableDock):
 
         # 5-D Affect Vector (LIVE)
         affect_label = QLabel("5-D Affect Vector (Live)")
-        affect_label.setStyleSheet("color: #81C784; font-weight: bold; margin-top: 8px;")
+        affect_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 8px;")
         layout.addWidget(affect_label)
 
         affect_layout = QFormLayout()
@@ -384,7 +429,7 @@ class InspectorPanel(MaximizableDock):
 
         # Phenomenal State (40-D kindling vector)
         phenomenal_label = QLabel("40-D Phenomenal State (Inner Kindling)")
-        phenomenal_label.setStyleSheet("color: #81C784; font-weight: bold; margin-top: 12px;")
+        phenomenal_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 12px;")
         layout.addWidget(phenomenal_label)
 
         self.live_phenomenal_label = QLabel("Waiting for data...")
@@ -395,7 +440,7 @@ class InspectorPanel(MaximizableDock):
         # Surprise metric
         surprise_layout = QFormLayout()
         self.live_surprise_label = QLabel("0.000")
-        self.live_surprise_label.setStyleSheet("color: #FFA726; font-weight: bold;")
+        self.live_surprise_label.setStyleSheet("color: #D2D2D2; font-weight: bold;")
         surprise_layout.addRow("Surprise:", self.live_surprise_label)
         layout.addLayout(surprise_layout)
 
@@ -466,24 +511,17 @@ class InspectorPanel(MaximizableDock):
                         widget.bar.setValue(int(value * 100))
                         widget.value_label.setText(f"{value:+.2f}")
 
-                        # Color code based on value
-                        if value > 0.7:
-                            color = "#4CAF50"  # Green (positive/high)
-                        elif value > 0.3:
-                            color = "#FFA726"  # Orange (moderate)
-                        else:
-                            color = "#EF5350"  # Red (negative/low)
-
-                        widget.bar.setStyleSheet(f"""
-                            QProgressBar {{
+                        # Consistent gray styling
+                        widget.bar.setStyleSheet("""
+                            QProgressBar {
                                 border: 1px solid #555;
                                 border-radius: 3px;
                                 background: #2a2a2a;
-                            }}
-                            QProgressBar::chunk {{
-                                background: {color};
+                            }
+                            QProgressBar::chunk {
+                                background: #666;
                                 border-radius: 2px;
-                            }}
+                            }
                         """)
 
                 # Update 40-D Phenomenal State
@@ -501,15 +539,6 @@ class InspectorPanel(MaximizableDock):
                 # Update Surprise
                 surprise = state.get('surprise', 0.0)
                 self.live_surprise_label.setText(f"{surprise:.3f}")
-
-                # Color code surprise
-                if surprise > 0.5:
-                    color = "#EF5350"  # Red (high surprise!)
-                elif surprise > 0.3:
-                    color = "#FFA726"  # Orange
-                else:
-                    color = "#4CAF50"  # Green (expected)
-                self.live_surprise_label.setStyleSheet(f"color: {color}; font-weight: bold;")
 
         except requests.exceptions.RequestException:
             # API not available, silently fail
@@ -532,23 +561,40 @@ class InspectorPanel(MaximizableDock):
 
         Holds reference art, concept sketches, mood boards for the character.
         """
-        component = QGroupBox("🎨 Artbook Component")
+        component = QGroupBox("Artbook Component")
         component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        component.setCheckable(True)  # Make collapsible
+        component.setChecked(True)  # Expanded by default
         component.setStyleSheet("""
             QGroupBox {
-                color: #FF9800;
-                border: 2px solid #FF9800;
-                border-radius: 6px;
-                margin-top: 10px;
-                padding-top: 12px;
-                background: #1a1a1a;
+                color: #D2D2D2;
+                border: 1px solid #1E1E1E;
+                border-radius: 4px;
+                margin-top: 8px;
+                padding-top: 8px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
                 left: 10px;
-                padding: 0 6px;
+                padding: 0 4px;
+            }
+            QGroupBox::indicator {
+                width: 0px;
+                height: 0px;
+                margin-right: 8px;
+            }
+            QGroupBox::indicator:unchecked {
+                border-left: 8px solid #EEEEEE;
+                border-top: 5px solid transparent;
+                border-bottom: 5px solid transparent;
+            }
+            QGroupBox::indicator:checked {
+                border-top: 8px solid #EEEEEE;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
             }
         """)
+        component.toggled.connect(lambda checked: self.toggle_group_contents(component, checked))
 
         layout = QVBoxLayout()
 
@@ -560,7 +606,7 @@ class InspectorPanel(MaximizableDock):
 
         # Art gallery (thumbnail grid)
         gallery_label = QLabel("Reference Gallery")
-        gallery_label.setStyleSheet("color: #FFB74D; font-weight: bold; margin-top: 4px;")
+        gallery_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 4px;")
         layout.addWidget(gallery_label)
 
         # List widget for art thumbnails
@@ -583,11 +629,11 @@ class InspectorPanel(MaximizableDock):
             }
             QListWidget::item:hover {
                 background: #333;
-                border: 1px solid #FF9800;
+                border: 1px solid #666;
             }
             QListWidget::item:selected {
-                background: #FF9800;
-                border: 1px solid #FFB74D;
+                background: #444;
+                border: 1px solid #888;
             }
         """)
         layout.addWidget(self.art_gallery)
@@ -599,14 +645,14 @@ class InspectorPanel(MaximizableDock):
         add_art_btn.clicked.connect(self.add_art_to_gallery)
         add_art_btn.setStyleSheet("""
             QPushButton {
-                background: #FF9800;
-                color: white;
+                background: #3a3a3a;
+                color: #D2D2D2;
                 padding: 6px 12px;
                 border-radius: 3px;
-                font-weight: bold;
+                border: 1px solid #555;
             }
             QPushButton:hover {
-                background: #FFB74D;
+                background: #4a4a4a;
             }
         """)
         button_layout.addWidget(add_art_btn)
@@ -807,23 +853,32 @@ class InspectorPanel(MaximizableDock):
         Unlike Artbook (which is for visual reference), MMCR is for
         runtime-accessible context that affects behavior.
         """
-        component = QGroupBox("Multimodal Context Reference")
+        # Use standardized component header
+        component = QGroupBox("▼ Multimodal Context Reference")
         component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        component.setCheckable(True)  # Make collapsible
+        component.setChecked(True)  # Expanded by default
         component.setStyleSheet("""
             QGroupBox {
-                color: #2196F3;
-                border: 2px solid #2196F3;
-                border-radius: 6px;
-                margin-top: 10px;
-                padding-top: 12px;
-                background: #1a1a1a;
+                color: #FFFFFF;
+                background-color: #2A2A2A;
+                border: 1px solid #1E1E1E;
+                border-radius: 4px;
+                margin-top: 8px;
+                padding-top: 8px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
                 left: 10px;
-                padding: 0 6px;
+                padding: 0 4px;
+            }
+            QGroupBox::indicator {
+                width: 0px;
+                height: 0px;
             }
         """)
+        component.setProperty("original_title", "Multimodal Context Reference")
+        component.toggled.connect(lambda checked: self.on_group_toggled(component, checked))
 
         layout = QVBoxLayout()
 
@@ -835,7 +890,7 @@ class InspectorPanel(MaximizableDock):
 
         # Images section
         images_label = QLabel("Images")
-        images_label.setStyleSheet("color: #64B5F6; font-weight: bold; margin-top: 4px;")
+        images_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 4px;")
         layout.addWidget(images_label)
 
         self.mmcr_images = QListWidget()
@@ -856,7 +911,7 @@ class InspectorPanel(MaximizableDock):
 
         # Audio section
         audio_label = QLabel("Audio")
-        audio_label.setStyleSheet("color: #64B5F6; font-weight: bold; margin-top: 8px;")
+        audio_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 8px;")
         layout.addWidget(audio_label)
 
         self.mmcr_audio = QListWidget()

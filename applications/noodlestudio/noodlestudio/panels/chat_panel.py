@@ -48,6 +48,9 @@ class ChatPanel(MaximizableDock):
         # Force zero content margins
         self.setContentsMargins(0, 0, 0, 0)
 
+        # Server state tracking
+        self.server_running = False
+
         # Create custom title bar with renderer selector
         self._create_custom_title_bar()
 
@@ -320,3 +323,54 @@ class ChatPanel(MaximizableDock):
         elif renderer_name == "Generative Renderers":
             # This is a header, reset to current renderer
             self.renderer_selector.setCurrentText("Reductive Text")
+
+    def show_offline_card(self):
+        """Show offline card when server is not running."""
+        if hasattr(self, 'web_view'):
+            self.web_view.setHtml("""
+                <html>
+                <head>
+                    <style>
+                        body {
+                            background: #000;
+                            color: #00ff00;
+                            font-family: 'Courier New', monospace;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            margin: 0;
+                        }
+                        .card {
+                            text-align: center;
+                            border: 2px solid #00ff00;
+                            padding: 40px;
+                            max-width: 500px;
+                        }
+                        h1 { font-size: 32px; margin-bottom: 20px; }
+                        p { font-size: 16px; line-height: 1.6; }
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <h1>SERVER OFFLINE</h1>
+                        <p>The noodleMUSH server is not running.</p>
+                        <p>Use the toggle switch in the status bar (bottom-right) to start the server.</p>
+                    </div>
+                </body>
+                </html>
+            """)
+            self.server_running = False
+
+    def show_world_view(self):
+        """Show the normal world view (server is running)."""
+        if hasattr(self, 'web_view'):
+            self.web_view.setUrl(QUrl("http://localhost:8080?studio=true"))
+            self.server_running = True
+
+    def set_server_state(self, running: bool):
+        """Update UI based on server state."""
+        if running:
+            self.show_world_view()
+        else:
+            self.show_offline_card()

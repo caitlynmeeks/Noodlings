@@ -1,0 +1,166 @@
+{
+  "title": "A Gentle Song in the Wood",
+  "cast": [
+    "fred_rogers",
+    "servnak",
+    "mysterious_stranger"
+  ],
+  "scenes": [
+    {
+      "id": 0,
+      "name": "The Tree's Shadow",
+      "trigger": {
+        "type": "manual",
+        "args": {}
+      },
+      "beats": [
+        {
+          "t": 0,
+          "action": "narrative",
+          "args": {
+            "text": "A quiet glade lies between two hedges, sunlight filtering through the canopy. A small tree stands slightly to the left, its leaves rustling softly in the breeze."
+          }
+        },
+        {
+          "t": 1,
+          "action": "bias",
+          "actor": "fred_rogers",
+          "args": {
+            "param": "comfort",
+            "delta": 0.4
+          }
+        },
+        {
+          "t": 2,
+          "action": "stimulus",
+          "args": {
+            "description": "A soft, melodic hum begins, rising gently in pitch and volume, carrying a warm, familiar tone",
+            "target": "fred_rogers"
+          }
+        },
+        {
+          "t": 3,
+          "action": "stimulus",
+          "args": {
+            "description": "The melody continues, flowing like water over stones, with a gentle rhythm that seems to settle the air",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 4,
+          "action": "stimulus",
+          "args": {
+            "description": "The melody shifts slightly, blending with a soft, resonant hum that seems to come from the direction of the tree",
+            "target": "mysterious_stranger"
+          }
+        },
+        {
+          "t": 5,
+          "action": "cue",
+          "actor": "fred_rogers",
+          "args": {
+            "direction": "move slowly toward the tree, hands open, voice steady and low, humming in unison with the melody",
+            "motivation": "to offer comfort through shared presence"
+          }
+        },
+        {
+          "t": 6,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 7,
+          "action": "bias",
+          "actor": "mysterious_stranger",
+          "args": {
+            "param": "safety",
+            "delta": 0.3
+          }
+        },
+        {
+          "t": 8,
+          "action": "stimulus",
+          "args": {
+            "description": "A small shape moves behind the tree, then stops still, a shadow briefly outlined in the dappled light",
+            "target": "mysterious_stranger"
+          }
+        },
+        {
+          "t": 9,
+          "action": "cue",
+          "actor": "mysterious_stranger",
+          "args": {
+            "direction": "remain still, eyes slightly averted, body slightly tensed as the light shifts behind the tree",
+            "motivation": "to avoid direct exposure to the music"
+          }
+        },
+        {
+          "t": 10,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 11,
+          "action": "bias",
+          "actor": "servnak",
+          "args": {
+            "param": "novelty",
+            "delta": 0.2
+          }
+        },
+        {
+          "t": 12,
+          "action": "stimulus",
+          "args": {
+            "description": "A faint rustle occurs behind the tree, like a small animal shifting in the underbrush",
+            "target": "servnak"
+          }
+        },
+        {
+          "t": 13,
+          "action": "cue",
+          "actor": "servnak",
+          "args": {
+            "direction": "turn slightly toward the tree, sensors scanning the edge of the shadow",
+            "motivation": "to detect changes in the environment"
+          }
+        },
+        {
+          "t": 14,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        },
+        {
+          "t": 15,
+          "action": "stimulus",
+          "args": {
+            "description": "The rustle stops. A small, quick movement happens behind the tree, then silence",
+            "target": "mysterious_stranger"
+          }
+        },
+        {
+          "t": 16,
+          "action": "cue",
+          "actor": "mysterious_stranger",
+          "args": {
+            "direction": "pull back quickly, body moving in a soft dash away from the tree, disappearing into the shadows",
+            "motivation": "to avoid being seen by the music"
+          }
+        },
+        {
+          "t": 17,
+          "action": "wait_for_response",
+          "args": {
+            "duration": 8
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -83,6 +83,14 @@ class NoodleScopeAPI:
         self.app.router.add_get('/api/config', self.get_config)
         self.app.router.add_post('/api/config/save', self.save_config)
         self.app.router.add_get('/api/agents', self.get_agents)
+        self.app.router.add_get('/api/agents/{agent_id}/state', self.get_agent_state)
+        self.app.router.add_post('/api/agents/{agent_id}/update', self.update_agent)
+        self.app.router.add_delete('/api/agents/{agent_id}', self.delete_agent)
+        self.app.router.add_post('/api/agents', self.create_agent)
+
+        # Objects and rooms
+        self.app.router.add_post('/api/objects', self.create_object)
+        self.app.router.add_post('/api/rooms', self.create_room)
 
         # Health check
         self.app.router.add_get('/api/health', self.health_check)
@@ -200,6 +208,311 @@ class NoodleScopeAPI:
             })
 
         return web.json_response({'agents': agents_data})
+
+    async def get_agent_state(self, request: web.Request) -> web.Response:
+        """Get live state for a specific agent (for Inspector panel)."""
+        agent_id = request.match_info['agent_id']
+
+        if not self.agent_manager or agent_id not in self.agent_manager.agents:
+            return web.json_response({'error': 'Agent not found'}, status=404)
+
+        agent = self.agent_manager.agents[agent_id]
+
+        # Get current phenomenal state
+        state = agent.get_phenomenal_state()
+
+        # Build affect vector from phenomenal state (first 5 dimensions)
+        phenomenal = state.get('phenomenal_state', [])
+        if len(phenomenal) >= 5:
+            affect = {
+                'valence': float(phenomenal[0]),
+                'arousal': float(phenomenal[1]),
+                'fear': float(phenomenal[2]),
+                'sorrow': float(phenomenal[3]),
+                'boredom': float(phenomenal[4])
+            }
+        else:
+            affect = {
+                'valence': 0.0,
+                'arousal': 0.0,
+                'fear': 0.0,
+                'sorrow': 0.0,
+                'boredom': 0.0
+            }
+
+        return web.json_response({
+            'agent_id': agent_id,
+            'affect': affect,
+            'phenomenal_state': [float(x) for x in phenomenal],
+            'surprise': float(state.get('surprise', 0.0)),
+            'fast_state': [float(x) for x in state.get('fast_state', [])] if state.get('fast_state') is not None else [],
+            'medium_state': [float(x) for x in state.get('medium_state', [])] if state.get('medium_state') is not None else [],
+            'slow_state': [float(x) for x in state.get('slow_state', [])] if state.get('slow_state') is not None else []
+        })
+
+    async def update_agent(self, request: web.Request) -> web.Response:
+        """Update agent properties from Inspector panel."""
+        agent_id = request.match_info['agent_id']
+
+        try:
+            data = await request.json()
+        except:
+            return web.json_response({'error': 'Invalid JSON'}, status=400)
+
+        # Load agents.json
+        import json
+        from pathlib import Path
+        agents_path = Path('world/agents.json')
+
+        try:
+            with open(agents_path, 'r') as f:
+                agents = json.load(f)
+        except:
+            return web.json_response({'error': 'Could not load agents'}, status=500)
+
+        if agent_id not in agents:
+            return web.json_response({'error': 'Agent not found'}, status=404)
+
+        agent = agents[agent_id]
+
+        # Update fields
+        if 'name' in data:
+            agent['name'] = data['name']
+        if 'species' in data:
+            agent['species'] = data['species']
+        if 'description' in data:
+            agent['description'] = data['description']
+
+        # Update LLM config
+        if 'llm_provider' in data or 'llm_model' in data:
+            if 'config' not in agent:
+                agent['config'] = {}
+            if 'llm_override' not in agent['config']:
+                agent['config']['llm_override'] = {}
+
+            if 'llm_provider' in data:
+                agent['config']['llm_override']['provider'] = data['llm_provider']
+            if 'llm_model' in data:
+                agent['config']['llm_override']['model'] = data['llm_model']
+
+        # Save back to agents.json
+        with open(agents_path, 'w') as f:
+            json.dump(agents, f, indent=2)
+
+        return web.json_response({'success': True, 'message': 'Agent updated - restart server to apply changes'})
+
+    async def delete_agent(self, request: web.Request) -> web.Response:
+        """Delete/derez an agent (Studio operation - no auth required)."""
+        agent_id = request.match_info['agent_id']
+
+        # Remove from running agent manager
+        if self.agent_manager and agent_id in self.agent_manager.agents:
+            await self.agent_manager.remove_agent(agent_id, delete_state=False)
+
+            # CRITICAL: Also remove from world's in-memory agents dict
+            if hasattr(self.agent_manager, 'world') and self.agent_manager.world:
+                if agent_id in self.agent_manager.world.agents:
+                    del self.agent_manager.world.agents[agent_id]
+                    logger.info(f"Removed {agent_id} from world.agents in-memory dict")
+
+        # Remove from agents.json file
+        import json
+        from pathlib import Path
+        agents_path = Path('world/agents.json')
+
+        try:
+            with open(agents_path, 'r') as f:
+                agents = json.load(f)
+
+            if agent_id in agents:
+                del agents[agent_id]
+                with open(agents_path, 'w') as f:
+                    json.dump(agents, f, indent=2)
+
+            return web.json_response({'success': True, 'message': f'Agent {agent_id} derezzed'})
+        except Exception as e:
+            return web.json_response({'error': str(e)}, status=500)
+
+    async def create_agent(self, request: web.Request) -> web.Response:
+        """Create a new agent/noodling (Studio operation - no auth required)."""
+        try:
+            data = await request.json()
+            agent_name = data.get('name', 'NewNoodling')
+            species = data.get('species', 'unknown')
+            pronouns = data.get('pronouns', 'they/them')
+
+            # Generate agent ID
+            agent_id = f"agent_{agent_name.lower().replace(' ', '_')}"
+
+            # Create minimal agent structure
+            new_agent = {
+                'name': agent_name,
+                'species': species,
+                'pronouns': pronouns,
+                'location': 'pond',  # Default starting location
+                'description': f'A newly rezzed {species}.',
+                'personality_traits': {
+                    'openness': 0.5,
+                    'conscientiousness': 0.5,
+                    'extraversion': 0.5,
+                    'agreeableness': 0.5,
+                    'neuroticism': 0.5
+                }
+            }
+
+            # Add to agents.json
+            import json
+            from pathlib import Path
+            agents_path = Path('world/agents.json')
+
+            agents = {}
+            if agents_path.exists():
+                with open(agents_path, 'r') as f:
+                    agents = json.load(f)
+
+            agents[agent_id] = new_agent
+
+            with open(agents_path, 'w') as f:
+                json.dump(agents, f, indent=2)
+
+            # Create agent directory and checkpoint path
+            import os
+            agent_dir = f'world/agents/{agent_id}'
+            os.makedirs(agent_dir, exist_ok=True)
+
+            # Create subdirectories for agent state
+            for subdir in ['data', 'inbox', 'outbox', 'memories', 'history']:
+                os.makedirs(os.path.join(agent_dir, subdir), exist_ok=True)
+
+            # Set checkpoint path (file may not exist - agent will init with random weights)
+            checkpoint_path = f'{agent_dir}/checkpoint.npz'
+            new_agent['checkpoint_path'] = checkpoint_path
+            new_agent['current_room'] = 'room_000'  # Default starting room
+
+            # Add to world's in-memory dict
+            if self.agent_manager and hasattr(self.agent_manager, 'world') and self.agent_manager.world:
+                self.agent_manager.world.agents[agent_id] = new_agent
+                logger.info(f"Added {agent_id} to world.agents in-memory dict")
+
+                # Add agent to room occupants
+                room = self.agent_manager.world.get_room('room_000')
+                if room:
+                    if 'occupants' not in room:
+                        room['occupants'] = []
+                    if agent_id not in room['occupants']:
+                        room['occupants'].append(agent_id)
+                        logger.info(f"Added {agent_id} to room_000 occupants")
+
+            # Save updated agents.json with checkpoint_path
+            with open(agents_path, 'w') as f:
+                json.dump(agents, f, indent=2)
+
+            # Spawn in agent_manager using create_agent
+            if self.agent_manager:
+                try:
+                    await self.agent_manager.create_agent(
+                        agent_id=agent_id,
+                        checkpoint_path=checkpoint_path,
+                        spawn_room='room_000',
+                        agent_name=agent_name
+                    )
+                    logger.info(f"Spawned agent {agent_id} in world")
+                except Exception as spawn_error:
+                    logger.error(f"Failed to spawn agent {agent_id}: {spawn_error}", exc_info=True)
+                    print(f"[ERROR] Failed to spawn agent {agent_id}: {spawn_error}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continue anyway - agent was saved to JSON
+            else:
+                logger.warning(f"No agent_manager available to spawn {agent_id}")
+
+            return web.json_response({'success': True, 'agent_id': agent_id, 'message': f'Agent {agent_name} created'})
+        except Exception as e:
+            logger.error(f"Error creating agent: {e}")
+            return web.json_response({'error': str(e)}, status=500)
+
+    async def create_object(self, request: web.Request) -> web.Response:
+        """Create a new prim/object (Studio operation - no auth required)."""
+        try:
+            data = await request.json()
+            obj_name = data.get('name', 'NewPrim')
+
+            # Generate object ID
+            obj_id = f"obj_{obj_name.lower().replace(' ', '_')}"
+
+            # Create minimal object structure
+            new_obj = {
+                'name': obj_name,
+                'description': 'A newly created object.',
+                'location': 'pond',  # Default location
+                'properties': {}
+            }
+
+            # Add to objects.json
+            import json
+            from pathlib import Path
+            objects_path = Path('world/objects.json')
+
+            objects = {}
+            if objects_path.exists():
+                with open(objects_path, 'r') as f:
+                    objects = json.load(f)
+
+            objects[obj_id] = new_obj
+
+            with open(objects_path, 'w') as f:
+                json.dump(objects, f, indent=2)
+
+            # Add to world's in-memory dict
+            if self.agent_manager and hasattr(self.agent_manager, 'world') and self.agent_manager.world:
+                self.agent_manager.world.objects[obj_id] = new_obj
+                logger.info(f"Added {obj_id} to world.objects in-memory dict")
+
+            return web.json_response({'success': True, 'object_id': obj_id, 'message': f'Object {obj_name} created'})
+        except Exception as e:
+            logger.error(f"Error creating object: {e}")
+            return web.json_response({'error': str(e)}, status=500)
+
+    async def create_room(self, request: web.Request) -> web.Response:
+        """Create a new room (Studio operation - no auth required)."""
+        try:
+            data = await request.json()
+            room_name = data.get('name', 'NewRoom')
+
+            # Generate room ID
+            room_id = room_name.lower().replace(' ', '_')
+
+            # Create minimal room structure
+            new_room = {
+                'name': room_name,
+                'description': 'A newly created room.',
+                'exits': {}
+            }
+
+            # Add to rooms.json
+            import json
+            from pathlib import Path
+            rooms_path = Path('world/rooms.json')
+
+            rooms = {}
+            if rooms_path.exists():
+                with open(rooms_path, 'r') as f:
+                    rooms = json.load(f)
+
+            rooms[room_id] = new_room
+
+            with open(rooms_path, 'w') as f:
+                json.dump(rooms, f, indent=2)
+
+            # Add to world's in-memory dict
+            if self.agent_manager and hasattr(self.agent_manager, 'world') and self.agent_manager.world:
+                self.agent_manager.world.rooms[room_id] = new_room
+                logger.info(f"Added {room_id} to world.rooms in-memory dict")
+
+            return web.json_response({'success': True, 'room_id': room_id, 'message': f'Room {room_name} created'})
+        except Exception as e:
+            logger.error(f"Error creating room: {e}")
+            return web.json_response({'error': str(e)}, status=500)
 
     async def health_check(self, request: web.Request) -> web.Response:
         """Health check endpoint."""

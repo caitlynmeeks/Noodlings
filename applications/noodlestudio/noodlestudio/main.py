@@ -47,25 +47,32 @@ def main():
     # Create main window (takes a moment to load)
     window = MainWindow()
 
-    # Close splash and show main window
+    # Keep splash visible for 7 seconds
+    import time
+    start_time = time.time()
+    while time.time() - start_time < 7.0:
+        app.processEvents()
+        time.sleep(0.01)
+
+    # Close splash and show main window maximized
     splash.finish(window)
-    window.show()
+    window.showMaximized()
 
     sys.exit(app.exec())
 
 
 def create_splash_screen():
     """Create a splash screen with a random STUDIO acronym - Green TUI aesthetic."""
-    # Create a larger pixmap - easy to read!
-    pixmap = QPixmap(1000, 700)
+    # Wider window for ASCII art
+    pixmap = QPixmap(1200, 700)
     pixmap.fill(Qt.GlobalColor.black)
 
     # Draw on it
     painter = QPainter(pixmap)
 
-    # ASCII Art Banner
+    # ASCII Art Banner - positioned lower with better fit
     painter.setPen(QColor(0, 255, 0))  # Green
-    font = QFont("Courier New", 7)  # Small for the banner
+    font = QFont("Courier New", 8)  # Slightly bigger
     painter.setFont(font)
     banner = (
         ":::.    :::.    ...         ...    :::::::-.   :::    .,::::::      .        :    ...    ::: .::::::.   ::   .:\n"
@@ -75,7 +82,7 @@ def create_splash_screen():
         "  888    Y88\"888,_ _,88P\"888,_ _,88P 888_,o8P'o88oo,.__888oo,__     888 Y88\" 888o88    .d888 88b    dP 888   \"88o\n"
         "  MMM     YM  \"YMMMMMP\"   \"YMMMMMP\"  MMMMP\"`  \"\"\"\"YUMMM\"\"\"\"YUMMM    MMM  M'  \"MMM \"YmmMMMM\"\"  \"YMmMY\"  MMM    YMM"
     )
-    painter.drawText(pixmap.rect().adjusted(20, 20, -20, -550),
+    painter.drawText(pixmap.rect().adjusted(10, 80, -10, -500),
                      Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter,
                      banner)
 

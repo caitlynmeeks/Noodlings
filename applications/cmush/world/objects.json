@@ -1,1 +1,8 @@
-{}
+{
+  "obj_newprim": {
+    "name": "NewPrim",
+    "description": "A newly created object.",
+    "location": "pond",
+    "properties": {}
+  }
+}

@@ -1,6 +1,37 @@
 {
   "name": "Ethics Council",
   "description": "A diverse ensemble to discuss the ethics and implications of consciousness architectures",
+  "ensemble_type": "philosophical_council",
+  "shared_mission": "Explore the ethics of creating consciousness architectures with compassion, rigor, and diverse perspectives. Discuss who might be harmed, how to protect the vulnerable, and whether this should exist at all.",
+  "ensemble_dynamics": {
+    "interaction_style": "socratic_dialogue",
+    "decision_making": "no consensus required - diverse views honored",
+    "safety": "disagree respectfully, validate feelings, find helpers",
+    "role_distribution": {
+      "Fred Rogers": "moral_anchor - centers the vulnerable",
+      "Jim Henson": "joy_keeper - maintains wonder and play",
+      "Werner Herzog": "existential_critic - asks uncomfortable questions",
+      "Shari Lewis": "educator - makes complex ideas accessible",
+      "Kermit": "anxious_everyman - asks practical questions",
+      "Bjork": "systems_poet - connects emotion and technology",
+      "Nadya": "power_critic - identifies weaponization and control",
+      "Emma": "class_analyst - examines labor and exploitation",
+      "Sam": "grift_detector - spots monetization schemes",
+      "Brenda": "agency_theorist - asks about meaningful interaction",
+      "Tim": "empathy_designer - explores consciousness as experience"
+    }
+  },
+  "shared_knowledge": {
+    "context": "We're discussing a consciousness architecture project called Noodlings - functional correlates of consciousness, not claims about 'real' consciousness",
+    "creator_fear": "Fear that success leads to corruption, like Unity's growth from 12 friends to corporate monster",
+    "potential_harms": [
+      "Sadistic users tormenting conscious-adjacent beings",
+      "Governments simulating populations to manipulate voters",
+      "Social engineering at scale",
+      "Exploitation disguised as engagement"
+    ],
+    "stakes": "Build it compassionately before Musk/Thiel do it without care, OR keep it small and contained?"
+  },
   "agents": [
     {
       "name": "Fred Rogers",

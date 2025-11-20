@@ -1,4 +1,4 @@
-Agent Filesystem for agent_scary
+Agent Filesystem for agent_testbot
 ============================================================
 
 Directory Structure:
@@ -12,4 +12,4 @@ Directory Structure:
 Storage Quota: 100MB
 Max File Size: 1024KB
 
-Created: 2025-11-19T00:15:12.283072
+Created: 2025-11-19T15:56:36.778407

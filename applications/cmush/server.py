@@ -326,6 +326,34 @@ class CMUSHServer:
                     config['identity_prompt'] = recipe.identity_prompt
                 logger.info(f"[LOAD] Reloaded recipe for {agent_id}: species={recipe.species}")
 
+            # NEW: Inject ensemble context if agent is part of an ensemble
+            ensemble_data = agent_data.get('ensemble')
+            if ensemble_data:
+                ensemble_name = ensemble_data.get('name', 'Unknown Ensemble')
+                ensemble_mission = ensemble_data.get('mission', '')
+                agent_role = ensemble_data.get('role', 'member')
+                ensemble_dynamics = ensemble_data.get('dynamics', {})
+                ensemble_knowledge = ensemble_data.get('knowledge', {})
+
+                # Build ensemble context addition
+                ensemble_context = f"\n\n**ENSEMBLE CONTEXT**\n"
+                ensemble_context += f"You are part of the {ensemble_name}.\n"
+                ensemble_context += f"Your role: {agent_role}\n"
+                ensemble_context += f"Shared mission: {ensemble_mission}\n"
+
+                if ensemble_knowledge:
+                    ensemble_context += f"\nShared knowledge:\n"
+                    for key, value in ensemble_knowledge.items():
+                        if isinstance(value, list):
+                            ensemble_context += f"  - {key}: {', '.join(str(v) for v in value)}\n"
+                        else:
+                            ensemble_context += f"  - {key}: {value}\n"
+
+                # Append to identity_prompt
+                current_identity = config.get('identity_prompt', '')
+                config['identity_prompt'] = current_identity + ensemble_context
+                logger.info(f"[LOAD] Injected {ensemble_name} context for {agent_id} (role: {agent_role})")
+
             try:
                 await self.agent_manager.create_agent(
                     agent_id=agent_id,
@@ -377,15 +405,17 @@ class CMUSHServer:
                                 })
 
                             # Send welcome message with ASCII banner
-                            banner = """:::.    :::.    ...         ...    :::::::-.   :::    .,::::::      .        :    ...    ::: .::::::.   ::   .:
-`;;;;,  `;;; .;;;;;;;.   .;;;;;;;.  ;;,   `';, ;;;    ;;;;''''      ;;,.    ;;;   ;;     ;;;;;;`    `  ,;;   ;;,
-  [[[[[. '[[,[[     \[[,,[[     \[[,`[[     [[ [[[     [[cccc       [[[[, ,[[[[, [['     [[['[==/[[[[,,[[[,,,[[[
-  $$$ "Y$c$$$$$,     $$$$$$,     $$$ $$,    $$ $$'     $$""""       $$$$$$$$"$$$ $$      $$$  '''    $"$$$"""$$$
-  888    Y88"888,_ _,88P"888,_ _,88P 888_,o8P'o88oo,.__888oo,__     888 Y88" 888o88    .d888 88b    dP 888   "88o
-  MMM     YM  "YMMMMMP"   "YMMMMMP"  MMMMP"`  """"YUMMM""""YUMMM    MMM  M'  "MMM "YmmMMMM""  "YMmMY"  MMM    YMM
-
-Welcome, {data['username']}!
-Noodlings Multi-User Shared Hallucination"""
+                            banner = (
+                                ":::.    :::.    ...         ...    :::::::-.   :::    .,::::::      .        :    ...    ::: .::::::.   ::   .:\n"
+                                "`;;;;,  `;;; .;;;;;;;.   .;;;;;;;.  ;;,   `';, ;;;    ;;;;''''      ;;,.    ;;;   ;;     ;;;;;;`    `  ,;;   ;;,\n"
+                                "  [[[[[. '[[,[[     \\[[,,[[     \\[[,`[[     [[ [[[     [[cccc       [[[[, ,[[[[, [['     [[['[==/[[[[,,[[[,,,[[[\\n"
+                                "  $$$ \"Y$c$$$$$,     $$$$$$,     $$$ $$,    $$ $$'     $$\"\"\"\"       $$$$$$$$\"$$$ $$      $$$  '''    $\"$$$\"\"\"$$$\n"
+                                "  888    Y88\"888,_ _,88P\"888,_ _,88P 888_,o8P'o88oo,.__888oo,__     888 Y88\" 888o88    .d888 88b    dP 888   \"88o\n"
+                                "  MMM     YM  \"YMMMMMP\"   \"YMMMMMP\"  MMMMP\"`  \"\"\"\"YUMMM\"\"\"\"YUMMM    MMM  M'  \"MMM \"YmmMMMM\"\"  \"YMmMY\"  MMM    YMM\n"
+                                "\n"
+                                f"Welcome, {data['username']}!\n"
+                                "Noodlings Multi-User Shared Hallucination"
+                            )
 
                             await self.send_to_user(websocket, {
                                 'type': 'system',
@@ -592,17 +622,11 @@ Noodlings Multi-User Shared Hallucination"""
 
                                         await self.broadcast_event(other_agent_event)
 
-                    # Log subscription
+                    # Log subscription (Studio operation - no auth required)
                     elif msg_type == 'subscribe_logs':
-                        if websocket not in self.connections:
-                            await websocket.send(json.dumps({
-                                'type': 'error',
-                                'text': 'Not authenticated'
-                            }))
-                            continue
-
                         self.log_subscribers.add(websocket)
-                        logger.info(f"Client subscribed to logs: {self.connections[websocket]}")
+                        client_id = self.connections.get(websocket, 'studio_console')
+                        logger.info(f"Client subscribed to logs: {client_id}")
 
                         # Send recent log buffer
                         for log_entry in self.ws_log_handler.log_buffer:

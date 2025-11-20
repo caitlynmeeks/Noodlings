@@ -100,7 +100,8 @@ async def translate_to_character_voice(
     agent_id: str,
     species: str,
     llm: OpenAICompatibleLLM,
-    agent_name: str = "Agent"
+    agent_name: str = "Agent",
+    model: str = None
 ) -> str:
     """
     Translate basic symbolic English into character-specific voice using LLM.
@@ -237,11 +238,12 @@ Translate into enthusiastic dog voice:"""
         return text
 
     try:
-        # Use fast model for translation
+        # Use agent's model if specified, otherwise fall back to fast model
+        voice_model = model or "qwen/qwen3-4b-2507"
         translation = await llm.generate(
             prompt=prompt,
             system_prompt=f"You are a character voice translator for {agent_name}. Return ONLY the translated text, nothing else.",
-            model="qwen/qwen3-4b-2507",  # Fast model
+            model=voice_model,
             temperature=0.4,  # Low temp for consistent voice
             max_tokens=150
         )
@@ -980,8 +982,9 @@ Examples:
 
 Generate intuitive awareness:"""
 
-            # Use fast model for context analysis (qwen3-4b)
-            intuition_model = intuition_config.get('model', 'qwen/qwen3-4b-2507')
+            # Use agent's model if specified, otherwise fall back to fast model
+            # This honors per-agent llm_override settings
+            intuition_model = self.llm_model or intuition_config.get('model', 'qwen/qwen3-4b-2507')
             timeout = intuition_config.get('timeout', 5)
 
             # Track this operation
@@ -1645,7 +1648,7 @@ Generate intuitive awareness:"""
             if 'facial_expression' in state:
                 results.append({
                     'command': 'emote',
-                    'text': state['facial_expression'],
+                    'text': f"[expression] {state['facial_expression']}",
                     'metadata': {
                         'type': 'facial_expression',
                         'facs_data': state.get('facs_data', {}),
@@ -1914,7 +1917,8 @@ Generate intuitive awareness:"""
                     agent_id=self.agent_id,
                     species=self.species,
                     llm=self.llm,
-                    agent_name=self.agent_name
+                    agent_name=self.agent_name,
+                    model=self.llm_model  # Honor per-agent model override
                 )
 
                 if response_text != original_text:
@@ -2209,10 +2213,12 @@ Generate intuitive awareness:"""
             )
 
             # Call LLM for quick self-evaluation
+            # Use agent's model if specified
             response, _, model_used = await self.llm._complete(
                 system_prompt="You are evaluating your own speech/thoughts metacognitively.",
                 user_prompt=eval_prompt,
-                temperature=0.7
+                temperature=0.7,
+                model=self.llm_model  # Honor per-agent model override
             )
 
             if not response:
@@ -2421,7 +2427,16 @@ Generate intuitive awareness:"""
 
         # Save Consilience checkpoint
         checkpoint_path = os.path.join(state_dir, 'checkpoint.npz')
-        self.consciousness.save_checkpoint(checkpoint_path)
+        try:
+            self.consciousness.save_checkpoint(checkpoint_path)
+            logger.info(f"Checkpoint saved: {checkpoint_path}")
+        except RuntimeError as e:
+            # MLX can throw std::bad_cast for newly initialized models
+            # This is safe to skip - agent will start with random weights next time
+            if "bad_cast" in str(e):
+                logger.warning(f"Skipping checkpoint save for {self.agent_id} (MLX serialization issue - agent will use random weights on next load)")
+            else:
+                raise  # Re-raise if it's a different RuntimeError
 
         logger.info(f"Agent state saved: {state_dir} (history: {len(existing_history)+1}/{max_history})")
 

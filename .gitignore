@@ -63,6 +63,7 @@ server_debug.log
 *-oh-hi-there-*.txt
 CLAUDE.md
 HANDOFF_*.md
+NEXT_SESSION_*.md
 
 # User's Noodlings Stage (personal data, not in repo)
 # This is created in ~/Noodlings/ on user's machine

@@ -10,9 +10,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Framework**: MLX (Apple Metal optimized)
 **Hardware**: M3 Ultra (512GB RAM) + M2 Ultra (192GB RAM)
 **Parameter Budget**: ~132.5K params (Phase 4 with observer loops)
-**Last Updated**: November 17, 2025
+**Last Updated**: November 18, 2025
 
-## 🔥 **ACTIVE SESSION HANDOFF**
+## Style Preferences
+
+**CRITICAL - NO EMOJIS**
+- User strongly dislikes emojis in development sessions, documentation, and UI design
+- Old-fashioned, terminal-aesthetic preference
+- Do NOT use emojis in code comments, commit messages, documentation, or conversational responses
+- Exception: Only if user explicitly requests emojis for a specific use case
+- Keep communication professional and text-based
+
+## ACTIVE SESSION HANDOFF
 
 **👉 See `HANDOFF_SESSION_NOV18_MORNING.md` for current work! 👈**
 

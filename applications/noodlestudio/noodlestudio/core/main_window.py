@@ -5,11 +5,13 @@ The primary application window with menu bar, toolbar, dock area, and status bar
 """
 
 import os
-from typing import Optional
+import json
+from pathlib import Path
+from typing import Optional, List
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QMessageBox
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QStandardPaths
 from PyQt6.QtGui import QAction
 
 from ..panels.home_panel import HomePanel
@@ -63,6 +65,9 @@ class MainWindow(QMainWindow):
         # Load last used layout (like Unity reopening last scene)
         QTimer.singleShot(200, self.load_last_used_layout)
 
+        # Auto-open last project (like Unity reopening last project)
+        QTimer.singleShot(300, self.auto_open_last_project)
+
     def _setup_ui(self):
         """Build UI components."""
         # Clean central widget (no clutter, Unity-style)
@@ -80,6 +85,11 @@ class MainWindow(QMainWindow):
         # Project management
         file_menu.addAction(self._create_action("&New Project...", slot=self.new_project))
         file_menu.addAction(self._create_action("&Open Project...", slot=self.open_project))
+
+        # Recent Projects submenu
+        self.recent_projects_menu = file_menu.addMenu("Recent Projects")
+        self.update_recent_projects_menu()
+
         file_menu.addSeparator()
 
         # Stage management
@@ -107,8 +117,8 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(self._create_action("&Quit", "Ctrl+Q", self.close))
 
-        # ===== CREATE MENU (like Unity's GameObject) =====
-        create_menu = menu_bar.addMenu("&Create")
+        # ===== REZ MENU (instantiate entities) =====
+        create_menu = menu_bar.addMenu("&Rez")
 
         # Noodling submenu
         noodling_menu = create_menu.addMenu("Noodling")
@@ -281,8 +291,10 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(2000, self.update_connection_status)
 
     def update_connection_status(self):
-        """Update connection status label."""
-        if self.is_server_running():
+        """Update connection status label and UI state."""
+        running = self.is_server_running()
+
+        if running:
             self.connection_label.setText("Server running on :8765")
             self.connection_label.setStyleSheet("color: #76AF6A;")  # Green
             self.server_toggle.setChecked(True)
@@ -290,6 +302,19 @@ class MainWindow(QMainWindow):
             self.connection_label.setText("Server offline")
             self.connection_label.setStyleSheet("color: #999;")  # Gray
             self.server_toggle.setChecked(False)
+
+        # Update World View
+        if hasattr(self, 'world_view'):
+            self.world_view.set_server_state(running)
+
+        # Update Hierarchy (gray out if offline)
+        if hasattr(self, 'hierarchy'):
+            self.hierarchy.set_server_state(running)
+
+        # Update Console (reconnect if server just started)
+        if hasattr(self, 'console'):
+            if running and not self.console.connected:
+                self.console.reconnect()
 
     def _setup_panels(self):
         """Create Unity-style layout with EXACT positioning."""
@@ -341,12 +366,16 @@ class MainWindow(QMainWindow):
 
         # Connect hierarchy selection to inspector
         self.hierarchy.entitySelected.connect(self.inspector.load_entity)
+        self.hierarchy.entitySelected.connect(self.on_entity_selected_for_console)
 
         # Force Console tab to be active
         self.console.raise_()
 
         # Set exact sizes after a brief delay (let Qt settle)
         QTimer.singleShot(100, self.apply_default_sizes)
+
+        # Check initial server state and update UI
+        QTimer.singleShot(200, self.update_connection_status)
 
     def _setup_shortcuts(self):
         """Setup keyboard shortcuts."""
@@ -359,6 +388,10 @@ class MainWindow(QMainWindow):
         # Cmd/Ctrl+Shift+R - Reload to login screen
         reload_login_shortcut = QShortcut(QKeySequence("Ctrl+Shift+R"), self)
         reload_login_shortcut.activated.connect(self.reload_world_view_clean)
+
+        # Cmd/Ctrl+M - Maximize/restore World View
+        maximize_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
+        maximize_shortcut.activated.connect(self.toggle_world_view_maximize)
 
     def reload_world_view(self):
         """Reload World View with autologin (Ctrl+R)."""
@@ -377,6 +410,11 @@ class MainWindow(QMainWindow):
 
             self.world_view.web_view.setUrl(QUrl("http://localhost:8080"))
             self.statusBar().showMessage("Reloaded (login screen)", 2000)
+
+    def toggle_world_view_maximize(self):
+        """Toggle World View between maximized and normal (Ctrl+M)."""
+        if hasattr(self, 'world_view'):
+            self.world_view.toggle_maximize()
 
     def apply_default_sizes(self):
         """Apply exact panel sizes for default layout."""
@@ -1282,12 +1320,31 @@ class MainWindow(QMainWindow):
 
     def on_project_opened(self, project_path: str):
         """Handle project opened event."""
+        # Stop server when switching projects
+        import subprocess
+        subprocess.run(['pkill', '-f', 'python.*server.py'])
+
         # Update window title
         self.setWindowTitle(f"NoodleSTUDIO - {self.project_manager.current_project_name}")
+
+        # Save to recent projects
+        self.add_to_recent_projects(project_path)
+        self.update_recent_projects_menu()
 
         # Refresh assets panel
         if hasattr(self, 'assets'):
             self.assets.refresh()
+
+        # Show offline card (server is stopped)
+        if hasattr(self, 'world_view'):
+            self.world_view.show_offline_card()
+
+        # Gray out hierarchy
+        if hasattr(self, 'hierarchy'):
+            self.hierarchy.set_server_state(False)
+
+        # Update toggle
+        QTimer.singleShot(500, self.update_connection_status)
 
         print(f"Project opened: {project_path}")
 
@@ -1301,6 +1358,120 @@ class MainWindow(QMainWindow):
             self.assets.refresh()
 
         print("Project closed")
+
+    def get_settings_path(self) -> Path:
+        """Get path to NoodleStudio settings file."""
+        config_dir = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppConfigLocation))
+        config_dir = config_dir / "NoodleStudio"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        return config_dir / "settings.json"
+
+    def load_recent_projects(self) -> List[str]:
+        """Load recent projects list from settings."""
+        settings_path = self.get_settings_path()
+        if settings_path.exists():
+            try:
+                with open(settings_path, 'r') as f:
+                    settings = json.load(f)
+                    return settings.get('recent_projects', [])
+            except:
+                return []
+        return []
+
+    def save_recent_projects(self, projects: List[str]):
+        """Save recent projects list to settings."""
+        settings_path = self.get_settings_path()
+        settings = {}
+        if settings_path.exists():
+            try:
+                with open(settings_path, 'r') as f:
+                    settings = json.load(f)
+            except:
+                pass
+        settings['recent_projects'] = projects
+        with open(settings_path, 'w') as f:
+            json.dump(settings, f, indent=2)
+
+    def add_to_recent_projects(self, project_path: str):
+        """Add a project to the recent projects list."""
+        recent = self.load_recent_projects()
+        # Remove if already in list (to move to top)
+        if project_path in recent:
+            recent.remove(project_path)
+        # Add to front
+        recent.insert(0, project_path)
+        # Keep only last 10
+        recent = recent[:10]
+        self.save_recent_projects(recent)
+
+    def update_recent_projects_menu(self):
+        """Update the Recent Projects menu with current list."""
+        self.recent_projects_menu.clear()
+        recent = self.load_recent_projects()
+
+        if not recent:
+            action = self.recent_projects_menu.addAction("(No recent projects)")
+            action.setEnabled(False)
+            return
+
+        for project_path in recent:
+            # Check if project still exists
+            if not os.path.exists(project_path):
+                continue
+
+            # Get project name from path
+            project_name = os.path.basename(project_path)
+            action = self.recent_projects_menu.addAction(project_name)
+            # Use lambda with default argument to capture project_path
+            action.triggered.connect(lambda checked, p=project_path: self.open_recent_project(p))
+
+        # Add separator and "Clear Recent" option
+        if recent:
+            self.recent_projects_menu.addSeparator()
+            clear_action = self.recent_projects_menu.addAction("Clear Recent Projects")
+            clear_action.triggered.connect(self.clear_recent_projects)
+
+    def open_recent_project(self, project_path: str):
+        """Open a project from the recent projects list."""
+        if os.path.exists(project_path):
+            self.project_manager.open_project(project_path)
+        else:
+            QMessageBox.warning(
+                self,
+                "Project Not Found",
+                f"Project no longer exists:\n{project_path}"
+            )
+            # Remove from recent list
+            recent = self.load_recent_projects()
+            if project_path in recent:
+                recent.remove(project_path)
+                self.save_recent_projects(recent)
+                self.update_recent_projects_menu()
+
+    def clear_recent_projects(self):
+        """Clear the recent projects list."""
+        self.save_recent_projects([])
+        self.update_recent_projects_menu()
+
+    def auto_open_last_project(self):
+        """Automatically open the last opened project on startup."""
+        recent = self.load_recent_projects()
+        if recent and os.path.exists(recent[0]):
+            print(f"Auto-opening last project: {recent[0]}")
+            self.project_manager.open_project(recent[0])
+
+    def on_entity_selected_for_console(self, entity_type: str, entity_data: dict):
+        """Update Console filter when entity is selected in hierarchy."""
+        if not hasattr(self, 'console'):
+            return
+
+        # Get entity ID
+        entity_id = entity_data.get('id', '')
+
+        # TODO: Support multi-selection - for now just single entity
+        # In future, hierarchy should emit list of all selected entities
+        if entity_id:
+            self.console.set_selected_entities([entity_id])
 
     def show_credits(self):
         """Show demo scene style credits with music."""
