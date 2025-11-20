@@ -40,6 +40,7 @@ class NoodleScopeAPI:
         kimmie: Optional[KimmieCharacter] = None,
         config: Optional[Dict] = None,
         agent_manager = None,
+        server = None,
         host: str = '0.0.0.0',
         port: int = 8081
     ):
@@ -51,12 +52,14 @@ class NoodleScopeAPI:
             kimmie: @Kimmie character instance
             config: Server configuration dict
             agent_manager: Agent manager instance
+            server: CMUSHServer instance for shutdown control
             host: Server host
             port: Server port
         """
         self.session_profiler = session_profiler
         self.kimmie = kimmie
         self.config = config or {}
+        self.server = server
         self.agent_manager = agent_manager
         self.host = host
         self.port = port
@@ -90,7 +93,12 @@ class NoodleScopeAPI:
 
         # Objects and rooms
         self.app.router.add_post('/api/objects', self.create_object)
+        self.app.router.add_post('/api/objects/{object_id}/update', self.update_object)
         self.app.router.add_post('/api/rooms', self.create_room)
+        self.app.router.add_post('/api/rooms/{room_id}/update', self.update_room)
+
+        # Server control
+        self.app.router.add_post('/api/shutdown', self.shutdown_server)
 
         # Health check
         self.app.router.add_get('/api/health', self.health_check)
@@ -199,12 +207,27 @@ class NoodleScopeAPI:
 
         agents_data = []
         for agent_id, agent in self.agent_manager.agents.items():
+            # Get location from agent's current_room attribute
+            location = getattr(agent, 'current_room', None)
+
+            # Get description and personality from world.agents if available
+            description = None
+            personality_traits = None
+            if hasattr(self.agent_manager, 'world') and self.agent_manager.world:
+                if agent_id in self.agent_manager.world.agents:
+                    description = self.agent_manager.world.agents[agent_id].get('description')
+                    personality_traits = self.agent_manager.world.agents[agent_id].get('personality_traits')
+
             agents_data.append({
                 'id': agent_id,
                 'name': agent.agent_name,
                 'species': agent.species,
+                'description': description,
+                'personality_traits': personality_traits or agent.personality,  # Use world data or agent object
                 'llm_provider': agent.llm_provider,
-                'llm_model': agent.llm_model
+                'llm_model': agent.llm_model,
+                'current_room': location,
+                'location': location  # Alias for compatibility
             })
 
         return web.json_response({'agents': agents_data})
@@ -295,11 +318,42 @@ class NoodleScopeAPI:
             if 'llm_model' in data:
                 agent['config']['llm_override']['model'] = data['llm_model']
 
+        # Update personality traits
+        if 'personality' in data:
+            if 'personality_traits' not in agent:
+                agent['personality_traits'] = {}
+            agent['personality_traits'].update(data['personality'])
+
         # Save back to agents.json
         with open(agents_path, 'w') as f:
             json.dump(agents, f, indent=2)
 
-        return web.json_response({'success': True, 'message': 'Agent updated - restart server to apply changes'})
+        # Update in-memory agent data (if agent is loaded)
+        if self.agent_manager and agent_id in self.agent_manager.agents:
+            agent_obj = self.agent_manager.agents[agent_id]
+            # Update agent metadata
+            if 'name' in data:
+                agent_obj.agent_name = data['name']
+            if 'species' in data:
+                agent_obj.species = data['species']
+            if 'description' in data:
+                # Set agent object description attribute (for 'look' command)
+                agent_obj.agent_description = data['description']
+            if 'personality' in data:
+                # Update agent object personality dict
+                agent_obj.personality.update(data['personality'])
+            # Also update world.agents dict
+            if hasattr(self.agent_manager, 'world') and self.agent_manager.world:
+                if agent_id in self.agent_manager.world.agents:
+                    if 'description' in data:
+                        self.agent_manager.world.agents[agent_id]['description'] = data['description']
+                    if 'personality' in data:
+                        if 'personality_traits' not in self.agent_manager.world.agents[agent_id]:
+                            self.agent_manager.world.agents[agent_id]['personality_traits'] = {}
+                        self.agent_manager.world.agents[agent_id]['personality_traits'].update(data['personality'])
+            logger.info(f"Updated {agent_id} in-memory agent data")
+
+        return web.json_response({'success': True, 'message': 'Agent updated'})
 
     async def delete_agent(self, request: web.Request) -> web.Response:
         """Delete/derez an agent (Studio operation - no auth required)."""
@@ -414,7 +468,8 @@ class NoodleScopeAPI:
                         agent_id=agent_id,
                         checkpoint_path=checkpoint_path,
                         spawn_room='room_000',
-                        agent_name=agent_name
+                        agent_name=agent_name,
+                        agent_description=new_agent['description']  # Pass description from JSON
                     )
                     logger.info(f"Spawned agent {agent_id} in world")
                 except Exception as spawn_error:
@@ -436,6 +491,7 @@ class NoodleScopeAPI:
         try:
             data = await request.json()
             obj_name = data.get('name', 'NewPrim')
+            location = data.get('location', 'room_000')  # Use passed location or default to Nexus
 
             # Generate object ID
             obj_id = f"obj_{obj_name.lower().replace(' ', '_')}"
@@ -444,7 +500,7 @@ class NoodleScopeAPI:
             new_obj = {
                 'name': obj_name,
                 'description': 'A newly created object.',
-                'location': 'pond',  # Default location
+                'location': location,
                 'properties': {}
             }
 
@@ -468,9 +524,71 @@ class NoodleScopeAPI:
                 self.agent_manager.world.objects[obj_id] = new_obj
                 logger.info(f"Added {obj_id} to world.objects in-memory dict")
 
+                # Add to room's objects array (bidirectional link)
+                if location in self.agent_manager.world.rooms:
+                    if 'objects' not in self.agent_manager.world.rooms[location]:
+                        self.agent_manager.world.rooms[location]['objects'] = []
+                    if obj_id not in self.agent_manager.world.rooms[location]['objects']:
+                        self.agent_manager.world.rooms[location]['objects'].append(obj_id)
+                        # Persist room update to file
+                        rooms_path = Path('world/rooms.json')
+                        with open(rooms_path, 'r') as f:
+                            rooms = json.load(f)
+                        if location in rooms:
+                            if 'objects' not in rooms[location]:
+                                rooms[location]['objects'] = []
+                            rooms[location]['objects'].append(obj_id)
+                            with open(rooms_path, 'w') as f:
+                                json.dump(rooms, f, indent=2)
+                        logger.info(f"Added {obj_id} to room {location} objects array")
+
             return web.json_response({'success': True, 'object_id': obj_id, 'message': f'Object {obj_name} created'})
         except Exception as e:
             logger.error(f"Error creating object: {e}")
+            return web.json_response({'error': str(e)}, status=500)
+
+    async def update_object(self, request: web.Request) -> web.Response:
+        """Update object/prim properties (Studio operation - no auth required)."""
+        try:
+            object_id = request.match_info['object_id']
+            data = await request.json()
+
+            # Load objects.json
+            import json
+            from pathlib import Path
+            objects_path = Path('world/objects.json')
+
+            if not objects_path.exists():
+                return web.json_response({'error': 'objects.json not found'}, status=404)
+
+            with open(objects_path, 'r') as f:
+                objects = json.load(f)
+
+            if object_id not in objects:
+                return web.json_response({'error': f'Object {object_id} not found'}, status=404)
+
+            # Update fields
+            if 'name' in data:
+                objects[object_id]['name'] = data['name']
+            if 'description' in data:
+                objects[object_id]['description'] = data['description']
+
+            # Save to file
+            with open(objects_path, 'w') as f:
+                json.dump(objects, f, indent=2)
+
+            # Update in-memory dict
+            if self.agent_manager and hasattr(self.agent_manager, 'world') and self.agent_manager.world:
+                if object_id in self.agent_manager.world.objects:
+                    if 'name' in data:
+                        self.agent_manager.world.objects[object_id]['name'] = data['name']
+                    if 'description' in data:
+                        self.agent_manager.world.objects[object_id]['description'] = data['description']
+                    logger.info(f"Updated {object_id} in world.objects in-memory dict")
+
+            return web.json_response({'success': True, 'message': f'Object {object_id} updated'})
+        except Exception as e:
+            logger.error(f"Error updating object: {e}")
             return web.json_response({'error': str(e)}, status=500)
 
     async def create_room(self, request: web.Request) -> web.Response:
@@ -484,9 +602,14 @@ class NoodleScopeAPI:
 
             # Create minimal room structure
             new_room = {
+                'uid': room_id,
                 'name': room_name,
                 'description': 'A newly created room.',
-                'exits': {}
+                'exits': {},
+                'occupants': [],
+                'objects': [],
+                'owner': 'user_admin',
+                'created': '2025-11-19T00:00:00'
             }
 
             # Add to rooms.json
@@ -514,12 +637,83 @@ class NoodleScopeAPI:
             logger.error(f"Error creating room: {e}")
             return web.json_response({'error': str(e)}, status=500)
 
+    async def update_room(self, request: web.Request) -> web.Response:
+        """Update room properties (Studio operation - no auth required)."""
+        try:
+            room_id = request.match_info['room_id']
+            data = await request.json()
+
+            # Load rooms.json
+            import json
+            from pathlib import Path
+            rooms_path = Path('world/rooms.json')
+
+            if not rooms_path.exists():
+                return web.json_response({'error': 'rooms.json not found'}, status=404)
+
+            with open(rooms_path, 'r') as f:
+                rooms = json.load(f)
+
+            if room_id not in rooms:
+                return web.json_response({'error': f'Room {room_id} not found'}, status=404)
+
+            # Update fields (only description for now, can extend later)
+            if 'description' in data:
+                rooms[room_id]['description'] = data['description']
+
+            # Save to file
+            with open(rooms_path, 'w') as f:
+                json.dump(rooms, f, indent=2)
+
+            # Update in-memory dict
+            if self.agent_manager and hasattr(self.agent_manager, 'world') and self.agent_manager.world:
+                if room_id in self.agent_manager.world.rooms:
+                    if 'description' in data:
+                        self.agent_manager.world.rooms[room_id]['description'] = data['description']
+                    logger.info(f"Updated {room_id} in world.rooms in-memory dict")
+
+            return web.json_response({'success': True, 'message': f'Room {room_id} updated'})
+        except Exception as e:
+            logger.error(f"Error updating room: {e}")
+            return web.json_response({'error': str(e)}, status=500)
+
     async def health_check(self, request: web.Request) -> web.Response:
         """Health check endpoint."""
         return web.json_response({
             'status': 'ok',
             'profiler_active': self.session_profiler is not None,
             'kimmie_active': self.kimmie is not None
+        })
+
+    async def shutdown_server(self, request: web.Request) -> web.Response:
+        """
+        Gracefully shutdown the server.
+
+        POST /api/shutdown
+        Body: {"delay": 5}  # optional, defaults to 5 seconds
+
+        Returns:
+            {"success": true, "message": "Shutdown initiated"}
+        """
+        if not self.server:
+            return web.json_response({
+                'success': False,
+                'error': 'Server instance not available'
+            }, status=500)
+
+        try:
+            data = await request.json()
+            delay = data.get('delay', 5)
+        except Exception:
+            delay = 5
+
+        # Trigger graceful shutdown
+        import asyncio
+        asyncio.create_task(self.server.graceful_shutdown(delay))
+
+        return web.json_response({
+            'success': True,
+            'message': f'Server shutdown initiated. Shutting down in {delay} seconds.'
         })
 
     async def list_sessions(self, request: web.Request) -> web.Response:

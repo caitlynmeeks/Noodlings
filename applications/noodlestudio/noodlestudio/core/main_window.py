@@ -286,9 +286,9 @@ class MainWindow(QMainWindow):
             subprocess.run(['pkill', '-f', 'python.*server.py'])
             self.connection_label.setText("Server stopped")
 
-        # Update status after a delay
+        # Update status after a delay (increased to 5 seconds for server startup)
         from PyQt6.QtCore import QTimer
-        QTimer.singleShot(2000, self.update_connection_status)
+        QTimer.singleShot(5000, self.update_connection_status)
 
     def update_connection_status(self):
         """Update connection status label and UI state."""

@@ -13,8 +13,9 @@ Author: Caitlyn + Claude
 Date: November 17, 2025
 """
 
-from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QTreeWidget,
-                             QTreeWidgetItem, QLabel, QPushButton, QMenu, QInputDialog)
+from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget,
+                             QTreeWidgetItem, QLabel, QPushButton, QMenu, QInputDialog, QComboBox,
+                             QMessageBox)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon, QAction
 import requests
@@ -84,6 +85,40 @@ class SceneHierarchy(MaximizableDock):
         header.setStyleSheet("color: #B4B4B4; padding: 4px;")
         layout.addWidget(header)
 
+        # Stage selector dropdown
+        stage_layout = QHBoxLayout()
+        stage_label = QLabel("Stage:")
+        stage_label.setStyleSheet("color: #D2D2D2; padding: 2px;")
+        stage_layout.addWidget(stage_label)
+
+        self.stage_selector = QComboBox()
+        self.stage_selector.setStyleSheet("""
+            QComboBox {
+                background-color: #1E1E1E;
+                color: #D2D2D2;
+                border: 1px solid #555;
+                padding: 4px;
+                border-radius: 3px;
+            }
+            QComboBox:hover {
+                border: 1px solid #888;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 6px solid #D2D2D2;
+                margin-right: 8px;
+            }
+        """)
+        self.stage_selector.currentTextChanged.connect(self.on_stage_changed)
+        stage_layout.addWidget(self.stage_selector, stretch=1)
+
+        layout.addLayout(stage_layout)
+
         # Tree widget
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
@@ -138,18 +173,14 @@ class SceneHierarchy(MaximizableDock):
 
     def restore_expanded_state(self):
         """Restore expanded state and selection for items that match saved paths."""
-        # If no saved state (first load), set sensible defaults
-        if not self.expanded_items:
-            self.expanded_items = {
-                "Scene: The Nexus",
-                "Scene: The Nexus/Connected Users",
-                "Scene: The Nexus/Noodlings"
-            }
-
         def restore_item(item, path=""):
             """Recursively restore expanded state and selection."""
             current_path = path + "/" + item.text(0) if path else item.text(0)
-            if current_path in self.expanded_items:
+
+            # Always expand top-level stage item
+            if item.text(0).startswith("Stage:") and not path:
+                item.setExpanded(True)
+            elif current_path in self.expanded_items:
                 item.setExpanded(True)
             # Restore selection
             if self.selected_item_path and current_path == self.selected_item_path:
@@ -161,8 +192,78 @@ class SceneHierarchy(MaximizableDock):
         for i in range(self.tree.topLevelItemCount()):
             restore_item(self.tree.topLevelItem(i))
 
+    def populate_stage_selector(self):
+        """Populate stage selector with available stages/rooms."""
+        try:
+            import json
+            rooms_path = os.path.join(
+                os.path.dirname(__file__),
+                "../../../cmush/world/rooms.json"
+            )
+            with open(rooms_path, 'r') as f:
+                rooms_data = json.load(f)
+
+            # Block signals during population to avoid triggering on_stage_changed
+            self.stage_selector.blockSignals(True)
+            self.stage_selector.clear()
+
+            for room_id, room_data in rooms_data.items():
+                room_name = room_data.get('name', room_id)
+                display_text = f"{room_name} ({room_id})"
+                self.stage_selector.addItem(display_text, room_id)
+
+                # Select current room
+                if room_id == self.current_room:
+                    self.stage_selector.setCurrentText(display_text)
+
+            self.stage_selector.blockSignals(False)
+
+        except Exception as e:
+            print(f"Error populating stage selector: {e}")
+
+    def on_stage_changed(self, text):
+        """Handle stage selection change."""
+        if not text:
+            return
+
+        # Get room_id from combo box data
+        new_room_id = self.stage_selector.currentData()
+        if new_room_id == self.current_room:
+            return
+
+        # Show teleport popup
+        room_name = text.split(' (')[0] if ' (' in text else text
+        reply = QMessageBox.question(
+            self,
+            "Teleport to Stage?",
+            f"Teleport your character to stage '{room_name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Send teleport command to MUSH
+            self.teleport_to_stage(new_room_id)
+
+        # Update current room and refresh regardless of teleport choice
+        self.current_room = new_room_id
+        self.refresh_scene()
+
+    def teleport_to_stage(self, room_id):
+        """Send teleport command to noodleMUSH."""
+        try:
+            # TODO: Implement teleport API endpoint
+            # For now, just log it
+            print(f"Teleporting to stage: {room_id}")
+        except Exception as e:
+            print(f"Error teleporting: {e}")
+
     def refresh_scene(self):
         """Refresh scene hierarchy from noodleMUSH world state."""
+        # Populate stage selector on first refresh
+        if self.stage_selector.count() == 0:
+            self.populate_stage_selector()
+
         try:
             # Save expanded state before clearing
             self.save_expanded_state()
@@ -174,11 +275,35 @@ class SceneHierarchy(MaximizableDock):
 
             self.tree.clear()
 
-            # Root: Current room
-            room_item = QTreeWidgetItem(["Scene: The Nexus"])
+            # Root: Current stage - Get stage data from rooms.json
+            stage_name = "Unknown Stage"
+            stage_data = None
+            try:
+                import json
+                rooms_path = os.path.join(
+                    os.path.dirname(__file__),
+                    "../../../cmush/world/rooms.json"
+                )
+                with open(rooms_path, 'r') as f:
+                    rooms_data = json.load(f)
+                    if self.current_room in rooms_data:
+                        stage_data = rooms_data[self.current_room]
+                        stage_name = stage_data.get('name', self.current_room)
+            except:
+                pass
+
+            room_item = QTreeWidgetItem([f"Stage: {stage_name}"])
             room_item.setFont(0, QFont("Arial", 12, QFont.Weight.Bold))
             room_item.setForeground(0, Qt.GlobalColor.white)
+            # Set stage data for Inspector
+            room_item.setData(0, Qt.ItemDataRole.UserRole, {
+                'type': 'stage',
+                'id': self.current_room,
+                'data': stage_data or {'name': stage_name}
+            })
             self.tree.addTopLevelItem(room_item)
+            # Expand stage by default
+            room_item.setExpanded(True)
 
             # Connected Users folder
             users_folder = QTreeWidgetItem(["Connected Users"])
@@ -195,8 +320,13 @@ class SceneHierarchy(MaximizableDock):
             noodlings_folder.setForeground(0, Qt.GlobalColor.gray)
             room_item.addChild(noodlings_folder)
 
-            # Add each Noodling
+            # Add each Noodling (filter by location)
             for agent in agents_data:
+                # Only show agents in current stage
+                agent_location = agent.get('location') or agent.get('current_room')
+                if agent_location != self.current_room:
+                    continue
+
                 name = agent.get('name', agent.get('id'))
                 species = agent.get('species', 'unknown')
                 agent_id = agent.get('id')
@@ -583,7 +713,7 @@ class SceneHierarchy(MaximizableDock):
                 import requests
                 response = requests.post(
                     'http://localhost:8081/api/objects',
-                    json={'name': name},
+                    json={'name': name, 'location': self.current_room},  # Pass current room
                     timeout=5
                 )
                 if response.status_code == 200:

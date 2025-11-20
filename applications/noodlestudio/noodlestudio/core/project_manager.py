@@ -139,8 +139,17 @@ Thumbs.db
             return False
 
     def close_project(self):
-        """Close the current project."""
+        """Close the current project and shutdown the server."""
         if self.current_project_path:
+            # Trigger graceful server shutdown
+            try:
+                import requests
+                # Use a very short delay (1 second) for project switches
+                requests.post('http://localhost:8081/api/shutdown', json={'delay': 1}, timeout=2)
+                print("Server shutdown initiated...")
+            except Exception as e:
+                print(f"Warning: Could not shutdown server: {e}")
+
             self.current_project_path = None
             self.current_project_name = None
             self.projectClosed.emit()

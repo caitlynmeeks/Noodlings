@@ -707,8 +707,8 @@ class CommandParser:
                         if occ_id.startswith('agent_'):
                             # For agents, try to get description from agent manager
                             agent = self.agent_manager.get_agent(occ_id)
-                            if agent and hasattr(agent, 'description') and agent.description:
-                                lines.append(agent.description)
+                            if agent and hasattr(agent, 'agent_description') and agent.agent_description:
+                                lines.append(agent.agent_description)
                             else:
                                 lines.append(f"{display_name} hasn't set a description yet.")
                         else:
@@ -767,8 +767,8 @@ class CommandParser:
             lines.append("\nPeople here:")
             for occ in occupants:
                 if occ:
-                    name = occ.get('username', occ.get('name', occ['uid']))
-                    is_agent = occ['uid'].startswith('agent_')
+                    name = occ.get('username', occ.get('name', occ.get('uid', 'Unknown')))
+                    is_agent = occ.get('uid', '').startswith('agent_')
 
                     # Determine role (Noodler or Noodling)
                     role = 'Noodling' if is_agent else 'Noodler'
@@ -4869,6 +4869,30 @@ class CommandParser:
             'events': [{'type': 'quit', 'user': user_id}]
         }
 
+    async def cmd_shutdown(self, user_id: str, args: str) -> Dict:
+        """Gracefully shutdown the server (admin command)."""
+        # Check admin permission
+        user = self.world.get_user(user_id)
+        if not user or not user.get('is_admin', False):
+            return {'success': False, 'output': 'Permission denied. Admin access required.', 'events': []}
+
+        # Parse optional delay argument (default 5 seconds)
+        delay = 5
+        if args.strip():
+            try:
+                delay = int(args.strip())
+                if delay < 0 or delay > 60:
+                    return {'success': False, 'output': 'Delay must be between 0 and 60 seconds.', 'events': []}
+            except ValueError:
+                return {'success': False, 'output': 'Usage: @shutdown [delay_seconds]', 'events': []}
+
+        # Create shutdown event
+        return {
+            'success': True,
+            'output': f'Server shutdown initiated. Shutting down in {delay} seconds...',
+            'events': [{'type': 'shutdown', 'delay': delay}]
+        }
+
     async def cmd_yeet(self, user_id: str, args: str) -> Dict:
         """Forcibly disconnect a user (admin command)."""
         if not args:
@@ -4887,6 +4911,18 @@ class CommandParser:
 
         if not target_id:
             return {'success': False, 'output': f"User '{args.strip()}' not found.", 'events': []}
+
+        # Remove user from all room occupants lists
+        for room_id, room in self.world.rooms.items():
+            if target_id in room.get('occupants', []):
+                room['occupants'].remove(target_id)
+
+        # Remove user from users dict
+        if target_id in self.world.users:
+            del self.world.users[target_id]
+
+        # Persist changes
+        self.world.save_all()
 
         # Create yeet event - server will handle disconnection
         return {

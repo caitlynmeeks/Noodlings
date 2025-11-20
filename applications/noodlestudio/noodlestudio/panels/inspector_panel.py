@@ -16,7 +16,7 @@ Date: November 17, 2025
 from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QFormLayout, QHBoxLayout,
                              QLabel, QLineEdit, QTextEdit, QPushButton, QScrollArea,
                              QSpinBox, QDoubleSpinBox, QGroupBox, QProgressBar, QListWidget,
-                             QFileDialog, QListWidgetItem)
+                             QFileDialog, QListWidgetItem, QApplication)
 from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QSize
 from PyQt6.QtGui import QFont, QPixmap, QIcon, QFontMetrics
 import requests
@@ -39,6 +39,12 @@ class InspectorPanel(MaximizableDock):
         super().__init__("Inspector", parent)
         self.current_entity = None
         self.api_base = "http://localhost:8081/api"
+
+        # Flag to prevent double-triggering during toggle operations
+        self.toggling = False
+
+        # Flag to prevent refresh during save operations
+        self.is_saving = False
 
         # Create central widget
         widget = QWidget()
@@ -81,6 +87,16 @@ class InspectorPanel(MaximizableDock):
         """Load entity properties into inspector."""
         self.current_entity = (entity_type, entity_data)
 
+        # CRITICAL: Don't reload if a text widget has focus (user is editing)
+        focused_widget = QApplication.focusWidget()
+        if focused_widget and (isinstance(focused_widget, QLineEdit) or isinstance(focused_widget, QTextEdit)):
+            # User is actively editing - skip reload to preserve their changes
+            return
+
+        # CRITICAL: Don't reload if save is in progress
+        if self.is_saving:
+            return
+
         # Clear existing properties
         while self.properties_layout.count():
             child = self.properties_layout.takeAt(0)
@@ -108,6 +124,105 @@ class InspectorPanel(MaximizableDock):
             self.entity_header.setText(f"Exit: {direction}")
             self.load_exit_properties(entity_data)
 
+        elif entity_type == 'stage':
+            stage_name = entity_data.get('data', {}).get('name', 'Unknown Stage')
+            self.entity_header.setText(f"Stage: {stage_name}")
+            self.load_stage_properties(entity_data)
+
+    def load_stage_properties(self, entity_data):
+        """Show Stage properties (room metadata)."""
+        stage = entity_data.get('data', {})
+        stage_id = entity_data.get('id', '')
+
+        # Basic Info Component
+        basic_group = self.create_property_group("Basic Info")
+        self.add_text_field(basic_group, "Name", stage.get('name', ''))
+        self.add_text_field(basic_group, "Stage ID", stage_id)
+        self.properties_layout.addWidget(basic_group)
+
+        # Description Component
+        desc_group = self.create_property_group("Description")
+        desc_text = QTextEdit(stage.get('description', ''))
+        desc_text.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+        desc_text.setMaximumHeight(100)
+        desc_text.setTabChangesFocus(True)  # TAB moves focus instead of inserting tab
+        # Store reference to stage_id for auto-save
+        desc_text.setProperty("stage_id", stage_id)
+        # Auto-save on text change
+        desc_text.textChanged.connect(lambda: self.save_stage_description(desc_text))
+        # Install event filter for RETURN key handling
+        desc_text.installEventFilter(self)
+        desc_group.layout().addRow("Description:", desc_text)
+        self.properties_layout.addWidget(desc_group)
+
+        # Exits Component
+        exits_group = self.create_property_group("Exits")
+        exits = stage.get('exits', {})
+        if exits:
+            for direction, dest_id in exits.items():
+                exit_label = QLabel(f"{direction} → {dest_id}")
+                exit_label.setStyleSheet("color: #D2D2D2; padding: 4px;")
+                exits_group.layout().addRow(exit_label)
+        else:
+            no_exits = QLabel("No exits defined")
+            no_exits.setStyleSheet("color: #888; padding: 4px;")
+            exits_group.layout().addRow(no_exits)
+        self.properties_layout.addWidget(exits_group)
+
+        # Occupants Component (read-only)
+        occupants_group = self.create_property_group("Occupants")
+        occupants = stage.get('occupants', [])
+        if occupants:
+            for occ_id in occupants:
+                occ_label = QLabel(occ_id)
+                occ_label.setStyleSheet("color: #D2D2D2; padding: 2px;")
+                occupants_group.layout().addRow(occ_label)
+        else:
+            no_occ = QLabel("No occupants")
+            no_occ.setStyleSheet("color: #888; padding: 4px;")
+            occupants_group.layout().addRow(no_occ)
+        self.properties_layout.addWidget(occupants_group)
+
+        self.properties_layout.addStretch()
+
+    def eventFilter(self, obj, event):
+        """Handle keyboard events for text fields."""
+        from PyQt6.QtCore import QEvent
+        from PyQt6.QtGui import QKeyEvent
+
+        if event.type() == QEvent.Type.KeyPress:
+            if isinstance(obj, QTextEdit):
+                # TAB = save and clear focus
+                if event.key() == Qt.Key.Key_Tab:
+                    obj.clearFocus()  # Move focus away (triggers save)
+                    return True  # Event handled, don't insert tab
+                # RETURN (without shift) = save and clear focus
+                if event.key() == Qt.Key.Key_Return and not (event.modifiers() & Qt.KeyboardModifier.ShiftModifier):
+                    obj.clearFocus()  # Move focus away (triggers save)
+                    return True  # Event handled, don't insert newline
+                # SHIFT+RETURN = insert newline (default behavior)
+
+        return super().eventFilter(obj, event)
+
+    def save_stage_description(self, text_widget: QTextEdit):
+        """Auto-save stage description via API (updates both file and in-memory state)."""
+        stage_id = text_widget.property("stage_id")
+        new_description = text_widget.toPlainText()
+
+        try:
+            # Use API to update both file and in-memory dict
+            url = f"{self.api_base}/rooms/{stage_id}/update"
+            payload = {'description': new_description}
+
+            response = requests.post(url, json=payload, timeout=2)
+            if response.status_code == 200:
+                print(f"Stage description saved for {stage_id}")
+            else:
+                print(f"Error saving stage description: {response.json().get('error', 'Unknown error')}")
+
+        except Exception as e:
+            print(f"Error saving stage description: {e}")
+
     def load_noodling_properties(self, entity_data):
         """Show Noodling properties (FULL CONTROL!)."""
         agent = entity_data.get('data', {})
@@ -134,8 +249,8 @@ class InspectorPanel(MaximizableDock):
         self.property_fields['species'] = self.add_text_field(identity_group, "Species",
                                                                recipe_data.get('species', agent.get('species', '')))
 
-        # Description from recipe
-        description = recipe_data.get('description', 'A kindled Noodling...')
+        # Description from agent (instance), fallback to recipe (template)
+        description = agent.get('description', recipe_data.get('description', 'An empty noodling...'))
         self.property_fields['description'] = self.add_text_area(identity_group, "Description", description)
 
         self.properties_layout.addWidget(identity_group)
@@ -147,16 +262,19 @@ class InspectorPanel(MaximizableDock):
         self.properties_layout.addWidget(llm_group)
 
         # Personality group (load from recipe)
-        personality = recipe_data.get('personality', {})
+        # Load personality from agent data (instance), fallback to recipe (template)
+        agent_personality = agent.get('personality_traits', {})
+        recipe_personality = recipe_data.get('personality', {})
+
         personality_group = self.create_property_group("Personality Traits")
         self.property_fields['extraversion'] = self.add_slider_field(personality_group, "Extraversion",
-                                                                      personality.get('extraversion', 0.5), 0.0, 1.0)
+                                                                      agent_personality.get('extraversion', recipe_personality.get('extraversion', 0.5)), 0.0, 1.0)
         self.property_fields['curiosity'] = self.add_slider_field(personality_group, "Curiosity",
-                                                                   personality.get('curiosity', 0.65), 0.0, 1.0)
-        self.property_fields['impulsivity'] = self.add_slider_field(personality_group, "Impulsivity",
-                                                                     personality.get('impulsivity', 0.5), 0.0, 1.0)
-        self.property_fields['emotional_volatility'] = self.add_slider_field(personality_group, "Emotional Volatility",
-                                                                              personality.get('emotional_volatility', 0.5), 0.0, 1.0)
+                                                                   agent_personality.get('curiosity', recipe_personality.get('curiosity', 0.5)), 0.0, 1.0)
+        self.property_fields['spontaneity'] = self.add_slider_field(personality_group, "Spontaneity",
+                                                                     agent_personality.get('spontaneity', recipe_personality.get('spontaneity', 0.5)), 0.0, 1.0)
+        self.property_fields['emotional_sensitivity'] = self.add_slider_field(personality_group, "Emotional Sensitivity",
+                                                                              agent_personality.get('emotional_sensitivity', recipe_personality.get('emotional_sensitivity', 0.5)), 0.0, 1.0)
         self.properties_layout.addWidget(personality_group)
 
         # ===== NOODLE COMPONENT (Unity-style component!) =====
@@ -197,13 +315,17 @@ class InspectorPanel(MaximizableDock):
 
     def load_object_properties(self, entity_data):
         """Show object properties."""
+        # Clear previous entity's fields
+        self.property_fields = {}
+
         obj_id = entity_data.get('id', '')
+        obj_data = entity_data.get('data', {})
 
         # Basic properties
         obj_group = self.create_property_group("Object Properties")
         self.add_text_field(obj_group, "ID", obj_id)
-        self.add_text_field(obj_group, "Name", obj_id.replace('obj_', '').replace('_', ' ').title())
-        self.add_text_area(obj_group, "Description", "An object in the world...")
+        self.property_fields['name'] = self.add_text_field(obj_group, "Name", obj_data.get('name', 'Unnamed'))
+        self.property_fields['description'] = self.add_text_area(obj_group, "Description", obj_data.get('description', 'An object in the world.'))
         self.properties_layout.addWidget(obj_group)
 
         # Arbitrary metadata editor
@@ -250,23 +372,32 @@ class InspectorPanel(MaximizableDock):
         group.setLayout(QFormLayout())
         # Store original title for triangle updates
         group.setProperty("original_title", title)
-        # Connect toggled signal to hide/show contents and update triangle
-        group.toggled.connect(lambda checked: self.on_group_toggled(group, checked))
+        # Mark that we've connected the signal (prevent duplicate connections)
+        group.setProperty("signal_connected", False)
+        # Connect toggled signal ONCE only
+        if not group.property("signal_connected"):
+            group.toggled.connect(lambda checked, g=group: self.on_group_toggled(g, checked))
+            group.setProperty("signal_connected", True)
         return group
 
     def on_group_toggled(self, group: QGroupBox, checked: bool):
         """Handle group toggle - update triangle and visibility."""
-        # Update triangle in title (block signals to prevent re-triggering)
-        original_title = group.property("original_title")
+        # Use blockSignals to prevent signal loops
         group.blockSignals(True)
-        if checked:
-            group.setTitle(f"▼ {original_title}")
-        else:
-            group.setTitle(f"▶ {original_title}")
-        group.blockSignals(False)
+        try:
+            # Update triangle in title
+            original_title = group.property("original_title")
+            if checked:
+                group.setTitle(f"▼ {original_title}")
+            else:
+                group.setTitle(f"▶ {original_title}")
 
-        # Toggle visibility of contents
-        self.toggle_group_contents(group, checked)
+            # Toggle visibility of contents
+            self.toggle_group_contents(group, checked)
+        finally:
+            # Delay unblocking to ensure Qt event queue clears
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(100, lambda: group.blockSignals(False))
 
     def toggle_group_contents(self, group: QGroupBox, visible: bool):
         """Toggle visibility of group contents (Unity-style collapse)."""
@@ -294,7 +425,15 @@ class InspectorPanel(MaximizableDock):
         field.setMaximumHeight(100)
         field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
         # Text areas update when focus is lost (avoid spamming API)
-        field.focusOutEvent = lambda e: (QTextEdit.focusOutEvent(field, e), self.save_changes())
+        # Use proper method instead of lambda to handle exceptions
+        original_focus_out = field.focusOutEvent
+        def safe_focus_out(event):
+            try:
+                original_focus_out(event)
+                self.save_changes()
+            except Exception as e:
+                print(f"Error in focusOutEvent: {e}")
+        field.focusOutEvent = safe_focus_out
         group.layout().addRow(f"{label}:", field)
         return field
 
@@ -316,50 +455,84 @@ class InspectorPanel(MaximizableDock):
         if not self.current_entity:
             return
 
-        entity_type, entity_data = self.current_entity
+        # Set flag to prevent refresh during save
+        self.is_saving = True
 
-        if entity_type == 'noodling':
-            # Build update payload
-            agent_id = entity_data.get('id', '')
-            updates = {}
+        try:
+            entity_type, entity_data = self.current_entity
 
-            # Collect field values
-            if 'name' in self.property_fields:
-                updates['name'] = self.property_fields['name'].text()
-            if 'species' in self.property_fields:
-                updates['species'] = self.property_fields['species'].text()
-            if 'llm_provider' in self.property_fields:
-                updates['llm_provider'] = self.property_fields['llm_provider'].text()
-            if 'llm_model' in self.property_fields:
-                updates['llm_model'] = self.property_fields['llm_model'].text()
+            if entity_type == 'noodling':
+                # Build update payload
+                agent_id = entity_data.get('id', '')
+                updates = {}
 
-            # Personality traits
-            personality = {}
-            if 'extraversion' in self.property_fields:
-                personality['extraversion'] = self.property_fields['extraversion'].value()
-            if 'curiosity' in self.property_fields:
-                personality['curiosity'] = self.property_fields['curiosity'].value()
-            if 'spontaneity' in self.property_fields:
-                personality['spontaneity'] = self.property_fields['spontaneity'].value()
-            if 'emotional_sensitivity' in self.property_fields:
-                personality['emotional_sensitivity'] = self.property_fields['emotional_sensitivity'].value()
+                # Collect field values
+                if 'name' in self.property_fields:
+                    updates['name'] = self.property_fields['name'].text()
+                if 'species' in self.property_fields:
+                    updates['species'] = self.property_fields['species'].text()
+                if 'description' in self.property_fields:
+                    # Description is a QTextEdit, use toPlainText()
+                    updates['description'] = self.property_fields['description'].toPlainText()
+                if 'llm_provider' in self.property_fields:
+                    updates['llm_provider'] = self.property_fields['llm_provider'].text()
+                if 'llm_model' in self.property_fields:
+                    updates['llm_model'] = self.property_fields['llm_model'].text()
 
-            # Save via API
-            try:
-                url = f"{self.api_base}/agents/{agent_id}/update"
-                payload = {
-                    **updates,
-                    'personality': personality
-                }
+                # Personality traits
+                personality = {}
+                if 'extraversion' in self.property_fields:
+                    personality['extraversion'] = self.property_fields['extraversion'].value()
+                if 'curiosity' in self.property_fields:
+                    personality['curiosity'] = self.property_fields['curiosity'].value()
+                if 'spontaneity' in self.property_fields:
+                    personality['spontaneity'] = self.property_fields['spontaneity'].value()
+                if 'emotional_sensitivity' in self.property_fields:
+                    personality['emotional_sensitivity'] = self.property_fields['emotional_sensitivity'].value()
 
-                response = requests.post(url, json=payload, timeout=2)
-                if response.status_code == 200:
-                    print(f"Saved changes for {agent_id}")
-                else:
-                    print(f"Error saving: {response.json().get('error', 'Unknown error')}")
+                # Save via API
+                try:
+                    url = f"{self.api_base}/agents/{agent_id}/update"
+                    payload = {
+                        **updates,
+                        'personality': personality
+                    }
 
-            except Exception as e:
-                print(f"Error saving: {e}")
+                    response = requests.post(url, json=payload, timeout=2)
+                    if response.status_code == 200:
+                        print(f"Saved changes for {agent_id}")
+                    else:
+                        print(f"Error saving: {response.json().get('error', 'Unknown error')}")
+
+                except Exception as e:
+                    print(f"Error saving: {e}")
+
+            elif entity_type == 'prim':
+                # Build update payload for prim
+                object_id = entity_data.get('id', '')
+                updates = {}
+
+                # Collect field values
+                if 'name' in self.property_fields:
+                    updates['name'] = self.property_fields['name'].text()
+                if 'description' in self.property_fields:
+                    updates['description'] = self.property_fields['description'].toPlainText()
+
+                # Save via API
+                try:
+                    url = f"{self.api_base}/objects/{object_id}/update"
+                    response = requests.post(url, json=updates, timeout=2)
+                    if response.status_code == 200:
+                        print(f"Saved changes for {object_id}")
+                    else:
+                        print(f"Error saving: {response.json().get('error', 'Unknown error')}")
+                except Exception as e:
+                    print(f"Error saving prim: {e}")
+
+        finally:
+            # Clear flag after save completes (wait longer than refresh interval)
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(2500, lambda: setattr(self, 'is_saving', False))
 
     def create_noodle_component(self, agent_id: str) -> QGroupBox:
         """
@@ -561,13 +734,15 @@ class InspectorPanel(MaximizableDock):
 
         Holds reference art, concept sketches, mood boards for the character.
         """
-        component = QGroupBox("Artbook Component")
+        # Use standardized component header
+        component = QGroupBox("▼ Artbook Component")
         component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         component.setCheckable(True)  # Make collapsible
         component.setChecked(True)  # Expanded by default
         component.setStyleSheet("""
             QGroupBox {
-                color: #D2D2D2;
+                color: #FFFFFF;
+                background-color: #2A2A2A;
                 border: 1px solid #1E1E1E;
                 border-radius: 4px;
                 margin-top: 8px;
@@ -581,20 +756,10 @@ class InspectorPanel(MaximizableDock):
             QGroupBox::indicator {
                 width: 0px;
                 height: 0px;
-                margin-right: 8px;
-            }
-            QGroupBox::indicator:unchecked {
-                border-left: 8px solid #EEEEEE;
-                border-top: 5px solid transparent;
-                border-bottom: 5px solid transparent;
-            }
-            QGroupBox::indicator:checked {
-                border-top: 8px solid #EEEEEE;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
             }
         """)
-        component.toggled.connect(lambda checked: self.toggle_group_contents(component, checked))
+        component.setProperty("original_title", "Artbook Component")
+        component.toggled.connect(lambda checked: self.on_group_toggled(component, checked))
 
         layout = QVBoxLayout()
 

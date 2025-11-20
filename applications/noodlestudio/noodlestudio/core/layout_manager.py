@@ -93,15 +93,21 @@ class LayoutManager:
                 # Continue anyway - state might still work
 
             # Restore state (this is where crashes happen)
-            # Wrap in try-catch to prevent app crash
+            # Skip state restoration to prevent C++ segfaults
+            # State restoration can crash if saved with different widget structure
             try:
-                state = bytes.fromhex(layout_data['state'])
-                result_state = window.restoreState(state)
-                print(f"  State restored: {result_state}")
-                if result_state:
-                    success = True
+                # Validate state data first
+                state_hex = layout_data.get('state', '')
+                if not state_hex or len(state_hex) < 10:
+                    print(f"  Skipping state restore - invalid data")
+                else:
+                    # Validate hex format
+                    state = bytes.fromhex(state_hex)
+                    # Skip restoreState to prevent crashes
+                    # TODO: Implement safe state restoration with version checking
+                    print(f"  State restore skipped (prevents crashes)")
             except Exception as e:
-                print(f"  State restore failed (non-fatal): {e}")
+                print(f"  State validation failed (non-fatal): {e}")
                 # Don't return False - geometry might have worked
 
             if success:

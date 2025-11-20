@@ -170,6 +170,15 @@ class ChatPanel(MaximizableDock):
         page = self.web_view.page()
         page.javaScriptConsoleMessage = self._on_console_message
 
+        # Configure WebEngine settings for WebSocket and localhost access
+        from PyQt6.QtWebEngineCore import QWebEngineSettings
+        settings = page.settings()
+        settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.ErrorPageEnabled, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
+
         # Fix viewport height issue (100vh doesn't work in QWebEngineView)
         def fix_viewport_height(ok):
             if ok:
@@ -196,8 +205,10 @@ class ChatPanel(MaximizableDock):
         # Inject fix after page loads
         self.web_view.loadFinished.connect(fix_viewport_height)
 
-        # Try to load noodleMUSH (with studio=true parameter)
-        self.web_view.setUrl(QUrl("http://localhost:8080?studio=true"))
+        # Try to load noodleMUSH (with studio=true parameter + cache buster)
+        import time
+        cache_buster = int(time.time())
+        self.web_view.setUrl(QUrl(f"http://localhost:8080?studio=true&_={cache_buster}"))
 
         # Add web view directly without stack (simpler = better)
         main_layout.addWidget(self.web_view, stretch=1)
@@ -266,9 +277,11 @@ class ChatPanel(MaximizableDock):
         self.setWidget(container)
 
     def reload(self):
-        """Reload the web page."""
+        """Reload the web page with cache bypass."""
         if WEBENGINE_AVAILABLE and hasattr(self, 'web_view'):
-            self.web_view.reload()
+            import time
+            cache_buster = int(time.time())
+            self.web_view.setUrl(QUrl(f"http://localhost:8080?studio=true&_={cache_buster}"))
 
     def _debug_sizes(self, container):
         """Debug size information to identify layout issues."""
@@ -365,7 +378,9 @@ class ChatPanel(MaximizableDock):
     def show_world_view(self):
         """Show the normal world view (server is running)."""
         if hasattr(self, 'web_view'):
-            self.web_view.setUrl(QUrl("http://localhost:8080?studio=true"))
+            import time
+            cache_buster = int(time.time())
+            self.web_view.setUrl(QUrl(f"http://localhost:8080?studio=true&_={cache_buster}"))
             self.server_running = True
 
     def set_server_state(self, running: bool):

@@ -242,6 +242,7 @@ class CMUSHServer:
             kimmie=self.kimmie,
             config=self.config,  # Pass config for LLM config UI
             agent_manager=self.agent_manager,  # Pass agent manager for agent list
+            server=self,  # Pass server instance for shutdown control
             host='0.0.0.0',
             port=8081
         )
@@ -386,11 +387,15 @@ class CMUSHServer:
 
                     # Authentication messages
                     if msg_type == 'register':
+                        logger.info(f"[AUTH] Registration attempt: username={data.get('username')}")
                         response = await self.handle_register(data)
+                        logger.info(f"[AUTH] Registration response: {response}")
                         await websocket.send(json.dumps(response))
 
                     elif msg_type == 'login':
+                        logger.info(f"[AUTH] Login attempt: username={data.get('username')}")
                         response = await self.handle_login(data)
+                        logger.info(f"[AUTH] Login response: success={response.get('success')}, user_id={response.get('user_id')}")
                         if response['success']:
                             user_id = response['user_id']
                             session_token = response['session_token']
@@ -442,6 +447,7 @@ class CMUSHServer:
                             if user and room:
                                 username = user.get('username', user_id)
                                 description = user.get('description', '')
+                                room_id = user.get('current_room', 'room_000')
 
                                 # Create enter event with description
                                 enter_text = f"{username} appears"
@@ -453,7 +459,7 @@ class CMUSHServer:
                                 enter_event = {
                                     'type': 'enter',
                                     'user': user_id,
-                                    'room': room['uid'],
+                                    'room': room_id,
                                     'text': enter_text
                                 }
 
@@ -545,6 +551,14 @@ class CMUSHServer:
                                     # Close connection
                                     await target_ws.close(code=1000, reason="Disconnected by admin")
                                     logger.info(f"User {target_id} was yeeted by {user_id}")
+
+                            # Handle graceful shutdown event
+                            if event['type'] == 'shutdown':
+                                delay = event.get('delay', 5)
+                                logger.info(f"Shutdown initiated by {user_id}, delay={delay}s")
+
+                                # Schedule shutdown in background
+                                asyncio.create_task(self.graceful_shutdown(delay))
 
                             # Let agents perceive the event (including enter for spawns, exit for following, think for ruminations)
                             if event['type'] in ['say', 'emote', 'enter', 'exit', 'think']:
@@ -992,6 +1006,36 @@ class CMUSHServer:
             logger.info(f"Agents: {len(self.agent_manager.agents)}")
             logger.info("📊 NoodleScope 2.0 UI: http://localhost:8081/noodlescope")
             await asyncio.Future()  # Run forever
+
+    async def graceful_shutdown(self, delay: int = 5):
+        """
+        Gracefully shutdown server with warning period.
+
+        Args:
+            delay: Seconds to wait before shutting down
+        """
+        # Broadcast shutdown warning to all connected clients
+        warning_message = {
+            'type': 'system_message',
+            'text': f'\n⚠️  SERVER SHUTDOWN IN {delay} SECONDS ⚠️\n\nSaving world state and disconnecting all users...\n'
+        }
+
+        for websocket in list(self.connections.keys()):
+            try:
+                await self.send_to_user(websocket, warning_message)
+            except Exception as e:
+                logger.error(f"Error sending shutdown warning: {e}")
+
+        # Wait for delay period
+        if delay > 0:
+            await asyncio.sleep(delay)
+
+        # Call existing shutdown method
+        await self.shutdown()
+
+        # Terminate process
+        logger.info("Exiting process...")
+        sys.exit(0)
 
     async def shutdown(self):
         """Graceful shutdown."""

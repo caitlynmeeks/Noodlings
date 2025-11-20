@@ -331,7 +331,7 @@ class CMUSHConsilienceAgent:
 
         # Agent identity
         self.agent_name = agent_name or agent_id.replace('agent_', '').title()
-        self.agent_description = agent_description or "A Consilience consciousness agent exploring the world."
+        self.agent_description = agent_description or "An empty noodling."
         self.identity_prompt = config.get('identity_prompt', '')
         self.species = config.get('species', 'noodling')
 

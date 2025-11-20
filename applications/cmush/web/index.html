@@ -1427,19 +1427,22 @@
             ws = new WebSocket(url);
 
             ws.onopen = () => {
-                addLine('system', 'Connected to noodleMUSH server!');
+                addLine('system', 'Connected to noodleMUSH server.');
 
-                // Try auto-login with saved credentials
+                // Try auto-login with saved credentials (skip for Studio)
+                const isStudio = window.location.search.includes('studio=true');
                 const savedUsername = getCookie('noodlemush_username');
                 const savedPassword = getCookie('noodlemush_password');
 
-                if (savedUsername && savedPassword) {
-                    addLine('system', 'Attempting auto-login...');
+                if (!isStudio && savedUsername && savedPassword) {
+                    addLine('system', 'Auto-login.');
                     ws.send(JSON.stringify({
                         type: 'login',
                         username: savedUsername,
                         password: savedPassword
                     }));
+                } else {
+                    authModal.classList.remove('hidden');
                 }
             };
 
@@ -1462,15 +1465,31 @@
         function handleMessage(data) {
             switch (data.type) {
                 case 'register_response':
+                    if (data.success) {
+                        addLine('system', 'Account created. Logging in.');
+                        // Auto-login after successful registration
+                        const username = usernameInput.value.trim();
+                        const password = passwordInput.value;
+                        ws.send(JSON.stringify({
+                            type: 'login',
+                            username: username,
+                            password: password
+                        }));
+                    } else {
+                        statusDiv.textContent = data.message || 'Registration failed';
+                        statusDiv.style.color = '#ff0000';
+                    }
+                    break;
+
                 case 'login_response':
                     if (data.success) {
                         authenticated = true;
                         authModal.classList.add('hidden');
                         inputField.focus();
 
-                        // Save credentials for auto-login
-                        const username = usernameInput.value.trim() || getCookie('noodlemush_username');
-                        const password = passwordInput.value || getCookie('noodlemush_password');
+                        // Save credentials for auto-login (use actual input only)
+                        const username = usernameInput.value.trim();
+                        const password = passwordInput.value;
                         if (username && password) {
                             setCookie('noodlemush_username', username);
                             setCookie('noodlemush_password', password);
@@ -1990,6 +2009,18 @@
                 return;
             }
 
+            // DEBUG: Check WebSocket state
+            console.log('[LOGIN DEBUG] ws exists:', !!ws);
+            console.log('[LOGIN DEBUG] ws.readyState:', ws ? ws.readyState : 'N/A');
+            console.log('[LOGIN DEBUG] Expected OPEN:', WebSocket.OPEN);
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                statusDiv.textContent = 'Error: Not connected to server';
+                statusDiv.style.color = '#ff0000';
+                console.error('[LOGIN ERROR] WebSocket not in OPEN state');
+                return;
+            }
+
             // Build login message
             const loginMsg = {
                 type: 'login',
@@ -2004,6 +2035,7 @@
                 delete window.adminInvisibleMode;
             }
 
+            console.log('[LOGIN DEBUG] Sending login message:', loginMsg);
             ws.send(JSON.stringify(loginMsg));
 
             statusDiv.textContent = 'Logging in...';
@@ -2019,6 +2051,10 @@
                 statusDiv.style.color = '#ff0000';
                 return;
             }
+
+            // Clear old cookies before registering
+            setCookie('noodlemush_username', '');
+            setCookie('noodlemush_password', '');
 
             ws.send(JSON.stringify({
                 type: 'register',
