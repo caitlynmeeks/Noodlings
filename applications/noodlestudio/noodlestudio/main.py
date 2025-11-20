@@ -70,27 +70,27 @@ def create_splash_screen():
     # Draw on it
     painter = QPainter(pixmap)
 
-    # ASCII Art Banner - positioned lower with better fit
+    # ASCII Art Banner - moved down for better composition
     painter.setPen(QColor(0, 255, 0))  # Green
-    font = QFont("Courier New", 8)  # Slightly bigger
+    font = QFont("Courier New", 8)
     painter.setFont(font)
     banner = (
         ":::.    :::.    ...         ...    :::::::-.   :::    .,::::::      .        :    ...    ::: .::::::.   ::   .:\n"
         "`;;;;,  `;;; .;;;;;;;.   .;;;;;;;.  ;;,   `';, ;;;    ;;;;''''      ;;,.    ;;;   ;;     ;;;;;;`    `  ,;;   ;;,\n"
-        "  [[[[[. '[[,[[     \\[[,,[[     \\[[,`[[     [[ [[[     [[cccc       [[[[, ,[[[[, [['     [[['[==/[[[[,,[[[,,,[[[\\n"
+        "  [[[[[. '[[,[[     \\[[,,[[     \\[[,`[[     [[ [[[     [[cccc       [[[[, ,[[[[, [['     [[['[==/[[[[,,[[[,,,[[[\n"
         "  $$$ \"Y$c$$$$$,     $$$$$$,     $$$ $$,    $$ $$'     $$\"\"\"\"       $$$$$$$$\"$$$ $$      $$$  '''    $\"$$$\"\"\"$$$\n"
         "  888    Y88\"888,_ _,88P\"888,_ _,88P 888_,o8P'o88oo,.__888oo,__     888 Y88\" 888o88    .d888 88b    dP 888   \"88o\n"
         "  MMM     YM  \"YMMMMMP\"   \"YMMMMMP\"  MMMMP\"`  \"\"\"\"YUMMM\"\"\"\"YUMMM    MMM  M'  \"MMM \"YmmMMMM\"\"  \"YMmMY\"  MMM    YMM"
     )
-    painter.drawText(pixmap.rect().adjusted(10, 80, -10, -500),
+    painter.drawText(pixmap.rect().adjusted(10, 160, -10, -420),  # Moved further down: 160
                      Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter,
                      banner)
 
-    # Subtitle
+    # "NoodleSTUDIO" subtitle - positioned one line above acronym, larger font
     painter.setPen(QColor(100, 255, 100))  # Light green
-    font = QFont("Courier New", 16)
+    font = QFont("Courier New", 20)  # Larger: 16 → 20
     painter.setFont(font)
-    painter.drawText(pixmap.rect().adjusted(40, 160, -40, -450),
+    painter.drawText(pixmap.rect().adjusted(40, 290, -40, -320),  # Moved lower: 275 → 290
                      Qt.AlignmentFlag.AlignCenter,
                      "NoodleSTUDIO")
 
@@ -104,16 +104,16 @@ def create_splash_screen():
     painter.setFont(font)
     painter.setPen(QColor(100, 255, 100))  # Light green
     # Wrap text if too long
-    text_rect = pixmap.rect().adjusted(60, 280, -60, -150)
+    text_rect = pixmap.rect().adjusted(60, 315, -60, -150)  # Adjusted for tighter spacing
     painter.drawText(text_rect,
                      Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
                      acronym)
 
-    # Version at bottom
+    # Version below acronym - moved up 2 lines
     font = QFont("Courier New", 16)
     painter.setFont(font)
     painter.setPen(QColor(80, 80, 80))  # Dark gray
-    painter.drawText(pixmap.rect().adjusted(40, -80, -40, -40),
+    painter.drawText(pixmap.rect().adjusted(40, 470, -40, -40),  # Moved up: 500 → 470
                      Qt.AlignmentFlag.AlignCenter,
                      "v1.0.0-alpha")
 
