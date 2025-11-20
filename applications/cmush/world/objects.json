@@ -1,8 +1,8 @@
 {
-  "obj_newprim": {
-    "name": "NewPrim",
+  "obj_the_third_prim._ever.": {
+    "name": "The Third Prim. Ever.",
     "description": "A newly created object.",
-    "location": "pond",
+    "location": "room_000",
     "properties": {}
   }
 }

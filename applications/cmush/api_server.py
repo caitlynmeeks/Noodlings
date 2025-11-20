@@ -91,6 +91,11 @@ class NoodleScopeAPI:
         self.app.router.add_delete('/api/agents/{agent_id}', self.delete_agent)
         self.app.router.add_post('/api/agents', self.create_agent)
 
+        # Cognitive Components (for Inspector)
+        self.app.router.add_get('/api/agents/{agent_id}/components', self.get_agent_components)
+        self.app.router.add_get('/api/agents/{agent_id}/components/{component_id}', self.get_component)
+        self.app.router.add_post('/api/agents/{agent_id}/components/{component_id}/update', self.update_component)
+
         # Objects and rooms
         self.app.router.add_post('/api/objects', self.create_object)
         self.app.router.add_post('/api/objects/{object_id}/update', self.update_object)
@@ -484,6 +489,89 @@ class NoodleScopeAPI:
             return web.json_response({'success': True, 'agent_id': agent_id, 'message': f'Agent {agent_name} created'})
         except Exception as e:
             logger.error(f"Error creating agent: {e}")
+            return web.json_response({'error': str(e)}, status=500)
+
+    async def get_agent_components(self, request: web.Request) -> web.Response:
+        """
+        Get all cognitive components for an agent.
+
+        Returns list of components with metadata for Inspector display.
+        """
+        agent_id = request.match_info['agent_id']
+
+        if not self.agent_manager or agent_id not in self.agent_manager.agents:
+            return web.json_response({'error': 'Agent not found'}, status=404)
+
+        agent = self.agent_manager.agents[agent_id]
+
+        # Get component registry from agent
+        if not hasattr(agent, 'components'):
+            return web.json_response({'error': 'Agent does not have component system'}, status=500)
+
+        components_data = agent.components.to_dict()
+        return web.json_response(components_data)
+
+    async def get_component(self, request: web.Request) -> web.Response:
+        """
+        Get detailed information about a specific component.
+
+        Returns component prompt template, parameters, and metadata.
+        """
+        agent_id = request.match_info['agent_id']
+        component_id = request.match_info['component_id']
+
+        if not self.agent_manager or agent_id not in self.agent_manager.agents:
+            return web.json_response({'error': 'Agent not found'}, status=404)
+
+        agent = self.agent_manager.agents[agent_id]
+
+        if not hasattr(agent, 'components'):
+            return web.json_response({'error': 'Agent does not have component system'}, status=500)
+
+        component = agent.components.get_component(component_id)
+        if not component:
+            return web.json_response({'error': f'Component {component_id} not found'}, status=404)
+
+        return web.json_response(component.to_dict())
+
+    async def update_component(self, request: web.Request) -> web.Response:
+        """
+        Update component parameters (called from Inspector).
+
+        Allows hot-reloading of prompts and parameters without restart.
+        """
+        agent_id = request.match_info['agent_id']
+        component_id = request.match_info['component_id']
+
+        if not self.agent_manager or agent_id not in self.agent_manager.agents:
+            return web.json_response({'error': 'Agent not found'}, status=404)
+
+        agent = self.agent_manager.agents[agent_id]
+
+        if not hasattr(agent, 'components'):
+            return web.json_response({'error': 'Agent does not have component system'}, status=500)
+
+        component = agent.components.get_component(component_id)
+        if not component:
+            return web.json_response({'error': f'Component {component_id} not found'}, status=404)
+
+        try:
+            data = await request.json()
+            parameters = data.get('parameters', {})
+
+            # Update component parameters
+            component.update_parameters(parameters)
+
+            logger.info(f"Updated component {component_id} for {agent_id}: {parameters}")
+
+            return web.json_response({
+                'success': True,
+                'message': f'Component {component_id} updated',
+                'component': component.to_dict()
+            })
+
+        except Exception as e:
+            logger.error(f"Error updating component {component_id}: {e}")
             return web.json_response({'error': str(e)}, status=500)
 
     async def create_object(self, request: web.Request) -> web.Response:

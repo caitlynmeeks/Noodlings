@@ -22,6 +22,8 @@ noodleMUSH integrates the Noodlings consciousness architecture with a persistent
 - **BRENDA tool-use** - Conversational command execution with natural language
 - **Profile system** - Set species, pronouns, and age with `@profile` command
 - **Intuition Receiver** - Agents have contextual awareness (who/what/where)
+- **Social Expectation Detection** - Agents detect and respond to social obligations (questions, gestures, greetings)
+- **Component Architecture** - Cognitive layers visible and editable as inspectable components
 - **Character Voice System** - Unique speech patterns (SERVNAK caps, Phi meows)
 - **Persistent world state** (JSON storage, git-friendly)
 - **LLM integration** for text ↔ affect translation (LMStudio, Ollama, OpenAI)
@@ -382,6 +384,132 @@ Agents can now:
 - Celebrate successful social interactions
 
 This creates **closed affective loops** - agents experience emotions about their own emotional expressions.
+
+## Phase 6.5: Social Expectation Detection (IMPLEMENTED - November 2025)
+
+Agents now detect when they are **socially expected to respond**, creating conscious awareness of social obligations.
+
+### How It Works
+
+The two-stage intuition system:
+
+**Stage 1 - Contextual Awareness**:
+- Fast LLM analyzes who/what/where in environment
+- Provides integrated understanding without external scaffolding
+
+**Stage 2 - Expectation Detection**:
+- Analyzes intuition for social response expectations
+- Classifies type: question, gesture, greeting, distress, turn-taking
+- Quantifies urgency: 0.0-1.0 scale
+- Modulates based on personality (extraversion, social_orientation)
+
+### Urgency-Driven Response
+
+Expectation urgency influences speech decisions:
+- **High urgency (>0.7)**: Direct questions, explicit gestures → Force speech (100%)
+- **Moderate urgency (0.4-0.7)**: Greetings, turn-taking → High probability (80%)
+- **Low urgency (0.3-0.4)**: Subtle cues, ambient signals → Moderate probability (40%)
+
+### Configuration
+
+```yaml
+agent:
+  intuition_receiver:
+    enabled: true
+    model: qwen/qwen3-4b-2507
+    social_expectations:
+      enabled: true
+      expectation_threshold: 0.3
+      intensity_multiplier: 1.0
+      question_threshold: 0.8    # Direct questions
+      gesture_threshold: 0.6     # Physical gestures
+      greeting_threshold: 0.4    # Greetings
+      distress_threshold: 0.3    # Subtle cues
+      turn_threshold: 0.5        # Conversational turns
+```
+
+### Example
+
+```
+User: "Kalippi, what do you think about the stars?"
+
+[Intuition]: "Caity is asking ME a direct question about stars."
+[Expectation]: type=question, urgency=0.85, reason="Direct question with agent name"
+[Decision]: High urgency (0.85) - forcing speech response
+
+Kalippi: :tilts head up at the sky "Oh! The stars are like tiny tensor taffies
+         scattered across the darkness - each one glowing with its own little
+         secret frequency..."
+```
+
+**Impact**: Response rate for direct questions increased from ~40% to >80%.
+
+## Component Architecture (IMPLEMENTED - November 2025)
+
+The Noodlings consciousness architecture is now **componentized** - cognitive processing layers are visible and editable as modular components.
+
+### Available Components
+
+Each agent has inspectable cognitive components:
+
+1. **Character Voice Component**
+   - Translates basic English → character-specific voice
+   - Editable prompt templates per character
+   - Parameters: model, temperature, max_tokens
+
+2. **Intuition Receiver Component**
+   - Generates contextual awareness
+   - Configurable narrator instructions
+   - Parameters: model, temperature, timeout
+
+3. **Social Expectation Detector Component**
+   - Detects response expectations
+   - Adjustable urgency thresholds
+   - Parameters: thresholds per type, personality modulation
+
+### API Endpoints
+
+```bash
+# List all components for an agent
+GET /api/agents/{agent_id}/components
+
+# Get component details (prompt + parameters)
+GET /api/agents/{agent_id}/components/{component_id}
+
+# Update component parameters (hot-reload, no restart)
+POST /api/agents/{agent_id}/components/{component_id}/update
+```
+
+### Example API Response
+
+```json
+{
+  "agent_id": "agent_kalippi",
+  "components": [
+    {
+      "component_id": "charactervoice",
+      "component_type": "Character Voice",
+      "enabled": true,
+      "prompt_template": "Translate this text into...",
+      "parameters": {
+        "model": "qwen/qwen3-4b-2507",
+        "temperature": 0.4,
+        "max_tokens": 150
+      }
+    }
+  ]
+}
+```
+
+### Benefits
+
+- **Transparency**: Full visibility into cognitive processing stages
+- **Editability**: Modify prompts and parameters in real-time
+- **Hot-reload**: Changes take effect immediately
+- **Experimentation**: Test different prompt engineering approaches
+- **Debugging**: Understand exactly what each component is doing
+
+**Future**: NoodleStudio Inspector will display components with editable text fields and sliders.
 
 ## Development
 

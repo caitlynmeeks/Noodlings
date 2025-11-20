@@ -453,7 +453,56 @@ class CMUSHConsilienceAgent:
         else:
             self.cognition_engine = None
 
+        # COMPONENT SYSTEM: Initialize cognitive component registry
+        from noodling_components import (
+            ComponentRegistry,
+            CharacterVoiceComponent,
+            IntuitionReceiverComponent,
+            SocialExpectationDetectorComponent
+        )
+
+        self.components = ComponentRegistry(agent_id, self.agent_name)
+
+        # Register Character Voice component
+        voice_config = config.get('character_voice', {
+            'enabled': True,
+            'model': 'qwen/qwen3-4b-2507',
+            'temperature': 0.4,
+            'max_tokens': 150
+        })
+        character_voice = CharacterVoiceComponent(
+            agent_id=agent_id,
+            agent_name=self.agent_name,
+            config=voice_config,
+            species=self.species,
+            llm=self.llm
+        )
+        self.components.register(character_voice)
+
+        # Register Intuition Receiver component
+        intuition_config = config.get('intuition_receiver', {})
+        if intuition_config.get('enabled', True):
+            intuition = IntuitionReceiverComponent(
+                agent_id=agent_id,
+                agent_name=self.agent_name,
+                config=intuition_config,
+                llm=self.llm
+            )
+            self.components.register(intuition)
+
+        # Register Social Expectation Detector component
+        social_expectations_config = intuition_config.get('social_expectations', {})
+        if social_expectations_config.get('enabled', True):
+            social_expectation = SocialExpectationDetectorComponent(
+                agent_id=agent_id,
+                agent_name=self.agent_name,
+                config=social_expectations_config,
+                llm=self.llm
+            )
+            self.components.register(social_expectation)
+
         logger.info(f"Agent initialized: {agent_id} (extraversion={extraversion:.2f}, threshold={adjusted_threshold:.6f})")
+        logger.info(f"[{agent_id}] Registered {len(self.components.components)} cognitive components")
 
     def _score_identity_salience(self, response_text: str, surprise: float) -> float:
         """
@@ -1008,6 +1057,169 @@ Generate intuitive awareness:"""
 
         except Exception as e:
             logger.warning(f"[{self.agent_id}] Intuition generation failed: {e}")
+            return None
+
+    async def _detect_social_expectation(
+        self,
+        event: Dict,
+        intuition: str,
+        world_state: Optional[Dict] = None
+    ) -> Optional[Dict]:
+        """
+        Analyze if interaction creates a social response expectation.
+
+        This adds a second layer to the intuition system - detecting when
+        the noodling is socially expected to respond. Creates an "itch" -
+        a conscious awareness of obligation without removing agency.
+
+        Args:
+            event: Current event being perceived
+            intuition: Generated intuitive awareness string
+            world_state: Optional world state dictionary
+
+        Returns:
+            Dict with expectation analysis:
+                {
+                    'expected': bool,           # Is response expected?
+                    'urgency': float (0.0-1.0), # How urgent?
+                    'reason': str,              # Why expected?
+                    'type': str                 # question/gesture/greeting/distress/turn/none
+                }
+            Or None if detection disabled/failed
+        """
+        # Check if social expectations are enabled
+        intuition_config = self.config.get('intuition_receiver', {})
+        expectation_config = intuition_config.get('social_expectations', {})
+
+        if not expectation_config.get('enabled', True):
+            return None
+
+        try:
+            # Extract event details
+            event_type = event.get('type', 'say')
+            speaker_id = event.get('user', '')
+            message_text = event.get('text', '')
+
+            # Build analysis prompt
+            prompt = f"""Analyze this interaction for social response expectations.
+
+INTUITIVE CONTEXT:
+{intuition}
+
+INTERACTION:
+Speaker: {speaker_id}
+Message: "{message_text}"
+Type: {event_type}
+
+Determine if {self.agent_name} is socially EXPECTED to respond based on:
+
+1. DIRECT QUESTIONS (urgency: 0.8-1.0)
+   - "What do you think?"
+   - "Can you help me?"
+   - Questions with agent's name
+
+2. PHYSICAL GESTURES (urgency: 0.6-0.8)
+   - Hand extended for handshake
+   - Item offered/given
+   - Physical contact initiated
+
+3. GREETINGS (urgency: 0.4-0.6)
+   - "Hello", "Hi", "Good morning"
+   - Arrivals and departures
+
+4. DISTRESS SIGNALS (urgency: 0.3-0.5)
+   - Crying, signs of pain
+   - Emotional displays without asking
+   - Subtle cues (drooping posture, silence)
+
+5. TURN-TAKING (urgency: 0.5-0.7)
+   - Speaker finishes and pauses
+   - Eye contact held
+   - "What about you?"
+
+6. NONE (urgency: 0.0)
+   - Rhetorical questions
+   - Talking to someone else
+   - Ambient descriptions
+
+Analyze and output ONLY valid JSON:
+{{
+    "expected": true/false,
+    "urgency": 0.0-1.0,
+    "reason": "brief explanation",
+    "type": "question|gesture|greeting|distress|turn|none"
+}}"""
+
+            # Use fast model for analysis
+            model = intuition_config.get('model', 'qwen/qwen3-4b-2507')
+            timeout = expectation_config.get('timeout', 5)
+
+            # Track operation
+            tracker = get_tracker()
+            with tracker.track_operation(
+                self.agent_id,
+                "expectation_detection",
+                {"event_type": event_type, "speaker": speaker_id}
+            ):
+                # Generate analysis with JSON mode
+                result_text = await self.llm.generate(
+                    prompt=prompt,
+                    system_prompt=f"You are a social expectation analyzer. Output only valid JSON.",
+                    model=model,
+                    temperature=0.2,  # Very low for consistent analysis
+                    max_tokens=100
+                )
+
+                # Parse JSON result
+                import json
+                # Strip markdown code blocks if present
+                result_text = result_text.strip()
+                if result_text.startswith('```'):
+                    result_text = result_text.split('```')[1]
+                    if result_text.startswith('json'):
+                        result_text = result_text[4:]
+                result_text = result_text.strip()
+
+                result = json.loads(result_text)
+
+                # Validate structure
+                if not all(k in result for k in ['expected', 'urgency', 'reason', 'type']):
+                    logger.warning(f"[{self.agent_id}] Invalid expectation result format")
+                    return None
+
+                # Apply personality modulation
+                personality = getattr(self, 'personality_traits', {})
+                extraversion = personality.get('extraversion', 0.5)
+                social_orientation = personality.get('social_orientation', 0.5)
+
+                # High extraversion = lower threshold for response
+                # High social_orientation = higher urgency multiplier
+                intensity_multiplier = expectation_config.get('intensity_multiplier', 1.0)
+
+                # Modulate urgency based on personality
+                base_urgency = float(result['urgency'])
+                modulated_urgency = base_urgency * (0.7 + extraversion * 0.3)  # 0.7-1.0x range
+                modulated_urgency *= (0.8 + social_orientation * 0.4)  # 0.8-1.2x range
+                modulated_urgency *= intensity_multiplier
+                modulated_urgency = min(1.0, modulated_urgency)  # Cap at 1.0
+
+                result['urgency'] = modulated_urgency
+                result['base_urgency'] = base_urgency
+
+                # Log detection
+                if result['expected']:
+                    logger.info(f"[{self.agent_id}] ⚠️ Social expectation: {result['type']} "
+                              f"(urgency: {modulated_urgency:.2f}, reason: {result['reason']})")
+                else:
+                    logger.debug(f"[{self.agent_id}] No social expectation detected")
+
+                return result
+
+        except json.JSONDecodeError as e:
+            logger.warning(f"[{self.agent_id}] Failed to parse expectation JSON: {e}")
+            return None
+        except Exception as e:
+            logger.warning(f"[{self.agent_id}] Expectation detection failed: {e}")
             return None
 
     async def _generate_facial_expression(self, affect: np.ndarray, force: bool = False) -> Optional[Dict]:
@@ -1642,6 +1854,42 @@ Generate intuitive awareness:"""
                     state['intuition'] = intuition
                     logger.info(f"[{self.agent_id}] 📻 Intuition: {intuition[:80]}...")
 
+                    # SOCIAL EXPECTATION DETECTION: Analyze if response is expected
+                    expectation = await self._detect_social_expectation(
+                        event=event,
+                        intuition=intuition,
+                        world_state=world_snapshot
+                    )
+
+                    if expectation:
+                        state['social_expectation'] = expectation
+                        logger.info(f"[{self.agent_id}] Social expectation detected: {expectation}")
+
+                        # RECALCULATE SPEECH DECISION based on social expectation urgency
+                        # If urgency is high enough, override the random speech decision
+                        if expectation.get('expected', False) and cooldown_ok:
+                            urgency = expectation.get('urgency', 0.0)
+                            urgency_threshold = self.config.get('intuition_receiver', {}).get('social_expectations', {}).get('expectation_threshold', 0.3)
+
+                            # If urgency exceeds threshold and cooldown passed, strongly consider speaking
+                            if urgency >= urgency_threshold:
+                                # High urgency (>0.7) = force speech
+                                # Moderate urgency (0.4-0.7) = high probability (80%)
+                                # Low urgency (0.3-0.4) = moderate probability (40%)
+                                if urgency > 0.7:
+                                    should_speak = True
+                                    logger.info(f"[{self.agent_id}] High urgency ({urgency:.2f}) - forcing speech response")
+                                elif urgency > 0.4:
+                                    # 80% chance to speak for moderate urgency
+                                    if random.random() < 0.8:
+                                        should_speak = True
+                                        logger.info(f"[{self.agent_id}] Moderate urgency ({urgency:.2f}) - high probability speech")
+                                else:
+                                    # 40% chance for low urgency
+                                    if random.random() < 0.4:
+                                        should_speak = True
+                                        logger.info(f"[{self.agent_id}] Low urgency ({urgency:.2f}) - moderate probability speech")
+
             results = []
 
             # FACS: Add facial expression if generated (shows as non-verbal emote)
@@ -1680,9 +1928,14 @@ Generate intuitive awareness:"""
             # Prioritize order: Facial expression → Rumination → Speech
             # (FACS expressions show first as immediate reactions)
             if results:
-                # Return first result (facial expression has priority if it exists)
-                # Server will broadcast all results in order
-                return results[0]
+                # Return ALL results - server will broadcast them in order
+                # If multiple results (e.g., rumination + speech), all must be broadcast
+                if len(results) == 1:
+                    return results[0]
+                else:
+                    # Multiple results - return as list for server to handle
+                    logger.info(f"Agent {self.agent_id} generated {len(results)} results - returning all")
+                    return results
             else:
                 logger.debug(f"Agent {self.agent_id} observing silently")
                 return None
@@ -2893,8 +3146,16 @@ class AgentManager:
             if agent.current_room == room_id:
                 response = await agent.perceive_event(event)
                 if response:
-                    response['agent_id'] = agent_id
-                    responses.append(response)
+                    # Handle both single response and list of responses
+                    if isinstance(response, list):
+                        # Multiple results (e.g., rumination + speech)
+                        for r in response:
+                            r['agent_id'] = agent_id
+                            responses.append(r)
+                    else:
+                        # Single result
+                        response['agent_id'] = agent_id
+                        responses.append(response)
 
         return responses
 

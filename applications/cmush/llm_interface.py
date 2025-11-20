@@ -626,7 +626,9 @@ DO NOT just philosophize or observe - inhabit your character's motivation and AC
 
         # Extract intuition if available (Context Gremlin / Intuition Receiver)
         intuition = phenomenal_state.get('intuition')
+        social_expectation = phenomenal_state.get('social_expectation')
         intuition_text = ""
+
         if intuition:
             intuition_text = f"""
 ╔═══════════════════════════════════════════════════════════╗
@@ -636,6 +638,43 @@ DO NOT just philosophize or observe - inhabit your character's motivation and AC
 {intuition}
 
 This contextual awareness naturally informs your understanding of the situation.
+"""
+
+            # Add social expectation layer if detected
+            if social_expectation and social_expectation.get('expected', False):
+                urgency = social_expectation.get('urgency', 0.0)
+                reason = social_expectation.get('reason', '')
+                exp_type = social_expectation.get('type', 'unknown')
+
+                # Choose marker based on urgency
+                if urgency > 0.7:
+                    marker = "⚠️"
+                    intensity = "STRONG"
+                elif urgency > 0.4:
+                    marker = "•"
+                    intensity = "MODERATE"
+                else:
+                    marker = "·"
+                    intensity = "SUBTLE"
+
+                intuition_text += f"""
+╔═══════════════════════════════════════════════════════════╗
+║  {marker} SOCIAL EXPECTATION DETECTED                          ║
+╚═══════════════════════════════════════════════════════════╝
+
+Type: {exp_type.upper()}
+Intensity: {intensity} (urgency: {urgency:.2f})
+Reason: {reason}
+
+You notice this social expectation - it creates an "itch" in your awareness.
+The person is waiting. Silence is a choice, not an absence.
+
+You can:
+- Respond (acknowledge the expectation)
+- Consciously decline (ignore the expectation)
+- Delay (acknowledge but defer)
+
+The expectation doesn't control you - it informs you.
 """
 
         user_prompt = f"""Current phenomenal state:

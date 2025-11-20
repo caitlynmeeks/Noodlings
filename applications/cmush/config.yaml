@@ -79,6 +79,17 @@ agent:
     enabled: true
     model: qwen/qwen3-4b-2507
     timeout: 5
+    social_expectations:
+      enabled: true
+      timeout: 5
+      expectation_threshold: 0.3  # Minimum urgency to flag
+      intensity_multiplier: 1.0  # Global scaling factor for urgency
+      # Per-type thresholds (reference - actual detection in LLM prompt)
+      question_threshold: 0.8    # Direct questions = high urgency
+      gesture_threshold: 0.6     # Physical gestures = moderate-high urgency
+      greeting_threshold: 0.4    # Greetings = moderate urgency
+      distress_threshold: 0.3    # Subtle cues = low-moderate urgency
+      turn_threshold: 0.5        # Conversational turns = moderate urgency
   appetites:
     curiosity: 0.3
     status: 0.1

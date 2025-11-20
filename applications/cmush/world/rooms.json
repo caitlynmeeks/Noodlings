@@ -2,20 +2,18 @@
   "room_000": {
     "uid": "room_000",
     "name": "The Nexus",
-    "description": "here A cozy campfire with crackling logs, little sparks drifting up into the sky, soft moss underfoot. A WANTED POSTER is nailed to a nearby tree. An old RADIO sits on a wooden shelf, occasionally crackling with news broadcasts.",
+    "description": "A cozy campfire with crackling logs, little sparks drifting up into the sky, soft moss underfoot. In the distance, an owl hoots. A WANTED POSTER is nailed to a nearby tree. An old RADIO sits on a wooden shelf, occasionally crackling with news broadcasts. There is a sign that says if you can read this, you are cute and awesome.",
     "exits": {
       "north": "room_001",
       "east": "room_002"
     },
-    "objects": [],
+    "objects": [
+      "obj_the_third_prim._ever."
+    ],
     "occupants": [
-      "user_caitlyn",
       "user_caity",
-      "user_Claude",
-      "agent_mysterious_stranger",
-      "agent_servnak",
-      "agent_desobelle",
-      "agent_callie"
+      "agent_fred_rogers",
+      "agent_servnak"
     ],
     "owner": "system",
     "created": "2025-10-26T13:51:25.550264"
@@ -107,6 +105,11 @@
   "newroom": {
     "name": "NewRoom",
     "description": "A newly created room.",
-    "exits": {}
+    "exits": {},
+    "occupants": [],
+    "objects": [],
+    "uid": "newroom",
+    "owner": "user_admin",
+    "created": "2025-11-19T00:00:00"
   }
 }
