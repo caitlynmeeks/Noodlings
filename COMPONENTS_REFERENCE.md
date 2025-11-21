@@ -2494,6 +2494,742 @@ Users can:
 
 ---
 
+## Physical Drives & Itches Component
+
+### The Concept
+
+**Observation**: Real beings have **persistent physical urges** that shape behavior:
+- Scratching an itch
+- Fidgeting when nervous
+- Compulsive habits
+- Biological drives (hunger, thirst, sleep)
+
+**Problem**: Current Noodlings have needs in morphology assets, but no **active drive system** that generates periodic urges.
+
+**Solution**: Itches Component (or as a script!)
+
+### Implementation: As a Script
+
+**File**: `assets/Scripts/physical_itches.noodlingscript.py`
+
+```python
+class PhysicalItchesScript(NoodlingScript):
+    """
+    Generates periodic physical urges and compulsions.
+
+    Creates emergent behaviors like:
+    - Scratching specific body parts
+    - Fidgeting when anxious
+    - Seeking specific objects for relief
+    - Character-specific quirks (ork scratches back with axe)
+    """
+
+    # Exposed parameters
+    @expose_parameter(name="Itch Frequency (seconds)", default=300, min=60, max=3600)
+    def itch_frequency(self) -> float:
+        """How often itches occur."""
+        return self._itch_frequency
+
+    @expose_parameter(name="Itch Intensity", default=0.5, min=0.0, max=1.0)
+    def itch_intensity(self) -> float:
+        """How strong the urge is (affects arousal)."""
+        return self._itch_intensity
+
+    @expose_parameter(name="Custom Itches (one per line)", default="", multiline=True)
+    def custom_itches(self) -> str:
+        """
+        Define custom itches. Format:
+        location: action | trigger_condition
+
+        Examples:
+        back: scratch with battle axe blade | arousal > 0.6
+        ears: flick to remove invisible bug | random(0.1)
+        tail: chase own tail | boredom > 0.7
+        """
+        return self._custom_itches
+
+    def __init__(self, agent):
+        super().__init__(agent)
+        self._itch_frequency = 300  # Every 5 minutes
+        self._itch_intensity = 0.5
+        self._custom_itches = ""
+        self._last_itch_time = time.time()
+        self._parse_custom_itches()
+
+    def _parse_custom_itches(self):
+        """Parse custom itch definitions."""
+        self.itch_definitions = []
+
+        for line in self._custom_itches.split('\n'):
+            line = line.strip()
+            if not line or ':' not in line:
+                continue
+
+            location, rest = line.split(':', 1)
+            if '|' in rest:
+                action, condition = rest.split('|', 1)
+            else:
+                action = rest
+                condition = "True"  # Always triggers
+
+            self.itch_definitions.append({
+                'location': location.strip(),
+                'action': action.strip(),
+                'condition': condition.strip()
+            })
+
+    async def on_update(self):
+        """Check if it's time for an itch."""
+        now = time.time()
+
+        if now - self._last_itch_time >= self._itch_frequency:
+            await self._trigger_itch()
+            self._last_itch_time = now
+
+    async def _trigger_itch(self):
+        """Generate an itch and corresponding behavior."""
+
+        # Evaluate custom itches first
+        for itch in self.itch_definitions:
+            # Evaluate condition (safely)
+            try:
+                # Build safe context for eval
+                ctx = {
+                    'arousal': self.agent.affect['arousal'],
+                    'valence': self.agent.affect['valence'],
+                    'fear': self.agent.affect['fear'],
+                    'boredom': self.agent.affect['boredom'],
+                    'random': lambda p: __import__('random').random() < p
+                }
+
+                if eval(itch['condition'], {"__builtins__": {}}, ctx):
+                    # Condition met! Perform action
+                    await self.agent.emote(f"*{itch['action']}*")
+
+                    # Affect change (relief from scratching)
+                    await self.agent.apply_affect_delta({
+                        'arousal': -self._itch_intensity * 0.1,
+                        'boredom': -self._itch_intensity * 0.2
+                    })
+
+                    return  # Only one itch at a time
+
+            except Exception as e:
+                logger.error(f"Error evaluating itch condition: {e}")
+                continue
+
+        # No custom itch triggered, use morphology-based default
+        morph = self.agent.components.morphology_voice.morphology
+
+        # Generate itch based on morphology
+        if morph.morphology_id == 'cat_domestic':
+            actions = [
+                "grooms paw meticulously",
+                "scratches behind ear with hind leg",
+                "licks shoulder fur smooth",
+                "stretches luxuriously"
+            ]
+        elif 'robot' in morph.morphology_id:
+            actions = [
+                "oils squeaky joint",
+                "tightens loose bolt",
+                "runs diagnostic on actuators",
+                "adjusts antenna"
+            ]
+        else:
+            actions = [
+                "shifts weight",
+                "adjusts clothing",
+                "stretches",
+                "rubs eyes"
+            ]
+
+        action = random.choice(actions)
+        await self.agent.emote(f"*{action}*")
+```
+
+**Example Usage (Ork with Battle Axe)**:
+
+In Inspector, configure script:
+```
+Physical Itches Script:
+  Itch Frequency: 600 (every 10 minutes)
+  Itch Intensity: 0.7 (strong urge)
+
+  Custom Itches:
+  ┌────────────────────────────────────────────┐
+  │ back: scratches back with battle axe blade │
+  │       using the flat side | arousal > 0.4  │
+  │                                            │
+  │ teeth: picks teeth with dagger tip |      │
+  │        random(0.05)                        │
+  │                                            │
+  │ beard: braids beard unconsciously |        │
+  │        boredom > 0.6                       │
+  └────────────────────────────────────────────┘
+```
+
+**Result**:
+- Ork periodically scratches back with axe (when aroused)
+- Occasionally picks teeth with dagger (5% chance each check)
+- Braids beard when bored
+- Creates **emergent character quirks** that feel authentic!
+
+**Marketplace**: "Fantasy Character Quirks Pack" (ork, dwarf, elf itches) - $3.99
+
+---
+
+## Core Components as Scripts: The Unity Approach
+
+### The Question
+
+Should core components (Morphology & Voice, Episodic Memory) be:
+- **A)** Traditional Python components (current)
+- **B)** Built-in scripts that happen to ship with the system
+
+**Answer**: **Both!**
+
+### Hybrid Architecture
+
+**Core components exist in TWO forms**:
+
+#### 1. Factory Defaults (Read-Only)
+
+```
+assets/Scripts/BuiltIn/
+├── morphology_voice.noodlingscript.py         [READ-ONLY]
+├── episodic_memory.noodlingscript.py          [READ-ONLY]
+├── intuition_receiver.noodlingscript.py       [READ-ONLY]
+└── social_expectations.noodlingscript.py      [READ-ONLY]
+```
+
+**Properties**:
+- Marked as `[Factory Default]` in UI
+- Cannot be edited directly
+- Can be **duplicated** to create custom version
+- Always available (shipped with Noodlings)
+
+**UI Treatment**:
+```
+Inspector → Components:
+  ├─ Morphology & Voice [Factory Default] 🔒
+  │    [Duplicate to Customize]
+  │
+  ├─ Episodic Memory [Factory Default] 🔒
+  │    [Duplicate to Customize]
+```
+
+#### 2. Custom Versions (User-Created)
+
+User clicks "Duplicate to Customize":
+```
+Save Custom Component
+Name: My Enhanced Memory System
+Based on: episodic_memory.noodlingscript.py
+
+[Save to Custom Scripts]
+```
+
+Creates: `assets/Scripts/Custom/my_enhanced_memory.noodlingscript.py`
+
+**User can now**:
+- Edit the Python code
+- Change retrieval algorithms
+- Add new features
+- Share on marketplace
+
+**Agent uses**: Custom version instead of factory default
+
+### Code Differences
+
+**Factory Default** (ships with system):
+```python
+# assets/Scripts/BuiltIn/episodic_memory.noodlingscript.py
+class EpisodicMemoryScript(NoodlingScript):
+    """FACTORY DEFAULT - Duplicate to customize."""
+
+    # ... implementation ...
+```
+
+**Custom Version** (user-modified):
+```python
+# assets/Scripts/Custom/my_enhanced_memory.noodlingscript.py
+class MyEnhancedMemoryScript(NoodlingScript):
+    """
+    Custom memory system with:
+    - Emotional clustering
+    - Dream-like consolidation
+    - Proactive recall suggestions
+    """
+
+    # User adds their own features
+    @expose_parameter(name="Dream Consolidation", default=True)
+    def dream_mode(self) -> bool:
+        return self._dream_mode
+
+    async def on_update(self):
+        """Custom: Suggest memories proactively."""
+        if self._dream_mode and random.random() < 0.01:
+            # Occasionally surface random memory (like intrusive thought)
+            memory = random.choice(self.memories)
+            await self.agent.ruminate(f"I suddenly remember: {memory.content}")
+```
+
+### Benefits of Hybrid Approach
+
+**For Users**:
+- See how core components work (educational)
+- Customize if desired (power users)
+- Trust through transparency (can inspect code)
+- Marketplace opportunity (sell enhanced versions)
+
+**For Platform**:
+- Everything uses same `NoodlingScript` API
+- Easier to maintain (one system, not two)
+- Community can improve core components
+- Natural upgrade path (factory → custom)
+
+**For Developers**:
+- Unified architecture
+- No special-case code for core vs. user components
+- Clear extension points
+
+---
+
+## Voice Post-Processing: Effects Pipeline
+
+### The Problem
+
+**Current**: Voice component does one transformation (basic English → character voice)
+
+**Need**: Additional effects that apply AFTER voice translation
+
+**Example**: Backwards Dweller from David Lynch's BRENDA story
+- Voice translation: Normal speech → Dweller dialect
+- Post-processing: Reverse the entire string
+- Result: "olleH" instead of "Hello"
+
+### Solution: Post-Processing Effects in M&V Component
+
+**Add to Morphology & Voice component**:
+
+```yaml
+morphology_voice:
+  enabled: true
+  morphology_asset: backwards_dweller.noodlingmorph
+  voice_asset: cryptic_speech.noodlingvoice
+
+  # NEW: Post-processing effects (applied AFTER voice transformation)
+  post_processing:
+    - type: reverse_text      # Reverse entire string
+      enabled: true
+      preserve_formatting: true  # Keep *italics* and "quotes" intact
+
+    - type: leetspeak         # Example: another effect
+      enabled: false
+      intensity: 0.7
+
+    - type: stutter           # Repeat first letters
+      enabled: false
+      frequency: 0.3
+```
+
+**Processing Pipeline**:
+```
+Basic English
+    ↓
+[Morphology Behavior Context] (from morphology asset)
+    ↓
+[Voice Transformation] (from voice asset)
+    ↓
+[Post-Processing Effects] (reverse, leet, stutter, etc.)
+    ↓
+Final Output
+```
+
+### Post-Processing Effect Types
+
+**Built-in effects**:
+
+```python
+class VoiceEffects:
+    """Post-processing effects for voice component."""
+
+    @staticmethod
+    def reverse_text(text: str, preserve_formatting: bool = True) -> str:
+        """Reverse text (Backwards Dweller effect)."""
+        if preserve_formatting:
+            # Preserve *italics* and action markers
+            import re
+
+            # Extract formatting
+            parts = re.split(r'(\*[^*]+\*)', text)
+
+            # Reverse text parts, keep formatting markers
+            result = []
+            for part in parts:
+                if part.startswith('*') and part.endswith('*'):
+                    # Keep action formatting, reverse content
+                    content = part[1:-1]
+                    result.append(f"*{content[::-1]}*")
+                else:
+                    result.append(part[::-1])
+
+            return ''.join(result)
+        else:
+            return text[::-1]
+
+    @staticmethod
+    def leetspeak(text: str, intensity: float = 0.7) -> str:
+        """Convert to l33tsp34k."""
+        replacements = {
+            'a': '4', 'e': '3', 'i': '1', 'o': '0',
+            'l': '1', 's': '5', 't': '7'
+        }
+
+        result = list(text.lower())
+        for i, char in enumerate(result):
+            if char in replacements and random.random() < intensity:
+                result[i] = replacements[char]
+
+        return ''.join(result)
+
+    @staticmethod
+    def stutter(text: str, frequency: float = 0.3) -> str:
+        """Add stuttering effect."""
+        words = text.split()
+        result = []
+
+        for word in words:
+            if len(word) > 2 and random.random() < frequency:
+                # Stutter on first letter
+                result.append(f"{word[0]}-{word}")
+            else:
+                result.append(word)
+
+        return ' '.join(result)
+
+    @staticmethod
+    def uwu_speak(text: str) -> str:
+        """UwU transformation (for anime-style characters)."""
+        text = text.replace('r', 'w').replace('l', 'w')
+        text = text.replace('R', 'W').replace('L', 'W')
+        # Add uwu emoticons
+        if random.random() < 0.3:
+            text += " uwu"
+        return text
+```
+
+**Usage in M&V Component**:
+
+```python
+async def process(self, input_data: Dict) -> Dict:
+    """Process through full pipeline."""
+
+    # 1. Morphology behavior context
+    text = self._apply_morphology_context(input_data['text'])
+
+    # 2. Voice transformation
+    if self.voice_asset:
+        text = await self._apply_voice_transformation(text)
+
+    # 3. Post-processing effects
+    for effect in self.config.get('post_processing', []):
+        if effect['enabled']:
+            effect_func = getattr(VoiceEffects, effect['type'])
+            text = effect_func(text, **effect.get('params', {}))
+
+    return {'text': text}
+```
+
+**Backwards Dweller Example**:
+
+```
+Input: "Hello, I am the Backwards Dweller"
+
+After voice: "Greetings, mortal. I am the Dweller of Reversed Paths."
+
+After post-processing (reverse_text):
+".shtaP desreveR fo rellewD eht ma I .latrom ,sgniteerG"
+
+Final output (what user sees):
+".shtaP desreveR fo rellewD eht ma I .latrom ,sgniteerG"
+```
+
+**Marketplace**: "Voice Effects Pack Vol. 1" (reverse, stutter, echo, distortion) - $2.99
+
+---
+
+## Core Components as Scripts: The Unification
+
+### Philosophical Question
+
+**Should Morphology & Voice be**:
+- A) Hidden internal component (current model)
+- B) Visible script that ships as built-in (proposed model)
+
+### Answer: B - Everything is a Script
+
+**Rationale**:
+
+1. **Transparency**: Users see exactly how core features work
+2. **Extensibility**: Users can duplicate and modify
+3. **Marketplace**: Users can create BETTER versions and sell them
+4. **Education**: Learning resource (see professional implementation)
+5. **Simplicity**: One system, not two
+
+### The Architecture
+
+**All components are scripts**, but scripts come in tiers:
+
+#### Tier 1: Factory Built-Ins (Read-Only, Always Available)
+
+```
+assets/Scripts/BuiltIn/
+├── 📜 morphology_voice.noodlingscript.py      [CORE]
+├── 📜 episodic_memory.noodlingscript.py       [CORE]
+├── 📜 intuition_receiver.noodlingscript.py    [CORE]
+├── 📜 social_expectations.noodlingscript.py   [CORE]
+└── 📜 self_monitoring.noodlingscript.py       [CORE]
+```
+
+**Marked with `[CORE]` badge in UI**
+
+**Properties**:
+- Installed by default on all agents
+- Cannot be edited directly (read-only)
+- Can be disabled (toggle off in Inspector)
+- Can be duplicated to Custom (for modification)
+- Always visible in Scripts folder
+
+#### Tier 2: Official Presets (Read-Only, Optional)
+
+```
+assets/Scripts/Official/
+├── 📜 physical_itches.noodlingscript.py
+├── 📜 dice_roller.noodlingscript.py
+├── 📜 relationship_tracker.noodlingscript.py
+└── 📜 goal_planning.noodlingscript.py
+```
+
+**Properties**:
+- Shipped with Noodlings
+- Optional (drag onto agent to add)
+- Read-only (duplicate to customize)
+- Free
+
+#### Tier 3: Community Scripts (Editable if Owned)
+
+```
+assets/Scripts/Community/
+├── 📜 advanced_memory_palace.noodlingscript.py  [$7.99]
+├── 📜 dnd_toolkit.noodlingscript.py             [$9.99]
+└── 📜 personality_evolution.noodlingscript.py   [$5.99]
+```
+
+**Properties**:
+- Downloaded from marketplace
+- Editable (user owns it)
+- Can be modified and saved
+- Original author gets 70% of purchase price
+
+#### Tier 4: User Custom (Fully Editable)
+
+```
+assets/Scripts/Custom/
+├── 📜 my_enhanced_memory.noodlingscript.py
+├── 📜 inventory_tracker.noodlingscript.py
+└── 📜 ork_quirks.noodlingscript.py
+```
+
+**Properties**:
+- User-created or duplicated from other tiers
+- Fully editable
+- Can upload to marketplace (becomes Tier 3 for others)
+- No restrictions
+
+### Inspector UI: Showing Script Tiers
+
+```
+Inspector → Phi [kitten]:
+  Components (all are scripts underneath):
+    ├─ 📜 Morphology & Voice [CORE] 🔒
+    │     Morphology: cat_domestic.noodlingmorph
+    │     Voice: meow_translator.noodlingvoice
+    │     [Duplicate] [Disable]
+    │
+    ├─ 📜 Episodic Memory [CORE] 🔒
+    │     Max Messages: 500
+    │     Retrieval: hybrid
+    │     [Duplicate] [Disable]
+    │
+    ├─ 📜 Intuition Receiver [CORE] 🔒
+    │     [Duplicate] [Disable]
+    │
+    ├─ 📜 Physical Itches [Official]
+    │     Frequency: 300s
+    │     Custom Itches:
+    │       • ears: flick to remove bug | random(0.1)
+    │       • paws: knead when content | valence > 0.6
+    │     [Edit] [Remove]
+    │
+    └─ ⊕ Add Component...
+        [Browse Community Scripts]
+```
+
+**Clicking "Duplicate" on core component**:
+```
+Duplicate Core Component
+Component: Morphology & Voice
+New name: My Custom Morphology System
+
+This will create an editable copy in your Custom Scripts.
+The original [CORE] version will remain available.
+
+[Create Custom Version] [Cancel]
+```
+
+### Code Implementation: Unified Script System
+
+```python
+class ScriptTier(Enum):
+    """Script tiers with different permissions."""
+    CORE = "core"              # Built-in, read-only, always available
+    OFFICIAL = "official"      # Official presets, read-only, optional
+    COMMUNITY = "community"    # Marketplace, read-only until purchased
+    CUSTOM = "custom"          # User-created, fully editable
+
+class NoodlingScript(ABC):
+    """Base class for ALL scripts (including core components)."""
+
+    # Metadata
+    script_tier: ScriptTier = ScriptTier.CUSTOM
+    script_version: str = "1.0.0"
+    author: str = "unknown"
+
+    # Core components have special flag
+    is_core_component: bool = False
+
+    @property
+    def is_editable(self) -> bool:
+        """Can this script be edited by user?"""
+        return self.script_tier == ScriptTier.CUSTOM
+
+    @property
+    def is_removable(self) -> bool:
+        """Can this script be removed from agent?"""
+        # Core components can be disabled but not removed
+        return not self.is_core_component
+```
+
+**When agent initializes**:
+```python
+def initialize_components(agent: NoodlingAgent):
+    """Initialize agent components from recipe and defaults."""
+
+    # ALWAYS load core components (even if not in recipe)
+    for script_path in get_core_scripts():
+        script = load_script(script_path)
+        agent.add_component(script)
+
+    # Load additional components from recipe
+    for component_config in agent.recipe.get('additional_components', []):
+        script = load_script(component_config['script_path'])
+        script.configure(component_config['parameters'])
+        agent.add_component(script)
+```
+
+### Benefits of Unification
+
+**Transparency**:
+- Users can inspect core component code
+- "How does Episodic Memory work?" → Read the script
+- Educational value
+
+**Extensibility**:
+- Users can improve core components
+- Share improvements via marketplace
+- Community-driven enhancement
+
+**Simplicity**:
+- One API for everything
+- No special-case code
+- Easier to maintain
+
+**Marketplace**:
+- Users can sell "Enhanced Memory v2.0" ($4.99)
+- Competition improves quality
+- Revenue for creators
+
+---
+
+## Complete Asset Type Registry
+
+### All Asset Types (Current + Proposed)
+
+| Asset Type | Extension | Purpose | Marketplace Value |
+|------------|-----------|---------|------------------|
+| **Morphology** | `.noodlingmorph.yaml` | Physical form, capabilities, behaviors | HIGH |
+| **Voice** | `.noodlingvoice.yaml` | Speech pattern transformations | MEDIUM |
+| **Script** | `.noodlingscript.py` | Behaviors, components, logic | VERY HIGH |
+| **AnimationRig** | `.noodlinganim.yaml` | Affect → visual animation mapping | EXTREMELY HIGH |
+| **Ensemble** | `.noodlingensemble.json` | Multi-agent configurations | HIGH |
+| **Personality** | `.noodlingpersonality.yaml` | Trait presets | LOW |
+| **References** | `.noodlingrefs/` | Multimodal context images | MEDIUM |
+| **VoiceAudio** | `.noodlingaudio/` | TTS voice samples | VERY HIGH |
+
+### Asset Bundles (Marketplace Strategy)
+
+**Complete Character Pack** ($19.99):
+- Morphology (e.g., dragon.noodlingmorph)
+- Voice (draconic_speech.noodlingvoice)
+- AnimationRig (dragon_expressive.noodlinganim)
+- Personality preset (ancient_wise.noodlingpersonality)
+- Reference images (dragon_concepts.noodlingrefs)
+- Behavior script (dragon_hoard.noodlingscript.py)
+
+**Value proposition**: Everything needed for professional dragon character, ready to use.
+
+---
+
+## Implementation Priority (Updated)
+
+### Phase 1: Foundation (This Week)
+
+**Critical path items**:
+1. ✅ COMPONENTS_REFERENCE.md spec - DONE
+2. [ ] Create `NoodlingScript` base class
+3. [ ] Create `@expose_parameter` decorator
+4. [ ] Implement script loading system
+5. [ ] Convert one core component to script (proof of concept)
+
+### Phase 2: Asset System (Week 2)
+
+1. [ ] Implement `AssetManager`
+2. [ ] Create morphology/voice asset schemas (Pydantic)
+3. [ ] Create 5 preset morphologies + voices
+4. [ ] Implement M&V component v2 (asset-based)
+5. [ ] Migrate Phi and SERVNAK to use assets
+
+### Phase 3: Script Components (Week 3)
+
+1. [ ] Implement `ScriptComponent` wrapper
+2. [ ] Convert ALL core components to scripts (Tier: CORE)
+3. [ ] Inspector UI: Show script tier badges
+4. [ ] Implement "Duplicate to Customize" feature
+5. [ ] Create Physical Itches script (example)
+
+### Phase 4: Advanced Features (Week 4)
+
+1. [ ] Episodic Memory component
+2. [ ] Voice post-processing effects
+3. [ ] Animation rig system (basic)
+4. [ ] Asset drag-and-drop in Inspector
+
+---
+
+## Questions for Discussion
+
 ## Voice Asset Workflow Enhancements
 
 ### Creating/Modifying Voices
