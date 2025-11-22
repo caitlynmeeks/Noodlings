@@ -444,6 +444,9 @@ class MemoryListWrapper:
         """
         Support indexing and slicing.
 
+        Returns hybrid context: working memory + important episodic memories.
+        This ensures loaded memories (which are all in episodic) are accessible.
+
         Args:
             key: int index or slice object
 
@@ -451,25 +454,46 @@ class MemoryListWrapper:
             Single dict (if int) or list of dicts (if slice)
         """
         if isinstance(key, slice):
-            # Slicing: retrieve from working memory
-            # Convert slice to last_n
+            # Slicing: return HYBRID context (working + episodic)
+            # This is critical for cross-session persistence!
+
             if key.start is None and key.stop is None:
-                # [:] means all
-                entries = self.hm.retrieve_working(last_n=None)
+                # [:] means all - return working + all episodic
+                working = self.hm.retrieve_working(last_n=None)
+                episodic = self.hm.episodic_memory  # All episodic memories
+                # Combine: episodic first (chronological), then working (recent)
+                entries = list(episodic) + working
             elif key.start is not None and key.start < 0:
-                # [-N:] means last N
+                # [-N:] means last N - return working + top episodic
                 last_n = abs(key.start)
-                entries = self.hm.retrieve_working(last_n=last_n)
+                working = self.hm.retrieve_working(last_n=None)
+
+                # Also include top episodic memories (sorted by importance)
+                episodic_count = max(last_n // 2, 5)  # At least 5 episodic
+                episodic = sorted(
+                    self.hm.episodic_memory,
+                    key=lambda e: e.importance,
+                    reverse=True
+                )[:episodic_count]
+
+                # Combine and take last N
+                entries = list(episodic) + working
+                entries = entries[-last_n:] if len(entries) > last_n else entries
             else:
                 # Other slices: get all and slice in Python
-                entries = self.hm.retrieve_working(last_n=None)
+                working = self.hm.retrieve_working(last_n=None)
+                episodic = list(self.hm.episodic_memory)
+                entries = episodic + working
                 entries = entries[key]
 
             # Convert to dicts
             return [self._entry_to_dict(e) for e in entries]
         else:
-            # Single index
-            entries = self.hm.retrieve_working(last_n=None)
+            # Single index - use combined list
+            working = self.hm.retrieve_working(last_n=None)
+            episodic = list(self.hm.episodic_memory)
+            entries = episodic + working
+
             if key < 0:
                 key = len(entries) + key
             if key < 0 or key >= len(entries):
@@ -513,13 +537,88 @@ class MemoryListWrapper:
         """
         Load memories from list of dicts (for state restoration).
 
+        Loaded memories are treated as pre-validated important memories
+        and placed directly into episodic memory, bypassing importance
+        threshold checks. This ensures cross-session persistence.
+
         Args:
             memory_list: List of memory dicts in old format
         """
+        import mlx.core as mx
+
         self.clear()
+
         for entry_dict in memory_list:
-            self.append(entry_dict)
-        logger.info(f"Loaded {len(memory_list)} memories from saved state")
+            # Extract and validate data (same as append())
+            timestamp = entry_dict.get('timestamp', time.time())
+            user_id = entry_dict['user']
+            text = entry_dict['text']
+            affect = entry_dict['affect']
+            surprise = entry_dict.get('surprise', 0.0)
+
+            # Validate affect
+            if affect is None or (hasattr(affect, '__len__') and len(affect) == 0):
+                affect = [0.0, 0.0, 0.0, 0.0, 0.0]
+            elif hasattr(affect, '__len__') and len(affect) < 5:
+                if isinstance(affect, mx.array):
+                    affect = affect.tolist()
+                affect = list(affect) + [0.0] * (5 - len(affect))
+
+            # Convert to MLX array
+            if not isinstance(affect, mx.array):
+                affect = mx.array(affect, dtype=mx.float32)
+
+            # Get phenomenal state
+            try:
+                phenomenal_state = self.agent.consciousness.get_state()
+            except:
+                phenomenal_state = {}
+
+            step = self.agent.response_count
+            response = text if user_id == self.agent.agent_id else None
+
+            # Compute importance (for logging/stats)
+            importance = self.hm._compute_importance(surprise, affect, response)
+
+            # Create MemoryEntry
+            from noodlings.memory.hierarchical_memory import MemoryEntry
+            entry = MemoryEntry(
+                timestamp=timestamp,
+                step=step,
+                user_id=user_id,
+                user_text=text,
+                affect=affect,
+                phenomenal_state=phenomenal_state,
+                surprise=surprise,
+                response=response,
+                importance=importance
+            )
+
+            # Add to working memory
+            self.hm.working_memory.append(entry)
+
+            # CRITICAL: Add to episodic memory directly (bypass threshold)
+            # These memories survived saving - they're pre-validated as important
+            self.hm.episodic_memory.append(entry)
+            self.hm.consolidations += 1
+
+            # Store extra fields
+            key = self._make_key(timestamp, user_id, text)
+            extra = {}
+            if 'identity_salience' in entry_dict:
+                extra['identity_salience'] = entry_dict['identity_salience']
+            if 'is_rumination' in entry_dict:
+                extra['is_rumination'] = entry_dict['is_rumination']
+            if 'stage_direction' in entry_dict:
+                extra['stage_direction'] = entry_dict['stage_direction']
+            if 'stage_motivation' in entry_dict:
+                extra['stage_motivation'] = entry_dict['stage_motivation']
+            if 'is_self_monitor' in entry_dict:
+                extra['is_self_monitor'] = entry_dict['is_self_monitor']
+            if extra:
+                self._extra_fields[key] = extra
+
+        logger.info(f"Loaded {len(memory_list)} memories from saved state (all preserved in episodic)")
 
     def copy(self) -> List[Dict]:
         """
@@ -652,7 +751,7 @@ class CMUSHConsilienceAgent:
         hierarchical_memory = HierarchicalMemory(
             working_capacity=working_capacity,
             episodic_capacity=episodic_capacity,
-            surprise_threshold=0.5,
+            surprise_threshold=0.3,  # Lowered from 0.5 - consolidate more memories
             importance_decay=0.95
         )
         self.conversation_context = MemoryListWrapper(hierarchical_memory, self)
