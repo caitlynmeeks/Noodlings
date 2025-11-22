@@ -312,6 +312,8 @@ class MemoryListWrapper:
         # Side storage for extra fields not in MemoryEntry
         # Key: (timestamp, user_id, text_hash) -> dict of extra fields
         self._extra_fields = {}
+        # Query context for semantic boosting
+        self.last_query = ""
 
     def _make_key(self, timestamp: float, user_id: str, text: str) -> tuple:
         """Create unique key for extra fields storage."""
@@ -338,6 +340,10 @@ class MemoryListWrapper:
         text = entry_dict['text']
         affect = entry_dict['affect']
         surprise = entry_dict.get('surprise', 0.0)
+
+        # Capture user queries for semantic boosting
+        if user_id.startswith('user_'):
+            self.last_query = text
 
         # Validate affect array - handle empty or malformed data
         # Check for None first, then check length (avoid boolean evaluation of arrays)
@@ -427,7 +433,8 @@ class MemoryListWrapper:
             'text': entry.user_text,
             'affect': affect_list,
             'surprise': entry.surprise,
-            'timestamp': entry.timestamp
+            'timestamp': entry.timestamp,
+            'importance': entry.importance  # CRITICAL: Include actual importance score
         }
 
         # Restore extra fields
@@ -464,20 +471,62 @@ class MemoryListWrapper:
                 # Combine: episodic first (chronological), then working (recent)
                 entries = list(episodic) + working
             elif key.start is not None and key.start < 0:
-                # [-N:] means last N - return working + top episodic
+                # [-N:] means last N - return STRATIFIED hybrid context
+                # This balances: recent + conversations + self-monitoring + anomalies
                 last_n = abs(key.start)
                 working = self.hm.retrieve_working(last_n=None)
 
-                # Also include top episodic memories (sorted by importance)
-                episodic_count = max(last_n // 2, 5)  # At least 5 episodic
-                episodic = sorted(
-                    self.hm.episodic_memory,
-                    key=lambda e: e.importance,
-                    reverse=True
-                )[:episodic_count]
+                # STRATIFIED EPISODIC RETRIEVAL
+                # Separate episodic memories by type
+                episodic_all = list(self.hm.episodic_memory)
+                logger.info(f"[STRATIFIED] Total episodic: {len(episodic_all)}")
 
-                # Combine and take last N
-                entries = list(episodic) + working
+                # SEMANTIC BOOST: Extract keywords from recent query
+                query_keywords = set()
+                if self.last_query:
+                    # Extract meaningful words (>3 chars, lowercase)
+                    words = self.last_query.lower().split()
+                    query_keywords = {w for w in words if len(w) > 3 and w.isalpha()}
+                    if query_keywords:
+                        logger.info(f"[SEMANTIC] Query keywords: {query_keywords}")
+
+                # Apply semantic boost to memories containing query keywords
+                SEMANTIC_BOOST = 2.0  # Multiply importance by this for matching memories
+                if query_keywords:
+                    for entry in episodic_all:
+                        text_lower = entry.user_text.lower()
+                        matches = [kw for kw in query_keywords if kw in text_lower]
+                        if matches:
+                            entry.importance *= SEMANTIC_BOOST
+                            logger.debug(f"[SEMANTIC] Boosted memory (keywords: {matches}): {entry.user_text[:60]}...")
+
+                self_monitoring = [e for e in episodic_all if '[self-monitoring]' in e.user_text]
+                conversations = [e for e in episodic_all if '[self-monitoring]' not in e.user_text and e.user_id.startswith('user_')]
+                agent_speech = [e for e in episodic_all if '[self-monitoring]' not in e.user_text and e.user_id.startswith('agent_')]
+                logger.info(f"[STRATIFIED] Conversations: {len(conversations)}, Self-monitoring: {len(self_monitoring)}, Agent speech: {len(agent_speech)}")
+
+                # Allocate slots (stratified sampling)
+                # Generous allocation for rich character depth - prioritize agent's own significant statements
+                episodic_slots = max(int(last_n * 1.2), 15)  # 120% of requested context, minimum 15
+                conversation_slots = int(episodic_slots * 0.35)  # 35% conversations (user messages)
+                speech_slots = int(episodic_slots * 0.50)  # 50% agent speech (agent's own statements) - PRIORITIZED
+                selfmon_slots = episodic_slots - conversation_slots - speech_slots  # Remaining for self-monitoring
+                logger.info(f"[STRATIFIED] Allocated slots - Conv: {conversation_slots}, Self-mon: {selfmon_slots}, Speech: {speech_slots}")
+
+                # Get top entries from each category (by importance)
+                top_conversations = sorted(conversations, key=lambda e: e.importance, reverse=True)[:conversation_slots]
+                top_selfmon = sorted(self_monitoring, key=lambda e: e.importance, reverse=True)[:selfmon_slots]
+                top_speech = sorted(agent_speech, key=lambda e: e.importance, reverse=True)[:speech_slots]
+                logger.info(f"[STRATIFIED] Retrieved - Conv: {len(top_conversations)}, Self-mon: {len(top_selfmon)}, Speech: {len(top_speech)}")
+
+                # DEBUG: Log retrieved agent_speech content
+                for i, entry in enumerate(top_speech):
+                    preview = entry.user_text[:80].replace('\n', ' ')
+                    logger.info(f"[STRATIFIED-DEBUG] Speech[{i}]: imp={entry.importance:.4f}, text: {preview}...")
+
+                # Combine episodic (stratified) + working (recent)
+                episodic_stratified = top_conversations + top_selfmon + top_speech
+                entries = list(episodic_stratified) + working
                 entries = entries[-last_n:] if len(entries) > last_n else entries
             else:
                 # Other slices: get all and slice in Python
@@ -2968,6 +3017,92 @@ Analyze and output ONLY valid JSON:
             Dictionary of relationships
         """
         return self.consciousness.get_relationships()
+
+    def get_memory_stats(self) -> Dict:
+        """
+        Get memory system statistics.
+
+        Returns:
+            Dict with working_count, episodic_count, consolidations, etc.
+        """
+        if hasattr(self.conversation_context, 'hm'):
+            hm = self.conversation_context.hm
+            return {
+                'working_count': len(hm.working_memory),
+                'working_capacity': hm.working_capacity,
+                'episodic_count': len(hm.episodic_memory),
+                'episodic_capacity': hm.episodic_capacity,
+                'consolidations': hm.consolidations,
+                'evictions': hm.evictions,
+                'threshold': hm.surprise_threshold
+            }
+        return {
+            'working_count': len(self.conversation_context) if hasattr(self.conversation_context, '__len__') else 0,
+            'working_capacity': 0,
+            'episodic_count': 0,
+            'episodic_capacity': 0,
+            'consolidations': 0,
+            'evictions': 0,
+            'threshold': 0.3
+        }
+
+    def get_working_memory(self) -> List[Dict]:
+        """
+        Get working memory entries.
+
+        Returns:
+            List of memory entries currently in working memory
+        """
+        if hasattr(self.conversation_context, 'hm'):
+            hm = self.conversation_context.hm
+            return [self.conversation_context._entry_to_dict(entry) for entry in hm.working_memory]
+        return list(self.conversation_context) if hasattr(self.conversation_context, '__iter__') else []
+
+    def get_episodic_memory(self, limit: int = None) -> List[Dict]:
+        """
+        Get episodic memory entries, sorted by importance.
+
+        Args:
+            limit: Maximum number of entries to return (None = all)
+
+        Returns:
+            List of memory entries in episodic storage, sorted by importance (highest first)
+        """
+        if hasattr(self.conversation_context, 'hm'):
+            hm = self.conversation_context.hm
+            sorted_episodic = sorted(hm.episodic_memory, key=lambda e: e.importance, reverse=True)
+            if limit:
+                sorted_episodic = sorted_episodic[:limit]
+            return [self.conversation_context._entry_to_dict(entry) for entry in sorted_episodic]
+        return []
+
+    def search_memories(self, query: str, limit: int = 10) -> List[Dict]:
+        """
+        Search memories by text content.
+
+        Args:
+            query: Text to search for (case-insensitive)
+            limit: Maximum results
+
+        Returns:
+            List of matching memory entries
+        """
+        query_lower = query.lower()
+        results = []
+
+        # Search working memory
+        if hasattr(self.conversation_context, 'hm'):
+            hm = self.conversation_context.hm
+            for entry in hm.working_memory:
+                if query_lower in entry.user_text.lower():
+                    results.append(self.conversation_context._entry_to_dict(entry))
+
+            # Search episodic memory
+            for entry in hm.episodic_memory:
+                if query_lower in entry.user_text.lower():
+                    results.append(self.conversation_context._entry_to_dict(entry))
+
+        return results[:limit]
 
     def save_state(self, state_dir: str, max_history: int = 5):
         """

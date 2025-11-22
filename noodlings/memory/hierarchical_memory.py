@@ -51,7 +51,7 @@ class HierarchicalMemory:
         working_capacity: int = 20,
         episodic_capacity: int = 200,
         surprise_threshold: float = 0.5,
-        importance_decay: float = 0.95
+        importance_decay: float = 0.99  # Reduced from 0.95 for better long-term retention
     ):
         """
         Initialize hierarchical memory.
