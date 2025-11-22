@@ -29,6 +29,7 @@ import aiohttp
 
 from noodlings.api import NoodlingAgent as ConsilienceAgent
 from noodlings.metrics.consciousness_metrics import ConsciousnessMetrics
+from noodlings.memory.hierarchical_memory import HierarchicalMemory
 from noodlings.utils.facs_mapping import affect_to_facs, facs_to_description, format_facs_for_renderer
 from noodlings.utils.body_language_mapping import affect_to_body_language, body_language_to_description, format_body_language_for_renderer
 from llm_interface import OpenAICompatibleLLM
@@ -284,6 +285,256 @@ def apply_speech_filters(text: str, agent_id: str) -> str:
     return text
 
 
+class MemoryListWrapper:
+    """
+    Adapter that makes HierarchicalMemory quack like a list.
+
+    Provides backward compatibility for conversation_context operations
+    while using the sophisticated HierarchicalMemory backend.
+
+    Handles format translation between:
+    - Old format: dict with 'user', 'text', 'affect', 'surprise', 'timestamp', 'identity_salience', etc.
+    - New format: MemoryEntry with user_id, user_text, affect, surprise, timestamp, importance
+
+    Preserves extra fields (identity_salience, is_rumination, stage_direction) in side storage.
+    """
+
+    def __init__(self, hierarchical_memory: HierarchicalMemory, agent):
+        """
+        Initialize wrapper.
+
+        Args:
+            hierarchical_memory: The HierarchicalMemory instance to wrap
+            agent: The CMUSHConsilienceAgent instance (for step counter)
+        """
+        self.hm = hierarchical_memory
+        self.agent = agent
+        # Side storage for extra fields not in MemoryEntry
+        # Key: (timestamp, user_id, text_hash) -> dict of extra fields
+        self._extra_fields = {}
+
+    def _make_key(self, timestamp: float, user_id: str, text: str) -> tuple:
+        """Create unique key for extra fields storage."""
+        # Use hash of text to keep key size reasonable
+        import hashlib
+        text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()[:8]
+        return (timestamp, user_id, text_hash)
+
+    def append(self, entry_dict: Dict):
+        """
+        Add memory entry (old dict format).
+
+        Converts to MemoryEntry format and adds to HierarchicalMemory.
+        Stores extra fields in side storage.
+
+        Args:
+            entry_dict: Dict with keys: user, text, affect, surprise, timestamp, etc.
+        """
+        import mlx.core as mx
+
+        # Extract core fields
+        timestamp = entry_dict.get('timestamp', time.time())
+        user_id = entry_dict['user']
+        text = entry_dict['text']
+        affect = entry_dict['affect']
+        surprise = entry_dict.get('surprise', 0.0)
+
+        # Validate affect array - handle empty or malformed data
+        # Check for None first, then check length (avoid boolean evaluation of arrays)
+        if affect is None or (hasattr(affect, '__len__') and len(affect) == 0):
+            # Default neutral affect if missing or empty
+            affect = [0.0, 0.0, 0.0, 0.0, 0.0]
+            logger.warning(f"Empty affect vector in saved state for {user_id}, using neutral default")
+        elif hasattr(affect, '__len__') and len(affect) < 5:
+            # Pad to 5-D if incomplete
+            # Convert to list first if it's an array
+            import mlx.core as mx
+            if isinstance(affect, mx.array):
+                affect = affect.tolist()
+            affect = list(affect) + [0.0] * (5 - len(affect))
+            logger.warning(f"Incomplete affect vector ({len(entry_dict['affect'])}-D) for {user_id}, padded to 5-D")
+
+        # Convert affect to MLX array if needed
+        if not isinstance(affect, mx.array):
+            affect = mx.array(affect, dtype=mx.float32)
+
+        # Get phenomenal state from agent (if available)
+        try:
+            phenomenal_state = self.agent.consciousness.get_state()
+        except:
+            phenomenal_state = {}
+
+        # Get step counter from agent
+        step = self.agent.response_count
+
+        # Determine if this is a response (agent's own message)
+        response = text if user_id == self.agent.agent_id else None
+
+        # Add to hierarchical memory
+        self.hm.add(
+            timestamp=timestamp,
+            step=step,
+            user_id=user_id,
+            user_text=text,
+            affect=affect,
+            phenomenal_state=phenomenal_state,
+            surprise=surprise,
+            response=response
+        )
+
+        # Store extra fields
+        key = self._make_key(timestamp, user_id, text)
+        extra = {}
+        if 'identity_salience' in entry_dict:
+            extra['identity_salience'] = entry_dict['identity_salience']
+        if 'is_rumination' in entry_dict:
+            extra['is_rumination'] = entry_dict['is_rumination']
+        if 'stage_direction' in entry_dict:
+            extra['stage_direction'] = entry_dict['stage_direction']
+        if 'stage_motivation' in entry_dict:
+            extra['stage_motivation'] = entry_dict['stage_motivation']
+        if 'is_self_monitor' in entry_dict:
+            extra['is_self_monitor'] = entry_dict['is_self_monitor']
+
+        if extra:
+            self._extra_fields[key] = extra
+
+    def _entry_to_dict(self, entry) -> Dict:
+        """
+        Convert MemoryEntry back to old dict format.
+
+        Args:
+            entry: MemoryEntry instance
+
+        Returns:
+            Dict in old format with extra fields restored
+        """
+        import mlx.core as mx
+
+        # Convert affect to list
+        if isinstance(entry.affect, mx.array):
+            affect_list = entry.affect.tolist()
+            # Handle squeezed arrays
+            if isinstance(affect_list, list) and len(affect_list) > 0:
+                if isinstance(affect_list[0], list):
+                    affect_list = affect_list[0]
+        else:
+            affect_list = list(entry.affect)
+
+        # Base dict
+        result = {
+            'user': entry.user_id,
+            'text': entry.user_text,
+            'affect': affect_list,
+            'surprise': entry.surprise,
+            'timestamp': entry.timestamp
+        }
+
+        # Restore extra fields
+        key = self._make_key(entry.timestamp, entry.user_id, entry.user_text)
+        if key in self._extra_fields:
+            result.update(self._extra_fields[key])
+        else:
+            # Default values if not found
+            result['identity_salience'] = 0.0
+
+        return result
+
+    def __getitem__(self, key):
+        """
+        Support indexing and slicing.
+
+        Args:
+            key: int index or slice object
+
+        Returns:
+            Single dict (if int) or list of dicts (if slice)
+        """
+        if isinstance(key, slice):
+            # Slicing: retrieve from working memory
+            # Convert slice to last_n
+            if key.start is None and key.stop is None:
+                # [:] means all
+                entries = self.hm.retrieve_working(last_n=None)
+            elif key.start is not None and key.start < 0:
+                # [-N:] means last N
+                last_n = abs(key.start)
+                entries = self.hm.retrieve_working(last_n=last_n)
+            else:
+                # Other slices: get all and slice in Python
+                entries = self.hm.retrieve_working(last_n=None)
+                entries = entries[key]
+
+            # Convert to dicts
+            return [self._entry_to_dict(e) for e in entries]
+        else:
+            # Single index
+            entries = self.hm.retrieve_working(last_n=None)
+            if key < 0:
+                key = len(entries) + key
+            if key < 0 or key >= len(entries):
+                raise IndexError("list index out of range")
+            return self._entry_to_dict(entries[key])
+
+    def __len__(self) -> int:
+        """Return number of items in working memory."""
+        return len(self.hm.working_memory)
+
+    def __iter__(self):
+        """Support iteration and list comprehensions."""
+        entries = self.hm.retrieve_working(last_n=None)
+        for entry in entries:
+            yield self._entry_to_dict(entry)
+
+    def clear(self):
+        """Clear all memories."""
+        self.hm.working_memory.clear()
+        self.hm.episodic_memory.clear()
+        self._extra_fields.clear()
+        logger.info("Memory cleared (working + episodic)")
+
+    def trim(self, max_size: int):
+        """
+        Trim working memory to max size.
+
+        Note: This is largely a no-op since HierarchicalMemory
+        automatically manages capacity via deque maxlen.
+
+        Args:
+            max_size: Maximum working memory size
+        """
+        # HierarchicalMemory already handles this via deque(maxlen=...)
+        # Just log for observability
+        current_size = len(self.hm.working_memory)
+        if current_size > max_size:
+            logger.debug(f"Trim requested to {max_size}, current size {current_size} (managed by HierarchicalMemory)")
+
+    def load_from_list(self, memory_list: List[Dict]):
+        """
+        Load memories from list of dicts (for state restoration).
+
+        Args:
+            memory_list: List of memory dicts in old format
+        """
+        self.clear()
+        for entry_dict in memory_list:
+            self.append(entry_dict)
+        logger.info(f"Loaded {len(memory_list)} memories from saved state")
+
+    def copy(self) -> List[Dict]:
+        """
+        Return a shallow copy of working memory as list of dicts.
+
+        Used by session profiler and other systems that need
+        a snapshot of current conversation context.
+
+        Returns:
+            List of memory dicts in old format
+        """
+        entries = self.hm.retrieve_working(last_n=None)
+        return [self._entry_to_dict(e) for e in entries]
+
+
 class CMUSHConsilienceAgent:
     """
     Adapter: Consilience consciousness <-> cMUSH world.
@@ -393,7 +644,20 @@ class CMUSHConsilienceAgent:
 
         # cMUSH-specific state
         self.current_room = None
-        self.conversation_context = []
+
+        # Initialize HierarchicalMemory with wrapped interface
+        memory_config = config.get('memory_windows', {})
+        working_capacity = memory_config.get('working_capacity', 20)
+        episodic_capacity = memory_config.get('episodic_capacity', 200)
+        hierarchical_memory = HierarchicalMemory(
+            working_capacity=working_capacity,
+            episodic_capacity=episodic_capacity,
+            surprise_threshold=0.5,
+            importance_decay=0.95
+        )
+        self.conversation_context = MemoryListWrapper(hierarchical_memory, self)
+        logger.info(f"[{agent_id}] Initialized HierarchicalMemory: working={working_capacity}, episodic={episodic_capacity}")
+
         self.last_response_time = 0.0
         self.response_count = 0
         self.following = None  # User ID we're currently following (if any)
@@ -1471,10 +1735,11 @@ Analyze and output ONLY valid JSON:
 
             self.conversation_context.append(context_entry)
 
-            # Trim context (use configurable threshold)
+            # Trim context (HierarchicalMemory manages this automatically via deque maxlen)
+            # This call is now largely a no-op but kept for observability
             trim_threshold = self.config.get('memory_windows', {}).get('affect_trim_threshold', 20)
             if len(self.conversation_context) > trim_threshold:
-                self.conversation_context = self.conversation_context[-trim_threshold:]
+                self.conversation_context.trim(trim_threshold)
 
             # Save state handled by periodic auto-save in AgentManager
             # (Incremental save after every event would be too expensive)
@@ -2743,7 +3008,9 @@ Analyze and output ONLY valid JSON:
             self.agent_name = agent_state.get('agent_name', self.agent_name)
             self.agent_description = agent_state.get('agent_description', self.agent_description)
             self.current_room = agent_state.get('current_room')
-            self.conversation_context = agent_state.get('conversation_context', [])
+            # Load conversation context using wrapper method
+            saved_context = agent_state.get('conversation_context', [])
+            self.conversation_context.load_from_list(saved_context)
             self.last_response_time = agent_state.get('last_response_time', 0.0)
             self.response_count = agent_state.get('response_count', 0)
             # Don't override config passed to __init__
@@ -2806,7 +3073,7 @@ Analyze and output ONLY valid JSON:
     def reset(self):
         """Reset agent to initial state."""
         self.consciousness.reset()
-        self.conversation_context = []
+        self.conversation_context.clear()
         self.last_response_time = 0.0
         self.response_count = 0
         logger.info(f"Agent reset: {self.agent_id}")
