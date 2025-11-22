@@ -123,6 +123,48 @@ class Prim:
         self.room = room
         self.active = True
         self.transform = Transform(prim_id)
+        self._components: Dict[str, Any] = {}  # Component cache
+
+    def GetComponent(self, component_name: str) -> Optional[Any]:
+        """
+        Get component by name (Unity-style).
+
+        Args:
+            component_name: Component type name ("Noodle", "Transform", etc.)
+
+        Returns:
+            Component instance or None if not found
+
+        Example:
+            noodle = prim.GetComponent("Noodle")
+            affect = noodle.GetCurrentAffect()
+        """
+        # Check cache first
+        if component_name in self._components:
+            return self._components[component_name]
+
+        # Create component on demand
+        if component_name == "Transform":
+            return self.transform
+
+        elif component_name == "Noodle":
+            # Only Noodling agents have Noodle component
+            if self.type == "noodling" and self.id.startswith("agent_"):
+                try:
+                    from noodlings_scripting.noodle_component import NoodleComponent
+                    comp = NoodleComponent(self.id)
+                    self._components["Noodle"] = comp
+                    return comp
+                except Exception as e:
+                    Debug.LogError(f"Error creating Noodle component: {e}")
+                    return None
+            else:
+                Debug.LogWarning(f"{self.id} is not a Noodling - no Noodle component")
+                return None
+
+        else:
+            Debug.LogWarning(f"Unknown component type: {component_name}")
+            return None
 
     def SetActive(self, active: bool):
         """Enable/disable prim."""

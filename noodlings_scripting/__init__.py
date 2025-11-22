@@ -22,6 +22,7 @@ Date: November 18, 2025
 from .noodle_script import NoodleScript
 from .noodlings_api import Noodlings, Debug, Vector3, Transform, Prim
 from .script_executor import ScriptExecutor
+from .noodle_component import NoodleComponent
 
 __version__ = "1.0.0"
 
@@ -33,4 +34,5 @@ __all__ = [
     'Vector3',
     'Transform',
     'Prim',
+    'NoodleComponent',
 ]

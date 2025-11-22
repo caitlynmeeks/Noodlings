@@ -35,7 +35,8 @@ from noodlings_scripting import (
     NoodleScript,
     Noodlings,
     Debug,
-    Prim
+    Prim,
+    NoodleComponent
 )
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,9 @@ class ScriptManager:
     - Agent manager ↔ Noodlings.Rez()
     - Event system ↔ Script callbacks
     """
+
+    # Global registry of NoodleComponent instances for event firing
+    _noodle_components: Dict[str, Any] = {}
 
     def __init__(self, world, agent_manager):
         """
@@ -123,6 +127,18 @@ class ScriptManager:
             send_message_impl=send_message_impl,
             broadcast_impl=broadcast_impl
         )
+
+        # NoodleComponent.GetPhenomenalState() backend
+        def get_state_impl(agent_id: str) -> Optional[Dict[str, Any]]:
+            """Get phenomenal state for agent."""
+            agent = script_mgr.agent_manager.agents.get(agent_id)
+            if agent:
+                return agent.get_phenomenal_state()
+            else:
+                logger.warning(f"Agent not found: {agent_id}")
+                return None
+
+        NoodleComponent.SetBackend(get_state_impl=get_state_impl)
 
         # Debug logging callback
         def log_callback(level: str, message: str):
@@ -274,6 +290,35 @@ class ScriptManager:
         logger.info(f"📢 Script broadcasting to {room_id}: {message}")
         # TODO: Broadcast via server
         # For now, just log it
+
+    # ===== NOODLE COMPONENT REGISTRY =====
+
+    @staticmethod
+    def get_noodle_component(agent_id: str):
+        """
+        Get or create NoodleComponent for an agent.
+
+        This is called by agent_bridge to fire events to scripts.
+
+        Args:
+            agent_id: Agent identifier (e.g., "agent_servnak")
+
+        Returns:
+            NoodleComponent instance (cached)
+        """
+        if agent_id not in ScriptManager._noodle_components:
+            from noodlings_scripting.noodle_component import NoodleComponent
+            ScriptManager._noodle_components[agent_id] = NoodleComponent(agent_id)
+            logger.debug(f"Created NoodleComponent for {agent_id}")
+
+        return ScriptManager._noodle_components[agent_id]
+
+    @staticmethod
+    def clear_noodle_component(agent_id: str):
+        """Remove NoodleComponent when agent is destroyed."""
+        if agent_id in ScriptManager._noodle_components:
+            del ScriptManager._noodle_components[agent_id]
+            logger.debug(f"Cleared NoodleComponent for {agent_id}")
 
     # ===== EVENT ROUTING =====
 

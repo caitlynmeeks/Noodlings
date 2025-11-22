@@ -172,6 +172,10 @@ class CMUSHServer:
         self.autonomous_poll_interval = self.config.get('agent', {}).get('autonomous_poll_interval', 10)
         self.autonomous_poll_task = None
 
+        # Affect state broadcasting (for brain indicator UI)
+        self.affect_broadcast_interval = 2.0  # Broadcast every 2 seconds
+        self.affect_broadcast_task = None
+
         # NoodleScope 2.0 components
         self.session_profiler = None
         self.kimmie = None
@@ -978,6 +982,47 @@ class CMUSHServer:
             except Exception as e:
                 logger.error(f"Error in autonomous event loop: {e}", exc_info=True)
 
+    async def affect_broadcast_loop(self):
+        """
+        Periodically broadcast agent affect states to all connected clients.
+        This updates the brain indicator UI with real-time 5-D affect vectors.
+        """
+        while True:
+            await asyncio.sleep(self.affect_broadcast_interval)
+
+            try:
+                # Get all active agents
+                for agent_id, agent in self.agent_manager.agents.items():
+                    try:
+                        # Get phenomenal state
+                        state = agent.get_phenomenal_state()
+
+                        # Extract 5-D affect vector from fast state
+                        fast_state = state.get('fast')  # Correct key: 'fast' not 'fast_state'
+                        if fast_state is not None and len(fast_state) >= 5:
+                            # fast_state is 16-D, first 5 are affect: [valence, arousal, fear, sorrow, boredom, ...]
+                            affect_vector = fast_state[:5].tolist() if hasattr(fast_state, 'tolist') else list(fast_state[:5])
+
+                            # Broadcast to all connected clients
+                            state_message = {
+                                'type': 'agent_state',
+                                'agent_id': agent_id,
+                                'affect': affect_vector
+                            }
+
+                            for ws in list(self.connections.keys()):
+                                try:
+                                    await ws.send(json.dumps(state_message))
+                                except Exception:
+                                    pass  # Client disconnected, will be cleaned up elsewhere
+
+                    except Exception as e:
+                        logger.debug(f"Error broadcasting state for {agent_id}: {e}")
+                        continue
+
+            except Exception as e:
+                logger.error(f"Error in affect broadcast loop: {e}", exc_info=True)
+
     async def start(self):
         """Start the cMUSH server."""
         # Initialize async components
@@ -988,6 +1033,9 @@ class CMUSHServer:
 
         # Start autonomous event polling task
         self.autonomous_poll_task = asyncio.create_task(self.autonomous_event_loop())
+
+        # Start affect state broadcasting task
+        self.affect_broadcast_task = asyncio.create_task(self.affect_broadcast_loop())
 
         # Start NoodleScope API server
         if self.api_server:
@@ -1046,6 +1094,8 @@ class CMUSHServer:
             self.save_task.cancel()
         if self.autonomous_poll_task:
             self.autonomous_poll_task.cancel()
+        if self.affect_broadcast_task:
+            self.affect_broadcast_task.cancel()
 
         # Export session profiler data
         if self.session_profiler:

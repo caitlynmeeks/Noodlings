@@ -1391,6 +1391,15 @@ Analyze and output ONLY valid JSON:
 
             logger.debug(f"Normalized affect: {affect}")
 
+            # Fire OnAffectChanged event to scripts
+            try:
+                from script_manager import ScriptManager
+                component = ScriptManager.get_noodle_component(self.agent_id)
+                affect_vector = list(affect[:5])  # First 5 dims are affect
+                component._fire_affect_changed(affect_vector)
+            except Exception:
+                pass  # Scripting system may not be initialized
+
             # 1c. NAME-BASED MEMORY TRIGGERING
             # Search for names in text and retrieve associated memories
             triggered_memories = self._trigger_memories_by_names(text)
@@ -1525,6 +1534,14 @@ Analyze and output ONLY valid JSON:
             surprise_threshold = state.get('surprise_threshold', self.config.get('surprise_threshold', 0.3))
             if state['surprise'] > surprise_threshold * 1.5:
                 await self._log_to_noodlescope('surprise_spike', f"High surprise: {state['surprise']:.3f}")
+
+                # Fire OnSurpriseSpike event to scripts
+                try:
+                    from script_manager import ScriptManager
+                    component = ScriptManager.get_noodle_component(self.agent_id)
+                    component._fire_surprise_spike(state['surprise'])
+                except Exception:
+                    pass
 
             # FACS: Generate facial expression based on affect
             # DEBUG: Log affect values to diagnose anger/stomp issue
@@ -2197,6 +2214,14 @@ Analyze and output ONLY valid JSON:
 
             logger.info(f"Agent {self.agent_id} responding (identity_salience={identity_salience:.2f}): {response_text}")
 
+            # Fire OnSpeech event to scripts
+            try:
+                from script_manager import ScriptManager
+                component = ScriptManager.get_noodle_component(self.agent_id)
+                component._fire_speech(response_text)
+            except Exception:
+                pass
+
             # Send to NoodleScope with identity salience
             phenomenal_state_full = state.get('phenomenal_state', [])
             await self._send_to_noodlescope(phenomenal_state_full, state['surprise'], identity_salience)
@@ -2348,6 +2373,14 @@ Analyze and output ONLY valid JSON:
             # Log thought with salience
             logger.info(f"Agent {self.agent_id} ruminating (identity_salience={identity_salience:.2f}): {thought_text}")
             logger.info(f"💭 {self.agent_name} thinking (surprise={state['surprise']:.3f}): '{thought_text[:50]}...'")
+
+            # Fire OnThought event to scripts
+            try:
+                from script_manager import ScriptManager
+                component = ScriptManager.get_noodle_component(self.agent_id)
+                component._fire_thought(thought_text)
+            except Exception:
+                pass
 
             # Phase 6: Self-monitoring (if enabled and conditions met)
             await self._trigger_self_monitoring(thought_text, state)

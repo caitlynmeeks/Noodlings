@@ -1,0 +1,83 @@
+{
+  "agent_id": "agent_fred_rogers",
+  "agent_name": "Fred_rogers",
+  "agent_description": "A Noodling consciousness agent",
+  "current_room": "room_000",
+  "conversation_context": [],
+  "last_response_time": 0.0,
+  "response_count": 0,
+  "config": {
+    "response_cooldown": 2.0,
+    "surprise_threshold": 0.0001,
+    "memory_capacity": 100,
+    "max_agents": 10,
+    "autonomous_cognition": {
+      "enabled": true,
+      "wake_interval": 60,
+      "min_speech_interval": 180,
+      "speech_urgency_threshold": 0.75,
+      "max_thoughts_buffer": 50
+    },
+    "filesystem": {
+      "enabled": true,
+      "max_file_size": 1048576,
+      "max_total_storage": 104857600,
+      "command_timeout": 5
+    },
+    "messaging": {
+      "enabled": true,
+      "max_message_size": 10000,
+      "inbox_retention_days": 30
+    },
+    "intuition_receiver": {
+      "enabled": true,
+      "model": "qwen/qwen3-4b-2507",
+      "timeout": 5,
+      "social_expectations": {
+        "enabled": true,
+        "timeout": 5,
+        "expectation_threshold": 0.3,
+        "intensity_multiplier": 1.0,
+        "question_threshold": 0.8,
+        "gesture_threshold": 0.6,
+        "greeting_threshold": 0.4,
+        "distress_threshold": 0.3,
+        "turn_threshold": 0.5
+      }
+    },
+    "personalities": {
+      "agent_desobelle": {
+        "extraversion": 0.35,
+        "emotional_sensitivity": 0.75,
+        "curiosity": 0.7,
+        "spontaneity": 0.4,
+        "reflection_depth": 0.8,
+        "social_orientation": 0.6
+      },
+      "agent_callie": {
+        "extraversion": 0.7,
+        "emotional_sensitivity": 0.55,
+        "curiosity": 0.65,
+        "spontaneity": 0.75,
+        "reflection_depth": 0.5,
+        "social_orientation": 0.8
+      }
+    },
+    "appetites": {
+      "curiosity": 0.3,
+      "status": 0.1,
+      "mastery": 0.2,
+      "novelty": 0.3,
+      "safety": 0.2,
+      "social_bond": 0.4,
+      "comfort": 0.2,
+      "autonomy": 0.2
+    },
+    "rumination_frequency": 0.7,
+    "addressed_speech_chance": 0.8,
+    "question_speech_chance": 0.3,
+    "unaddressed_speech_chance": 0.1
+  },
+  "phenomenal_state": [],
+  "timestamp": "2025-11-20T01:02:47.918686"
+}

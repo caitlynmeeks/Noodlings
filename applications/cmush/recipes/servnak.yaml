@@ -108,7 +108,7 @@ conscience:
 
 # LLM generation constraints
 constraints:
-  max_tokens: 250  # Needs space for enthusiastic explanations
+  max_tokens: 400  # Increased - SERVNAK needs space for elaborate robotic eloquence
   temperature: 0.75  # Precise but warm and enthusiastic
   enforce_action_format: false
   response_cooldown: 6.0  # Helpful but not overwhelming

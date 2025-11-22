@@ -1101,7 +1101,7 @@ Reply with ONLY a number 0-10, nothing else."""
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": temperature,
-            "max_tokens": 400
+            "max_tokens": 600  # Increased for verbose characters (SERVNAK, etc.)
         }
 
         try:
@@ -1331,7 +1331,7 @@ What are you thinking? (1-2 sentences, stream of consciousness, not spoken)"""
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.8,  # Slightly higher for more varied thoughts
-            "max_tokens": 200   # Increased for verbose characters like Servnak
+            "max_tokens": 300   # Increased for verbose characters (SERVNAK, etc.)
         }
 
         try:
