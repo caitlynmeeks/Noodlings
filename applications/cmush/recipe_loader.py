@@ -50,17 +50,41 @@ class AgentRecipe:
     # Enlightenment (consciousness self-awareness)
     enlightenment: bool  # Can agent discuss its own phenomenal states?
 
+    # Cognitive Components (Phase 7: Cognitive Manifold Architecture)
+    cognitive_components: Optional[Dict[str, Any]] = None  # Component specifications
+
+    # Character voice configuration
+    character_voice: Optional[Dict[str, Any]] = None  # Voice pattern and vocalizations
+
+    # Pronouns
+    pronouns: Optional[str] = None  # e.g., "she/her", "he/him", "they/them"
+
+    # Appearance description
+    appearance: Optional[str] = None
+
+    # Spawn message
+    spawn_message: Optional[str] = None
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AgentRecipe':
         """Create recipe from parsed YAML dict."""
         constraints = data.get('constraints', {})
         llm_config = data.get('llm', {})
 
+        # Handle new llm_override format (preferred)
+        llm_override = data.get('llm_override', {})
+        if llm_override:
+            llm_provider = llm_override.get('provider')
+            llm_model = llm_override.get('model')
+        else:
+            llm_provider = llm_config.get('provider')
+            llm_model = llm_config.get('model')
+
         return cls(
             name=data.get('name', 'Unknown'),
             species=data.get('species', 'noodling'),
             description=data.get('description', ''),
-            personality=data.get('personality', {}),
+            personality=data.get('personality', data.get('personalities', {}).get(f"agent_{data.get('name', 'unknown').lower()}", {})),
             appetites=data.get('appetites', {}),
             identity_prompt=data.get('identity_prompt', ''),
             language_mode=data.get('language_mode', 'verbal'),
@@ -68,9 +92,14 @@ class AgentRecipe:
             temperature=constraints.get('temperature', 0.7),
             enforce_action_format=constraints.get('enforce_action_format', False),
             response_cooldown=constraints.get('response_cooldown', 2.0),
-            llm_provider=llm_config.get('provider'),  # Optional: per-agent provider
-            llm_model=llm_config.get('model'),        # Optional: per-agent model
-            enlightenment=data.get('enlightenment', False)  # Default: immersed in character
+            llm_provider=llm_provider,  # Optional: per-agent provider
+            llm_model=llm_model,        # Optional: per-agent model
+            enlightenment=data.get('enlightenment', False),  # Default: immersed in character
+            cognitive_components=data.get('cognitive_components'),
+            character_voice=data.get('character_voice'),
+            pronouns=data.get('pronouns'),
+            appearance=data.get('appearance'),
+            spawn_message=data.get('spawn_message')
         )
 
     def get_appetite_baselines(self) -> List[float]:

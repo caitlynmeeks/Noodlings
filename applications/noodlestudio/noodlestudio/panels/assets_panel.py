@@ -28,6 +28,7 @@ class AssetsPanel(QDockWidget):
     """
 
     assetSelected = pyqtSignal(str, str)  # (asset_type, asset_name)
+    agentRezzed = pyqtSignal(str)  # Signal when agent is rezzed (triggers hierarchy refresh)
 
     def __init__(self, parent=None):
         super().__init__("Assets", parent)
@@ -116,14 +117,28 @@ class AssetsPanel(QDockWidget):
         self.stages_node = QTreeWidgetItem(self.tree, ["Stages"])
         self.stages_node.setExpanded(False)
 
-        # Load Noodlings
+        # Load Noodlings from project assets
         noodlings_path = self.project_manager.get_assets_path("Noodlings")
         if os.path.exists(noodlings_path):
             for filename in sorted(os.listdir(noodlings_path)):
                 if filename.endswith(".json"):
                     name = filename.replace(".json", "")
                     item = QTreeWidgetItem(self.noodlings_node, [name])
-                    item.setData(0, Qt.ItemDataRole.UserRole, ("noodling", name))
+                    item.setData(0, Qt.ItemDataRole.UserRole, ("noodling", name, "project"))
+
+        # Also load Noodlings from cmush/recipes (YAML recipes)
+        cmush_recipes_path = os.path.join(
+            os.path.dirname(__file__),
+            "../../../cmush/recipes"
+        )
+        if os.path.exists(cmush_recipes_path):
+            for filename in sorted(os.listdir(cmush_recipes_path)):
+                if filename.endswith(".yaml"):
+                    name = filename.replace(".yaml", "")
+                    # Add with badge to show it's from recipes
+                    item = QTreeWidgetItem(self.noodlings_node, [f"{name} (recipe)"])
+                    item.setData(0, Qt.ItemDataRole.UserRole, ("noodling", name, "recipe"))
+                    item.setForeground(0, Qt.GlobalColor.cyan)  # Color code recipes
 
         # Load Ensembles
         ensembles_path = self.project_manager.get_assets_path("Ensembles")
@@ -161,7 +176,11 @@ class AssetsPanel(QDockWidget):
         """Handle item click."""
         data = item.data(0, Qt.ItemDataRole.UserRole)
         if data:
-            asset_type, asset_name = data
+            if len(data) == 3:
+                asset_type, asset_name, source = data
+            else:
+                asset_type, asset_name = data
+                source = "unknown"
             self.assetSelected.emit(asset_type, asset_name)
 
     def _show_context_menu(self, position):
@@ -175,21 +194,38 @@ class AssetsPanel(QDockWidget):
             # Clicked on category header
             return
 
-        asset_type, asset_name = data
+        # Handle both 2-tuple and 3-tuple data formats
+        if len(data) == 3:
+            asset_type, asset_name, source = data
+        else:
+            asset_type, asset_name = data
+            source = "project"
 
         menu = QMenu(self)
 
         # Common actions for all assets
         if asset_type == "noodling":
-            spawn_action = QAction("Rez in World", self)
-            spawn_action.triggered.connect(lambda: self._spawn_noodling(asset_name))
-            menu.addAction(spawn_action)
+            # PRIMARY ACTION: Add to Hierarchy
+            add_action = QAction("Add to Hierarchy", self)
+            add_action.triggered.connect(lambda: self._add_to_hierarchy(asset_name, source))
+            menu.addAction(add_action)
+
+            # Alternative: Rez in World (same thing, different wording)
+            rez_action = QAction("Rez in World", self)
+            rez_action.triggered.connect(lambda: self._add_to_hierarchy(asset_name, source))
+            menu.addAction(rez_action)
 
             menu.addSeparator()
 
+            # Edit recipe
             edit_action = QAction("Edit Recipe...", self)
-            edit_action.triggered.connect(lambda: self._edit_noodling(asset_name))
+            edit_action.triggered.connect(lambda: self._edit_noodling(asset_name, source))
             menu.addAction(edit_action)
+
+            # View details
+            view_action = QAction("View Details...", self)
+            view_action.triggered.connect(lambda: self._view_noodling(asset_name, source))
+            menu.addAction(view_action)
 
             duplicate_action = QAction("Duplicate", self)
             duplicate_action.setEnabled(False)  # TODO
@@ -197,7 +233,7 @@ class AssetsPanel(QDockWidget):
 
             menu.addSeparator()
 
-            delete_action = QAction("De-Rez", self)
+            delete_action = QAction("Delete from Assets", self)
             delete_action.setEnabled(False)  # TODO
             menu.addAction(delete_action)
 
@@ -224,26 +260,50 @@ class AssetsPanel(QDockWidget):
 
         menu.exec(self.tree.viewport().mapToGlobal(position))
 
-    def _spawn_noodling(self, name):
-        """Rez a noodling in the world."""
-        if not self.project_manager or not self.project_manager.is_project_open():
-            QMessageBox.warning(self, "No Project", "Open a project first.")
-            return
+    def _add_to_hierarchy(self, name, source="project"):
+        """
+        Add a noodling to the hierarchy (spawn in world).
 
+        Args:
+            name: Recipe name
+            source: "project" or "recipe" (determines where to load from)
+        """
         try:
             import json
+            import yaml
             from datetime import datetime
 
-            # Load recipe from project
-            noodlings_path = self.project_manager.get_assets_path("Noodlings")
-            recipe_path = os.path.join(noodlings_path, f"{name}.json")
+            # Load recipe based on source
+            if source == "recipe":
+                # Load from cmush/recipes (YAML)
+                recipes_path = os.path.join(
+                    os.path.dirname(__file__),
+                    "../../../cmush/recipes"
+                )
+                recipe_path = os.path.join(recipes_path, f"{name}.yaml")
 
-            if not os.path.exists(recipe_path):
-                QMessageBox.warning(self, "Recipe Not Found", f"Can't find recipe: {name}.json")
-                return
+                if not os.path.exists(recipe_path):
+                    QMessageBox.warning(self, "Recipe Not Found", f"Can't find recipe: {name}.yaml")
+                    return
 
-            with open(recipe_path, 'r') as f:
-                recipe = json.load(f)
+                with open(recipe_path, 'r') as f:
+                    recipe = yaml.safe_load(f)
+
+            else:
+                # Load from project assets (JSON)
+                if not self.project_manager or not self.project_manager.is_project_open():
+                    QMessageBox.warning(self, "No Project", "Open a project first.")
+                    return
+
+                noodlings_path = self.project_manager.get_assets_path("Noodlings")
+                recipe_path = os.path.join(noodlings_path, f"{name}.json")
+
+                if not os.path.exists(recipe_path):
+                    QMessageBox.warning(self, "Recipe Not Found", f"Can't find recipe: {name}.json")
+                    return
+
+                with open(recipe_path, 'r') as f:
+                    recipe = json.load(f)
 
             # Generate agent ID
             agent_id = f"agent_{name.lower()}"
@@ -263,7 +323,7 @@ class AssetsPanel(QDockWidget):
                 QMessageBox.warning(self, "Already Rezzed", f"{name} is already in the world.")
                 return
 
-            # Create agent entry
+            # Create agent entry with all required fields for server
             agent_entry = {
                 "name": recipe.get("name", name),
                 "species": recipe.get("species", "human"),
@@ -272,34 +332,130 @@ class AssetsPanel(QDockWidget):
                 "personality": recipe.get("personality", ""),
                 "voice": recipe.get("voice", ""),
                 "perspective": recipe.get("perspective", ""),
+                "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+                "current_room": "room_000",
+                "inventory": [],
                 "created": datetime.now().isoformat()
             }
 
             # Add to agents
             agents[agent_id] = agent_entry
 
-            # Save
+            # Save to agents.json (persistence)
             with open(agents_path, 'w') as f:
                 json.dump(agents, f, indent=2)
 
             print(f"Rezzed {name} as {agent_id}")
 
+            # Send @rez command to running server via HTTP API
+            try:
+                import requests
+                api_url = "http://localhost:8081/api/command"  # Command endpoint
+                payload = {
+                    "user_id": "user_caity",  # Default user
+                    "command": f"@rez {name}"
+                }
+                response = requests.post(api_url, json=payload, timeout=5)
+
+                if response.status_code == 200:
+                    result = response.json()
+                    if result.get('success'):
+                        print(f"✓ Rez command sent to server successfully")
+                        print(f"  Server response: {result.get('output', '')[:100]}")
+                    else:
+                        print(f"⚠ Server rez failed: {result.get('error', 'Unknown error')}")
+                else:
+                    print(f"⚠ Server rez command failed: HTTP {response.status_code}")
+            except Exception as cmd_error:
+                print(f"⚠ Could not send rez command to server: {cmd_error}")
+                print(f"  Agent added to agents.json but may need manual @rez")
+
+            # Emit signal for hierarchy refresh
+            self.agentRezzed.emit(agent_id)
+
+            # Success message (no need to mention refresh - auto-refresh handles it)
             QMessageBox.information(
                 self,
                 "Rezzed!",
-                f"{name} has been rezzed into noodleMUSH.\n\nRefresh Scene Hierarchy to see them."
+                f"{name} has been rezzed into noodleMUSH.\n\n{name} should appear in Scene Hierarchy momentarily!"
             )
 
         except Exception as e:
             QMessageBox.critical(self, "Rez Failed", f"Error: {e}")
 
-    def _edit_noodling(self, name):
+    def _edit_noodling(self, name, source="project"):
         """Edit noodling recipe (placeholder)."""
         QMessageBox.information(
             self,
             "Edit Recipe",
-            f"Feature in development\n\nWill open recipe editor for {name}."
+            f"Feature in development\n\nWill open recipe editor for {name} (from {source})."
         )
+
+    def _view_noodling(self, name, source="project"):
+        """View noodling recipe details."""
+        try:
+            import json
+            import yaml
+
+            # Load recipe based on source
+            if source == "recipe":
+                recipes_path = os.path.join(
+                    os.path.dirname(__file__),
+                    "../../../cmush/recipes"
+                )
+                recipe_path = os.path.join(recipes_path, f"{name}.yaml")
+
+                if not os.path.exists(recipe_path):
+                    QMessageBox.warning(self, "Not Found", f"Recipe file not found: {name}.yaml")
+                    return
+
+                with open(recipe_path, 'r') as f:
+                    recipe = yaml.safe_load(f)
+            else:
+                if not self.project_manager or not self.project_manager.is_project_open():
+                    QMessageBox.warning(self, "No Project", "Open a project first.")
+                    return
+
+                noodlings_path = self.project_manager.get_assets_path("Noodlings")
+                recipe_path = os.path.join(noodlings_path, f"{name}.json")
+
+                if not os.path.exists(recipe_path):
+                    QMessageBox.warning(self, "Not Found", f"Recipe not found: {name}.json")
+                    return
+
+                with open(recipe_path, 'r') as f:
+                    recipe = json.load(f)
+
+            # Build details display
+            details = f"Name: {recipe.get('name', name)}\n"
+            details += f"Species: {recipe.get('species', 'unknown')}\n"
+            details += f"Pronouns: {recipe.get('pronouns', 'unknown')}\n\n"
+            details += f"{recipe.get('description', 'No description')}\n\n"
+
+            # Show cognitive components if present
+            if recipe.get('cognitive_components'):
+                details += "Cognitive Components:\n"
+                for comp_name, comp_data in recipe['cognitive_components'].items():
+                    comp_type = comp_data.get('type', 'unknown')
+                    details += f"  - {comp_name}: {comp_type}\n"
+                details += "\n"
+
+            # Show personality if present
+            personality = recipe.get('personalities', {}).get(f"agent_{name.lower()}")
+            if personality:
+                details += "Personality:\n"
+                for trait, value in personality.items():
+                    details += f"  - {trait}: {value}\n"
+                details += "\n"
+
+            QMessageBox.information(
+                self,
+                f"Recipe: {name}",
+                details
+            )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to load recipe:\n{e}")
 
     def _load_ensemble(self, filename):
         """Load an ensemble to the stage (rez all agents)."""

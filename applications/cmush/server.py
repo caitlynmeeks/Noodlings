@@ -301,8 +301,9 @@ class CMUSHServer:
     async def load_agents(self):
         """Load all agents from world state."""
         for agent_id, agent_data in self.world.get_all_agents().items():
-            checkpoint_path = agent_data['checkpoint_path']
-            current_room = agent_data['current_room']
+            # Get checkpoint path - use default if not specified
+            checkpoint_path = agent_data.get('checkpoint_path', '../../consilience_core/checkpoints_phase4/best_checkpoint.npz')
+            current_room = agent_data.get('current_room', 'room_000')
             config = agent_data.get('config', {})
 
             # Phase 6: Inject self-monitoring config from global config.yaml

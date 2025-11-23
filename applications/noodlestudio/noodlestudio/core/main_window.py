@@ -100,12 +100,14 @@ class MainWindow(QMainWindow):
         # Import section
         file_menu.addSeparator()
         file_menu.addSection("Import")
+        file_menu.addAction(self._create_action("Import Prim (.prim)...", slot=self.import_prim_menu))
         file_menu.addAction(self._create_action("Import Ensemble (.ensemble)...", slot=self.import_ensemble))
         file_menu.addAction(self._create_action("Import Noodling (.json)...", slot=self.import_noodling_file))
 
         # Export section
         file_menu.addSeparator()
         file_menu.addSection("Export")
+        file_menu.addAction(self._create_action("Export Selected Prim(s)...", slot=self.export_selected_prims))
         file_menu.addAction(self._create_action("Export Noodling(s)...", slot=self.export_noodlings_dialog))
 
         # USD export/import
@@ -334,6 +336,7 @@ class MainWindow(QMainWindow):
         self.assets = AssetsPanel(self)
         self.assets.setObjectName("Assets")  # Required for saveState
         self.assets.project_manager = self.project_manager  # Connect to project manager
+        self.assets.agentRezzed.connect(self.hierarchy.refresh_scene)  # Auto-refresh hierarchy when agent rezzed
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.assets)
         self.tabifyDockWidget(self.hierarchy, self.assets)
 
@@ -1082,6 +1085,44 @@ class MainWindow(QMainWindow):
                     "Import Failed",
                     f"Error importing ensemble:\n{e}"
                 )
+
+    def import_prim_menu(self):
+        """Import prim from File menu (delegates to scene hierarchy)."""
+        if hasattr(self, 'hierarchy') and self.hierarchy:
+            self.hierarchy.import_prim()
+        else:
+            QMessageBox.warning(
+                self,
+                "No Scene",
+                "Please create or open a scene first."
+            )
+
+    def export_selected_prims(self):
+        """Export selected prims from File menu (delegates to scene hierarchy)."""
+        if hasattr(self, 'hierarchy') and self.hierarchy:
+            # Get selected items
+            selected = self.hierarchy.tree.selectedItems()
+            if not selected:
+                QMessageBox.information(
+                    self,
+                    "No Selection",
+                    "Please select one or more prims to export."
+                )
+                return
+
+            # Export each selected prim
+            for item in selected:
+                entity_data = item.data(0, Qt.ItemDataRole.UserRole)
+                if entity_data and isinstance(entity_data, dict):
+                    entity_type = entity_data.get('type')
+                    if entity_type == 'prim':
+                        self.hierarchy.export_prim_data(entity_data)
+        else:
+            QMessageBox.warning(
+                self,
+                "No Scene",
+                "Please create or open a scene first."
+            )
 
     def show_ensemble_store(self):
         """Show Ensemble Store window (Unity Asset Store style)."""

@@ -1,4 +1,21 @@
 {
+  "user_spock": {
+    "uid": "user_spock",
+    "username": "spock",
+    "password_hash": "spock:spock",
+    "current_room": "room_000",
+    "inventory": [
+      "tricorder",
+      "communicator"
+    ],
+    "created": "2025-11-22T19:50:00.000000",
+    "last_seen": "2025-11-22T19:50:00.000000",
+    "description": "Commander Spock, Science Officer. Vulcan-human hybrid with characteristic pointed ears and arched eyebrows. Wears blue Starfleet sciences uniform. Carries a tricorder for scientific analysis. Speaks with precise logic and occasional subtle emotion. Raised eyebrow is his trademark expression.",
+    "species": "vulcan-human",
+    "age": "37 (Vulcan years)",
+    "pronoun": "he",
+    "invisible": false
+  },
   "user_caity": {
     "uid": "user_caity",
     "username": "caity",

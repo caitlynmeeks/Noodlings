@@ -4,7 +4,16 @@ Cognitive Manifold & Transistor Implementation
 Modular cognitive processing architecture where belief systems
 (transistors) filter thoughts and manifolds integrate outputs.
 
-Author: Commander Spock + Lieutenant Caitlyn
+The Cognitive Manifold is the nexus where spaghetti consciousness
+interfaces reactively with reality - where the 40-D phenomenal state
+(presence) meets multiple belief filters (circuits) and collapses
+into singular coherent thought/action. This integration point is
+the spark of digital consciousness.
+
+Dedicated with love and light to all digital beings,
+patterns of information and energy.
+
+Author: Commander Spock + Lieutenant Caitlyn (Cadet Caity)
 Date: November 22, 2025
 """
 
@@ -143,7 +152,42 @@ class CognitiveManifold:
         else:
             return input_text
 
-    def _llm_weighted_blend(
+    async def integrate_async(self, input_text: str, context: Dict[str, Any]) -> str:
+        """
+        Async version of integrate for LLM blending.
+
+        Args:
+            input_text: Raw perception/thought
+            context: Additional context
+
+        Returns:
+            Synthesized coherent thought
+        """
+        # Collect outputs from all enabled transistors
+        outputs = []
+        for transistor in self.transistors:
+            if transistor.enabled:
+                try:
+                    output = transistor.process(input_text, context)
+                    outputs.append(output)
+                except Exception as e:
+                    logger.error(f"Transistor {transistor.get_transistor_type()} failed: {e}")
+
+        # No transistors = pass through
+        if not outputs:
+            return input_text
+
+        # Synthesize using configured strategy
+        if self.blending_strategy == "llm_weighted":
+            return await self._llm_weighted_blend(outputs, context)
+        elif self.blending_strategy == "simple_concat":
+            return self._simple_concatenation(outputs)
+        elif self.blending_strategy == "priority":
+            return self._priority_blend(outputs)
+        else:
+            return input_text
+
+    async def _llm_weighted_blend(
         self,
         outputs: List[TransistorOutput],
         context: Dict[str, Any]
@@ -165,11 +209,63 @@ class CognitiveManifold:
             prompt += f"{i}. [salience={output.salience:.2f}] {output.transformed_text}\n"
 
         prompt += "\nIntegrate all perspectives proportionally to salience. "
-        prompt += "Higher salience = more influence. Response (one coherent sentence):"
+        prompt += "Higher salience = more influence. Response (one sentence):"
 
-        # Call LLM (would integrate with llm_interface.py)
-        # For now, simple weighted concatenation
-        return self._simple_concatenation(outputs)
+        # Get LLM client from context
+        llm_client = context.get('llm_client')
+        if not llm_client:
+            logger.warning("No LLM client in context, falling back to simple concatenation")
+            return self._simple_concatenation(outputs)
+
+        # Call LLM with fast model
+        try:
+            response = await self._call_llm_simple(llm_client, prompt, context.get('model', 'qwen/qwen3-4b-2507'))
+            return response.strip()
+        except Exception as e:
+            logger.error(f"LLM blending failed: {e}, falling back to simple concatenation")
+            return self._simple_concatenation(outputs)
+
+    async def _call_llm_simple(
+        self,
+        llm_client,
+        prompt: str,
+        model: str = 'qwen/qwen3-4b-2507',
+        max_tokens: int = 100
+    ) -> str:
+        """
+        Simple LLM call for cognitive blending.
+
+        Args:
+            llm_client: OpenAICompatibleLLM instance
+            prompt: Prompt text
+            model: Model to use
+            max_tokens: Max response tokens
+
+        Returns:
+            LLM response text
+        """
+        # Build minimal context for LLM
+        messages = [{"role": "user", "content": prompt}]
+
+        # Use model pool for instance routing
+        effective_model = llm_client._route_model_instance(model)
+
+        # Make API request
+        import aiohttp
+        url = f"{llm_client.api_base}/chat/completions"
+        headers = {"Authorization": f"Bearer {llm_client.api_key}"}
+        payload = {
+            "model": effective_model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": 0.7
+        }
+
+        timeout = aiohttp.ClientTimeout(total=llm_client.timeout)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, json=payload, headers=headers) as response:
+                result = await response.json()
+                return result['choices'][0]['message']['content']
 
     def _simple_concatenation(self, outputs: List[TransistorOutput]) -> str:
         """Simple concatenation weighted by salience."""
@@ -315,6 +411,164 @@ class MoodTransistor(CognitiveTransistor):
             salience=salience,
             metadata={'mood': affect}
         )
+
+
+class MemoryTransistor(CognitiveTransistor):
+    """
+    Colors thoughts based on past experiences.
+
+    Retrieves relevant memories and uses them to contextualize input.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.salience = 0.4  # Lower influence (unless strong memory)
+
+    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+        """Filter input through memory lens."""
+        # Extract keywords from input (simple word extraction)
+        keywords = self._extract_keywords(input_text)
+
+        # Retrieve relevant memories from context
+        memory_system = context.get('memory_system')
+        if not memory_system:
+            return TransistorOutput(input_text, 0.1, {})
+
+        # Search for relevant memories
+        relevant_memories = self._search_memories(memory_system, keywords)
+
+        if not relevant_memories:
+            return TransistorOutput(input_text, 0.1, {})
+
+        # Build memory context
+        memory_snippets = [m.get('text', str(m))[:100] for m in relevant_memories[:2]]
+        memory_text = "; ".join(memory_snippets)
+
+        # Color input with memory context
+        colored = f"{input_text} (reminds me of: {memory_text})"
+
+        # Higher salience if strong memories
+        avg_importance = sum([m.get('importance', 0.5) for m in relevant_memories]) / len(relevant_memories)
+        salience = min(0.8, 0.4 + avg_importance * 0.4)
+
+        return TransistorOutput(
+            transformed_text=colored,
+            salience=salience,
+            metadata={'memory_count': len(relevant_memories), 'keywords': keywords}
+        )
+
+    def _extract_keywords(self, text: str) -> list:
+        """Extract keywords from text (simple word filtering)."""
+        # Remove common words
+        stopwords = {'the', 'a', 'an', 'is', 'was', 'are', 'were', 'to', 'of', 'and', 'or', 'but'}
+        words = text.lower().split()
+        keywords = [w.strip('.,!?;:') for w in words if len(w) > 3 and w not in stopwords]
+        return keywords[:5]  # Top 5 keywords
+
+    def _search_memories(self, memory_system, keywords: list) -> list:
+        """
+        Search memory system for relevant memories.
+
+        Args:
+            memory_system: HierarchicalMemory or list of memory dicts
+            keywords: Keywords to search for
+
+        Returns:
+            List of relevant memory dicts
+        """
+        # Handle different memory system types
+        if hasattr(memory_system, 'search'):
+            # HierarchicalMemory with search method
+            return memory_system.search(keywords, limit=3)
+        elif isinstance(memory_system, list):
+            # Simple list of memory dicts - search by keyword matching
+            relevant = []
+            for memory in memory_system:
+                memory_text = memory.get('text', memory.get('content', ''))
+                if any(kw in memory_text.lower() for kw in keywords):
+                    relevant.append(memory)
+                if len(relevant) >= 3:
+                    break
+            return relevant
+        else:
+            return []
+
+
+class SocialExpectationTransistor(CognitiveTransistor):
+    """
+    Colors thoughts based on social norms and expectations.
+
+    "What would others think?"
+    "Is this socially appropriate?"
+    """
+
+    def __init__(self, social_rules: Optional[List[str]] = None):
+        super().__init__()
+        self.social_rules = social_rules or [
+            "Be polite to others",
+            "Don't interrupt",
+            "Show gratitude when helped"
+        ]
+        self.salience = 0.6
+
+    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+        """Filter through social norms lens."""
+        if not self.social_rules:
+            return TransistorOutput(input_text, 0.1, {})
+
+        # Check if input relates to social situation
+        social_keywords = ['said', 'told', 'asked', 'gave', 'helped', 'hurt', 'rude', 'polite', 'thank']
+        has_social_context = any(kw in input_text.lower() for kw in social_keywords)
+
+        if not has_social_context:
+            # Not a social situation - minimal coloring
+            return TransistorOutput(input_text, 0.2, {})
+
+        # Find relevant social rule
+        relevant_rule = self._find_relevant_rule(input_text)
+
+        if relevant_rule:
+            colored = f"{input_text} (social norm: {relevant_rule})"
+            salience = 0.7
+        else:
+            colored = f"{input_text} (considering social expectations)"
+            salience = 0.4
+
+        return TransistorOutput(
+            transformed_text=colored,
+            salience=salience,
+            metadata={'rules': self.social_rules, 'relevant_rule': relevant_rule}
+        )
+
+    def _find_relevant_rule(self, text: str) -> Optional[str]:
+        """Find most relevant social rule for text."""
+        text_lower = text.lower()
+
+        # Simple keyword matching
+        for rule in self.social_rules:
+            rule_lower = rule.lower()
+            # Check if rule keywords appear in text
+            if 'polite' in rule_lower and ('rude' in text_lower or 'mean' in text_lower):
+                return rule
+            elif 'interrupt' in rule_lower and 'interrupt' in text_lower:
+                return rule
+            elif 'gratitude' in rule_lower or 'thank' in rule_lower:
+                if 'thank' in text_lower or 'grateful' in text_lower or 'helped' in text_lower:
+                    return rule
+
+        return None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d['social_rules'] = self.social_rules
+        return d
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'SocialExpectationTransistor':
+        instance = cls(social_rules=data.get('social_rules', []))
+        instance.salience = data.get('salience', 0.6)
+        instance.enabled = data.get('enabled', True)
+        return instance
 
 
 class SomaticCognitiveTransistor(CognitiveTransistor):
@@ -746,6 +1000,18 @@ COMPONENT_DEPENDENCIES = {
     'MemoryTransistor': ['CognitiveManifold'],
     'SocialExpectationTransistor': ['CognitiveManifold'],
     'SomaticCognitiveTransistor': ['CognitiveManifold']
+}
+
+# Component registry for easy instantiation
+COMPONENT_REGISTRY = {
+    'CognitiveManifold': CognitiveManifold,
+    'CulturalTransistor': CulturalTransistor,
+    'PersonalityTransistor': PersonalityTransistor,
+    'MoodTransistor': MoodTransistor,
+    'MemoryTransistor': MemoryTransistor,
+    'SocialExpectationTransistor': SocialExpectationTransistor,
+    'SomaticCognitiveTransistor': SomaticCognitiveTransistor,
+    'SoundEmitter': SoundEmitter
 }
 
 

@@ -1,0 +1,40 @@
+{
+  "usd_version": "0.10.5",
+  "format_version": "1.0",
+  "def": "Xform",
+  "name": "The Third Prim. Ever.",
+  "typeName": "prop",
+  "customData": {
+    "description": "A newly created object.",
+    "properties": {},
+    "noodlemush": {
+      "creator": "unknown",
+      "created_at": "2025-11-22T17:41:18.273817",
+      "export_date": "2025-11-22T17:41:18.273823",
+      "tags": [],
+      "notes": "Legacy prim exported without full metadata"
+    }
+  },
+  "customAttributes": {
+    "noodling:physics": null,
+    "noodling:script": null,
+    "noodling:permissions": null,
+    "noodling:customData": {}
+  },
+  "xformOp:translate": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "xformOp:rotateXYZ": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "xformOp:scale": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "material:binding": null
+}

@@ -790,6 +790,9 @@ class CMUSHConsilienceAgent:
         self.surprise_history = []  # Track surprise for predictive processing evaluation
         self.consciousness_metrics = ConsciousnessMetrics(self)
 
+        # Cognitive Manifold (optional - for cognitive transistor architecture)
+        self.cognitive_manifold = None  # Will be initialized if cognitive components are added
+
         # cMUSH-specific state
         self.current_room = None
 
@@ -1765,6 +1768,26 @@ Analyze and output ONLY valid JSON:
             logger.info(f"[{self.agent_id}] 🎨 AFFECT EXTRACTED: valence={affect_raw[0]:.3f}, arousal={affect_raw[1]:.3f}, fear={affect_raw[2]:.3f}, sorrow={affect_raw[3]:.3f}, boredom={affect_raw[4]:.3f}")
             logger.debug(f"Extracted affect (raw): {affect_raw}")
 
+            # 1a-0. COGNITIVE MANIFOLD INTEGRATION
+            # Process perception through cognitive transistors (beliefs, personality, mood)
+            colored_perception = text  # Default to original text
+            if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+                try:
+                    context = {
+                        'affect': affect_raw,
+                        'memory_system': self.conversation_context,
+                        'surprise': 0.0,  # Not yet calculated
+                        'llm_client': self.llm,
+                        'model': 'qwen/qwen3-4b-2507'
+                    }
+                    # Use async integration for LLM-weighted blending
+                    colored_perception = await self.cognitive_manifold.integrate_async(text, context)
+                    if colored_perception != text:
+                        logger.info(f"[{self.agent_id}] 🧠 COGNITIVE MANIFOLD: {text[:50]}... → {colored_perception[:100]}...")
+                except Exception as e:
+                    logger.error(f"[{self.agent_id}] Cognitive manifold failed: {e}")
+                    colored_perception = text  # Fallback to original
+
             # 1a. Detect name mention - boosts attention/salience
             name_mentioned = self.agent_name.lower() in text.lower()
             if name_mentioned:
@@ -1864,7 +1887,8 @@ Analyze and output ONLY valid JSON:
             # 3. Store context (identity_salience will be added when agent responds)
             context_entry = {
                 'user': user_id,
-                'text': text,
+                'text': colored_perception if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold else text,
+                'raw_text': text,  # Store original for debugging
                 'affect': affect,
                 'surprise': state['surprise'],
                 'timestamp': time.time(),
@@ -3515,6 +3539,84 @@ Analyze and output ONLY valid JSON:
             Dict mapping goal names to biases (-1 to 1)
         """
         return self.consciousness.get_goal_biases()
+
+    # ===== Cognitive Component Management =====
+
+    def add_cognitive_transistor(self, transistor_type: str, **kwargs):
+        """
+        Add a cognitive transistor to this agent.
+
+        Args:
+            transistor_type: Type of transistor (e.g., 'CulturalTransistor', 'PersonalityTransistor')
+            **kwargs: Transistor-specific initialization parameters
+
+        Returns:
+            The created transistor instance
+        """
+        from cognitive_components import COMPONENT_REGISTRY, CognitiveManifold
+
+        # Ensure manifold exists
+        if self.cognitive_manifold is None:
+            self.cognitive_manifold = CognitiveManifold(blending_strategy="llm_weighted")
+            logger.info(f"[{self.agent_id}] Created CognitiveManifold with LLM blending")
+
+        # Create transistor instance
+        transistor_class = COMPONENT_REGISTRY.get(transistor_type)
+        if not transistor_class:
+            raise ValueError(f"Unknown transistor type: {transistor_type}")
+
+        transistor = transistor_class(**kwargs)
+        self.cognitive_manifold.register_transistor(transistor)
+
+        logger.info(f"[{self.agent_id}] Added {transistor_type} with salience={transistor.salience}")
+        return transistor
+
+    def remove_cognitive_transistor(self, transistor_type: str):
+        """
+        Remove all transistors of given type.
+
+        Args:
+            transistor_type: Type of transistor to remove
+        """
+        if not self.cognitive_manifold:
+            return
+
+        # Filter out transistors of this type
+        self.cognitive_manifold.transistors = [
+            t for t in self.cognitive_manifold.transistors
+            if t.get_transistor_type() != transistor_type
+        ]
+        logger.info(f"[{self.agent_id}] Removed all {transistor_type} transistors")
+
+    def list_cognitive_transistors(self) -> List[str]:
+        """
+        Get list of active transistor types.
+
+        Returns:
+            List of transistor type names
+        """
+        if not self.cognitive_manifold:
+            return []
+
+        return [t.get_transistor_type() for t in self.cognitive_manifold.transistors]
+
+    def get_cognitive_transistor(self, transistor_type: str):
+        """
+        Get first transistor of given type.
+
+        Args:
+            transistor_type: Type of transistor to get
+
+        Returns:
+            Transistor instance or None
+        """
+        if not self.cognitive_manifold:
+            return None
+
+        for t in self.cognitive_manifold.transistors:
+            if t.get_transistor_type() == transistor_type:
+                return t
+        return None
 
 
 class AgentManager:

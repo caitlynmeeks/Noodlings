@@ -102,6 +102,9 @@ class NoodleScopeAPI:
         self.app.router.add_post('/api/rooms', self.create_room)
         self.app.router.add_post('/api/rooms/{room_id}/update', self.update_room)
 
+        # Command execution (for NoodleStudio programmatic control)
+        self.app.router.add_post('/api/command', self.execute_command)
+
         # Server control
         self.app.router.add_post('/api/shutdown', self.shutdown_server)
 
@@ -764,6 +767,55 @@ class NoodleScopeAPI:
         except Exception as e:
             logger.error(f"Error updating room: {e}")
             return web.json_response({'error': str(e)}, status=500)
+
+    async def execute_command(self, request: web.Request) -> web.Response:
+        """
+        Execute a command on behalf of a user (for NoodleStudio programmatic control).
+
+        POST /api/command
+        Body: {
+            "user_id": "user_caity",
+            "command": "@rez yuki_cyberfox"
+        }
+
+        Returns:
+            {"success": true/false, "output": "...", "events": [...]}
+        """
+        try:
+            data = await request.json()
+            user_id = data.get('user_id', 'user_caity')
+            command = data.get('command', '')
+
+            if not command:
+                return web.json_response({
+                    'success': False,
+                    'error': 'No command provided'
+                }, status=400)
+
+            # Get command parser from server
+            if not self.server or not hasattr(self.server, 'command_parser'):
+                return web.json_response({
+                    'success': False,
+                    'error': 'Command parser not available'
+                }, status=500)
+
+            logger.info(f"API command from {user_id}: {command}")
+
+            # Execute command through server's command parser
+            result = await self.server.command_parser.parse_and_execute(user_id, command)
+
+            return web.json_response({
+                'success': result.get('success', True),
+                'output': result.get('output', ''),
+                'events': result.get('events', [])
+            })
+
+        except Exception as e:
+            logger.error(f"Error executing command: {e}", exc_info=True)
+            return web.json_response({
+                'success': False,
+                'error': str(e)
+            }, status=500)
 
     async def health_check(self, request: web.Request) -> web.Response:
         """Health check endpoint."""
