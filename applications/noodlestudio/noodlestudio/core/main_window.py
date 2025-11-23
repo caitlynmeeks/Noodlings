@@ -21,6 +21,7 @@ from ..panels.scene_hierarchy import SceneHierarchy
 from ..panels.inspector_panel import InspectorPanel
 from ..panels.console_panel import ConsolePanel
 from ..panels.assets_panel import AssetsPanel
+from ..panels.noodle_tuner_panel import NoodleTunerPanel
 from .theme import DARK_THEME
 from .unity_theme import UNITY_DARK_THEME
 from .layout_manager import LayoutManager
@@ -153,6 +154,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self._create_action("World View", "Ctrl+2", checkable=True, checked=True))
         view_menu.addAction(self._create_action("Inspector", "Ctrl+3", checkable=True, checked=True))
         view_menu.addAction(self._create_action("Timeline Profiler", "Ctrl+4", checkable=True))
+        view_menu.addAction(self._create_action("Noodle Tuner", "Ctrl+5", checkable=True))
 
         view_menu.addSeparator()
 
@@ -354,6 +356,12 @@ class MainWindow(QMainWindow):
         self.inspector.setObjectName("Inspector")  # Required for saveState
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.inspector)
 
+        # Noodle Tuner (tabbed with Inspector)
+        self.noodle_tuner = NoodleTunerPanel(self)
+        self.noodle_tuner.setObjectName("NoodleTuner")  # Required for saveState
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.noodle_tuner)
+        self.tabifyDockWidget(self.inspector, self.noodle_tuner)
+
         # BOTTOM (full width): Console
         self.console = ConsolePanel(self)
         self.console.setObjectName("Console")  # Required for saveState
@@ -370,6 +378,9 @@ class MainWindow(QMainWindow):
         # Connect hierarchy selection to inspector
         self.hierarchy.entitySelected.connect(self.inspector.load_entity)
         self.hierarchy.entitySelected.connect(self.on_entity_selected_for_console)
+
+        # Connect hierarchy selection to Noodle Tuner (only for agents)
+        self.hierarchy.entitySelected.connect(self.on_entity_selected_for_noodle_tuner)
 
         # Force Console tab to be active
         self.console.raise_()
@@ -1513,6 +1524,17 @@ class MainWindow(QMainWindow):
         # In future, hierarchy should emit list of all selected entities
         if entity_id:
             self.console.set_selected_entities([entity_id])
+
+    def on_entity_selected_for_noodle_tuner(self, entity_type: str, entity_data: dict):
+        """Update Noodle Tuner when an agent is selected in hierarchy."""
+        if not hasattr(self, 'noodle_tuner'):
+            return
+
+        # Only update Noodle Tuner for noodlings
+        if entity_type == 'noodling':
+            agent_id = entity_data.get('id', '')
+            if agent_id:
+                self.noodle_tuner.set_agent(agent_id)
 
     def show_credits(self):
         """Show demo scene style credits with music."""

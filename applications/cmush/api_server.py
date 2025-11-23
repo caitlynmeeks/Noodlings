@@ -96,6 +96,10 @@ class NoodleScopeAPI:
         self.app.router.add_get('/api/agents/{agent_id}/components/{component_id}', self.get_component)
         self.app.router.add_post('/api/agents/{agent_id}/components/{component_id}/update', self.update_component)
 
+        # Noodle Tuner - Cognitive Manifold Debug
+        self.app.router.add_get('/api/manifold/debug/{agent_id}', self.get_manifold_debug)
+        self.app.router.add_post('/api/manifold/recalculate/{agent_id}', self.recalculate_manifold)
+
         # Objects and rooms
         self.app.router.add_post('/api/objects', self.create_object)
         self.app.router.add_post('/api/objects/{object_id}/update', self.update_object)
@@ -1133,6 +1137,132 @@ class NoodleScopeAPI:
         self.kimmie = kimmie
         if self.session_profiler:
             kimmie.set_session_profiler(self.session_profiler)
+
+    async def get_manifold_debug(self, request: web.Request) -> web.Response:
+        """
+        Get manifold debug data for Noodle Tuner.
+
+        Returns:
+            - Input perception text
+            - Individual transistor outputs (with salience, type, metadata)
+            - Blended manifold output
+        """
+        agent_id = request.match_info['agent_id']
+
+        if not self.agent_manager or agent_id not in self.agent_manager.agents:
+            return web.json_response({'error': 'Agent not found'}, status=404)
+
+        agent = self.agent_manager.agents[agent_id]
+
+        # Check if agent has cognitive manifold
+        if not hasattr(agent, 'cognitive_manifold') or not agent.cognitive_manifold:
+            return web.json_response({'error': 'Agent has no cognitive manifold'}, status=404)
+
+        manifold = agent.cognitive_manifold
+
+        # Build transistor outputs list
+        transistors_data = []
+        for transistor in manifold.transistors:
+            transistors_data.append({
+                'type': transistor.get_transistor_type(),
+                'salience': transistor.salience,
+                'enabled': transistor.enabled,
+                'output': transistor.last_output_text or "",
+                'metadata': transistor.last_output_metadata or {}
+            })
+
+        # Get current affect for context
+        state = agent.get_phenomenal_state()
+        phenomenal = state.get('phenomenal_state', [0]*5)
+        if len(phenomenal) >= 5:
+            affect = {
+                'valence': float(phenomenal[0]),
+                'arousal': float(phenomenal[1]),
+                'fear': float(phenomenal[2]),
+                'sorrow': float(phenomenal[3]),
+                'boredom': float(phenomenal[4])
+            }
+        else:
+            affect = {'valence': 0.0, 'arousal': 0.0, 'fear': 0.0, 'sorrow': 0.0, 'boredom': 0.0}
+
+        return web.json_response({
+            'agent_id': agent_id,
+            'agent_name': agent.agent_name,
+            'input': agent.last_perception_text or "",
+            'transistors': transistors_data,
+            'blend_result': agent.last_manifold_output or "",
+            'affect': affect,
+            'surprise': float(state.get('surprise', 0.0)),
+            'blending_strategy': manifold.blending_strategy
+        })
+
+    async def recalculate_manifold(self, request: web.Request) -> web.Response:
+        """
+        Recalculate manifold with updated parameters.
+
+        Accepts:
+            - transistors: List of {type, salience} to update
+            - model: Optional LLM model to use for blending
+
+        Returns:
+            - New blended result
+        """
+        agent_id = request.match_info['agent_id']
+
+        if not self.agent_manager or agent_id not in self.agent_manager.agents:
+            return web.json_response({'error': 'Agent not found'}, status=404)
+
+        agent = self.agent_manager.agents[agent_id]
+
+        if not hasattr(agent, 'cognitive_manifold') or not agent.cognitive_manifold:
+            return web.json_response({'error': 'Agent has no cognitive manifold'}, status=404)
+
+        try:
+            data = await request.json()
+
+            manifold = agent.cognitive_manifold
+
+            # Update transistor saliences from request
+            transistor_updates = data.get('transistors', [])
+            for t_update in transistor_updates:
+                for transistor in manifold.transistors:
+                    if transistor.get_transistor_type() == t_update['type']:
+                        transistor.salience = float(t_update['salience'])
+                        if 'enabled' in t_update:
+                            transistor.enabled = bool(t_update['enabled'])
+
+            # Re-run manifold integration with same input
+            if not agent.last_perception_text:
+                return web.json_response({'error': 'No perception text to recalculate'}, status=400)
+
+            # Build context for manifold
+            state = agent.get_phenomenal_state()
+            phenomenal = state.get('phenomenal_state', [0]*5)
+            affect_raw = phenomenal[:5] if len(phenomenal) >= 5 else [0]*5
+
+            context = {
+                'affect': affect_raw,
+                'memory_system': agent.conversation_context,
+                'surprise': float(state.get('surprise', 0.0)),
+                'llm_client': agent.llm,
+                'model': data.get('model', 'qwen/qwen3-4b-2507')
+            }
+
+            # Recalculate
+            new_result = await manifold.integrate_async(agent.last_perception_text, context)
+
+            # Store new result
+            agent.last_manifold_output = new_result
+
+            return web.json_response({
+                'success': True,
+                'result': new_result,
+                'input': agent.last_perception_text
+            })
+
+        except Exception as e:
+            logger.error(f"Failed to recalculate manifold: {e}", exc_info=True)
+            return web.json_response({'error': str(e)}, status=500)
 
     async def start(self):
         """Start the API server."""

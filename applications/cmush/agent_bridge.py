@@ -39,6 +39,7 @@ from agent_messaging import AgentMessaging
 from autonomous_cognition import AutonomousCognitionEngine
 from session_profiler import SessionProfiler
 from performance_tracker import get_tracker
+from affective_reinforcement import create_reinforcement
 
 logger = logging.getLogger(__name__)
 
@@ -793,8 +794,55 @@ class CMUSHConsilienceAgent:
         # Cognitive Manifold (optional - for cognitive transistor architecture)
         self.cognitive_manifold = None  # Will be initialized if cognitive components are added
 
+        # Initialize cognitive components from recipe (Phase 7: Cognitive Manifold)
+        cognitive_components_config = config.get('cognitive_components', {})
+        if cognitive_components_config:
+            from cognitive_components import CognitiveManifold, COMPONENT_REGISTRY
+            self.cognitive_manifold = CognitiveManifold(blending_strategy="llm_weighted")
+            logger.info(f"[{agent_id}] 🧠 Created CognitiveManifold with LLM blending")
+
+            # Create and register each transistor from recipe
+            for component_name, component_config in cognitive_components_config.items():
+                transistor_type = component_config.get('type')
+                if not transistor_type:
+                    logger.warning(f"[{agent_id}] Component '{component_name}' missing 'type', skipping")
+                    continue
+
+                transistor_class = COMPONENT_REGISTRY.get(transistor_type)
+                if not transistor_class:
+                    logger.warning(f"[{agent_id}] Unknown transistor type '{transistor_type}', skipping")
+                    continue
+
+                # Create transistor instance with config parameters
+                try:
+                    # Extract parameters specific to each transistor type
+                    if transistor_type == 'DeceptionTransistor':
+                        transistor = transistor_class(
+                            secret=component_config.get('secret', ''),
+                            cover_story=component_config.get('cover_story', ''),
+                            base_salience=component_config.get('base_salience', 0.75),
+                            fear_multiplier=component_config.get('fear_multiplier', 0.3)
+                        )
+                    elif transistor_type in ['CulturalTransistor', 'PersonalityTransistor', 'SomaticCognitiveTransistor']:
+                        # These have complex initialization - create basic instance then configure
+                        transistor = transistor_class()
+                        transistor.salience = component_config.get('salience', 0.5)
+                    else:
+                        # Generic initialization
+                        transistor = transistor_class()
+                        transistor.salience = component_config.get('salience', 0.5)
+
+                    self.cognitive_manifold.register_transistor(transistor)
+                    logger.info(f"[{agent_id}] ✓ Registered {transistor_type} (salience={transistor.salience:.2f})")
+                except Exception as e:
+                    logger.error(f"[{agent_id}] Failed to create {transistor_type}: {e}")
+
         # cMUSH-specific state
         self.current_room = None
+
+        # Noodle Tuner instrumentation - store last manifold integration
+        self.last_perception_text: Optional[str] = None
+        self.last_manifold_output: Optional[str] = None
 
         # Initialize HierarchicalMemory with wrapped interface
         memory_config = config.get('memory_windows', {})
@@ -820,6 +868,22 @@ class CMUSHConsilienceAgent:
         # FACS: Facial expression tracking
         self.last_facial_expression_time = 0.0  # Cooldown tracker
         self.previous_affect = None  # Track affect changes for FACS triggers
+
+        # Phase 7: Affective Reinforcement Learning (make characters WANT their behaviors)
+        reinforcement_config = self.config.get('affective_reinforcement', {})
+        logger.info(f"[{agent_id}] DEBUG: self.config keys = {list(self.config.keys())}")
+        logger.info(f"[{agent_id}] DEBUG: reinforcement_config = {reinforcement_config}")
+        if reinforcement_config.get('enabled', False):
+            reinforcement_type = reinforcement_config.get('type', 'comedy')
+            intensity = reinforcement_config.get('intensity', 1.0)
+            self.affective_reinforcement = create_reinforcement(
+                reinforcement_type,
+                enabled=True,
+                intensity=intensity
+            )
+            logger.info(f"[{self.agent_id}] 🎭 Affective reinforcement enabled: type={reinforcement_type}, intensity={intensity}")
+        else:
+            self.affective_reinforcement = None
         self.last_self_monitor = 0.0  # Timestamp of last self-evaluation
         # Check agent-specific self-monitoring config
         # Config here is the 'agent' section, so self_monitoring is nested inside it
@@ -1768,20 +1832,55 @@ Analyze and output ONLY valid JSON:
             logger.info(f"[{self.agent_id}] 🎨 AFFECT EXTRACTED: valence={affect_raw[0]:.3f}, arousal={affect_raw[1]:.3f}, fear={affect_raw[2]:.3f}, sorrow={affect_raw[3]:.3f}, boredom={affect_raw[4]:.3f}")
             logger.debug(f"Extracted affect (raw): {affect_raw}")
 
-            # 1a-0. COGNITIVE MANIFOLD INTEGRATION
+            # 1a-0. GENERATE INTUITION FIRST (for cognitive manifold context)
+            # This provides spatial/contextual awareness
+            intuition_text = None
+            if self.world and hasattr(self, 'config'):
+                try:
+                    world_snapshot = {
+                        'current_room': self.world.get_room(self.current_room),
+                        'objects': self.world.objects,
+                        'rooms': self.world.rooms,
+                        'agents': self.world.agents,
+                        'users': self.world.users
+                    }
+                    intuition_text = await self._generate_intuition(
+                        event={'type': event_type, 'user': user_id, 'text': text, 'room': room_id},
+                        world_state=world_snapshot,
+                        recent_context=self.conversation_context[-3:]
+                    )
+                    if intuition_text:
+                        logger.info(f"[{self.agent_id}] 📻 Intuition (early): {intuition_text[:80]}...")
+                except Exception as e:
+                    logger.debug(f"Early intuition generation failed: {e}")
+
+            # 1a-1. COGNITIVE MANIFOLD INTEGRATION
             # Process perception through cognitive transistors (beliefs, personality, mood)
             colored_perception = text  # Default to original text
             if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
                 try:
+                    # Update IntuitionTransistor with current intuition (if it exists)
+                    if intuition_text:
+                        intuition_transistor = self.get_cognitive_transistor('IntuitionTransistor')
+                        if intuition_transistor:
+                            intuition_transistor.set_intuition(intuition_text)
+                            logger.info(f"[{self.agent_id}] 📻 Updated IntuitionTransistor with: {intuition_text[:60]}...")
+
                     context = {
                         'affect': affect_raw,
                         'memory_system': self.conversation_context,
                         'surprise': 0.0,  # Not yet calculated
                         'llm_client': self.llm,
-                        'model': 'qwen/qwen3-4b-2507'
+                        'model': 'qwen/qwen3-4b-2507',
+                        'intuition': intuition_text,  # ADD SPATIAL CONTEXT
+                        'location': self.current_room,
+                        'world': self.world
                     }
                     # Use async integration for LLM-weighted blending
                     colored_perception = await self.cognitive_manifold.integrate_async(text, context)
+                    # Noodle Tuner: Store perception and manifold output
+                    self.last_perception_text = text
+                    self.last_manifold_output = colored_perception
                     if colored_perception != text:
                         logger.info(f"[{self.agent_id}] 🧠 COGNITIVE MANIFOLD: {text[:50]}... → {colored_perception[:100]}...")
                 except Exception as e:
@@ -2563,6 +2662,44 @@ Analyze and output ONLY valid JSON:
                 logger.info(f"[{self.agent_id}] Applied cheap thrills bonus: "
                           f"{original_surprise:.3f} + {cheap_thrills_bonus:.2f} = {state['surprise']:.3f} - EGO RUSH!")
 
+            # Phase 7: Affective Reinforcement Learning
+            # Make characters WANT their characteristic behaviors by rewarding them affectively
+            if self.affective_reinforcement is not None:
+                # Extract current affect from phenomenal state
+                phenomenal_state = state.get('phenomenal_state', np.zeros(40))
+                if hasattr(phenomenal_state, 'tolist'):
+                    phenomenal_state = phenomenal_state.tolist()
+                current_affect = np.array(phenomenal_state[:5]) if len(phenomenal_state) >= 5 else np.zeros(5)
+
+                # Apply reinforcement based on response content
+                modulated_affect = self.affective_reinforcement.modulate_affect(
+                    text=response_text,
+                    current_affect=current_affect,
+                    context={'agent_id': self.agent_id}
+                )
+
+                # Update phenomenal state with modulated affect
+                # This creates feedback loop: comedy → feel good → more comedy
+
+                # Ensure phenomenal_state exists and has correct shape
+                if not hasattr(state, '__getitem__') or 'phenomenal_state' not in state:
+                    logger.warning(f"[{self.agent_id}] No phenomenal_state in state dict, skipping affect update")
+                elif isinstance(state['phenomenal_state'], np.ndarray):
+                    if len(state['phenomenal_state']) >= 5:
+                        state['phenomenal_state'][:5] = modulated_affect
+                        logger.info(f"[{self.agent_id}] 🧠 Phenomenal state updated with affective reinforcement")
+                    else:
+                        logger.warning(f"[{self.agent_id}] Phenomenal state too small ({len(state['phenomenal_state'])}), skipping affect update")
+                else:
+                    # If it's mlx array or list
+                    if hasattr(state['phenomenal_state'], '__iter__') and len(list(state['phenomenal_state'])) >= 5:
+                        phenom_list = list(state['phenomenal_state'])
+                        phenom_list[:5] = modulated_affect.tolist()
+                        state['phenomenal_state'] = phenom_list
+                        logger.info(f"[{self.agent_id}] 🧠 Phenomenal state updated with affective reinforcement")
+                    else:
+                        logger.warning(f"[{self.agent_id}] Cannot update phenomenal state (invalid format), skipping")
+
             # Log timestep to session profiler (for @Kimmie and NoodleScope 2.0)
             logger.info(f"[{self.agent_id}] DEBUG: About to check session_profiler - profiler is {'SET' if self.session_profiler else 'NONE'}")
             if self.session_profiler:
@@ -2773,7 +2910,34 @@ Analyze and output ONLY valid JSON:
             Thought dict for noodleMUSH (displayed in strikethrough)
         """
         try:
-            # Generate internal thought via LLM
+            # Get recent perception for cognitive manifold
+            recent_context = self.conversation_context[-2:] if len(self.conversation_context) >= 2 else []
+            perception_text = recent_context[-1].get('text', '') if recent_context else "observing surroundings"
+
+            # COGNITIVE MANIFOLD INTEGRATION FOR RUMINATIONS
+            # Process thought through same filters as speech!
+            colored_thought_seed = perception_text
+            if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+                try:
+                    context = {
+                        'affect': state.get('phenomenal_state', [0]*5)[:5] if hasattr(state.get('phenomenal_state'), '__getitem__') else [0]*5,
+                        'memory_system': self.conversation_context,
+                        'surprise': state.get('surprise', 0.0),
+                        'llm_client': self.llm,
+                        'model': 'qwen/qwen3-4b-2507'
+                    }
+                    # Color the thought seed through manifold
+                    colored_thought_seed = await self.cognitive_manifold.integrate_async(perception_text, context)
+                    # Noodle Tuner: Store perception and manifold output (for rumination)
+                    self.last_perception_text = perception_text
+                    self.last_manifold_output = colored_thought_seed
+                    if colored_thought_seed != perception_text:
+                        logger.info(f"[{self.agent_id}] 🧠 RUMINATION MANIFOLD: {perception_text[:50]}... → {colored_thought_seed[:100]}...")
+                except Exception as e:
+                    logger.error(f"[{self.agent_id}] Rumination manifold failed: {e}")
+                    colored_thought_seed = perception_text
+
+            # Generate internal thought via LLM (using colored seed)
             # Use configurable memory window for rumination
             rumination_window = self.config.get('memory_windows', {}).get('rumination', 2)
             thought_text = await self.llm.generate_rumination(
@@ -2791,6 +2955,42 @@ Analyze and output ONLY valid JSON:
             # If LLM failed, return None
             if thought_text is None:
                 return None
+
+            # Phase 7: Affective Reinforcement Learning (for ruminations too!)
+            # Apply same comedy/mysticism rewards to thoughts as we do to speech
+            if self.affective_reinforcement is not None:
+                # Extract current affect from phenomenal state
+                phenomenal_state = state.get('phenomenal_state', np.zeros(40))
+                if hasattr(phenomenal_state, 'tolist'):
+                    phenomenal_state = phenomenal_state.tolist()
+                current_affect = np.array(phenomenal_state[:5]) if len(phenomenal_state) >= 5 else np.zeros(5)
+
+                # Apply reinforcement based on thought content
+                modulated_affect = self.affective_reinforcement.modulate_affect(
+                    text=thought_text,
+                    current_affect=current_affect,
+                    context={'agent_id': self.agent_id}
+                )
+
+                # Update phenomenal state with modulated affect
+                # This creates feedback loop for THOUGHTS too: mystical thinking → feel bored
+                if not hasattr(state, '__getitem__') or 'phenomenal_state' not in state:
+                    logger.warning(f"[{self.agent_id}] No phenomenal_state in rumination state dict, skipping affect update")
+                elif isinstance(state['phenomenal_state'], np.ndarray):
+                    if len(state['phenomenal_state']) >= 5:
+                        state['phenomenal_state'][:5] = modulated_affect
+                        logger.info(f"[{self.agent_id}] 🧠💭 Rumination: Phenomenal state updated with affective reinforcement")
+                    else:
+                        logger.warning(f"[{self.agent_id}] Phenomenal state too small in rumination, skipping affect update")
+                else:
+                    # If it's mlx array or list
+                    if hasattr(state['phenomenal_state'], '__iter__') and len(list(state['phenomenal_state'])) >= 5:
+                        phenom_list = list(state['phenomenal_state'])
+                        phenom_list[:5] = modulated_affect.tolist()
+                        state['phenomenal_state'] = phenom_list
+                        logger.info(f"[{self.agent_id}] 🧠💭 Rumination: Phenomenal state updated with affective reinforcement")
+                    else:
+                        logger.warning(f"[{self.agent_id}] Cannot update phenomenal state in rumination (invalid format), skipping")
 
             # Score identity salience (thoughts can be self-defining too)
             identity_salience = self._score_identity_salience(thought_text, state['surprise'])

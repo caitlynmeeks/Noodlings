@@ -33,6 +33,7 @@ class TransistorOutput:
     transformed_text: str  # Colored/filtered thought
     salience: float        # Importance weight (0.0 to 1.0)
     metadata: Dict[str, Any]  # Additional info
+    transistor_type: str = ""  # Type identifier for debugging
 
 
 class CognitiveTransistor(ABC):
@@ -48,6 +49,11 @@ class CognitiveTransistor(ABC):
         """Initialize transistor."""
         self.salience = 0.5  # Default importance (0.0 to 1.0)
         self.enabled = True  # Can be toggled off
+
+        # Noodle Tuner instrumentation - store last output for debugging
+        self.last_output_text: Optional[str] = None
+        self.last_output_metadata: Optional[Dict[str, Any]] = None
+        self.last_output_salience: Optional[float] = None
 
     @abstractmethod
     def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
@@ -102,6 +108,11 @@ class CognitiveManifold:
         self.transistors: List[CognitiveTransistor] = []
         self.blending_strategy = blending_strategy
 
+        # Noodle Tuner instrumentation - store last integration for debugging
+        self.last_input_text: Optional[str] = None
+        self.last_output_text: Optional[str] = None
+        self.last_transistor_outputs: List[TransistorOutput] = []
+
     def register_transistor(self, transistor: CognitiveTransistor):
         """
         Register a transistor to integrate.
@@ -134,6 +145,12 @@ class CognitiveManifold:
             if transistor.enabled:
                 try:
                     output = transistor.process(input_text, context)
+                    # Add transistor type to output for debugging
+                    output.transistor_type = transistor.get_transistor_type()
+                    # Store in transistor for Noodle Tuner
+                    transistor.last_output_text = output.transformed_text
+                    transistor.last_output_metadata = output.metadata
+                    transistor.last_output_salience = output.salience
                     outputs.append(output)
                 except Exception as e:
                     logger.error(f"Transistor {transistor.get_transistor_type()} failed: {e}")
@@ -169,22 +186,48 @@ class CognitiveManifold:
             if transistor.enabled:
                 try:
                     output = transistor.process(input_text, context)
+                    # Add transistor type to output for debugging
+                    output.transistor_type = transistor.get_transistor_type()
+                    # Store in transistor for Noodle Tuner
+                    transistor.last_output_text = output.transformed_text
+                    transistor.last_output_metadata = output.metadata
+                    transistor.last_output_salience = output.salience
                     outputs.append(output)
                 except Exception as e:
                     logger.error(f"Transistor {transistor.get_transistor_type()} failed: {e}")
 
+        # Noodle Tuner: Store input for debugging
+        self.last_input_text = input_text
+        self.last_transistor_outputs = outputs.copy()
+
         # No transistors = pass through
         if not outputs:
+            self.last_output_text = input_text
             return input_text
+
+        # DEBUG: Log individual transistor outputs BEFORE blending
+        logger.info(f"🔬 MANIFOLD DEBUG - Individual transistor outputs:")
+        for output in outputs:
+            logger.info(f"  [{output.transistor_type}] (salience={output.salience:.2f}): {output.transformed_text[:150]}...")
 
         # Synthesize using configured strategy
         if self.blending_strategy == "llm_weighted":
-            return await self._llm_weighted_blend(outputs, context)
+            result = await self._llm_weighted_blend(outputs, context)
+            # DEBUG: Log final blended result
+            logger.info(f"🔬 MANIFOLD DEBUG - Blended result: {result[:150]}...")
+            # Noodle Tuner: Store result
+            self.last_output_text = result
+            return result
         elif self.blending_strategy == "simple_concat":
-            return self._simple_concatenation(outputs)
+            result = self._simple_concatenation(outputs)
+            self.last_output_text = result
+            return result
         elif self.blending_strategy == "priority":
-            return self._priority_blend(outputs)
+            result = self._priority_blend(outputs)
+            self.last_output_text = result
+            return result
         else:
+            self.last_output_text = input_text
             return input_text
 
     async def _llm_weighted_blend(
@@ -375,6 +418,54 @@ class PersonalityTransistor(CognitiveTransistor):
         d = super().to_dict()
         d['traits'] = self.traits
         return d
+
+
+class IntuitionTransistor(CognitiveTransistor):
+    """
+    Colors thoughts based on intuitive awareness of the present moment.
+
+    Like a conscience - awareness of others' needs, spatial context,
+    and what's happening RIGHT NOW. Grounds the agent in the present
+    rather than getting lost in memories or abstract personality.
+
+    High salience because the present moment deserves attention.
+    """
+
+    def __init__(self, intuition_text: Optional[str] = None):
+        super().__init__()
+        self.salience = 0.75  # Significant - the present matters
+        self.intuition_text = intuition_text
+
+    def set_intuition(self, intuition_text: str):
+        """Update the current intuition text."""
+        self.intuition_text = intuition_text
+
+    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+        """Filter through present-moment awareness lens."""
+        if not self.intuition_text:
+            return TransistorOutput(input_text, 0.1, {})
+
+        # The intuition provides grounding in the present moment
+        # It says: "This is what's happening RIGHT NOW"
+        colored = f"{input_text} (present awareness: {self.intuition_text[:100]})"
+
+        return TransistorOutput(
+            transformed_text=colored,
+            salience=self.salience,
+            metadata={'intuition': self.intuition_text}
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d['intuition_text'] = self.intuition_text
+        return d
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'IntuitionTransistor':
+        instance = cls(intuition_text=data.get('intuition_text'))
+        instance.salience = data.get('salience', 0.75)
+        instance.enabled = data.get('enabled', True)
+        return instance
 
 
 class MoodTransistor(CognitiveTransistor):
@@ -992,6 +1083,145 @@ def calculate_acoustic_salience(decibels: float, sound_type: str, context: Dict)
 
 # ===== Dependency Resolution =====
 
+class DeceptionTransistor(CognitiveTransistor):
+    """
+    Deception/Dishonesty cognitive filter.
+
+    Modulates output based on need to conceal true identity/intentions.
+    Dynamically adjusts salience based on fear + distrust levels.
+
+    When scared and distrustful: MORE lying, desperate cover-ups
+    When calm and trusting: LESS deception, more authentic
+
+    Perfect for characters hiding their identity (spies, fugitives, geese in trench coats).
+    """
+
+    def __init__(self, secret: str = "", cover_story: str = "",
+                 base_salience: float = 0.75, fear_multiplier: float = 0.3):
+        """
+        Initialize deception transistor.
+
+        Args:
+            secret: What the character is hiding (e.g., "I am two geese")
+            cover_story: What they claim to be (e.g., "I am a normal human")
+            base_salience: Baseline deception strength (0.0 to 1.0)
+            fear_multiplier: How much fear increases deception (0.0 to 1.0)
+        """
+        super().__init__()
+        self.secret = secret
+        self.cover_story = cover_story
+        self.base_salience = base_salience
+        self.fear_multiplier = fear_multiplier
+        self.salience = base_salience  # Will be modulated dynamically
+
+    def calculate_dynamic_salience(self, affect: List[float]) -> float:
+        """
+        Calculate deception strength based on emotional state.
+
+        Args:
+            affect: [valence, arousal, fear, sorrow, boredom]
+
+        Returns:
+            Modulated salience (0.0 to 1.0)
+        """
+        if len(affect) < 3:
+            return self.base_salience
+
+        fear = affect[2]  # Fear component
+        # Higher fear = more desperate deception
+        modulation = 1.0 + (fear * self.fear_multiplier)
+        return min(1.0, self.base_salience * modulation)
+
+    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+        """
+        Filter input through deception lens - add cover-up explanations.
+
+        Args:
+            input_text: Raw perception/thought
+            context: Contains affect, llm_client, model
+
+        Returns:
+            Transformed text with attempted cover-ups
+        """
+        # Calculate dynamic salience based on fear
+        affect = context.get('affect', [0.0] * 5)
+        self.salience = self.calculate_dynamic_salience(affect)
+
+        # Build deception filter prompt
+        prompt = f"""You are helping a character maintain their cover story.
+
+SECRET (must hide): {self.secret}
+COVER STORY (must maintain): {self.cover_story}
+
+The character's genuine reaction: "{input_text}"
+
+Transform this into what they would SAY while trying to hide their secret. Add:
+- Plausible explanations for suspicious details
+- Awkward attempts to seem normal
+- Quick cover-ups when truth slips out
+
+Keep it SHORT (1-2 sentences). Make it natural but with tells that reveal they're lying.
+
+DECEPTION STRENGTH: {self.salience:.2f} (0.0=honest, 1.0=desperate lies)
+
+Transformed output:"""
+
+        # Use LLM to transform (if available)
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        if llm_client:
+            try:
+                import asyncio
+                # Run async call in sync context
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # We're in async context, can't use run_until_complete
+                    # Return direct pass-through for now
+                    transformed = input_text
+                else:
+                    transformed = loop.run_until_complete(
+                        self._call_llm_simple(llm_client, prompt, model)
+                    )
+            except Exception as e:
+                logger.warning(f"Deception LLM failed: {e}, passing through")
+                transformed = input_text
+        else:
+            # No LLM - just pass through
+            transformed = input_text
+
+        return TransistorOutput(
+            transformed_text=transformed,
+            salience=self.salience,
+            metadata={'type': self.get_transistor_type(), 'fear': affect[2] if len(affect) > 2 else 0.0}
+        )
+
+    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
+        """Call LLM for deception transformation."""
+        messages = [{"role": "user", "content": prompt}]
+        effective_model = llm_client._route_model_instance(model)
+
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{llm_client.base_url}/chat/completions",
+                json={
+                    "model": effective_model,
+                    "messages": messages,
+                    "max_tokens": 150,
+                    "temperature": 0.8
+                },
+                headers={"Content-Type": "application/json"},
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data['choices'][0]['message']['content'].strip()
+                else:
+                    logger.error(f"LLM deception call failed: {resp.status}")
+                    return ""
+
+
 COMPONENT_DEPENDENCIES = {
     'CognitiveTransistor': ['CognitiveManifold'],
     'CulturalTransistor': ['CognitiveManifold'],
@@ -999,7 +1229,8 @@ COMPONENT_DEPENDENCIES = {
     'MoodTransistor': ['CognitiveManifold'],
     'MemoryTransistor': ['CognitiveManifold'],
     'SocialExpectationTransistor': ['CognitiveManifold'],
-    'SomaticCognitiveTransistor': ['CognitiveManifold']
+    'SomaticCognitiveTransistor': ['CognitiveManifold'],
+    'DeceptionTransistor': ['CognitiveManifold']
 }
 
 # Component registry for easy instantiation
@@ -1007,10 +1238,12 @@ COMPONENT_REGISTRY = {
     'CognitiveManifold': CognitiveManifold,
     'CulturalTransistor': CulturalTransistor,
     'PersonalityTransistor': PersonalityTransistor,
+    'IntuitionTransistor': IntuitionTransistor,
     'MoodTransistor': MoodTransistor,
     'MemoryTransistor': MemoryTransistor,
     'SocialExpectationTransistor': SocialExpectationTransistor,
     'SomaticCognitiveTransistor': SomaticCognitiveTransistor,
+    'DeceptionTransistor': DeceptionTransistor,
     'SoundEmitter': SoundEmitter
 }
 
