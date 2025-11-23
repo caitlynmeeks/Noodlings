@@ -2933,33 +2933,89 @@ class CommandParser:
         }
 
     async def cmd_memory(self, user_id: str, args: str) -> Dict:
-        """View agent's episodic memory."""
+        """
+        View agent's memory system.
+
+        Usage:
+            @memory <agent> --stats           Show memory statistics
+            @memory <agent> --working         Show working memory (recent)
+            @memory <agent> --episodic        Show episodic memory (important)
+            @memory <agent> --search <text>   Search memories for text
+            @memory <agent>                   Show recent memories (default)
+        """
         if not args:
-            return {'success': False, 'output': 'Usage: @memory <agent_name>', 'events': []}
+            return {'success': False, 'output': 'Usage: @memory <agent_name> [--stats|--working|--episodic|--search <query>]', 'events': []}
 
-        agent_name = args.strip()
+        parts = args.strip().split()
+        agent_name = parts[0]
+        flags = parts[1:] if len(parts) > 1 else []
+
         agent_id = f"agent_{agent_name}"
-
         agent = self.agent_manager.get_agent(agent_id)
         if not agent:
             return {'success': False, 'output': f"Agent '{agent_name}' not found.", 'events': []}
 
-        memory = agent.get_episodic_buffer()
+        # Handle flags
+        if '--stats' in flags:
+            stats = agent.get_memory_stats()
+            lines = [f"\nMemory Statistics for {agent_name}"]
+            lines.append("=" * 60)
+            lines.append(f"Working Memory:  {stats['working_count']}/{stats['working_capacity']} slots")
+            lines.append(f"Episodic Memory: {stats['episodic_count']}/{stats['episodic_capacity']} slots")
+            lines.append(f"Consolidations:  {stats['consolidations']} memories promoted to episodic")
+            lines.append(f"Evictions:       {stats['evictions']} low-importance memories removed")
+            lines.append(f"Threshold:       {stats['threshold']} (importance cutoff for consolidation)")
+            return {'success': True, 'output': '\n'.join(lines), 'events': []}
 
-        if not memory:
-            return {'success': True, 'output': f"Agent '{agent_name}' has no memories.", 'events': []}
+        elif '--working' in flags:
+            working = agent.get_working_memory()
+            lines = [f"\nWorking Memory for {agent_name} ({len(working)} entries)"]
+            lines.append("=" * 60)
+            for i, entry in enumerate(working[-10:], 1):  # Last 10
+                text = entry.get('text', '')[:80]
+                lines.append(f"{i}. [{entry.get('user', '?')}] {text}...")
+                lines.append(f"   Surprise: {entry.get('surprise', 0.0):.3f}")
+            return {'success': True, 'output': '\n'.join(lines), 'events': []}
 
-        lines = [f"\nRecent memories for {agent_name}:"]
-        lines.append("=" * 40)
-        for entry in memory[-5:]:
-            lines.append(f"[{entry.get('user', 'unknown')}]: {entry.get('text', '')}")
-            lines.append(f"  Surprise: {entry.get('surprise', 0.0):.3f}")
+        elif '--episodic' in flags:
+            episodic = agent.get_episodic_memory(limit=15)
+            lines = [f"\nEpisodic Memory for {agent_name} ({len(episodic)} entries, top 15)"]
+            lines.append("=" * 60)
+            for i, entry in enumerate(episodic, 1):
+                text = entry.get('text', '')[:80]
+                imp = entry.get('importance', 0.0)  # Use actual importance score
+                sal = entry.get('identity_salience', 0.0)
+                lines.append(f"{i}. [{entry.get('user', '?')}] {text}...")
+                lines.append(f"   Importance: {imp:.3f}, Salience: {sal:.3f}, Surprise: {entry.get('surprise', 0.0):.3f}")
+            return {'success': True, 'output': '\n'.join(lines), 'events': []}
 
-        return {
-            'success': True,
-            'output': '\n'.join(lines),
-            'events': []
-        }
+        elif '--search' in flags:
+            search_idx = flags.index('--search')
+            if search_idx + 1 >= len(flags):
+                return {'success': False, 'output': 'Usage: @memory <agent> --search <query>', 'events': []}
+
+            query = ' '.join(flags[search_idx + 1:])
+            results = agent.search_memories(query, limit=10)
+            lines = [f"\nMemory Search for '{query}' in {agent_name} ({len(results)} results)"]
+            lines.append("=" * 60)
+            for i, entry in enumerate(results, 1):
+                text = entry.get('text', '')[:100]
+                lines.append(f"{i}. [{entry.get('user', '?')}] {text}...")
+            return {'success': True, 'output': '\n'.join(lines), 'events': []}
+
+        else:
+            # Default: show recent memories
+            memory = agent.get_episodic_buffer()
+            if not memory:
+                return {'success': True, 'output': f"Agent '{agent_name}' has no memories.", 'events': []}
+
+            lines = [f"\nRecent memories for {agent_name}:"]
+            lines.append("=" * 40)
+            for entry in memory[-5:]:
+                lines.append(f"[{entry.get('user', 'unknown')}]: {entry.get('text', '')[:100]}")
+                lines.append(f"  Surprise: {entry.get('surprise', 0.0):.3f}")
+
+            return {'success': True, 'output': '\n'.join(lines), 'events': []}
 
     async def cmd_list_agents(self, user_id: str, args: str) -> Dict:
         """List all agents and their stats."""

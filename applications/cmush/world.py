@@ -18,6 +18,8 @@ import os
 from datetime import datetime
 from typing import Dict, List, Optional
 import logging
+from physics_object_descriptor import PhysicsObjectDescriptor
+from permissions import EntityMetadata, PermissionSet, Permission
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +108,9 @@ class World:
         name: str,
         description: str,
         owner: str,
-        room_id: Optional[str] = None
+        room_id: Optional[str] = None,
+        temperature: str = "comfortable",
+        humidity: str = "normal"
     ) -> str:
         """
         Create a new room.
@@ -116,6 +120,8 @@ class World:
             description: Room description
             owner: User ID of owner
             room_id: Optional specific room ID
+            temperature: Semantic temperature ("freezing", "cold", "cool", "comfortable", "warm", "hot", "scorching")
+            humidity: Semantic humidity ("arid", "dry", "normal", "humid", "muggy", "drenched")
 
         Returns:
             Room ID
@@ -131,7 +137,15 @@ class World:
             'objects': [],
             'occupants': [],
             'owner': owner,
-            'created': datetime.now().isoformat()
+            'created': datetime.now().isoformat(),
+            'environment': {
+                'temperature': temperature,
+                'humidity': humidity,
+                'weather': 'clear',  # "clear", "rain", "snow", "fog", etc.
+                'wind': 'calm',      # "calm", "breezy", "windy", "gale"
+                'ambient_sound': None,  # Background sounds
+                'lighting': 'normal'    # "dark", "dim", "normal", "bright", "blinding"
+            }
         }
 
         self.save_all()
@@ -197,6 +211,83 @@ class World:
         """Get object by ID."""
         return self.objects.get(obj_id)
 
+    def get_object_pod(self, obj_id: str) -> Optional[PhysicsObjectDescriptor]:
+        """
+        Get physics descriptor for an object.
+
+        Args:
+            obj_id: Object ID
+
+        Returns:
+            PhysicsObjectDescriptor if object has physics, None otherwise
+        """
+        obj = self.get_object(obj_id)
+        if obj and obj.get('pod'):
+            pod = PhysicsObjectDescriptor.from_dict(obj['pod'])
+            pod.prim_id = obj_id
+            return pod
+        return None
+
+    def attach_pod(self, obj_id: str, pod: PhysicsObjectDescriptor) -> bool:
+        """
+        Attach physics descriptor to an existing object.
+
+        Args:
+            obj_id: Object ID
+            pod: Physics descriptor to attach
+
+        Returns:
+            True if successful
+        """
+        obj = self.get_object(obj_id)
+        if not obj:
+            return False
+
+        pod.prim_id = obj_id
+        obj['pod'] = pod.to_dict()
+        self.save_all()
+        logger.info(f"POD attached to {obj_id}")
+        return True
+
+    def detach_pod(self, obj_id: str) -> bool:
+        """
+        Remove physics descriptor from an object.
+
+        Args:
+            obj_id: Object ID
+
+        Returns:
+            True if successful
+        """
+        obj = self.get_object(obj_id)
+        if not obj:
+            return False
+
+        obj['pod'] = None
+        self.save_all()
+        logger.info(f"POD detached from {obj_id}")
+        return True
+
+    def update_pod(self, obj_id: str, pod: PhysicsObjectDescriptor) -> bool:
+        """
+        Update physics descriptor for an object.
+
+        Args:
+            obj_id: Object ID
+            pod: Updated physics descriptor
+
+        Returns:
+            True if successful
+        """
+        obj = self.get_object(obj_id)
+        if not obj:
+            return False
+
+        pod.prim_id = obj_id
+        obj['pod'] = pod.to_dict()
+        self.save_all()
+        return True
+
     def create_object(
         self,
         name: str,
@@ -206,7 +297,10 @@ class World:
         portable: bool = True,
         takeable: bool = True,
         obj_type: str = "prop",
-        script: Optional[str] = None
+        script: Optional[str] = None,
+        pod: Optional[PhysicsObjectDescriptor] = None,
+        permissions: Optional[PermissionSet] = None,
+        spawned_by: Optional[str] = None
     ) -> str:
         """
         Create a new object (prim).
@@ -214,17 +308,31 @@ class World:
         Args:
             name: Object name
             description: Object description
-            owner: User ID of creator
+            owner: User ID of creator (legacy - use spawned_by)
             location: Initial location (room_id or user_id)
             portable: Can be moved
             takeable: Can be picked up
             obj_type: Prim type (prop, furniture, container, vending_machine, etc.)
             script: Optional script name attached to this prim
+            pod: Optional physics object descriptor (semantic physics)
+            permissions: Optional custom permissions (defaults to full rights)
+            spawned_by: User who spawned this object (defaults to owner)
 
         Returns:
             Object ID
         """
         obj_id = f"obj_{len(self.objects):03d}"
+
+        # Determine spawner (use spawned_by if provided, else owner)
+        spawner = spawned_by or owner
+
+        # Create metadata with provenance tracking
+        metadata = EntityMetadata.create_new(
+            creator=owner,
+            spawned_by=spawner,
+            spawn_room=location if location and location.startswith('room_') else None,
+            permissions=permissions
+        )
 
         self.objects[obj_id] = {
             'uid': obj_id,
@@ -232,8 +340,9 @@ class World:
             'description': description,
             'type': obj_type,
             'location': location,
-            'owner': owner,
-            'created': datetime.now().isoformat(),
+            'owner': owner,  # Legacy field (kept for compatibility)
+            'created': datetime.now().isoformat(),  # Legacy field
+            'metadata': metadata.to_dict(),  # NEW: Full metadata with permissions
             'script': {
                 'name': script,  # Script class name (e.g., "AnklebiterVendingMachine")
                 'code': None,  # Python source code (stored when uploaded)
@@ -241,11 +350,16 @@ class World:
                 'version': 1,  # Script version for migrations
                 'compiled': False  # Whether backend has successfully compiled
             } if script else None,
+            'pod': pod.to_dict() if pod else None,  # Semantic physics descriptor
             'properties': {
                 'portable': portable,
                 'takeable': takeable
             }
         }
+
+        # Link POD to prim if provided
+        if pod:
+            pod.prim_id = obj_id
 
         # Add to room if location specified
         if location and location.startswith('room_'):
@@ -254,7 +368,7 @@ class World:
                 room['objects'].append(obj_id)
 
         self.save_all()
-        logger.info(f"Object created: {obj_id} '{name}' by {owner}")
+        logger.info(f"Object created: {obj_id} '{name}' by {owner} (spawned by {spawner})")
         return obj_id
 
     # ===== User Methods =====
@@ -370,21 +484,40 @@ class World:
         name: str,
         checkpoint_path: str,
         spawn_room: str = "room_000",
-        config: Optional[Dict] = None
+        config: Optional[Dict] = None,
+        spawned_by: Optional[str] = None,
+        permissions: Optional[PermissionSet] = None
     ) -> str:
         """
-        Create a new Consilience agent.
+        Create a new Noodling agent.
 
         Args:
             name: Agent name
             checkpoint_path: Path to Phase 4 checkpoint
             spawn_room: Initial room
             config: Agent configuration
+            spawned_by: User who spawned this agent (defaults to system)
+            permissions: Optional custom permissions (defaults to owner-only)
 
         Returns:
             Agent ID
         """
         agent_id = f"agent_{name}"
+
+        # Determine spawner
+        spawner = spawned_by or "system"
+
+        # Create metadata with provenance tracking
+        # Note: For Noodlings, creator permissions are more restrictive by default
+        metadata = EntityMetadata.create_new(
+            creator=spawner,
+            spawned_by=spawner,
+            spawn_room=spawn_room,
+            permissions=permissions
+        )
+
+        # Set notes for Noodlings
+        metadata.notes = f"Noodling spawned from checkpoint: {checkpoint_path}"
 
         self.agents[agent_id] = {
             'uid': agent_id,
@@ -393,8 +526,9 @@ class World:
             'current_room': spawn_room,
             'inventory': [],  # Agents can have inventory too!
             'config': config or {},
-            'created': datetime.now().isoformat(),
-            'last_active': datetime.now().isoformat()
+            'created': datetime.now().isoformat(),  # Legacy field
+            'last_active': datetime.now().isoformat(),
+            'metadata': metadata.to_dict()  # NEW: Full metadata with permissions
         }
 
         # Add to spawn room
@@ -407,7 +541,7 @@ class World:
         os.makedirs(agent_state_dir, exist_ok=True)
 
         self.save_all()
-        logger.info(f"Agent created: {agent_id} in {spawn_room}")
+        logger.info(f"Agent created: {agent_id} in {spawn_room} (spawned by {spawner})")
         return agent_id
 
     def get_agent_state_path(self, agent_id: str) -> str:
@@ -492,3 +626,157 @@ class World:
             'agents': len(self.agents),
             'world_dir': self.world_dir
         }
+
+    # ===== Metadata & Permission Methods =====
+
+    def get_entity_metadata(self, entity_id: str) -> Optional[EntityMetadata]:
+        """
+        Get metadata for any entity (object or agent).
+
+        Args:
+            entity_id: Object or agent ID
+
+        Returns:
+            EntityMetadata if entity exists and has metadata, None otherwise
+        """
+        entity = self.get_object(entity_id) or self.agents.get(entity_id)
+        if entity and 'metadata' in entity:
+            return EntityMetadata.from_dict(entity['metadata'])
+        return None
+
+    def update_entity_metadata(self, entity_id: str, metadata: EntityMetadata) -> bool:
+        """
+        Update metadata for an entity.
+
+        Args:
+            entity_id: Object or agent ID
+            metadata: Updated metadata
+
+        Returns:
+            True if successful
+        """
+        entity = self.get_object(entity_id) or self.agents.get(entity_id)
+        if not entity:
+            return False
+
+        entity['metadata'] = metadata.to_dict()
+        self.save_all()
+        return True
+
+    def can_user_modify(self, user_id: str, entity_id: str) -> bool:
+        """
+        Check if user can modify an entity.
+
+        Args:
+            user_id: User ID
+            entity_id: Entity to check
+
+        Returns:
+            True if user has modify permission
+        """
+        metadata = self.get_entity_metadata(entity_id)
+        if not metadata:
+            return False  # No metadata = no permissions
+        return metadata.can_modify(user_id)
+
+    def can_user_delete(self, user_id: str, entity_id: str) -> bool:
+        """Check if user can delete an entity."""
+        metadata = self.get_entity_metadata(entity_id)
+        if not metadata:
+            return False
+        return metadata.can_delete(user_id)
+
+    def can_user_transfer(self, user_id: str, entity_id: str) -> bool:
+        """Check if user can transfer ownership of an entity."""
+        metadata = self.get_entity_metadata(entity_id)
+        if not metadata:
+            return False
+        return metadata.can_transfer(user_id)
+
+    def can_user_copy(self, user_id: str, entity_id: str) -> bool:
+        """Check if user can copy an entity."""
+        metadata = self.get_entity_metadata(entity_id)
+        if not metadata:
+            return False
+        return metadata.can_copy(user_id)
+
+    def transfer_entity(self, entity_id: str, new_owner: str, requester: str) -> bool:
+        """
+        Transfer entity ownership.
+
+        Args:
+            entity_id: Entity to transfer
+            new_owner: New owner user ID
+            requester: User requesting transfer
+
+        Returns:
+            True if successful
+        """
+        # Check permission
+        if not self.can_user_transfer(requester, entity_id):
+            logger.warning(f"User {requester} cannot transfer {entity_id}")
+            return False
+
+        # Get and update metadata
+        metadata = self.get_entity_metadata(entity_id)
+        if not metadata:
+            return False
+
+        metadata.transfer_to(new_owner)
+
+        # Update entity owner (legacy field)
+        entity = self.get_object(entity_id) or self.agents.get(entity_id)
+        if entity:
+            entity['owner'] = new_owner
+
+        # Save changes
+        self.update_entity_metadata(entity_id, metadata)
+        logger.info(f"Transferred {entity_id}: {metadata.owner} → {new_owner}")
+        return True
+
+    def record_entity_modification(self, entity_id: str, modifier: str) -> bool:
+        """
+        Record that entity was modified.
+
+        Args:
+            entity_id: Entity that was modified
+            modifier: User who modified it
+
+        Returns:
+            True if successful
+        """
+        metadata = self.get_entity_metadata(entity_id)
+        if not metadata:
+            return False
+
+        metadata.record_modification(modifier)
+        return self.update_entity_metadata(entity_id, metadata)
+
+    def set_entity_permissions(
+        self,
+        entity_id: str,
+        permissions: PermissionSet,
+        requester: str
+    ) -> bool:
+        """
+        Set permissions for an entity.
+
+        Args:
+            entity_id: Entity to modify
+            permissions: New permission set
+            requester: User requesting change
+
+        Returns:
+            True if successful
+        """
+        metadata = self.get_entity_metadata(entity_id)
+        if not metadata:
+            return False
+
+        # Only owner or creator can change permissions
+        if requester != metadata.owner and requester != metadata.creator:
+            logger.warning(f"User {requester} cannot set permissions for {entity_id}")
+            return False
+
+        metadata.permissions = permissions
+        return self.update_entity_metadata(entity_id, metadata)

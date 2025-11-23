@@ -1012,23 +1012,34 @@ class InspectorPanel(MaximizableDock):
 
                 # Update 5-D Affect Vector
                 affect = state.get('affect', {})
+
+                # Color mapping for each dimension
+                affect_colors = {
+                    'valence': '#4CAF50',    # Green (positive/negative)
+                    'arousal': '#FF5722',    # Red-orange (energy)
+                    'fear': '#FFC107',       # Yellow (caution)
+                    'sorrow': '#2196F3',     # Blue (sadness)
+                    'boredom': '#9E9E9E'     # Gray (disengagement)
+                }
+
                 for dim, widget in self.live_affect_labels.items():
                     if dim in affect:
                         value = affect[dim]
                         widget.bar.setValue(int(value * 100))
-                        widget.value_label.setText(f"{value:+.2f}")
+                        widget.value_label.setText(f"{value:.2f}")  # No + prefix!
 
-                        # Consistent gray styling
-                        widget.bar.setStyleSheet("""
-                            QProgressBar {
+                        # Color-coded styling (no flashing!)
+                        color = affect_colors.get(dim, '#4CAF50')
+                        widget.bar.setStyleSheet(f"""
+                            QProgressBar {{
                                 border: 1px solid #555;
                                 border-radius: 3px;
                                 background: #2a2a2a;
-                            }
-                            QProgressBar::chunk {
-                                background: #666;
+                            }}
+                            QProgressBar::chunk {{
+                                background: {color};
                                 border-radius: 2px;
-                            }
+                            }}
                         """)
 
                 # Update 40-D Phenomenal State

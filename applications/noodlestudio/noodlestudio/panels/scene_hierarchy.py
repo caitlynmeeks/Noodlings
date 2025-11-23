@@ -502,6 +502,8 @@ class SceneHierarchy(MaximizableDock):
                 menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
                 menu.addAction("Edit Description", lambda d=entity_data: self.edit_description_data(d))
                 menu.addSeparator()
+                menu.addAction("Export Prim", lambda d=entity_data: self.export_prim_data(d))
+                menu.addSeparator()
                 menu.addAction("Duplicate Prim", lambda d=entity_data: self.duplicate_prim_data(d))
                 menu.addAction("De-Rez Prim", lambda d=entity_data: self.delete_selected_items())
 
@@ -523,6 +525,9 @@ class SceneHierarchy(MaximizableDock):
             create_menu.addAction("Empty Noodling", lambda: self.create_empty_noodling())
             create_menu.addAction("Empty Prim", lambda: self.create_empty_prim())
             create_menu.addAction("Empty Room", lambda: self.create_empty_room())
+
+            menu.addSeparator()
+            menu.addAction("Import Prim...", lambda: self.import_prim())
 
         menu.exec(self.tree.viewport().mapToGlobal(position))
 
@@ -576,6 +581,142 @@ class SceneHierarchy(MaximizableDock):
                     print(f"Failed to fetch agent data: {resp.status_code}")
             except Exception as e:
                 print(f"Error exporting noodling: {e}")
+
+    def export_prim_data(self, entity_data):
+        """Export Prim to .prim file (USD-augmented format)."""
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from pathlib import Path
+        import sys
+        import os
+
+        # Add cmush to path for imports
+        cmush_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../cmush"))
+        if cmush_path not in sys.path:
+            sys.path.insert(0, cmush_path)
+
+        prim_id = entity_data.get('id')
+        prim_data = entity_data.get('data', {})
+
+        # Get prim name for default filename
+        prim_name = prim_data.get('name', prim_id).replace(' ', '_')
+
+        # Open file save dialog
+        default_path = str(Path.home() / f"{prim_name}.prim")
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Prim (USD Format)",
+            default_path,
+            "Prim Files (*.prim);;USD Files (*.usd *.usda);;All Files (*)"
+        )
+
+        if file_path:
+            try:
+                # Import export functionality
+                from world import World
+                from prim_import_export import PrimExporter
+
+                # Load world
+                world_path = os.path.join(cmush_path, "world")
+                world = World(world_path)
+
+                # Export prim
+                exporter = PrimExporter(world)
+                success = exporter.export_prim(prim_id, file_path)
+
+                if success:
+                    print(f"✅ Exported {prim_name} to {file_path}")
+                    QMessageBox.information(
+                        self,
+                        "Export Successful",
+                        f"Prim '{prim_name}' exported to:\n{file_path}\n\nUSD-augmented format with full physics and permissions."
+                    )
+                else:
+                    print(f"❌ Failed to export {prim_name}")
+                    QMessageBox.warning(
+                        self,
+                        "Export Failed",
+                        f"Could not export prim '{prim_name}'.\nCheck console for details."
+                    )
+
+            except Exception as e:
+                print(f"Error exporting prim: {e}")
+                import traceback
+                traceback.print_exc()
+                QMessageBox.critical(
+                    self,
+                    "Export Error",
+                    f"Error exporting prim:\n{str(e)}"
+                )
+
+    def import_prim(self):
+        """Import Prim from .prim file."""
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from pathlib import Path
+        import sys
+        import os
+
+        # Add cmush to path for imports
+        cmush_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../cmush"))
+        if cmush_path not in sys.path:
+            sys.path.insert(0, cmush_path)
+
+        # Open file open dialog
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import Prim (USD Format)",
+            str(Path.home()),
+            "Prim Files (*.prim);;USD Files (*.usd *.usda);;All Files (*)"
+        )
+
+        if file_path:
+            try:
+                # Import import functionality
+                from world import World
+                from prim_import_export import PrimImporter
+
+                # Load world
+                world_path = os.path.join(cmush_path, "world")
+                world = World(world_path)
+
+                # Get current room (default to room_000)
+                current_room = "room_000"  # TODO: Get from current selection
+
+                # Import prim
+                importer = PrimImporter(world)
+                imported_id = importer.import_prim(
+                    file_path,
+                    room_id=current_room,
+                    importer_user="studio_user"
+                )
+
+                if imported_id:
+                    print(f"✅ Imported prim as {imported_id}")
+
+                    # Refresh hierarchy
+                    self.refresh_hierarchy()
+
+                    QMessageBox.information(
+                        self,
+                        "Import Successful",
+                        f"Prim imported successfully as:\n{imported_id}\n\nSpawned in {current_room}"
+                    )
+                else:
+                    print(f"❌ Failed to import prim from {file_path}")
+                    QMessageBox.warning(
+                        self,
+                        "Import Failed",
+                        f"Could not import prim from:\n{file_path}\n\nCheck console for details."
+                    )
+
+            except Exception as e:
+                print(f"Error importing prim: {e}")
+                import traceback
+                traceback.print_exc()
+                QMessageBox.critical(
+                    self,
+                    "Import Error",
+                    f"Error importing prim:\n{str(e)}"
+                )
 
     def duplicate_prim_data(self, entity_data):
         """Duplicate a prim (uses data)."""

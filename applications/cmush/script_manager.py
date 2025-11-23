@@ -38,6 +38,7 @@ from noodlings_scripting import (
     Prim,
     NoodleComponent
 )
+from physics_object_descriptor import PhysicsObjectDescriptor, POD_FIRE_IMP
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,19 @@ class ScriptManager:
         def broadcast_impl(room_id: str, message: str):
             script_mgr._backend_broadcast_sync(room_id, message)
 
+        # POD (Physics) API
+        def get_pod_impl(prim_id: str) -> Optional[PhysicsObjectDescriptor]:
+            return script_mgr._backend_get_pod(prim_id)
+
+        def attach_pod_impl(prim_id: str, pod: PhysicsObjectDescriptor) -> bool:
+            return script_mgr._backend_attach_pod(prim_id, pod)
+
+        def update_pod_impl(prim_id: str, pod: PhysicsObjectDescriptor) -> bool:
+            return script_mgr._backend_update_pod(prim_id, pod)
+
+        def detach_pod_impl(prim_id: str) -> bool:
+            return script_mgr._backend_detach_pod(prim_id)
+
         # Inject implementations
         Noodlings.SetBackend(
             rez_impl=rez_impl,
@@ -126,6 +140,11 @@ class ScriptManager:
             find_impl=find_impl,
             send_message_impl=send_message_impl,
             broadcast_impl=broadcast_impl
+            # TODO: Add Physics API when noodlings_scripting supports it
+            # get_pod_impl=get_pod_impl,
+            # attach_pod_impl=attach_pod_impl,
+            # update_pod_impl=update_pod_impl,
+            # detach_pod_impl=detach_pod_impl
         )
 
         # NoodleComponent.GetPhenomenalState() backend
@@ -226,9 +245,11 @@ class ScriptManager:
             logger.error(f"Error rezzing {recipe}: {e}")
             return None
 
-    def _backend_rez_prim(self, prim_type: str, name: str, room: str) -> Optional[str]:
+    def _backend_rez_prim(self, prim_type: str, name: str, room: str, pod: Optional[PhysicsObjectDescriptor] = None) -> Optional[str]:
         """Backend implementation of Noodlings.RezPrim()."""
         logger.info(f"🎁 Script rezzing prim: {name} ({prim_type}) in {room}")
+        if pod:
+            logger.info(f"   ⚛️  With physics: {pod}")
 
         try:
             obj_id = self.world.create_object(
@@ -238,7 +259,8 @@ class ScriptManager:
                 location=room,
                 portable=True,
                 takeable=True,
-                obj_type=prim_type
+                obj_type=prim_type,
+                pod=pod  # Semantic physics!
             )
 
             logger.info(f"✅ Rezzed prim {name} as {obj_id}")
@@ -290,6 +312,24 @@ class ScriptManager:
         logger.info(f"📢 Script broadcasting to {room_id}: {message}")
         # TODO: Broadcast via server
         # For now, just log it
+
+    # ===== POD (PHYSICS) API =====
+
+    def _backend_get_pod(self, prim_id: str) -> Optional[PhysicsObjectDescriptor]:
+        """Get physics descriptor for a prim."""
+        return self.world.get_object_pod(prim_id)
+
+    def _backend_attach_pod(self, prim_id: str, pod: PhysicsObjectDescriptor) -> bool:
+        """Attach physics descriptor to a prim."""
+        return self.world.attach_pod(prim_id, pod)
+
+    def _backend_update_pod(self, prim_id: str, pod: PhysicsObjectDescriptor) -> bool:
+        """Update physics descriptor for a prim."""
+        return self.world.update_pod(prim_id, pod)
+
+    def _backend_detach_pod(self, prim_id: str) -> bool:
+        """Remove physics descriptor from a prim."""
+        return self.world.detach_pod(prim_id)
 
     # ===== NOODLE COMPONENT REGISTRY =====
 
