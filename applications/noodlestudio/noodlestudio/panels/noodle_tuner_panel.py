@@ -30,106 +30,112 @@ class TransistorCard(QFrame):
     Individual transistor display widget.
 
     Shows:
-    - Transistor type and icon
+    - Transistor type
     - Output text
     - Salience slider
-    - Enable/disable toggle
     """
-
-    # Icon mapping for transistor types
-    ICONS = {
-        'SomaticCognitiveTransistor': '🦆',
-        'DeceptionTransistor': '🎭',
-        'PersonalityTransistor': '🧠',
-        'CulturalTransistor': '🌍',
-        'IntuitionTransistor': '💫',
-        'MoodTransistor': '😊'
-    }
 
     def __init__(self, transistor_data, parent=None):
         super().__init__(parent)
         self.transistor_data = transistor_data
-        self.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Raised)
-        self.setLineWidth(2)
-        self.setStyleSheet("QFrame { background-color: #2D2D2D; border: 2px solid #555; border-radius: 4px; padding: 8px; }")
+        self.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Plain)
+        self.setLineWidth(1)
+        self.setStyleSheet("QFrame { background-color: #2D2D2D; border: 1px solid #3E3E3E; padding: 6px; }")
 
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setContentsMargins(6, 6, 6, 6)
 
-        # Header: [Icon] Type (salience)
-        header_layout = QHBoxLayout()
-
-        icon = self.ICONS.get(self.transistor_data['type'], '⚙️')
-        icon_label = QLabel(icon)
-        icon_label.setFont(QFont("Arial", 16))
-        header_layout.addWidget(icon_label)
-
-        type_label = QLabel(f"[{self.transistor_data['type']}]")
-        type_label.setFont(QFont("Courier", 10, QFont.Weight.Bold))
-        type_label.setStyleSheet("color: #4FC3F7;")
-        header_layout.addWidget(type_label)
-
-        header_layout.addStretch()
-
-        self.salience_label = QLabel(f"({self.transistor_data['salience']:.2f})")
-        self.salience_label.setFont(QFont("Courier", 10))
-        self.salience_label.setStyleSheet("color: #FFA726;")
-        header_layout.addWidget(self.salience_label)
-
-        layout.addLayout(header_layout)
+        # Header: Type only
+        type_label = QLabel(self.transistor_data['type'])
+        type_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+        type_label.setStyleSheet("color: #CCCCCC;")
+        layout.addWidget(type_label)
 
         # Output text
         self.output_text = QTextEdit()
         self.output_text.setReadOnly(True)
-        self.output_text.setMaximumHeight(80)
+        self.output_text.setMaximumHeight(100)
         self.output_text.setStyleSheet("""
             QTextEdit {
-                background-color: #1E1E1E;
-                color: #D2D2D2;
-                border: 1px solid #444;
+                background-color: #222222;
+                color: #CCCCCC;
+                border: 1px solid #3E3E3E;
                 font-family: 'Courier New', monospace;
-                font-size: 10pt;
+                font-size: 11pt;
+                padding: 4px;
             }
         """)
         self.output_text.setText(self.transistor_data['output'] or "(no output yet)")
         layout.addWidget(self.output_text)
 
-        # Salience slider (Phase 2 - currently read-only display)
+        # Salience slider with value label
         slider_layout = QHBoxLayout()
-        slider_label = QLabel("Salience:")
-        slider_label.setStyleSheet("color: #D2D2D2;")
+        slider_label = QLabel("Salience")
+        slider_label.setStyleSheet("color: #999999; font-size: 8pt;")
         slider_layout.addWidget(slider_label)
 
         self.salience_slider = QSlider(Qt.Orientation.Horizontal)
         self.salience_slider.setRange(0, 100)
         self.salience_slider.setValue(int(self.transistor_data['salience'] * 100))
-        self.salience_slider.setEnabled(False)  # Phase 1: Read-only
+        self.salience_slider.valueChanged.connect(self.on_salience_changed)
+        self.salience_slider.sliderPressed.connect(self.on_slider_pressed)
+        self.salience_slider.sliderReleased.connect(self.on_slider_released)
         self.salience_slider.setStyleSheet("""
             QSlider::groove:horizontal {
-                height: 6px;
-                background: #444;
-                border-radius: 3px;
+                height: 4px;
+                background: #3E3E3E;
             }
             QSlider::handle:horizontal {
-                background: #4FC3F7;
-                width: 14px;
-                margin: -4px 0;
-                border-radius: 7px;
+                background: #888888;
+                width: 10px;
+                margin: -3px 0;
+            }
+            QSlider::handle:horizontal:hover {
+                background: #AAAAAA;
             }
         """)
         slider_layout.addWidget(self.salience_slider)
 
+        self.salience_value_label = QLabel(f"{self.transistor_data['salience']:.2f}")
+        self.salience_value_label.setStyleSheet("color: #999999; font-size: 8pt;")
+        self.salience_value_label.setMinimumWidth(30)
+        slider_layout.addWidget(self.salience_value_label)
+
         layout.addLayout(slider_layout)
+
+    def on_salience_changed(self, value):
+        """Update salience label when slider moves."""
+        salience = value / 100.0
+        self.salience_value_label.setText(f"{salience:.2f}")
+
+    def on_slider_pressed(self):
+        """Pause auto-refresh when user starts dragging."""
+        if hasattr(self.parent(), 'pause_refresh'):
+            self.parent().pause_refresh()
+
+    def on_slider_released(self):
+        """Send new salience to API and resume refresh."""
+        if hasattr(self.parent(), 'resume_refresh'):
+            self.parent().resume_refresh()
+        # TODO: Send updated salience to API
 
     def update_data(self, transistor_data):
         """Update widget with new transistor data."""
         self.transistor_data = transistor_data
-        self.output_text.setText(transistor_data['output'] or "(no output yet)")
-        self.salience_label.setText(f"({transistor_data['salience']:.2f})")
-        self.salience_slider.setValue(int(transistor_data['salience'] * 100))
+
+        # Only update text if it changed (prevents deselection)
+        new_text = transistor_data['output'] or "(no output yet)"
+        if self.output_text.toPlainText() != new_text:
+            self.output_text.setText(new_text)
+
+        # Only update slider if not being dragged by user
+        if not self.salience_slider.isSliderDown():
+            new_salience = int(transistor_data['salience'] * 100)
+            self.salience_slider.setValue(new_salience)
+            self.salience_value_label.setText(f"{transistor_data['salience']:.2f}")
 
 
 class NoodleTunerPanel(MaximizableDock):
@@ -144,6 +150,7 @@ class NoodleTunerPanel(MaximizableDock):
         self.current_agent_id = None
         self.api_base = "http://localhost:8081/api"
         self.transistor_cards = {}  # type -> TransistorCard
+        self.refresh_paused = False  # Track pause state
 
         # Create central widget
         widget = QWidget()
@@ -156,14 +163,23 @@ class NoodleTunerPanel(MaximizableDock):
         self.update_timer.timeout.connect(self.refresh_data)
         self.update_timer.start(1000)
 
+    def pause_refresh(self):
+        """Pause auto-refresh (when user is editing)."""
+        self.refresh_paused = True
+
+    def resume_refresh(self):
+        """Resume auto-refresh."""
+        self.refresh_paused = False
+        self.refresh_data()  # Immediate refresh
+
     def init_ui(self, widget):
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(8, 8, 8, 8)
 
         # Header
         self.agent_label = QLabel("No agent selected")
-        self.agent_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        self.agent_label.setStyleSheet("color: #4FC3F7; padding: 8px;")
+        self.agent_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        self.agent_label.setStyleSheet("color: #CCCCCC; padding: 6px;")
         layout.addWidget(self.agent_label)
 
         # Input perception display
@@ -173,14 +189,15 @@ class NoodleTunerPanel(MaximizableDock):
 
         self.input_display = QTextEdit()
         self.input_display.setReadOnly(True)
-        self.input_display.setMaximumHeight(60)
+        self.input_display.setMaximumHeight(50)
         self.input_display.setStyleSheet("""
             QTextEdit {
-                background-color: #1E1E1E;
-                color: #FFF59D;
-                border: 1px solid #444;
+                background-color: #222222;
+                color: #CCCCCC;
+                border: 1px solid #3E3E3E;
                 font-family: 'Courier New', monospace;
-                font-size: 10pt;
+                font-size: 9pt;
+                padding: 4px;
             }
         """)
         input_layout.addWidget(self.input_display)
@@ -214,15 +231,15 @@ class NoodleTunerPanel(MaximizableDock):
 
         self.blend_display = QTextEdit()
         self.blend_display.setReadOnly(True)
-        self.blend_display.setMaximumHeight(80)
+        self.blend_display.setMaximumHeight(60)
         self.blend_display.setStyleSheet("""
             QTextEdit {
-                background-color: #1E1E1E;
-                color: #81C784;
-                border: 1px solid #444;
+                background-color: #222222;
+                color: #CCCCCC;
+                border: 1px solid #3E3E3E;
                 font-family: 'Courier New', monospace;
-                font-size: 10pt;
-                font-weight: bold;
+                font-size: 9pt;
+                padding: 4px;
             }
         """)
         blend_layout.addWidget(self.blend_display)
@@ -243,7 +260,7 @@ class NoodleTunerPanel(MaximizableDock):
 
     def refresh_data(self):
         """Fetch latest manifold data from API."""
-        if not self.current_agent_id:
+        if not self.current_agent_id or self.refresh_paused:
             return
 
         try:
@@ -252,36 +269,40 @@ class NoodleTunerPanel(MaximizableDock):
 
             if response.status_code == 404:
                 self.status_label.setText("Agent not found or has no manifold")
-                self.status_label.setStyleSheet("color: #F44336; font-size: 9pt; padding: 4px;")
+                self.status_label.setStyleSheet("color: #999999; font-size: 8pt; padding: 4px;")
                 return
 
             if response.status_code != 200:
                 self.status_label.setText(f"API error: {response.status_code}")
-                self.status_label.setStyleSheet("color: #F44336; font-size: 9pt; padding: 4px;")
+                self.status_label.setStyleSheet("color: #999999; font-size: 8pt; padding: 4px;")
                 return
 
             data = response.json()
 
-            # Update input
-            self.input_display.setText(data.get('input', '(no input yet)'))
+            # Update input (only if changed - prevents deselection)
+            new_input = data.get('input', '(no input yet)')
+            if self.input_display.toPlainText() != new_input:
+                self.input_display.setText(new_input)
 
             # Update transistor cards
             transistors = data.get('transistors', [])
             self.update_transistor_cards(transistors)
 
-            # Update blend output
-            self.blend_display.setText(data.get('blend_result', '(no output yet)'))
+            # Update blend output (only if changed - prevents deselection)
+            new_blend = data.get('blend_result', '(no output yet)')
+            if self.blend_display.toPlainText() != new_blend:
+                self.blend_display.setText(new_blend)
 
             # Update status
-            self.status_label.setText(f"Updated: {len(transistors)} transistors • {data.get('blending_strategy', 'unknown')} strategy")
-            self.status_label.setStyleSheet("color: #4CAF50; font-size: 9pt; padding: 4px;")
+            self.status_label.setText(f"{len(transistors)} transistors • {data.get('blending_strategy', 'unknown')}")
+            self.status_label.setStyleSheet("color: #999999; font-size: 8pt; padding: 4px;")
 
         except requests.exceptions.Timeout:
             self.status_label.setText("API timeout")
-            self.status_label.setStyleSheet("color: #FF9800; font-size: 9pt; padding: 4px;")
+            self.status_label.setStyleSheet("color: #999999; font-size: 8pt; padding: 4px;")
         except Exception as e:
             self.status_label.setText(f"Error: {str(e)}")
-            self.status_label.setStyleSheet("color: #F44336; font-size: 9pt; padding: 4px;")
+            self.status_label.setStyleSheet("color: #999999; font-size: 8pt; padding: 4px;")
 
     def update_transistor_cards(self, transistors):
         """Update or create transistor cards."""
