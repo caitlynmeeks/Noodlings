@@ -5,3 +5,6 @@ config.yaml
 .env
 *.key
 *.secret
+
+# Internal strategy docs (not ready for public)
+ON_SKEPTICISM_OR_HOW_NOT_TO_GET_LAUGHED_OFF_HACKER_NEWS.md

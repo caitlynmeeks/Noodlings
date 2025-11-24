@@ -262,7 +262,7 @@ Semantic physics provides **learnable regularities**:
 
 Agents learn these patterns, predict future events, experience surprise when wrong.
 
-**This is how real consciousness works.**
+**This is how we're modeling affective grounding.** Whether it's "real consciousness" is a metaphysical question we're not equipped to answer.
 
 ---
 
