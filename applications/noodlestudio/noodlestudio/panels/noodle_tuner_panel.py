@@ -16,7 +16,7 @@ Date: November 23, 2025
 
 from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QTextEdit, QPushButton, QScrollArea,
-                             QSlider, QFrame, QGroupBox, QComboBox)
+                             QSlider, QFrame, QGroupBox, QComboBox, QSplitter)
 from PyQt6.QtCore import Qt, pyqtSlot, QTimer
 from PyQt6.QtGui import QFont
 import requests
@@ -35,9 +35,10 @@ class TransistorCard(QFrame):
     - Salience slider
     """
 
-    def __init__(self, transistor_data, parent=None):
+    def __init__(self, transistor_data, parent=None, font_size=11):
         super().__init__(parent)
         self.transistor_data = transistor_data
+        self.font_size = font_size
         self.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Plain)
         self.setLineWidth(1)
         self.setStyleSheet("QFrame { background-color: #2D2D2D; border: 1px solid #3E3E3E; padding: 6px; }")
@@ -58,15 +59,15 @@ class TransistorCard(QFrame):
         self.output_text = QTextEdit()
         self.output_text.setReadOnly(True)
         self.output_text.setMaximumHeight(100)
-        self.output_text.setStyleSheet("""
-            QTextEdit {
+        self.output_text.setStyleSheet(f"""
+            QTextEdit {{
                 background-color: #222222;
                 color: #CCCCCC;
                 border: 1px solid #3E3E3E;
                 font-family: 'Courier New', monospace;
-                font-size: 11pt;
+                font-size: {self.font_size}pt;
                 padding: 4px;
-            }
+            }}
         """)
         self.output_text.setText(self.transistor_data['output'] or "(no output yet)")
         layout.addWidget(self.output_text)
@@ -83,6 +84,8 @@ class TransistorCard(QFrame):
         self.salience_slider.valueChanged.connect(self.on_salience_changed)
         self.salience_slider.sliderPressed.connect(self.on_slider_pressed)
         self.salience_slider.sliderReleased.connect(self.on_slider_released)
+        # Disable wheel events to prevent accidental changes during scrolling
+        self.salience_slider.wheelEvent = lambda event: event.ignore()
         self.salience_slider.setStyleSheet("""
             QSlider::groove:horizontal {
                 height: 4px;
@@ -137,6 +140,20 @@ class TransistorCard(QFrame):
             self.salience_slider.setValue(new_salience)
             self.salience_value_label.setText(f"{transistor_data['salience']:.2f}")
 
+    def set_font_size(self, size):
+        """Update font size for output text."""
+        self.font_size = size
+        self.output_text.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: #222222;
+                color: #CCCCCC;
+                border: 1px solid #3E3E3E;
+                font-family: 'Courier New', monospace;
+                font-size: {self.font_size}pt;
+                padding: 4px;
+            }}
+        """)
+
 
 class NoodleTunerPanel(MaximizableDock):
     """
@@ -151,6 +168,7 @@ class NoodleTunerPanel(MaximizableDock):
         self.api_base = "http://localhost:8081/api"
         self.transistor_cards = {}  # type -> TransistorCard
         self.refresh_paused = False  # Track pause state
+        self.font_size = 14  # Default font size (larger for readability)
 
         # Create central widget
         widget = QWidget()
@@ -176,35 +194,84 @@ class NoodleTunerPanel(MaximizableDock):
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(8, 8, 8, 8)
 
-        # Header
+        # Header with font controls
+        header_layout = QHBoxLayout()
         self.agent_label = QLabel("No agent selected")
         self.agent_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         self.agent_label.setStyleSheet("color: #CCCCCC; padding: 6px;")
-        layout.addWidget(self.agent_label)
+        header_layout.addWidget(self.agent_label)
 
-        # Input perception display
-        input_group = QGroupBox("Input Perception")
-        input_group.setStyleSheet("QGroupBox { color: #D2D2D2; font-weight: bold; border: 1px solid #555; margin-top: 6px; } QGroupBox::title { subcontrol-origin: margin; padding: 0 3px; }")
-        input_layout = QVBoxLayout(input_group)
+        header_layout.addStretch()
 
-        self.input_display = QTextEdit()
-        self.input_display.setReadOnly(True)
-        self.input_display.setMaximumHeight(50)
-        self.input_display.setStyleSheet("""
-            QTextEdit {
-                background-color: #222222;
+        # Pause button for freezing cognitive processing
+        self.pause_button = QPushButton("⏸ Pause Cognition")
+        self.pause_button.setCheckable(True)
+        self.pause_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3E3E3E;
                 color: #CCCCCC;
-                border: 1px solid #3E3E3E;
-                font-family: 'Courier New', monospace;
-                font-size: 9pt;
-                padding: 4px;
+                border: 1px solid #555;
+                padding: 4px 8px;
+                font-weight: bold;
+            }
+            QPushButton:checked {
+                background-color: #CC6666;
+                color: #FFFFFF;
+            }
+            QPushButton:hover {
+                background-color: #4E4E4E;
             }
         """)
-        input_layout.addWidget(self.input_display)
+        self.pause_button.clicked.connect(self.toggle_pause_cognition)
+        header_layout.addWidget(self.pause_button)
 
-        layout.addWidget(input_group)
+        # Font size controls
+        font_label = QLabel("Font:")
+        font_label.setStyleSheet("color: #888888; font-size: 9pt; margin-left: 10px;")
+        header_layout.addWidget(font_label)
 
-        # Transistor outputs (scrollable)
+        decrease_btn = QPushButton("A-")
+        decrease_btn.setMaximumWidth(40)
+        decrease_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
+        decrease_btn.clicked.connect(self.decrease_font_size)
+        header_layout.addWidget(decrease_btn)
+
+        self.font_size_label = QLabel(f"{self.font_size}pt")
+        self.font_size_label.setStyleSheet("color: #CCCCCC; font-size: 9pt; min-width: 30px;")
+        header_layout.addWidget(self.font_size_label)
+
+        increase_btn = QPushButton("A+")
+        increase_btn.setMaximumWidth(40)
+        increase_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
+        increase_btn.clicked.connect(self.increase_font_size)
+        header_layout.addWidget(increase_btn)
+
+        layout.addLayout(header_layout)
+
+        # Response decision display (what the system decided to do)
+        decision_group = QGroupBox("Response Decision (guides transistors)")
+        decision_group.setStyleSheet("QGroupBox { color: #D2D2D2; font-weight: bold; border: 1px solid #555; margin-top: 6px; } QGroupBox::title { subcontrol-origin: margin; padding: 0 3px; }")
+        decision_layout = QVBoxLayout(decision_group)
+
+        self.decision_display = QTextEdit()
+        self.decision_display.setReadOnly(True)
+        self.decision_display.setMaximumHeight(50)
+        self.decision_display.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: #2A2A3A;
+                color: #AADDFF;
+                border: 1px solid #5555AA;
+                font-family: 'Courier New', monospace;
+                font-size: {self.font_size}pt;
+                padding: 4px;
+                font-weight: bold;
+            }}
+        """)
+        decision_layout.addWidget(self.decision_display)
+
+        layout.addWidget(decision_group)
+
+        # Transistor outputs (resizable with splitters)
         transistor_group = QGroupBox("Transistor Outputs (before blend)")
         transistor_group.setStyleSheet("QGroupBox { color: #D2D2D2; font-weight: bold; border: 1px solid #555; margin-top: 6px; } QGroupBox::title { subcontrol-origin: margin; padding: 0 3px; }")
 
@@ -213,11 +280,19 @@ class NoodleTunerPanel(MaximizableDock):
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         scroll.setStyleSheet("QScrollArea { background-color: #2D2D2D; }")
 
-        self.transistor_container = QWidget()
-        self.transistor_layout = QVBoxLayout(self.transistor_container)
-        self.transistor_layout.setContentsMargins(0, 0, 0, 0)
+        # Use QSplitter for resizable cards
+        self.transistor_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.transistor_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #555555;
+                height: 3px;
+            }
+            QSplitter::handle:hover {
+                background-color: #888888;
+            }
+        """)
 
-        scroll.setWidget(self.transistor_container)
+        scroll.setWidget(self.transistor_splitter)
 
         transistor_scroll_layout = QVBoxLayout(transistor_group)
         transistor_scroll_layout.addWidget(scroll)
@@ -232,15 +307,15 @@ class NoodleTunerPanel(MaximizableDock):
         self.blend_display = QTextEdit()
         self.blend_display.setReadOnly(True)
         self.blend_display.setMaximumHeight(60)
-        self.blend_display.setStyleSheet("""
-            QTextEdit {
+        self.blend_display.setStyleSheet(f"""
+            QTextEdit {{
                 background-color: #222222;
                 color: #CCCCCC;
                 border: 1px solid #3E3E3E;
                 font-family: 'Courier New', monospace;
-                font-size: 9pt;
+                font-size: {self.font_size}pt;
                 padding: 4px;
-            }
+            }}
         """)
         blend_layout.addWidget(self.blend_display)
 
@@ -279,10 +354,15 @@ class NoodleTunerPanel(MaximizableDock):
 
             data = response.json()
 
-            # Update input (only if changed - prevents deselection)
-            new_input = data.get('input', '(no input yet)')
-            if self.input_display.toPlainText() != new_input:
-                self.input_display.setText(new_input)
+            # Update response decision display (only if changed)
+            response_decision = data.get('response_decision')
+            if response_decision:
+                decision_text = f"📋 {response_decision['response_type'].upper()}: {response_decision['guidance']}\n\nReasoning: {response_decision.get('reasoning', 'N/A')}"
+            else:
+                decision_text = "(no decision yet - waiting for event)"
+
+            if self.decision_display.toPlainText() != decision_text:
+                self.decision_display.setText(decision_text)
 
             # Update transistor cards
             transistors = data.get('transistors', [])
@@ -311,7 +391,6 @@ class NoodleTunerPanel(MaximizableDock):
         for ttype in list(self.transistor_cards.keys()):
             if ttype not in existing_types:
                 card = self.transistor_cards.pop(ttype)
-                self.transistor_layout.removeWidget(card)
                 card.deleteLater()
 
         # Update or create cards
@@ -321,10 +400,73 @@ class NoodleTunerPanel(MaximizableDock):
                 # Update existing card
                 self.transistor_cards[ttype].update_data(transistor_data)
             else:
-                # Create new card
-                card = TransistorCard(transistor_data, self)
+                # Create new card with current font size
+                card = TransistorCard(transistor_data, self, font_size=self.font_size)
                 self.transistor_cards[ttype] = card
-                self.transistor_layout.addWidget(card)
+                self.transistor_splitter.addWidget(card)
 
-        # Add stretch at end
-        self.transistor_layout.addStretch()
+    def increase_font_size(self):
+        """Increase font size for all text displays."""
+        self.font_size = min(24, self.font_size + 2)
+        self.font_size_label.setText(f"{self.font_size}pt")
+        self._update_all_font_sizes()
+
+    def decrease_font_size(self):
+        """Decrease font size for all text displays."""
+        self.font_size = max(8, self.font_size - 2)
+        self.font_size_label.setText(f"{self.font_size}pt")
+        self._update_all_font_sizes()
+
+    def _update_all_font_sizes(self):
+        """Update font size for all text widgets."""
+        # Update decision display
+        self.decision_display.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: #2A2A3A;
+                color: #AADDFF;
+                border: 1px solid #5555AA;
+                font-family: 'Courier New', monospace;
+                font-size: {self.font_size}pt;
+                padding: 4px;
+                font-weight: bold;
+            }}
+        """)
+
+        # Update blend display
+        self.blend_display.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: #222222;
+                color: #CCCCCC;
+                border: 1px solid #3E3E3E;
+                font-family: 'Courier New', monospace;
+                font-size: {self.font_size}pt;
+                padding: 4px;
+            }}
+        """)
+
+        # Update all transistor cards
+        for card in self.transistor_cards.values():
+            card.set_font_size(self.font_size)
+
+    def toggle_pause_cognition(self, checked):
+        """Toggle cognitive processing pause for all agents."""
+        try:
+            url = f"{self.api_base}/cognition/pause"
+            response = requests.post(url, json={'paused': checked}, timeout=2)
+
+            if response.status_code == 200:
+                if checked:
+                    self.pause_button.setText("▶ Resume Cognition")
+                    self.status_label.setText("⏸ Cognition PAUSED - agents frozen")
+                    self.status_label.setStyleSheet("color: #CC6666; font-size: 8pt; padding: 4px; font-weight: bold;")
+                else:
+                    self.pause_button.setText("⏸ Pause Cognition")
+                    self.status_label.setText("▶ Cognition RESUMED")
+                    self.status_label.setStyleSheet("color: #66CC66; font-size: 8pt; padding: 4px; font-weight: bold;")
+            else:
+                self.status_label.setText(f"Pause failed: {response.status_code}")
+                self.pause_button.setChecked(not checked)  # Revert button state
+
+        except Exception as e:
+            self.status_label.setText(f"Pause error: {str(e)}")
+            self.pause_button.setChecked(not checked)  # Revert button state

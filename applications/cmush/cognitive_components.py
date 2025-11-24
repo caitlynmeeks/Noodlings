@@ -90,6 +90,185 @@ class CognitiveTransistor(ABC):
         return instance
 
 
+class ResponseTypeDecider:
+    """
+    Decides what TYPE of response is appropriate for an event.
+
+    Analyzes event context and determines whether the agent should:
+    - SAY something (speech)
+    - DO something (action)
+    - THINK something (internal rumination)
+    - NONE (no response needed)
+
+    This decision guides all transistor processing - they generate content
+    specifically for the decided response type.
+    """
+
+    def __init__(self):
+        """Initialize response type decider."""
+        self.last_decision: Optional[Dict[str, Any]] = None
+
+    async def decide(
+        self,
+        event_context: Dict[str, Any],
+        llm_client,
+        model: str = 'qwen/qwen3-4b-2507'
+    ) -> Dict[str, Any]:
+        """
+        Decide appropriate response type for event.
+
+        Args:
+            event_context: Event details (type, speaker, message, etc.)
+            llm_client: LLM client
+            model: Model to use
+
+        Returns:
+            {
+                'response_type': 'say' | 'do' | 'think' | 'none',
+                'guidance': 'what kind of response fits this event',
+                'reasoning': 'why this type was chosen'
+            }
+        """
+        event_type = event_context.get('type', 'unknown')
+        speaker = event_context.get('speaker', 'someone')
+        message = event_context.get('message', '')
+
+        prompt = f"""Analyze this event and decide what type of response is appropriate.
+
+EVENT:
+- Type: {event_type}
+- Speaker: {speaker}
+- Message: "{message}"
+
+Decide the most appropriate response type:
+- SAY: Speak to them (greeting, answer, comment)
+- DO: Physical action (wave, nod, pick up object, move)
+- THINK: Internal thought only (observe without responding)
+- NONE: No response needed (not relevant to you)
+
+Examples:
+- Someone arrives → SAY (greet them)
+- Someone asks you a question → SAY (answer it)
+- Someone gives you something → SAY (thank them) or DO (take it)
+- Someone speaks to someone else → THINK or NONE (not for you)
+- Room description → THINK (absorb information)
+
+Respond in JSON format:
+{{
+  "response_type": "say|do|think|none",
+  "guidance": "brief description of what kind of response fits",
+  "reasoning": "why this type"
+}}"""
+
+        try:
+            response = await llm_client.generate(
+                prompt=prompt,
+                system_prompt="You are a response type decision engine. Output JSON only.",
+                model=model,
+                max_tokens=100,
+                temperature=0.3
+            )
+
+            # Parse JSON response
+            import json
+            decision = json.loads(response.strip())
+            self.last_decision = decision
+            return decision
+
+        except Exception as e:
+            logger.error(f"Response type decision failed: {e}, defaulting to 'think'")
+            return {
+                'response_type': 'think',
+                'guidance': 'observe without responding',
+                'reasoning': 'decision error - being cautious'
+            }
+
+
+class SocialExecutiveFunction:
+    """
+    Social Executive Function - Post-manifold filter for contextual appropriateness.
+
+    Takes the manifold's integrated thought and ensures the output is socially
+    appropriate for the context. Acts as "social pressure" to respond suitably
+    to events (arrivals, questions, gifts, etc.) rather than just outputting
+    internal observations.
+
+    This is the "what should I actually SAY/DO?" filter.
+    """
+
+    def __init__(self, enabled: bool = True):
+        """Initialize social executive function."""
+        self.enabled = enabled
+        self.last_raw_thought: Optional[str] = None
+        self.last_filtered_response: Optional[str] = None
+
+    async def filter(
+        self,
+        internal_thought: str,
+        event_context: Dict[str, Any],
+        llm_client,
+        model: str = 'qwen/qwen3-4b-2507'
+    ) -> str:
+        """
+        Filter internal thought into socially appropriate response.
+
+        Args:
+            internal_thought: Output from cognitive manifold (internal state)
+            event_context: Context about the event requiring response
+            llm_client: LLM client for transformation
+            model: Model to use
+
+        Returns:
+            Socially appropriate response
+        """
+        if not self.enabled:
+            return internal_thought
+
+        self.last_raw_thought = internal_thought
+
+        # Extract event type and relevant parties
+        event_type = event_context.get('type', 'unknown')
+        speaker = event_context.get('speaker', 'someone')
+        message = event_context.get('message', '')
+
+        # Build context-aware prompt
+        prompt = f"""You are a social executive function filter. Transform internal thoughts into contextually appropriate responses.
+
+INTERNAL THOUGHTS (from cognitive processing):
+"{internal_thought}"
+
+EVENT CONTEXT:
+- Type: {event_type}
+- Speaker: {speaker}
+- Message: {message}
+
+SOCIAL EXPECTATIONS:
+- If someone arrives: greet them, acknowledge presence, or ask how they are
+- If someone speaks to you: respond relevantly to what they said
+- If someone gives you something: thank them and react appropriately
+- If someone asks a question: answer it
+- Keep your internal thoughts but make them socially appropriate
+
+Transform the internal thoughts into what you should actually SAY or DO. Be natural and conversational.
+
+Appropriate response:"""
+
+        try:
+            response = await llm_client.generate(
+                prompt=prompt,
+                system_prompt="You are a social appropriateness filter. Transform internal thoughts into suitable responses.",
+                model=model,
+                max_tokens=150,
+                temperature=0.7
+            )
+            filtered = response.strip()
+            self.last_filtered_response = filtered
+            return filtered
+        except Exception as e:
+            logger.error(f"Social executive function failed: {e}, passing through")
+            return internal_thought
+
+
 class CognitiveManifold:
     """
     Cognitive Manifold - Integrates multiple transistor outputs.
@@ -98,20 +277,25 @@ class CognitiveManifold:
     a coherent thought using LLM-powered blending.
     """
 
-    def __init__(self, blending_strategy: str = "llm_weighted"):
+    def __init__(self, blending_strategy: str = "llm_weighted", use_social_filter: bool = True, use_response_planner: bool = True):
         """
         Initialize manifold.
 
         Args:
             blending_strategy: "llm_weighted", "simple_concat", or "priority"
+            use_social_filter: Whether to apply social executive function post-processing
+            use_response_planner: Whether to decide response type before transistor processing
         """
         self.transistors: List[CognitiveTransistor] = []
         self.blending_strategy = blending_strategy
+        self.social_filter = SocialExecutiveFunction(enabled=use_social_filter)
+        self.response_planner = ResponseTypeDecider() if use_response_planner else None
 
         # Noodle Tuner instrumentation - store last integration for debugging
         self.last_input_text: Optional[str] = None
         self.last_output_text: Optional[str] = None
         self.last_transistor_outputs: List[TransistorOutput] = []
+        self.last_response_decision: Optional[Dict[str, Any]] = None
 
     def register_transistor(self, transistor: CognitiveTransistor):
         """
@@ -180,7 +364,26 @@ class CognitiveManifold:
         Returns:
             Synthesized coherent thought
         """
-        # Collect outputs from all enabled transistors
+        # PHASE 1: Decide response type (if response planner enabled)
+        response_decision = None
+        if self.response_planner and context.get('event_context'):
+            llm_client = context.get('llm_client')
+            model = context.get('model', 'qwen/qwen3-4b-2507')
+            if llm_client:
+                try:
+                    response_decision = await self.response_planner.decide(
+                        context['event_context'],
+                        llm_client,
+                        model
+                    )
+                    self.last_response_decision = response_decision
+                    logger.info(f"📋 RESPONSE DECISION: {response_decision['response_type']} - {response_decision['guidance']}")
+                    # Add decision to context for transistors
+                    context['response_decision'] = response_decision
+                except Exception as e:
+                    logger.warning(f"Response planning failed: {e}, continuing without plan")
+
+        # PHASE 2: Collect outputs from all enabled transistors
         outputs = []
         for transistor in self.transistors:
             if transistor.enabled:
@@ -215,20 +418,33 @@ class CognitiveManifold:
             result = await self._llm_weighted_blend(outputs, context)
             # DEBUG: Log final blended result
             logger.info(f"🔬 MANIFOLD DEBUG - Blended result: {result[:150]}...")
-            # Noodle Tuner: Store result
-            self.last_output_text = result
-            return result
         elif self.blending_strategy == "simple_concat":
             result = self._simple_concatenation(outputs)
-            self.last_output_text = result
-            return result
         elif self.blending_strategy == "priority":
             result = self._priority_blend(outputs)
-            self.last_output_text = result
-            return result
         else:
-            self.last_output_text = input_text
-            return input_text
+            result = input_text
+
+        # Apply social executive function filter if enabled
+        if self.social_filter.enabled and context.get('event_context'):
+            llm_client = context.get('llm_client')
+            model = context.get('model', 'qwen/qwen3-4b-2507')
+            if llm_client:
+                try:
+                    filtered_result = await self.social_filter.filter(
+                        result,
+                        context['event_context'],
+                        llm_client,
+                        model
+                    )
+                    logger.info(f"🎭 SOCIAL FILTER: {result[:100]}... → {filtered_result[:100]}...")
+                    result = filtered_result
+                except Exception as e:
+                    logger.warning(f"Social filter failed: {e}, using unfiltered result")
+
+        # Noodle Tuner: Store result
+        self.last_output_text = result
+        return result
 
     async def _llm_weighted_blend(
         self,
@@ -245,14 +461,15 @@ class CognitiveManifold:
         Returns:
             Synthesized thought
         """
-        # Build prompt
-        prompt = "Synthesize these cognitive perspectives into ONE coherent thought:\n\n"
+        # Build prompt - STRICT: no hallucinations, only blend what's provided
+        prompt = "Blend these cognitive perspectives into ONE first-person thought. Use ONLY the content below - do NOT add new information.\n\n"
 
         for i, output in enumerate(outputs, 1):
             prompt += f"{i}. [salience={output.salience:.2f}] {output.transformed_text}\n"
 
-        prompt += "\nIntegrate all perspectives proportionally to salience. "
-        prompt += "Higher salience = more influence. Response (one sentence):"
+        prompt += "\nWeigh perspectives by salience (higher salience = more influence). "
+        prompt += "Synthesize into a single coherent first-person statement using ONLY the themes and feelings present in these inputs. "
+        prompt += "Do not invent details not present above.\n\nBlended thought:"
 
         # Get LLM client from context
         llm_client = context.get('llm_client')
@@ -341,14 +558,60 @@ class CulturalTransistor(CognitiveTransistor):
         if not self.beliefs:
             return TransistorOutput(input_text, 0.1, {})
 
-        # Simple rule-based coloring (LLM integration later)
-        colored = f"{input_text} (through lens of: {', '.join(self.beliefs[:2])})"
+        # Get response decision (if available)
+        response_decision = context.get('response_decision', {})
+        response_type = response_decision.get('response_type', 'think')
+        guidance = response_decision.get('guidance', 'general response')
+
+        # Build transformation prompt WITH response type guidance
+        beliefs_text = '\n'.join([f"- {b}" for b in self.beliefs[:3]])
+        prompt = f"""You are filtering a perception through cultural/religious beliefs.
+
+BELIEFS:
+{beliefs_text}
+
+PERCEPTION: "{input_text}"
+
+RESPONSE GUIDANCE:
+You've decided to {response_type.upper()}: {guidance}
+
+Generate brief (1-2 sentences) content for this {response_type} that reflects your beliefs. Examples:
+- SAY: "Hello friend! My beliefs tell me to welcome newcomers warmly"
+- DO: "I bow respectfully - my culture values this gesture"
+- THINK: "This aligns with my values about community"
+
+Content for {response_type}:"""
+
+        # Use LLM to transform
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        if llm_client:
+            try:
+                transformed = await self._call_llm_simple(llm_client, prompt, model)
+            except Exception as e:
+                logger.warning(f"Cultural LLM failed: {e}, using fallback")
+                transformed = f"This resonates with my beliefs about {self.beliefs[0]}"
+        else:
+            # No LLM - simple fallback
+            transformed = f"This resonates with my beliefs about {self.beliefs[0]}"
 
         return TransistorOutput(
-            transformed_text=colored,
+            transformed_text=transformed,
             salience=self.salience,
             metadata={'beliefs': self.beliefs}
         )
+
+    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
+        """Call LLM for cultural transformation."""
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are a cultural belief filter. Generate brief first-person affective responses.",
+            model=model,
+            max_tokens=100,
+            temperature=0.8
+        )
+        return response.strip()
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()
@@ -377,29 +640,63 @@ class PersonalityTransistor(CognitiveTransistor):
 
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through personality lens."""
-        # Find dominant trait
+        # Get response decision
+        response_decision = context.get('response_decision', {})
+        response_type = response_decision.get('response_type', 'think')
+        guidance = response_decision.get('guidance', 'general response')
+
+        # Get all traits
+        traits_text = '\n'.join([f"- {name}: {value:.1f}/1.0" for name, value in self.traits.items()])
         dominant_trait = max(self.traits.items(), key=lambda x: x[1])
-        trait_name, trait_value = dominant_trait
 
-        if trait_value < 0.6:
-            # No strong traits
-            return TransistorOutput(input_text, 0.3, {})
+        # Build transformation prompt WITH response type guidance
+        prompt = f"""You are filtering a perception through personality traits.
 
-        # Color based on dominant trait
-        if trait_name == 'curiosity' and trait_value > 0.7:
-            colored = f"{input_text} — I wonder why that happened?"
-        elif trait_name == 'impulsivity' and trait_value > 0.7:
-            colored = f"{input_text} — I should react immediately!"
-        elif trait_name == 'emotional_volatility' and trait_value > 0.7:
-            colored = f"{input_text} — This is overwhelming!"
+PERSONALITY TRAITS:
+{traits_text}
+
+PERCEPTION: "{input_text}"
+
+RESPONSE GUIDANCE:
+You've decided to {response_type.upper()}: {guidance}
+
+Generate brief (1-2 sentences) content for this {response_type} that reflects your personality. Examples:
+- SAY: "Oh! My curiosity is bursting - tell me more!"
+- DO: "I impulsively reach out to touch it"
+- THINK: "My cautious nature makes me hesitate"
+
+Content for {response_type}:"""
+
+        # Use LLM to transform
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        if llm_client:
+            try:
+                transformed = await self._call_llm_simple(llm_client, prompt, model)
+            except Exception as e:
+                logger.warning(f"Personality LLM failed: {e}, using fallback")
+                transformed = f"My {dominant_trait[0]} makes me react to this"
         else:
-            colored = input_text
+            # No LLM - simple fallback
+            transformed = f"My {dominant_trait[0]} makes me react to this"
 
         return TransistorOutput(
-            transformed_text=colored,
+            transformed_text=transformed,
             salience=self.salience,
-            metadata={'dominant_trait': trait_name, 'value': trait_value}
+            metadata={'dominant_trait': dominant_trait[0], 'value': dominant_trait[1]}
         )
+
+    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
+        """Call LLM for personality transformation."""
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are a personality filter. Generate brief first-person affective responses.",
+            model=model,
+            max_tokens=100,
+            temperature=0.8
+        )
+        return response.strip()
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()
@@ -432,15 +729,59 @@ class IntuitionTransistor(CognitiveTransistor):
         if not self.intuition_text:
             return TransistorOutput(input_text, 0.1, {})
 
-        # The intuition provides grounding in the present moment
-        # It says: "This is what's happening RIGHT NOW"
-        colored = f"{input_text} (present awareness: {self.intuition_text[:100]})"
+        # Get response decision
+        response_decision = context.get('response_decision', {})
+        response_type = response_decision.get('response_type', 'think')
+        guidance = response_decision.get('guidance', 'general response')
+
+        # Build transformation prompt WITH response type guidance
+        prompt = f"""You are filtering a perception through intuitive present-moment awareness.
+
+INTUITIVE AWARENESS:
+{self.intuition_text}
+
+PERCEPTION: "{input_text}"
+
+RESPONSE GUIDANCE:
+You've decided to {response_type.upper()}: {guidance}
+
+Generate brief (1-2 sentences) content for this {response_type} based on what you sense in the present moment. Examples:
+- SAY: "I sense you just arrived - welcome!"
+- DO: "I turn toward where I sense their presence"
+- THINK: "I'm aware this isn't directed at me"
+
+Content for {response_type}:"""
+
+        # Use LLM to transform
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        if llm_client:
+            try:
+                transformed = await self._call_llm_simple(llm_client, prompt, model)
+            except Exception as e:
+                logger.warning(f"Intuition LLM failed: {e}, using fallback")
+                transformed = f"I sense: {self.intuition_text[:80]}"
+        else:
+            # No LLM - simple fallback
+            transformed = f"I sense: {self.intuition_text[:80]}"
 
         return TransistorOutput(
-            transformed_text=colored,
+            transformed_text=transformed,
             salience=self.salience,
             metadata={'intuition': self.intuition_text}
         )
+
+    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
+        """Call LLM for intuition transformation."""
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are an intuition filter. Generate brief first-person affective responses about present-moment awareness.",
+            model=model,
+            max_tokens=100,
+            temperature=0.8
+        )
+        return response.strip()
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()
@@ -465,33 +806,70 @@ class MoodTransistor(CognitiveTransistor):
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through emotional lens."""
         affect = context.get('affect', [0.0, 0.0, 0.0, 0.0, 0.0])
-        # Safety check for empty affect vectors
         if len(affect) < 5:
             affect = [0.0, 0.0, 0.0, 0.0, 0.0]
         valence, arousal, fear, sorrow, boredom = affect
 
-        # Determine mood coloring
-        if fear > 0.6:
-            colored = f"{input_text} (feeling anxious about this)"
-            salience = 0.7
-        elif sorrow > 0.6:
-            colored = f"{input_text} (this makes me sad)"
-            salience = 0.6
-        elif boredom > 0.6:
-            colored = f"{input_text} (not interesting)"
-            salience = 0.2
-        elif valence > 0.5 and arousal > 0.5:
-            colored = f"{input_text} (exciting!)"
-            salience = 0.6
+        # Get response decision
+        response_decision = context.get('response_decision', {})
+        response_type = response_decision.get('response_type', 'think')
+        guidance = response_decision.get('guidance', 'general response')
+
+        # Calculate salience
+        max_emotion = max([fear, sorrow, boredom, arousal, abs(valence)])
+        salience = min(0.9, 0.3 + max_emotion * 0.6)
+
+        # Build emotional state description
+        emotions_text = f"valence: {valence:.2f}, arousal: {arousal:.2f}, fear: {fear:.2f}, sorrow: {sorrow:.2f}, boredom: {boredom:.2f}"
+
+        # Build transformation prompt WITH response type guidance
+        prompt = f"""You are filtering a perception through current emotional state.
+
+EMOTIONAL STATE:
+{emotions_text}
+
+PERCEPTION: "{input_text}"
+
+RESPONSE GUIDANCE:
+You've decided to {response_type.upper()}: {guidance}
+
+Generate brief (1-2 sentences) content for this {response_type} showing your emotional reaction. Examples:
+- SAY: "I feel excited to talk to you!"
+- DO: "I shiver with nervousness as I approach"
+- THINK: "This makes me feel warm and safe"
+
+Content for {response_type}:"""
+
+        # Use LLM to transform
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        if llm_client:
+            try:
+                transformed = await self._call_llm_simple(llm_client, prompt, model)
+            except Exception as e:
+                logger.warning(f"Mood LLM failed: {e}, using fallback")
+                transformed = "I feel present to this moment"
         else:
-            colored = input_text
-            salience = 0.3
+            # No LLM - simple fallback
+            transformed = "I feel present to this moment"
 
         return TransistorOutput(
-            transformed_text=colored,
+            transformed_text=transformed,
             salience=salience,
             metadata={'mood': affect}
         )
+
+    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
+        """Call LLM for mood transformation."""
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are an emotional filter. Generate brief first-person affective responses.",
+            model=model,
+            max_tokens=100,
+            temperature=0.8
+        )
+        return response.strip()
 
 
 class MemoryTransistor(CognitiveTransistor):
@@ -522,21 +900,66 @@ class MemoryTransistor(CognitiveTransistor):
             return TransistorOutput(input_text, 0.1, {})
 
         # Build memory context
-        memory_snippets = [m.get('text', str(m))[:100] for m in relevant_memories[:2]]
-        memory_text = "; ".join(memory_snippets)
-
-        # Color input with memory context
-        colored = f"{input_text} (reminds me of: {memory_text})"
+        memory_snippets = [m.get('text', str(m))[:120] for m in relevant_memories[:2]]
+        memory_text = '\n'.join([f"- {snippet}" for snippet in memory_snippets])
 
         # Higher salience if strong memories
         avg_importance = sum([m.get('importance', 0.5) for m in relevant_memories]) / len(relevant_memories)
         salience = min(0.8, 0.4 + avg_importance * 0.4)
 
+        # Get response decision
+        response_decision = context.get('response_decision', {})
+        response_type = response_decision.get('response_type', 'think')
+        guidance = response_decision.get('guidance', 'general response')
+
+        # Build transformation prompt WITH response type guidance
+        prompt = f"""You are filtering a perception through past memories.
+
+RELEVANT MEMORIES:
+{memory_text}
+
+PERCEPTION: "{input_text}"
+
+RESPONSE GUIDANCE:
+You've decided to {response_type.upper()}: {guidance}
+
+Generate brief (1-2 sentences) content for this {response_type} connecting to memories. Examples:
+- SAY: "This reminds me of when we met before - good to see you again!"
+- DO: "I reach for it - memories tell me it's safe"
+- THINK: "This echoes something from my past"
+
+Content for {response_type}:"""
+
+        # Use LLM to transform
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        if llm_client:
+            try:
+                transformed = await self._call_llm_simple(llm_client, prompt, model)
+            except Exception as e:
+                logger.warning(f"Memory LLM failed: {e}, using fallback")
+                transformed = f"This reminds me of: {memory_snippets[0][:50]}"
+        else:
+            # No LLM - simple fallback
+            transformed = f"This reminds me of: {memory_snippets[0][:50]}"
+
         return TransistorOutput(
-            transformed_text=colored,
+            transformed_text=transformed,
             salience=salience,
             metadata={'memory_count': len(relevant_memories), 'keywords': keywords}
         )
+
+    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
+        """Call LLM for memory transformation."""
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are a memory filter. Generate brief first-person affective responses connecting perceptions to past experiences.",
+            model=model,
+            max_tokens=100,
+            temperature=0.8
+        )
+        return response.strip()
 
     def _extract_keywords(self, text: str) -> list:
         """Extract keywords from text (simple word filtering)."""
@@ -597,29 +1020,63 @@ class SocialExpectationTransistor(CognitiveTransistor):
         if not self.social_rules:
             return TransistorOutput(input_text, 0.1, {})
 
-        # Check if input relates to social situation
-        social_keywords = ['said', 'told', 'asked', 'gave', 'helped', 'hurt', 'rude', 'polite', 'thank']
-        has_social_context = any(kw in input_text.lower() for kw in social_keywords)
+        # Get response decision
+        response_decision = context.get('response_decision', {})
+        response_type = response_decision.get('response_type', 'think')
+        guidance = response_decision.get('guidance', 'general response')
 
-        if not has_social_context:
-            # Not a social situation - minimal coloring
-            return TransistorOutput(input_text, 0.2, {})
+        # Build transformation prompt WITH response type guidance
+        rules_text = '\n'.join([f"- {rule}" for rule in self.social_rules[:3]])
+        prompt = f"""You are filtering a perception through social norms and expectations.
 
-        # Find relevant social rule
-        relevant_rule = self._find_relevant_rule(input_text)
+SOCIAL RULES:
+{rules_text}
 
-        if relevant_rule:
-            colored = f"{input_text} (social norm: {relevant_rule})"
-            salience = 0.7
+PERCEPTION: "{input_text}"
+
+RESPONSE GUIDANCE:
+You've decided to {response_type.upper()}: {guidance}
+
+Generate brief (1-2 sentences) content for this {response_type} that respects social norms. Examples:
+- SAY: "Thank you! Politeness is important to me"
+- DO: "I nod respectfully - it's the right thing to do"
+- THINK: "This violates my sense of social order"
+
+Content for {response_type}:"""
+
+        # Use LLM to transform
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        if llm_client:
+            try:
+                transformed = await self._call_llm_simple(llm_client, prompt, model)
+                salience = self.salience
+            except Exception as e:
+                logger.warning(f"Social LLM failed: {e}, using fallback")
+                transformed = "I'm considering what's socially appropriate here"
+                salience = 0.4
         else:
-            colored = f"{input_text} (considering social expectations)"
+            # No LLM - simple fallback
+            transformed = "I'm considering what's socially appropriate here"
             salience = 0.4
 
         return TransistorOutput(
-            transformed_text=colored,
+            transformed_text=transformed,
             salience=salience,
-            metadata={'rules': self.social_rules, 'relevant_rule': relevant_rule}
+            metadata={'rules': self.social_rules}
         )
+
+    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
+        """Call LLM for social expectation transformation."""
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are a social expectation filter. Generate brief first-person affective responses about social norms.",
+            model=model,
+            max_tokens=100,
+            temperature=0.8
+        )
+        return response.strip()
 
     def _find_relevant_rule(self, text: str) -> Optional[str]:
         """Find most relevant social rule for text."""
@@ -827,9 +1284,44 @@ class SomaticCognitiveTransistor(CognitiveTransistor):
             salience = worn_interrupt['discomfort_level']
 
         else:
-            # No significant sensations
-            colored = input_text
-            salience = 0.1  # Minimal somatic influence
+            # No active sensations - use LLM to embody the perception
+            response_decision = context.get('response_decision', {})
+            response_type = response_decision.get('response_type', 'think')
+            guidance = response_decision.get('guidance', 'general response')
+            embodiment_desc = context.get('embodiment', 'a physical body')
+
+            prompt = f"""You are filtering a perception through embodied physical awareness.
+
+EMBODIMENT:
+{embodiment_desc}
+
+PERCEPTION: "{input_text}"
+
+RESPONSE GUIDANCE:
+You've decided to {response_type.upper()}: {guidance}
+
+Generate brief (1-2 sentences) content for this {response_type} from your embodied perspective. Examples:
+- SAY: "My waddle carries me forward to greet you"
+- DO: "I feel my feathers ruffle as I move"
+- THINK: "My body tells me this is safe"
+
+Content for {response_type}:"""
+
+            # Use LLM to transform
+            llm_client = context.get('llm_client')
+            model = context.get('model', 'qwen/qwen3-4b-2507')
+
+            if llm_client:
+                try:
+                    colored = await self._call_llm_simple(llm_client, prompt, model)
+                    salience = 0.6  # Moderate embodied awareness
+                except Exception as e:
+                    logger.warning(f"Somatic LLM failed: {e}, using fallback")
+                    colored = "I feel present in my body"
+                    salience = 0.3
+            else:
+                colored = "I feel present in my body"
+                salience = 0.3
 
         return TransistorOutput(
             transformed_text=colored,
@@ -840,6 +1332,17 @@ class SomaticCognitiveTransistor(CognitiveTransistor):
                 'strongest_sensation': strongest['type'] if strongest else None
             }
         )
+
+    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
+        """Call LLM for somatic transformation."""
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are a somatic embodiment filter. Generate brief first-person bodily responses.",
+            model=model,
+            max_tokens=100,
+            temperature=0.8
+        )
+        return response.strip()
 
     def _generate_sensation_response(self, sensation: Dict) -> str:
         """Generate response to bodily sensation."""

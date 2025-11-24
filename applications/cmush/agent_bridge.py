@@ -823,12 +823,24 @@ class CMUSHConsilienceAgent:
                             base_salience=component_config.get('base_salience', 0.75),
                             fear_multiplier=component_config.get('fear_multiplier', 0.3)
                         )
-                    elif transistor_type in ['CulturalTransistor', 'PersonalityTransistor', 'SomaticCognitiveTransistor']:
-                        # These have complex initialization - create basic instance then configure
+                    elif transistor_type == 'CulturalTransistor':
+                        # Pass beliefs from recipe to constructor
+                        transistor = transistor_class(beliefs=component_config.get('beliefs', []))
+                        transistor.salience = component_config.get('salience', 0.5)
+                    elif transistor_type == 'PersonalityTransistor':
+                        # Pass traits from recipe to constructor
+                        transistor = transistor_class(traits=component_config.get('traits', {}))
+                        transistor.salience = component_config.get('salience', 0.5)
+                    elif transistor_type == 'SomaticCognitiveTransistor':
+                        # Somatic has no init params - configured via methods
                         transistor = transistor_class()
                         transistor.salience = component_config.get('salience', 0.5)
+                    elif transistor_type == 'SocialExpectationTransistor':
+                        # Pass social rules from recipe to constructor
+                        transistor = transistor_class(social_rules=component_config.get('social_rules', []))
+                        transistor.salience = component_config.get('salience', 0.5)
                     else:
-                        # Generic initialization
+                        # Generic initialization (MoodTransistor, MemoryTransistor, IntuitionTransistor)
                         transistor = transistor_class()
                         transistor.salience = component_config.get('salience', 0.5)
 
@@ -843,6 +855,9 @@ class CMUSHConsilienceAgent:
         # Noodle Tuner instrumentation - store last manifold integration
         self.last_perception_text: Optional[str] = None
         self.last_manifold_output: Optional[str] = None
+
+        # Cognition pause control (for debugging with Noodle Tuner)
+        self.cognition_paused: bool = False
 
         # Initialize HierarchicalMemory with wrapped interface
         memory_config = config.get('memory_windows', {})
@@ -1802,6 +1817,11 @@ Analyze and output ONLY valid JSON:
         if user_id == self.agent_id:
             return None
 
+        # Check if cognition is paused (for Noodle Tuner debugging)
+        if getattr(self, 'cognition_paused', False):
+            logger.debug(f"[{self.agent_id}] ⏸ Cognition paused - skipping event processing")
+            return None
+
         # Agents can now perceive other agents
         is_agent = user_id.startswith('agent_')
 
@@ -1875,7 +1895,12 @@ Analyze and output ONLY valid JSON:
                         'model': 'qwen/qwen3-4b-2507',
                         'intuition': intuition_text,  # ADD SPATIAL CONTEXT
                         'location': self.current_room,
-                        'world': self.world
+                        'world': self.world,
+                        'event_context': {  # For social executive function
+                            'type': event_type,
+                            'speaker': user_id,
+                            'message': text
+                        }
                     }
                     # Use async integration for LLM-weighted blending
                     colored_perception = await self.cognitive_manifold.integrate_async(text, context)
@@ -2770,6 +2795,26 @@ Analyze and output ONLY valid JSON:
                     logger.info(f"[{self.agent_id}] 🎭 Voice translation:")
                     logger.info(f"  Basic: {original_text[:60]}...")
                     logger.info(f"  Voice: {response_text[:60]}...")
+
+                # Apply social executive function filter to final response
+                if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold and self.cognitive_manifold.social_filter.enabled:
+                    try:
+                        event_ctx = {
+                            'type': event_type,
+                            'speaker': user_id,
+                            'message': text
+                        }
+                        pre_filter = response_text
+                        response_text = await self.cognitive_manifold.social_filter.filter(
+                            response_text,
+                            event_ctx,
+                            self.llm,
+                            model='qwen/qwen3-4b-2507'
+                        )
+                        if response_text != pre_filter:
+                            logger.info(f"[{self.agent_id}] 🎭 FINAL SOCIAL FILTER: {pre_filter[:80]}... → {response_text[:80]}...")
+                    except Exception as e:
+                        logger.warning(f"[{self.agent_id}] Final social filter failed: {e}")
 
             self.last_response_time = time.time()
             self.response_count += 1

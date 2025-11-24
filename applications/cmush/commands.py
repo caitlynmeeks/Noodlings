@@ -1216,7 +1216,11 @@ class CommandParser:
                     'response_cooldown': recipe.response_cooldown,
                     'enlightenment': enlightenment if enlightenment else recipe.enlightenment,
                     # Phase 6: Self-monitoring config from global config.yaml
-                    'self_monitoring': sm_config
+                    'self_monitoring': sm_config,
+                    # Phase 7: Affective reinforcement config from recipe
+                    'affective_reinforcement': recipe.affective_reinforcement or {},
+                    # Phase 7: Cognitive Manifold transistors from recipe
+                    'cognitive_components': recipe.cognitive_components or {}
                 }
 
                 # Wind in the Willows-style natural arrival
@@ -1277,13 +1281,43 @@ class CommandParser:
             rezzed_agents.append(display_name)
             recipe_msg = f" (using recipe: {recipe.name})" if recipe else ""
 
-            # Add event for this agent
+            # Add event for this agent (spawn message)
             all_events.append({
                 'type': 'enter',
                 'user': agent_id,
                 'room': room['uid'],
                 'text': rez_msg
             })
+
+            # PHASE 7: on_rezzed() - Dynamic arrival reaction
+            # Trigger agent to perceive their own materialization
+            # Response colored by cognitive manifold (their MO)
+            try:
+                agent = self.agent_manager.get_agent(agent_id)
+                if agent and hasattr(agent, 'cognitive_manifold') and agent.cognitive_manifold:
+                    # Create self-perception event
+                    arrival_event = {
+                        'type': 'say',
+                        'user': 'system',
+                        'text': f"You have just materialized in {room.get('name', 'this place')}. What is your first impression?",
+                        'room': room['uid']
+                    }
+
+                    # Let agent perceive and respond (filtered through manifold!)
+                    arrival_response = await agent.perceive_event(arrival_event)
+
+                    if arrival_response and arrival_response.get('text'):
+                        # Add as second event (dynamic arrival colored by CM)
+                        all_events.append({
+                            'type': 'say',
+                            'user': agent_id,
+                            'room': room['uid'],
+                            'text': arrival_response['text'],
+                            'metadata': {'on_rezzed': True}
+                        })
+                        logger.info(f"[ON_REZZED] {agent_id} arrival reaction: {arrival_response['text'][:100]}...")
+            except Exception as e:
+                logger.error(f"[ON_REZZED] Failed for {agent_id}: {e}")
 
         # Build result message
         if rezzed_agents:

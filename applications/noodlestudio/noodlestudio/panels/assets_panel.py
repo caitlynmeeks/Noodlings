@@ -207,13 +207,25 @@ class AssetsPanel(QDockWidget):
         if asset_type == "noodling":
             # PRIMARY ACTION: Add to Hierarchy
             add_action = QAction("Add to Hierarchy", self)
-            add_action.triggered.connect(lambda: self._add_to_hierarchy(asset_name, source))
+            add_action.triggered.connect(lambda: self._add_to_hierarchy(asset_name, source, fresh=False))
             menu.addAction(add_action)
+
+            # Fresh rez (clears memory, uses recipe defaults)
+            fresh_action = QAction("Add to Hierarchy (Fresh)", self)
+            fresh_action.triggered.connect(lambda: self._add_to_hierarchy(asset_name, source, fresh=True))
+            menu.addAction(fresh_action)
+
+            menu.addSeparator()
 
             # Alternative: Rez in World (same thing, different wording)
             rez_action = QAction("Rez in World", self)
-            rez_action.triggered.connect(lambda: self._add_to_hierarchy(asset_name, source))
+            rez_action.triggered.connect(lambda: self._add_to_hierarchy(asset_name, source, fresh=False))
             menu.addAction(rez_action)
+
+            # Fresh version
+            rez_fresh_action = QAction("Rez in World (Fresh)", self)
+            rez_fresh_action.triggered.connect(lambda: self._add_to_hierarchy(asset_name, source, fresh=True))
+            menu.addAction(rez_fresh_action)
 
             menu.addSeparator()
 
@@ -260,13 +272,14 @@ class AssetsPanel(QDockWidget):
 
         menu.exec(self.tree.viewport().mapToGlobal(position))
 
-    def _add_to_hierarchy(self, name, source="project"):
+    def _add_to_hierarchy(self, name, source="project", fresh=False):
         """
         Add a noodling to the hierarchy (spawn in world).
 
         Args:
             name: Recipe name
             source: "project" or "recipe" (determines where to load from)
+            fresh: If True, use -f flag (clears memory, fresh state)
         """
         try:
             import json
@@ -351,9 +364,13 @@ class AssetsPanel(QDockWidget):
             try:
                 import requests
                 api_url = "http://localhost:8081/api/command"  # Command endpoint
+
+                # Build command with -f flag if fresh
+                command = f"@rez -f {name}" if fresh else f"@rez {name}"
+
                 payload = {
                     "user_id": "user_caity",  # Default user
-                    "command": f"@rez {name}"
+                    "command": command
                 }
                 response = requests.post(api_url, json=payload, timeout=5)
 
@@ -374,10 +391,11 @@ class AssetsPanel(QDockWidget):
             self.agentRezzed.emit(agent_id)
 
             # Success message (no need to mention refresh - auto-refresh handles it)
+            fresh_msg = " with fresh state (memory cleared)" if fresh else ""
             QMessageBox.information(
                 self,
                 "Rezzed!",
-                f"{name} has been rezzed into noodleMUSH.\n\n{name} should appear in Scene Hierarchy momentarily!"
+                f"{name} has been rezzed into noodleMUSH{fresh_msg}.\n\n{name} should appear in Scene Hierarchy momentarily!"
             )
 
         except Exception as e:

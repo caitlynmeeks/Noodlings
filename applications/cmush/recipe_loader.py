@@ -53,6 +53,9 @@ class AgentRecipe:
     # Cognitive Components (Phase 7: Cognitive Manifold Architecture)
     cognitive_components: Optional[Dict[str, Any]] = None  # Component specifications
 
+    # Affective Reinforcement (Phase 7: Make characters WANT their behaviors)
+    affective_reinforcement: Optional[Dict[str, Any]] = None  # Reinforcement config
+
     # Character voice configuration
     character_voice: Optional[Dict[str, Any]] = None  # Voice pattern and vocalizations
 
@@ -96,6 +99,7 @@ class AgentRecipe:
             llm_model=llm_model,        # Optional: per-agent model
             enlightenment=data.get('enlightenment', False),  # Default: immersed in character
             cognitive_components=data.get('cognitive_components'),
+            affective_reinforcement=data.get('affective_reinforcement'),
             character_voice=data.get('character_voice'),
             pronouns=data.get('pronouns'),
             appearance=data.get('appearance'),

@@ -100,6 +100,9 @@ class NoodleScopeAPI:
         self.app.router.add_get('/api/manifold/debug/{agent_id}', self.get_manifold_debug)
         self.app.router.add_post('/api/manifold/recalculate/{agent_id}', self.recalculate_manifold)
 
+        # Cognition control - pause/resume processing
+        self.app.router.add_post('/api/cognition/pause', self.pause_cognition)
+
         # Objects and rooms
         self.app.router.add_post('/api/objects', self.create_object)
         self.app.router.add_post('/api/objects/{object_id}/update', self.update_object)
@@ -1185,10 +1188,14 @@ class NoodleScopeAPI:
         else:
             affect = {'valence': 0.0, 'arousal': 0.0, 'fear': 0.0, 'sorrow': 0.0, 'boredom': 0.0}
 
+        # Get response decision if available
+        response_decision = manifold.last_response_decision if hasattr(manifold, 'last_response_decision') else None
+
         return web.json_response({
             'agent_id': agent_id,
             'agent_name': agent.agent_name,
             'input': agent.last_perception_text or "",
+            'response_decision': response_decision,
             'transistors': transistors_data,
             'blend_result': agent.last_manifold_output or "",
             'affect': affect,
@@ -1262,6 +1269,42 @@ class NoodleScopeAPI:
 
         except Exception as e:
             logger.error(f"Failed to recalculate manifold: {e}", exc_info=True)
+            return web.json_response({'error': str(e)}, status=500)
+
+    async def pause_cognition(self, request: web.Request) -> web.Response:
+        """
+        Pause or resume cognitive processing for all agents.
+
+        POST /api/cognition/pause
+        Body: {"paused": true/false}
+
+        When paused, agents will not process new events or generate responses.
+        Allows inspection of cognitive state without it changing.
+        """
+        try:
+            data = await request.json()
+            paused = data.get('paused', True)
+
+            if not self.agent_manager:
+                return web.json_response({'error': 'Agent manager not available'}, status=500)
+
+            # Set pause flag on agent manager
+            self.agent_manager.cognition_paused = paused
+
+            # Also set flag on all agents
+            for agent in self.agent_manager.agents.values():
+                agent.cognition_paused = paused
+
+            logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for all agents")
+
+            return web.json_response({
+                'success': True,
+                'paused': paused,
+                'message': f"Cognition {'paused' if paused else 'resumed'}"
+            })
+
+        except Exception as e:
+            logger.error(f"Failed to pause cognition: {e}", exc_info=True)
             return web.json_response({'error': str(e)}, status=500)
 
     async def start(self):

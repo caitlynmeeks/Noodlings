@@ -67,7 +67,11 @@ class OpenAICompatibleLLM:
         'ego', 'illusion', 'consciousness', 'universe', 'existence', 'nature', 'self',
         'reality', 'perception', 'awareness', 'mind', 'being', 'essence', 'truth',
         'enlightenment', 'meditation', 'transcend', 'eternal', 'infinite', 'oneness',
-        'duality', 'paradox', 'emptiness', 'void', 'cosmic', 'spiritual', 'zen'
+        'duality', 'paradox', 'emptiness', 'void', 'cosmic', 'spiritual', 'zen',
+        # Additional mystical drift patterns (for geese/comedy characters)
+        'stillness', 'silence speaks', 'air holding', 'breath holds', 'quiet part',
+        'soul', 'breathing' #(when applied to objects), 'promise' #(metaphorical),
+        'learned to wait', 'listen to quiet', 'feel the quiet', 'world softens'
     }
 
     # CHEAP THRILLS BONUS: Words indicating messy, embodied, experiential living

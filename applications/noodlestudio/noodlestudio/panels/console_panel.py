@@ -97,6 +97,7 @@ class ConsolePanel(MaximizableDock):
         self.last_message = None  # Track last message for collapsing
         self.repeat_count = 0
         self.selected_entities = []  # Track selected entities for filtering
+        self.font_size = 11  # Default font size for console
 
         # Filter settings
         self.filter_selected_only = False
@@ -170,18 +171,40 @@ class ConsolePanel(MaximizableDock):
 
         toolbar.addStretch()
 
+        # Font size controls
+        font_label = QLabel("Font:")
+        font_label.setStyleSheet("color: #888888; font-size: 9pt;")
+        toolbar.addWidget(font_label)
+
+        decrease_btn = QPushButton("A-")
+        decrease_btn.setMaximumWidth(40)
+        decrease_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
+        decrease_btn.clicked.connect(self.decrease_font_size)
+        toolbar.addWidget(decrease_btn)
+
+        self.font_size_label = QLabel(f"{self.font_size}pt")
+        self.font_size_label.setStyleSheet("color: #CCCCCC; font-size: 9pt; min-width: 30px;")
+        toolbar.addWidget(self.font_size_label)
+
+        increase_btn = QPushButton("A+")
+        increase_btn.setMaximumWidth(40)
+        increase_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
+        increase_btn.clicked.connect(self.increase_font_size)
+        toolbar.addWidget(increase_btn)
+
         layout.addLayout(toolbar)
 
         # Log text area
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
-        self.log_text.setFont(QFont("Monaco", 10))
-        self.log_text.setStyleSheet("""
-            QTextEdit {
+        self.log_text.setFont(QFont("Monaco", self.font_size))
+        self.log_text.setStyleSheet(f"""
+            QTextEdit {{
                 background-color: #1E1E1E;
                 color: #D2D2D2;
                 border: none;
-            }
+                font-size: {self.font_size}pt;
+            }}
         """)
         layout.addWidget(self.log_text)
 
@@ -347,3 +370,31 @@ class ConsolePanel(MaximizableDock):
         """Filter logs by search text and level."""
         # TODO: Implement actual filtering
         pass
+
+    def increase_font_size(self):
+        """Increase console font size."""
+        self.font_size = min(24, self.font_size + 2)
+        self.font_size_label.setText(f"{self.font_size}pt")
+        self.log_text.setFont(QFont("Monaco", self.font_size))
+        self.log_text.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: #1E1E1E;
+                color: #D2D2D2;
+                border: none;
+                font-size: {self.font_size}pt;
+            }}
+        """)
+
+    def decrease_font_size(self):
+        """Decrease console font size."""
+        self.font_size = max(8, self.font_size - 2)
+        self.font_size_label.setText(f"{self.font_size}pt")
+        self.log_text.setFont(QFont("Monaco", self.font_size))
+        self.log_text.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: #1E1E1E;
+                color: #D2D2D2;
+                border: none;
+                font-size: {self.font_size}pt;
+            }}
+        """)

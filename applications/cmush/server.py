@@ -330,6 +330,19 @@ class CMUSHServer:
                 # Also reload identity_prompt if not already in config
                 if 'identity_prompt' not in config:
                     config['identity_prompt'] = recipe.identity_prompt
+
+                # Phase 7: Reload affective_reinforcement from recipe
+                # Critical: Ensures agents get latest reinforcement config on server restart
+                if recipe.affective_reinforcement:
+                    config['affective_reinforcement'] = recipe.affective_reinforcement
+                    logger.info(f"[LOAD] Loaded affective_reinforcement for {agent_id}: {recipe.affective_reinforcement}")
+
+                # Phase 7: Reload cognitive_components from recipe
+                # Critical: Ensures cognitive manifold transistors are initialized
+                if recipe.cognitive_components:
+                    config['cognitive_components'] = recipe.cognitive_components
+                    logger.info(f"[LOAD] Loaded cognitive_components for {agent_id}: {list(recipe.cognitive_components.keys())}")
+
                 logger.info(f"[LOAD] Reloaded recipe for {agent_id}: species={recipe.species}")
 
             # NEW: Inject ensemble context if agent is part of an ensemble
