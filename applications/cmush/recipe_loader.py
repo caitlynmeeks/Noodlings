@@ -68,6 +68,9 @@ class AgentRecipe:
     # Spawn message
     spawn_message: Optional[str] = None
 
+    # Checkpoint path (Phase 4 temporal model weights)
+    checkpoint: Optional[str] = None  # Path to trained checkpoint file
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AgentRecipe':
         """Create recipe from parsed YAML dict."""
@@ -103,7 +106,8 @@ class AgentRecipe:
             character_voice=data.get('character_voice'),
             pronouns=data.get('pronouns'),
             appearance=data.get('appearance'),
-            spawn_message=data.get('spawn_message')
+            spawn_message=data.get('spawn_message'),
+            checkpoint=data.get('checkpoint')  # Phase 4 temporal model checkpoint
         )
 
     def get_appetite_baselines(self) -> List[float]:

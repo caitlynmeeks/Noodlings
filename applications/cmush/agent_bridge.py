@@ -773,18 +773,26 @@ class CMUSHConsilienceAgent:
         # Phase 6: Enable appetite architecture if appetites provided in config
         use_phase6 = config.get('appetites') is not None
 
-        self.consciousness = ConsilienceAgent(
-            checkpoint_path=checkpoint_path,
-            config={
-                'memory_capacity': config.get('memory_capacity', 100),
-                'surprise_threshold': adjusted_threshold,
-                'use_vae': config.get('use_vae', False),
-                'max_agents': config.get('max_agents', 10),
-                # Phase 6: Appetite architecture
-                'use_phase6': use_phase6,
-                'appetite_baselines': config.get('appetites')  # From recipe
-            }
-        )
+        logger.info(f"[{agent_id}] ABOUT TO INITIALIZE ConsilienceAgent with checkpoint: {checkpoint_path}")
+        try:
+            self.consciousness = ConsilienceAgent(
+                checkpoint_path=checkpoint_path,
+                config={
+                    'memory_capacity': config.get('memory_capacity', 100),
+                    'surprise_threshold': adjusted_threshold,
+                    'use_vae': config.get('use_vae', False),
+                    'max_agents': config.get('max_agents', 10),
+                    # Phase 6: Appetite architecture
+                    'use_phase6': use_phase6,
+                    'appetite_baselines': config.get('appetites')  # From recipe
+                }
+            )
+            logger.info(f"[{agent_id}] ConsilienceAgent initialized successfully")
+        except Exception as e:
+            logger.error(f"[{agent_id}] FAILED to initialize ConsilienceAgent: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
 
         # Consciousness metrics for scientific evaluation
         self.state_history = []  # Track phenomenal states for Φ calculation
@@ -2063,9 +2071,9 @@ Analyze and output ONLY valid JSON:
 
             # 4. Track phenomenal states for consciousness metrics
             # Extract full 40-D phenomenal state (fast 16-D + medium 16-D + slow 8-D)
-            h_fast = state.get('fast_state') or []
-            h_medium = state.get('medium_state') or []
-            h_slow = state.get('slow_state') or []
+            h_fast = state.get('fast_state') if state.get('fast_state') is not None else []
+            h_medium = state.get('medium_state') if state.get('medium_state') is not None else []
+            h_slow = state.get('slow_state') if state.get('slow_state') is not None else []
 
             # Convert to numpy arrays if needed
             if hasattr(h_fast, 'tolist'):
@@ -3268,7 +3276,15 @@ Analyze and output ONLY valid JSON:
         Returns:
             State dictionary
         """
-        return self.consciousness.get_state()
+        state = self.consciousness.get_state()
+
+        # DEBUG: Log what consciousness is returning
+        logger.info(f"[{self.agent_id}] get_phenomenal_state() called")
+        logger.info(f"  fast: {type(state.get('fast'))}, len={len(state.get('fast')) if state.get('fast') is not None else 'None'}")
+        logger.info(f"  medium: {type(state.get('medium'))}, len={len(state.get('medium')) if state.get('medium') is not None else 'None'}")
+        logger.info(f"  slow: {type(state.get('slow'))}, len={len(state.get('slow')) if state.get('slow') is not None else 'None'}")
+
+        return state
 
     def get_episodic_buffer(self) -> List[Dict]:
         """

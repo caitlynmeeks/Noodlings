@@ -1259,7 +1259,10 @@ class CommandParser:
                 rez_msg = f"{display_name} {arrival}. {description}"
 
             # Create agent in world
-            checkpoint_path = "../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
+            # Use recipe checkpoint if specified, otherwise default
+            default_checkpoint = "../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
+            checkpoint_path = recipe.checkpoint if (recipe and recipe.checkpoint) else default_checkpoint
+
             self.world.create_agent(
                 name=agent_name,
                 checkpoint_path=checkpoint_path,

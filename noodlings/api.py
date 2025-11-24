@@ -139,6 +139,10 @@ class NoodlingAgent:
             )
 
         # Load checkpoint if provided
+        print(f"[DEBUG] NoodlingAgent.__init__: checkpoint_path='{checkpoint_path}'")
+        if checkpoint_path:
+            print(f"[DEBUG] os.path.exists({checkpoint_path}) = {os.path.exists(checkpoint_path)}")
+
         if checkpoint_path and os.path.exists(checkpoint_path):
             try:
                 self.model.load_weights(checkpoint_path)
@@ -146,6 +150,11 @@ class NoodlingAgent:
             except Exception as e:
                 print(f"⚠️  Could not load checkpoint: {e}")
                 print(f"   Starting with random weights")
+        else:
+            if not checkpoint_path:
+                print(f"[DEBUG] No checkpoint_path provided - using random weights")
+            else:
+                print(f"[DEBUG] Checkpoint path does not exist: {checkpoint_path}")
 
         # Initialize states
         self.model.reset_states()
@@ -271,14 +280,22 @@ class NoodlingAgent:
             'agent_id': agent_id
         })
 
+        # Get current states properly (handles both Phase4 and Phase6)
+        model_states = self.model.get_states()
+        h_fast, c_fast, h_medium, c_medium, h_slow = model_states
+
+        # DEBUG: Check if states are updating
+        if self._step % 5 == 0:  # Log every 5th step
+            print(f"[DEBUG] Step {self._step}: fast_state[0]={h_fast[0, 0] if h_fast is not None else 'None':.4f}")
+
         # Return results
         result = {
             'phenomenal_state': phenomenal_state_np,
             'surprise': surprise,
             'should_respond': should_respond,
-            'fast_state': np.array(self.model.h_fast.squeeze()) if self.model.h_fast is not None else None,
-            'medium_state': np.array(self.model.h_medium.squeeze()) if self.model.h_medium is not None else None,
-            'slow_state': np.array(self.model.h_slow.squeeze()) if self.model.h_slow is not None else None,
+            'fast_state': np.array(h_fast.squeeze()) if h_fast is not None else None,
+            'medium_state': np.array(h_medium.squeeze()) if h_medium is not None else None,
+            'slow_state': np.array(h_slow.squeeze()) if h_slow is not None else None,
             'affect_input': affect_vector,
             'step': self._step,
             'social_info': social_info  # Theory of Mind outputs
@@ -294,10 +311,14 @@ class NoodlingAgent:
 
     def get_states(self) -> Dict:
         """Get current internal states."""
+        # Get states from model (handles both Phase4 and Phase6)
+        model_states = self.model.get_states()
+        h_fast, c_fast, h_medium, c_medium, h_slow = model_states
+
         return {
-            'fast': np.array(self.model.h_fast.squeeze()) if self.model.h_fast is not None else None,
-            'medium': np.array(self.model.h_medium.squeeze()) if self.model.h_medium is not None else None,
-            'slow': np.array(self.model.h_slow.squeeze()) if self.model.h_slow is not None else None,
+            'fast': np.array(h_fast.squeeze()) if h_fast is not None else None,
+            'medium': np.array(h_medium.squeeze()) if h_medium is not None else None,
+            'slow': np.array(h_slow.squeeze()) if h_slow is not None else None,
             'surprise_buffer': self.surprise_buffer.copy(),
             'step': self._step
         }
@@ -307,6 +328,13 @@ class NoodlingAgent:
         states = self.get_states()
         states['surprise_threshold'] = self.config['surprise_threshold']
         states['surprise'] = self.last_surprise
+
+        # DEBUG: Log what we're returning
+        print(f"[DEBUG] get_state() returning:")
+        print(f"  fast: {type(states.get('fast'))}, value: {states.get('fast')}")
+        print(f"  medium: {type(states.get('medium'))}, value: {states.get('medium')}")
+        print(f"  slow: {type(states.get('slow'))}, value: {states.get('slow')}")
+
         return states
 
     def save_checkpoint(self, path: str):

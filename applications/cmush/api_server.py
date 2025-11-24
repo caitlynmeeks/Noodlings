@@ -278,14 +278,24 @@ class NoodleScopeAPI:
                 'boredom': 0.0
             }
 
+        # Extract state vectors (keys are 'fast', 'medium', 'slow' from consciousness API)
+        fast = state.get('fast')
+        medium = state.get('medium')
+        slow = state.get('slow')
+
+        fast_list = [float(x) for x in fast] if fast is not None else []
+        medium_list = [float(x) for x in medium] if medium is not None else []
+        slow_list = [float(x) for x in slow] if slow is not None else []
+
         return web.json_response({
             'agent_id': agent_id,
             'affect': affect,
             'phenomenal_state': [float(x) for x in phenomenal],
             'surprise': float(state.get('surprise', 0.0)),
-            'fast_state': [float(x) for x in state.get('fast_state', [])] if state.get('fast_state') is not None else [],
-            'medium_state': [float(x) for x in state.get('medium_state', [])] if state.get('medium_state') is not None else [],
-            'slow_state': [float(x) for x in state.get('slow_state', [])] if state.get('slow_state') is not None else []
+            'fast_state': fast_list,
+            'medium_state': medium_list,
+            'slow_state': slow_list,
+            'step': state.get('step', 0)
         })
 
     async def update_agent(self, request: web.Request) -> web.Response:
