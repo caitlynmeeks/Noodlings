@@ -465,6 +465,9 @@ class MoodTransistor(CognitiveTransistor):
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through emotional lens."""
         affect = context.get('affect', [0.0, 0.0, 0.0, 0.0, 0.0])
+        # Safety check for empty affect vectors
+        if len(affect) < 5:
+            affect = [0.0, 0.0, 0.0, 0.0, 0.0]
         valence, arousal, fear, sorrow, boredom = affect
 
         # Determine mood coloring
