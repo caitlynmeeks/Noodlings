@@ -56,7 +56,7 @@ class CognitiveTransistor(ABC):
         self.last_output_salience: Optional[float] = None
 
     @abstractmethod
-    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """
         Process input through cognitive filter.
 
@@ -128,7 +128,7 @@ class CognitiveManifold:
         if transistor in self.transistors:
             self.transistors.remove(transistor)
 
-    def integrate(self, input_text: str, context: Dict[str, Any]) -> str:
+    async def integrate(self, input_text: str, context: Dict[str, Any]) -> str:
         """
         Integrate all transistor outputs into coherent thought.
 
@@ -144,7 +144,7 @@ class CognitiveManifold:
         for transistor in self.transistors:
             if transistor.enabled:
                 try:
-                    output = transistor.process(input_text, context)
+                    output = await transistor.process(input_text, context)
                     # Add transistor type to output for debugging
                     output.transistor_type = transistor.get_transistor_type()
                     # Store in transistor for Noodle Tuner
@@ -185,7 +185,7 @@ class CognitiveManifold:
         for transistor in self.transistors:
             if transistor.enabled:
                 try:
-                    output = transistor.process(input_text, context)
+                    output = await transistor.process(input_text, context)
                     # Add transistor type to output for debugging
                     output.transistor_type = transistor.get_transistor_type()
                     # Store in transistor for Noodle Tuner
@@ -349,7 +349,7 @@ class CulturalTransistor(CognitiveTransistor):
         self.beliefs = beliefs or []
         self.salience = 0.8  # High influence
 
-    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through cultural lens."""
         if not self.beliefs:
             return TransistorOutput(input_text, 0.1, {})
@@ -388,7 +388,7 @@ class PersonalityTransistor(CognitiveTransistor):
         }
         self.salience = 0.6
 
-    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through personality lens."""
         # Find dominant trait
         dominant_trait = max(self.traits.items(), key=lambda x: x[1])
@@ -440,7 +440,7 @@ class IntuitionTransistor(CognitiveTransistor):
         """Update the current intuition text."""
         self.intuition_text = intuition_text
 
-    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through present-moment awareness lens."""
         if not self.intuition_text:
             return TransistorOutput(input_text, 0.1, {})
@@ -475,7 +475,7 @@ class MoodTransistor(CognitiveTransistor):
         super().__init__()
         self.salience = 0.5
 
-    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through emotional lens."""
         affect = context.get('affect', [0.0, 0.0, 0.0, 0.0, 0.0])
         valence, arousal, fear, sorrow, boredom = affect
@@ -515,7 +515,7 @@ class MemoryTransistor(CognitiveTransistor):
         super().__init__()
         self.salience = 0.4  # Lower influence (unless strong memory)
 
-    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter input through memory lens."""
         # Extract keywords from input (simple word extraction)
         keywords = self._extract_keywords(input_text)
@@ -602,7 +602,7 @@ class SocialExpectationTransistor(CognitiveTransistor):
         ]
         self.salience = 0.6
 
-    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through social norms lens."""
         if not self.social_rules:
             return TransistorOutput(input_text, 0.1, {})
@@ -788,7 +788,7 @@ class SomaticCognitiveTransistor(CognitiveTransistor):
         """Remove worn item."""
         self.worn_items = [item for item in self.worn_items if item['item_id'] != item_id]
 
-    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """
         Filter input through bodily sensation lens.
 
@@ -1132,7 +1132,7 @@ class DeceptionTransistor(CognitiveTransistor):
         modulation = 1.0 + (fear * self.fear_multiplier)
         return min(1.0, self.base_salience * modulation)
 
-    def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """
         Filter input through deception lens - add cover-up explanations.
 
@@ -1172,17 +1172,8 @@ Transformed output:"""
 
         if llm_client:
             try:
-                import asyncio
-                # Run async call in sync context
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # We're in async context, can't use run_until_complete
-                    # Return direct pass-through for now
-                    transformed = input_text
-                else:
-                    transformed = loop.run_until_complete(
-                        self._call_llm_simple(llm_client, prompt, model)
-                    )
+                # Now we can await properly since we're async!
+                transformed = await self._call_llm_simple(llm_client, prompt, model)
             except Exception as e:
                 logger.warning(f"Deception LLM failed: {e}, passing through")
                 transformed = input_text
