@@ -1857,6 +1857,7 @@ Analyze and output ONLY valid JSON:
             # 1a-1. COGNITIVE MANIFOLD INTEGRATION
             # Process perception through cognitive transistors (beliefs, personality, mood)
             colored_perception = text  # Default to original text
+            logger.info(f"[{self.agent_id}] DEBUG: has cognitive_manifold attr? {hasattr(self, 'cognitive_manifold')}, value={getattr(self, 'cognitive_manifold', None)}")
             if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
                 try:
                     # Update IntuitionTransistor with current intuition (if it exists)

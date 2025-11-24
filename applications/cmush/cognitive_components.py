@@ -287,28 +287,15 @@ class CognitiveManifold:
         Returns:
             LLM response text
         """
-        # Build minimal context for LLM
-        messages = [{"role": "user", "content": prompt}]
-
-        # Use model pool for instance routing
-        effective_model = llm_client._route_model_instance(model)
-
-        # Make API request
-        import aiohttp
-        url = f"{llm_client.api_base}/chat/completions"
-        headers = {"Authorization": f"Bearer {llm_client.api_key}"}
-        payload = {
-            "model": effective_model,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": 0.7
-        }
-
-        timeout = aiohttp.ClientTimeout(total=llm_client.timeout)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.post(url, json=payload, headers=headers) as response:
-                result = await response.json()
-                return result['choices'][0]['message']['content']
+        # Use the LLM client's generate method directly
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are a cognitive component. Be brief and direct.",
+            model=model,
+            max_tokens=max_tokens,
+            temperature=0.7
+        )
+        return response
 
     def _simple_concatenation(self, outputs: List[TransistorOutput]) -> str:
         """Simple concatenation weighted by salience."""
@@ -1189,28 +1176,14 @@ Transformed output:"""
 
     async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
         """Call LLM for deception transformation."""
-        messages = [{"role": "user", "content": prompt}]
-        effective_model = llm_client._route_model_instance(model)
-
-        import aiohttp
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{llm_client.base_url}/chat/completions",
-                json={
-                    "model": effective_model,
-                    "messages": messages,
-                    "max_tokens": 150,
-                    "temperature": 0.8
-                },
-                headers={"Content-Type": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data['choices'][0]['message']['content'].strip()
-                else:
-                    logger.error(f"LLM deception call failed: {resp.status}")
-                    return ""
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are a deception filter. Transform text to hide secrets.",
+            model=model,
+            max_tokens=150,
+            temperature=0.8
+        )
+        return response
 
 
 COMPONENT_DEPENDENCIES = {
