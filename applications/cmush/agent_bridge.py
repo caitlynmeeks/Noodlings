@@ -2024,11 +2024,19 @@ Analyze and output ONLY valid JSON:
 
         # Add the new message to conversation context temporarily
         # Include affect field required by conversation_context.append()
+        # Convert affect_dict to array format [valence, arousal, dominance, sorrow, boredom]
+        affect_array = [
+            affect_dict.get('valence', 0.0),
+            affect_dict.get('arousal', 0.5),
+            affect_dict.get('dominance', 0.5),
+            affect_dict.get('sorrow', 0.0),
+            affect_dict.get('boredom', 0.0)
+        ]
         temp_context_entry = {
             'user': 'user_lab_test',
             'text': message,
             'timestamp': time.time(),
-            'affect': affect_dict  # Required by custom append() method
+            'affect': affect_array  # Required by custom append() method (as array)
         }
         self.conversation_context.append(temp_context_entry)
 
