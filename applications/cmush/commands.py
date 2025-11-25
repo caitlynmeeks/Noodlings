@@ -292,6 +292,9 @@ class CommandParser:
             # BRENDA: Natural language parameter tweaking
             '@brenda': self.cmd_brenda,
 
+            # Lab system: Double-blind affect testing
+            '@lab': self.cmd_lab,
+
             # NoodleScope 2.0 - Consciousness visualization
             '@scope': self.cmd_scope,
 
@@ -384,11 +387,11 @@ class CommandParser:
         command_text: str
     ) -> Dict:
         """
-        Parse and execute a command.
+        Parse and execute a command (or compound commands separated by semicolons).
 
         Args:
             user_id: User executing command
-            command_text: Command string
+            command_text: Command string (supports ; delimiter for multiple commands)
 
         Returns:
             Response dict with:
@@ -398,6 +401,48 @@ class CommandParser:
         """
         if not command_text.strip():
             return {'success': False, 'output': '', 'events': []}
+
+        # Check for compound commands (semicolon-separated)
+        if ';' in command_text:
+            commands = [cmd.strip() for cmd in command_text.split(';') if cmd.strip()]
+
+            # Execute each command sequentially
+            all_outputs = []
+            all_events = []
+            all_success = True
+
+            for cmd in commands:
+                result = await self._execute_single_command(user_id, cmd)
+                if result['output']:
+                    all_outputs.append(result['output'])
+                all_events.extend(result.get('events', []))
+                if not result.get('success', True):
+                    all_success = False
+
+            return {
+                'success': all_success,
+                'output': '\n'.join(all_outputs),
+                'events': all_events
+            }
+
+        # Single command - execute directly
+        return await self._execute_single_command(user_id, command_text)
+
+    async def _execute_single_command(
+        self,
+        user_id: str,
+        command_text: str
+    ) -> Dict:
+        """
+        Execute a single command.
+
+        Args:
+            user_id: User executing command
+            command_text: Single command string
+
+        Returns:
+            Response dict with success, output, events
+        """
 
         command_text = command_text.strip()
 
@@ -5023,6 +5068,260 @@ class CommandParser:
             'output': f"👋 Yeeting {target_user.get('username', target_id)} from the server...",
             'events': [{'type': 'yeet', 'user': target_id, 'username': target_user.get('username', target_id)}]
         }
+
+    async def cmd_lab(self, user_id: str, args: str) -> Dict:
+        """
+        Lab Mode - Double-blind affect testing.
+
+        Commands:
+          @lab start [trials]    - Start test session (default 50 trials)
+          @lab status            - Show current test status
+          @lab choose <A|B|equal> - Record your choice
+          @lab stop              - Stop test and save results
+          @lab results           - Show final results
+
+        Usage:
+          @lab start 50          - Start 50-trial test
+          say hello              - System runs dual cognition
+          @lab choose B          - Choose response B
+          (repeat...)
+        """
+        if not self.server:
+            return {
+                'success': False,
+                'output': 'ERROR: Server instance not available.',
+                'events': []
+            }
+
+        # Parse command
+        parts = args.strip().split(maxsplit=1)
+        if not parts:
+            subcommand = 'help'
+            subargs = ''
+        else:
+            subcommand = parts[0].lower()
+            subargs = parts[1] if len(parts) > 1 else ''
+
+        # Get or create lab session
+        if not hasattr(self.server, 'lab_sessions'):
+            self.server.lab_sessions = {}
+
+        lab_session = self.server.lab_sessions.get(user_id)
+
+        # Handle subcommands
+        if subcommand == 'start':
+            # Start new lab session
+            if lab_session:
+                return {
+                    'success': False,
+                    'output': 'Lab test already active. Use @lab stop to end current test.',
+                    'events': []
+                }
+
+            # Parse trial count
+            try:
+                trials = int(subargs) if subargs else 50
+                if trials < 1 or trials > 500:
+                    raise ValueError("Trial count must be between 1 and 500")
+            except ValueError as e:
+                return {
+                    'success': False,
+                    'output': f'Invalid trial count: {e}\nUsage: @lab start [trials]',
+                    'events': []
+                }
+
+            # Create lab session
+            from lab_system import LabTestSession
+            lab_session = LabTestSession(
+                player_id=user_id,
+                target_trials=trials,
+                experiment_name='affect_test'
+            )
+            self.server.lab_sessions[user_id] = lab_session
+
+            # Get server diagnostics
+            import os
+            pid = os.getpid()
+
+            # Get WebSocket port from config
+            ws_port = self.config.get('server', {}).get('port', 8765)
+
+            output = f"""
+Lab Mode ACTIVE: Double-blind affect testing [v2.0 - EMOTE ENABLED]
+Server: PID {pid} on ws://localhost:{ws_port}
+Target: {trials} trials | Current: 0/{trials}
+
+How it works:
+1. Send messages to agents as normal
+2. System runs dual cognition (real vs random affect)
+3. Choose which response is better (A or B)
+4. Repeat until {trials} trials complete
+
+Your messages will be intercepted for testing.
+Use @lab stop to end early.
+"""
+            return {
+                'success': True,
+                'output': output,
+                'events': []
+            }
+
+        elif subcommand == 'status':
+            # Show status
+            if not lab_session:
+                return {
+                    'success': False,
+                    'output': 'No lab test active. Use @lab start [trials] to begin.',
+                    'events': []
+                }
+
+            status = lab_session.get_status()
+            output = f"""
+Lab Test Status
+Session ID: {status['session_id']}
+Progress: {status['trials_completed']}/{status['target_trials']} trials
+Win Rate: {status['win_rate']:.1f}%
+
+Results:
+  Real affect preferred:   {status['real_preferred']}
+  Random affect preferred: {status['random_preferred']}
+  No preference:           {status['equal']}
+
+{('Awaiting your choice...' if status['awaiting_choice'] else 'Ready for next trial')}
+"""
+            return {
+                'success': True,
+                'output': output,
+                'events': []
+            }
+
+        elif subcommand == 'choose':
+            # Record choice
+            if not lab_session:
+                return {
+                    'success': False,
+                    'output': 'No lab test active. Use @lab start [trials] to begin.',
+                    'events': []
+                }
+
+            if not subargs:
+                return {
+                    'success': False,
+                    'output': 'Please specify choice: @lab choose A, @lab choose B, or @lab choose equal',
+                    'events': []
+                }
+
+            choice = subargs.strip().upper()
+            if choice not in ['A', 'B', 'EQUAL']:
+                return {
+                    'success': False,
+                    'output': 'Invalid choice. Use: @lab choose A, @lab choose B, or @lab choose equal',
+                    'events': []
+                }
+
+            # Record choice (async)
+            import asyncio
+
+            async def broadcast_to_user(message):
+                """Helper to broadcast messages to user."""
+                if hasattr(self.server, 'broadcast_to_user'):
+                    await self.server.broadcast_to_user(user_id, message)
+
+            await lab_session.record_choice(choice, self.world, broadcast_to_user)
+
+            # Check if test complete
+            if lab_session.trials_completed >= lab_session.target_trials:
+                # Clean up session
+                del self.server.lab_sessions[user_id]
+
+            return {
+                'success': True,
+                'output': '',  # Output already sent by record_choice
+                'events': []
+            }
+
+        elif subcommand == 'stop':
+            # Stop test
+            if not lab_session:
+                return {
+                    'success': False,
+                    'output': 'No lab test active.',
+                    'events': []
+                }
+
+            # Save partial results
+            status = lab_session.get_status()
+            output_path = lab_session._save_results(time.time() - lab_session.start_time)
+
+            output = f"""
+Lab test stopped.
+Completed {status['trials_completed']}/{lab_session.target_trials} trials.
+Win rate: {status['win_rate']:.1f}%
+
+Results saved to: {output_path}
+"""
+
+            # Clean up session
+            del self.server.lab_sessions[user_id]
+
+            return {
+                'success': True,
+                'output': output,
+                'events': []
+            }
+
+        elif subcommand == 'results':
+            # Show results
+            if not lab_session:
+                return {
+                    'success': False,
+                    'output': 'No lab test active.',
+                    'events': []
+                }
+
+            status = lab_session.get_status()
+            output = f"""
+Lab Test Results (In Progress)
+Trials: {status['trials_completed']}/{lab_session.target_trials}
+Win Rate: {status['win_rate']:.1f}%
+
+Real Affect Preferred:   {status['real_preferred']} ({(status['real_preferred']/status['trials_completed']*100 if status['trials_completed'] > 0 else 0):.1f}%)
+Random Affect Preferred: {status['random_preferred']} ({(status['random_preferred']/status['trials_completed']*100 if status['trials_completed'] > 0 else 0):.1f}%)
+No Preference:           {status['equal']}
+"""
+            return {
+                'success': True,
+                'output': output,
+                'events': []
+            }
+
+        else:
+            # Help
+            output = """
+Lab Mode - Double-Blind Affect Testing
+
+Commands:
+  @lab start [trials]     - Start test session (default 50)
+  @lab status             - Show current test status
+  @lab choose <A|B|equal> - Record your choice
+  @lab stop               - Stop test and save results
+  @lab results            - Show results summary
+
+How it works:
+1. Start a test: @lab start 50
+2. Send messages to agents normally
+3. System presents two responses (A and B)
+4. Choose which is better: @lab choose A (or B or equal)
+5. Repeat until test complete
+
+The system tests whether real affect prediction improves
+agent responses compared to random affect vectors.
+"""
+            return {
+                'success': True,
+                'output': output,
+                'events': []
+            }
 
     async def cmd_scope(self, user_id: str, args: str) -> Dict:
         """Open NoodleScope 2.0 consciousness visualization."""

@@ -79,6 +79,11 @@ language_mode: "verbal"
 # Enlightenment: Desobelle is fully immersed in being a punk rock lamb
 enlightenment: false
 
+# LLM Configuration - DeepSeek for testing
+llm_override:
+  provider: local
+  model: "deepseek-v3.1@q2_k_xl"
+
 # LLM generation constraints
 constraints:
   max_tokens: 200

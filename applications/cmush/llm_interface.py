@@ -236,7 +236,7 @@ class OpenAICompatibleLLM:
 {
   "valence": <number from -1.0 to 1.0>,
   "arousal": <number from 0.0 to 1.0>,
-  "fear": <number from 0.0 to 1.0>,
+  "dominance": <number from 0.0 to 1.0>,
   "sorrow": <number from 0.0 to 1.0>,
   "boredom": <number from 0.0 to 1.0>
 }
@@ -244,7 +244,7 @@ class OpenAICompatibleLLM:
 Where:
 - valence: negative (-1) to positive (+1)
 - arousal: calm (0) to excited (1)
-- fear: safe (0) to anxious (1)
+- dominance: submissive (0) to dominant/confident (1)
 - sorrow: content (0) to sad (1)
 - boredom: engaged (0) to bored (1)
 
@@ -278,7 +278,7 @@ Return ONLY the JSON, no other text."""
             return [
                 float(affect_dict['valence']),
                 float(affect_dict['arousal']),
-                float(affect_dict['fear']),
+                float(affect_dict.get('dominance', affect_dict.get('fear', 0.5))),  # Legacy support
                 float(affect_dict['sorrow']),
                 float(affect_dict['boredom'])
             ]

@@ -65,3 +65,8 @@ constraints:
   max_tokens: 200
   temperature: 0.9  # High temperature for erratic, impulsive responses
   response_cooldown: 3.5  # Impulsive and chatty (Mr. Toad!)
+
+# Per-agent LLM override (for superior semantic nuance in testing)
+llm_override:
+  model: "deepseek-v3.1@q2_k_xl"
+  provider: "local"

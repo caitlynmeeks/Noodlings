@@ -542,6 +542,35 @@ class CognitiveManifold:
             'transistors': [t.to_dict() for t in self.transistors]
         }
 
+    def save_state(self) -> Dict[str, Any]:
+        """
+        Save cognitive manifold state for lab system.
+
+        For now, only saves instrumentation state. Transistors themselves
+        are stateless (beliefs/rules are config, not runtime state).
+
+        Returns:
+            State dictionary with manifold variables
+        """
+        return {
+            'blending_strategy': self.blending_strategy,
+            'last_input_text': self.last_input_text,
+            'last_output_text': self.last_output_text,
+            'transistor_count': len(self.transistors)
+        }
+
+    def restore_state(self, state: Dict[str, Any]):
+        """
+        Restore cognitive manifold state from saved snapshot.
+
+        Args:
+            state: State dictionary from save_state()
+        """
+        self.blending_strategy = state.get('blending_strategy', 'llm_weighted')
+        self.last_input_text = state.get('last_input_text')
+        self.last_output_text = state.get('last_output_text')
+        # Note: Transistors themselves don't need restoration (stateless)
+
 
 # ===== Concrete Transistor Implementations =====
 

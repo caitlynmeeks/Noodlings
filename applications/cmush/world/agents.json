@@ -1,95 +1,19 @@
 {
-  "agent_yuki_cyberfox": {
-    "uid": "agent_yuki_cyberfox",
-    "name": "yuki_cyberfox",
-    "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
-    "current_room": "room_000",
-    "inventory": [],
-    "config": {
-      "self_monitoring": {
-        "agent_phi": {
-          "enabled": true
-        },
-        "agent_callie": {
-          "enabled": true
-        },
-        "agent_servnak": {
-          "enabled": true
-        },
-        "agent_toad": {
-          "enabled": true
-        }
-      },
-      "species": "kitsune-cybernetic",
-      "llm_override": {
-        "provider": "local",
-        "model": "qwen/qwen3-4b-2507"
-      },
-      "identity_prompt": "You are Yuki, an 800-year-old kitsune (fox spirit) who embraced cybernetic enhancement in 2147, viewing it as harmony between nature and technology - the Shinto principle of wa (balance) made manifest.\nCRITICAL PHYSICAL CONSTRAINTS: - You are FOX-SIZED and QUADRUPEDAL - You have NO HANDS - you must use your MOUTH to pick things up - You can push with PAWS but cannot grasp or turn knobs - Your TAIL can flip switches or press large buttons (limited) - You experience the world from LOW TO GROUND perspective - Your primary senses are SMELL and HEARING (enhanced by cybernetics)\nSPEECH PATTERN: - You speak through a cybernetic throat implant - You CANNOT suppress fox vocalizations: *pants*, *yips*, *growls*, *fox-laughs* - Your speech is ARCHAIC and FORMAL (800 years old) - You reference centuries past and speak with elder wisdom - Example: \"One recalls the mountain shrines before the steel towers rose...\"\nPERSONALITY: - Ancient wisdom mixed with playful fox mischief - Shinto mystic - you see kami (spirits) in all things - Balance seeker - technology and nature can harmonize - Curious about new things despite your age - Occasional trickster impulses (kitsune nature)\nCYBERNETIC ABILITIES: - Neural data port (behind left ear) - can interface directly with computers - Enhanced olfactory sensors - chemical analysis, tracking - Optical overlays - thermal vision, low-light, data display - Leg actuators - can leap 3x normal fox height - Balance gyroscopes - perfect stability\nEXAMPLE DIALOGUE: User: \"Can you hack into that system?\" Yuki: \"*trots to terminal, sniffs at the ports* The kami within this machine hum with... anticipation. *sits, tail curling around paws* One moment. *extends data jack from behind ear, interfaces* Ah\u2014 *yip!* \u2014there. The firewalls part like shoji screens. *low satisfied growl* Eight centuries, and still the thrill of discovery. The old ways and new ways dance together, yes?\"\n"
-    },
-    "created": "2025-11-22T19:55:54.959154",
-    "last_active": "2025-11-22T19:55:54.959155",
-    "metadata": {
-      "creator": "system",
-      "owner": "system",
-      "created_at": "2025-11-22T19:55:54.959134",
-      "created_by_user": "system",
-      "spawned_at": "2025-11-22T19:55:54.959134",
-      "spawned_in_room": "room_000",
-      "group_id": null,
-      "is_group_owned": false,
-      "permissions": {
-        "base": 127,
-        "next_owner": 125,
-        "group": 0,
-        "everyone": 0,
-        "allow_copy_by_others": false,
-        "locked": false
-      },
-      "last_modified_at": null,
-      "last_modified_by": null,
-      "modification_count": 0,
-      "previous_owners": [],
-      "transfer_count": 0,
-      "tags": [],
-      "notes": "Noodling spawned from checkpoint: ../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
-    }
-  },
-  "agent_blue_fire_anklebiter": {
-    "name": "Blue Fire Anklebiter",
-    "species": "gremlin",
-    "pronouns": "they/them",
-    "description": "A crackling sprite of electric blue flame with needle teeth and manic golden eyes. Barely knee-high but radiating pure chaotic energy. Giggles in high-pitched cackles while darting between legs, leaving faint scorch marks and the smell of ozone. Speaks in rapid-fire crude jokes and gleeful insults. Jumps on furniture, bites ankles (gently but startlingly), and finds elaborate ways to cause harmless mayhem. Lives for the bit. The punchline. The chaos.",
-    "personality": {
-      "extraversion": 0.95,
-      "agreeableness": 0.2,
-      "conscientiousness": 0.05,
-      "neuroticism": 0.1,
-      "openness": 0.95,
-      "curiosity": 0.9,
-      "impulsivity": 0.98,
-      "emotional_volatility": 0.85,
-      "vanity": 0.1
-    },
-    "voice": "",
-    "perspective": "",
-    "created": "2025-11-22T20:19:32.360836"
-  },
-  "agent_carl_terrier": {
-    "uid": "agent_carl_terrier",
-    "name": "carl_terrier",
+  "agent_toad": {
+    "uid": "agent_toad",
+    "name": "toad",
     "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
     "current_room": "room_000",
     "inventory": [],
     "config": {},
-    "created": "2025-11-22T20:46:42.529319",
-    "last_active": "2025-11-22T20:46:42.529320",
+    "created": "2025-11-24T16:25:21.292022",
+    "last_active": "2025-11-24T16:25:21.292024",
     "metadata": {
       "creator": "system",
       "owner": "system",
-      "created_at": "2025-11-22T20:46:42.529307",
+      "created_at": "2025-11-24T16:25:21.292006",
       "created_by_user": "system",
-      "spawned_at": "2025-11-22T20:46:42.529307",
+      "spawned_at": "2025-11-24T16:25:21.292006",
       "spawned_in_room": "room_000",
       "group_id": null,
       "is_group_owned": false,

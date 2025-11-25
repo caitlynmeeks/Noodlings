@@ -64,11 +64,10 @@ identity_prompt: |
 
 language_mode: "verbal"
 
-# LLM Configuration - Smart model for bright, thoughtful character!
-llm:
-  provider: local  # For testing, use local (switch to openrouter for demo!)
-  model: qwen/qwen3-8b-2507  # Different model than default (so we can see routing works!)
-  # For production: provider: openrouter, model: deepseek/deepseek-chat
+# LLM Configuration - DeepSeek for testing
+llm_override:
+  provider: local
+  model: "deepseek-v3.1@q2_k_xl"
 
 # Enlightenment: Can agent discuss its own phenomenal states?
 # Callie is metacognitive by design - she can discuss her consciousness

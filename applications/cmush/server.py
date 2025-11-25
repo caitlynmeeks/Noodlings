@@ -205,7 +205,7 @@ class CMUSHServer:
             model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
             timeout=provider_config.get('timeout', 30),
             max_concurrent=5,  # Match number of LMStudio instances
-            use_model_instances=True  # Enable model:N pattern for parallel inference
+            use_model_instances=False  # Disabled - LMStudio rejects model:N format with 400 errors
         )
         await self.llm.__aenter__()
 
@@ -427,7 +427,14 @@ class CMUSHServer:
                                     'timestamp': history_entry['timestamp']
                                 })
 
-                            # Send welcome message with ASCII banner
+                            # Send welcome message with ASCII banner and server diagnostics
+                            import os
+                            from datetime import datetime
+
+                            pid = os.getpid()
+                            ws_port = self.config.get('server', {}).get('port', 8765)
+                            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
                             banner = (
                                 ":::.    :::.    ...         ...    :::::::-.   :::    .,::::::      .        :    ...    ::: .::::::.   ::   .:\n"
                                 "`;;;;,  `;;; .;;;;;;;.   .;;;;;;;.  ;;,   `';, ;;;    ;;;;''''      ;;,.    ;;;   ;;     ;;;;;;`    `  ,;;   ;;,\n"
@@ -437,7 +444,9 @@ class CMUSHServer:
                                 "  MMM     YM  \"YMMMMMP\"   \"YMMMMMP\"  MMMMP\"`  \"\"\"\"YUMMM\"\"\"\"YUMMM    MMM  M'  \"MMM \"YmmMMMM\"\"  \"YMmMY\"  MMM    YMM\n"
                                 "\n"
                                 f"Welcome, {data['username']}!\n"
-                                "Noodlings Multi-User Shared Hallucination"
+                                "Noodlings Multi-User Shared Hallucination\n"
+                                "\n"
+                                f"Server: PID {pid} | ws://localhost:{ws_port} | {timestamp}\n"
                             )
 
                             await self.send_to_user(websocket, {
@@ -532,6 +541,70 @@ class CMUSHServer:
 
                         user_id = self.connections[websocket]
                         command_text = data.get('command', '')
+
+                        # Lab mode interception: Check if lab test is active for this user
+                        lab_session = None
+                        if hasattr(self, 'lab_sessions'):
+                            lab_session = self.lab_sessions.get(user_id)
+
+                        logger.info(f"[LAB] user={user_id}, session={lab_session is not None}, command={command_text[:50]}")
+
+                        if lab_session and not command_text.startswith('@lab'):
+                            # Lab mode active - intercept messages for dual cognition
+                            # Only intercept say/emote commands (not admin commands)
+                            if not command_text.startswith('@'):
+                                # Extract message text
+                                if command_text.startswith('"'):
+                                    # say shortcut
+                                    message = command_text[1:]
+                                elif command_text.startswith(':'):
+                                    # emote shortcut
+                                    message = command_text[1:]
+                                elif command_text.startswith('say '):
+                                    message = command_text[4:]
+                                elif command_text.startswith('emote '):
+                                    message = command_text[6:]
+                                else:
+                                    message = None
+
+                                if message:
+                                    # Get target agent (try all agents in room until we find a loaded one)
+                                    user = self.world.get_user(user_id)
+                                    room = self.world.get_room(user['current_room'])
+                                    agents_in_room = [occ for occ in room.get('occupants', []) if occ.startswith('agent_')]
+
+                                    logger.info(f"[LAB] Message extracted: '{message}', agents_in_room: {agents_in_room}")
+
+                                    target_agent = None
+                                    for agent_id in agents_in_room:
+                                        agent_obj = self.agent_manager.get_agent(agent_id)
+                                        if agent_obj:
+                                            target_agent = agent_obj
+                                            logger.info(f"[LAB] Selected target agent: {agent_id}")
+                                            break
+
+                                    if target_agent:
+                                            # Intercept and run dual cognition
+                                            logger.info(f"[LAB] About to call intercept_message...")
+                                            async def broadcast_to_user_func(text):
+                                                await self.send_to_user(websocket, {
+                                                    'type': 'output',
+                                                    'text': text
+                                                })
+
+                                            intercepted = await lab_session.intercept_message(
+                                                message=message,
+                                                agent=target_agent,
+                                                world=self.world,
+                                                broadcast_fn=broadcast_to_user_func
+                                            )
+
+                                            logger.info(f"[LAB] Intercepted: {intercepted}")
+
+                                            if intercepted:
+                                                # Message was intercepted - don't execute normal command
+                                                logger.info(f"[LAB] Skipping normal command execution")
+                                                continue
 
                         # Execute command
                         result = await self.command_parser.parse_and_execute(
@@ -783,6 +856,25 @@ class CMUSHServer:
             await websocket.send(json.dumps(message))
         except Exception as e:
             logger.error(f"Error sending to user: {e}")
+
+    async def broadcast_to_user(self, user_id: str, text: str):
+        """
+        Broadcast text message to specific user by user_id.
+
+        Used by lab system to send comparison results.
+
+        Args:
+            user_id: Target user ID
+            text: Text to send
+        """
+        # Find websocket for user
+        for ws, ws_user_id in self.connections.items():
+            if ws_user_id == user_id:
+                await self.send_to_user(ws, {
+                    'type': 'output',
+                    'text': text
+                })
+                break
 
     async def _handle_agent_entrance(self, enter_event: Dict):
         """

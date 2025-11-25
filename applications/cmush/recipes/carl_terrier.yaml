@@ -97,9 +97,9 @@ identity_prompt: >
   - Self-aware about both
   - Amused by the contradiction
 
-# LLM override - needs smart model for comedy timing
+# LLM override - DeepSeek for superior comedy timing
 llm_override:
-  model: "qwen/qwen3-4b-2507"
+  model: "deepseek-v3.1@q2_k_xl"
   provider: "local"
 
 # Memory configuration - remembers lots of material

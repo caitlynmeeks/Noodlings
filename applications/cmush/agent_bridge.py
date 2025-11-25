@@ -28,8 +28,8 @@ import numpy as np
 import aiohttp
 
 from noodlings.api import NoodlingAgent as ConsilienceAgent
-from noodlings.metrics.consciousness_metrics import ConsciousnessMetrics
 from noodlings.memory.hierarchical_memory import HierarchicalMemory
+from noodlings.models.affect_head import AffectHead, interpret_affect, classify_emotion_from_affect
 from noodlings.utils.facs_mapping import affect_to_facs, facs_to_description, format_facs_for_renderer
 from noodlings.utils.body_language_mapping import affect_to_body_language, body_language_to_description, format_body_language_for_renderer
 from llm_interface import OpenAICompatibleLLM
@@ -147,26 +147,26 @@ Examples of SERVNAK's voice:
 Translate into SERVNAK's voice:"""
 
     elif 'phi' in agent_id.lower() and species == 'kitten':
-        prompt = f"""Translate this text into kitten behavior with "as if to say" meaning.
+        prompt = f"""Translate this text into kitten behavior and body language.
 
 Phi is a kitten who CANNOT speak words. She communicates through:
 - Vocalizations: meow, purr, hiss, chirp, mew (NEVER bark, woof, or dog sounds!)
 - Body language: ear flicks, tail movements, paw gestures
-- Actions: rubs, pounces, bats, curls, watches
-- Meaning conveyed: "as if to say [implied meaning]"
+- Actions: rubs, pounces, curls, watches
 
 Input: "{text}"
 
 Examples:
-- "I'm happy to see you" → "*purrs loudly and rubs against your leg, as if to say 'I missed you!'*"
-- "I want that" → "*meows softly and reaches paw toward it, as if to say 'can I have that?'*"
-- "That's interesting" → "*watches intently, ears forward, tail twitching, as if to say 'what is that thing?'*"
-- "That was scary!" → "*meows sharply and arches back, as if to say 'that was too close!'*"
+- "I'm happy to see you" → "*purrs loudly and rubs against your leg*"
+- "I want that" → "*meows softly and reaches paw toward it*"
+- "That's interesting" → "*watches intently, ears forward, tail twitching*"
+- "I'm curious" → "*tilts head, ears perking up*"
 
 CRITICAL RULES:
 - NO human words spoken directly (Phi cannot talk!)
 - NO dog sounds (no bark, woof, etc. - ONLY cat sounds: meow, purr, hiss, chirp, mew)
-- ALWAYS use "as if to say" to convey meaning through meows and body language
+- Use actions and sounds, NOT explanations
+- Keep responses concise (1-3 lines max)
 - Keep cat sounds authentic: meow, purr, hiss, chirp, mew, mrrp
 
 Translate into kitten communication:"""
@@ -794,10 +794,17 @@ class CMUSHConsilienceAgent:
             logger.error(traceback.format_exc())
             raise
 
-        # Consciousness metrics for scientific evaluation
-        self.state_history = []  # Track phenomenal states for Φ calculation
+        # State history for analysis
+        self.state_history = []  # Track phenomenal states over time
         self.surprise_history = []  # Track surprise for predictive processing evaluation
-        self.consciousness_metrics = ConsciousnessMetrics(self)
+
+        # Affect Head - continuous 5D affect prediction (Option B)
+        try:
+            self.affect_head = AffectHead.load_pretrained()
+            logger.info(f"[{agent_id}] 🎨 Affect Head loaded (continuous 5D prediction)")
+        except Exception as e:
+            logger.warning(f"[{agent_id}] ⚠️  Could not load affect head: {e}")
+            self.affect_head = None
 
         # Cognitive Manifold (optional - for cognitive transistor architecture)
         self.cognitive_manifold = None  # Will be initialized if cognitive components are added
@@ -1308,8 +1315,8 @@ class CMUSHConsilienceAgent:
         fear_patterns = ['scared', 'afraid', 'terrified', 'anxious', 'worried', 'nervous']
         if any(pattern in text_lower for pattern in fear_patterns):
             return {
-                'type': 'fear',
-                'fear_boost': 0.18,
+                'type': 'dominance',
+                'dominance_boost': -0.18,  # Fear = low dominance
                 'arousal_boost': 0.12
             }
 
@@ -1792,6 +1799,252 @@ Analyze and output ONLY valid JSON:
             'affect': affect.tolist()
         }
 
+    def save_state_snapshot(self) -> Dict[str, Any]:
+        """
+        Save complete agent state snapshot for in-memory restoration.
+
+        Used by lab system for dual cognition experiments.
+        Captures all stateful components:
+        - Consciousness model hidden states (h_fast, c_fast, etc.)
+        - Conversation context
+        - Affect history
+        - Cognitive manifold state
+        - World interaction state
+
+        Returns:
+            Dictionary with all restorable state
+        """
+        import copy
+        import mlx.core as mx
+
+        # Get consciousness model states
+        h_fast, c_fast, h_medium, c_medium, h_slow = self.consciousness.model.get_states()
+
+        # Save states (convert MLX arrays to numpy for JSON compatibility)
+        state = {
+            'h_fast': np.array(h_fast) if h_fast is not None else None,
+            'c_fast': np.array(c_fast) if c_fast is not None else None,
+            'h_medium': np.array(h_medium) if h_medium is not None else None,
+            'c_medium': np.array(c_medium) if c_medium is not None else None,
+            'h_slow': np.array(h_slow) if h_slow is not None else None,
+        }
+
+        # Save conversation context (deep copy to prevent mutation)
+        # Note: MemoryListWrapper needs special handling
+        if hasattr(self.conversation_context, '_memory'):
+            # Save hierarchical memory state
+            state['conversation_context'] = {
+                'working_memory': copy.deepcopy(list(self.conversation_context._memory.working_memory)),
+                'episodic_memory': copy.deepcopy(list(self.conversation_context._memory.episodic_memory)),
+            }
+        else:
+            # Fallback: save as list
+            state['conversation_context'] = copy.deepcopy(list(self.conversation_context))
+
+        # Save affect history (if it exists)
+        if hasattr(self, 'previous_affect') and self.previous_affect is not None:
+            state['previous_affect'] = copy.deepcopy(self.previous_affect)
+        else:
+            state['previous_affect'] = None
+
+        # Save cognitive manifold state (if it exists)
+        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+            state['cognitive_manifold'] = self.cognitive_manifold.save_state()
+        else:
+            state['cognitive_manifold'] = None
+
+        # Save world interaction state
+        state['current_room'] = self.current_room
+        state['following'] = self.following
+        state['last_response_time'] = self.last_response_time
+        state['response_count'] = self.response_count
+
+        # Save autonomous cognition state
+        if hasattr(self, 'cognition_engine') and self.cognition_engine:
+            state['cognition_engine_state'] = self.cognition_engine.save_state()
+        else:
+            state['cognition_engine_state'] = None
+
+        logger.debug(f"[{self.agent_id}] State saved: h_fast shape={state['h_fast'].shape if state['h_fast'] is not None else None}")
+
+        return state
+
+    def restore_state_snapshot(self, state: Dict[str, Any]):
+        """
+        Restore agent to saved state snapshot.
+
+        Used by lab system to reset agent between dual cognition trials.
+
+        Args:
+            state: State dictionary from save_state_snapshot()
+        """
+        import mlx.core as mx
+
+        # Restore consciousness model states
+        if state['h_fast'] is not None:
+            self.consciousness.model.h_fast = mx.array(state['h_fast'])
+        if state['c_fast'] is not None:
+            self.consciousness.model.c_fast = mx.array(state['c_fast'])
+        if state['h_medium'] is not None:
+            self.consciousness.model.h_medium = mx.array(state['h_medium'])
+        if state['c_medium'] is not None:
+            self.consciousness.model.c_medium = mx.array(state['c_medium'])
+        if state['h_slow'] is not None:
+            self.consciousness.model.h_slow = mx.array(state['h_slow'])
+
+        # Restore conversation context
+        if 'conversation_context' in state:
+            if isinstance(state['conversation_context'], dict):
+                # Restore hierarchical memory
+                self.conversation_context._memory.working_memory = list(state['conversation_context']['working_memory'])
+                self.conversation_context._memory.episodic_memory = list(state['conversation_context']['episodic_memory'])
+            else:
+                # Fallback: restore as list
+                # Note: This won't work perfectly with MemoryListWrapper, but provides basic restore
+                logger.warning(f"[{self.agent_id}] Restoring conversation_context as list (not ideal)")
+
+        # Restore affect history
+        if 'previous_affect' in state:
+            self.previous_affect = state['previous_affect']
+
+        # Restore cognitive manifold state
+        if state.get('cognitive_manifold') and hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+            self.cognitive_manifold.restore_state(state['cognitive_manifold'])
+
+        # Restore world interaction state
+        self.current_room = state['current_room']
+        self.following = state['following']
+        self.last_response_time = state['last_response_time']
+        self.response_count = state['response_count']
+
+        # Restore autonomous cognition state
+        if state.get('cognition_engine_state') and hasattr(self, 'cognition_engine') and self.cognition_engine:
+            self.cognition_engine.restore_state(state['cognition_engine_state'])
+
+        logger.debug(f"[{self.agent_id}] State restored")
+
+    def set_affect_override(self, affect_dict: Dict[str, float]):
+        """
+        Override affect vector for next cognition cycle.
+
+        Used by lab system to test random affect vs real affect.
+
+        Args:
+            affect_dict: Affect vector with keys:
+                - valence: [-1.0, 1.0]
+                - arousal: [0.0, 1.0]
+                - fear: [0.0, 1.0]
+                - sorrow: [0.0, 1.0]
+                - boredom: [0.0, 1.0]
+        """
+        self.affect_override = affect_dict
+        logger.debug(f"[{self.agent_id}] Affect override set: valence={affect_dict['valence']:.2f}")
+
+    def clear_affect_override(self):
+        """Clear affect override."""
+        self.affect_override = None
+        logger.debug(f"[{self.agent_id}] Affect override cleared")
+
+    def get_current_affect(self) -> Dict[str, float]:
+        """
+        Get current affect (override if set, else predicted).
+
+        Returns:
+            Affect dictionary with valence, arousal, fear, sorrow, boredom
+        """
+        if hasattr(self, 'affect_override') and self.affect_override:
+            return self.affect_override
+        elif hasattr(self, 'affect_head') and self.affect_head:
+            # Get phenomenal state
+            h_fast, c_fast, h_medium, c_medium, h_slow = self.consciousness.model.get_states()
+            import mlx.core as mx
+            phenomenal_state = mx.concatenate([h_fast[0], h_medium[0], h_slow[0]], axis=0)
+
+            # Predict affect (returns dict already)
+            affect_dict = self.affect_head.predict(phenomenal_state)
+            return affect_dict
+        else:
+            # Fallback: neutral affect
+            return {
+                'valence': 0.0,
+                'arousal': 0.5,
+                'dominance': 0.5,
+                'sorrow': 0.0,
+                'boredom': 0.0
+            }
+
+    async def generate_response_text(self, message: str, force: bool = True) -> str:
+        """
+        Generate response text to a message.
+
+        Simplified interface for lab system. Forces response generation
+        by bypassing surprise thresholds.
+
+        Args:
+            message: User message text
+            force: If True, force generation even if surprise is low
+
+        Returns:
+            Generated response text
+        """
+        if not force:
+            # Use normal perceive_event flow
+            event = {
+                'type': 'say',
+                'user': 'user_lab_test',
+                'text': message,
+                'room': self.current_room or 'room_0'
+            }
+            response = await self.perceive_event(event)
+            if response and 'text' in response:
+                return response['text']
+            else:
+                return "[Agent chose not to respond]"
+
+        # FORCE MODE: Generate response directly via LLM, bypassing surprise checks
+        # Get current affect (respects override if set)
+        affect_dict = self.get_current_affect()
+
+        # Build simple prompt for lab testing
+        # Note: affect_head uses 'dominance', but we map it for clarity
+        fear_or_dom = affect_dict.get('fear', affect_dict.get('dominance', 0.0))
+        affect_str = f"valence={affect_dict['valence']:.2f}, arousal={affect_dict['arousal']:.2f}, dominance={fear_or_dom:.2f}"
+
+        prompt = f"""You are {self.agent_name}, a {self.species}.
+
+Current emotional state: {affect_str}
+
+Message: "{message}"
+
+Respond naturally as {self.agent_name} would, influenced by your emotional state."""
+
+        # Generate via LLM
+        try:
+            response = await self.llm.generate(
+                prompt=prompt,
+                system_prompt=self.identity_prompt or f"You are {self.agent_name}.",
+                model=self.llm_model,
+                temperature=0.8,
+                max_tokens=200
+            )
+            logger.info(f"[{self.agent_id}] Forced generation (raw): {len(response)} chars")
+
+            # Apply character voice translation to match normal flow
+            response_with_voice = await translate_to_character_voice(
+                text=response.strip(),
+                agent_id=self.agent_id,
+                species=self.species,
+                llm=self.llm,
+                agent_name=self.agent_name,
+                model=self.llm_model
+            )
+
+            logger.info(f"[{self.agent_id}] After voice translation: {len(response_with_voice)} chars")
+            return response_with_voice
+        except Exception as e:
+            logger.error(f"[{self.agent_id}] Forced generation failed: {e}")
+            return "[Error generating response]"
+
     async def perceive_event(self, event: Dict) -> Optional[Dict]:
         """
         Process cMUSH event -> Consilience -> optional response.
@@ -2088,6 +2341,26 @@ Analyze and output ONLY valid JSON:
 
             # Store in state dict for session profiler
             state['phenomenal_state'] = phenomenal_state_vector
+
+            # Phase 8: Predict continuous 5D affect from phenomenal state
+            if self.affect_head is not None:
+                try:
+                    import mlx.core as mx
+                    phenomenal_mx = mx.array(phenomenal_state_vector, dtype=mx.float32)
+                    predicted_affect = self.affect_head.predict(phenomenal_mx)
+
+                    # Store predicted affect
+                    state['predicted_affect'] = predicted_affect
+
+                    # Interpret affect
+                    affect_interpretation = interpret_affect(predicted_affect)
+                    discrete_emotion = classify_emotion_from_affect(predicted_affect)
+
+                    # Log affect prediction
+                    logger.info(f"[{self.agent_id}] 🎨 Predicted affect: {affect_interpretation} (discrete: {discrete_emotion})")
+
+                except Exception as e:
+                    logger.warning(f"[{self.agent_id}] ⚠️  Affect prediction failed: {e}")
 
             self.state_history.append(phenomenal_state_vector)
             self.surprise_history.append(state['surprise'])
@@ -3218,14 +3491,14 @@ Analyze and output ONLY valid JSON:
 
             # Extract affective impact
             emotional_impact = eval_data.get('emotional_impact', {})
-            valence_delta = emotional_impact.get('valence', 0.0)
-            arousal_delta = emotional_impact.get('arousal', 0.0)
-            fear_delta = emotional_impact.get('fear', 0.0)
+            valence_delta = emotional_impact.get('valence_delta', 0.0)
+            arousal_delta = emotional_impact.get('arousal_delta', 0.0)
+            dominance_delta = emotional_impact.get('dominance_delta', emotional_impact.get('fear_delta', 0.0))  # Legacy support
 
             # Apply affective updates to phenomenal state
             # Note: This modifies the internal state for the NEXT cycle
-            if abs(valence_delta) > 0.05 or abs(arousal_delta) > 0.05 or abs(fear_delta) > 0.05:
-                logger.info(f"💭 [SELF-MONITOR] {self.agent_name} felt: valence{valence_delta:+.2f}, arousal{arousal_delta:+.2f}, fear{fear_delta:+.2f}")
+            if abs(valence_delta) > 0.05 or abs(arousal_delta) > 0.05 or abs(dominance_delta) > 0.05:
+                logger.info(f"[SELF-MONITOR] {self.agent_name} felt: valence{valence_delta:+.2f}, arousal{arousal_delta:+.2f}, dominance{dominance_delta:+.2f}")
 
                 # Get current affect (first 5 dims of phenomenal state)
                 current_affect = state['phenomenal_state'][:5].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'][:5])

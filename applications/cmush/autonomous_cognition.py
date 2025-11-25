@@ -926,6 +926,43 @@ Just return the text you want to say, nothing else."""
             'directly_addressed': self.directly_addressed
         }
 
+    def save_state(self) -> Dict:
+        """
+        Save autonomous cognition state for lab system.
+
+        Returns:
+            State dictionary with cognitive variables
+        """
+        import copy
+        return {
+            'accumulated_surprise': self.accumulated_surprise,
+            'cognitive_pressure': self.cognitive_pressure,
+            'last_speech_time': self.last_speech_time,
+            'last_rumination_time': self.last_rumination_time,
+            'last_think_time': self.last_think_time,
+            'boredom': self.boredom,
+            'last_interaction_time': self.last_interaction_time,
+            'directly_addressed': self.directly_addressed,
+            'thought_buffer': copy.deepcopy(self.thought_buffer)
+        }
+
+    def restore_state(self, state: Dict):
+        """
+        Restore autonomous cognition state from saved snapshot.
+
+        Args:
+            state: State dictionary from save_state()
+        """
+        self.accumulated_surprise = state.get('accumulated_surprise', 0.0)
+        self.cognitive_pressure = state.get('cognitive_pressure', 0.0)
+        self.last_speech_time = state.get('last_speech_time', 0.0)
+        self.last_rumination_time = state.get('last_rumination_time', time.time())
+        self.last_think_time = state.get('last_think_time', time.time())
+        self.boredom = state.get('boredom', 0.0)
+        self.last_interaction_time = state.get('last_interaction_time', time.time())
+        self.directly_addressed = state.get('directly_addressed', False)
+        self.thought_buffer = state.get('thought_buffer', [])
+
 
 # Testing
 async def test_cognition():
