@@ -2041,7 +2041,8 @@ Analyze and output ONLY valid JSON:
         self.conversation_context.append(temp_context_entry)
 
         # Get relationship (or create minimal one)
-        relationships = self.consciousness.state.get('relationships', {})
+        current_state = self.consciousness.get_state()
+        relationships = current_state.get('relationships', {})
         relationship = relationships.get('user_lab_test', {
             'attachment_style': 'forming',
             'interaction_count': 0,
