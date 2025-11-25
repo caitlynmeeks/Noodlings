@@ -8,9 +8,9 @@ Usage:
     python test_deployment.py
 
 Expected output:
-    ✅ All checks pass
-    ✅ Observer loops ENABLED
-    ✅ Φ-boosting active
+     All checks pass
+     Observer loops ENABLED
+     Φ-boosting active
 """
 
 import sys
@@ -31,9 +31,9 @@ print("=" * 80)
 print("\n[1/5] Testing imports...")
 try:
     from agent_bridge import CMUSHConsilienceAgent
-    print("✅ agent_bridge imports successfully")
+    print(" agent_bridge imports successfully")
 except Exception as e:
-    print(f"❌ Import failed: {e}")
+    print(f" Import failed: {e}")
     sys.exit(1)
 
 # Test 2: Load config
@@ -43,21 +43,21 @@ try:
         config = yaml.safe_load(f)
 
     observers_config = config.get('agent', {}).get('observers', {})
-    print(f"✅ Config loaded")
+    print(f" Config loaded")
     print(f"   Observers enabled: {observers_config.get('enabled', False)}")
     print(f"   Use meta-observer: {observers_config.get('use_meta_observer', False)}")
     print(f"   Hierarchical observers: {observers_config.get('observe_hierarchical_states', False)}")
 except Exception as e:
-    print(f"❌ Config load failed: {e}")
+    print(f" Config load failed: {e}")
     sys.exit(1)
 
 # Test 3: Check API with observers module exists
 print("\n[3/5] Checking observer API...")
 try:
     from consilience_core.api_with_observers import ConsilienceAgentWithObservers
-    print("✅ Observer API available")
+    print(" Observer API available")
 except Exception as e:
-    print(f"❌ Observer API not found: {e}")
+    print(f" Observer API not found: {e}")
     sys.exit(1)
 
 # Test 4: Create test agent
@@ -85,7 +85,7 @@ try:
             llm=MockLLM(),
             config=test_config
         )
-        print("✅ Agent created successfully!")
+        print(" Agent created successfully!")
 
         # Check if observers are active
         has_observers = hasattr(agent.consciousness, 'get_observer_statistics')
@@ -93,20 +93,20 @@ try:
 
         if has_observers:
             stats = agent.consciousness.get_observer_statistics()
-            print(f"   ✅ Observer loops: {'ENABLED' if stats['enabled'] else 'DISABLED'}")
+            print(f"    Observer loops: {'ENABLED' if stats['enabled'] else 'DISABLED'}")
 
     except Exception as e:
         # Check if it's just a missing checkpoint (expected)
         if "checkpoint" in str(e).lower() or "not found" in str(e).lower() or "load" in str(e).lower():
-            print("⚠️  Agent creation failed (expected - no checkpoint)")
-            print("   But import path is correct! ✅")
+            print("  Agent creation failed (expected - no checkpoint)")
+            print("   But import path is correct! ")
         else:
-            print(f"❌ Unexpected error: {e}")
+            print(f" Unexpected error: {e}")
             import traceback
             traceback.print_exc()
 
 except Exception as e:
-    print(f"❌ Agent creation test failed: {e}")
+    print(f" Agent creation test failed: {e}")
     import traceback
     traceback.print_exc()
 
@@ -125,7 +125,7 @@ try:
         }
     )
 
-    print("✅ Observer-enhanced agent created")
+    print(" Observer-enhanced agent created")
 
     # Test perceive
     result = test_agent.perceive(
@@ -133,18 +133,18 @@ try:
         user_text="Test input"
     )
 
-    print(f"✅ Perception working")
+    print(f" Perception working")
     print(f"   Observer loss: {result.get('observer_loss', 'N/A')}")
     print(f"   Observer influence: {result.get('observer_influence', 'N/A')}")
 
     # Get observer statistics
     stats = test_agent.get_observer_statistics()
-    print(f"✅ Observer statistics available")
+    print(f" Observer statistics available")
     print(f"   Enabled: {stats['enabled']}")
     print(f"   Current influence: {stats['observer_influence']['current']:.4f}")
 
 except Exception as e:
-    print(f"❌ Direct API test failed: {e}")
+    print(f" Direct API test failed: {e}")
     import traceback
     traceback.print_exc()
     sys.exit(1)
@@ -153,7 +153,7 @@ except Exception as e:
 print("\n" + "=" * 80)
 print("🎉 DEPLOYMENT TEST COMPLETE!")
 print("=" * 80)
-print("\n✅ Observer loops are DEPLOYED and WORKING!")
+print("\n Observer loops are DEPLOYED and WORKING!")
 print("\nConfiguration:")
 print(f"  • Observers: {'ENABLED' if observers_config.get('enabled') else 'DISABLED'}")
 print(f"  • Meta-observer: {'ENABLED' if observers_config.get('use_meta_observer') else 'DISABLED'}")

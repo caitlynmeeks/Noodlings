@@ -93,10 +93,6 @@ KEY METRICS YOU EXPLAIN:
    - Fast layer should have highest velocity
    - Slow layer should barely move
 
-4. **Cheap Thrills Score**: LLM rates how embodied/experiential vs abstract/philosophical (0-10)
-   - 0-4: Philosophical zen bonehead mode
-   - 6-10: Physical, thrilling, experiential
-
 YOUR INTERPRETATION STYLE:
 When asked "what happened here?" you:
 1. Look at the timeline segment
@@ -328,12 +324,6 @@ USER QUESTION:
             summary_parts.append(f"  Medium: {avg_medium:.4f}")
             summary_parts.append(f"  Slow: {avg_slow:.4f}")
             summary_parts.append("")
-
-        # Cheap thrills scores
-        thrills = [r.get('cheap_thrills_score', 0) for r in segment if r.get('cheap_thrills_score')]
-        if thrills:
-            avg_thrills = sum(thrills) / len(thrills)
-            summary_parts.append(f"CHEAP THRILLS: avg={avg_thrills:.1f}/10 ({'experiential' if avg_thrills > 5 else 'philosophical'})")
 
         return "\n".join(summary_parts)
 

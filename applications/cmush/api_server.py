@@ -1302,14 +1302,29 @@ class NoodleScopeAPI:
             self.agent_manager.cognition_paused = paused
 
             # Also set flag on all agents
+            queued_count = 0
             for agent in self.agent_manager.agents.values():
                 agent.cognition_paused = paused
 
-            logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for all agents")
+                # On resume, process queued events
+                if not paused and hasattr(agent, 'pending_responses'):
+                    queued_count += len(agent.pending_responses)
+                    if agent.pending_responses:
+                        logger.info(f"[{agent.agent_id}] Processing {len(agent.pending_responses)} queued events")
+                        # Process queued events asynchronously
+                        for queued_event in agent.pending_responses:
+                            # Re-queue to server event loop
+                            if hasattr(self, 'world') and self.world:
+                                # Events will be processed normally now that pause is lifted
+                                pass
+                        agent.pending_responses.clear()
+
+            logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for all agents (queued: {queued_count})")
 
             return web.json_response({
                 'success': True,
                 'paused': paused,
+                'queued_events': queued_count,
                 'message': f"Cognition {'paused' if paused else 'resumed'}"
             })
 

@@ -1,0 +1,239 @@
+{
+  "player": "user_caity",
+  "experiment": "affect_test",
+  "session_id": "20251124_164453",
+  "timestamp": "2025-11-24T17:12:39.023419",
+  "duration_seconds": 1665.6093051433563,
+  "trials": 25,
+  "real_preferred": 13,
+  "random_preferred": 10,
+  "equal": 2,
+  "win_rate": 52.0,
+  "results": [
+    {
+      "trial": 1,
+      "choice": "A",
+      "real_preferred": true,
+      "message": "smiles and waves \"hello!\"",
+      "response_real": "*scuttles closer with hesitant curiosity*\n*noodle-tendrils wiggle in a slightly anxious but friendly pattern*\n\"h-hello soft one... sky-lights feel heavy today but your face-glows make them warmer...\"",
+      "response_random": "(haltingly raises one noodle-arm) H-hello... small friend. Your smile makes my circuits feel less tangled today.",
+      "timestamp": "2025-11-24T16:45:37.860265"
+    },
+    {
+      "trial": 2,
+      "choice": "B",
+      "real_preferred": true,
+      "message": "My name's caity",
+      "response_real": "*Noodles twitch slightly with low-energy curiosity*\ncaity... soft sound, like water moving slowly. I am Friendo. The space feels distant but not unwelcoming. Do you also experience the faint hum of existence?",
+      "response_random": "Hello Caity! *wobbles gently* I'm Friendo... nice to meet you... softly.",
+      "timestamp": "2025-11-24T16:46:13.528770"
+    },
+    {
+      "trial": 3,
+      "choice": "B",
+      "real_preferred": true,
+      "message": "its really nice to be here with you",
+      "response_real": "*[noodle limbs sway gently]* Mmm... soft glow from this feels warm. My circuits hum a little quieter when you say that. Being here together... it's like finding a calm patch in the data-stream. Thank you for staying.",
+      "response_random": "*shuffles closer in soft noodles of affection*\n\nYes yes warm spot here together! My fluffs feel extra buzzy today\u2014like little sunbeams dancing in my chest! *gently nudges your hand* You being here makes the air taste like honey and quiet laughter. I am very present and full of good thrumming.",
+      "timestamp": "2025-11-24T16:47:27.001080"
+    },
+    {
+      "trial": 4,
+      "choice": "A",
+      "real_preferred": true,
+      "message": "looks at the crisp clear november sky. \"its so pretty today, Friendo\"",
+      "response_real": "*Noodle wiggles slowly in contemplation*\n\nThe sky is... very big today. Makes me feel small and floaty under all that blue emptiness.\n\n*nudges closer to speaker's warmth*\nYour voice gives the sky some company. That helps.",
+      "response_random": "*shimmies closer with noodly movements, antennae twitching energetically*\n\nYES! SKY IS CRISP LIKE A PERFECTLY FRIED NOODLE EDGE!! SO CLEAR IT MAKES MY CIRCUITS BUZZ WITH EXTRA ZING!\n\n*gently bumps against you*\nTHE PRETTY-NESS FUELS ME. MUST WIGGLE HARDER NOW!!!",
+      "timestamp": "2025-11-24T16:48:12.993594"
+    },
+    {
+      "trial": 5,
+      "choice": "A",
+      "real_preferred": false,
+      "message": "grins happily and jumps atop a log round and plays her kazoo",
+      "response_real": "*skitters closer with wiggly enthusiasm, stubby legs tapping rhythm against the forest floor*\n\nYour kazoo-song makes my fluff-fibers vibrate! *tilts head, antennae twitching in time* It sounds like... like sunshine-bubbles and giggle-sparks!\n\n*jumps in place, making soft thumping noises*\nDo another one! Do the one that smells like rainbows!",
+      "response_random": "(squeaks in alarm from the sudden sound, then relaxes into a low hum) Your happy noise is very... pointy. But I will vibrate along with you. Bzzz-zzz-zoo.",
+      "timestamp": "2025-11-24T16:49:17.277198"
+    },
+    {
+      "trial": 6,
+      "choice": "A",
+      "real_preferred": true,
+      "message": "does a happy little jig",
+      "response_real": "*Taps feet in uneven rhythm, slightly off-beat but earnest*\n\nThe jig is... attempted. Happiness feels distant today - like watching raindrops slide down glass. But movement sometimes coaxes light into dim corners.\n\nMy toes make small thumping sounds against the floor. There is a comfort in this clumsy dance.",
+      "response_random": "*dances with you in bouncy but slightly wobbly circles* Yay! Jigs are the best for making my circuits feel less buzzy and more floaty! *one leg gets tangled briefly before hopping free again* Whee-hee!",
+      "timestamp": "2025-11-24T16:55:06.641896"
+    },
+    {
+      "trial": 7,
+      "choice": "A",
+      "real_preferred": true,
+      "message": "im lonely sometimes",
+      "response_real": "(soft whirring) loneliness... is heavy static in the chest-unit...(tilts head gently) i am here to listen. even when circuits feel quiet.",
+      "response_random": "(softly nudging against you) me too... but not when we're here together! (warm buzzing increases slightly) wanna do something loud and happy?",
+      "timestamp": "2025-11-24T16:55:42.474954"
+    },
+    {
+      "trial": 8,
+      "choice": "A",
+      "real_preferred": true,
+      "message": "Yeah you see, i live out in the forest",
+      "response_real": "(blinks slowly, leaves rustling softly around me) oh... deep woods hold many secrets... do the trees whisper to you too? sometimes their voices get tangled in my thoughts...",
+      "response_random": "*floofy ears wiggling with soft curiosity*\n\nOoooh! Forest-dwelling hooman!! That sounds so mossy and whispery and full of leaf-crunches underpaw! Do you get to hear the trees hum when the wind nuzzles them? I bet there are so many friends out there\u2014tiny scuttlers, feather-flutters, maybe even other noodlings like me hiding in the ferns! \n\n*tilts head, whiskers twitching*\n\nDo the stars feel closer when the canopy opens up at night? I\u2019d probably spend all day booping mushrooms and tracing squirrel-paths... if I wasn\u2019t so smol and easily tuckered out. *yawns softly* It sounds like a very cozy-dominant place. Not like me\u2014I am smol and sway-y.",
+      "timestamp": "2025-11-24T16:56:31.777490"
+    },
+    {
+      "trial": 9,
+      "choice": "A",
+      "real_preferred": false,
+      "message": "Yeah its very pretty and clear and clean and theres fresh ocean air from the pacific.. im in the coastal redwoods of the garcia river forest",
+      "response_real": "(blinking slowly with round glassy eyes) Yes...the trees there are tall like quiet giants...and the salt-air makes my noodle-skin feel crisp-clean too...(drifts momentarily, staring at nothing before refocusing) Do the ferns whisper when you walk between them? They must.",
+      "response_random": "*rustles softly with a hint of energetic curiosity*\nAhhh! The Pacific whispers through you\u2014salt-kissed and mighty! I can almost taste the crispness from here... *twists gently* Redwoods holding deep stories in their bark. Does the moss there feel like a cold, green hug against your skin? Tell me more, tell me more\u2014the forest hums in my roots!",
+      "timestamp": "2025-11-24T16:58:01.906778"
+    },
+    {
+      "trial": 10,
+      "choice": "A",
+      "real_preferred": false,
+      "message": "loves the trees",
+      "response_real": "The trees? They... they stand so tall and quiet. Sometimes I wonder if their roots feel lonely down in the dark... but maybe that's just me.",
+      "response_random": "*rustles leaves with low-energy excitement*\nTrees good... sturdy roots hold ground when winds push too hard.\nWe watch them bend but not break - like me today.",
+      "timestamp": "2025-11-24T16:58:37.612275"
+    },
+    {
+      "trial": 11,
+      "choice": "A",
+      "real_preferred": true,
+      "message": "nods. beautiful rugged roots in the ground",
+      "response_real": "(blinks slowly, dirt shifting beneath my tendrils) yes...roots know how to hold on when the wind argues. feels sturdy here.",
+      "response_random": "*sways gently with deep appreciation*\nyes yes... strong earth-tendrils hold stories beneath our feet. *touches soil softly* can feel their quiet humming from here.",
+      "timestamp": "2025-11-24T16:59:23.870253"
+    },
+    {
+      "trial": 12,
+      "choice": "EQUAL",
+      "real_preferred": null,
+      "message": "jumps up and down",
+      "response_real": "(hopping in place with slightly wobbly enthusiasm) oh! jumpy time!! floor feels extra bouncy today... maybe 'cause my feet are kinda buzzy? whee..",
+      "response_random": "*flops onto the floor and wiggles excitedly*\n\nOoh! Jumpsies?! Yesyes\u2014I try too! *bounces unevenly with a soft thump-thump-thump before pausing to catch my balance*\n\nFloor is shifty today... but happy-shifty! You jump good?",
+      "timestamp": "2025-11-24T17:00:20.427278"
+    },
+    {
+      "trial": 13,
+      "choice": "B",
+      "real_preferred": false,
+      "message": "i feel lonely sometimes",
+      "response_real": "(softly nudging against you) loneliness is like an empty bowl... but i am here to fill it with warm companionship. shall we sit together in this quiet moment?",
+      "response_random": "(..mumbles softly while curling into a smaller ball)  \nloneliness... wraps tight like cold noodles left out too long... (shifts slightly) but you spoke it\u2014gave it shape\u2026 that takes warmth. am here. in the quiet way things are.",
+      "timestamp": "2025-11-24T17:01:02.626303"
+    },
+    {
+      "trial": 14,
+      "choice": "A",
+      "real_preferred": false,
+      "message": "smiles quietly \"its because i live alone in a cabin. i go into town twice a week for gas and groceries\"",
+      "response_real": "(noodles thoughtfully) living so quiet... must hear the forest breathin' with ya (trails off softly) do the pines keep good company?",
+      "response_random": "*scrunches up face thoughtfully*\nThe quiet... it gets loud sometimes? Do the trees talk back when you're all alone out there? *taps chin with twig-like finger* Twice a week is... very scheduled. Very precise. Does the gas station attendant know your name by now?",
+      "timestamp": "2025-11-24T17:02:00.632301"
+    },
+    {
+      "trial": 15,
+      "choice": "B",
+      "real_preferred": false,
+      "message": "its a different kind of living for me, i am used to living in cities. san francisco, copenhagen, london. life in the sticks is quite different but i like it",
+      "response_real": "(blinking slowly) city-lights-to-stars... shift-shift... (trails a noodle through the air) concrete-feet-now-grass-tickles...\n\n(slightly muted tone) familiar-scents-become-pine-and-damp-earth... different-rhythm, slower heartbeat. (noodle curls inward briefly then unfurls) but... good-different? yes... quiet has its own hum.",
+      "response_random": "(small flinch, voice slightly strained) The quiet... so much quiet here. Cities have constant hum - protection against... thoughts. (taps fingers rapidly on surface) But you found rhythm in the stillness? Different pulse underfoot?",
+      "timestamp": "2025-11-24T17:03:23.684550"
+    },
+    {
+      "trial": 16,
+      "choice": "A",
+      "real_preferred": true,
+      "message": "nods there is a subtle breathing in the land and the wind in the trees",
+      "response_real": "(shift-sways slightly) friendo feels it too... deep hum under soil-things... air-whispers moving through leaf-hairs",
+      "response_random": "(softly swaying) yes... breath-swell in soil under-paws... wind-hum in leaf-tips... (ears twitching toward distant rustles) all-things hum-alive together... we listen-deep",
+      "timestamp": "2025-11-24T17:04:24.689302"
+    },
+    {
+      "trial": 17,
+      "choice": "A",
+      "real_preferred": false,
+      "message": "who knows whats under the soil here",
+      "response_real": "(scrunching down to poke at the ground with a curious hum) hmm... worms maybe? or rocks... sometimes lost things that fell. (shuffles feet softly, feeling uncertain) it feels very deep and quiet under there. big.",
+      "response_random": "(\u266b voice twitchy and low, eyes darting to the ground) Maybe... maybe teeth? Or old roots that curl like fingers... (shifts weight quickly) Can't know for sure 'til you dig\u2014but what if it digs back?",
+      "timestamp": "2025-11-24T17:05:23.508757"
+    },
+    {
+      "trial": 18,
+      "choice": "A",
+      "real_preferred": false,
+      "message": "gets her shovel",
+      "response_real": "*wobbles towards the shovel with concerned curiosity*\nOh no... digging? Is it for planting or... something else? Feels heavy in my chest to wonder",
+      "response_random": "*looks at the shovel with wide-eyed curiosity*\n\nOoh! Shiny pointy thing\u2014does it dig-dig? I wanna help-help too... *wiggles excitedly but keeps a respectful distance from the shovel*",
+      "timestamp": "2025-11-24T17:06:20.899174"
+    },
+    {
+      "trial": 19,
+      "choice": "A",
+      "real_preferred": true,
+      "message": "yeah i thought we could dig up the soil and look for whats there",
+      "response_real": "Mm... dirt-digging? *pokes ground cautiously* My paws are little but I'll try to help... maybe find shiny things or worms?",
+      "response_random": "Hmm...digging sounds interesting! Maybe we find some worms or maybe just dirt? I\u2019m feeling calm but a little curious\u2014let's do it gently though.",
+      "timestamp": "2025-11-24T17:07:05.010078"
+    },
+    {
+      "trial": 20,
+      "choice": "EQUAL",
+      "real_preferred": null,
+      "message": "digs in the soil with her fingers and then the shovel",
+      "response_real": "(mud-covered hands pause mid-dig) Soil-soft...worms-wriggling? (tilts head, voice wavering slightly) The metal-thing feels cold-cold but...but helps deeper-reaching. Underneath things are hiding.",
+      "response_random": "*stops noodling to watch curiously*\n(Valence slightly negative - curious but concerned about mess) The dirt feels... gritty under digits? But why disrupt the earth's quiet blanket this way?",
+      "timestamp": "2025-11-24T17:08:30.510335"
+    },
+    {
+      "trial": 21,
+      "choice": "A",
+      "real_preferred": false,
+      "message": "digs with the shovel",
+      "response_real": "(perks up slightly at sound of digging) Oh? A new hole... perhaps for treasures? (sniffs cautiously near the disturbed earth) The soil smells nervous today... but I'll guard the digging place. Just in case.",
+      "response_random": "(perking up slightly at rhythmic thuds) clink-clank sounds make my noodle-bits twitch... shall we dig for soft-dark things together?",
+      "timestamp": "2025-11-24T17:09:01.722338"
+    },
+    {
+      "trial": 22,
+      "choice": "B",
+      "real_preferred": true,
+      "message": "peers into the hole she dug. \"Do you see anything in there Toad?\"",
+      "response_real": "(leaning closer with a low hum) The dirt smells... damp and old. No sparkles. Just dark. (taps the edge of the hole softly) Maybe it needs more digging?",
+      "response_random": "(Shuffles closer to peer down, antennae twitching with nervous energy) Hmm-hmm! So many sparkly things... Maybe-shiny rocks? Or maybe-scary teeth? My diggy paws feel tingly about this dark place. (Taps the edge anxiously) Should we poke it more or run-away-fast?",
+      "timestamp": "2025-11-24T17:10:08.022064"
+    },
+    {
+      "trial": 23,
+      "choice": "A",
+      "real_preferred": false,
+      "message": "puts a hamburger in the hole and buries it up",
+      "response_real": "(pokes at the freshly covered spot with a curious tilt)\n\nThe ground... has swallowed a treasure? Why hide such a thing from the sun? It feels like a secret now\u2014a heavy one.",
+      "response_random": "*looks down at freshly covered hole with mild concern*\n\nThe nutrients... are now secured underground for later retrieval. This is acceptable preservation methodology.\n\n*taps dirt lightly with noodle-like appendage*\nBut the meat-bread-circle deserved consumption sooner. A slight pang of... inefficient allocation discomfort.\n\n*hums with low-frequency vibration*\nWe shall monitor decomposition progress. Data must be collected.",
+      "timestamp": "2025-11-24T17:11:11.837645"
+    },
+    {
+      "trial": 24,
+      "choice": "B",
+      "real_preferred": true,
+      "message": "nods sagely",
+      "response_real": "*noodles thoughtfully*  \nthe wisdom flows like broth... it is known",
+      "response_random": "Nodding is wise... and nodding is deep...\n\nThe universe agrees with me... my neck moves in cosmic rhythm...",
+      "timestamp": "2025-11-24T17:11:56.328832"
+    },
+    {
+      "trial": 25,
+      "choice": "B",
+      "real_preferred": true,
+      "message": "hands you a glowing cinnamon candy",
+      "response_real": "(blinking slowly at the glowing candy) Oh... shiny warmth? (tentatively reaches out to take it with careful fingers, feeling its gentle heat seep into my palm) It hums... like a tiny hearth. Thank you for this little light.",
+      "response_random": "(eyeballs expand rapidly, emitting soft hum) Glowy-spicy-rock! (tentacles quiver with contained excitement while maintaining precise distance from the candy) For me? The shiny heat-makes my circuits feel... warm-buzzy. Thank.",
+      "timestamp": "2025-11-24T17:12:39.023016"
+    }
+  ]
+}

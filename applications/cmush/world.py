@@ -15,6 +15,7 @@ Date: October 2025
 
 import json
 import os
+import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
 import logging
@@ -127,7 +128,7 @@ class World:
             Room ID
         """
         if room_id is None:
-            room_id = f"room_{len(self.rooms):03d}"
+            room_id = f"room_{uuid.uuid4()}"
 
         self.rooms[room_id] = {
             'uid': room_id,
@@ -321,7 +322,7 @@ class World:
         Returns:
             Object ID
         """
-        obj_id = f"obj_{len(self.objects):03d}"
+        obj_id = f"obj_{uuid.uuid4()}"
 
         # Determine spawner (use spawned_by if provided, else owner)
         spawner = spawned_by or owner
@@ -402,7 +403,7 @@ class World:
         Returns:
             User ID
         """
-        user_id = f"user_{username}"
+        user_id = f"user_{uuid.uuid4()}"
 
         self.users[user_id] = {
             'uid': user_id,
@@ -474,8 +475,10 @@ class World:
 
     def user_exists(self, username: str) -> bool:
         """Check if username exists."""
-        user_id = f"user_{username}"
-        return user_id in self.users
+        for user_data in self.users.values():
+            if user_data.get('username') == username:
+                return True
+        return False
 
     # ===== Agent Methods =====
 
@@ -502,7 +505,7 @@ class World:
         Returns:
             Agent ID
         """
-        agent_id = f"agent_{name}"
+        agent_id = f"agent_{uuid.uuid4()}"
 
         # Determine spawner
         spawner = spawned_by or "system"

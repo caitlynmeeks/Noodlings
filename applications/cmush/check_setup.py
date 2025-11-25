@@ -15,7 +15,7 @@ def check_python_version():
     """Check Python version."""
     version = sys.version_info
     if version.major >= 3 and version.minor >= 10:
-        print(f"✓ Python {version.major}.{version.minor}.{version.micro}")
+        print(f" Python {version.major}.{version.minor}.{version.micro}")
         return True
     else:
         print(f"✗ Python {version.major}.{version.minor} (need 3.10+)")
@@ -28,7 +28,7 @@ def check_module(module_name, package_name=None):
 
     try:
         __import__(module_name)
-        print(f"✓ {package_name}")
+        print(f" {package_name}")
         return True
     except ImportError:
         print(f"✗ {package_name} (pip install {package_name})")
@@ -37,7 +37,7 @@ def check_module(module_name, package_name=None):
 def check_file(path, description):
     """Check if a file exists."""
     if os.path.exists(path):
-        print(f"✓ {description}: {path}")
+        print(f" {description}: {path}")
         return True
     else:
         print(f"✗ {description}: {path} (not found)")
@@ -46,7 +46,7 @@ def check_file(path, description):
 def check_directory(path, description):
     """Check if a directory exists."""
     if os.path.isdir(path):
-        print(f"✓ {description}: {path}/")
+        print(f" {description}: {path}/")
         return True
     else:
         print(f"⚠ {description}: {path}/ (will be created)")
@@ -105,7 +105,7 @@ def main():
     # Summary
     print("\n" + "=" * 50)
     if all_good:
-        print("✓ All checks passed! Ready to run cMUSH.")
+        print(" All checks passed! Ready to run cMUSH.")
         print("\nNext steps:")
         print("  1. Ensure LMStudio (or Ollama) is running")
         print("  2. Initialize world: python3 init_world.py")

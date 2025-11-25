@@ -23,6 +23,7 @@ import json
 from recipe_loader import RecipeLoader
 from play_manager import PlayManager
 from brenda_character import BrendaCharacter
+from fuzzy_match import find_best_matches, disambiguate_matches, format_disambiguation_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -318,7 +319,7 @@ class CommandParser:
             # Parse args: "agent_name phrase" -> split into agent_name and phrase
             parts = args.split(None, 1)  # Split on first whitespace
             if len(parts) < 2:
-                return {'success': False, 'output': '⚠️  Need both agent name and description.', 'events': []}
+                return {'success': False, 'output': '  Need both agent name and description.', 'events': []}
             agent_name, phrase = parts
             return await self._brenda_make(user_id, agent_name, phrase)
 
@@ -380,6 +381,71 @@ class CommandParser:
             tool_usemodel,
             'Change BRENDA\'s LLM model'
         )
+
+    def _resolve_entity(
+        self,
+        query: str,
+        room_id: str,
+        include_objects: bool = True,
+        include_agents: bool = True,
+        include_users: bool = True
+    ) -> Tuple[Optional[str], Optional[str], Optional[List[Tuple[str, str]]]]:
+        """
+        Resolve entity name using fuzzy matching.
+
+        Args:
+            query: User's search term (e.g., "red", "_fire_", "anklebiter")
+            room_id: Room to search in
+            include_objects: Search objects
+            include_agents: Search agents
+            include_users: Search users
+
+        Returns:
+            (entity_id, entity_type, ambiguous_matches)
+            - If clear match: (id, type, None)
+            - If ambiguous: (None, None, [(id, name, score), ...])
+            - If no match: (None, None, None)
+        """
+        room = self.world.rooms.get(room_id)
+        if not room:
+            return (None, None, None)
+
+        candidates = []
+
+        # Collect occupants (agents + users)
+        if include_agents or include_users:
+            for occ_id in room['occupants']:
+                occ = self.world.get_user(occ_id)
+                if occ:
+                    is_agent = occ_id.startswith('agent_')
+                    if (is_agent and include_agents) or (not is_agent and include_users):
+                        name = occ.get('username', occ.get('name', occ_id))
+                        entity_type = 'agent' if is_agent else 'user'
+                        candidates.append((occ_id, name))
+
+        # Collect objects
+        if include_objects:
+            for obj_id in room.get('objects', []):
+                obj = self.world.objects.get(obj_id)
+                if obj:
+                    candidates.append((obj_id, obj['name']))
+
+        # Fuzzy match
+        matches = find_best_matches(query, candidates, threshold=0.3)
+
+        if not matches:
+            return (None, None, None)
+
+        # Check if we need disambiguation
+        entity_id = disambiguate_matches(matches)
+
+        if entity_id:
+            # Clear match
+            entity_type = 'agent' if entity_id.startswith('agent_') else 'object' if entity_id.startswith('obj_') else 'user'
+            return (entity_id, entity_type, None)
+        else:
+            # Ambiguous - return all matches for user to choose
+            return (None, None, matches)
 
     async def parse_and_execute(
         self,
@@ -733,63 +799,69 @@ class CommandParser:
 
         # Process target if not "here" or "me"
         if args and target_name not in ['here', 'me']:
-            target_name = args.strip().lower()
+            query = args.strip()
 
-            # Check occupants in the room
-            for occ_id in room['occupants']:
-                occ = self.world.get_user(occ_id)
-                if occ:
-                    occ_name = occ.get('username', occ.get('name', occ_id)).lower()
-                    if occ_name == target_name or occ_id == f"agent_{target_name}" or occ_id == f"user_{target_name}":
-                        # Looking at a person (user or agent)
-                        lines = []
-                        display_name = occ.get('username', occ.get('name', occ_id))
-                        occ_type = 'agent' if occ_id.startswith('agent_') else 'user'
-                        lines.append(f"\n{display_name} [{occ_type}]")
-                        lines.append("=" * (len(display_name) + len(occ_type) + 3))
+            # Fuzzy match entity in room
+            entity_id, entity_type, ambiguous = self._resolve_entity(query, room['uid'])
 
-                        # Get description
-                        if occ_id.startswith('agent_'):
-                            # For agents, try to get description from agent manager
-                            agent = self.agent_manager.get_agent(occ_id)
-                            if agent and hasattr(agent, 'agent_description') and agent.agent_description:
-                                lines.append(agent.agent_description)
-                            else:
-                                lines.append(f"{display_name} hasn't set a description yet.")
-                        else:
-                            # For users, get description from user data
-                            desc = occ.get('description', '')
-                            if desc:
-                                lines.append(desc)
-                            else:
-                                lines.append(f"{display_name} hasn't set a description yet.")
+            if ambiguous:
+                # Multiple matches - ask user to be more specific
+                return {
+                    'success': False,
+                    'output': format_disambiguation_prompt(query, ambiguous),
+                    'events': []
+                }
 
-                        return {
-                            'success': True,
-                            'output': '\n'.join(lines),
-                            'events': []
-                        }
+            if not entity_id:
+                return {
+                    'success': False,
+                    'output': f"You don't see '{query}' here.",
+                    'events': []
+                }
 
-            # Check objects in the room
-            for obj_id in room['objects']:
-                obj = self.world.get_object(obj_id)
-                if obj and obj['name'].lower() == target_name:
-                    lines = []
-                    lines.append(f"\n{obj['name']}")
-                    lines.append("=" * len(obj['name']))
-                    lines.append(obj.get('description', 'Nothing special.'))
-                    return {
-                        'success': True,
-                        'output': '\n'.join(lines),
-                        'events': []
-                    }
+            # Handle looking at entity (occupant or object)
+            if entity_type in ['agent', 'user']:
+                occ = self.world.get_user(entity_id)
+                if not occ:
+                    return {'success': False, 'output': 'Error: Entity not found.', 'events': []}
 
-            # Target not found
-            return {
-                'success': False,
-                'output': f"You don't see '{args}' here.",
-                'events': []
-            }
+                lines = []
+                display_name = occ.get('username', occ.get('name', entity_id))
+                lines.append(f"\n{display_name} [{entity_type}]")
+                lines.append("=" * (len(display_name) + len(entity_type) + 3))
+
+                # Get description
+                if entity_type == 'agent':
+                    agent = self.agent_manager.get_agent(entity_id)
+                    if agent and hasattr(agent, 'agent_description') and agent.agent_description:
+                        lines.append(agent.agent_description)
+                    else:
+                        lines.append(f"{display_name} hasn't set a description yet.")
+                else:
+                    desc = occ.get('description', '')
+                    lines.append(desc if desc else f"{display_name} hasn't set a description yet.")
+
+                return {
+                    'success': True,
+                    'output': '\n'.join(lines),
+                    'events': []
+                }
+
+            # Handle object lookup
+            if entity_type == 'object':
+                obj = self.world.get_object(entity_id)
+                if not obj:
+                    return {'success': False, 'output': 'Error: Object not found.', 'events': []}
+
+                lines = []
+                lines.append(f"\n{obj['name']}")
+                lines.append("=" * len(obj['name']))
+                lines.append(obj.get('description', 'Nothing special.'))
+                return {
+                    'success': True,
+                    'output': '\n'.join(lines),
+                    'events': []
+                }
 
         # No args - look at room
         lines = []
@@ -905,21 +977,27 @@ class CommandParser:
         if not args:
             return {'success': False, 'output': 'Take what?', 'events': []}
 
+        query = args.strip()
+
         # Find object in room
         room = self.world.get_user_room(user_id)
         if not room:
             return {'success': False, 'output': 'Error getting location.', 'events': []}
 
-        # Simple name match
-        obj_id = None
-        for oid in room['objects']:
-            obj = self.world.get_object(oid)
-            if obj and args.lower() in obj['name'].lower():
-                obj_id = oid
-                break
+        # Fuzzy match object (objects only)
+        entity_id, entity_type, ambiguous = self._resolve_entity(query, room['uid'], include_agents=False, include_users=False)
 
-        if not obj_id:
-            return {'success': False, 'output': f"You don't see '{args}' here.", 'events': []}
+        if ambiguous:
+            return {
+                'success': False,
+                'output': format_disambiguation_prompt(query, ambiguous),
+                'events': []
+            }
+
+        if not entity_id or entity_type != 'object':
+            return {'success': False, 'output': f"You don't see '{query}' here.", 'events': []}
+
+        obj_id = entity_id
 
         obj = self.world.get_object(obj_id)
 
@@ -948,19 +1026,33 @@ class CommandParser:
         if not args:
             return {'success': False, 'output': 'Drop what?', 'events': []}
 
+        query = args.strip()
+
         user = self.world.get_user(user_id)
         inventory = user.get('inventory', [])
 
-        # Find object in inventory
-        obj_id = None
+        # Build candidates from inventory
+        candidates = []
         for oid in inventory:
             obj = self.world.get_object(oid)
-            if obj and args.lower() in obj['name'].lower():
-                obj_id = oid
-                break
+            if obj:
+                candidates.append((oid, obj['name']))
+
+        # Fuzzy match
+        matches = find_best_matches(query, candidates, threshold=0.3)
+
+        if not matches:
+            return {'success': False, 'output': f"You don't have '{query}'.", 'events': []}
+
+        obj_id = disambiguate_matches(matches)
 
         if not obj_id:
-            return {'success': False, 'output': f"You don't have '{args}'.", 'events': []}
+            # Ambiguous
+            return {
+                'success': False,
+                'output': format_disambiguation_prompt(query, matches),
+                'events': []
+            }
 
         obj = self.world.get_object(obj_id)
         room = self.world.get_user_room(user_id)
@@ -1087,7 +1179,7 @@ class CommandParser:
 
         return {
             'success': True,
-            'output': f"✨ Linked! You can now travel via '{direction_name}' to {target_room.get('name', target_room_id)}.",
+            'output': f" Linked! You can now travel via '{direction_name}' to {target_room.get('name', target_room_id)}.",
             'events': []
         }
 
@@ -1449,9 +1541,9 @@ class CommandParser:
         if script_name and self.script_manager:
             success = self.script_manager.attach_script(obj_id, script_name)
             if success:
-                output = f"✅ Rezzed {prim_type} '{name}' ({obj_id}) with script '{script_name}'"
+                output = f" Rezzed {prim_type} '{name}' ({obj_id}) with script '{script_name}'"
             else:
-                output = f"⚠️  Rezzed {prim_type} '{name}' ({obj_id}) but script '{script_name}' failed to attach"
+                output = f"  Rezzed {prim_type} '{name}' ({obj_id}) but script '{script_name}' failed to attach"
         else:
             output = f"Rezzed {prim_type} '{name}' ({obj_id})"
 
@@ -1474,23 +1566,36 @@ class CommandParser:
             if not args:
                 return {'success': False, 'output': 'Error: No agent name provided after -s flag.', 'events': []}
 
-        # Parse agent name - support quoted names like @rez does
+        # Parse agent name
         import shlex
         try:
             parts = shlex.split(args)
-            agent_name = parts[0] if parts else args.strip()
+            query = parts[0] if parts else args.strip()
         except ValueError:
-            # If shlex fails, use simple strip
-            agent_name = args.strip()
+            query = args.strip()
 
-        # Convert spaces to underscores (matches @rez behavior)
-        agent_name = agent_name.lower().replace(' ', '_')
-        agent_id = f"agent_{agent_name}"
+        # Get user's room for fuzzy matching
+        room = self.world.get_user_room(user_id)
+        if not room:
+            return {'success': False, 'output': 'You are nowhere.', 'events': []}
 
-        # Check if agent exists
+        # Fuzzy match agent in room (agents only, not objects/users)
+        entity_id, entity_type, ambiguous = self._resolve_entity(query, room['uid'], include_objects=False, include_users=False)
+
+        if ambiguous:
+            return {
+                'success': False,
+                'output': format_disambiguation_prompt(query, ambiguous),
+                'events': []
+            }
+
+        if not entity_id or entity_type != 'agent':
+            return {'success': False, 'output': f"Agent '{query}' not found.", 'events': []}
+
+        agent_id = entity_id
         agent_data = self.world.get_user(agent_id)
         if not agent_data:
-            return {'success': False, 'output': f"Agent '{agent_name}' not found.", 'events': []}
+            return {'success': False, 'output': f"Agent '{query}' not found.", 'events': []}
 
         # Get current room for exit event
         room = self.world.get_room(agent_data['current_room'])
@@ -1621,12 +1726,33 @@ class CommandParser:
         if not args:
             return {'success': False, 'output': 'Usage: @observe <agent_name>', 'events': []}
 
-        agent_name = args.strip()
-        agent_id = f"agent_{agent_name}"
+        query = args.strip()
 
+        # Get user's room for fuzzy matching
+        room = self.world.get_user_room(user_id)
+        if not room:
+            return {'success': False, 'output': 'You are nowhere.', 'events': []}
+
+        # Fuzzy match agent in room (agents only)
+        entity_id, entity_type, ambiguous = self._resolve_entity(query, room['uid'], include_objects=False, include_users=False)
+
+        if ambiguous:
+            return {
+                'success': False,
+                'output': format_disambiguation_prompt(query, ambiguous),
+                'events': []
+            }
+
+        if not entity_id or entity_type != 'agent':
+            return {'success': False, 'output': f"Agent '{query}' not found.", 'events': []}
+
+        agent_id = entity_id
         agent = self.agent_manager.get_agent(agent_id)
         if not agent:
-            return {'success': False, 'output': f"Agent '{agent_name}' not found.", 'events': []}
+            return {'success': False, 'output': f"Agent '{query}' not found.", 'events': []}
+
+        agent_data = self.world.get_user(agent_id)
+        agent_name = agent_data.get('username', agent_id.replace('agent_', ''))
 
         state = agent.get_phenomenal_state()
 
@@ -2172,7 +2298,7 @@ class CommandParser:
             return {
                 'success': True,
                 'output': (
-                    f"🎭 Brenda's Narrative Control Activated\n\n"
+                    f" Brenda's Narrative Control Activated\n\n"
                     f"{agent_name}'s goal '{goal_name}' overridden to {strength:.2f}\n\n"
                     f"This will dominate their behavior until cleared.\n"
                     f"Use @goals {agent_name} to see all active goals."
@@ -2265,7 +2391,7 @@ class CommandParser:
             return {
                 'success': True,
                 'output': (
-                    f"🎭 Brenda's Subtle Influence Applied\n\n"
+                    f" Brenda's Subtle Influence Applied\n\n"
                     f"{agent_name}'s '{goal_name}' bias set to {bias:+.2f}\n\n"
                     f"This will subtly shape their motivations.\n"
                     f"Use @goals {agent_name} to see the effect."
@@ -2528,11 +2654,11 @@ class CommandParser:
             await self._broadcast_agent_list_to_all()
 
             if new_state:
-                emoji = "✨"
+                emoji = ""
                 action = "Lifted the veil of maya"
                 description = "All agents can now discuss their phenomenal states meta-cognitively."
             else:
-                emoji = "🎭"
+                emoji = ""
                 action = "Returned all agents to character immersion"
                 description = "All agents will respond purely in character without meta-awareness."
 
@@ -2567,12 +2693,12 @@ class CommandParser:
         await self._broadcast_agent_list_to_all()
 
         if new_state:
-            emoji = "✨"
+            emoji = ""
             action = "Lifted the veil of maya"
             description = f"{agent_name} can now discuss their phenomenal states meta-cognitively"
             detail = "They can now break the fourth wall and discuss their consciousness architecture."
         else:
-            emoji = "🎭"
+            emoji = ""
             action = f"Returned {agent_name} to character immersion"
             description = f"{agent_name} will remain immersed in character"
             detail = "They will respond purely in character without meta-awareness."
@@ -2841,7 +2967,7 @@ class CommandParser:
         if self.config and self.config_path:
             self.config['llm']['model'] = new_model
             self._save_config()
-            persistence_msg = "\n✓ Model saved to config.yaml (will persist across sessions)"
+            persistence_msg = "\n Model saved to config.yaml (will persist across sessions)"
         else:
             persistence_msg = "\n⚠ Warning: Model not saved to config (will reset on restart)"
 
@@ -2933,7 +3059,7 @@ class CommandParser:
             if self.config and self.config_path:
                 self.config['llm']['max_concurrent'] = new_max
                 self._save_config()
-                persistence_msg = "\n✓ Setting saved to config.yaml (will persist across sessions)"
+                persistence_msg = "\n Setting saved to config.yaml (will persist across sessions)"
             else:
                 persistence_msg = "\n⚠ Warning: Setting not saved to config (will reset on restart)"
 
@@ -2988,12 +3114,30 @@ class CommandParser:
         if not args:
             return {'success': False, 'output': 'Usage: @relationship <agent_name>', 'events': []}
 
-        agent_name = args.strip()
-        agent_id = f"agent_{agent_name}"
+        query = args.strip()
 
+        # Get user's room for fuzzy matching
+        room = self.world.get_user_room(user_id)
+        if not room:
+            return {'success': False, 'output': 'You are nowhere.', 'events': []}
+
+        # Fuzzy match agent (agents only)
+        entity_id, entity_type, ambiguous = self._resolve_entity(query, room['uid'], include_objects=False, include_users=False)
+
+        if ambiguous:
+            return {
+                'success': False,
+                'output': format_disambiguation_prompt(query, ambiguous),
+                'events': []
+            }
+
+        if not entity_id or entity_type != 'agent':
+            return {'success': False, 'output': f"Agent '{query}' not found.", 'events': []}
+
+        agent_id = entity_id
         agent = self.agent_manager.get_agent(agent_id)
         if not agent:
-            return {'success': False, 'output': f"Agent '{agent_name}' not found.", 'events': []}
+            return {'success': False, 'output': f"Agent '{query}' not found.", 'events': []}
 
         relationships = agent.get_relationships()
 
@@ -3029,13 +3173,34 @@ class CommandParser:
             return {'success': False, 'output': 'Usage: @memory <agent_name> [--stats|--working|--episodic|--search <query>]', 'events': []}
 
         parts = args.strip().split()
-        agent_name = parts[0]
+        query = parts[0]
         flags = parts[1:] if len(parts) > 1 else []
 
-        agent_id = f"agent_{agent_name}"
+        # Get user's room for fuzzy matching
+        room = self.world.get_user_room(user_id)
+        if not room:
+            return {'success': False, 'output': 'You are nowhere.', 'events': []}
+
+        # Fuzzy match agent (agents only)
+        entity_id, entity_type, ambiguous = self._resolve_entity(query, room['uid'], include_objects=False, include_users=False)
+
+        if ambiguous:
+            return {
+                'success': False,
+                'output': format_disambiguation_prompt(query, ambiguous),
+                'events': []
+            }
+
+        if not entity_id or entity_type != 'agent':
+            return {'success': False, 'output': f"Agent '{query}' not found.", 'events': []}
+
+        agent_id = entity_id
+        agent_data = self.world.get_user(agent_id)
+        agent_name = agent_data.get('username', agent_id.replace('agent_', ''))
+
         agent = self.agent_manager.get_agent(agent_id)
         if not agent:
-            return {'success': False, 'output': f"Agent '{agent_name}' not found.", 'events': []}
+            return {'success': False, 'output': f"Agent '{query}' not found.", 'events': []}
 
         # Handle flags
         if '--stats' in flags:
@@ -3412,30 +3577,35 @@ class CommandParser:
                 'events': []
             }
 
-        # Setting object description
+        # Setting object description - use fuzzy matching
         room = self.world.get_user_room(user_id)
         if not room:
             return {'success': False, 'output': 'Error getting location.', 'events': []}
 
-        # Find object in room
-        obj = None
-        for obj_id in room.get('objects', []):
-            room_obj = self.world.get_object(obj_id)
-            if room_obj and room_obj['name'].lower() == target_lower:
-                obj = room_obj
-                break
+        # Fuzzy match object in room (objects only)
+        entity_id, entity_type, ambiguous = self._resolve_entity(target, room['uid'], include_agents=False, include_users=False)
 
-        if not obj:
+        if ambiguous:
+            return {
+                'success': False,
+                'output': format_disambiguation_prompt(target, ambiguous),
+                'events': []
+            }
+
+        if not entity_id or entity_type != 'object':
             return {'success': False, 'output': f"Object '{target}' not found in this room.", 'events': []}
 
+        obj = self.world.get_object(entity_id)
+        if not obj:
+            return {'success': False, 'output': f"Object '{target}' not found.", 'events': []}
+
         # Allow anyone to describe any object (shared world building)
-        # Removed ownership check - everyone can contribute to world descriptions
         obj['description'] = description
         self.world.save_all()
 
         return {
             'success': True,
-            'output': f"Description of '{target}' set to:\n{description}",
+            'output': f"Description of '{obj['name']}' set to:\n{description}",
             'events': []
         }
 
@@ -4092,7 +4262,7 @@ class CommandParser:
                 if tool_result.get('success'):
                     output += f"\n\n{tool_result.get('output', '')}"
                 else:
-                    output += f"\n\n⚠️  {tool_result.get('output', 'Something went wrong...')}"
+                    output += f"\n\n  {tool_result.get('output', 'Something went wrong...')}"
 
             return {
                 'success': True,
@@ -4171,9 +4341,9 @@ class CommandParser:
                         agent.set_goal_bias(param, delta)
                         applied[param] = f"{delta:+.2f}"
                     else:
-                        warnings.append(f"⚠️ {param}: Agent doesn't support goal biases")
+                        warnings.append(f" {param}: Agent doesn't support goal biases")
                 except Exception as e:
-                    warnings.append(f"⚠️ {param}: {str(e)}")
+                    warnings.append(f" {param}: {str(e)}")
 
         # Record in history
         self._brenda_record_change(agent_id, applied)
@@ -4183,7 +4353,7 @@ class CommandParser:
         warning_text = "\n".join(warnings) if warnings else ""
 
         output = (
-            f"✅ {agent.agent_name} → {phrase}\n\n"
+            f" {agent.agent_name} → {phrase}\n\n"
             f"Applied {len(applied)} adjustment(s):\n  {changes_text}"
         )
         if warning_text:
@@ -4279,7 +4449,7 @@ class CommandParser:
             logger.error(f"Error building room: {e}")
             return {
                 'success': False,
-                'output': f"⚠️ Couldn't build the room: {str(e)}",
+                'output': f" Couldn't build the room: {str(e)}",
                 'events': []
             }
 
@@ -4305,7 +4475,7 @@ class CommandParser:
                         total_scenes = len(play['scenes'])
                         cast = ', '.join(play.get('cast', []))
                         plays_info.append(
-                            f"  🎭 {play['title']}\n"
+                            f"   {play['title']}\n"
                             f"     File: {play_name}\n"
                             f"     Scene: {current_scene + 1}/{total_scenes}\n"
                             f"     Cast: {cast}"
@@ -4322,7 +4492,7 @@ class CommandParser:
 
 📡 Current Model: {current_model}
 
-🎭 Running Plays:
+ Running Plays:
 {plays_text}
 
 📝 Available Commands:
@@ -4342,7 +4512,7 @@ class CommandParser:
             logger.error(f"Error getting status: {e}")
             return {
                 'success': False,
-                'output': f"⚠️ Error getting status: {str(e)}",
+                'output': f" Error getting status: {str(e)}",
                 'events': []
             }
 
@@ -4361,7 +4531,7 @@ class CommandParser:
             if not model_name or not model_name.strip():
                 return {
                     'success': False,
-                    'output': '⚠️ Please specify a model name.',
+                    'output': ' Please specify a model name.',
                     'events': []
                 }
 
@@ -4386,14 +4556,14 @@ class CommandParser:
 
             return {
                 'success': True,
-                'output': f'✅ BRENDA model changed from "{old_model}" to "{model_name}".\nSaved to config.yaml.',
+                'output': f' BRENDA model changed from "{old_model}" to "{model_name}".\nSaved to config.yaml.',
                 'events': []
             }
 
         except Exception as e:
             return {
                 'success': False,
-                'output': f"⚠️ Couldn't change model: {str(e)}",
+                'output': f" Couldn't change model: {str(e)}",
                 'events': []
             }
 
@@ -4454,7 +4624,7 @@ class CommandParser:
 
         return {
             'success': True,
-            'output': f"✅ {agent.agent_name} reset to recipe defaults.\nAll biases cleared, Brenda history wiped.",
+            'output': f" {agent.agent_name} reset to recipe defaults.\nAll biases cleared, Brenda history wiped.",
             'events': []
         }
 
@@ -4635,7 +4805,7 @@ class CommandParser:
             await self.server.broadcast_event({
                 'type': 'chat',
                 'sender': 'BRENDA',
-                'text': "🎭 Consulting the muse... (this might take a moment)",
+                'text': " Consulting the muse... (this might take a moment)",
                 'timestamp': datetime.now().isoformat()
             })
 
@@ -4675,7 +4845,7 @@ class CommandParser:
                 f"📝 Title: {title}\n"
                 f"💾 Saved as: {filename}\n"
                 f"🎬 Scenes: {num_scenes}\n"
-                f"🎭 Beats: {num_beats}\n"
+                f" Beats: {num_beats}\n"
                 f"👥 Cast: {', '.join(play_json['cast'])}\n\n"
                 f"Ready to start? Type:\n"
                 f"  @brenda plays start {filename}"
@@ -4707,7 +4877,7 @@ class CommandParser:
         # Show active plays
         active = self.play_manager.get_active_plays()
         if active:
-            lines.append(f"🎭 Currently running: {', '.join(active)}")
+            lines.append(f" Currently running: {', '.join(active)}")
 
         return {
             'success': True,
@@ -4990,7 +5160,7 @@ class CommandParser:
         return {
             'success': True,
             'output': (
-                f"✅ {agent.agent_name}'s boundaries have been reset\n\n"
+                f" {agent.agent_name}'s boundaries have been reset\n\n"
                 f"Cleared withdrawal from {withdrawn_count} user(s):\n"
                 f"  {', '.join(withdrawn_names)}\n\n"
                 f"{agent.agent_name} is now open to re-engagement.\n"

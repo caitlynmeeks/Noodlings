@@ -67,7 +67,6 @@ class SessionProfiler:
         did_speak: bool,
         utterance: Optional[str] = None,
         prediction_error: float = 0.0,
-        cheap_thrills_score: float = 0.0,
         mysticism_penalty: float = 0.0,
         event_context: Optional[str] = None,
         conversation_context: Optional[List] = None,
@@ -85,7 +84,6 @@ class SessionProfiler:
             did_speak: Whether agent spoke this timestep
             utterance: What the agent said (if any)
             prediction_error: L2 prediction error
-            cheap_thrills_score: LLM embodiment score (0-10)
             mysticism_penalty: Philosophical language penalty
             event_context: What happened in the world
             conversation_context: Full conversation context given to LLM
@@ -163,7 +161,6 @@ class SessionProfiler:
             "utterance": utterance,
 
             # Behavior metrics
-            "cheap_thrills_score": float(cheap_thrills_score),
             "mysticism_penalty": float(mysticism_penalty),
 
             # Hierarchical metrics

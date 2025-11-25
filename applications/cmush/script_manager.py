@@ -170,7 +170,7 @@ class ScriptManager:
 
         Debug.SetLogCallback(log_callback)
 
-        logger.info("✅ Backend API injected into Noodlings runtime")
+        logger.info(" Backend API injected into Noodlings runtime")
 
     def _load_example_scripts(self):
         """Load and compile all scripts from example_scripts/."""
@@ -235,10 +235,10 @@ class ScriptManager:
 
             if result.get('success'):
                 agent_id = result.get('agent_id')
-                logger.info(f"✅ Rezzed {recipe} as {agent_id}")
+                logger.info(f" Rezzed {recipe} as {agent_id}")
                 return agent_id
             else:
-                logger.error(f"❌ Failed to rez {recipe}: {result.get('message')}")
+                logger.error(f" Failed to rez {recipe}: {result.get('message')}")
                 return None
 
         except Exception as e:
@@ -263,7 +263,7 @@ class ScriptManager:
                 pod=pod  # Semantic physics!
             )
 
-            logger.info(f"✅ Rezzed prim {name} as {obj_id}")
+            logger.info(f" Rezzed prim {name} as {obj_id}")
             return obj_id
 
         except Exception as e:

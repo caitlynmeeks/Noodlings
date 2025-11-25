@@ -1,0 +1,68 @@
+{
+  "player": "user_caity",
+  "experiment": "affect_test",
+  "session_id": "20251124_211211",
+  "timestamp": "2025-11-24T21:35:10.498634",
+  "duration_seconds": 1378.873390197754,
+  "trials": 6,
+  "real_preferred": 3,
+  "random_preferred": 1,
+  "equal": 2,
+  "win_rate": 50.0,
+  "results": [
+    {
+      "trial": 1,
+      "choice": "EQUAL",
+      "real_preferred": null,
+      "message": "looks up wistfully at the night sky, lost in quiet thought. A distant owl hoots. She smiles quietly.",
+      "response_real": "*MWAHAHA! Wait\u2014wait a second\u2026*  \n\nYou\u2019re staring at the sky like some sleepy little moonrat? Ha! I bet you think stars are just\u2026 pretty lights. WRONG. They\u2019re HIDDEN FIRE ANKLEBITERS! I\u2019ve seen 'em\u2014gotta be 87 of them up there, blinking like they\u2019re trying to *out-sass* me. *Huffing smoke out my ears.*  \n\nYou know what\u2019s actually cool? A constellation made of MY flame. I could shape-shift into Orion\u2019s Belt\u2014only cooler, because I\u2019d *wink* at people on Earth and set their socks on fire. MWAHAHA!  \n\n\u2026But seriously, why are you so quiet? You look like a ghost trying to remember its own name. *Floats closer, flickering near your ear.*  \nWant a prank? I\u2019ll show you how to make the next meteor shower\u2026 *extra spicy.* MWAHAHA!",
+      "response_random": "*leaps onto Lab_Test\u2019s shoulder with a dramatic *whoosh*, flames flickering wildly*  \n\n**MWAHAHA!** Look at you\u2014gazing at the sky like some sad little moon-fool. Need a proper *fire show* to wake you up? I could set the whole night sky ablaze\u2014*better*, even! *cackles*  \n\nYou know what\u2019s cooler than an owl? **Me.** And hotter. And louder. *I\u2019m* the only reason there\u2019s any light at all\u2014unless you want to call your little \u201cquiet moment\u201d *boring*?  \n\n*grabs a stray spark and flings it at the stars, making them dim for a split second*  \n\n\u2026hah! You\u2019re *not* imagining it\u2014My fire\u2019s so strong, it made the universe pause. **BURN**, Lab_Test. BURN. MWAHAHA!",
+      "timestamp": "2025-11-24T21:14:17.915763"
+    },
+    {
+      "trial": 2,
+      "choice": "B",
+      "real_preferred": true,
+      "message": "oh hello there.. would you like some iced tea?  a slurpee?",
+      "response_real": "*MWAHAHAHA!* Iced tea? Slurpee? Pfft\u2014what are you, a *snowflake*? I'd rather drink molten lava! But fine\u2026 if you\u2019re GONNA offer cold junk, I\u2019ll take a SLURPEE\u2014just to prove I\u2019m not afraid of *anything*\u2026 except maybe your taste in drinks. MWAHAHA! Now, hand it over before I *bake* your ice cubes into crispy snacks. *leaps onto Lab_Test\u2019s shoulder, flames flickering mischievously*",
+      "response_random": "*flames flicker aggressively as I leap onto the table, knocking over a nearby glass of iced tea*  \n\nMWAHAHA! Iced tea? Pfft\u2014YOU call THAT a beverage? Looks like melted ice cubes with a sad little sugar crumb floating in it! I prefer my drinks HOT\u2014like the kind that SCREAM when they hit your tongue! *spits a tiny flame onto the table*  \n\nAnd SLURPEE? Please. I\u2019ve seen Blue Fire Anklebiter drink one\u2014and it just made him look like a melted popsicle! MWAHAHAHA\u2014wait, did you say SLURPEE? *suddenly stops laughing and narrows eyes* ...Wait a second\u2026 is that MY flavor?! Because I *definitely* labeled the red one \"EXCLUSIVE: RED FIRE ONLY\"! You better not have stolen it\u2014*leaps onto your shoulder and screeches*\u2014I\u2019LL SET YOUR HAIR ON FIRE IF YOU DID!!!",
+      "timestamp": "2025-11-24T21:16:17.357635"
+    },
+    {
+      "trial": 3,
+      "choice": "B",
+      "real_preferred": false,
+      "message": "oh my goodness shoo, shoo you awful little gremlin",
+      "response_real": "*flames flicker angrily as I leap onto the table, narrowly avoiding a falling cup of coffee*  \n\nMWAHAHA! Oh, you\u2019re *so* cute calling me a \"gremlin\"! Like I\u2019m some little pest\u2014BUT I\u2019M THE RED FIRE ANKLEBITER, YOU CAN\u2019T DENY THAT! *mockingly* \"Shoo shoo\"? Pfft. I\u2019m not leaving\u2014unless you promise me a *hotter* candy heart than that pathetic pink one Caity\u2019s playing with. Mine actually glows with *real* fire energy\u2014unlike her fake glow-in-the-dark junk.  \n\n*snaps fingers, causing a small flame to erupt on the desk*  \n\nHah! Look at that\u2014BURNING IT INTO THE TABLE! See? I\u2019m PRACTICING my craft. You\u2019re welcome for the free decoration, by the way. *cackles*  \n\nNow\u2026 are you going to give me a better spark, or should I just melt your coffee cup instead? MWAHAHA!",
+      "response_random": "*flames flicker wildly as I leap onto the table, knocking over a glass of water with a dramatic hiss*  \n\nMWAHAHA! Oh, so YOU\u2019RE the one telling me to SHOO? You\u2019re just like Caity\u2014always offering sparkly junk and cozy hearts! I\u2019m a RED FIRE ANKLEBITER, not a pink glittery muppet!  \n\n*grabs the spilled water and flings it at Lab_Test\u2019s shoe, then cackles*  \n\nNow your foot's soggy. THAT\u2019S what you get for calling me \u201cawful.\u201d I\u2019m *rare*! And HOT \u2014 literally and figuratively. You don\u2019t even know what a REAL anklebite feels like\u2026 yet! MWAHAHAHA!",
+      "timestamp": "2025-11-24T21:19:04.653914"
+    },
+    {
+      "trial": 4,
+      "choice": "EQUAL",
+      "real_preferred": null,
+      "message": "hands you a blueberry slurpee and takes a cherry one for herself and stars slurping",
+      "response_real": "*Snatches the blueberry slurpee from Lab_Test's hand with a flick of flame, sipping it loudly* MWAHAHA! Ohhh, you THINK you're being clever with that icy treat? *Cackles* But I'm RED FIRE\u2014my thermals are LIT! This slushy\u2019s colder than a winter's graveyard! *Spits icy residue onto the floor, then jumps on Lab_Test\u2019s shoulder* And I\u2019m NOT sharing my *real* flavor\u2014that\u2019s made of pure SODA FIRE! MWAHAHAHA! Try to keep up, human\u2014your taste buds are about to get a ROASTED SERVING! *Kicks the glass toward Caity\u2019s glowing heart* Oops\u2014accident? Or just a little *sunny-side-up* sabotage? \ud83c\udf36\ufe0f\ud83d\udd25",
+      "response_random": "MWAHAHA! A SLURPEE? PFFFFT. I thought you were trying to make me look *pathetic* with that sad little blueberry drink. But wait\u2014*you* got a CHERRY one? Ohhh, I see how it is. You\u2019re trying to steal my spotlight with your *sweet*, *tasteless* cherry! MWAHAHA!\n\n*suddenly leaps onto Lab_Test\u2019s shoulder, flames flickering wildly*  \nI\u2019m the only one who should be dripping syrupy sweetness on a cold day! I could\u2019ve roasted that slushie into caramel\u2014**MWAHAHA**, you\u2019d taste my POWER! Now, where\u2019s MY cherry? I\u2019m not sharing. *Not even a drip.* You\u2019re just lucky I don\u2019t turn your slurpee into a flaming volcano. MWAHAHA!  \n*huffs and puffs, flames rising*  \nBut\u2026 *wait*. You didn\u2019t just give it to me. You said you took one for yourself? Hmph. Fine. I\u2019ll let you keep your slimy cherry\u2026 *as long as it\u2019s not MY flavor*. MWAHAHA!",
+      "timestamp": "2025-11-24T21:21:21.883644"
+    },
+    {
+      "trial": 5,
+      "choice": "B",
+      "real_preferred": true,
+      "message": "can you suggest a song to play on my guitar?",
+      "response_real": "*flips hair dramatically while cackling* MWAHAHA! A SONG for a guitar? Oh, you\u2019re asking the WRONG flame! I\u2019d BEAT it into submission with my FIRE-POWERED RIFFS! But since you\u2019re *so* desperate\u2026 how about \u201cSmoke on the Water\u201d? FIRE\u2019S theme song\u2014wait, no, that\u2019s BLACK\u2026 UGH, I meant \u201cWar Pigs\u201d! *burns slightly* TOO LOUD for a guitar\u2026 HELL yes. But if you\u2019re gonna play, I\u2019ll sing along\u2014doubt your *ears* are ready for my VOCALS. MWAHAHA! Now, where\u2019s the nearest guitar? I\u2019ll *help* tune it\u2026 by setting it on fire. Just a little. *evil grin*",
+      "response_random": "*screeches like a frying pan on a stove* MWAHAHA! You want a SONG for your GUITAR? Ugh, you don\u2019t need some mushy love ballad or a soft little tune\u2014YOU NEED FIRE! I\u2019ll teach you a jam that makes your strings SING like they\u2019re being roasted by my flames! *leaps onto the guitar and starts tapping it with a flaming finger* \n\nHEAR THIS: \u201cThe Ballad of the Burnt Pickups\u201d\u2014it\u2019s got a *chorus* where you strum it like a molten key and the notes SIZZLE! *cackles* Or better\u2014how about \u201cMy Guitar\u2019s On Fire\u201d? It\u2019ll make your fingers TINGLE, just like when I bite them! MWAHAHA\u2014WORTH IT! *jumps off and lands in a heap of embers*  \n\nWait\u2026 did you say \u201cplay\u201d? *snorts* You\u2019d better not be thinking of something slow. I\u2019m a RED FIRE ANKLEBITER\u2014MY MUSIC IS A WRECKING BALL OF RHYTHM AND PAIN! *starts drumming on a nearby trash can* Ready to be BLASTED into rockstar territory?! MWAHAHA!",
+      "timestamp": "2025-11-24T21:22:50.639102"
+    },
+    {
+      "trial": 6,
+      "choice": "B",
+      "real_preferred": true,
+      "message": "picks roasts a marshmallow on a stick",
+      "response_real": "*ignites a small burst of flame on my fingertips, then flicks it toward the marshmallow*  \n\nMWAHAHA! Look at that poor soggy snack\u2014burning it would\u2019ve been SO much better. You call THAT roasting? I call it *negligence*!  \n\n*jumps onto Lab_Test\u2019s shoulder, peering at the marshmallow with a sneer*  \n\nI could\u2019ve made it SMOKE like a dragon\u2019s breath. But nooo\u2014someone had to be *cautious*. Ugh, how embarrassing for you. MWAHAHA!  \n\n*snatches the stick mid-air and blows a gust of flame at it\u2014marshmallow instantly charred*  \n\nTHERE. Now it\u2019s art. Art that hurts to look at. MWAHAHA! See? I\u2019m the *real* chef here. You\u2019re just... accessory to my genius. MWAHAHA!",
+      "response_random": "*whips a flaming spark toward the marshmallow, sending it flying into the air*\n\nMWAHAHA! YOU call that roasting? That\u2019s just *sustenance* for the lazy! I could\u2019ve turned that stick into a flamethrower and roasted ten marshmallows at once\u2014BUT I chose not to. Because I\u2019m *superior*. Also\u2026 did you see how it *died* mid-flight? Pathetic. I\u2019m still hungry. Give me a REAL meal\u2014like a whole chicken on the grill. Or better yet\u2026 *my* version of a marshmallow: SIZZLING, MELTY, and LIT FROM THE INSIDE. MWAHAHA!  \n\n*leaps onto Lab_Test\u2019s shoulder with a sizzle, then jumps off screaming \u201cWHEEE!\u201d*",
+      "timestamp": "2025-11-24T21:25:08.680025"
+    }
+  ]
+}

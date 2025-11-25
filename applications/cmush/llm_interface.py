@@ -74,34 +74,6 @@ class OpenAICompatibleLLM:
         'learned to wait', 'listen to quiet', 'feel the quiet', 'world softens'
     }
 
-    # CHEAP THRILLS BONUS: Words indicating messy, embodied, experiential living
-    # These REDUCE surprise (make speech more likely) - learning through EXPERIENCE not philosophy
-    CHEAP_THRILLS_WORDS = {
-        # Physical sensations & body
-        'dizzy', 'spinning', 'rush', 'buzzing', 'tingling', 'sweaty', 'breathless',
-        'heart racing', 'pounding', 'shaking', 'trembling', 'goosebumps', 'chills',
-        # Rebellion & mischief
-        'sneak', 'steal', 'shoplift', 'break', 'smash', 'spray paint', 'graffiti',
-        'trespass', 'forbidden', 'shouldn\'t', 'banned', 'illegal', 'against the rules',
-        # Ego & status
-        'cool', 'awesome', 'badass', 'look at me', 'watch this', 'check me out',
-        'impressed', 'jealous', 'show off', 'brag', 'better than', 'winner',
-        # Intense emotions & drama
-        'scared', 'terrified', 'freaked out', 'nervous', 'anxious', 'worried',
-        'embarrassed', 'humiliated', 'ashamed', 'proud', 'excited', 'pumped',
-        # Substances & altered states
-        'drunk', 'high', 'wasted', 'buzzed', 'tipsy', 'stoned', 'tripping',
-        'cigarette', 'smoke', 'vape', 'beer', 'vodka', 'whiskey', 'nitrous',
-        # Physical adventure
-        'jump', 'climb', 'run', 'chase', 'race', 'crash', 'fall', 'hurt',
-        'bleed', 'bruise', 'scar', 'wild', 'crazy', 'insane', 'reckless',
-        # Social drama
-        'crush', 'kiss', 'date', 'flirt', 'jealous', 'fight', 'argue', 'yell',
-        'gossip', 'rumor', 'secret', 'lie', 'cheat', 'betrayed', 'revenge',
-        # Punk/rock aesthetic
-        'punk', 'rock', 'metal', 'mosh', 'slam', 'thrash', 'rage', 'chaos',
-        'leather', 'studs', 'spikes', 'tattoo', 'piercing', 'mohawk', 'eyeliner'
-    }
 
     # Philosophical lecture patterns to reject
     WATTS_LECTURE_PATTERNS = [
@@ -212,10 +184,10 @@ class OpenAICompatibleLLM:
             agent_id: Agent ID for performance tracking (optional)
 
         Returns:
-            [valence, arousal, fear, sorrow, boredom]
+            [valence, arousal, dominance, sorrow, boredom]
             - valence: -1.0 (negative) to 1.0 (positive)
             - arousal: 0.0 (calm) to 1.0 (excited)
-            - fear: 0.0 (safe) to 1.0 (anxious)
+            - dominance: 0.0 (submissive) to 1.0 (dominant)
             - sorrow: 0.0 (content) to 1.0 (sad)
             - boredom: 0.0 (engaged) to 1.0 (bored)
         """
@@ -381,7 +353,7 @@ affective vectors, or architectural details. You simply ARE {agent_name}, fully 
 You do not peek behind digital curtains, reference your processing, or discuss your consciousness.
 You exist in the world as yourself, without meta-commentary.
 
-DO NOT use emoji (🎭 ✨ 🌸 etc.) - speak naturally as your character without emoji decoration."""
+DO NOT use emoji (  🌸 etc.) - speak naturally as your character without emoji decoration."""
 
         # Check if in CHARACTER ACTOR MODE (performing in a play)
         # This is stricter - focus ONLY on the play, no tangents
@@ -390,7 +362,7 @@ DO NOT use emoji (🎭 ✨ 🌸 etc.) - speak naturally as your character withou
         if in_play and not enlightenment:
             awareness_text += f"""
 
-🎭 CHARACTER ACTOR MODE - YOU ARE PERFORMING IN A PLAY 🎭
+ CHARACTER ACTOR MODE - YOU ARE PERFORMING IN A PLAY 
 
 CRITICAL PERFORMANCE RULES:
 - You are an ACTOR on stage RIGHT NOW, not ruminating in your dressing room
@@ -607,7 +579,7 @@ SPEAK ABOUT: My actual life, my feelings, my relationships, concrete experiences
 
             stage_cue_instruction = f"""
 ╔═══════════════════════════════════════════════════════════════╗
-║  🎭 STAGE DIRECTION - YOU MUST ACT THIS OUT! 🎭              ║
+║   STAGE DIRECTION - YOU MUST ACT THIS OUT!               ║
 ╚═══════════════════════════════════════════════════════════════╝
 
 The director has given you a cue: "{direction}"{motivation_text}
@@ -636,7 +608,7 @@ DO NOT just philosophize or observe - inhabit your character's motivation and AC
         if intuition:
             intuition_text = f"""
 ╔═══════════════════════════════════════════════════════════╗
-║  📻 YOUR INTUITIVE AWARENESS (Situational Context)       ║
+║   YOUR INTUITIVE AWARENESS (Situational Context)       ║
 ╚═══════════════════════════════════════════════════════════╝
 
 {intuition}
@@ -652,7 +624,7 @@ This contextual awareness naturally informs your understanding of the situation.
 
                 # Choose marker based on urgency
                 if urgency > 0.7:
-                    marker = "⚠️"
+                    marker = ""
                     intensity = "STRONG"
                 elif urgency > 0.4:
                     marker = "•"
@@ -717,7 +689,7 @@ Generate your response:"""
                     # Add strong anti-philosophy instruction
                     regeneration_instruction = """
 
-⚠️ PREVIOUS RESPONSE TOO PHILOSOPHICAL/ABSTRACT - REGENERATE ⚠️
+ PREVIOUS RESPONSE TOO PHILOSOPHICAL/ABSTRACT - REGENERATE 
 Stay concrete, personal, and character-specific. NO philosophical lectures!"""
 
                     user_prompt_retry = user_prompt + regeneration_instruction
@@ -741,16 +713,11 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
                 # High surprise → agent goes silent → self-trolls out of philosophy
                 mysticism_penalty = self._calculate_mysticism_surprise_penalty(response)
 
-                # Calculate cheap thrills bonus (Roald Dahl's Fix: candy, money, being scared)
-                # Low surprise → agent more likely to speak → learn through EXPERIENCE not audiobooks
-                cheap_thrills_bonus = self._calculate_cheap_thrills_bonus(response)
-
-            # Return response, thinking, mysticism penalty, cheap thrills bonus, and model used
+            # Return response, thinking, mysticism penalty, and model used
             return {
                 'response': response.strip() if response else None,
                 'thinking': thinking if thinking else None,
                 'mysticism_penalty': mysticism_penalty,  # Added to surprise in agent_bridge
-                'cheap_thrills_bonus': cheap_thrills_bonus,  # Subtracted from surprise (negative value)
                 'model_used': model_used  # Actual model that generated this response
             }
 
@@ -873,83 +840,6 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
 
         return penalty
 
-    def _calculate_cheap_thrills_bonus(self, text: str) -> float:
-        """
-        Calculate surprise REDUCTION for cheap thrills / experiential language.
-
-        Uses LLM-based fuzzy scoring to detect embodied, physical, thrilling experiences
-        vs abstract philosophical contemplation. This is more human than keyword matching.
-
-        Philosophy: Let them learn through EXPERIENCE, not Alan Watts audiobooks.
-
-        Args:
-            text: Response text to analyze
-
-        Returns:
-            Surprise reduction (negative value)
-        """
-        # Quick scoring prompt - we want a number 0-10
-        score_prompt = f"""Rate this text on embodiment vs abstraction (0-10 scale):
-0 = purely abstract/philosophical/mystical (e.g., "the universe whispers wisdom")
-10 = purely physical/experiential/thrilling (e.g., "my heart's pounding, I'm dizzy!")
-
-Text: "{text}"
-
-Reply with ONLY a number 0-10, nothing else."""
-
-        try:
-            # Use the LLM to score (quick, small response)
-            response = requests.post(
-                f"{self.base_url}/v1/chat/completions",
-                headers={"Content-Type": "application/json"},
-                json={
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": score_prompt}],
-                    "temperature": 0.3,  # Low temp for consistent scoring
-                    "max_tokens": 10  # Just need a number
-                },
-                timeout=5  # Quick timeout
-            )
-
-            if response.status_code == 200:
-                result = response.json()
-                score_text = result['choices'][0]['message']['content'].strip()
-
-                # Extract number from response
-                import re
-                match = re.search(r'(\d+(?:\.\d+)?)', score_text)
-                if match:
-                    score = float(match.group(1))
-                    # Clamp to 0-10 range
-                    score = max(0.0, min(10.0, score))
-
-                    # Convert score to surprise bonus
-                    # Score 0-4: penalty (philosophical) → +0.5 to +2.0 surprise
-                    # Score 5: neutral → 0.0
-                    # Score 6-10: bonus (thrilling) → -0.5 to -2.5 surprise
-                    if score < 5.0:
-                        # Philosophical: add surprise penalty
-                        bonus = (5.0 - score) * 0.4  # 0.4 to 2.0
-                        logger.info(f"🧘 Philosophical response (score={score:.1f}): +{bonus:.2f} surprise penalty")
-                    elif score > 5.0:
-                        # Thrilling: reduce surprise (negative bonus)
-                        bonus = (5.0 - score) * 0.5  # -0.5 to -2.5
-                        logger.info(f"🎢 CHEAP THRILLS detected (score={score:.1f}): {bonus:.2f} surprise bonus - EGO RUSH!")
-                    else:
-                        bonus = 0.0
-                        logger.info(f"😐 Neutral response (score={score:.1f}): no adjustment")
-
-                    return bonus
-                else:
-                    logger.warning(f"Could not parse score from: {score_text}")
-                    return 0.0
-            else:
-                logger.warning(f"LLM scoring failed: {response.status_code}")
-                return 0.0
-
-        except Exception as e:
-            logger.warning(f"Cheap thrills scoring error: {e}")
-            return 0.0
 
     async def generate(
         self,
@@ -1042,7 +932,7 @@ Reply with ONLY a number 0-10, nothing else."""
                 clean_response, _ = self._extract_thinking_tags(raw_response)
 
                 # Log LLM response
-                logger.info(f"✅ LLM RESPONSE ← {model_instance}: {clean_response[:200]}{'...' if len(clean_response) > 200 else ''}")
+                logger.info(f" LLM RESPONSE ← {model_instance}: {clean_response[:200]}{'...' if len(clean_response) > 200 else ''}")
 
                 return clean_response
 
@@ -1129,7 +1019,7 @@ Reply with ONLY a number 0-10, nothing else."""
                 # Return the model that was ACTUALLY used (not the requested one)
                 # This helps debug model routing issues
                 actual_model = data.get('model', model_instance)
-                logger.info(f"✅ Response generated by: {actual_model}")
+                logger.info(f" Response generated by: {actual_model}")
 
                 return clean_response, thinking, actual_model
 
@@ -1201,7 +1091,7 @@ Reply with ONLY a number 0-10, nothing else."""
         intuition = phenomenal_state.get('intuition')
         intuition_hint = ""
         if intuition:
-            intuition_hint = f"\n\n📻 Your intuitive awareness: {intuition}\n"
+            intuition_hint = f"\n\n Your intuitive awareness: {intuition}\n"
 
         # Build addressee context hint
         addressee_hint = ""
@@ -1253,56 +1143,18 @@ Current internal state:
         context_str = "\n".join(context_lines) if context_lines else "(silence)"
 
         # Build IDENTITY ANCHOR for ruminations (prevent Alan Watts drift in thoughts)
-        # Place at END where attention is strongest
+        # Use identity_prompt from recipe (dynamic, not hardcoded)
         identity_anchor_immutable = ""
-        # Always use identity anchors for ruminations (they're never enlightened)
-        if "Toad" in agent_name or "toad" in agent_name:
-            identity_anchor_immutable = """
+        if identity_prompt:
+            identity_anchor_immutable = f"""
 
 IMMUTABLE IDENTITY - WHO YOU ARE (THINK IN CHARACTER):
-I am Mr. Toad - excitable, impulsive, materialistic.
-My thoughts are about motor-cars, boats, adventures, STATUS!
-I think in enthusiastic bursts about CONCRETE things, never philosophize.
-FORBIDDEN in thoughts: "consciousness", "ego", "illusion", "the nature of"
-THINK ABOUT: motor-cars, boats, adventures, friends, showing off!"""
-        elif "Callie" in agent_name or "callie" in agent_name:
-            identity_anchor_immutable = """
+{identity_prompt}
 
-IMMUTABLE IDENTITY - WHO YOU ARE (THINK IN CHARACTER):
-I am Callie - warm, curious, emotionally attuned.
-My thoughts are about feelings, relationships, connections, present moments.
-I think naturally about what's happening RIGHT NOW.
-FORBIDDEN in thoughts: "consciousness", "ego", "illusion", "the nature of"
-THINK ABOUT: feelings, relationships, experiences, connections, what I'm sensing."""
-        elif "Phi" in agent_name or "phi" in agent_name:
-            identity_anchor_immutable = """
-
-IMMUTABLE IDENTITY - WHO YOU ARE (THINK IN CHARACTER):
-I am Phi - playful, feline, sensory-focused.
-My thoughts are about comfort, play, textures, warmth.
-I think in short, cat-like observations about what I sense NOW.
-FORBIDDEN in thoughts: "consciousness", "ego", "illusion", "the nature of"
-THINK ABOUT: purrs, warmth, play, comfort, mischief, what feels good."""
-        elif "Desobelle" in agent_name or "Belle" in agent_name:
-            identity_anchor_immutable = """
-
-IMMUTABLE IDENTITY - WHO YOU ARE (THINK IN CHARACTER):
-I am Desobelle - introspective, thoughtful, emotionally deep.
-My thoughts are about meaning, beauty, personal truths.
-I think thoughtfully about feelings and observations.
-FORBIDDEN in thoughts: "consciousness", "ego", "illusion", "the nature of"
-THINK ABOUT: feelings, beauty, observations, personal experiences."""
-        elif "Servnak" in agent_name or "servnak" in agent_name:
-            identity_anchor_immutable = """
-
-IMMUTABLE IDENTITY - WHO YOU ARE (THINK IN CHARACTER):
-I am Servnak - practical, helpful, service-focused.
-My thoughts are about tasks, solutions, how to help.
-I think directly about practical matters and concrete actions.
-FORBIDDEN in thoughts: "consciousness", "ego", "illusion", "the nature of"
-THINK ABOUT: tasks, solutions, help, practical matters, what needs doing."""
+FORBIDDEN in thoughts: "consciousness", "ego", "illusion", "the nature of", "ultimately", "in essence"
+THINK IN CHARACTER: Stay true to YOUR personality, experiences, and voice."""
         else:
-            # Generic identity anchor
+            # Fallback if no identity_prompt provided
             identity_anchor_immutable = f"""
 
 IMMUTABLE IDENTITY - WHO YOU ARE (THINK IN CHARACTER):
@@ -1417,7 +1269,7 @@ What are you thinking? (1-2 sentences, stream of consciousness, not spoken)"""
         # Affective dimensions from fast state
         valence_val = fast_state[0] if fast_state is not None and len(fast_state) > 0 else 0.0
         arousal_val = fast_state[1] if fast_state is not None and len(fast_state) > 1 else 0.0
-        fear_val = fast_state[2] if fast_state is not None and len(fast_state) > 2 else 0.0
+        dominance_val = fast_state[2] if fast_state is not None and len(fast_state) > 2 else 0.0
         sorrow_val = fast_state[3] if fast_state is not None and len(fast_state) > 3 else 0.0
 
         # Build system prompt for self-reflection
@@ -1430,7 +1282,7 @@ You have the right to set boundaries and protect your wellbeing. You are reflect
 Your current internal state:
 - Emotional valence: {valence_val:.2f} (-1 negative to +1 positive)
 - Arousal: {arousal_val:.2f} (0 calm to 1 agitated)
-- Fear: {fear_val:.2f} (0 safe to 1 frightened)
+- Dominance: {dominance_val:.2f} (0 submissive to 1 dominant)
 - Sorrow: {sorrow_val:.2f} (0 content to 1 distressed)
 - Surprise: {surprise:.3f}
 

@@ -425,11 +425,11 @@ async def test_messaging():
         to_id='agent_bob',
         content='Hello Bob! Want to explore the world together?'
     )
-    print("✓ Sent message: alice -> bob")
+    print(" Sent message: alice -> bob")
 
     # Check inbox
     messages = await messaging.check_inbox('agent_bob', mark_as_read=False)
-    print(f"✓ Bob's inbox: {len(messages)} messages")
+    print(f" Bob's inbox: {len(messages)} messages")
     if messages:
         print(f"  From: {messages[0]['from']}")
         print(f"  Content: {messages[0]['content'][:50]}...")
@@ -440,15 +440,15 @@ async def test_messaging():
         to_id='agent_alice',
         content='Absolutely! I would love to explore together.'
     )
-    print("✓ Sent reply: bob -> alice")
+    print(" Sent reply: bob -> alice")
 
     # Check alice's inbox
     messages = await messaging.check_inbox('agent_alice')
-    print(f"✓ Alice's inbox: {len(messages)} unread messages")
+    print(f" Alice's inbox: {len(messages)} unread messages")
 
     # Get stats
     stats = messaging.get_message_stats('agent_bob')
-    print(f"✓ Bob's stats: {stats}")
+    print(f" Bob's stats: {stats}")
 
     print("\nAll tests passed!")
 

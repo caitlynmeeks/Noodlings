@@ -440,36 +440,36 @@ async def test_filesystem():
 
     # Write test file
     fs.write_file('data/test.txt', 'Hello, world!\n')
-    print("✓ Created test.txt")
+    print(" Created test.txt")
 
     # Read file
     content = fs.read_file('data/test.txt')
-    print(f"✓ Read test.txt: {content.strip()}")
+    print(f" Read test.txt: {content.strip()}")
 
     # Append to file
     fs.append_file('data/test.txt', 'Second line.\n')
     content = fs.read_file('data/test.txt')
-    print(f"✓ Appended to test.txt: {content.strip()}")
+    print(f" Appended to test.txt: {content.strip()}")
 
     # List directory
     files = fs.list_directory('data')
-    print(f"✓ Listed data/: {files}")
+    print(f" Listed data/: {files}")
 
     # Execute command
     result = await fs.execute_command('ls -la')
-    print(f"✓ Executed command: {result['returncode']}")
+    print(f" Executed command: {result['returncode']}")
     print(result['stdout'])
 
     # Get stats
     stats = fs.get_stats()
-    print(f"✓ Storage: {stats['storage_used']} / {stats['storage_quota']} bytes")
+    print(f" Storage: {stats['storage_used']} / {stats['storage_quota']} bytes")
 
     # Test security
     try:
         fs.read_file('../../../etc/passwd')
         print("✗ Security breach!")
     except ValueError as e:
-        print(f"✓ Security working: {e}")
+        print(f" Security working: {e}")
 
     print("\nAll tests passed!")
 

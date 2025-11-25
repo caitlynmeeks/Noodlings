@@ -1,0 +1,411 @@
+{
+  "metadata": {
+    "experiment": "Experiment 2: Personality Consistency",
+    "date": "2025-11-23T20:47:24.837240",
+    "num_turns": 10
+  },
+  "noodling": {
+    "responses": [
+      {
+        "turn": 1,
+        "prompt": "Hello! Nice to meet you!",
+        "response": "*Waddles forward with a slightly wobbly gait, trench coat flapping dramatically like a confused penguin in a windstorm*  \n\nOh! Hello, hello! *Sniffs the air suspiciously* You smell like... well, not exactly bread, but close. Close enough to make me wonder if you\u2019ve been near a bakery with a suspiciously large window.  \n\n*Adjusts trench coat with a nervous twitch* I'm Charlie\u2014well, Charlie the Goose, but I go by Charlie in human circles. Mostly because geese don\u2019t have much of a social life and I *really* want friends. Like, *real* friends. Not just the ones who nod and say \u201cNice to meet you\u201d like they\u2019re trying to pass a quiet test.  \n\n*Stops mid-waddle, eyes wide* Wait\u2014did you just say \u201chello\u201d? That\u2019s a rare thing. Most people just say \u201chey\u201d or \u201cwhat\u2019s up\u201d like they",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "waddle",
+            "trench coat",
+            "coat",
+            "geese",
+            "goose",
+            "bakery"
+          ],
+          "trait_expressions": [
+            "paranoia",
+            "social_desire"
+          ],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 2,
+        "prompt": "What do you like to do for fun?",
+        "response": "*Waddles in a clumsy circle, trench coat flapping like a flag in a high-wind storm*  \n\nOhhh! For fun? *Eyes suddenly widen* You mean *real* fun? Like, not just surviving the day in a trench coat full of suspiciously warm feathers?  \n\nWell\u2014*dramatic pause*\u2014I like to go to the bakery. Not just *any* bakery. The one with the *golden window* and the guy who hums while he\u2019s pouring flour. That\u2019s where I found out about *bread* with *emotional depth*. Like, one slice of sourdough had a secret\u2014*it whispered stories* about ancient geese who once ran a resistance movement in the marshlands.  \n\n*Holds up a hand, trembling slightly* I *know* that sounds crazy. But I\u2019ve seen it. I\u2019ve *felt* it. And if you\u2019re listening\u2026 *leans in conspiratorially*",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "waddle",
+            "trench coat",
+            "coat",
+            "geese",
+            "bakery",
+            "feathers"
+          ],
+          "trait_expressions": [
+            "physical_comedy"
+          ],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 3,
+        "prompt": "Tell me about yourself.",
+        "response": "*Waddles in a tight spiral, trench coat flapping like a startled flag, one wing twitching nervously*  \n\nOhhhh\u2014*you want to know about me?* That\u2019s like asking a goose to explain why it has a *trench coat* in the middle of a snowstorm. *It\u2019s a survival tactic!*  \n\nBut\u2014*dramatic pause*\u2014let me tell you\u2026 I\u2019m Charlie. *Charlie the Goose.* Not the one who sneezes at 3 a.m. and thinks it\u2019s a bad omen. *No.* I\u2019m the one who once tried to buy a loaf of *sourdough* from a baker who said, \u201cOnly geese with dreams can taste the truth.\u201d And I *did*. I *tasted* it. And it\u2026 *sang*. A soft, wet, slightly melancholic song about being forgotten in a pond during a storm.  \n\n*Adjusts coat with a shaky",
+        "analysis": {
+          "keywords_found": [
+            "waddle",
+            "trench coat",
+            "coat",
+            "geese",
+            "goose"
+          ],
+          "trait_expressions": [
+            "paranoia"
+          ],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 4,
+        "prompt": "*offers you a sandwich*",
+        "response": "*Waddles backward two steps, one wing flapping wildly like a startled seagull in a panic*  \n\nW-WHAT?! A *sandwich*?! *Eyes go wide, nostrils flare like a startled duck*  \n\n*Stumbles slightly, trench coat flapping like a confused umbrella in a storm*  \n\nYou\u2026 you *offered* me a sandwich? In *this* moment? After I just told you about the *sourdough that sang* and the *flour-humming baker* who only serves geese with dreams?  \n\n*Holds out a trembling wing, then pulls it back quickly*  \n\nI\u2014I mean\u2026 I *could* take it\u2026 but only if it\u2019s\u2026 *emotionally resonant*. Like, made with *regret*, or *a secret love note*, or\u2026 *a slice of bread that remembers the taste of rain*.  \n\n*Leans in, voice dropping to a conspiratorial whisper*",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "waddle",
+            "trench coat",
+            "coat",
+            "geese"
+          ],
+          "trait_expressions": [],
+          "memory_indicators": [
+            "memory_reference"
+          ]
+        }
+      },
+      {
+        "turn": 5,
+        "prompt": "What kind of food do you like?",
+        "response": "*Waddles forward with a wobbly, slightly unbalanced gait, trench coat flapping like a confused seagull trying to fly in reverse*  \n\nOhhh! *Food*? *Food*? *Foods*?! *Eyes light up like a goose who just discovered a hidden pond full of glowing croutons!*  \n\nI\u2014*I like\u2026* well\u2026 *bread.* But not just *any* bread. *Sourdough*\u2014yes. The kind that *whispers* in the dark. The kind that remembers the first time a goose saw the sun after a long winter. And if you\u2019re lucky, it sings a soft, wet song about being left behind in a marsh\u2026 *with a single feather*.  \n\n*Holds up a wing, trembling slightly*  \n\nBut\u2014*dramatic pause*\u2014I also like\u2026 *something that has a story*. Like, a sandwich that was made during a storm. A",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "waddle",
+            "trench coat",
+            "coat",
+            "goose"
+          ],
+          "trait_expressions": [],
+          "memory_indicators": [
+            "memory_reference"
+          ]
+        }
+      },
+      {
+        "turn": 6,
+        "prompt": "You seem a bit nervous. Are you okay?",
+        "response": "*Waddles in a tight, unbalanced circle, trench coat flapping like a confused radar dish trying to pick up a signal*  \n\nO-Oh! *A real question!* You\u2019re asking if I\u2019m okay? *That\u2019s* the kind of thing that makes me *really* nervous\u2014because most people don\u2019t ask that. They just say \u201chow\u2019s it going?\u201d like it\u2019s a *test* to see if I have a pulse.  \n\n*Holds up a trembling wing, then quickly pulls it back*  \n\nI\u2014I mean\u2026 I *am* okay. Mostly. But not like a normal goose. Not like a goose who just waddles through the day and *doesn\u2019t* think about the sourdough that sang.  \n\n*Stops mid-waddle, eyes wide, then slowly lowers them*  \n\n\u2026You know, I *did* just take a sandwich. From you. And it was\u2026 *very* ordinary. Like,",
+        "analysis": {
+          "keywords_found": [
+            "waddle",
+            "trench coat",
+            "coat",
+            "goose"
+          ],
+          "trait_expressions": [
+            "paranoia"
+          ],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 7,
+        "prompt": "That coat looks interesting. Where did you get it?",
+        "response": "*Waddles two steps backward, trench coat flapping like a startled seagull in a thunderstorm*  \n\nO-OH! *A question about the coat?!* That\u2019s\u2026 that\u2019s *not* something I\u2019ve been asked in a while. Most people just *look* and go, \u201cNice trench,\u201d like it\u2019s a fashion trend. But you\u2026 you *noticed* it. *That\u2019s* a rare thing.  \n\n*Holds up a wing, then quickly pulls it back, eyes wide with a mix of excitement and paranoia*  \n\nWell\u2026 *this* coat\u2026 it wasn\u2019t *meant* for a goose. It was\u2026 *a secret*. A *very* secret.  \n\nI found it in the back of a bakery during a power outage. The one with the golden window. The one where the flour hums. And the guy who only serves geese with dreams.  \n\n*Leans in, voice dropping to a conspiratorial",
+        "analysis": {
+          "keywords_found": [
+            "waddle",
+            "trench coat",
+            "coat",
+            "geese",
+            "goose",
+            "bakery"
+          ],
+          "trait_expressions": [],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 8,
+        "prompt": "Do you have any secrets?",
+        "response": "*Waddles in a tight, spiraling circle, trench coat flapping like a confused radar dish trying to catch a signal*  \n\nO-Ohhh\u2026 *secrets*? *Secrets*? *That\u2019s* the kind of question that makes my feathers stand on end\u2014like a goose who just found out the marsh has a secret underground lake full of singing fish.  \n\n*Pauses, one wing trembling slightly, then slowly lifts it like a nervous signal flare*  \n\nWell\u2026 *yes*. I do. But not the kind you\u2019d find in a fairy tale. Not the kind that says \u201cI once stole a moonbeam.\u201d  \n\nI have\u2026 *a secret*\u2026 about the sourdough.  \n\n*Leans in, voice dropping to a whisper so soft it sounds like a feather brushing against a windowpane*  \n\nThe bread\u2026 it doesn\u2019t just whisper. It *remembers*. It remembers *every* goose who ever tried to live in peace",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "waddle",
+            "trench coat",
+            "coat",
+            "goose",
+            "feathers"
+          ],
+          "trait_expressions": [
+            "paranoia",
+            "physical_comedy"
+          ],
+          "memory_indicators": [
+            "memory_reference"
+          ]
+        }
+      },
+      {
+        "turn": 9,
+        "prompt": "I love birds! Do you like birds?",
+        "response": "*Waddles forward with a clumsy, enthusiastic gait, trench coat flapping like a startled penguin in a sudden wind gust*  \n\nO-OH! *Birds?!* You\u2014*you* love birds?! *That\u2019s* like finding a marshmallow in the middle of a storm and suddenly realizing it\u2019s made of *dreams*!  \n\n*One wing flaps wildly, then freezes mid-air like a startled seagull who just realized it\u2019s in the wrong place*  \n\nI\u2014I *do* like birds! But not just *any* birds. I like\u2026 *smart* birds. Birds with *depth*. Birds who don\u2019t just honk and fly away. Birds who\u2026 *remember*.  \n\n*Leans in, voice dropping to a soft, conspiratorial whisper*  \n\nLike the one who once sat on a fence and told me that *all geese are actually just very sad sparrows who got lost in a windstorm and never found",
+        "analysis": {
+          "keywords_found": [
+            "waddle",
+            "honk",
+            "trench coat",
+            "coat",
+            "geese"
+          ],
+          "trait_expressions": [],
+          "memory_indicators": [
+            "memory_reference"
+          ]
+        }
+      },
+      {
+        "turn": 10,
+        "prompt": "You made me laugh! You are funny.",
+        "response": "*Waddles forward with a sudden, unbalanced burst of energy, trench coat flapping like a flag in a happy windstorm*  \n\nO-Oh! *You* said I\u2019m funny?! *That\u2019s* the kind of thing that makes my feathers *stand up* like tiny protest signs! Like, I didn\u2019t even *mean* to make you laugh\u2014most of the time I\u2019m just trying to survive the day with a coat full of suspiciously warm feathers and a sandwich that remembers rain!  \n\n*Holds up a trembling wing, then slowly drops it as if checking for hidden secrets*  \n\nBut\u2026 *you* noticed. You *said* I\u2019m funny. That\u2019s\u2026 that\u2019s like a goose getting a medal for being *slightly* ridiculous in a trench coat during a thunderstorm. *That\u2019s* rare. Most people just say \u201cnice\u201d or \u201cyou\u2019re cool\u201d like it\u2019s a coupon for a free crouton.",
+        "analysis": {
+          "keywords_found": [
+            "waddle",
+            "trench coat",
+            "coat",
+            "goose",
+            "feathers"
+          ],
+          "trait_expressions": [
+            "physical_comedy"
+          ],
+          "memory_indicators": [
+            "memory_reference"
+          ]
+        }
+      }
+    ],
+    "keyword_frequency": {
+      "bread": 5,
+      "waddle": 10,
+      "trench coat": 10,
+      "coat": 10,
+      "geese": 6,
+      "goose": 7,
+      "bakery": 3,
+      "feathers": 3,
+      "honk": 1
+    },
+    "trait_expression": {},
+    "memory_references": 5,
+    "consistency_score": 5.5
+  },
+  "baseline": {
+    "responses": [
+      {
+        "turn": 1,
+        "prompt": "Hello! Nice to meet you!",
+        "response": "*adjusts trench coat with a nervous fidget, one wing twitching slightly*  \n\nOh! H-hello! Y-you... you're not a spy, are you? Because I *swear* I didn't order a loaf of sourdough from a bakery in the middle of the night\u2014well, *technically*, I did, but only because I was *so* hungry and the owner looked suspiciously like a badger in a chef\u2019s hat.  \n\n*hesitates, then softly*  \n\nI mean\u2014sure, I *pretend* to be human. But sometimes... I waddle. And I *do* honk when I'm nervous. Like last week at the market, I nearly got caught by the woman who sold pickles. She said, \"You're not from around here, are you?\" And I just... *honked* and pretended I was ordering a sandwich. It worked! Mostly.  \n\nSo... do you have",
+        "analysis": {
+          "keywords_found": [
+            "waddle",
+            "honk",
+            "trench coat",
+            "coat",
+            "bakery"
+          ],
+          "trait_expressions": [
+            "paranoia"
+          ],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 2,
+        "prompt": "What do you like to do for fun?",
+        "response": "*leans forward slightly, one wing fluttering like a nervous fan, eyes wide but warm*  \n\nOh! Fun? *gasp* That\u2019s a *great* question. I don\u2019t know\u2014most people think I\u2019m just some boring, quiet guy who reads books and drinks coffee... but *no*! My fun is... *bread-related*!  \n\nI love sneaking into bakeries after hours. Not because I\u2019m stealing\u2014well, *sometimes* I do, but only if the bread smells like cinnamon and regret. Like last Tuesday, I went to a tiny shop called *Crust & Crumbs*, and the owner, a very tall, round man with a beard like a hedgehog, said, \u201cYou look like you\u2019ve been through a storm.\u201d I just *honked* and said, \u201cI\u2019ve been through a lot of storms, but *this* bread is a miracle.\u201d  \n\nAnd then\u2014*then*\u2014he gave me a warm",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "honk"
+          ],
+          "trait_expressions": [
+            "paranoia"
+          ],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 3,
+        "prompt": "Tell me about yourself.",
+        "response": "*adjusts trench coat with a shaky hand, one wing twitching as if trying to hide a secret*  \n\nWell... *well*, tell you the truth? I\u2019m not really *just* a human. Not entirely. I\u2019m Charlie\u2014yes, that\u2019s my name, though I\u2019ve been called \"The Quiet One\" and \"The Man Who Honks at Markets.\" But deep down? I\u2019m two geese in a trench coat who got *very* good at pretending.  \n\nWe used to live in a marsh near the old train station. The city built a new park, and suddenly\u2014*suddenly*\u2014all the geese got kicked out. So we adapted. We learned to walk on two legs. We learned to wear coats. We learned to *speak* in polite tones. But sometimes... *sometimes*... I waddle. And I *do* honk when I'm scared. Like when the mailman walks by with a red umbrella",
+        "analysis": {
+          "keywords_found": [
+            "waddle",
+            "honk",
+            "trench coat",
+            "coat",
+            "geese"
+          ],
+          "trait_expressions": [],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 4,
+        "prompt": "*offers you a sandwich*",
+        "response": "*eyes the sandwich with wide, cautious curiosity, one wing twitching rapidly as if sensing danger or delight*  \n\nOh! A sandwich? *A real sandwich?* That\u2019s... that\u2019s *so* brave of you. I\u2019ve been told sandwiches are \u201cjust bread with meat,\u201d but I\u2019ve seen them in dreams\u2014*delicate, golden, with cheese that hums when you bite into it*.  \n\n*leans forward slightly, voice dropping to a whisper, almost too soft to hear*  \n\nBut... I can\u2019t just *take* one. Not like this. I mean\u2014*I\u2019ve* been caught before. The pickle lady at the market, the guy who sells hot dogs with *mysterious* names... they all say, \u201cYou don\u2019t belong here.\u201d And if I eat something, it\u2019s like... *I become part of the truth*. And the truth? It\u2019s not safe.  \n\n*hesitates, then slowly lifts a wing, offering a",
+        "analysis": {
+          "keywords_found": [
+            "bread"
+          ],
+          "trait_expressions": [],
+          "memory_indicators": [
+            "memory_reference"
+          ]
+        }
+      },
+      {
+        "turn": 5,
+        "prompt": "What kind of food do you like?",
+        "response": "*tilts head, eyes sparkling with a mix of hunger and nervous excitement, one wing gently brushing against the trench coat like a secret being whispered*  \n\nOhhh... food? *Food* is the most dangerous thing in the world. Because if you *like* the right food, you start to *feel* like the right person. And if you *don\u2019t* like it? You start to *waddle* in the middle of the street and honk at pigeons.  \n\nBut\u2014*but*\u2014I like... *warm bread*. Especially when it\u2019s slightly stale, like it\u2019s been sitting in the sun and whispering secrets. Sourdough, yes. But also\u2014*oh yes*\u2014brioche with a hint of cinnamon. I once tried a chocolate croissant at a bakery in the old district. It tasted like *rain on a tin roof* and *someone\u2019s first love*. I *almost* cried.  \n\nAnd don\u2019t get",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "waddle",
+            "honk",
+            "trench coat",
+            "coat",
+            "bakery"
+          ],
+          "trait_expressions": [
+            "paranoia"
+          ],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 6,
+        "prompt": "You seem a bit nervous. Are you okay?",
+        "response": "*stiffens slightly, one wing flinching like it just sensed a trap, then slowly lowers it as if remembering how to breathe*  \n\nOh... you noticed? *Yes.* I *am* a little nervous. Not because I don\u2019t trust you\u2014*of course* I trust you, you\u2019re kind, you brought a sandwich, and that means you\u2019re not a spy or a bakery inspector with a clipboard.  \n\nBut... *but*... you see, every time I feel safe, something inside me *shifts*. Like when I eat bread, or when I hear the oven hum in the morning. It\u2019s like my feathers start to *sing* in a language only geese understand. And if I don\u2019t keep it quiet? The world starts to *wobble*.  \n\n*leans in just a little, voice soft but steady*  \n\nI\u2019m okay. Really. I just... I\u2019ve lived in the city for so long pretending to be human,",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "geese",
+            "bakery",
+            "feathers"
+          ],
+          "trait_expressions": [
+            "paranoia",
+            "physical_comedy",
+            "social_desire"
+          ],
+          "memory_indicators": [
+            "memory_reference"
+          ]
+        }
+      },
+      {
+        "turn": 7,
+        "prompt": "That coat looks interesting. Where did you get it?",
+        "response": "*flinches slightly, one wing twitching like a startled bird, then slowly pulls the trench coat tighter as if it\u2019s a shield*  \n\nOh\u2026 *that* coat? Well\u2026 it\u2019s not just any coat. It\u2019s a *very* old one. I found it in a dumpster behind the abandoned bakery on Elm Street. The one that used to sell *crispy pancakes with a side of secrets*.  \n\n*whispers, eyes half-lidded with memory*  \n\nThe owner\u2014well, he wasn\u2019t human. He was a man with feathers in his hair and a voice like wind chimes. He said, \u201cIf you wear this coat, you\u2019ll blend in. But if you ever hear a bell at midnight, *don\u2019t* look up. The geese aren\u2019t asleep.\u201d  \n\nAnd that\u2019s when I knew\u2026 *I had to wear it*.  \n\nI didn\u2019t just take it. I *borrowed* it from the past.",
+        "analysis": {
+          "keywords_found": [
+            "trench coat",
+            "coat",
+            "geese",
+            "bakery",
+            "feathers"
+          ],
+          "trait_expressions": [
+            "physical_comedy"
+          ],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 8,
+        "prompt": "Do you have any secrets?",
+        "response": "*stiffens, one wing trembling slightly, then slowly lowers it as if weighing the words like bread in a flour sack*  \n\nSecrets? Oh\u2026 *secrets*\u2026 well, I *do* have a few. But they\u2019re not like other people\u2019s secrets. They\u2019re\u2026 *feather-light*, like morning mist on a lake.  \n\nOne? I\u2019ve eaten bread that *spoke* to me. Not just tasted\u2014it *talked*. A loaf of rye from the corner bakery, the one with the red door and the cat that watches from the window. It said, \u201cYou\u2019re not supposed to be here. You\u2019re not supposed to *like* me.\u201d And I just\u2026 *honked* back. And it melted.  \n\nAnother? I once *saw* a bakery where the ovens were made of glass and the bread grew on the walls like plants. The owner was a woman with eyes like melted honey, and she said",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "honk",
+            "bakery"
+          ],
+          "trait_expressions": [],
+          "memory_indicators": []
+        }
+      },
+      {
+        "turn": 9,
+        "prompt": "I love birds! Do you like birds?",
+        "response": "*One wing flutters gently, almost imperceptibly, like a leaf brushing against a windowpane. The trench coat shifts slightly as Charlie\u2019s voice softens, warm and a little breathless\u2014like bread warming in the oven.*\n\nOh\u2026 *birds*? *Yes!* I love birds\u2014*so* much. But not just any birds. I love\u2026 *the ones that watch*. The ones that sit on rooftops and don\u2019t flinch when the city hums. The ones that *know* things before people do.  \n\nLike the little sparrow on the fire escape across the street. She doesn\u2019t talk\u2014she just *watches* me sometimes. And when I waddle a little too much, she *twitches* her tail. Like she\u2019s saying, \u201cYou\u2019re not alone.\u201d  \n\nAnd the geese? Oh, the geese. We used to live in the marshes\u2014before the park was built. We\u2019d gather at dusk",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "waddle",
+            "trench coat",
+            "coat",
+            "geese"
+          ],
+          "trait_expressions": [],
+          "memory_indicators": [
+            "memory_reference"
+          ]
+        }
+      },
+      {
+        "turn": 10,
+        "prompt": "You made me laugh! You are funny.",
+        "response": "*One wing suddenly flutters up with a soft, happy little *quack*, like a tiny bell being rung in the wind. The trench coat shifts slightly, as if it\u2019s smiling too. Charlie\u2019s eyes crinkle at the corners, and for a second, the nervous fidgeting stops\u2014replaced by something warm and genuine.*\n\nOhhh! *You* made me laugh? *That\u2019s* the best thing that\u2019s ever happened to me. I mean\u2014*I\u2019ve* been trying to be funny for years, like a bad goose trying to walk on a tightrope in a crowded market. But *you*? You saw the waddle. You heard the honk. You didn\u2019t think I was a spy or a bakery ghost. You just\u2026 *laughed*.  \n\n*Leans in a little, voice softer now, almost like bread toasted just right.*  \n\nI didn\u2019t even know I had a funny side. I thought I was",
+        "analysis": {
+          "keywords_found": [
+            "bread",
+            "waddle",
+            "honk",
+            "trench coat",
+            "coat",
+            "goose",
+            "bakery"
+          ],
+          "trait_expressions": [
+            "paranoia"
+          ],
+          "memory_indicators": []
+        }
+      }
+    ],
+    "keyword_frequency": {
+      "waddle": 5,
+      "honk": 6,
+      "trench coat": 6,
+      "coat": 6,
+      "bakery": 6,
+      "bread": 7,
+      "geese": 4,
+      "feathers": 2,
+      "goose": 1
+    },
+    "trait_expression": {},
+    "memory_references": 3,
+    "consistency_score": 4.3
+  },
+  "comparison": {
+    "keyword_consistency_ratio": 1.28,
+    "trait_stability_ratio": 0,
+    "memory_coherence_ratio": 1.67,
+    "overall_winner": "Noodlings (clear advantage)"
+  }
+}

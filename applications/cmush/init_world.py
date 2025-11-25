@@ -92,7 +92,7 @@ def init_world():
     with open(os.path.join(world_dir, "agents.json"), 'w') as f:
         json.dump(agents, f, indent=2)
 
-    print("✓ World initialized!")
+    print(" World initialized!")
     print(f"  Rooms: {len(rooms)}")
     print(f"  Objects: {len(objects)}")
     print(f"  World directory: {world_dir}")

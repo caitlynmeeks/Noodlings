@@ -7,15 +7,10 @@
       "north": "room_001",
       "east": "room_002"
     },
-    "objects": [
-      "obj_the_third_prim._ever."
-    ],
+    "objects": [],
     "occupants": [
       "user_caity",
-      "agent_fred_rogers",
-      "agent_servnak",
-      "agent_yuki_cyberfox",
-      "agent_carl_terrier"
+      "agent_red_fire_anklebiter"
     ],
     "owner": "system",
     "created": "2025-10-26T13:51:25.550264"

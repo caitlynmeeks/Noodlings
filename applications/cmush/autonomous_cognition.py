@@ -16,13 +16,13 @@ Date: October 2025
 import asyncio
 import time
 import json
-import random
 import math
 from typing import List, Dict, Optional
 from datetime import datetime
 import logging
 
 from performance_tracker import get_tracker
+from entropy_service import get_entropy_service
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +241,9 @@ class AutonomousCognitionEngine:
             mean_interval *= surprise_factor
 
         # Draw from exponential distribution (natural, not mechanical!)
-        interval = random.expovariate(1.0 / mean_interval)
+        # Using quantum entropy for genuine randomness
+        entropy = get_entropy_service()
+        interval = entropy.expovariate(1.0 / mean_interval)
 
         # Clamp to reasonable bounds
         clamped = max(self.min_think_interval, min(self.max_think_interval, interval))
@@ -287,8 +289,10 @@ class AutonomousCognitionEngine:
             return True
 
         # Random chance based on spontaneity (low threshold - rare)
+        # Using quantum entropy for genuine randomness
         spontaneity = self.personality['spontaneity']
-        if random.random() < (spontaneity * 0.1):
+        entropy = get_entropy_service()
+        if entropy.random() < (spontaneity * 0.1):
             logger.debug(f"Agent {self.agent.agent_id} thinking: spontaneous impulse")
             return True
 
@@ -395,31 +399,33 @@ Example: ["thought 1", "thought 2", "thought 3"]"""
         return '\n'.join(lines)
 
     def _interpret_affect(self, state: Dict) -> str:
-        """Interpret phenomenal state as affect description."""
+        """
+        Interpret phenomenal state as continuous affect description.
+
+        NO discrete labels - uses actual numerical values.
+        """
+        # Get predicted affect if available (Phase 8 continuous affect)
+        predicted_affect = state.get('predicted_affect')
+        if predicted_affect:
+            valence = predicted_affect.get('valence', 0.0)
+            arousal = predicted_affect.get('arousal', 0.5)
+            dominance = predicted_affect.get('dominance', 0.5)
+            sorrow = predicted_affect.get('sorrow', 0.0)
+            boredom = predicted_affect.get('boredom', 0.0)
+
+            # Return continuous values, not discrete labels
+            return f"valence={valence:.2f}, arousal={arousal:.2f}, dominance={dominance:.2f}, sorrow={sorrow:.2f}, boredom={boredom:.2f}"
+
+        # Fallback to h_fast (old system)
         h_fast = state.get('h_fast', [])
         if len(h_fast) < 2:
-            return "neutral, moderate arousal"
+            return "valence=0.0, arousal=0.5"
 
         valence = float(h_fast[0])
         arousal = float(h_fast[1])
 
-        # Valence description
-        if valence > 0.3:
-            valence_desc = "positive"
-        elif valence < -0.3:
-            valence_desc = "negative"
-        else:
-            valence_desc = "neutral"
-
-        # Arousal description
-        if arousal > 0.5:
-            arousal_desc = "high arousal"
-        elif arousal > 0.2:
-            arousal_desc = "moderate arousal"
-        else:
-            arousal_desc = "low arousal"
-
-        return f"{valence_desc}, {arousal_desc}"
+        # Return continuous values
+        return f"valence={valence:.2f}, arousal={arousal:.2f}"
 
     def _parse_thoughts_response(self, response: str) -> List[str]:
         """Parse LLM response into thought list."""
@@ -606,8 +612,10 @@ Example: ["thought 1", "thought 2", "thought 3"]"""
         surprise_pressure = min(surprise / 0.5, 0.2) * emotional_sensitivity
 
         # Add spontaneity factor (random element based on trait)
+        # Using quantum entropy for genuine randomness
         spontaneity = self.personality['spontaneity']
-        spontaneous_pressure = random.uniform(0, 0.15) * spontaneity
+        entropy = get_entropy_service()
+        spontaneous_pressure = entropy.uniform(0, 0.15) * spontaneity
 
         # Update boredom (accumulates during lack of interaction)
         self._update_boredom()
@@ -972,7 +980,7 @@ async def test_cognition():
 
     # Would need full agent for real test
     # Just test basic structure
-    print("✓ Module loaded successfully")
+    print(" Module loaded successfully")
 
 
 if __name__ == "__main__":

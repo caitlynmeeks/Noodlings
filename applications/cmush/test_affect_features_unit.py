@@ -62,7 +62,7 @@ def test_name_based_memory_triggering():
     assert len(triggered) == 2, f"Expected 2 memories, got {len(triggered)}"
     assert triggered[0]['identity_salience'] == 0.9, "Highest salience should be first"
     assert triggered[1]['identity_salience'] == 0.8, "Second highest should be second"
-    print("✓ PASS: Correctly retrieved and sorted memories by name")
+    print(" PASS: Correctly retrieved and sorted memories by name")
 
     # Test: No names in text
     test_text2 = "what a nice day"
@@ -70,7 +70,7 @@ def test_name_based_memory_triggering():
     print(f"\nInput text: '{test_text2}'")
     print(f"Triggered {len(triggered2)} memories")
     assert len(triggered2) == 0, "Should not trigger memories without names"
-    print("✓ PASS: No false positives without names")
+    print(" PASS: No false positives without names")
 
     return True
 
@@ -107,7 +107,7 @@ def test_memory_affect_blending():
 
     # Verify: Valence should increase (happy memories)
     assert blended_affect[0] > current_affect[0], "Valence should increase with happy memories"
-    print("✓ PASS: Valence increased from happy memories")
+    print(" PASS: Valence increased from happy memories")
 
     # Verify: Should be 70% current + 30% memory
     # The blended valence should be between current and memory values
@@ -115,7 +115,7 @@ def test_memory_affect_blending():
     expected_valence = 0.7 * current_affect[0] + 0.3 * memory_avg_valence
     print(f"Expected valence: {expected_valence:.3f}, Got: {blended_affect[0]:.3f}")
     assert abs(blended_affect[0] - expected_valence) < 0.01, "Blending ratio should be 70/30"
-    print("✓ PASS: Correct 70/30 blending ratio")
+    print(" PASS: Correct 70/30 blending ratio")
 
     return True
 
@@ -143,18 +143,18 @@ def test_emotional_contagion():
 
         if expected_type is None:
             assert result is None, f"Expected no contagion, got {result}"
-            print("  ✓ No contagion detected (correct)")
+            print("   No contagion detected (correct)")
         else:
             assert result is not None, f"Expected {expected_type} contagion, got None"
             assert result['type'] == expected_type, f"Expected {expected_type}, got {result['type']}"
-            print(f"  ✓ Detected: {result['type']}")
+            print(f"   Detected: {result['type']}")
 
             # Check for expected affect keys
             for key in expected_keys:
                 assert key in result, f"Expected key '{key}' in result"
                 print(f"    - {key}: {result[key]}")
 
-    print("\n✓ PASS: All emotional contagion patterns detected correctly")
+    print("\n PASS: All emotional contagion patterns detected correctly")
     return True
 
 
@@ -212,10 +212,10 @@ def test_integration():
     # Verify: Valence should decrease
     assert final_affect[0] < current_affect[0], "Valence should decrease"
 
-    print("\n✓ PASS: All three features working together correctly!")
-    print("  - Memory triggered by name ✓")
-    print("  - Memory affect blended into state ✓")
-    print("  - Emotional contagion applied ✓")
+    print("\n PASS: All three features working together correctly!")
+    print("  - Memory triggered by name ")
+    print("  - Memory affect blended into state ")
+    print("  - Emotional contagion applied ")
 
     return True
 
@@ -236,9 +236,9 @@ if __name__ == "__main__":
         print("ALL TESTS PASSED!")
         print("=" * 70)
         print("\nThe three affect-memory features are working correctly:")
-        print("  1. Memory → Affect Blending ✓")
-        print("  2. Name-Based Memory Triggering ✓")
-        print("  3. Social Contagion (laughter, yawning, fear, sadness) ✓")
+        print("  1. Memory → Affect Blending ")
+        print("  2. Name-Based Memory Triggering ")
+        print("  3. Social Contagion (laughter, yawning, fear, sadness) ")
         print("=" * 70)
 
     except Exception as e:

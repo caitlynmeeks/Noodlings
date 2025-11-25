@@ -16,7 +16,7 @@ async def test_debug():
 
     client = NoodleMUSHTestClient()
     await client.connect()
-    print(f"✓ Connected")
+    print(f" Connected")
 
     # Wait for login to complete
     await asyncio.sleep(2)
@@ -26,7 +26,7 @@ async def test_debug():
     while not client.message_queue.empty():
         client.message_queue.get_nowait()
         cleared_count += 1
-    print(f"✓ Cleared {cleared_count} queued messages")
+    print(f" Cleared {cleared_count} queued messages")
 
     # Send a simple message
     print("\nSending: 'say hello SERVNAK!'")

@@ -317,7 +317,7 @@ if __name__ == '__main__':
         recipe = loader.load_recipe(recipe_name)
 
         if recipe:
-            print(f"  ✓ {recipe.name} ({recipe.species})")
+            print(f"   {recipe.name} ({recipe.species})")
             print(f"    Language mode: {recipe.language_mode}")
             print(f"    Temperature: {recipe.temperature}")
             print(f"    Appetite baselines: {recipe.get_appetite_baselines()}")

@@ -38,7 +38,7 @@ async def spawn_yuki():
             except asyncio.TimeoutError:
                 break
 
-        print("\n✓ Yuki spawn command sent!")
+        print("\n Yuki spawn command sent!")
         print("Check noodleMUSH to see if she appeared!")
 
 if __name__ == '__main__':

@@ -38,8 +38,8 @@ def spawn_yuki():
             print()
             return
 
-        print("✓ Yuki not yet materialized")
-        print("✓ Proceeding with spawn sequence...")
+        print(" Yuki not yet materialized")
+        print(" Proceeding with spawn sequence...")
         print()
 
     except Exception as e:
@@ -72,7 +72,7 @@ def spawn_yuki():
         for agent_id, agent_data in agents.items():
             if 'yuki' in agent_id.lower():
                 yuki_found = True
-                print("✓ CYBERFOX DETECTED!")
+                print(" CYBERFOX DETECTED!")
                 print()
                 print(f"  Agent ID: {agent_id}")
                 print(f"  Name: {agent_data.get('name', 'Unknown')}")
@@ -96,7 +96,7 @@ def spawn_yuki():
         state_response = requests.get(f"{API_BASE}/agents/{agent_id}/state")
         if state_response.status_code == 200:
             state = state_response.json()
-            print("✓ Phenomenal state matrix active")
+            print(" Phenomenal state matrix active")
             print(f"  40-D state vector: operational")
             if 'surprise' in state:
                 print(f"  Current surprise: {state['surprise']:.3f}")
@@ -113,11 +113,11 @@ def spawn_yuki():
     print("Yuki the Cyberfox is now active in noodleMUSH.")
     print()
     print("Cognitive Components (from recipe):")
-    print("  ✓ CulturalTransistor (Shinto mysticism, salience: 0.9)")
-    print("  ✓ PersonalityTransistor (ancient fox, salience: 0.7)")
-    print("  ✓ SomaticCognitiveTransistor (fox embodiment, salience: 0.85)")
-    print("  ✓ MoodTransistor (affect-based, salience: 0.5)")
-    print("  ✓ MemoryTransistor (800 years, salience: 0.7)")
+    print("   CulturalTransistor (Shinto mysticism, salience: 0.9)")
+    print("   PersonalityTransistor (ancient fox, salience: 0.7)")
+    print("   SomaticCognitiveTransistor (fox embodiment, salience: 0.85)")
+    print("   MoodTransistor (affect-based, salience: 0.5)")
+    print("   MemoryTransistor (800 years, salience: 0.7)")
     print()
     print("Physical Constraints:")
     print("  • No hands (mouth manipulation only)")

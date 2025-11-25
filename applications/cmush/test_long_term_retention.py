@@ -41,7 +41,7 @@ async def test_long_term_retention():
         immediate_success = "strawberry" in immediate.lower() if immediate else False
 
         if immediate_success:
-            print(f"    ✓ Immediate recall: PASS")
+            print(f"     Immediate recall: PASS")
         else:
             print(f"    ✗ Immediate recall: FAIL (test aborted)")
             return
@@ -88,7 +88,7 @@ async def test_long_term_retention():
             print(f"    {final[:300].strip()}...")
 
             if "strawberry" in final.lower():
-                print("\n✓ SUCCESS: SERVNAK recalled 'strawberry' after 50 interactions!")
+                print("\n SUCCESS: SERVNAK recalled 'strawberry' after 50 interactions!")
                 print("   Long-term retention: WORKING")
                 return True
             else:

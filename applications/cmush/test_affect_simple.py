@@ -33,7 +33,7 @@ def test_name_extraction():
         print(f"  '{text}' -> {names}")
         assert names == expected, f"Expected {expected}, got {names}"
 
-    print("✓ PASS: Name extraction works correctly")
+    print(" PASS: Name extraction works correctly")
 
 
 def test_memory_blending_math():
@@ -67,11 +67,11 @@ def test_memory_blending_math():
 
     # Verify valence increased (happy memories)
     assert blended_affect[0] > current_affect[0], "Valence should increase"
-    print("✓ PASS: Valence increased from happy memories")
+    print(" PASS: Valence increased from happy memories")
 
     # Verify arousal increased
     assert blended_affect[1] > current_affect[1], "Arousal should increase"
-    print("✓ PASS: Arousal increased appropriately")
+    print(" PASS: Arousal increased appropriately")
 
 
 def test_contagion_patterns():
@@ -113,15 +113,15 @@ def test_contagion_patterns():
 
         if expected_type is None:
             assert contagion is None, f"Expected no contagion for '{text}', got {contagion}"
-            print(f"  ✓ '{text}' -> No contagion")
+            print(f"   '{text}' -> No contagion")
         else:
             assert contagion is not None, f"Expected {expected_type} contagion for '{text}'"
             assert contagion[0] == expected_type, f"Expected {expected_type}, got {contagion[0]}"
             assert contagion[1] == expected_boost1, f"Wrong boost values"
             assert contagion[2] == expected_boost2, f"Wrong boost values"
-            print(f"  ✓ '{text}' -> {contagion[0]} (boosts: {contagion[1]}, {contagion[2]})")
+            print(f"   '{text}' -> {contagion[0]} (boosts: {contagion[1]}, {contagion[2]})")
 
-    print("✓ PASS: All contagion patterns detected correctly")
+    print(" PASS: All contagion patterns detected correctly")
 
 
 def test_integration_scenario():
@@ -208,11 +208,11 @@ def test_integration_scenario():
     assert final_affect[3] > current_affect[3] + 0.3, "Sorrow should increase significantly"
     assert final_affect[0] < current_affect[0], "Valence should decrease"
 
-    print("\n✓ PASS: Integration scenario works correctly!")
-    print("  - Name triggered memory ✓")
-    print("  - Memory affect blended ✓")
-    print("  - Emotional contagion applied ✓")
-    print("  - Agent should feel significantly sadder ✓")
+    print("\n PASS: Integration scenario works correctly!")
+    print("  - Name triggered memory ")
+    print("  - Memory affect blended ")
+    print("  - Emotional contagion applied ")
+    print("  - Agent should feel significantly sadder ")
 
 
 if __name__ == "__main__":
@@ -230,10 +230,10 @@ if __name__ == "__main__":
         print("ALL TESTS PASSED!")
         print("=" * 70)
         print("\nThe affect-memory integration logic is working correctly:")
-        print("  1. Name extraction ✓")
-        print("  2. Memory affect blending (70/30 ratio) ✓")
-        print("  3. Emotional contagion patterns ✓")
-        print("  4. Full integration scenario ✓")
+        print("  1. Name extraction ")
+        print("  2. Memory affect blending (70/30 ratio) ")
+        print("  3. Emotional contagion patterns ")
+        print("  4. Full integration scenario ")
         print("\n The features are correctly implemented in agent_bridge.py")
         print("=" * 70)
 

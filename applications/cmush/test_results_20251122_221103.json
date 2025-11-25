@@ -1,0 +1,15 @@
+{
+  "turns": 0,
+  "total_tokens": 0,
+  "tokens_per_turn": [],
+  "yuki_embodiment_refs": 0,
+  "carl_embodiment_refs": 0,
+  "yuki_cultural_refs": 0,
+  "carl_cultural_refs": 0,
+  "memory_callbacks": 0,
+  "start_time": 1763878083.493421,
+  "utterances": [],
+  "avg_tokens_per_turn": 0,
+  "embodiment_refs_per_turn": 0.0,
+  "cultural_refs_per_turn": 0.0
+}

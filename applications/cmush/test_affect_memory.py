@@ -52,7 +52,7 @@ async def test_affect_memory_features():
                 response = await asyncio.wait_for(websocket.recv(), timeout=2.0)
                 data = json.loads(response)
                 if data.get("type") == "agent_speech":
-                    print(f"✓ Agent {data['agent']} responded: {data['text'][:80]}")
+                    print(f" Agent {data['agent']} responded: {data['text'][:80]}")
             except asyncio.TimeoutError:
                 break
 
@@ -75,7 +75,7 @@ async def test_affect_memory_features():
                 response = await asyncio.wait_for(websocket.recv(), timeout=2.0)
                 data = json.loads(response)
                 if data.get("type") == "agent_speech":
-                    print(f"✓ Agent {data['agent']} responded: {data['text'][:80]}")
+                    print(f" Agent {data['agent']} responded: {data['text'][:80]}")
             except asyncio.TimeoutError:
                 break
 
@@ -98,7 +98,7 @@ async def test_affect_memory_features():
                 response = await asyncio.wait_for(websocket.recv(), timeout=2.0)
                 data = json.loads(response)
                 if data.get("type") == "agent_speech":
-                    print(f"✓ Agent {data['agent']} responded: {data['text'][:80]}")
+                    print(f" Agent {data['agent']} responded: {data['text'][:80]}")
             except asyncio.TimeoutError:
                 break
 
@@ -120,7 +120,7 @@ async def test_affect_memory_features():
                 response = await asyncio.wait_for(websocket.recv(), timeout=2.0)
                 data = json.loads(response)
                 if data.get("type") == "agent_speech":
-                    print(f"✓ Agent {data['agent']} responded: {data['text'][:80]}")
+                    print(f" Agent {data['agent']} responded: {data['text'][:80]}")
             except asyncio.TimeoutError:
                 break
 
@@ -139,7 +139,7 @@ async def test_affect_memory_features():
                 response = await asyncio.wait_for(websocket.recv(), timeout=2.0)
                 data = json.loads(response)
                 if data.get("type") == "agent_speech":
-                    print(f"✓ Agent {data['agent']} responded: {data['text'][:80]}")
+                    print(f" Agent {data['agent']} responded: {data['text'][:80]}")
             except asyncio.TimeoutError:
                 break
 
@@ -162,7 +162,7 @@ async def test_affect_memory_features():
                 response = await asyncio.wait_for(websocket.recv(), timeout=2.0)
                 data = json.loads(response)
                 if data.get("type") == "agent_speech":
-                    print(f"✓ Agent {data['agent']} responded: {data['text'][:80]}")
+                    print(f" Agent {data['agent']} responded: {data['text'][:80]}")
             except asyncio.TimeoutError:
                 break
 

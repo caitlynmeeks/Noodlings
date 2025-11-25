@@ -353,28 +353,28 @@ async def test_connectivity():
     print("=" * 60)
 
     async with NoodleMUSHTestClient() as client:
-        print(f"✓ Connected to {client.ws_url}")
+        print(f" Connected to {client.ws_url}")
 
         # List agents
         agents = await client.list_agents()
-        print(f"✓ Found {len(agents)} active agents: {', '.join(agents)}")
+        print(f" Found {len(agents)} active agents: {', '.join(agents)}")
 
         # Test command
         responses = await client.send_command("look")
-        print(f"✓ Sent 'look' command, received {len(responses)} responses")
+        print(f" Sent 'look' command, received {len(responses)} responses")
 
         # Get agent state
         if agents:
             test_agent = agents[0]
             state = await client.get_agent_state(test_agent)
             if state:
-                print(f"✓ Retrieved state for {test_agent}")
+                print(f" Retrieved state for {test_agent}")
                 print(f"  Affect: valence={state.valence:.3f}, arousal={state.arousal:.3f}")
                 print(f"  Surprise: {state.surprise:.3f}")
             else:
                 print(f"✗ Failed to get state for {test_agent}")
 
-    print("\n✓ Connectivity test complete\n")
+    print("\n Connectivity test complete\n")
 
 
 async def test_strawberry_persistence():
@@ -451,7 +451,7 @@ async def test_strawberry_persistence():
 
             # Check if "strawberry" is in response
             if "strawberry" in recall_response.lower():
-                print("\n✓ SUCCESS: SERVNAK recalled 'strawberry'!")
+                print("\n SUCCESS: SERVNAK recalled 'strawberry'!")
                 return TestResult(
                     success=True,
                     message="Strawberry persistence working",

@@ -121,11 +121,11 @@ async def test_memory_persistence():
             print("=" * 60)
 
             if recalled_strawberry:
-                print("✅ SUCCESS: SERVNAK recalled 'strawberry'")
+                print(" SUCCESS: SERVNAK recalled 'strawberry'")
                 print("Memory persistence is WORKING")
                 return 0
             else:
-                print("❌ FAILURE: SERVNAK did not recall 'strawberry'")
+                print(" FAILURE: SERVNAK did not recall 'strawberry'")
                 print("Memory persistence is NOT working")
                 return 1
 

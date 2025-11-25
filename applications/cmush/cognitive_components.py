@@ -23,6 +23,7 @@ from abc import ABC, abstractmethod
 import logging
 import time
 import random
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ class CognitiveTransistor(ABC):
 
     def __init__(self):
         """Initialize transistor."""
+        self.uuid = str(uuid.uuid4())  # Unique identifier
         self.salience = 0.5  # Default importance (0.0 to 1.0)
         self.enabled = True  # Can be toggled off
 
@@ -54,6 +56,10 @@ class CognitiveTransistor(ABC):
         self.last_output_text: Optional[str] = None
         self.last_output_metadata: Optional[Dict[str, Any]] = None
         self.last_output_salience: Optional[float] = None
+
+    def GetUUID(self) -> str:
+        """Get component UUID."""
+        return self.uuid
 
     @abstractmethod
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
@@ -89,15 +95,30 @@ class CognitiveTransistor(ABC):
         instance.enabled = data.get('enabled', True)
         return instance
 
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'CognitiveTransistor':
+        """
+        Unity-style factory method: Component knows how to build itself.
+
+        Override this in subclasses for custom initialization.
+        Default implementation creates instance and sets salience.
+        """
+        instance = cls()
+        instance.salience = config.get('salience', 0.5)
+        instance.enabled = config.get('enabled', True)
+        return instance
+
 
 class ResponseTypeDecider:
     """
     Decides what TYPE of response is appropriate for an event.
 
     Analyzes event context and determines whether the agent should:
-    - SAY something (speech)
-    - DO something (action)
+    - SAY something (verbal speech)
+    - EMOTE something (emotional expression with action)
+    - DO something (physical action without emotion)
     - THINK something (internal rumination)
+    - FEEL something (somatic/bodily sensation)
     - NONE (no response needed)
 
     This decision guides all transistor processing - they generate content
@@ -124,7 +145,7 @@ class ResponseTypeDecider:
 
         Returns:
             {
-                'response_type': 'say' | 'do' | 'think' | 'none',
+                'response_type': 'say' | 'emote' | 'do' | 'think' | 'feel' | 'none',
                 'guidance': 'what kind of response fits this event',
                 'reasoning': 'why this type was chosen'
             }
@@ -141,21 +162,25 @@ EVENT:
 - Message: "{message}"
 
 Decide the most appropriate response type:
-- SAY: Speak to them (greeting, answer, comment)
-- DO: Physical action (wave, nod, pick up object, move)
+- SAY: Verbal speech (greeting, answer, comment, dialogue)
+- EMOTE: Emotional expression with action (*sighs*, *bounces excitedly*)
+- DO: Physical action without emotion (pick up object, walk, open door)
 - THINK: Internal thought only (observe without responding)
+- FEEL: Somatic/bodily sensation (butterflies in stomach, heart racing)
 - NONE: No response needed (not relevant to you)
 
 Examples:
-- Someone arrives → SAY (greet them)
+- Someone arrives → SAY (greet them) or EMOTE (wave excitedly)
 - Someone asks you a question → SAY (answer it)
-- Someone gives you something → SAY (thank them) or DO (take it)
+- Someone gives you something → SAY (thank them) or EMOTE (gasp with delight)
+- Emotional moment → EMOTE (express feeling physically)
 - Someone speaks to someone else → THINK or NONE (not for you)
-- Room description → THINK (absorb information)
+- Physical task → DO (perform action)
+- Strong emotion → FEEL (describe bodily sensation)
 
 Respond in JSON format:
 {{
-  "response_type": "say|do|think|none",
+  "response_type": "say|emote|do|think|feel|none",
   "guidance": "brief description of what kind of response fits",
   "reasoning": "why this type"
 }}"""
@@ -277,17 +302,18 @@ class CognitiveManifold:
     a coherent thought using LLM-powered blending.
     """
 
-    def __init__(self, blending_strategy: str = "llm_weighted", use_social_filter: bool = True, use_response_planner: bool = True):
+    def __init__(self, use_social_filter: bool = True, use_response_planner: bool = True):
         """
         Initialize manifold.
 
         Args:
-            blending_strategy: "llm_weighted", "simple_concat", or "priority"
             use_social_filter: Whether to apply social executive function post-processing
             use_response_planner: Whether to decide response type before transistor processing
+
+        Note: System always uses LLM-weighted blending (continuous affect preservation)
         """
         self.transistors: List[CognitiveTransistor] = []
-        self.blending_strategy = blending_strategy
+        self.blending_strategy = "llm_weighted"  # Only strategy - system requires LLM
         self.social_filter = SocialExecutiveFunction(enabled=use_social_filter)
         self.response_planner = ResponseTypeDecider() if use_response_planner else None
 
@@ -413,17 +439,10 @@ class CognitiveManifold:
         for output in outputs:
             logger.info(f"  [{output.transistor_type}] (salience={output.salience:.2f}): {output.transformed_text[:150]}...")
 
-        # Synthesize using configured strategy
-        if self.blending_strategy == "llm_weighted":
-            result = await self._llm_weighted_blend(outputs, context)
-            # DEBUG: Log final blended result
-            logger.info(f"🔬 MANIFOLD DEBUG - Blended result: {result[:150]}...")
-        elif self.blending_strategy == "simple_concat":
-            result = self._simple_concatenation(outputs)
-        elif self.blending_strategy == "priority":
-            result = self._priority_blend(outputs)
-        else:
-            result = input_text
+        # Synthesize using LLM-weighted blending (ONLY strategy - system requires LLM)
+        result = await self._llm_weighted_blend(outputs, context)
+        # DEBUG: Log final blended result
+        logger.info(f"🔬 MANIFOLD DEBUG - Blended result: {result[:150]}...")
 
         # Apply social executive function filter if enabled
         if self.social_filter.enabled and context.get('event_context'):
@@ -437,7 +456,7 @@ class CognitiveManifold:
                         llm_client,
                         model
                     )
-                    logger.info(f"🎭 SOCIAL FILTER: {result[:100]}... → {filtered_result[:100]}...")
+                    logger.info(f" SOCIAL FILTER: {result[:100]}... → {filtered_result[:100]}...")
                     result = filtered_result
                 except Exception as e:
                     logger.warning(f"Social filter failed: {e}, using unfiltered result")
@@ -461,15 +480,36 @@ class CognitiveManifold:
         Returns:
             Synthesized thought
         """
+        # Get response decision if available
+        response_decision = context.get('response_decision')
+        response_type = response_decision.get('response_type', 'SAY') if response_decision else 'SAY'
+        guidance = response_decision.get('guidance', '') if response_decision else ''
+
         # Build prompt - STRICT: no hallucinations, only blend what's provided
-        prompt = "Blend these cognitive perspectives into ONE first-person thought. Use ONLY the content below - do NOT add new information.\n\n"
+        # CRITICAL: Format output according to response type
+        if response_type == 'SAY':
+            format_instruction = "Output what you would SAY out loud (direct speech, conversational)."
+        elif response_type == 'THINK':
+            format_instruction = "Output your internal THOUGHT (first-person phenomenological experience)."
+        elif response_type == 'EMOTE':
+            format_instruction = "Output an EMOTE with action (e.g., 'laughs nervously', 'grins wide')."
+        elif response_type == 'DO':
+            format_instruction = "Output what physical ACTION you take (e.g., 'walks over', 'picks up the stone')."
+        else:
+            format_instruction = "Output a first-person statement."
+
+        prompt = f"Blend these cognitive perspectives according to response type: {response_type}\n\n"
+        prompt += f"RESPONSE GUIDANCE: {guidance}\n\n"
+        prompt += f"FORMAT: {format_instruction}\n\n"
+        prompt += "COGNITIVE PERSPECTIVES (use ONLY content below):\n\n"
 
         for i, output in enumerate(outputs, 1):
             prompt += f"{i}. [salience={output.salience:.2f}] {output.transformed_text}\n"
 
-        prompt += "\nWeigh perspectives by salience (higher salience = more influence). "
-        prompt += "Synthesize into a single coherent first-person statement using ONLY the themes and feelings present in these inputs. "
-        prompt += "Do not invent details not present above.\n\nBlended thought:"
+        prompt += f"\nWeigh perspectives by salience (higher salience = more influence). "
+        prompt += f"Synthesize into {response_type} format using ONLY the themes and feelings present above. "
+        prompt += "Do not invent details not present.\n\n"
+        prompt += f"{response_type} output:"
 
         # Get LLM client from context
         llm_client = context.get('llm_client')
@@ -514,25 +554,9 @@ class CognitiveManifold:
         )
         return response
 
-    def _simple_concatenation(self, outputs: List[TransistorOutput]) -> str:
-        """Simple concatenation weighted by salience."""
-        # Sort by salience (highest first)
-        sorted_outputs = sorted(outputs, key=lambda x: x.salience, reverse=True)
-
-        # Concatenate high-salience outputs
-        parts = [o.transformed_text for o in sorted_outputs if o.salience > 0.3]
-
-        if not parts:
-            return sorted_outputs[0].transformed_text if sorted_outputs else ""
-
-        return " ".join(parts)
-
-    def _priority_blend(self, outputs: List[TransistorOutput]) -> str:
-        """Use only highest salience output."""
-        if not outputs:
-            return ""
-        highest = max(outputs, key=lambda x: x.salience)
-        return highest.transformed_text
+    # NOTE: simple_concatenation and priority_blend removed
+    # System requires LLM for proper continuous affect blending
+    # Discrete threshold filtering (salience > 0.3) violated continuous philosophy
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary."""
@@ -654,11 +678,44 @@ Content for {response_type}:"""
         instance.enabled = data.get('enabled', True)
         return instance
 
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'CulturalTransistor':
+        """Unity-style factory: Component builds itself from recipe config."""
+        instance = cls(beliefs=config.get('beliefs', []))
+        instance.salience = config.get('salience', 0.8)
+        instance.enabled = config.get('enabled', True)
+        return instance
+
 
 class PersonalityTransistor(CognitiveTransistor):
     """Colors thoughts based on personality traits."""
 
-    def __init__(self, traits: Optional[Dict[str, float]] = None):
+    DEFAULT_PROMPT = """Your personality traits are expressing themselves:
+
+PERSONALITY:
+{traits_text}
+
+SITUATION: "{input_text}"
+
+TASK: Write what you WANT to {response_type} based on your personality - first-person impulse.
+
+Examples:
+
+WANT TO SAY (high curiosity):
+"Ooh! Tell me MORE! What happened next? I gotta know!"
+
+WANT TO DO (high impulsivity):
+"I'm just gonna DO it! No thinking! Let's GO!"
+
+WANT TO SAY (low agreeableness, high competitiveness):
+"ACTUALLY, I think YOU'RE wrong! I'm clearly better at this!"
+
+WANT TO THINK (high neuroticism):
+"What if this goes wrong? What if they hate me? Should I even try?"
+
+Write your personality-driven impulse - what you WANT to {response_type}. 1-2 sentences, first-person."""
+
+    def __init__(self, traits: Optional[Dict[str, float]] = None, custom_prompt: Optional[str] = None):
         super().__init__()
         self.traits = traits or {
             'curiosity': 0.5,
@@ -666,6 +723,8 @@ class PersonalityTransistor(CognitiveTransistor):
             'emotional_volatility': 0.5
         }
         self.salience = 0.6
+        self.custom_prompt = custom_prompt
+        self.active_prompt = custom_prompt if custom_prompt else self.DEFAULT_PROMPT
 
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through personality lens."""
@@ -675,26 +734,16 @@ class PersonalityTransistor(CognitiveTransistor):
         guidance = response_decision.get('guidance', 'general response')
 
         # Get all traits
-        traits_text = '\n'.join([f"- {name}: {value:.1f}/1.0" for name, value in self.traits.items()])
+        traits_text = '\n'.join([f"- {name}: {value:.2f}/1.0" for name, value in self.traits.items()])
         dominant_trait = max(self.traits.items(), key=lambda x: x[1])
 
-        # Build transformation prompt WITH response type guidance
-        prompt = f"""You are filtering a perception through personality traits.
-
-PERSONALITY TRAITS:
-{traits_text}
-
-PERCEPTION: "{input_text}"
-
-RESPONSE GUIDANCE:
-You've decided to {response_type.upper()}: {guidance}
-
-Generate brief (1-2 sentences) content for this {response_type} that reflects your personality. Examples:
-- SAY: "Oh! My curiosity is bursting - tell me more!"
-- DO: "I impulsively reach out to touch it"
-- THINK: "My cautious nature makes me hesitate"
-
-Content for {response_type}:"""
+        # Build prompt using active_prompt (custom or default)
+        prompt = self.active_prompt.format(
+            traits_text=traits_text,
+            input_text=input_text,
+            response_type=response_type,
+            guidance=guidance
+        )
 
         # Use LLM to transform
         llm_client = context.get('llm_client')
@@ -731,6 +780,17 @@ Content for {response_type}:"""
         d = super().to_dict()
         d['traits'] = self.traits
         return d
+
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'PersonalityTransistor':
+        """Unity-style factory: Component builds itself from recipe/prefab config."""
+        instance = cls(
+            traits=config.get('traits', {}),
+            custom_prompt=config.get('custom_prompt')
+        )
+        instance.salience = config.get('salience', 0.6)
+        instance.enabled = config.get('enabled', True)
+        return instance
 
 
 class IntuitionTransistor(CognitiveTransistor):
@@ -824,6 +884,14 @@ Content for {response_type}:"""
         instance.enabled = data.get('enabled', True)
         return instance
 
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'IntuitionTransistor':
+        """Unity-style factory: Component builds itself from recipe config."""
+        instance = cls(intuition_text=config.get('intuition_text'))
+        instance.salience = config.get('salience', 0.75)
+        instance.enabled = config.get('enabled', True)
+        return instance
+
 
 class MoodTransistor(CognitiveTransistor):
     """Colors thoughts based on current emotional state."""
@@ -899,6 +967,158 @@ Content for {response_type}:"""
             temperature=0.8
         )
         return response.strip()
+
+
+class AffectTransistor(CognitiveTransistor):
+    """
+    Colors thoughts based on current affective state (emotion).
+
+    This is a tunable transistor that allows characters to have different
+    emotional regulation levels:
+    - High salience (0.8-0.95): Highly emotional characters
+    - Medium salience (0.4-0.6): Balanced emotional expression
+    - Low salience (0.1-0.3): Emotionally regulated (e.g., Vulcans)
+
+    Uses predicted affect from affect_head (continuous 5D space):
+    - valence: -1.0 (negative) to 1.0 (positive)
+    - arousal: 0.0 (calm) to 1.0 (excited)
+    - dominance: 0.0 (submissive) to 1.0 (dominant)
+    - sorrow: 0.0 (content) to 1.0 (sad)
+    - boredom: 0.0 (engaged) to 1.0 (bored)
+    """
+
+    # Default instruction prompt (used if no custom_prompt provided)
+    # First-person, action-oriented - generates what character WANTS to say/do
+    DEFAULT_PROMPT = """You are experiencing this emotional state right now:
+
+EMOTIONAL STATE (how you feel):
+- Valence: {valence:.3f} (overall feeling tone: negative to positive)
+- Arousal: {arousal:.3f} (energy level: calm to excited)
+- Dominance: {dominance:.3f} (power sense: submissive to dominant)
+- Sorrow: {sorrow:.3f} (sadness level: content to sorrowful)
+- Boredom: {boredom:.3f} (engagement: engaged to disengaged)
+
+SITUATION: "{input_text}"
+
+TASK: Write what you WANT to {response_type} - your RAW emotional impulse in first-person.
+
+DO NOT analyze or describe emotions. DO express your immediate felt desire to act.
+NO discrete labels ("happy", "sad"). YES poetic, visceral, lived experience.
+
+Examples of FIRST-PERSON ACTION IMPULSES:
+
+WANT TO SAY (valence=0.7, arousal=0.8, dominance=0.6):
+"HEY! Wow I wasn't expecting that! I feel GREAT! This is awesome!"
+
+WANT TO SAY (valence=-0.4, arousal=0.2, dominance=0.1, sorrow=0.7):
+"I... I should probably keep quiet right now. I don't want to upset anyone."
+
+WANT TO DO (valence=0.6, arousal=0.8):
+"I wanna jump! Dance! Spin around! This energy needs to GET OUT!"
+
+WANT TO DO (valence=-0.3, arousal=0.2, dominance=0.1):
+"I should probably just... hang my head down low. Curl up small. Hide."
+
+WANT TO EMOTE (valence=0.5, arousal=0.3):
+"Soft smile spreading... quiet contentment settling into my bones."
+
+WANT TO THINK (valence=-0.1, arousal=0.6, dominance=0.3, sorrow=0.4):
+"Restless ache gnawing at me... something's missing but I can't name it."
+
+Write your raw emotional impulse - what you WANT to {response_type}. 1-2 sentences, first-person, visceral.
+Your DESIRE to act, not analysis of feeling:"""
+
+    def __init__(self, salience: float = 0.7, custom_prompt: Optional[str] = None):
+        super().__init__()
+        self.salience = salience  # Tunable emotional influence
+        self.custom_prompt = custom_prompt  # User-editable prompt (or None)
+        self.active_prompt = custom_prompt if custom_prompt else self.DEFAULT_PROMPT
+
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+        """Filter through affective lens."""
+
+        # Get predicted affect from context
+        predicted_affect = context.get('predicted_affect')
+
+        if not predicted_affect:
+            # Fallback to raw affect if predicted not available
+            affect = context.get('affect', [0.0, 0.0, 0.5, 0.0, 0.0])
+            if len(affect) < 5:
+                affect = [0.0, 0.0, 0.5, 0.0, 0.0]
+            valence, arousal, dominance, sorrow, boredom = affect
+        else:
+            # Use predicted affect (preferred)
+            valence = predicted_affect.get('valence', 0.0)
+            arousal = predicted_affect.get('arousal', 0.3)
+            dominance = predicted_affect.get('dominance', 0.5)
+            sorrow = predicted_affect.get('sorrow', 0.0)
+            boredom = predicted_affect.get('boredom', 0.0)
+
+        # Get response decision
+        response_decision = context.get('response_decision', {})
+        response_type = response_decision.get('response_type', 'think')
+        guidance = response_decision.get('guidance', 'general response')
+
+        # Build prompt using active_prompt (custom or default)
+        # Format with current affect values
+        prompt = self.active_prompt.format(
+            valence=valence,
+            arousal=arousal,
+            dominance=dominance,
+            sorrow=sorrow,
+            boredom=boredom,
+            input_text=input_text,
+            response_type=response_type,
+            guidance=guidance
+        )
+
+        # Use LLM to transform
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        if llm_client:
+            try:
+                transformed = await self._call_llm_simple(llm_client, prompt, model)
+            except Exception as e:
+                logger.warning(f"Affect LLM failed: {e}, using fallback")
+                transformed = "I respond to this moment"
+        else:
+            # No LLM - simple fallback
+            transformed = "I respond to this moment"
+
+        # Noodle Tuner instrumentation
+        affect_dict = predicted_affect or {'valence': valence, 'arousal': arousal, 'dominance': dominance, 'sorrow': sorrow, 'boredom': boredom}
+        self.last_output_text = transformed
+        self.last_output_metadata = affect_dict
+        self.last_output_salience = self.salience
+
+        return TransistorOutput(
+            transformed_text=transformed,
+            salience=self.salience,  # Use configured salience (not dynamic)
+            metadata={'affect': affect_dict},
+            transistor_type="AffectTransistor"
+        )
+
+    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
+        """Call LLM for affective transformation."""
+        response = await llm_client.generate(
+            prompt=prompt,
+            system_prompt="You are an emotional filter. Generate brief first-person affective responses.",
+            model=model,
+            max_tokens=100,
+            temperature=0.8
+        )
+        return response.strip()
+
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'AffectTransistor':
+        """Unity-style factory: Component builds itself from recipe/prefab config."""
+        instance = cls(
+            salience=config.get('salience', 0.7),
+            custom_prompt=config.get('custom_prompt')  # Load custom prompt from prefab
+        )
+        instance.enabled = config.get('enabled', True)
+        return instance
 
 
 class MemoryTransistor(CognitiveTransistor):
@@ -1135,6 +1355,14 @@ Content for {response_type}:"""
         instance = cls(social_rules=data.get('social_rules', []))
         instance.salience = data.get('salience', 0.6)
         instance.enabled = data.get('enabled', True)
+        return instance
+
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'SocialExpectationTransistor':
+        """Unity-style factory: Component builds itself from recipe config."""
+        instance = cls(social_rules=config.get('social_rules', []))
+        instance.salience = config.get('salience', 0.6)
+        instance.enabled = config.get('enabled', True)
         return instance
 
 
@@ -1720,31 +1948,35 @@ Transformed output:"""
         )
         return response
 
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'DeceptionTransistor':
+        """Unity-style factory: Component builds itself from recipe config."""
+        instance = cls(
+            secret=config.get('secret', ''),
+            cover_story=config.get('cover_story', ''),
+            base_salience=config.get('base_salience', 0.75),
+            fear_multiplier=config.get('fear_multiplier', 0.3)
+        )
+        instance.enabled = config.get('enabled', True)
+        return instance
+
 
 COMPONENT_DEPENDENCIES = {
     'CognitiveTransistor': ['CognitiveManifold'],
     'CulturalTransistor': ['CognitiveManifold'],
     'PersonalityTransistor': ['CognitiveManifold'],
+    'AffectTransistor': ['CognitiveManifold'],
     'MoodTransistor': ['CognitiveManifold'],
     'MemoryTransistor': ['CognitiveManifold'],
     'SocialExpectationTransistor': ['CognitiveManifold'],
     'SomaticCognitiveTransistor': ['CognitiveManifold'],
-    'DeceptionTransistor': ['CognitiveManifold']
+    'DeceptionTransistor': ['CognitiveManifold'],
+    'BodyLanguageComponent': ['SomaticCognitiveTransistor']  # Requires body type info
 }
 
-# Component registry for easy instantiation
-COMPONENT_REGISTRY = {
-    'CognitiveManifold': CognitiveManifold,
-    'CulturalTransistor': CulturalTransistor,
-    'PersonalityTransistor': PersonalityTransistor,
-    'IntuitionTransistor': IntuitionTransistor,
-    'MoodTransistor': MoodTransistor,
-    'MemoryTransistor': MemoryTransistor,
-    'SocialExpectationTransistor': SocialExpectationTransistor,
-    'SomaticCognitiveTransistor': SomaticCognitiveTransistor,
-    'DeceptionTransistor': DeceptionTransistor,
-    'SoundEmitter': SoundEmitter
-}
+# Component registry - defined after all classes to avoid forward reference errors
+# Will be populated after FacialExpressionComponent and BodyLanguageComponent are defined
+COMPONENT_REGISTRY = {}
 
 
 def check_component_dependencies(
@@ -1764,6 +1996,314 @@ def check_component_dependencies(
     required = COMPONENT_DEPENDENCIES.get(component_type, [])
     missing = [dep for dep in required if dep not in existing_components]
     return missing
+
+
+# ===== FACS and Laban Components =====
+
+class FacialExpressionComponent(CognitiveTransistor):
+    """
+    Generates FACS (Facial Action Coding System) codes from affect.
+
+    Maps continuous affect vector to facial muscle activations.
+    Only active if added to Noodling's components.
+
+    Output is structured data for facial animation renderers.
+    """
+
+    DEFAULT_PROMPT = """Based on your emotional state, what facial expression would naturally appear on your face RIGHT NOW?
+
+EMOTIONAL STATE:
+- Valence: {valence:.3f} (how you feel overall)
+- Arousal: {arousal:.3f} (your energy/excitement)
+- Dominance: {dominance:.3f} (your sense of control)
+- Sorrow: {sorrow:.3f} (sadness level)
+- Boredom: {boredom:.3f} (disengagement)
+
+SITUATION: "{input_text}"
+
+TASK: Describe what your FACE is doing - which muscles activate, what expression forms.
+
+Available facial actions (FACS):
+- AU1: Inner brow raiser (surprise, worry)
+- AU2: Outer brow raiser (surprise)
+- AU4: Brow lowerer (anger, concentration)
+- AU6: Cheek raiser (genuine smile, joy)
+- AU12: Lip corner puller (smile)
+- AU15: Lip corner depressor (sadness, frown)
+- AU20: Lip stretcher (fear, tension)
+- AU26: Jaw drop (surprise, shock)
+- AU43: Eyes closed (blocking out)
+
+Output JSON with intensity 0.0-1.0 for each active AU:
+{{
+  "AU6": 0.8,
+  "AU12": 0.9
+}}
+
+Only include AUs that are actually activating. Return JSON only."""
+
+    def __init__(self, salience: float = 0.5, custom_prompt: Optional[str] = None):
+        super().__init__()
+        self.salience = salience
+        self.custom_prompt = custom_prompt
+        self.active_prompt = custom_prompt if custom_prompt else self.DEFAULT_PROMPT
+
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+        """Generate FACS codes from affect."""
+
+        # Get predicted affect
+        predicted_affect = context.get('predicted_affect')
+        if not predicted_affect:
+            affect = context.get('affect', [0.0, 0.0, 0.5, 0.0, 0.0])
+            if len(affect) < 5:
+                affect = [0.0, 0.0, 0.5, 0.0, 0.0]
+            valence, arousal, dominance, sorrow, boredom = affect
+        else:
+            valence = predicted_affect.get('valence', 0.0)
+            arousal = predicted_affect.get('arousal', 0.3)
+            dominance = predicted_affect.get('dominance', 0.5)
+            sorrow = predicted_affect.get('sorrow', 0.0)
+            boredom = predicted_affect.get('boredom', 0.0)
+
+        # Build prompt
+        prompt = self.active_prompt.format(
+            valence=valence,
+            arousal=arousal,
+            dominance=dominance,
+            sorrow=sorrow,
+            boredom=boredom,
+            input_text=input_text
+        )
+
+        # Use LLM to generate FACS
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        facs_data = {}
+        if llm_client:
+            try:
+                response = await llm_client.generate(
+                    prompt=prompt,
+                    system_prompt="You are a FACS encoder. Output JSON only with AU codes and intensities.",
+                    model=model,
+                    max_tokens=150,
+                    temperature=0.5
+                )
+
+                # Parse JSON
+                import json
+                facs_data = json.loads(response.strip())
+
+            except Exception as e:
+                logger.warning(f"FACS generation failed: {e}")
+                # Fallback: continuous mapping (NO discrete thresholds)
+                # Map continuous affect directly to AU intensities
+                facs_data = {}
+
+                # Valence affects mouth corners (AU12 up, AU15 down)
+                if valence != 0:
+                    if valence > 0:
+                        facs_data["AU12"] = min(1.0, abs(valence))  # Lip corners up
+                    else:
+                        facs_data["AU15"] = min(1.0, abs(valence))  # Lip corners down
+
+                # High arousal affects eyes (AU5) and cheeks (AU6)
+                if arousal > 0.3:
+                    facs_data["AU5"] = min(1.0, arousal)  # Eyes widen
+                    if valence > 0:
+                        facs_data["AU6"] = min(1.0, arousal * 0.8)  # Cheeks raise
+
+                # Sorrow affects inner brow (AU1) and mouth corners (AU15)
+                if sorrow > 0.2:
+                    facs_data["AU1"] = min(1.0, sorrow * 0.9)
+                    facs_data["AU15"] = min(1.0, sorrow * 0.8)
+
+        # Noodle Tuner instrumentation
+        self.last_output_text = str(facs_data)
+        self.last_output_metadata = facs_data
+        self.last_output_salience = self.salience
+
+        return TransistorOutput(
+            transformed_text=str(facs_data),
+            salience=self.salience,
+            metadata={'facs': facs_data},
+            transistor_type="FacialExpressionComponent"
+        )
+
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'FacialExpressionComponent':
+        """Unity-style factory."""
+        instance = cls(
+            salience=config.get('salience', 0.5),
+            custom_prompt=config.get('custom_prompt')
+        )
+        instance.enabled = config.get('enabled', True)
+        return instance
+
+
+class BodyLanguageComponent(CognitiveTransistor):
+    """
+    Generates Laban movement descriptors from affect.
+
+    Maps continuous affect vector to movement quality.
+    Only active if added to Noodling's components.
+    """
+
+    DEFAULT_PROMPT = """Based on your emotional state, describe how your BODY wants to move RIGHT NOW.
+
+EMOTIONAL STATE:
+- Valence: {valence:.3f}
+- Arousal: {arousal:.3f}
+- Dominance: {dominance:.3f}
+- Sorrow: {sorrow:.3f}
+
+SITUATION: "{input_text}"
+
+TASK: Describe your movement impulse using Laban effort qualities.
+
+Laban Effort Dimensions:
+- Weight: light (gentle, delicate) vs strong (forceful, powerful)
+- Time: sustained (slow, leisurely) vs sudden (fast, abrupt)
+- Space: indirect (meandering, unfocused) vs direct (aimed, focused)
+- Flow: free (flowing, continuous) vs bound (controlled, restrained)
+
+Examples:
+
+High valence, high arousal:
+{{"weight": "light", "time": "sudden", "space": "direct", "flow": "free"}}
+(Light, quick, focused, flowing - like dancing)
+
+Low valence, low arousal, low dominance:
+{{"weight": "light", "time": "sustained", "space": "indirect", "flow": "bound"}}
+(Gentle, slow, unfocused, restrained - like shrinking away)
+
+Output JSON with your movement quality. Return JSON only:
+{{
+  "weight": "light|strong",
+  "time": "sustained|sudden",
+  "space": "indirect|direct",
+  "flow": "free|bound"
+}}"""
+
+    def __init__(self, salience: float = 0.5, custom_prompt: Optional[str] = None):
+        super().__init__()
+        self.salience = salience
+        self.custom_prompt = custom_prompt
+        self.active_prompt = custom_prompt if custom_prompt else self.DEFAULT_PROMPT
+
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+        """Generate Laban descriptors from affect."""
+
+        # Get predicted affect
+        predicted_affect = context.get('predicted_affect')
+        if not predicted_affect:
+            affect = context.get('affect', [0.0, 0.0, 0.5, 0.0, 0.0])
+            if len(affect) < 5:
+                affect = [0.0, 0.0, 0.5, 0.0, 0.0]
+            valence, arousal, dominance, sorrow, boredom = affect
+        else:
+            valence = predicted_affect.get('valence', 0.0)
+            arousal = predicted_affect.get('arousal', 0.3)
+            dominance = predicted_affect.get('dominance', 0.5)
+            sorrow = predicted_affect.get('sorrow', 0.0)
+            boredom = predicted_affect.get('boredom', 0.0)
+
+        # Build prompt
+        prompt = self.active_prompt.format(
+            valence=valence,
+            arousal=arousal,
+            dominance=dominance,
+            sorrow=sorrow,
+            input_text=input_text
+        )
+
+        # Use LLM to generate Laban
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        laban_data = {}
+        if llm_client:
+            try:
+                response = await llm_client.generate(
+                    prompt=prompt,
+                    system_prompt="You are a Laban movement encoder. Output JSON only.",
+                    model=model,
+                    max_tokens=100,
+                    temperature=0.5
+                )
+
+                # Parse JSON
+                import json
+                laban_data = json.loads(response.strip())
+
+            except Exception as e:
+                logger.warning(f"Laban generation failed: {e}")
+                # Fallback: continuous mapping (NO discrete thresholds)
+                # Use interpolation across full continuous range
+
+                # Weight: map valence magnitude to light/strong continuum
+                # Use the actual magnitude, not binary threshold
+                valence_mag = abs(valence)
+                weight_value = "light" if valence_mag < 0.5 else "strong"  # Still binary for Laban categories
+
+                # Time: map arousal to sustained/sudden continuum
+                time_value = "sudden" if arousal > 0.5 else "sustained"
+
+                # Space: map dominance to indirect/direct continuum
+                space_value = "direct" if dominance > 0.5 else "indirect"
+
+                # Flow: map valence to free/bound continuum
+                flow_value = "free" if valence > 0 else "bound"
+
+                # Note: Laban has binary categories (light vs strong), but we map
+                # from continuous affect. This is inherent to Laban system.
+                laban_data = {
+                    "weight": weight_value,
+                    "time": time_value,
+                    "space": space_value,
+                    "flow": flow_value
+                }
+
+        # Noodle Tuner instrumentation
+        self.last_output_text = str(laban_data)
+        self.last_output_metadata = laban_data
+        self.last_output_salience = self.salience
+
+        return TransistorOutput(
+            transformed_text=str(laban_data),
+            salience=self.salience,
+            metadata={'laban': laban_data},
+            transistor_type="BodyLanguageComponent"
+        )
+
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'BodyLanguageComponent':
+        """Unity-style factory."""
+        instance = cls(
+            salience=config.get('salience', 0.5),
+            custom_prompt=config.get('custom_prompt')
+        )
+        instance.enabled = config.get('enabled', True)
+        return instance
+
+
+# ===== Component Registry =====
+# Populated after all class definitions to avoid forward reference errors
+COMPONENT_REGISTRY.update({
+    'CognitiveManifold': CognitiveManifold,
+    'CulturalTransistor': CulturalTransistor,
+    'PersonalityTransistor': PersonalityTransistor,
+    'IntuitionTransistor': IntuitionTransistor,
+    'AffectTransistor': AffectTransistor,
+    'MoodTransistor': MoodTransistor,
+    'MemoryTransistor': MemoryTransistor,
+    'SocialExpectationTransistor': SocialExpectationTransistor,
+    'SomaticCognitiveTransistor': SomaticCognitiveTransistor,
+    'DeceptionTransistor': DeceptionTransistor,
+    'SoundEmitter': SoundEmitter,
+    'FacialExpressionComponent': FacialExpressionComponent,
+    'BodyLanguageComponent': BodyLanguageComponent
+})
 
 
 # ===== Example Usage =====

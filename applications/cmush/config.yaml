@@ -111,6 +111,12 @@ agent:
     meta_loss_weight: 0.2
     enable_online_learning: false
     learning_rate: 0.0001
+entropy:
+  use_hardware: true
+  device_path: /dev/cu.usbmodem211201
+  device_type: truerng_v3
+  pool_size: 4096
+  fallback_on_error: true
 world:
   spawn_room: room_000
   auto_save_interval: 300

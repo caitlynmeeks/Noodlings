@@ -36,6 +36,7 @@ from kimmie_character import KimmieCharacter
 from api_server import NoodleScopeAPI
 from recipe_loader import RecipeLoader
 from script_manager import ScriptManager
+from entropy_service import initialize_entropy_service
 
 # Setup logging
 os.makedirs('logs', exist_ok=True)
@@ -123,6 +124,13 @@ class CMUSHServer:
 
         logger.info("cMUSH Server starting...")
         logger.info(f"Config loaded from {config_path}")
+
+        # Initialize entropy service (quantum randomness)
+        entropy_config = self.config.get('entropy', {})
+        use_hardware = entropy_config.get('use_hardware', False)
+        device_path = entropy_config.get('device_path', None)
+        initialize_entropy_service(use_hardware=use_hardware, device_path=device_path)
+        logger.info(f"Entropy service initialized: hardware={use_hardware}, device={device_path}")
 
         # Initialize world
         world_dir = self.config['paths']['world_dir']
@@ -217,7 +225,7 @@ class CMUSHServer:
 
         # Initialize script manager (server-authoritative scripting)
         self.script_manager = ScriptManager(self.world, self.agent_manager)
-        logger.info("✅ ScriptManager initialized")
+        logger.info(" ScriptManager initialized")
 
         # Initialize command parser (with config for persistence)
         self.command_parser = CommandParser(
@@ -1171,7 +1179,7 @@ class CMUSHServer:
         # Broadcast shutdown warning to all connected clients
         warning_message = {
             'type': 'system_message',
-            'text': f'\n⚠️  SERVER SHUTDOWN IN {delay} SECONDS ⚠️\n\nSaving world state and disconnecting all users...\n'
+            'text': f'\n  SERVER SHUTDOWN IN {delay} SECONDS \n\nSaving world state and disconnecting all users...\n'
         }
 
         for websocket in list(self.connections.keys()):

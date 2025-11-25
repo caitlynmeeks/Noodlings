@@ -14,13 +14,13 @@ Author: Noodlings Project
 Date: November 24, 2025
 """
 
-import random
 import time
 import json
 import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pathlib import Path
+from entropy_service import get_entropy_service
 
 logger = logging.getLogger(__name__)
 
@@ -143,8 +143,9 @@ class LabTestSession:
         agent.restore_state_snapshot(original_state)
         logger.info(f"[Lab] Restored original state")
 
-        # Randomize presentation order
-        real_is_A = random.choice([True, False])
+        # Randomize presentation order (using quantum entropy)
+        entropy = get_entropy_service()
+        real_is_A = entropy.choice([True, False])
 
         # Store trial data
         self.current_trial = {
@@ -179,12 +180,14 @@ class LabTestSession:
         """
         if not use_real_affect:
             # Override affect with random vector (PAD model + sorrow + boredom)
+            # Using quantum entropy for genuine randomness
+            entropy = get_entropy_service()
             random_affect = {
-                'valence': random.uniform(-1.0, 1.0),
-                'arousal': random.uniform(0.0, 1.0),
-                'dominance': random.uniform(0.0, 1.0),
-                'sorrow': random.uniform(0.0, 1.0),
-                'boredom': random.uniform(0.0, 1.0)
+                'valence': entropy.uniform(-1.0, 1.0),
+                'arousal': entropy.uniform(0.0, 1.0),
+                'dominance': entropy.uniform(0.0, 1.0),
+                'sorrow': entropy.uniform(0.0, 1.0),
+                'boredom': entropy.uniform(0.0, 1.0)
             }
             agent.set_affect_override(random_affect)
             logger.debug(f"[Lab] Set random affect: valence={random_affect['valence']:.2f}, arousal={random_affect['arousal']:.2f}, dominance={random_affect['dominance']:.2f}")

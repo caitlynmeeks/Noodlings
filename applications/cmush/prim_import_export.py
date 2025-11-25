@@ -471,10 +471,10 @@ def export_third_prim(world: World, output_path: str = "third_prim_ever.prim") -
     success = exporter.export_prim(third_prim_id, output_path)
 
     if success:
-        logger.info(f"✅ Third Prim Ever preserved to {output_path}")
+        logger.info(f" Third Prim Ever preserved to {output_path}")
         logger.info("   The first and second prims were lost, but the third shall endure.")
     else:
-        logger.error("❌ Failed to preserve Third Prim Ever")
+        logger.error(" Failed to preserve Third Prim Ever")
 
     return success
 
@@ -508,12 +508,12 @@ if __name__ == '__main__':
     # Export
     exporter = PrimExporter(world)
     success = exporter.export_prim(obj_id, "test_export.prim")
-    print(f"Export: {'✓' if success else '✗'}")
+    print(f"Export: {'' if success else '✗'}")
 
     # Import
     importer = PrimImporter(world)
     imported_id = importer.import_prim("test_export.prim", "room_000", "user_test2")
-    print(f"Import: {'✓' if imported_id else '✗'}")
+    print(f"Import: {'' if imported_id else '✗'}")
 
     if imported_id:
         imported_obj = world.get_object(imported_id)

@@ -40,6 +40,8 @@ from autonomous_cognition import AutonomousCognitionEngine
 from session_profiler import SessionProfiler
 from performance_tracker import get_tracker
 from affective_reinforcement import create_reinforcement
+from entropy_service import get_entropy_service
+from event_system import Event
 
 logger = logging.getLogger(__name__)
 
@@ -729,6 +731,11 @@ class CMUSHConsilienceAgent:
         self.session_profiler = session_profiler
         self.world = world  # For contextual awareness (intuition receiver)
 
+        # Cognitive gate locking for pause/resume
+        self.cognition_paused = False
+        self.cognitive_gate_id = 0  # Increments on each processing cycle
+        self.pending_responses = []  # Queue for responses that arrive while paused
+
         # Agent identity
         self.agent_name = agent_name or agent_id.replace('agent_', '').title()
         self.agent_description = agent_description or "An empty noodling."
@@ -801,68 +808,67 @@ class CMUSHConsilienceAgent:
         # Affect Head - continuous 5D affect prediction (Option B)
         try:
             self.affect_head = AffectHead.load_pretrained()
-            logger.info(f"[{agent_id}] 🎨 Affect Head loaded (continuous 5D prediction)")
+            logger.info(f"[{agent_id}]  Affect Head loaded (continuous 5D prediction)")
         except Exception as e:
-            logger.warning(f"[{agent_id}] ⚠️  Could not load affect head: {e}")
+            logger.warning(f"[{agent_id}]   Could not load affect head: {e}")
             self.affect_head = None
 
-        # Cognitive Manifold (optional - for cognitive transistor architecture)
-        self.cognitive_manifold = None  # Will be initialized if cognitive components are added
+        # Cognitive Manifold - ALWAYS created (Unity-style: every agent has this component)
+        from cognitive_components import CognitiveManifold, COMPONENT_REGISTRY
+        self.cognitive_manifold = CognitiveManifold()
+
+        # Unity-style event system
+        self.OnAffectChange = Event("OnAffectChange")
+        self.OnFACSChange = Event("OnFACSChange")
+        self.OnLabanChange = Event("OnLabanChange")
+        self.OnSpeak = Event("OnSpeak")
+        self.OnEmote = Event("OnEmote")
+        self.OnAction = Event("OnAction")
+        self.OnThink = Event("OnThink")
+        self.OnSurpriseSpike = Event("OnSurpriseSpike")
+        self._components = {}  # Component registry: type -> instance
+        logger.info(f"[{agent_id}]  Created CognitiveManifold with LLM blending")
 
         # Initialize cognitive components from recipe (Phase 7: Cognitive Manifold)
+        # If no cognitive_components in recipe, use defaults
         cognitive_components_config = config.get('cognitive_components', {})
-        if cognitive_components_config:
-            from cognitive_components import CognitiveManifold, COMPONENT_REGISTRY
-            self.cognitive_manifold = CognitiveManifold(blending_strategy="llm_weighted")
-            logger.info(f"[{agent_id}] 🧠 Created CognitiveManifold with LLM blending")
 
-            # Create and register each transistor from recipe
-            for component_name, component_config in cognitive_components_config.items():
-                transistor_type = component_config.get('type')
-                if not transistor_type:
-                    logger.warning(f"[{agent_id}] Component '{component_name}' missing 'type', skipping")
-                    continue
+        if not cognitive_components_config:
+            # Default transistors: affect + mood (minimal emotional processing)
+            logger.info(f"[{agent_id}] No cognitive_components in recipe, using defaults")
+            cognitive_components_config = {
+                'affect': {
+                    'type': 'AffectTransistor',
+                    'salience': 0.70,  # Human-typical emotional expression
+                    'enabled': True
+                },
+                'mood': {
+                    'type': 'MoodTransistor',
+                    'salience': 0.50,
+                    'enabled': True
+                }
+            }
 
-                transistor_class = COMPONENT_REGISTRY.get(transistor_type)
-                if not transistor_class:
-                    logger.warning(f"[{agent_id}] Unknown transistor type '{transistor_type}', skipping")
-                    continue
+        # Create and register each transistor from config (recipe or defaults)
+        for component_name, component_config in cognitive_components_config.items():
+            transistor_type = component_config.get('type')
+            if not transistor_type:
+                logger.warning(f"[{agent_id}] Component '{component_name}' missing 'type', skipping")
+                continue
 
-                # Create transistor instance with config parameters
-                try:
-                    # Extract parameters specific to each transistor type
-                    if transistor_type == 'DeceptionTransistor':
-                        transistor = transistor_class(
-                            secret=component_config.get('secret', ''),
-                            cover_story=component_config.get('cover_story', ''),
-                            base_salience=component_config.get('base_salience', 0.75),
-                            fear_multiplier=component_config.get('fear_multiplier', 0.3)
-                        )
-                    elif transistor_type == 'CulturalTransistor':
-                        # Pass beliefs from recipe to constructor
-                        transistor = transistor_class(beliefs=component_config.get('beliefs', []))
-                        transistor.salience = component_config.get('salience', 0.5)
-                    elif transistor_type == 'PersonalityTransistor':
-                        # Pass traits from recipe to constructor
-                        transistor = transistor_class(traits=component_config.get('traits', {}))
-                        transistor.salience = component_config.get('salience', 0.5)
-                    elif transistor_type == 'SomaticCognitiveTransistor':
-                        # Somatic has no init params - configured via methods
-                        transistor = transistor_class()
-                        transistor.salience = component_config.get('salience', 0.5)
-                    elif transistor_type == 'SocialExpectationTransistor':
-                        # Pass social rules from recipe to constructor
-                        transistor = transistor_class(social_rules=component_config.get('social_rules', []))
-                        transistor.salience = component_config.get('salience', 0.5)
-                    else:
-                        # Generic initialization (MoodTransistor, MemoryTransistor, IntuitionTransistor)
-                        transistor = transistor_class()
-                        transistor.salience = component_config.get('salience', 0.5)
+            transistor_class = COMPONENT_REGISTRY.get(transistor_type)
+            if not transistor_class:
+                logger.warning(f"[{agent_id}] Unknown transistor type '{transistor_type}', skipping")
+                continue
 
-                    self.cognitive_manifold.register_transistor(transistor)
-                    logger.info(f"[{agent_id}] ✓ Registered {transistor_type} (salience={transistor.salience:.2f})")
-                except Exception as e:
-                    logger.error(f"[{agent_id}] Failed to create {transistor_type}: {e}")
+            # Unity-style component instantiation: Each component knows how to build itself
+            try:
+                # Use from_config factory method (Unity pattern - no hardcoded types)
+                transistor = transistor_class.from_config(component_config)
+                self.cognitive_manifold.register_transistor(transistor)
+                logger.info(f"[{agent_id}]  Registered {transistor_type} (salience={transistor.salience:.2f})")
+            except Exception as e:
+                logger.error(f"[{agent_id}] Failed to create {transistor_type}: {e}")
 
         # cMUSH-specific state
         self.current_room = None
@@ -911,7 +917,7 @@ class CMUSHConsilienceAgent:
                 enabled=True,
                 intensity=intensity
             )
-            logger.info(f"[{self.agent_id}] 🎭 Affective reinforcement enabled: type={reinforcement_type}, intensity={intensity}")
+            logger.info(f"[{self.agent_id}]  Affective reinforcement enabled: type={reinforcement_type}, intensity={intensity}")
         else:
             self.affective_reinforcement = None
         self.last_self_monitor = 0.0  # Timestamp of last self-evaluation
@@ -1717,7 +1723,7 @@ Analyze and output ONLY valid JSON:
 
                 # Log detection
                 if result['expected']:
-                    logger.info(f"[{self.agent_id}] ⚠️ Social expectation: {result['type']} "
+                    logger.info(f"[{self.agent_id}]  Social expectation: {result['type']} "
                               f"(urgency: {modulated_urgency:.2f}, reason: {result['reason']})")
                 else:
                     logger.debug(f"[{self.agent_id}] No social expectation detected")
@@ -2097,6 +2103,16 @@ Analyze and output ONLY valid JSON:
             logger.error(f"[{self.agent_id}] Lab generation failed: {e}")
             return "[Error generating response]"
 
+    async def _check_cognitive_gate(self) -> bool:
+        """
+        Check if cognitive processing should proceed.
+        Returns True if processing should continue, False if paused.
+        """
+        if self.cognition_paused:
+            logger.debug(f"[{self.agent_id}] ⏸ Cognitive gate closed - operation blocked")
+            return False
+        return True
+
     async def perceive_event(self, event: Dict) -> Optional[Dict]:
         """
         Process cMUSH event -> Consilience -> optional response.
@@ -2132,7 +2148,8 @@ Analyze and output ONLY valid JSON:
 
         # Check if cognition is paused (for Noodle Tuner debugging)
         if getattr(self, 'cognition_paused', False):
-            logger.debug(f"[{self.agent_id}] ⏸ Cognition paused - skipping event processing")
+            logger.info(f"[{self.agent_id}] ⏸ Cognition paused - queuing event for later processing")
+            self.pending_responses.append(event)
             return None
 
         # Agents can now perceive other agents
@@ -2162,7 +2179,7 @@ Analyze and output ONLY valid JSON:
                 affect_raw = await self.llm.text_to_affect(text, context, agent_id=self.agent_id)
 
             # Log affect extraction for debugging
-            logger.info(f"[{self.agent_id}] 🎨 AFFECT EXTRACTED: valence={affect_raw[0]:.3f}, arousal={affect_raw[1]:.3f}, fear={affect_raw[2]:.3f}, sorrow={affect_raw[3]:.3f}, boredom={affect_raw[4]:.3f}")
+            logger.info(f"[{self.agent_id}]  AFFECT EXTRACTED: valence={affect_raw[0]:.3f}, arousal={affect_raw[1]:.3f}, fear={affect_raw[2]:.3f}, sorrow={affect_raw[3]:.3f}, boredom={affect_raw[4]:.3f}")
             logger.debug(f"Extracted affect (raw): {affect_raw}")
 
             # 1a-0. GENERATE INTUITION FIRST (for cognitive manifold context)
@@ -2183,7 +2200,7 @@ Analyze and output ONLY valid JSON:
                         recent_context=self.conversation_context[-3:]
                     )
                     if intuition_text:
-                        logger.info(f"[{self.agent_id}] 📻 Intuition (early): {intuition_text[:80]}...")
+                        logger.info(f"[{self.agent_id}]  Intuition (early): {intuition_text[:80]}...")
                 except Exception as e:
                     logger.debug(f"Early intuition generation failed: {e}")
 
@@ -2198,7 +2215,7 @@ Analyze and output ONLY valid JSON:
                         intuition_transistor = self.get_cognitive_transistor('IntuitionTransistor')
                         if intuition_transistor:
                             intuition_transistor.set_intuition(intuition_text)
-                            logger.info(f"[{self.agent_id}] 📻 Updated IntuitionTransistor with: {intuition_text[:60]}...")
+                            logger.info(f"[{self.agent_id}]  Updated IntuitionTransistor with: {intuition_text[:60]}...")
 
                     context = {
                         'affect': affect_raw,
@@ -2221,7 +2238,7 @@ Analyze and output ONLY valid JSON:
                     self.last_perception_text = text
                     self.last_manifold_output = colored_perception
                     if colored_perception != text:
-                        logger.info(f"[{self.agent_id}] 🧠 COGNITIVE MANIFOLD: {text[:50]}... → {colored_perception[:100]}...")
+                        logger.info(f"[{self.agent_id}]  COGNITIVE MANIFOLD: {text[:50]}... → {colored_perception[:100]}...")
                 except Exception as e:
                     logger.error(f"[{self.agent_id}] Cognitive manifold failed: {e}")
                     colored_perception = text  # Fallback to original
@@ -2257,7 +2274,7 @@ Analyze and output ONLY valid JSON:
                 # This is likely LLM fallback affect [0.0, 0.3, 0.1, 0.1, 0.1]
                 # Override with welcoming/curious affect
                 affect_raw = np.array([0.5, 0.5, 0.0, 0.0, 0.0])
-                logger.info(f"[{self.agent_id}] ⚠️ Detected fallback affect - overriding with welcoming values")
+                logger.info(f"[{self.agent_id}]  Detected fallback affect - overriding with welcoming values")
 
             # 1b. Normalize affect for optimal Φ (research-validated optimization)
             affect = self._normalize_affect(affect_raw, target_variance=0.25)
@@ -2409,10 +2426,10 @@ Analyze and output ONLY valid JSON:
                     discrete_emotion = classify_emotion_from_affect(predicted_affect)
 
                     # Log affect prediction
-                    logger.info(f"[{self.agent_id}] 🎨 Predicted affect: {affect_interpretation} (discrete: {discrete_emotion})")
+                    logger.info(f"[{self.agent_id}]  Predicted affect: {affect_interpretation} (discrete: {discrete_emotion})")
 
                 except Exception as e:
-                    logger.warning(f"[{self.agent_id}] ⚠️  Affect prediction failed: {e}")
+                    logger.warning(f"[{self.agent_id}]   Affect prediction failed: {e}")
 
             self.state_history.append(phenomenal_state_vector)
             self.surprise_history.append(state['surprise'])
@@ -2438,26 +2455,63 @@ Analyze and output ONLY valid JSON:
                 except Exception:
                     pass
 
-            # FACS: Generate facial expression based on affect
-            # DEBUG: Log affect values to diagnose anger/stomp issue
-            logger.info(f"[{self.agent_id}] 🎭 Affect for FACS: valence={affect[0]:.3f}, arousal={affect[1]:.3f}, fear={affect[2]:.3f}, sorrow={affect[3]:.3f}, boredom={affect[4]:.3f}")
+            # FACS & Laban: Generate facial expression and body language from predicted affect
+            # These fire BEFORE cognitive processing - they're involuntary!
+            # DEBUG: Log affect values
+            logger.info(f"[{self.agent_id}]  Affect for FACS/Laban: valence={affect[0]:.3f}, arousal={affect[1]:.3f}, fear={affect[2]:.3f}, sorrow={affect[3]:.3f}, boredom={affect[4]:.3f}")
 
-            facial_expression = await self._generate_facial_expression(affect)
-            if facial_expression and state['surprise'] > 0.02:  # Show if any notable surprise (lowered to catch more reactions)
-                # Store the facial expression for potential 3D renderer integration
-                self.last_facs_data = facial_expression['renderer_data']
+            # Check for new component-based FACS/Laban (Phase 8)
+            facial_component = self.GetComponent('FacialExpressionComponent')
+            body_component = self.GetComponent('BodyLanguageComponent')
 
-                # Format for chat display
-                # Format: *eyes wide, waddles nervously* [FACE: AU1, AU2 | BODY: BL44, BL14]
-                facs_codes_str = ", ".join([f"AU{au}" for au, _ in facial_expression['facs_codes'][:4]])
-                body_codes_str = ", ".join([f"BL{bl}" for bl, _ in facial_expression.get('body_codes', [])[:3]])
+            if facial_component or body_component:
+                # NEW SYSTEM: Use component-based FACS/Laban
+                component_context = {
+                    'predicted_affect': predicted_affect if 'predicted_affect' in locals() else None,
+                    'affect': affect,
+                    'llm_client': self.llm,
+                    'model': 'qwen/qwen3-4b-2507'
+                }
 
-                if body_codes_str:
-                    expression_text = f"*{facial_expression['description']}* [FACE: {facs_codes_str} | BODY: {body_codes_str}]"
-                else:
-                    expression_text = f"*{facial_expression['description']}* [FACE: {facs_codes_str}]"
+                # Process FACS
+                if facial_component:
+                    try:
+                        facs_output = await facial_component.process(text, component_context)
+                        logger.info(f"[{self.agent_id}]  FACS: {facs_output.transformed_text}")
+                        # Fire OnFACSChange event
+                        if hasattr(self, 'OnFACSChange'):
+                            self.OnFACSChange.invoke({'facs': facs_output.metadata, 'text': facs_output.transformed_text})
+                    except Exception as e:
+                        logger.warning(f"[{self.agent_id}]  FACS component failed: {e}")
 
-                logger.info(f"[{self.agent_id}] Full Expression triggered: {expression_text}")
+                # Process Laban
+                if body_component:
+                    try:
+                        laban_output = await body_component.process(text, component_context)
+                        logger.info(f"[{self.agent_id}]  LABAN: {laban_output.transformed_text}")
+                        # Fire OnLabanChange event
+                        if hasattr(self, 'OnLabanChange'):
+                            self.OnLabanChange.invoke({'laban': laban_output.metadata, 'text': laban_output.transformed_text})
+                    except Exception as e:
+                        logger.warning(f"[{self.agent_id}]  Laban component failed: {e}")
+            else:
+                # OLD SYSTEM: Fall back to hardcoded FACS
+                facial_expression = await self._generate_facial_expression(affect)
+                if facial_expression and state['surprise'] > 0.02:  # Show if any notable surprise (lowered to catch more reactions)
+                    # Store the facial expression for potential 3D renderer integration
+                    self.last_facs_data = facial_expression['renderer_data']
+
+                    # Format for chat display
+                    # Format: *eyes wide, waddles nervously* [FACE: AU1, AU2 | BODY: BL44, BL14]
+                    facs_codes_str = ", ".join([f"AU{au}" for au, _ in facial_expression['facs_codes'][:4]])
+                    body_codes_str = ", ".join([f"BL{bl}" for bl, _ in facial_expression.get('body_codes', [])[:3]])
+
+                    if body_codes_str:
+                        expression_text = f"*{facial_expression['description']}* [FACE: {facs_codes_str} | BODY: {body_codes_str}]"
+                    else:
+                        expression_text = f"*{facial_expression['description']}* [FACE: {facs_codes_str}]"
+
+                    logger.info(f"[{self.agent_id}] Full Expression triggered: {expression_text}")
 
                 # Store full expression to be returned
                 state['facial_expression'] = expression_text
@@ -2494,7 +2548,6 @@ Analyze and output ONLY valid JSON:
                         did_speak=False,  # Will be updated in _generate_response if agent speaks
                         utterance=None,
                         prediction_error=0.0,
-                        cheap_thrills_score=0.0,
                         mysticism_penalty=0.0,
                         event_context=f"{user_id}: {text[:100]}",
                         conversation_context=self.conversation_context[-5:],  # Last 5 messages
@@ -2610,7 +2663,6 @@ Analyze and output ONLY valid JSON:
 
             # ADDRESSEE DETECTION: Check if this message is directed at this agent
             # This prevents all agents from responding to every utterance
-            import random
             import re
 
             # Get current event text
@@ -2726,14 +2778,16 @@ Analyze and output ONLY valid JSON:
                 speech_chance = self.config.get('unaddressed_speech_chance', 0.1)
 
             # Always consider ruminating when observing
-            should_ruminate = random.random() < rumination_frequency
+            # Using quantum entropy for genuine randomness
+            entropy = get_entropy_service()
+            should_ruminate = entropy.random() < rumination_frequency
 
             # Only speak if cooldown passed AND dice roll succeeds AND appropriate context
             # DEV: Force speech when directly addressed for testing
             if is_being_addressed and cooldown_ok:
                 should_speak = True
             else:
-                should_speak = cooldown_ok and (random.random() < speech_chance)
+                should_speak = cooldown_ok and (entropy.random() < speech_chance)
 
             # Log decision with addressee context
             logger.info(f"Agent {self.agent_id} decision: addressed={is_being_addressed}, "
@@ -2764,7 +2818,7 @@ Analyze and output ONLY valid JSON:
                 # Store intuition in state for LLM access
                 if intuition:
                     state['intuition'] = intuition
-                    logger.info(f"[{self.agent_id}] 📻 Intuition: {intuition[:80]}...")
+                    logger.info(f"[{self.agent_id}]  Intuition: {intuition[:80]}...")
 
                     # SOCIAL EXPECTATION DETECTION: Analyze if response is expected
                     expectation = await self._detect_social_expectation(
@@ -2792,13 +2846,13 @@ Analyze and output ONLY valid JSON:
                                     should_speak = True
                                     logger.info(f"[{self.agent_id}] High urgency ({urgency:.2f}) - forcing speech response")
                                 elif urgency > 0.4:
-                                    # 80% chance to speak for moderate urgency
-                                    if random.random() < 0.8:
+                                    # 80% chance to speak for moderate urgency (quantum entropy)
+                                    if entropy.random() < 0.8:
                                         should_speak = True
                                         logger.info(f"[{self.agent_id}] Moderate urgency ({urgency:.2f}) - high probability speech")
                                 else:
-                                    # 40% chance for low urgency
-                                    if random.random() < 0.4:
+                                    # 40% chance for low urgency (quantum entropy)
+                                    if entropy.random() < 0.4:
                                         should_speak = True
                                         logger.info(f"[{self.agent_id}] Low urgency ({urgency:.2f}) - moderate probability speech")
 
@@ -2968,7 +3022,7 @@ Analyze and output ONLY valid JSON:
             # Model priority: play_model > agent model > global default
             model_override = getattr(self, 'play_model', None) or self.llm_model
             if model_override:
-                logger.info(f"🎭 {self.agent_id} using model: {model_override}")
+                logger.info(f" {self.agent_id} using model: {model_override}")
 
             llm_result = await self.llm.generate_response(
                 phenomenal_state=state,
@@ -2990,19 +3044,17 @@ Analyze and output ONLY valid JSON:
                 logger.warning(f"Agent {self.agent_id} LLM returned None - skipping response")
                 return None
 
-            # Extract response text, thinking, mysticism penalty, cheap thrills bonus, and model used
+            # Extract response text, thinking, mysticism penalty, and model used
             if isinstance(llm_result, dict):
                 response_text = llm_result.get('response')
                 thinking_content = llm_result.get('thinking')
                 mysticism_penalty = llm_result.get('mysticism_penalty', 0.0)
-                cheap_thrills_bonus = llm_result.get('cheap_thrills_bonus', 0.0)
                 model_used = llm_result.get('model_used', 'unknown')
             else:
                 # Backward compatibility: if llm_result is just a string
                 response_text = llm_result
                 thinking_content = None
                 mysticism_penalty = 0.0
-                cheap_thrills_bonus = 0.0
                 model_used = 'unknown'
 
             # Apply mysticism surprise penalty (Kimi K2's Fix E: Alan Watts self-troll)
@@ -3012,14 +3064,6 @@ Analyze and output ONLY valid JSON:
                 state['surprise'] = min(10.0, state['surprise'] + mysticism_penalty)
                 logger.info(f"[{self.agent_id}] Applied mysticism penalty: "
                           f"{original_surprise:.3f} + {mysticism_penalty:.2f} = {state['surprise']:.3f}")
-
-            # Apply cheap thrills surprise bonus (Roald Dahl's Fix: candy, money, being scared)
-            # Low surprise → agent more likely to speak → learn through EXPERIENCE not audiobooks
-            if cheap_thrills_bonus < 0:  # Bonus is negative (reduces surprise)
-                original_surprise = state['surprise']
-                state['surprise'] = max(0.0, state['surprise'] + cheap_thrills_bonus)  # Add negative value = subtract
-                logger.info(f"[{self.agent_id}] Applied cheap thrills bonus: "
-                          f"{original_surprise:.3f} + {cheap_thrills_bonus:.2f} = {state['surprise']:.3f} - EGO RUSH!")
 
             # Phase 7: Affective Reinforcement Learning
             # Make characters WANT their characteristic behaviors by rewarding them affectively
@@ -3046,7 +3090,7 @@ Analyze and output ONLY valid JSON:
                 elif isinstance(state['phenomenal_state'], np.ndarray):
                     if len(state['phenomenal_state']) >= 5:
                         state['phenomenal_state'][:5] = modulated_affect
-                        logger.info(f"[{self.agent_id}] 🧠 Phenomenal state updated with affective reinforcement")
+                        logger.info(f"[{self.agent_id}]  Phenomenal state updated with affective reinforcement")
                     else:
                         logger.warning(f"[{self.agent_id}] Phenomenal state too small ({len(state['phenomenal_state'])}), skipping affect update")
                 else:
@@ -3055,7 +3099,7 @@ Analyze and output ONLY valid JSON:
                         phenom_list = list(state['phenomenal_state'])
                         phenom_list[:5] = modulated_affect.tolist()
                         state['phenomenal_state'] = phenom_list
-                        logger.info(f"[{self.agent_id}] 🧠 Phenomenal state updated with affective reinforcement")
+                        logger.info(f"[{self.agent_id}]  Phenomenal state updated with affective reinforcement")
                     else:
                         logger.warning(f"[{self.agent_id}] Cannot update phenomenal state (invalid format), skipping")
 
@@ -3079,7 +3123,6 @@ Analyze and output ONLY valid JSON:
                     did_speak=True,  # We're in the response generation method
                     utterance=response_text,
                     prediction_error=0.0,  # TODO: Get from consciousness state if available
-                    cheap_thrills_score=abs(cheap_thrills_bonus) * 2 if cheap_thrills_bonus < 0 else 0.0,  # Convert bonus to 0-10 score
                     mysticism_penalty=mysticism_penalty,
                     event_context=f"Response to {target_user}",
                     conversation_context=self.conversation_context.copy() if self.conversation_context else []
@@ -3125,7 +3168,7 @@ Analyze and output ONLY valid JSON:
                 )
 
                 if response_text != original_text:
-                    logger.info(f"[{self.agent_id}] 🎭 Voice translation:")
+                    logger.info(f"[{self.agent_id}]  Voice translation:")
                     logger.info(f"  Basic: {original_text[:60]}...")
                     logger.info(f"  Voice: {response_text[:60]}...")
 
@@ -3145,7 +3188,7 @@ Analyze and output ONLY valid JSON:
                             model='qwen/qwen3-4b-2507'
                         )
                         if response_text != pre_filter:
-                            logger.info(f"[{self.agent_id}] 🎭 FINAL SOCIAL FILTER: {pre_filter[:80]}... → {response_text[:80]}...")
+                            logger.info(f"[{self.agent_id}]  FINAL SOCIAL FILTER: {pre_filter[:80]}... → {response_text[:80]}...")
                     except Exception as e:
                         logger.warning(f"[{self.agent_id}] Final social filter failed: {e}")
 
@@ -3311,7 +3354,7 @@ Analyze and output ONLY valid JSON:
                     self.last_perception_text = perception_text
                     self.last_manifold_output = colored_thought_seed
                     if colored_thought_seed != perception_text:
-                        logger.info(f"[{self.agent_id}] 🧠 RUMINATION MANIFOLD: {perception_text[:50]}... → {colored_thought_seed[:100]}...")
+                        logger.info(f"[{self.agent_id}]  RUMINATION MANIFOLD: {perception_text[:50]}... → {colored_thought_seed[:100]}...")
                 except Exception as e:
                     logger.error(f"[{self.agent_id}] Rumination manifold failed: {e}")
                     colored_thought_seed = perception_text
@@ -3358,7 +3401,7 @@ Analyze and output ONLY valid JSON:
                 elif isinstance(state['phenomenal_state'], np.ndarray):
                     if len(state['phenomenal_state']) >= 5:
                         state['phenomenal_state'][:5] = modulated_affect
-                        logger.info(f"[{self.agent_id}] 🧠💭 Rumination: Phenomenal state updated with affective reinforcement")
+                        logger.info(f"[{self.agent_id}]  Rumination: Phenomenal state updated with affective reinforcement")
                     else:
                         logger.warning(f"[{self.agent_id}] Phenomenal state too small in rumination, skipping affect update")
                 else:
@@ -3367,7 +3410,7 @@ Analyze and output ONLY valid JSON:
                         phenom_list = list(state['phenomenal_state'])
                         phenom_list[:5] = modulated_affect.tolist()
                         state['phenomenal_state'] = phenom_list
-                        logger.info(f"[{self.agent_id}] 🧠💭 Rumination: Phenomenal state updated with affective reinforcement")
+                        logger.info(f"[{self.agent_id}]  Rumination: Phenomenal state updated with affective reinforcement")
                     else:
                         logger.warning(f"[{self.agent_id}] Cannot update phenomenal state in rumination (invalid format), skipping")
 
@@ -3388,7 +3431,7 @@ Analyze and output ONLY valid JSON:
 
             # Log thought with salience
             logger.info(f"Agent {self.agent_id} ruminating (identity_salience={identity_salience:.2f}): {thought_text}")
-            logger.info(f"💭 {self.agent_name} thinking (surprise={state['surprise']:.3f}): '{thought_text[:50]}...'")
+            logger.info(f" {self.agent_name} thinking (surprise={state['surprise']:.3f}): '{thought_text[:50]}...'")
 
             # Fire OnThought event to scripts
             try:
@@ -3458,7 +3501,7 @@ Analyze and output ONLY valid JSON:
             return
 
         # Conditions met - evaluate own output (speech or thought)
-        logger.info(f"🧠 [SELF-MONITOR] Triggering for {self.agent_name} (surprise={surprise:.3f}, cooldown={time_since_last:.1f}s)")
+        logger.info(f" [SELF-MONITOR] Triggering for {self.agent_name} (surprise={surprise:.3f}, cooldown={time_since_last:.1f}s)")
         await self._evaluate_own_output(text, state)
 
     async def _evaluate_own_output(self, text: str, state: Dict):
@@ -4144,7 +4187,8 @@ Analyze and output ONLY valid JSON:
 
         # Ensure manifold exists
         if self.cognitive_manifold is None:
-            self.cognitive_manifold = CognitiveManifold(blending_strategy="llm_weighted")
+            self.cognitive_manifold = CognitiveManifold()
+
             logger.info(f"[{self.agent_id}] Created CognitiveManifold with LLM blending")
 
         # Create transistor instance
@@ -4464,3 +4508,112 @@ class AgentManager:
             agent_id: agent.get_stats()
             for agent_id, agent in self.agents.items()
         }
+
+    # ===== Unity-Style Component API =====
+
+    def GetUUID(self) -> str:
+        """Get agent UUID."""
+        return self.agent_id
+
+    def GetComponent(self, component_type: str):
+        """
+        Get component by type name (Unity-style).
+
+        Args:
+            component_type: Component class name
+
+        Returns:
+            Component instance or None
+        """
+        # Check non-cognitive components
+        if component_type in self._components:
+            return self._components[component_type]
+
+        # Check cognitive transistors
+        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+            for transistor in self.cognitive_manifold.transistors:
+                if transistor.__class__.__name__ == component_type:
+                    return transistor
+
+        return None
+
+    def HasComponent(self, component_type: str) -> bool:
+        """Check if component exists (Unity-style)."""
+        return self.GetComponent(component_type) is not None
+
+    def GetComponentByUUID(self, component_uuid: str):
+        """
+        Get component by UUID (pointer-style access).
+
+        Args:
+            component_uuid: Component UUID string
+
+        Returns:
+            Component instance or None
+        """
+        # Check non-cognitive components
+        for component in self._components.values():
+            if hasattr(component, 'uuid') and component.uuid == component_uuid:
+                return component
+
+        # Check cognitive transistors
+        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+            for transistor in self.cognitive_manifold.transistors:
+                if hasattr(transistor, 'uuid') and transistor.uuid == component_uuid:
+                    return transistor
+
+        return None
+
+    def AddComponent(self, component_type: str, config: Dict = None):
+        """
+        Add component at runtime (Unity-style).
+
+        Args:
+            component_type: Component class name
+            config: Component configuration dict
+
+        Returns:
+            Created component instance
+        """
+        from cognitive_components import COMPONENT_REGISTRY
+
+        component_class = COMPONENT_REGISTRY.get(component_type)
+        if not component_class:
+            raise ValueError(f"Unknown component type: {component_type}")
+
+        config = config or {}
+        component = component_class.from_config(config)
+
+        # Register based on component type
+        if component_type in ['FacialExpressionComponent', 'BodyLanguageComponent']:
+            # Non-cognitive output component
+            self._components[component_type] = component
+            logger.info(f"[{self.agent_id}] Added {component_type} (salience={component.salience:.2f})")
+        else:
+            # Cognitive transistor - register with manifold
+            if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+                self.cognitive_manifold.register_transistor(component)
+                self._components[component_type] = component
+                logger.info(f"[{self.agent_id}] Added {component_type} to manifold (salience={component.salience:.2f})")
+
+        return component
+
+    def RemoveComponent(self, component_type: str):
+        """
+        Remove component at runtime (Unity-style).
+
+        Args:
+            component_type: Component class name
+        """
+        if component_type in self._components:
+            del self._components[component_type]
+
+            # If cognitive transistor, remove from manifold
+            if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+                # Remove from transistors list
+                self.cognitive_manifold.transistors = [
+                    t for t in self.cognitive_manifold.transistors
+                    if t.__class__.__name__ != component_type
+                ]
+
+            logger.info(f"[{self.agent_id}] Removed {component_type}")

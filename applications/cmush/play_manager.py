@@ -28,22 +28,22 @@ PLAY_GENERATION_PROMPT = """USER STORY REQUEST:
 YOUR TASK: Create a play that EXACTLY matches the user's story above. Do not invent a different story!
 
 ═══════════════════════════════════════════════════════════════════════
-⚠️  CRITICAL RULES - VIOLATIONS WILL BREAK THE SYSTEM ⚠️
+  CRITICAL RULES - VIOLATIONS WILL BREAK THE SYSTEM 
 ═══════════════════════════════════════════════════════════════════════
 
 🚫 NEVER DESCRIBE WHAT CHARACTERS DO!
-   ❌ "Toad jumps", "Callie shouts", "Servnak waves"
-   ✅ "A door swings open", "A voice echoes", "Metal glints"
+    "Toad jumps", "Callie shouts", "Servnak waves"
+    "A door swings open", "A voice echoes", "Metal glints"
 
 🚫 NEVER PUT WORDS IN CHARACTER MOUTHS!
-   ❌ "...as he says 'Poop-poop!'"
-   ✅ Use bias + stimulus, let THEM speak
+    "...as he says 'Poop-poop!'"
+    Use bias + stimulus, let THEM speak
 
 🚫 NEVER DESCRIBE CHARACTER EMOTIONS OR THOUGHTS!
-   ❌ "Toad looks frustrated", "Callie feels curious"
-   ✅ Create circumstances that EVOKE emotions
+    "Toad looks frustrated", "Callie feels curious"
+    Create circumstances that EVOKE emotions
 
-✅ ALWAYS INCLUDE "target" FIELD IN EVERY STIMULUS!
+ ALWAYS INCLUDE "target" FIELD IN EVERY STIMULUS!
    Required format: "target": "agent_name"  (NOT optional!)
    Use specific agent name from cast: {cast_list}
 
@@ -65,13 +65,13 @@ RULE 1: ENVIRONMENTAL ONLY
 Describe ONLY what happens in the environment/world around characters.
 You are a CAMERA, not a CHARACTER. You cannot see inside their minds or control their bodies.
 
-❌ WRONG - Character Actions:
+ WRONG - Character Actions:
 - "Toad enthusiastically gestures toward the hedge"
 - "Callie approaches calmly with a trowel"
 - "Servnak's eyes light up with excitement"
 - "The pilot adjusts the controls with a tired smile"
 
-✅ CORRECT - Environmental Events:
+ CORRECT - Environmental Events:
 - "The hedge rustles violently as wind whips through its thorns"
 - "A trowel and pole lie on the ground nearby, glinting in sunlight"
 - "A series of amber lights pulse rhythmically on the console"
@@ -80,21 +80,21 @@ You are a CAMERA, not a CHARACTER. You cannot see inside their minds or control 
 RULE 2: ALWAYS TARGET SPECIFIC AGENTS
 EVERY stimulus MUST have "target" field with an agent name from the cast!
 
-✅ CORRECT TARGETING:
+ CORRECT TARGETING:
 {{"action": "stimulus", "args": {{"description": "The door creaks open", "target": "toad"}}}}
 {{"action": "stimulus", "args": {{"description": "A shadow moves", "target": "callie"}}}}
 
-❌ WRONG - Missing target (agent won't know it's for them!):
+ WRONG - Missing target (agent won't know it's for them!):
 {{"action": "stimulus", "args": {{"description": "Something happens"}}}}
 
 RULE 3: NO DIALOGUE IN STIMULI
 Let agents generate their OWN speech! You create situations, they respond.
 
-❌ WRONG:
+ WRONG:
 - "A voice says 'Help me!'"
 - "Someone shouts 'Watch out!'"
 
-✅ CORRECT:
+ CORRECT:
 - "A muffled cry for help echoes from somewhere nearby"
 - "A sharp warning sound pierces the air"
 
@@ -139,7 +139,7 @@ Let agents generate their OWN speech! You create situations, they respond.
    {{"action": "create_prop", "args": {{"name": "Rusty Key", "desc": "ancient and worn"}}}}
 
 ═══════════════════════════════════════════════════════════════════════
-✅ COMPLETE EXAMPLE (CORRECT PATTERN)
+ COMPLETE EXAMPLE (CORRECT PATTERN)
 ═══════════════════════════════════════════════════════════════════════
 
 {{"action": "narrative", "args": {{"text": "The sunny meadow stretches before you"}}}},
@@ -156,11 +156,11 @@ Let agents generate their OWN speech! You create situations, they respond.
 {{"action": "wait_for_response", "args": {{"duration": 8}}}}
 
 Notice:
-- ✅ Environment only (hovercraft sits, lurches, crashes - not "Toad drives")
-- ✅ EVERY stimulus has "target" field
-- ✅ Bias BEFORE stimulus to shape response
-- ✅ CUE after stimulus to direct physical action
-- ✅ wait_for_response after EVERY stimulus/cue (8+ seconds)
+-  Environment only (hovercraft sits, lurches, crashes - not "Toad drives")
+-  EVERY stimulus has "target" field
+-  Bias BEFORE stimulus to shape response
+-  CUE after stimulus to direct physical action
+-  wait_for_response after EVERY stimulus/cue (8+ seconds)
 
 ═══════════════════════════════════════════════════════════════════════
 📋 PRE-FLIGHT CHECKLIST (Verify before submitting!)
@@ -658,20 +658,20 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
         # Build trigger announcement
         trigger_info = ""
         if chat_triggers:
-            trigger_info = f"\n\n✨ Chat Triggers: Say '{', '.join(chat_triggers)}' to advance scenes"
+            trigger_info = f"\n\n Chat Triggers: Say '{', '.join(chat_triggers)}' to advance scenes"
 
         if trigger_type == 'manual':
             # Start immediately for manual trigger
             await self._start_scene(filename, 0)
             return {
                 'success': True,
-                'message': f"🎭 Started play: {play['title']} (Scene 1/{len(play['scenes'])}){trigger_info}"
+                'message': f" Started play: {play['title']} (Scene 1/{len(play['scenes'])}){trigger_info}"
             }
         else:
             # Other triggers will start the scene when triggered
             return {
                 'success': True,
-                'message': f"🎭 Play armed: {play['title']}\nWaiting for trigger: {trigger_type}{trigger_info}"
+                'message': f" Play armed: {play['title']}\nWaiting for trigger: {trigger_type}{trigger_info}"
             }
 
     async def _start_scene(self, play_name: str, scene_index: int):
@@ -709,7 +709,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             end_event = {
                 'type': 'emote',
                 'user': 'system',
-                'username': '🎭 NARRATOR',
+                'username': ' NARRATOR',
                 'room': room_id,
                 'text': f"• {play['title']}: THE END •\n• *curtain falls* •"
             }
@@ -798,7 +798,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
         await self._broadcast_play_event(world, {
             'type': 'emote',
             'user': 'system',
-            'username': '🎭 NARRATOR',
+            'username': ' NARRATOR',
             'room': self._get_play_room(state),
             'text': f"• Scene {scene['id'] + 1}: {scene['name']} •"
         })
@@ -1033,7 +1033,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             event = {
                 'type': 'emote',
                 'user': 'system',
-                'username': '🎭 DIRECTOR',
+                'username': ' DIRECTOR',
                 'room': room_id,
                 'text': cue_text,
                 'metadata': {
@@ -1061,7 +1061,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             # doesn't detect it yet. Disable retries until we implement proper monitoring.
             await asyncio.sleep(wait_time)
 
-            logger.info(f"✅ {actor_agent.agent_name} had opportunity to respond - moving on")
+            logger.info(f" {actor_agent.agent_name} had opportunity to respond - moving on")
             return  # Trust the agent performed
 
     async def _beat_warp(self, actor_agent, args: Dict, world):
@@ -1143,7 +1143,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
         event = {
             'type': 'emote',
             'user': 'system',
-            'username': '🎭 PROPS',
+            'username': ' PROPS',
             'room': room_id,
             'text': f"• {name} appears! •",
             'metadata': {'play_action': True}
@@ -1240,7 +1240,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
                         'user': npc_id,
                         'username': name,
                         'room': room_id,
-                        'text': f"🎭 {name} enters the scene! (conscious agent)",
+                        'text': f" {name} enters the scene! (conscious agent)",
                         'metadata': {'play_action': True}
                     }
                     await self._broadcast_play_event(world, event)
@@ -1329,7 +1329,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
         event = {
             'type': 'emote',
             'user': 'system',
-            'username': '🎭 PROPS',
+            'username': ' PROPS',
             'room': room_id,
             'text': f"• {obj['name']} vanishes! •",
             'metadata': {'play_action': True}
@@ -1352,7 +1352,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
         event = {
             'type': 'emote',
             'user': 'system',
-            'username': '🎭 CIRCUMSTANCE',
+            'username': ' CIRCUMSTANCE',
             'text': f"• {description} •",
             'metadata': {
                 'play_action': True,
@@ -1392,8 +1392,8 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
         event = {
             'type': 'emote',
             'user': 'system',
-            'username': '🎭 BRENDA',
-            'text': f"✨ {text} ✨",
+            'username': ' BRENDA',
+            'text': f" {text} ",
             'metadata': {
                 'play_action': True,
                 'narrative': True
@@ -1452,7 +1452,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             briefing = {
                 'type': 'emote',
                 'user': 'system',
-                'username': '🎭 DIRECTOR (BRENDA)',
+                'username': ' DIRECTOR (BRENDA)',
                 'room': room_id,
                 'text': f"[STAGE BRIEFING for {agent.agent_name}] You are now performing in the play '{play['title']}'. As an actor, you have a ROLE to fulfill. When you receive stage directions telling you to do something, you MUST act them out physically with speech and action - not just think about them. Show the audience what your character does!",
                 'metadata': {
@@ -1478,7 +1478,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
                     agent.original_model = getattr(agent.llm, 'default_model', None)
                 # Set play model for duration of play
                 agent.play_model = play_model
-                logger.info(f"🎭 {agent.agent_name} will use play model: {play_model} (original: {agent.original_model})")
+                logger.info(f" {agent.agent_name} will use play model: {play_model} (original: {agent.original_model})")
 
         # Give agents a moment to process their briefing
         await asyncio.sleep(2)
@@ -1538,7 +1538,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
         feedback_event = {
             'type': 'emote',
             'user': 'system',
-            'username': '🎭 DIRECTOR',
+            'username': ' DIRECTOR',
             'room': room_id,
             'text': feedback_text,
             'metadata': {
@@ -1764,5 +1764,5 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
 
         return {
             'success': True,
-            'message': f"🎭 Scene {next_scene_idx + 1}/{len(play['scenes'])}: {play['scenes'][next_scene_idx]['name']}"
+            'message': f" Scene {next_scene_idx + 1}/{len(play['scenes'])}: {play['scenes'][next_scene_idx]['name']}"
         }

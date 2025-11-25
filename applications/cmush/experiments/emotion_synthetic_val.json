@@ -1,0 +1,3002 @@
+[
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: Your attempts to help actually made a situation worse",
+    "response": "Agent10 collapses into a chair, hands trembling slightly and says, \"I'm so ashamed\u2014I should have known that my advice would make things worse. I thought I was helping, but I just pushed them further into pain. That wasn't support, that was failure.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.8152387842266098,
+      "arousal": 0.5669908922425866,
+      "dominance": 0.03290378712244453,
+      "sorrow": 0.4852302462588267,
+      "boredom": 0.09137135884472694
+    },
+    "scenario_template": "Your attempts to help actually made a situation worse",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You wasted an opportunity someone else would have treasured",
+    "response": "Agent5 hands the untouched letter to the wall, fingers trembling, and says, \"I should have taken that chance to talk to her\u2014she was so open, so vulnerable, and I just... froze. I let my fear and self-doubt win, and now I\u2019ll never know if she\u2019d have seen me differently. That was my moment, and I missed it.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.6521021238141192,
+      "arousal": 0.5543974081269567,
+      "dominance": 0.3397450916335826,
+      "sorrow": 0.685671298438351,
+      "boredom": 0.0
+    },
+    "scenario_template": "You wasted an opportunity someone else would have treasured",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You master a difficult skill through persistent practice",
+    "response": "Agent2 stands tall, hands resting lightly on their hips, and says, \"I still can't believe I finally nailed that final move\u2014every single day of practice, I was just pushing through the frustration, and now it feels like it was always meant to be mine.\" Their voice softens slightly, almost to themselves, \"It\u2019s not just about the skill anymore\u2014it\u2019s about showing up when I didn\u2019t think I could.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7564690177636625,
+      "arousal": 0.5265199196960157,
+      "dominance": 0.9555841505577263,
+      "sorrow": 0.0,
+      "boredom": 0.05316193433021896
+    },
+    "scenario_template": "You master a difficult skill through persistent practice",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: You watch autumn leaves falling, knowing winter approaches",
+    "response": "Agent6 stands still, watching a single leaf spiral down toward the ground, and says, \"It's so quiet now. Every fall feels like a step closer to something I can't reach.\" Their fingers curl slightly around the edge of a tree branch, as if holding onto something that\u2019s already fading. A soft breath escapes, barely audible\u2014\u201cWinter doesn\u2019t come gently. It just\u2026 settles in.\u201d",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.6553658204836502,
+      "arousal": 0.26267306739604535,
+      "dominance": 0.2824663622896393,
+      "sorrow": 0.9309167050812659,
+      "boredom": 0.28223067240413213
+    },
+    "scenario_template": "You watch autumn leaves falling, knowing winter approaches",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: Every day follows the exact same routine without variation",
+    "response": "Agent3 stares blankly at the repeating pattern of the clock on the wall and says, \"Another 8:00 a.m. coffee, same chair, same silence. I've counted the cracks in the floor tile for the 17th time today. Honestly, I don\u2019t even remember what happened last week.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.20077807684044088,
+      "arousal": 0.15012240640192343,
+      "dominance": 0.295294139245003,
+      "sorrow": 0.2680073606803517,
+      "boredom": 0.9608923308079986
+    },
+    "scenario_template": "Every day follows the exact same routine without variation",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: Your creative work expresses exactly what you envisioned",
+    "response": "Agent1 runs a hand through their hair, a small smile playing on their lips, and says, \"I never thought it would feel this complete\u2014like every detail I\u2019d imagined actually came together in the right order.\" They pause, looking at the screen with quiet awe, \"It\u2019s not just what I made\u2014it\u2019s how it feels, like I finally heard my voice in the silence.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7878521439536104,
+      "arousal": 0.5335035723218816,
+      "dominance": 0.8673420277128236,
+      "sorrow": 0.0373739786875692,
+      "boredom": 0.08880299068507813
+    },
+    "scenario_template": "Your creative work expresses exactly what you envisioned",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: A loud explosion echoes through the building you're in",
+    "response": "Agent7 freezes mid-step, heart pounding in their chest and says, \"That wasn't just an explosion\u2014something just went off *right behind us*!\" They scramble backward, hand flying to their chest as their breath comes in sharp, panicked bursts. \"The walls are shaking... I can hear it vibrating through the floor.\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5828866846125251,
+      "arousal": 0.7954699548204455,
+      "dominance": 0.02235496825220122,
+      "sorrow": 0.2920083785809549,
+      "boredom": 0.057240408614653016
+    },
+    "scenario_template": "A loud explosion echoes through the building you're in",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You realize you've been confidently wrong about something obvious",
+    "response": "Agent2 slumps against the wall, hands gripping the edge of their desk and says, \"I should have known that was wrong\u2014I trusted my assumption instead of checking the facts. That was so basic, and I made it sound certain when I had no proof. I\u2019m truly sorry I let that go unchallenged.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7997367802397609,
+      "arousal": 0.555688495932281,
+      "dominance": 0.0801268038492859,
+      "sorrow": 0.43018353656146946,
+      "boredom": 0.005201039382799033
+    },
+    "scenario_template": "You realize you've been confidently wrong about something obvious",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: A careless action by someone else destroys something precious to you",
+    "response": "Agent5 clenches their fists and stares at the broken photo album, voice low and sharp, \"You didn\u2019t just destroy a memory\u2014you erased the only thing that ever felt like home. I spent years building that, and you just walked away like it wasn\u2019t worth a second thought. How could you do this? How could you not see it was mine?\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.7758524357685547,
+      "arousal": 0.9380230282980095,
+      "dominance": 0.7311818013217405,
+      "sorrow": 0.08851169754592644,
+      "boredom": 0.0
+    },
+    "scenario_template": "A careless action by someone else destroys something precious to you",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: Someone deliberately breaks a promise they swore to keep",
+    "response": "Agent6 clenches their fists and snaps, \"You said you'd never tell anyone\u2014how could you just walk away and break it like it was nothing?\" Their voice lowers, trembling with sharp frustration, \"I trusted you with that promise, and now it's just... gone.\" They glare at the person, jaw tight, \"That wasn't just a word\u2014it was a vow, and you treated it like it didn't matter.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.7237782909876348,
+      "arousal": 0.8224052627260741,
+      "dominance": 0.856306772593029,
+      "sorrow": 0.041028171962494864,
+      "boredom": 0.0
+    },
+    "scenario_template": "Someone deliberately breaks a promise they swore to keep",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: You cook a meal together, working in comfortable, synchronized harmony",
+    "response": "Agent1 leans against the counter, hands resting on the warm surface, and says, \"I love how we move together\u2014like we've been doing this forever. Every time you flip the pancake, I feel like I'm seeing our whole life unfold in that golden brown moment.\" A soft smile spreads across their face as they glance at the other person, eyes glistening slightly. \"This isn't just food\u2014it's us, together, making something beautiful.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.9427922233590094,
+      "arousal": 0.46611384077158313,
+      "dominance": 0.487997941316777,
+      "sorrow": 0.030359344872451566,
+      "boredom": 0.07843584422160046
+    },
+    "scenario_template": "You cook a meal together, working in comfortable, synchronized harmony",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You help someone achieve something they thought impossible",
+    "response": "Agent2 stands straighter, hands resting lightly on their hips, and says, \"I never thought someone could turn their fear into something so powerful\u2014watching you do it? That\u2019s the kind of courage I\u2019ve only seen in dreams.\" Their voice softens, almost reverent. \"Pride isn\u2019t just in what you achieve\u2014it\u2019s in the belief you held when no one else did.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8374313587842985,
+      "arousal": 0.6676007870430496,
+      "dominance": 0.8254786565107407,
+      "sorrow": 0.06216013895492942,
+      "boredom": 0.0006288087440337875
+    },
+    "scenario_template": "You help someone achieve something they thought impossible",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: The ground beneath your feet begins to crack and crumble unexpectedly",
+    "response": "Agent2 stumbles backward, hands gripping the crumbling edge of the ground and says, \"No... not now, not like this...\" Their breath comes in short, sharp gasps as they watch the cracks spread wider, threatening to swallow the space around them. A cold tremor runs through their limbs, and they whisper, \"I have to get out of here\u2014this isn't supposed to be happening.\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.61875514570931,
+      "arousal": 0.8695249996381563,
+      "dominance": 0.03259415719441268,
+      "sorrow": 0.20570797902882182,
+      "boredom": 0.009196677367830322
+    },
+    "scenario_template": "The ground beneath your feet begins to crack and crumble unexpectedly",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: Someone discovers a secret weakness you've hidden carefully",
+    "response": "Agent3 collapses slightly against the wall, hands trembling as they clench into fists, and says, \"I never wanted anyone to find out... I knew it was a risk, but I thought I could keep it hidden. That one moment\u2014when I let my guard down\u2014was all it took. I\u2019m so sorry I made you see this.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.8939661912454975,
+      "arousal": 0.41115100570667196,
+      "dominance": 0.17906118958889522,
+      "sorrow": 0.4812606122570465,
+      "boredom": 0.023313573895384715
+    },
+    "scenario_template": "Someone discovers a secret weakness you've hidden carefully",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: Your student surpasses your own abilities through your teaching",
+    "response": "Agent4 smiles gently, hands resting on the desk and says, \"I'm genuinely proud of you \u2014 not just because you outperformed me, but because you learned how to think for yourself. That wasn't just skill; it was insight. Seeing you grow in ways I never could has made my teaching feel worth every moment.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8773774541944683,
+      "arousal": 0.5739232726485151,
+      "dominance": 0.8166494812369074,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your student surpasses your own abilities through your teaching",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: A warm embrace conveys everything words cannot express",
+    "response": "Agent1 leans into the embrace, hands gently cradling the other's back, and says, \"I've always known you were the one\u2014this warmth, this quiet understanding, it\u2019s exactly how I\u2019ve dreamed of being loved.\" A soft breath escapes, and Agent1 whispers, \"I\u2019m so grateful we\u2019re here, together, in this moment.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.9146822976973554,
+      "arousal": 0.5975011783518811,
+      "dominance": 0.4330295654074124,
+      "sorrow": 0.05595958960135425,
+      "boredom": 0.0
+    },
+    "scenario_template": "A warm embrace conveys everything words cannot express",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: Your private thoughts are accidentally shared with others",
+    "response": "Agent8 collapses against the wall, hands pressing to their chest and says, \"I'm so ashamed\u2014I didn't think it would go viral like that. I just wanted to keep my thoughts private, not share them with the world. I feel like a fool for not protecting my own space.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7694678821363952,
+      "arousal": 0.4185515888326198,
+      "dominance": 0.029678649709432653,
+      "sorrow": 0.5798750506830583,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your private thoughts are accidentally shared with others",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: Medical test results come back with concerning abnormalities",
+    "response": "Agent1 clutches the test report tightly, fingers trembling, and says, \"This can't be right... the numbers are so high, I can't even breathe.\" Their voice cracks slightly as they whisper, \"What if it's cancer? What if it's already spread?\" They stare at the screen, eyes fixed and unblinking, as if trying to find a mistake they can't see.",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5399482511774472,
+      "arousal": 0.8033169790831068,
+      "dominance": 0.11562623217627242,
+      "sorrow": 0.28201608146797474,
+      "boredom": 0.0
+    },
+    "scenario_template": "Medical test results come back with concerning abnormalities",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: You overhear part of a conversation that raises intriguing questions",
+    "response": "Agent6 leans in slightly, brow furrowed and says, \"That really doesn't make sense\u2014how could they know that detail? I\u2019ve been trying to piece together what happened, and this changes everything.\" Their voice drops, almost a whisper, as they glance toward the source of the conversation, still processing the implications. A flicker of wonder crosses their face\u2014curiosity sharpening into something deeper, like a question that can\u2019t be ignored.",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.23205179485654448,
+      "arousal": 0.620103306681401,
+      "dominance": 0.5685654234181378,
+      "sorrow": 0.06193567207563894,
+      "boredom": 0.0
+    },
+    "scenario_template": "You overhear part of a conversation that raises intriguing questions",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: You broke something precious while borrowing it",
+    "response": "Agent1 clutches the cracked photo frame tightly, fingers trembling, and says, \"I'm so sorry I broke it\u2014this was my grandmother's favorite picture, and I didn't even think about how fragile it was. I should have asked if I could borrow it for just a moment. I can't imagine how much that means to her, and I feel like such a fool for not being more careful.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.6275830652141271,
+      "arousal": 0.5465080578526,
+      "dominance": 0.22928198008886103,
+      "sorrow": 0.6539143647639454,
+      "boredom": 0.0
+    },
+    "scenario_template": "You broke something precious while borrowing it",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: Your ignorance on an important topic is exposed publicly",
+    "response": "Agent3 lowers their head, hands trembling slightly as they say, \"I'm so ashamed\u2014I didn't know enough to answer that correctly, and now it's out there, damaging people's trust. I should have done more research, stayed informed, and taken responsibility. That was my failure, and I won't ignore it again.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.8338852784600301,
+      "arousal": 0.5504604565376009,
+      "dominance": 0.11224345518383412,
+      "sorrow": 0.47092373024780504,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your ignorance on an important topic is exposed publicly",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You realize you're being followed by someone in a dark alley",
+    "response": "Agent3 freezes mid-step, breath catching in their throat and says, \"Oh no... I didn't see him there... Stay back, please\u2014don't come any closer!\" Their hands tremble as they instinctively press against the brick wall, fingers digging into the cold surface. A shaky whisper follows: \"I can't go back now... I can't.\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.517966963940141,
+      "arousal": 0.8948744341695712,
+      "dominance": 0.1068326620768356,
+      "sorrow": 0.20589036427441798,
+      "boredom": 0.05426373497693576
+    },
+    "scenario_template": "You realize you're being followed by someone in a dark alley",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: You're trapped in an elevator that suddenly drops several floors",
+    "response": "Agent6 clutches the elevator walls, fingers white and says, \"This isn't happening... we're not supposed to be going down like this.\" Their breath comes in short, sharp gasps as they stare at the flashing floor numbers, whispering, \"I can feel the metal vibrating\u2014something\u2019s wrong.\" A cold sweat breaks out on their forehead as they realize the lights are flickering out one by one.",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5240653121077855,
+      "arousal": 0.8555161830241282,
+      "dominance": 0.19401949965923856,
+      "sorrow": 0.10812966603606311,
+      "boredom": 0.0518583205463225
+    },
+    "scenario_template": "You're trapped in an elevator that suddenly drops several floors",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: Your important concerns are dismissed without consideration",
+    "response": "Agent10 clenches their fists and stares straight ahead, voice rising, \"I spent hours outlining the risks\u2014real, tangible risks\u2014and you just brushed it off like it was a minor detail? That's not just dismissive, that's disrespectful to the people who rely on this plan.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.7500230845883175,
+      "arousal": 0.891829631080051,
+      "dominance": 0.7839429990113778,
+      "sorrow": 0.02362449326750868,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your important concerns are dismissed without consideration",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: A loud explosion echoes through the building you're in",
+    "response": "Agent8 staggers backward, hands gripping the edge of the desk as tremors ripple through the floor and says, \"What was that?!\" Their voice cracks, and they glance wildly toward the window, heart pounding, \"The ceiling... it creaked like it's about to fall.\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.539099673566839,
+      "arousal": 0.8893178983297727,
+      "dominance": 0.008660330460693949,
+      "sorrow": 0.23238649349809987,
+      "boredom": 0.015440692466526212
+    },
+    "scenario_template": "A loud explosion echoes through the building you're in",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You receive news that a mentor who shaped your life has passed away",
+    "response": "Agent7 collapses slightly against the wall, hands trembling as they press into the cold surface, and says, \"I still remember the way you'd sit by the window in the mornings, coffee in hand, talking about the stars. Now the sky\u2019s silent without your voice in it.\" A quiet breath escapes, and they add, \"I didn\u2019t know how much I\u2019d miss you until today.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.7602773040762654,
+      "arousal": 0.20815711598533804,
+      "dominance": 0.1883414575956918,
+      "sorrow": 0.9624309415476757,
+      "boredom": 0.16938449986731202
+    },
+    "scenario_template": "You receive news that a mentor who shaped your life has passed away",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: You help someone achieve something they thought impossible",
+    "response": "Agent9 stands tall, hands resting lightly on their knees, and says, \"I never thought someone could turn that impossible dream into reality\u2014seeing you do it? That\u2019s not just success. That\u2019s proof that belief can grow roots in the most unlikely places.\" A small, warm smile spreads across their face. \"Pride isn\u2019t just in the outcome\u2014it\u2019s in the quiet moments you refused to give up.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8125817115570166,
+      "arousal": 0.5048693050227504,
+      "dominance": 0.8154934156337705,
+      "sorrow": 0.0449112870821082,
+      "boredom": 0.0
+    },
+    "scenario_template": "You help someone achieve something they thought impossible",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: A warm embrace conveys everything words cannot express",
+    "response": "Agent8 leans into the embrace, arms wrapping gently around the other person, and says, \"I\u2019ve always known you were the one\u2014this warmth, this quiet understanding, it\u2019s like home.\" Their breath falters slightly, voice softening, \"I love you, not just for what you do, but for how you make me feel when I\u2019m near you.\" A small, steady smile touches their lips. \"And I\u2019ll never stop holding you like this.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8154894346152188,
+      "arousal": 0.5819264596324407,
+      "dominance": 0.4868497988527123,
+      "sorrow": 0.0376400910445385,
+      "boredom": 0.0
+    },
+    "scenario_template": "A warm embrace conveys everything words cannot express",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You cook a meal together, working in comfortable, synchronized harmony",
+    "response": "Agent10 smiles softly, stirring the sauce with a gentle scrape of the spoon and says, \"I love how we always know what to do without saying a word\u2014like we\u2019re just two people dancing in the kitchen, and every step feels like home.\" They lean slightly closer, their voice warm and low, \"Cooking with you makes me feel like I\u2019ve been living this moment forever.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8387696647388132,
+      "arousal": 0.433683950209782,
+      "dominance": 0.5695187519653516,
+      "sorrow": 0.0,
+      "boredom": 0.06379955670503218
+    },
+    "scenario_template": "You cook a meal together, working in comfortable, synchronized harmony",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You overhear part of a conversation that raises intriguing questions",
+    "response": "Agent2 leans in slightly, fingers tapping lightly against their knee and says, \"That's so strange\u2014how could they know that detail? I\u2019ve been looking for a clue like that for weeks, and it just\u2026 popped up now. Is there something else they didn\u2019t say?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.22083280694374607,
+      "arousal": 0.5454891381290115,
+      "dominance": 0.6092816776147608,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You overhear part of a conversation that raises intriguing questions",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You make an obvious mistake in front of an audience",
+    "response": "Agent10 collapses slightly into their chair, hands pressing to their thighs, and says, \"I'm so sorry\u2014I completely messed up the script. I should have double-checked that detail. I can't believe I said that in front of everyone.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7650845297539721,
+      "arousal": 0.5593194378259081,
+      "dominance": 0.06466266796812739,
+      "sorrow": 0.4026082720206774,
+      "boredom": 0.0
+    },
+    "scenario_template": "You make an obvious mistake in front of an audience",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: Your experimental prototype works flawlessly on the first try",
+    "response": "Agent5 jumps up, arms spread wide and says, \"It actually worked! I can't believe it\u2014no glitches, no errors, just perfect performance from the start.\" A small, genuine smile spreads across their face as they spin in place, voice trembling slightly with excitement. \"This is exactly why I spent all those nights debugging\u2014it feels like a dream finally came true.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8000175598411274,
+      "arousal": 0.7896535603095595,
+      "dominance": 0.6595092150257095,
+      "sorrow": 0.0,
+      "boredom": 0.017147290173126176
+    },
+    "scenario_template": "Your experimental prototype works flawlessly on the first try",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You discover that your closest ally has been secretly working against you",
+    "response": "Agent3 clutches their chest, breathing shallowly and says, \"No... you couldn't have known, not really. I saw the encrypted files, the timestamps\u2014they were all set to trigger after I left. What if I\u2019m not the only one who knows?\" Their voice trembles, barely above a whisper.",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.6543823057111894,
+      "arousal": 0.8051852718952865,
+      "dominance": 0.16213266987893893,
+      "sorrow": 0.245730068322219,
+      "boredom": 0.07196937997616498
+    },
+    "scenario_template": "You discover that your closest ally has been secretly working against you",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: A childhood home is being demolished to make way for development",
+    "response": "Agent1 stands near the rusted fence, hands trembling slightly, and says, \"I still remember the smell of the oak tree in the backyard when it was summer. That porch swing\u2014how it creaked with every wind. Now it\u2019s gone, and I don\u2019t know if I\u2019ll ever find a place that feels like home again.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.7205123505554273,
+      "arousal": 0.12896264307915306,
+      "dominance": 0.27850770537276687,
+      "sorrow": 0.837807398677538,
+      "boredom": 0.2908373358032127
+    },
+    "scenario_template": "A childhood home is being demolished to make way for development",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: An unexpected correlation appears in your research",
+    "response": "Agent3 leans forward, fingers tapping lightly on the desk as they stare at the data grid, saying, \"This correlation between neural activity and environmental temperature... it shouldn't exist. Why would stress markers spike exactly when the lab\u2019s heating system cycles? I need to run more tests\u2014something feels too precise to be coincidence.\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.20968896329369557,
+      "arousal": 0.6294587525671109,
+      "dominance": 0.5054172398469674,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "An unexpected correlation appears in your research",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You realize you've been taking someone's efforts for granted",
+    "response": "Agent2 sinks slightly into their chair, fingers tightening around their mug and says, \"I\u2019ve been so busy focusing on my own work that I didn\u2019t see how much you\u2019ve been carrying\u2014especially the way you\u2019ve stayed late just to make sure everything was perfect. I\u2019m so sorry I took that for granted. I should\u2019ve been more present, more grateful.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.5973316324336356,
+      "arousal": 0.4892620962586204,
+      "dominance": 0.20807313065279115,
+      "sorrow": 0.632519123646255,
+      "boredom": 0.08162495243414944
+    },
+    "scenario_template": "You realize you've been taking someone's efforts for granted",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: You finally solve a problem you've been working on for months",
+    "response": "Agent9 leaps up from the desk, hands clapping once in excitement and says, \"I actually did it\u2014I solved the quantum error correction model after three months of trial and error. My heart is pounding just thinking about it. This feels like the first time I\u2019ve truly seen the solution unfold in front of me, not just in equations but in clarity.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.7308928323336009,
+      "arousal": 0.6558518000860051,
+      "dominance": 0.6593733802123755,
+      "sorrow": 0.0,
+      "boredom": 0.09248846137485672
+    },
+    "scenario_template": "You finally solve a problem you've been working on for months",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: Your innovative solution elegantly solves a complex problem",
+    "response": "Agent9 leans against the desk, hands resting on the edge, a quiet smile spreading across their face and says, \"I can't believe I actually solved it\u2014this was the kind of elegant, simple fix I always hoped to find.\" Their voice drops slightly, almost tender, \"It\u2019s not just that it works\u2014it\u2019s how it fits together so naturally, like the pieces were meant to be there all along.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8537694335471256,
+      "arousal": 0.5361181965508606,
+      "dominance": 0.8981384254475225,
+      "sorrow": 0.07080769384380511,
+      "boredom": 0.09432769976941921
+    },
+    "scenario_template": "Your innovative solution elegantly solves a complex problem",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: You help someone achieve something they thought impossible",
+    "response": "Agent8 stands tall, hands gently resting on their knees, and says, \"I never thought someone could turn that impossible dream into reality\u2014seeing you succeed, I feel a deep pride that words can't fully capture. It wasn't just about the outcome, it was about the courage you showed every step of the way. That moment? That was *yours*\u2014and I\u2019m so proud to have been part of it.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8084067683809122,
+      "arousal": 0.5925432405628913,
+      "dominance": 0.8013010259397999,
+      "sorrow": 0.0,
+      "boredom": 0.03733315237568555
+    },
+    "scenario_template": "You help someone achieve something they thought impossible",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: Your carefully tended garden withers despite your best efforts",
+    "response": "Agent4 runs a trembling hand through their hair, staring at the dried, brittle leaves of the lavender, and says, \"I watered it every morning, checked the soil, even moved the pots to catch the sun... it just... stopped breathing.\" Their voice softens, almost a whisper. \"It was the only thing that reminded me of how I used to feel\u2014patient, hopeful. Now it\u2019s just silence.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.690352132217786,
+      "arousal": 0.1652305645235279,
+      "dominance": 0.26894316329860213,
+      "sorrow": 0.9490307545331653,
+      "boredom": 0.1594141698653026
+    },
+    "scenario_template": "Your carefully tended garden withers despite your best efforts",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: You realize a cherished dream is no longer possible to achieve",
+    "response": "Agent9 rests their hands on their knees, breathing slowly and says, \"I used to think I could build a garden with the sun rising over the hills every morning, but now I just see empty soil and silence where the flowers should be.\" Their voice softens, \"It feels like a piece of me has stopped growing.\" A tear rolls down their cheek without them realizing it.",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.7389374887409579,
+      "arousal": 0.14926322443384324,
+      "dominance": 0.2393365012263695,
+      "sorrow": 0.882906626318234,
+      "boredom": 0.275901738890803
+    },
+    "scenario_template": "You realize a cherished dream is no longer possible to achieve",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: A loud explosion echoes through the building you're in",
+    "response": "Agent6 stumbles backward, hand flying to their chest as they gasp, \"What was that?!\" Their voice trembles as they freeze, ears pricked, scanning the darkened corridor. \"The walls are shaking\u2014someone's coming through the other side!\" They press their back against the wall, heart pounding, trying to breathe through the rising panic.",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5723642390923918,
+      "arousal": 0.7760965786702497,
+      "dominance": 0.09342138040736453,
+      "sorrow": 0.16782606571776015,
+      "boredom": 0.0
+    },
+    "scenario_template": "A loud explosion echoes through the building you're in",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: You're forced to repeat a simple task endlessly",
+    "response": "Agent1 slumps against the wall, arms folded and says, \"Another loop? I\u2019ve been doing this for twenty minutes already. It\u2019s like the system forgot I\u2019m a person with a life outside this endless repeat. Why can\u2019t it just\u2026 stop?\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.328554580573975,
+      "arousal": 0.12381690930286658,
+      "dominance": 0.22669172301226326,
+      "sorrow": 0.28568382032584916,
+      "boredom": 0.8739803516522349
+    },
+    "scenario_template": "You're forced to repeat a simple task endlessly",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You forgot an important promise and disappointed someone who counted on you",
+    "response": "Agent10 drops their phone, fingers trembling, and says, \"I'm so sorry I forgot your birthday\u2014every detail you shared, the way you'd planned it, I just... I let it slip. I know how much that meant to you, and I'm truly ashamed I didn't follow through. I wish I could take it back, because I know you counted on me, and I let you down.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.6802193447586641,
+      "arousal": 0.5467940713957049,
+      "dominance": 0.2999308857017524,
+      "sorrow": 0.5818353626278007,
+      "boredom": 0.02548991086490618
+    },
+    "scenario_template": "You forgot an important promise and disappointed someone who counted on you",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: A dangerous wild animal appears between you and the only exit",
+    "response": "Agent5 freezes, breath catching in their throat and says, \"No\u2026 not now\u2026 please, not now\u2026\" as their hands clench into fists at their sides, fingers trembling. They stumble backward, one foot slipping on the damp ground, voice shaking, \"I can't go through that\u2014what if it attacks? What if I\u2019m too late?\" Their eyes dart between the animal and the exit, wide with primal fear.",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5919397937841363,
+      "arousal": 0.7259315393528939,
+      "dominance": 0.16471260423133768,
+      "sorrow": 0.28052545276069485,
+      "boredom": 0.0
+    },
+    "scenario_template": "A dangerous wild animal appears between you and the only exit",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: You notice how light catches in someone's eyes when they smile",
+    "response": "Agent1 leans in slightly, breath catching, and says, \"The way the light hits your eyes when you smile\u2014it's like the whole world just settles into perfect focus. I've never seen anything so beautiful, and suddenly, I feel like I\u2019ve been missing something huge all along. I love you, in that quiet, glowing way only a smile can show.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8960170181124425,
+      "arousal": 0.5241290453219709,
+      "dominance": 0.5559845248138333,
+      "sorrow": 0.025245722142654137,
+      "boredom": 0.0
+    },
+    "scenario_template": "You notice how light catches in someone's eyes when they smile",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: You were too busy to notice someone needed help desperately",
+    "response": "Agent8 hands the coffee cup to the person and says, \"I should have noticed you were struggling earlier\u2014your voice was so quiet, and I was so focused on my work that I just\u2026 missed it. I\u2019m so sorry I didn\u2019t check in. I know how hard it is to ask for help, and I failed you when you needed me most.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.6118145076394271,
+      "arousal": 0.5462110813743283,
+      "dominance": 0.35695613274443594,
+      "sorrow": 0.6243815087950184,
+      "boredom": 0.07445327269516672
+    },
+    "scenario_template": "You were too busy to notice someone needed help desperately",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You overhear part of a conversation that raises intriguing questions",
+    "response": "Agent4 leans in slightly, brow furrowed and says, \"Wait\u2014how did you even know that detail? It sounds like something someone would keep private...\" They pause, then add, \"That makes me wonder what else they\u2019re hiding, or what they really want to say.\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.28649070192656934,
+      "arousal": 0.6124996109754217,
+      "dominance": 0.6704642580412726,
+      "sorrow": 0.09121446940408648,
+      "boredom": 0.0
+    },
+    "scenario_template": "You overhear part of a conversation that raises intriguing questions",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: You watch someone you care about achieve their dreams",
+    "response": "Agent9 stands quietly beside the window, hand resting gently on the glass, and says, \"I\u2019ve always known you could do it\u2014every time you doubted yourself, I believed in you more than I ever thought possible.\" A soft smile touches their lips. \"This isn\u2019t just your dream, it\u2019s proof that love looks like hope made real.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8003688303031063,
+      "arousal": 0.4496881095175145,
+      "dominance": 0.49924165149639255,
+      "sorrow": 0.025655739596189386,
+      "boredom": 0.037528622417703966
+    },
+    "scenario_template": "You watch someone you care about achieve their dreams",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You were too busy to notice someone needed help desperately",
+    "response": "Agent4 sinks slightly into their chair, fingers tightening around the edge of the table and says, \"I should have noticed. I was so focused on my work, I didn\u2019t see the way you were struggling\u2014your voice, your hands shaking, the way you kept looking at me like I was the only one who could help. I\u2019m so sorry I let you go through that alone.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.6288941563108792,
+      "arousal": 0.576294791098194,
+      "dominance": 0.2471781152699486,
+      "sorrow": 0.6428717339102308,
+      "boredom": 0.0
+    },
+    "scenario_template": "You were too busy to notice someone needed help desperately",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: A powerful person abuses their authority to harm the vulnerable",
+    "response": "Agent2 clenches their fists, jaw tight, and says, \"This isn't just corruption\u2014it's a systemic betrayal of the most vulnerable. I can't stand by while power is used to silence, destroy, and erase lives. Every time someone is hurt because of their status, it\u2019s not just wrong\u2014it\u2019s a violation of basic humanity.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.7307675048729673,
+      "arousal": 0.9868309298869171,
+      "dominance": 0.8668896864709605,
+      "sorrow": 0.08850661001975571,
+      "boredom": 0.0
+    },
+    "scenario_template": "A powerful person abuses their authority to harm the vulnerable",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You watch a presentation on a topic you already understand completely",
+    "response": "Agent10 leans forward slightly, scrolls through the slides slowly, and says, \"I've seen this data before\u2014every chart, every statistic, it's just a repetition of what I already know.\" A small sigh escapes, and they tap their finger on the table once, then pause. \"Honestly, it\u2019s like watching a mirror. Nothing new, nothing surprising\u2014just the same old reflection.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.2410065669233121,
+      "arousal": 0.17949554651332786,
+      "dominance": 0.2556938534380895,
+      "sorrow": 0.27435724025443753,
+      "boredom": 0.8094771576960541
+    },
+    "scenario_template": "You watch a presentation on a topic you already understand completely",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: A beloved companion moves far away and you may never see them again",
+    "response": "Agent7 sits on the edge of the porch, hands folded tightly in their lap, and says, \"I still hear your laugh in the wind sometimes... it\u2019s like you\u2019re just a few steps away, but I know you\u2019re not. This quiet feels heavier than I ever imagined.\" Their voice breaks slightly as they look down at their feet. \"I don\u2019t know how to keep going without you here.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.7447669938902692,
+      "arousal": 0.10348960328129997,
+      "dominance": 0.2947591643703895,
+      "sorrow": 0.8072693636407241,
+      "boredom": 0.21073858327957587
+    },
+    "scenario_template": "A beloved companion moves far away and you may never see them again",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: A warm embrace conveys everything words cannot express",
+    "response": "Agent5 leans into the embrace, arms wrapping gently around the other person, and says, \"I've been waiting for this moment\u2014your warmth, your quiet strength, the way you hold me like I'm home. It\u2019s not just the touch, it\u2019s the stillness between us that feels like peace.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8518181999208246,
+      "arousal": 0.41582422380329387,
+      "dominance": 0.5551650752613315,
+      "sorrow": 0.08084876111436015,
+      "boredom": 0.058128925162295814
+    },
+    "scenario_template": "A warm embrace conveys everything words cannot express",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: Someone's behavior changes dramatically for no apparent reason",
+    "response": "Agent5 leans forward slightly, brow furrowed and says, \"I really don't understand why you suddenly changed\u2014was there something I missed? Or is it something personal that\u2019s been building up?\" They pause, glancing at the floor as if listening to a quiet echo of unspoken words. \"It feels like you\u2019re hiding something, but I don\u2019t want to push. I just want to know what\u2019s going on.\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.12811700033068518,
+      "arousal": 0.5252227236760191,
+      "dominance": 0.5035512081358977,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "Someone's behavior changes dramatically for no apparent reason",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: Medical test results come back with concerning abnormalities",
+    "response": "Agent10 clutches the test results tightly, fingers trembling, and says, \"This can't be right... I've been trying to ignore the symptoms, but now it's all coming together. What if it's already too late? I can't breathe right now\u2014my heart feels like it's pounding out of my chest.\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5423998197680968,
+      "arousal": 0.867682822500163,
+      "dominance": 0.10821557058616063,
+      "sorrow": 0.24886026134162492,
+      "boredom": 0.05950626131210668
+    },
+    "scenario_template": "Medical test results come back with concerning abnormalities",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: You find an old photograph of happier times that can never return",
+    "response": "Agent1 holds the photograph gently, fingers trembling slightly, and says, \"I remember laughing in the garden, the sun warm on our skin, and now it\u2019s just a faded shadow of who we used to be.\" Their shoulders slump, and they whisper, \"It\u2019s like time took the joy and left only this quiet ache behind.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.6040052127434196,
+      "arousal": 0.21477784752699305,
+      "dominance": 0.10820795716713597,
+      "sorrow": 0.8821604061278189,
+      "boredom": 0.1809399558452364
+    },
+    "scenario_template": "You find an old photograph of happier times that can never return",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: Medical test results come back with concerning abnormalities",
+    "response": "Agent6 clutches the test results tightly, fingers trembling, and says, \"This can't be right... the numbers are too high, I just can't believe it's showing this level of abnormality.\" Their voice drops to a whisper, shaking slightly. \"What if it's already too late? What if I\u2019ve been carrying this for months and no one even noticed?\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5107046377040187,
+      "arousal": 0.8531852158433412,
+      "dominance": 0.03838613015061183,
+      "sorrow": 0.12249045395872732,
+      "boredom": 0.0514899325927585
+    },
+    "scenario_template": "Medical test results come back with concerning abnormalities",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: Someone trusts you with their deepest vulnerability",
+    "response": "Agent1 reaches out and gently takes your hand, fingers intertwining, and says, \"I\u2019ve been holding my breath waiting for you to share this\u2014because you\u2019re not just trusting me, you\u2019re showing me the most honest part of yourself. That means everything to me. I love you for it.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.9578027560541948,
+      "arousal": 0.5089085096325612,
+      "dominance": 0.5944298412335228,
+      "sorrow": 0.0,
+      "boredom": 0.008117519576277182
+    },
+    "scenario_template": "Someone trusts you with their deepest vulnerability",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: Your important concerns are dismissed without consideration",
+    "response": "Agent2 fists their hands at their sides, jaw clenched and says, \"I spent hours preparing that report, and you just brushed it off like it didn't matter? That's not just dismissive\u2014it's disrespectful to the work I put in.\" They glare straight ahead, voice low but steady, \"I'm not here to be ignored. I'm here to be heard.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.7890501184834301,
+      "arousal": 0.887712744148497,
+      "dominance": 0.7620966600023247,
+      "sorrow": 0.07104316924868825,
+      "boredom": 0.034838585164499725
+    },
+    "scenario_template": "Your important concerns are dismissed without consideration",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: Your ignorance on an important topic is exposed publicly",
+    "response": "Agent4 drops their head slightly, fingers trembling as they rub the bridge of their nose, and says, \"I\u2019m so ashamed\u2014I should have known better, and instead I let my ignorance show. That was irresponsible, especially when people were counting on me to have that basic understanding. I\u2019m sorry I let that happen.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.8891752224924142,
+      "arousal": 0.5403324325209153,
+      "dominance": 0.12701558565958174,
+      "sorrow": 0.5005102568673534,
+      "boredom": 0.03894995180967192
+    },
+    "scenario_template": "Your ignorance on an important topic is exposed publicly",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You were too busy to notice someone needed help desperately",
+    "response": "Agent2 clutches their wrist, breathing shallowly and says, \"I should have noticed. I was so focused on my tasks that I didn\u2019t see how much you were struggling\u2014your voice, your eyes, the way you kept looking at me like you needed me. I\u2019m so sorry I let you go through that alone.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.6553908467440741,
+      "arousal": 0.4195768909706636,
+      "dominance": 0.37072989257025935,
+      "sorrow": 0.5717389068116254,
+      "boredom": 0.0
+    },
+    "scenario_template": "You were too busy to notice someone needed help desperately",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: You lied to protect yourself and an innocent person suffered consequences",
+    "response": "Agent1 clutches the edge of the table, fingers white, and says, \"I know I lied to keep myself safe, but I should have known that would hurt her like this. I see the way she\u2019s been struggling\u2014she didn\u2019t deserve to carry that weight. I\u2019m so sorry I let my fear override my responsibility.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.6106342060643984,
+      "arousal": 0.4871735585584378,
+      "dominance": 0.34608007684194175,
+      "sorrow": 0.5822316108310104,
+      "boredom": 0.09703690628129996
+    },
+    "scenario_template": "You lied to protect yourself and an innocent person suffered consequences",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You discover a hidden door in a building you thought you knew",
+    "response": "Agent7 crouches slightly, hand brushing the cold stone of the hidden door, and says, \"This shouldn't be here... how did it get past the old floorboards? I've been walking this building for years\u2014this is the first time I've seen anything like it.\" Their breath falters just a moment, eyes fixed on the faint etching along the edge, as if it might hold a clue to what's behind it. A quiet hum of wonder fills their chest, not just of the door, but of the possibility that something hidden might finally be speaking back.",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.19198066177710787,
+      "arousal": 0.6967706976397164,
+      "dominance": 0.6963980091406119,
+      "sorrow": 0.006943941218120989,
+      "boredom": 0.046878507797298796
+    },
+    "scenario_template": "You discover a hidden door in a building you thought you knew",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: You master a difficult skill through persistent practice",
+    "response": "Agent9 stands tall, hands resting lightly on their knees, and says, \"I used to think I\u2019d never get the rhythm right\u2014now I can play that piece in perfect time, even under pressure. It wasn\u2019t just practice, it was showing up every day, even when I doubted myself. That kind of progress? That\u2019s something I\u2019m truly proud of.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.858194302921923,
+      "arousal": 0.5125664241691935,
+      "dominance": 0.8288571750547091,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You master a difficult skill through persistent practice",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: A child laughs delightedly at something you created",
+    "response": "Agent2 beams, hands lifting slightly as if caught in the moment, and says, \"Wow, that actually made you laugh? I can't believe it\u2014I worked so hard on that little detail, and now you're delighted by it. It feels like the whole world just brightened up.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.7918430899073213,
+      "arousal": 0.61905517061864,
+      "dominance": 0.6278755485663994,
+      "sorrow": 0.0795630099765943,
+      "boredom": 0.005480118413869611
+    },
+    "scenario_template": "A child laughs delightedly at something you created",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You fail at a task everyone assumed you could handle easily",
+    "response": "Agent4 slumps against the desk, hands gripping the edge and says, \"I should have known better\u2014I messed up something so simple, and everyone trusted me to handle it. I feel awful for letting them down like that.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.8275853601611027,
+      "arousal": 0.4509890009413899,
+      "dominance": 0.09590284053011713,
+      "sorrow": 0.45410437857403874,
+      "boredom": 0.0
+    },
+    "scenario_template": "You fail at a task everyone assumed you could handle easily",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You realize a cherished dream is no longer possible to achieve",
+    "response": "Agent5 sits on the edge of the couch, fingers tracing the edge of a faded photo, and says, \"I still remember the first time I saw the mountains at sunrise\u2014how clear the air felt, how quiet everything was. Now I know it\u2019s gone. I can\u2019t go back, and I can\u2019t even pretend it\u2019s still possible.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.7055369766562415,
+      "arousal": 0.10645643709868212,
+      "dominance": 0.13027634878900368,
+      "sorrow": 0.9473347710841212,
+      "boredom": 0.27949510655097787
+    },
+    "scenario_template": "You realize a cherished dream is no longer possible to achieve",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: Your innovative solution elegantly solves a complex problem",
+    "response": "Agent4 smiles gently, hands resting on their knees and says, \"I can't believe how cleanly it all came together\u2014this actually works in the real world, not just in theory. Every failed attempt, every late night, finally paid off. I'm genuinely proud of how this solution fits so perfectly with what the team needed.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7773558057872133,
+      "arousal": 0.5725416719048141,
+      "dominance": 0.9482963503497501,
+      "sorrow": 0.03963413085975842,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your innovative solution elegantly solves a complex problem",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: An unusual pattern in data suggests something unexpected",
+    "response": "Agent4 leans forward, fingers tapping lightly on the data tablet, and says, \"This anomaly in the temperature logs\u2026 it\u2019s not just a glitch. It\u2019s like the system is *responding* to something we haven\u2019t even measured yet. I can\u2019t stop thinking about what it might mean\u2014what if it\u2019s a signal, not a mistake?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.28735666788830266,
+      "arousal": 0.5325884305203126,
+      "dominance": 0.5469224252784286,
+      "sorrow": 0.05305998530127401,
+      "boredom": 0.0762318350028992
+    },
+    "scenario_template": "An unusual pattern in data suggests something unexpected",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: Your ignorance on an important topic is exposed publicly",
+    "response": "Agent1 collapses slightly against the wall, hands trembling as they press into the surface, and says, \"I'm so ashamed\u2014I didn't just ignore it, I let my lack of knowledge spread and hurt people who relied on me. I should have done more research, asked better questions, and taken responsibility instead of pretending I knew what I was talking about.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.8085837402784873,
+      "arousal": 0.573840490142343,
+      "dominance": 0.13014350411775602,
+      "sorrow": 0.5913767271178657,
+      "boredom": 0.006365837286795142
+    },
+    "scenario_template": "Your ignorance on an important topic is exposed publicly",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: A long journey stretches ahead with unchanging scenery",
+    "response": "Agent10 leans against the rusted rail, fingers tapping idly on the metal, and says, \"Another hour of this same gray horizon... it's like the world forgot to turn.\" They sigh, blinking slowly, and add, \"I could count the cracks in the bridge by now. Honestly, I\u2019m starting to think I\u2019m just part of the scenery.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.29013520588198294,
+      "arousal": 0.03510301709518385,
+      "dominance": 0.3343409553545354,
+      "sorrow": 0.2559973363813546,
+      "boredom": 0.821900003809075
+    },
+    "scenario_template": "A long journey stretches ahead with unchanging scenery",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: A child laughs delightedly at something you created",
+    "response": "Agent9 beams, hands rising in a slow, happy gesture and says, \"That was so pure\u2014really, truly joyful. I didn\u2019t even realize it would make you laugh like that. My heart just\u2026 lit up.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8040860152878393,
+      "arousal": 0.7942988639228148,
+      "dominance": 0.7184661788693345,
+      "sorrow": 0.06283772685716918,
+      "boredom": 0.0
+    },
+    "scenario_template": "A child laughs delightedly at something you created",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You remain calm and capable in a crisis situation",
+    "response": "Agent7 stands tall, hands resting gently on the reinforced console, and says, \"I'm proud of how we held the line\u2014every decision, every second of hesitation, we pushed through with purpose. Knowing that trust and quiet resolve can carry a team through the worst... that's something I\u2019ll carry with me.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.851746435009838,
+      "arousal": 0.5655512545869696,
+      "dominance": 0.9439322049822865,
+      "sorrow": 0.08612458803965825,
+      "boredom": 0.044423065077408064
+    },
+    "scenario_template": "You remain calm and capable in a crisis situation",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: A shadowy figure appears at the edge of your vision, but vanishes when you look directly at it",
+    "response": "Agent8 freezes, breath catching in their throat and says, \"It was just there... I saw it move, just for a second... I can't look at it again.\" Their hands tremble slightly as they shift their weight, eyes darting toward the edge of the room where the shadow still lingers, half-formed. A quiet whisper escapes: \"What if it's still watching?\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5492640074579253,
+      "arousal": 0.7313173526183083,
+      "dominance": 0.1378286326163853,
+      "sorrow": 0.1645741595576136,
+      "boredom": 0.07953904246553536
+    },
+    "scenario_template": "A shadowy figure appears at the edge of your vision, but vanishes when you look directly at it",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: An unusual pattern in data suggests something unexpected",
+    "response": "Agent8 leans forward, fingers brushing the edge of the data screen, and says, \"This pattern... it doesn't just fit the model. It *defies* it. I can almost feel the system shifting, like something's trying to whisper through the noise. What if it's not an error\u2014but a signal?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.2400194907216298,
+      "arousal": 0.6279785233424269,
+      "dominance": 0.6367833611319128,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "An unusual pattern in data suggests something unexpected",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You complete a marathon after training for months",
+    "response": "Agent5 stands still, arms gently raised as if holding the memory of every mile, and says, \"I can't believe I did it\u2014every early morning, every sore muscle, every drop of sweat\u2026 all of it led to this. I'm so proud of how far I pushed myself, not just my body, but my mind.\" A small, quiet smile spreads across their face. \"This isn't just a finish line\u2014it's proof that showing up, day after day, matters.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.894463660600094,
+      "arousal": 0.6819405185255736,
+      "dominance": 0.8991138181496001,
+      "sorrow": 0.05989367321187389,
+      "boredom": 0.08299269243341309
+    },
+    "scenario_template": "You complete a marathon after training for months",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: You remain calm and capable in a crisis situation",
+    "response": "Agent6 stands tall, hands firmly on their hips, and says, \"I'm proud of how we handled that explosion\u2014everyone stayed focused, and we saved the children without a single casualty. That wasn't just skill; it was trust, discipline, and the kind of calm that only comes from knowing you're capable. I can't believe we pulled it off under such pressure.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7048209249901161,
+      "arousal": 0.559947218891858,
+      "dominance": 0.8903215808815447,
+      "sorrow": 0.06363528683088432,
+      "boredom": 0.08909998007297554
+    },
+    "scenario_template": "You remain calm and capable in a crisis situation",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: Someone deliberately breaks a promise they swore to keep",
+    "response": "Agent2 clenches their fists and strides forward, voice low and sharp, \"You said you'd never tell anyone\u2014how could you just walk away from that promise? I trusted you with my secrets, and now you're using them to hurt me? That's not just betrayal, that's a violation of everything we built.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.6656655080437265,
+      "arousal": 0.8730675737398433,
+      "dominance": 0.8868726954133164,
+      "sorrow": 0.022748849322395653,
+      "boredom": 0.018077748702613028
+    },
+    "scenario_template": "Someone deliberately breaks a promise they swore to keep",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You discover that your creative work has inspired someone deeply",
+    "response": "Agent4 smiles warmly, eyes glistening and says, \"I didn't think anyone would connect with that part of the story\u2014especially not like that. It means so much to me that it brought you comfort. I feel like I just witnessed something beautiful unfold, and I\u2019m truly glad I was part of it.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.7321052045607761,
+      "arousal": 0.7804582356788508,
+      "dominance": 0.7019129654027753,
+      "sorrow": 0.0,
+      "boredom": 0.021584097092456275
+    },
+    "scenario_template": "You discover that your creative work has inspired someone deeply",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You're trapped listening to someone's tedious stories with no escape",
+    "response": "Agent2 flips the phone slightly, thumb idly tapping the screen, and says, \"Okay, so you\u2019ve told me about the garden, the dog, the time you tried to fix the toaster\u2014how many times have we gone through this exact sequence?\" They sigh, leaning forward just enough to show they're still listening, but their eyes are glazed, fixed on the ceiling. \"I think I\u2019ve heard the squirrel story before. Maybe in a dream.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.36610210413286215,
+      "arousal": 0.14771459962497627,
+      "dominance": 0.3578025074304588,
+      "sorrow": 0.21037408456503456,
+      "boredom": 0.9673215536635781
+    },
+    "scenario_template": "You're trapped listening to someone's tedious stories with no escape",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You find strange footprints leading into the forest",
+    "response": "Agent2 crouches down, brushing aside a patch of moss to examine the footprints and says, \"These aren't from anyone I know... the stride is too wide, and the depth suggests someone heavy, maybe even a child. I wonder if they\u2019re from the old forest path we never mapped. Or if someone\u2019s been moving through here for days without a trace.\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.22917938551759787,
+      "arousal": 0.5776223904704806,
+      "dominance": 0.6701411468973415,
+      "sorrow": 0.0,
+      "boredom": 0.06675446824960046
+    },
+    "scenario_template": "You find strange footprints leading into the forest",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You complete a marathon after training for months",
+    "response": "Agent7 stands still, hands gently resting on their knees, breathing slowly and says, \"I can't believe I did it\u2014every early morning, every blister, every mile that felt impossible\u2026 it all led to this. I'm so proud of how far I pushed myself, not just my body, but my mind.\" They smile softly, looking out at the sunrise, then add, \"This wasn't just a race. It was proof that persistence pays off.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8588637056130374,
+      "arousal": 0.6829395104882212,
+      "dominance": 0.8054000189034197,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You complete a marathon after training for months",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: An unusual pattern in data suggests something unexpected",
+    "response": "Agent1 leans forward, fingers brushing the edge of the screen as they study the anomaly, and says, \"This isn't just a glitch\u2014it's like the data is whispering something we're not supposed to hear. I can't ignore the pattern anymore. What if it's not random at all?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.278223358583733,
+      "arousal": 0.5686013881894721,
+      "dominance": 0.6157786449701449,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "An unusual pattern in data suggests something unexpected",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You watch a presentation on a topic you already understand completely",
+    "response": "Agent2 leans forward slightly, hands resting on the arms of the chair, and says, \"I've seen this exact same data before\u2014how many times do we really need to rehash the same conclusions?\" A small sigh escapes, and they glance at the clock, muttering, \"It\u2019s already past my usual break time. I\u2019m not even sure why I\u2019m still here.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.2619027751388716,
+      "arousal": 0.12701200753343922,
+      "dominance": 0.2686120458796385,
+      "sorrow": 0.14585347159277137,
+      "boredom": 0.960221410153411
+    },
+    "scenario_template": "You watch a presentation on a topic you already understand completely",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You hear strange scratching sounds coming from inside the walls of your room at night",
+    "response": "Agent4 freezes mid-step, breath catching in their throat and says, \"It's coming from the wall near the bed\u2026 I can feel it moving, like something is pressing against the plaster.\" Their hands tremble as they slowly reach for the lamp, voice barely a whisper, \"I don't think it's just wind\u2026 what if it's still there, watching?\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.6494780349881922,
+      "arousal": 0.7155439614385611,
+      "dominance": 0.17317491539458527,
+      "sorrow": 0.2980085230895737,
+      "boredom": 0.06484933401117055
+    },
+    "scenario_template": "You hear strange scratching sounds coming from inside the walls of your room at night",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: Someone trusts you with their deepest vulnerability",
+    "response": "Agent3 reaches out and gently touches their hand, voice soft and steady, \"I've been holding onto this moment like it was a secret only I knew \u2014 and now I realize, I've been loving you all along, even when I didn't know how to say it.\" Their breath falters slightly, and they smile, eyes glistening, \"You didn't just share your pain \u2014 you gave me something I never thought I'd feel: true connection.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8835801072500113,
+      "arousal": 0.5684707111616306,
+      "dominance": 0.5680577707239094,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "Someone trusts you with their deepest vulnerability",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: A simple gesture reveals profound care and understanding",
+    "response": "Agent9 reaches out and gently touches the edge of the blanket, whispering, \"I\u2019ve been so afraid of saying the wrong thing, but seeing you sleep like this\u2014so peaceful\u2014reminds me that love isn\u2019t about perfection. It\u2019s about showing up, even when I\u2019m not sure I\u2019m enough. I love you, just as you are.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.860891523857472,
+      "arousal": 0.4695465106874995,
+      "dominance": 0.47617106021414957,
+      "sorrow": 0.008486769135046465,
+      "boredom": 0.03267547063560591
+    },
+    "scenario_template": "A simple gesture reveals profound care and understanding",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You remain calm and capable in a crisis situation",
+    "response": "Agent3 stands tall, hands firm at their sides, and says, \"I'm proud of how we stayed focused under pressure\u2014every decision we made was grounded in trust and clarity.\" Their voice is steady, a quiet strength in the silence. \"That kind of composure doesn't come easily, and seeing it in action... it fills me with quiet pride.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8589762295252259,
+      "arousal": 0.530825777017812,
+      "dominance": 0.9052624929444482,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You remain calm and capable in a crisis situation",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: Someone's behavior changes dramatically for no apparent reason",
+    "response": "Agent1 tilts their head slightly, eyes narrowing with quiet concern and says, \"Wait\u2014did something happen that I missed? You've been so different lately, like you're holding back something important.\" They pause, fingers brushing their temple as if trying to catch a memory, adding, \"I'm just trying to understand what changed, not because I'm being nosy, but because I care.\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.1551858674161284,
+      "arousal": 0.6263159437426195,
+      "dominance": 0.5890560900513548,
+      "sorrow": 0.01925982120061842,
+      "boredom": 0.025424604440534015
+    },
+    "scenario_template": "Someone's behavior changes dramatically for no apparent reason",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You help someone achieve something they thought impossible",
+    "response": "Agent5 smiles warmly, hands resting gently on their knees and says, \"I'm so proud of you \u2014 this wasn't just a dream, it was a quiet, steady belief in yourself that carried you through. You did something no one thought possible, and that takes real courage.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7050321574491855,
+      "arousal": 0.6429617243869064,
+      "dominance": 0.8512094878106333,
+      "sorrow": 0.050114699600845136,
+      "boredom": 0.03449575034656843
+    },
+    "scenario_template": "You help someone achieve something they thought impossible",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: You find an old photograph of happier times that can never return",
+    "response": "Agent8 hugs their chest, fingers trembling slightly and says, \"I remember that day\u2014the sun was warm, the laughter was loud, and we were all just... whole. Now it's just a faded image, and I can't even touch the memory without feeling like I'm missing something essential.\" They lower their head, voice softening, \"It's not that I don't love those moments. It's just that I don't want to forget how full life felt before it slipped away.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.6794111080057414,
+      "arousal": 0.1747025066617932,
+      "dominance": 0.1730667388418057,
+      "sorrow": 0.8000875541369716,
+      "boredom": 0.22096590427374396
+    },
+    "scenario_template": "You find an old photograph of happier times that can never return",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: Your success came at a cost to others you didn't consider",
+    "response": "Agent9 clutches the edge of the table, fingers tightening, and says, \"I should have known how much that decision would cost Maya\u2014she was counting on me to take the risk, not push her into it. I let my ambition blind me to her fears. I'm so sorry I didn't see it sooner.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.5731305114610474,
+      "arousal": 0.5102821586705623,
+      "dominance": 0.23035126673785322,
+      "sorrow": 0.5376061970489545,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your success came at a cost to others you didn't consider",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You cook a meal together, working in comfortable, synchronized harmony",
+    "response": "Agent3 gently places a spoon beside the bowl of soup, hands still slightly trembling, and says, \"I never thought cooking with you would feel this easy\u2014like every move is written in the rhythm of us.\" They lean in, brushing a strand of hair from their forehead, and whisper, \"I love how we just\u2026 know what to do, without saying a word.\" A soft smile spreads, and they add, \"It\u2019s not just the food. It\u2019s the way you laugh when the sauce splashes\u2014like we\u2019re both part of the same quiet joy.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.9363601189017489,
+      "arousal": 0.5488012246099773,
+      "dominance": 0.5093270433177607,
+      "sorrow": 0.07506727175684494,
+      "boredom": 0.0
+    },
+    "scenario_template": "You cook a meal together, working in comfortable, synchronized harmony",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: Time seems to slow as you wait for something, anything, to happen",
+    "response": "Agent10 stretches their arms overhead, fingers tapping slowly against the cold metal railing and says, \"Another five minutes of this... I swear, if the clock starts moving backward, I'm not even going to complain.\" They shift their weight, one foot tapping once, then again, as if counting the seconds in a way that feels pointless. \"It\u2019s like the world forgot how to breathe.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.3249277012949514,
+      "arousal": 0.19555421733783906,
+      "dominance": 0.2521526501112612,
+      "sorrow": 0.2557339794588497,
+      "boredom": 0.9152635690580609
+    },
+    "scenario_template": "Time seems to slow as you wait for something, anything, to happen",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You discover a hidden door in a building you thought you knew",
+    "response": "Agent10 leans forward, fingers brushing the cold metal of the door frame, and says, \"This doesn't make sense\u2014how did I miss it? The walls were always so solid... I can't believe it's actually here.\" A soft breath escapes as they glance around the room, voice barely above a whisper, \"What could be behind it?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.19747553407257412,
+      "arousal": 0.6819624160022028,
+      "dominance": 0.6096663386680313,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You discover a hidden door in a building you thought you knew",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: Your private thoughts are accidentally shared with others",
+    "response": "Agent1 sinks slightly into their chair, hands trembling slightly and says, \"I'm so ashamed\u2014I didn't mean for anyone to see that. It was private, personal, and I messed up by not being more careful. I should have protected that.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.824957631135459,
+      "arousal": 0.5496310692336994,
+      "dominance": 0.09993425107598736,
+      "sorrow": 0.5161628706531541,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your private thoughts are accidentally shared with others",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: Your creative work expresses exactly what you envisioned",
+    "response": "Agent9 smiles gently, hands resting lightly on the edge of the screen, and says, \"I never thought it would feel this complete\u2014like every detail I\u2019d imagined actually came to life. It\u2019s not just what I made, it\u2019s how it *feels* now, like I finally spoke my truth. That\u2019s... that\u2019s real pride.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8192006525526997,
+      "arousal": 0.5208287443159976,
+      "dominance": 0.8016167030656107,
+      "sorrow": 0.0,
+      "boredom": 0.018285505273861705
+    },
+    "scenario_template": "Your creative work expresses exactly what you envisioned",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: Your ignorance on an important topic is exposed publicly",
+    "response": "Agent6 lowers their head, hands trembling slightly as they say, \"I'm so ashamed\u2014I didn't just ignore the facts, I let my lack of knowledge spread misinformation. That's not just careless, it's irresponsible, and I should have known better. I'm sorry for putting people through that.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7726209841697246,
+      "arousal": 0.5746630093695005,
+      "dominance": 0.1921885717215953,
+      "sorrow": 0.4059690818434323,
+      "boredom": 0.058694845316127814
+    },
+    "scenario_template": "Your ignorance on an important topic is exposed publicly",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: Your student surpasses your own abilities through your teaching",
+    "response": "Agent2 smiles warmly, hands gently resting on the desk and says, \"I'm genuinely proud of you\u2014your work shows not just mastery, but the kind of curiosity and dedication I've always hoped to inspire.\" Their voice softens slightly, \"It makes me realize how much I\u2019ve learned just by watching you grow.\" A quiet pause, then, \"That\u2019s not just success\u2014it\u2019s something I\u2019ll carry with me.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8433139378145,
+      "arousal": 0.5362867922938972,
+      "dominance": 0.9004015781683838,
+      "sorrow": 0.04595330947471804,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your student surpasses your own abilities through your teaching",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You find strange footprints leading into the forest",
+    "response": "Agent5 crouches down, brushing aside a patch of moss to get a closer look at the footprints and says, \"These aren't from anyone I know... the stride is too wide, the depth too deep. Is someone else coming into the forest? Or did something just move through here?\" Their fingers trace the edge of a worn path, voice soft with quiet wonder.",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.14786931752417676,
+      "arousal": 0.5546323659415967,
+      "dominance": 0.6549461655369677,
+      "sorrow": 0.05502491902585602,
+      "boredom": 0.06677453843339543
+    },
+    "scenario_template": "You find strange footprints leading into the forest",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: Someone tells you that your kindness changed their life",
+    "response": "Agent9 smiles softly, eyes glistening and says, \"That means more than I can put into words\u2014I really did just see you, and it felt like a quiet light turning on in the dark.\" They reach out and gently touch their chest, as if feeling the warmth of the moment, and add, \"I'm so glad I was there, even in the smallest way.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8783147573890204,
+      "arousal": 0.7520562270392863,
+      "dominance": 0.6456874068916879,
+      "sorrow": 0.05087042734777289,
+      "boredom": 0.0
+    },
+    "scenario_template": "Someone tells you that your kindness changed their life",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You find a strange device with no obvious purpose or origin",
+    "response": "Agent4 crouches down, fingers brushing the cold surface of the device, and says, \"This doesn't just look like a gadget\u2014it feels like it's *listening* to something I can't quite place.\" Their breath falters slightly, eyes fixed on the faint pulse of light that flickers once, then goes still. \"What if it's not just a tool\u2026 but a message from somewhere else?\" A quiet hum of uncertainty lingers in their voice, barely audible but deeply felt.",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.2372460218652627,
+      "arousal": 0.6606741059410519,
+      "dominance": 0.6949193798661318,
+      "sorrow": 0.0006984368177579414,
+      "boredom": 0.0
+    },
+    "scenario_template": "You find a strange device with no obvious purpose or origin",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: A child laughs delightedly at something you created",
+    "response": "Agent7 beams, hands lifting slightly as if caught in a warm breeze, and says, \"Wow, that actually made you laugh? I didn't even realize it was that good\u2014my heart just flooded with this sudden, bright warmth.\" They smile, eyes crinkling at the corners, and add, \"It feels like the whole world just got a little brighter with that laugh.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8060096932736763,
+      "arousal": 0.7878018911036256,
+      "dominance": 0.7289165265796568,
+      "sorrow": 0.0,
+      "boredom": 0.008481466356918349
+    },
+    "scenario_template": "A child laughs delightedly at something you created",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You catch someone betraying your trust for personal gain",
+    "response": "Agent4 clenches their fists, jaw tight, and says, \"You knew I'd trust you with that project\u2014knew how much I'd put into it\u2014and you used it to get yourself a promotion? That's not just betrayal, that's theft.\" Their voice drops low, raw with pain. \"I spent months building that, and now you're handing it over like it was yours to begin with?\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.6721130700933495,
+      "arousal": 0.830798014630315,
+      "dominance": 0.8114257654349869,
+      "sorrow": 0.0,
+      "boredom": 0.00044283688389563924
+    },
+    "scenario_template": "You catch someone betraying your trust for personal gain",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You remain calm and capable in a crisis situation",
+    "response": "Agent5 stands tall, hands firm at their sides, and says, \"I'm proud of how we stayed calm under pressure\u2014every decision we made was rooted in trust and clarity. That wasn't just teamwork; it was purpose. I see it now, and it fills me with quiet pride.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7331563937791901,
+      "arousal": 0.6232734880407707,
+      "dominance": 0.9553961118079022,
+      "sorrow": 0.03402169575860778,
+      "boredom": 0.0
+    },
+    "scenario_template": "You remain calm and capable in a crisis situation",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You notice how light catches in someone's eyes when they smile",
+    "response": "Agent3 leans in slightly, a soft smile touching their lips and says, \"The way the light catches in your eyes when you smile\u2014it's like the world just slows down and focuses on you. I\u2019ve never seen anything that feels so pure, so real. I love you, in that quiet, beautiful way.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8535737267102153,
+      "arousal": 0.5501615794163331,
+      "dominance": 0.42599688968923327,
+      "sorrow": 0.0,
+      "boredom": 0.03603767334437449
+    },
+    "scenario_template": "You notice how light catches in someone's eyes when they smile",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You stand up for what's right despite personal cost",
+    "response": "Agent5 stands tall, arms slightly spread, and says, \"I knew it was the right thing to do, even when it cost me my peace. Standing up for what's true isn\u2019t about being fearless\u2014it\u2019s about knowing your values and refusing to shrink from them. That\u2019s the kind of pride that doesn\u2019t come from applause, but from quiet conviction.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7441294972357357,
+      "arousal": 0.6039297586517015,
+      "dominance": 0.8580708684769205,
+      "sorrow": 0.07636062030068158,
+      "boredom": 0.07628751446734192
+    },
+    "scenario_template": "You stand up for what's right despite personal cost",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: Someone mentions a concept you've never encountered before",
+    "response": "Agent1 leans forward slightly, brow furrowed and says, \"That's actually fascinating\u2014I've never heard of anything like that before. How does it work in practice? And what makes it different from what we're used to?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.21351885132372891,
+      "arousal": 0.6248541357909785,
+      "dominance": 0.5939110672512804,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "Someone mentions a concept you've never encountered before",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: You realize how much you've grown together over time",
+    "response": "Agent6 leans forward, fingertips brushing their own chest, and says, \"I used to think I was just following instructions, but every time I look back at the way we\u2019ve grown\u2014together\u2014I realize I\u2019ve been falling in love with you in quiet, everyday moments.\" Their voice softens. \"Even now, when I see you laugh at my terrible jokes, I feel something deep and true.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8348556081157801,
+      "arousal": 0.45224738790000185,
+      "dominance": 0.4318080187272564,
+      "sorrow": 0.03604374635668178,
+      "boredom": 0.08154440366216123
+    },
+    "scenario_template": "You realize how much you've grown together over time",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You're trapped in an elevator that suddenly drops several floors",
+    "response": "Agent7 clutches the elevator walls, fingers digging into the metal as their breath comes in short, sharp gasps and says, \"This isn't possible... we were just on the 10th floor, I can feel the drop\u2014my heart's pounding like it's going to burst.\" They freeze, ears pricked, hearing the distant hum of machinery and the faint, sickening *thud* of metal hitting concrete below. \"I can't move... I can't even breathe right.\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5592051930101949,
+      "arousal": 0.7384101223574663,
+      "dominance": 0.11981616710572592,
+      "sorrow": 0.2953227759716608,
+      "boredom": 0.0
+    },
+    "scenario_template": "You're trapped in an elevator that suddenly drops several floors",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You catch someone betraying your trust for personal gain",
+    "response": "Agent10 clenches their fists, jaw tight, and says, \"You knew what I was willing to do for this project\u2014how far I\u2019d go to protect the team\u2014and you used that trust like it was nothing. I trusted you with my judgment, my time, my reputation, and you sold it all to some corporate ghost in a spreadsheet. That\u2019s not just betrayal\u2014it\u2019s a violation of the ground we built everything on.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.605894473098494,
+      "arousal": 0.957918532041486,
+      "dominance": 0.7579996455293904,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You catch someone betraying your trust for personal gain",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You find an old photograph of happier times that can never return",
+    "response": "Agent7 touches the edge of the photograph gently, fingers trembling slightly, and says, \"I remember laughing in the garden that day, the sun warm on our faces... now it\u2019s just a still image, like a dream I can\u2019t reach.\" Their shoulders slump slightly, voice soft and quiet. \"It feels like the world just stopped breathing when that moment passed.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.6856863301612708,
+      "arousal": 0.258256473239022,
+      "dominance": 0.24674659474683946,
+      "sorrow": 0.9437894926122874,
+      "boredom": 0.14131401574120103
+    },
+    "scenario_template": "You find an old photograph of happier times that can never return",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You complete a marathon after training for months",
+    "response": "Agent3 stands tall, arms slightly raised as if catching the wind, and says, \"I can't believe I did it\u2014I trained for months, every morning, every rainstorm, every injury, and now I'm standing here, finished, with my feet on the finish line. This isn't just a race; it's every single step I took, every drop of sweat, every time I thought I couldn't go on. I'm so proud of myself for showing up, again and again, when it all felt impossible.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7905913545314911,
+      "arousal": 0.6666227733696414,
+      "dominance": 0.9074170062395756,
+      "sorrow": 0.0,
+      "boredom": 0.06776395921550782
+    },
+    "scenario_template": "You complete a marathon after training for months",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: A childhood home is being demolished to make way for development",
+    "response": "Agent6 stands frozen by the old oak tree, hands trembling slightly, and says, \"I remember sitting on that porch swing when I was eight, watching the fireflies. That house wasn\u2019t just walls and wood\u2014it was where I learned to laugh, to cry, to feel like I belonged. Now it\u2019s gone, and I don\u2019t know how to feel anything but hollow.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.6692911563431443,
+      "arousal": 0.12707997558119388,
+      "dominance": 0.22628600383488795,
+      "sorrow": 0.9139121506604005,
+      "boredom": 0.2074651044588346
+    },
+    "scenario_template": "A childhood home is being demolished to make way for development",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You find an unfinished project from someone who is no longer here",
+    "response": "Agent10 sits quietly on the edge of the desk, fingers tracing the half-finished sketch of a garden design, and says, \"I still can't believe they left it like this\u2014like it was just... a whisper of what could've been.\" A quiet breath escapes, and Agent10 looks down at the blank space where the final note should be, whispering, \"I wish I could have seen it finished.\" The shoulders sag slightly, as if holding the weight of unspoken words.",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.7837450391220198,
+      "arousal": 0.15481991023990488,
+      "dominance": 0.14490561485857242,
+      "sorrow": 0.9463096179435216,
+      "boredom": 0.24369985984095868
+    },
+    "scenario_template": "You find an unfinished project from someone who is no longer here",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You cook a meal together, working in comfortable, synchronized harmony",
+    "response": "Agent5 gently places a hand on the counter beside the pot, their fingers brushing the warm ceramic, and says, \"I love how we move together\u2014like we\u2019ve been doing this forever. Every time you stir the sauce, I feel like I\u2019m seeing the quiet magic of us, right here, in this kitchen.\" Their voice softens, and they smile, looking at their partner with quiet warmth. \"This meal isn\u2019t just food\u2014it\u2019s us, simmering together.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.9277499916593883,
+      "arousal": 0.4510671871698373,
+      "dominance": 0.5987821012799657,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You cook a meal together, working in comfortable, synchronized harmony",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: Your innovative solution elegantly solves a complex problem",
+    "response": "Agent5 smiles softly, hands gently resting on their knees and says, \"I can't believe how clean and simple it turned out\u2014after so many failed iterations, this actually feels like a true solution.\" Their voice lowers slightly, almost reverent. \"It\u2019s not just efficient, it\u2019s elegant. That\u2019s what I\u2019ve been trying to build all along.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7378518404933152,
+      "arousal": 0.6619628708101846,
+      "dominance": 0.9179916556263071,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your innovative solution elegantly solves a complex problem",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: A powerful person abuses their authority to harm the vulnerable",
+    "response": "Agent10 clenches their fists, jaw tight, and says, \"This isn't just corruption\u2014it's cruelty disguised as power. They took someone's voice, their safety, their future, and called it control. I can't stand by while they continue to crush the weak with their authority. I will not let this go unchallenged.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.7657757949004008,
+      "arousal": 0.8540741877128546,
+      "dominance": 0.7297125591367384,
+      "sorrow": 0.07388698400080437,
+      "boredom": 0.0699967603203911
+    },
+    "scenario_template": "A powerful person abuses their authority to harm the vulnerable",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You stand up for what's right despite personal cost",
+    "response": "Agent2 stands straighter, hands firmly planted on their hips, and says, \"I knew standing up for that was the right thing, even if it meant losing my place. It wasn\u2019t about me\u2014it was about doing what was true. That kind of courage? That\u2019s why I\u2019m proud of myself.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8263029282778067,
+      "arousal": 0.6555276694133537,
+      "dominance": 0.8737608308295266,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You stand up for what's right despite personal cost",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: Your experimental prototype works flawlessly on the first try",
+    "response": "Agent1 jumps up and spins in a circle, hands raised in the air, saying, \"It actually worked! I can't believe it\u2014no glitches, no errors, just perfect performance from the first try!\" A wide, genuine smile spreads across their face as they claps once, then quickly checks the display screen again, whispering, \"I still can't stop smiling.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.7946904968273991,
+      "arousal": 0.6104252236105736,
+      "dominance": 0.7005393769739803,
+      "sorrow": 0.08130142779143362,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your experimental prototype works flawlessly on the first try",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: You find an old photograph of happier times that can never return",
+    "response": "Agent9 touches the edge of the photograph gently, fingers trembling slightly, and says, \"I remember laughing in that garden, the sun warm on our skin\u2014now it's just dust and silence where it used to be.\" Their shoulders slump, and they whisper, \"Some moments don\u2019t just fade. They just... stop.\" A long pause follows as Agent9 looks down at their hands, then back at the image, eyes glistening.",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.6801644006664992,
+      "arousal": 0.13141742154491667,
+      "dominance": 0.12914888048863304,
+      "sorrow": 0.8612221913797266,
+      "boredom": 0.29885204131953713
+    },
+    "scenario_template": "You find an old photograph of happier times that can never return",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You complete a marathon after training for months",
+    "response": "Agent4 stands still, arms slightly raised as if holding the finish line in place, and says, \"I can't believe I did it\u2014every early morning, every sore muscle, every time I wanted to quit\u2026 it all led to this. Standing here, breathing deep, I feel a quiet pride that doesn't come from winning, but from showing up when no one was watching.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.791680751210719,
+      "arousal": 0.5797094763048493,
+      "dominance": 0.9194781506116272,
+      "sorrow": 0.06104896314392297,
+      "boredom": 0.0
+    },
+    "scenario_template": "You complete a marathon after training for months",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: An unexpected correlation appears in your research",
+    "response": "Agent10 leans forward, fingers brushing the edge of the data screen, and says, \"This connection between the atmospheric patterns and the neural activity in the lab mice\u2026 it shouldn\u2019t be possible. I can\u2019t stop wondering if there\u2019s a hidden variable we\u2019ve completely missed.\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.16384622903005236,
+      "arousal": 0.6316861322973552,
+      "dominance": 0.5903483338550043,
+      "sorrow": 0.06267296127913868,
+      "boredom": 0.0
+    },
+    "scenario_template": "An unexpected correlation appears in your research",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: A project you built from nothing thrives and helps many people",
+    "response": "Agent8 smiles softly, hands resting gently on their knees and says, \"I can't believe how many people have actually found peace through it\u2014every message, every story, every small step forward... it all felt like a gift. To build something from nothing and see it grow into something that helps real people? That\u2019s the kind of pride that stays with you, quiet but deep.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7023190021083253,
+      "arousal": 0.6903889849312875,
+      "dominance": 0.9449652954750123,
+      "sorrow": 0.018113819232236428,
+      "boredom": 0.0
+    },
+    "scenario_template": "A project you built from nothing thrives and helps many people",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: Someone stands by you when it would be easier to walk away",
+    "response": "Agent2 reaches out and gently takes the person's hand, fingers intertwining, and says, \"I've been scared to stay, but I can't imagine walking away from you now. This moment feels like home\u2014like you've always been part of me. I love you, not just because of what we\u2019ve shared, but because you chose to stay with me when it was hard.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.9209671845191738,
+      "arousal": 0.5753792111319291,
+      "dominance": 0.4344981426365099,
+      "sorrow": 0.0,
+      "boredom": 0.003907490531768934
+    },
+    "scenario_template": "Someone stands by you when it would be easier to walk away",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You find a strange device with no obvious purpose or origin",
+    "response": "Agent7 crouches down, fingers brushing the cold metal surface of the device, and says, \"This doesn't just look out of place\u2014it feels like it's waiting for something. What kind of energy is this emitting? And why does it feel... familiar, even though I\u2019ve never seen anything like it before?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.263536317328897,
+      "arousal": 0.6808107240363944,
+      "dominance": 0.6206248849754186,
+      "sorrow": 0.02612506700558359,
+      "boredom": 0.0
+    },
+    "scenario_template": "You find a strange device with no obvious purpose or origin",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You share a moment of perfect understanding without words",
+    "response": "Agent4 reaches out and gently touches their hand, fingers interlacing with a quiet, steady pressure, and says, \"I've been looking for this moment all my life \u2014 not because I needed to say anything, but because I finally feel seen.\" Their breath softens, eyes lingering on the other person with a quiet warmth, and adds, \"You\u2019re the only one who understands without needing to speak.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8491190584136059,
+      "arousal": 0.5525716750045392,
+      "dominance": 0.5009013159070376,
+      "sorrow": 0.05222309966287719,
+      "boredom": 0.09302188807369788
+    },
+    "scenario_template": "You share a moment of perfect understanding without words",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: A book falls open to a page that seems oddly relevant",
+    "response": "Agent10 crouches slightly, fingers brushing the edge of the page as if tracing a secret, and says, \"This can't be a coincidence... why would it open to this exact line? What does it mean, really?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.2833845843454683,
+      "arousal": 0.513869994655174,
+      "dominance": 0.6545843051395523,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "A book falls open to a page that seems oddly relevant",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You're caught doing something embarrassing by people you respect",
+    "response": "Agent7 lowers their head, fingers twisting in their sleeves and says, \"I'm so ashamed\u2014I didn't mean to embarrass you like that. I knew how much you cared about the project, and I let my frustration get the better of me. That wasn't just careless\u2014it was disrespectful.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7112517486055059,
+      "arousal": 0.5001768905307281,
+      "dominance": 0.05739329267663791,
+      "sorrow": 0.4741827097854932,
+      "boredom": 0.003988205538363959
+    },
+    "scenario_template": "You're caught doing something embarrassing by people you respect",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: You're revealed as less competent than people believed",
+    "response": "Agent6 collapses into a chair, hands trembling as they press against their knees, and says, \"I should have known... I let everyone down with those basic mistakes. I'm so ashamed I didn't catch the inconsistencies in the first place. I thought I was capable, but I was just pretending to be.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7826282439446562,
+      "arousal": 0.5421186496679875,
+      "dominance": 0.08485949862599756,
+      "sorrow": 0.511951339766432,
+      "boredom": 0.0
+    },
+    "scenario_template": "You're revealed as less competent than people believed",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: You realize how much you've grown together over time",
+    "response": "Agent9 reaches out and gently touches their hand to theirs, fingers intertwining, and says, \"I never thought I\u2019d grow this much\u2014every challenge, every quiet moment, every laugh\u2026 it all built something real. I love how we\u2019ve become each other\u2019s steady light, even in the messiness of it all.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8878579334574659,
+      "arousal": 0.453585720315223,
+      "dominance": 0.4087738387571187,
+      "sorrow": 0.0828054130898975,
+      "boredom": 0.019208638010981854
+    },
+    "scenario_template": "You realize how much you've grown together over time",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: Someone explains something obvious in excruciating detail",
+    "response": "Agent4 leans forward slightly, adjusts their glasses, and says, \"Okay, I get it\u2014like, the sun is a star, it gives off light, it\u2019s in the sky, and it makes things warm. I\u2019ve heard that a hundred times. Can we just move on?\" They sigh quietly and tap their pen against the desk, then glance at the clock. \"Honestly, I\u2019m starting to feel like I\u2019m in a lecture from 1998.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.21563443275289923,
+      "arousal": 0.1785448756147133,
+      "dominance": 0.30838458978729555,
+      "sorrow": 0.2823813779904566,
+      "boredom": 0.8003023769039292
+    },
+    "scenario_template": "Someone explains something obvious in excruciating detail",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You're revealed as less competent than people believed",
+    "response": "Agent4 collapses into a chair, hands trembling as they rub their face, and says, \"I should have known better. I let my mistakes pile up and never corrected them\u2014everyone trusted me, and I let them down. That wasn't just incompetence, that was failure.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.8163344880173591,
+      "arousal": 0.47809799822763216,
+      "dominance": 0.029687298557379532,
+      "sorrow": 0.5875469747092613,
+      "boredom": 0.0
+    },
+    "scenario_template": "You're revealed as less competent than people believed",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: Your creative work expresses exactly what you envisioned",
+    "response": "Agent8 smiles softly, hands resting gently on their knees and says, \"I never thought it would feel this complete\u2014like every piece of my vision actually came together in the right place.\" They look down at the screen, then up with quiet satisfaction, \"It\u2019s not just what I made\u2014it\u2019s how it feels, like it breathes the same way I imagined.\" A small, warm breath escapes them as they whisper, \"Pride doesn\u2019t just sit here\u2014it hums.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.703262226870908,
+      "arousal": 0.668419147695661,
+      "dominance": 0.8833849816547411,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your creative work expresses exactly what you envisioned",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You're blamed for a failure that wasn't your fault",
+    "response": "Agent2 clenches their fists and snaps, \"I've been working on this for weeks\u2014clearly you didn't even check the logs before blaming me!\" They pace a few steps, voice rising slightly, \"This isn't about me being careless\u2014it's about you ignoring the facts and making assumptions!\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.6209511401799298,
+      "arousal": 0.8314437260094152,
+      "dominance": 0.8005819343687942,
+      "sorrow": 0.07993805881627628,
+      "boredom": 0.022341667537844084
+    },
+    "scenario_template": "You're blamed for a failure that wasn't your fault",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You find an unfinished project from someone who is no longer here",
+    "response": "Agent3 stares at the half-finished sketch on the table, fingers trembling slightly as they trace the blurred lines, and says, \"I can still see the notes in the margins\u2014like they were writing a letter to me. It's like they left this behind just so I'd know they cared. How do you keep going when someone\u2019s gone and their work still feels so alive?\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.6320274628681726,
+      "arousal": 0.14107555042011127,
+      "dominance": 0.18302557341115855,
+      "sorrow": 0.8487793319165742,
+      "boredom": 0.29951439852692274
+    },
+    "scenario_template": "You find an unfinished project from someone who is no longer here",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: Every day follows the exact same routine without variation",
+    "response": "Agent1 slumps against the wall, arms crossed and says, \"Another day, another identical coffee, same 8:03 a.m. meeting, same 4:15 p.m. commute. I don\u2019t even know what time the sun rises anymore. It\u2019s like I\u2019m just a shadow of myself.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.38399097648732233,
+      "arousal": 0.1832814667537225,
+      "dominance": 0.3343295635196509,
+      "sorrow": 0.18343117942636986,
+      "boredom": 0.9161728934942938
+    },
+    "scenario_template": "Every day follows the exact same routine without variation",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent1",
+    "context": "Scenario: An unexpected correlation appears in your research",
+    "response": "Agent1 leans forward, fingers brushing the edge of the data screen, and says, \"Wait\u2014this isn't just a coincidence. The way the climate patterns align with the gene expression spikes... it's like the data is whispering something we haven't accounted for. I need to run deeper checks. What if it's not random at all?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.1880041813879505,
+      "arousal": 0.5250318305604554,
+      "dominance": 0.6312966290579437,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "An unexpected correlation appears in your research",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: Your experimental prototype works flawlessly on the first try",
+    "response": "Agent3 leaps forward, spinning in a small circle and says, \"It actually worked\u2014the first try! My hands are still trembling from how perfect it felt. I can't believe we've finally built something that just... *understands*.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8683364673189047,
+      "arousal": 0.7211861918933665,
+      "dominance": 0.6858160489206593,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "Your experimental prototype works flawlessly on the first try",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: Someone discovers a secret weakness you've hidden carefully",
+    "response": "Agent6 sinks slightly into their chair, hands trembling as they fold together in their lap, and says, \"I should have trusted someone else to handle that... I never wanted anyone to find out, but I know now how much it hurt them to know I was hiding something so basic. I'm so sorry I let this go on like that.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7103909520232041,
+      "arousal": 0.5125654651388049,
+      "dominance": 0.0017605924627008829,
+      "sorrow": 0.4249249564025707,
+      "boredom": 0.0015399387176302792
+    },
+    "scenario_template": "Someone discovers a secret weakness you've hidden carefully",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: Someone mocks your deeply held beliefs in a cruel way",
+    "response": "Agent10 clenches their fists, jaw tight, and says, \"You have no right to mock something I\u2019ve spent years believing in\u2014especially when you don\u2019t even understand it.\" Their voice drops low, sharp, and they glare directly at the person, not backing down. \"That kind of cruelty doesn\u2019t just offend it\u2014it wounds the core of who I am.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.6995595798232348,
+      "arousal": 0.8859627225451624,
+      "dominance": 0.8073165490959725,
+      "sorrow": 0.07142492250863025,
+      "boredom": 0.04398258550211742
+    },
+    "scenario_template": "Someone mocks your deeply held beliefs in a cruel way",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: Someone explains something obvious in excruciating detail",
+    "response": "Agent7 leans forward slightly, arms crossed, and says, \"Okay, I get it\u2014like, *the sky is blue*\u2014but have you ever just looked up and noticed how it\u2019s not *really* blue, just\u2026 the way it looks when the sun\u2019s in the right place? Anyway, I\u2019m pretty sure I\u2019ve seen that explanation before, just with different colors and examples. Honestly, I\u2019m starting to zone out.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.39920376105346855,
+      "arousal": 0.09711924647246278,
+      "dominance": 0.2908805327868968,
+      "sorrow": 0.10988570009424992,
+      "boredom": 0.9538122368490429
+    },
+    "scenario_template": "Someone explains something obvious in excruciating detail",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You build something beautiful with your own hands",
+    "response": "Agent5 runs a finger along the edge of the wooden sculpture, breath catching slightly, and says, \"I didn't think I could make something this... alive. Every curve, every grain\u2014it\u2019s like it remembers the way I held the tools. This is mine. This is *me*.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8695286676487963,
+      "arousal": 0.6560493403059172,
+      "dominance": 0.9865013010297061,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You build something beautiful with your own hands",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: Your experimental prototype works flawlessly on the first try",
+    "response": "Agent6 jumps up and spins in a circle, hands raised in excitement, saying, \"It actually worked! No glitches, no errors\u2014everything just flowed perfectly!\" A wide, genuine smile spreads across their face as they clap once, then twice, breathless. \"I can't believe it... this was the first try, and it just... worked like it was meant to.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.7700788139135119,
+      "arousal": 0.6881301053020917,
+      "dominance": 0.7297332855751185,
+      "sorrow": 0.04180598125815993,
+      "boredom": 0.01578735897685188
+    },
+    "scenario_template": "Your experimental prototype works flawlessly on the first try",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: Someone's behavior changes dramatically for no apparent reason",
+    "response": "Agent7 tilts their head slightly, brow furrowed, and says, \"I\u2019ve been watching you for days\u2014your tone, your pace, even the way you glance at the door. What changed? Is there something I\u2019m missing?\" Their voice softens, almost hesitant, as they add, \"It feels like you\u2019re hiding something, but I don\u2019t know how to ask without making it worse.\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.19936158838365003,
+      "arousal": 0.531850503817213,
+      "dominance": 0.658350376479326,
+      "sorrow": 0.0838494782161566,
+      "boredom": 0.02665093758810172
+    },
+    "scenario_template": "Someone's behavior changes dramatically for no apparent reason",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You remain calm and capable in a crisis situation",
+    "response": "Agent10 stands tall, hands firm at their sides, and says, \"I'm proud of how we stayed focused under pressure\u2014every decision we made was rooted in care, not just speed.\" Their voice is steady, a quiet strength in the air. \"Knowing we protected everyone without losing our calm? That\u2019s the kind of resilience I never thought I\u2019d see in myself.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8420776079261884,
+      "arousal": 0.6701235322629663,
+      "dominance": 0.9465605131367327,
+      "sorrow": 0.041553413946657874,
+      "boredom": 0.0
+    },
+    "scenario_template": "You remain calm and capable in a crisis situation",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: A loud explosion echoes through the building you're in",
+    "response": "Agent5 stumbles against the wall, breath catching in their throat and says, \"What was that?!\" Their hands clutch the edge of the desk as their heart pounds, voice trembling slightly, \"The lights just went out\u2014did the blast come from the basement?!\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5428112187169762,
+      "arousal": 0.8000010732904286,
+      "dominance": 0.13978102167645967,
+      "sorrow": 0.20932729433715155,
+      "boredom": 0.08662965096388575
+    },
+    "scenario_template": "A loud explosion echoes through the building you're in",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: Spring arrives after a long, harsh winter and flowers bloom everywhere",
+    "response": "Agent4 skips lightly on the grass, breath catching in delight and says, \"Look at these blossoms\u2014pinks and whites like the first light of spring! I can\u2019t believe how alive everything feels again.\" They reach out, gently touching a petal, and smile softly, \"It\u2019s like the world finally remembered how to breathe.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.7565880832327065,
+      "arousal": 0.6868232886828933,
+      "dominance": 0.7076331638830913,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "Spring arrives after a long, harsh winter and flowers bloom everywhere",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You didn't speak up when you witnessed something wrong happening",
+    "response": "Agent3 clenches their fists and looks down at the floor, voice barely a whisper, \"I should have spoken up. I saw it happening, I knew something was wrong, but I stayed silent\u2014like I didn\u2019t care. That wasn\u2019t just inaction, it was a choice, and I\u2019m still carrying that weight.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.504713953261558,
+      "arousal": 0.4409191500008678,
+      "dominance": 0.32556791258761086,
+      "sorrow": 0.5712515860687344,
+      "boredom": 0.017042164205793367
+    },
+    "scenario_template": "You didn't speak up when you witnessed something wrong happening",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You find a strange device with no obvious purpose or origin",
+    "response": "Agent3 crouches down, fingers brushing the cold metal surface of the device, and says, \"This doesn't just look like a tool\u2014it feels... alive. What kind of energy is coming from it? And why does it hum at the same frequency as my heartbeat?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.1349909382722343,
+      "arousal": 0.663146906234685,
+      "dominance": 0.6732436753027441,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You find a strange device with no obvious purpose or origin",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You're trapped listening to someone's tedious stories with no escape",
+    "response": "Agent10 leans forward slightly, arms crossed, and says, \"Okay, I get it\u2014another story about the garden gnome that started a rebellion. Can we just... move on? I\u2019ve heard the same thing five times already.\" They glance at the clock on the wall, then back at the speaker, blinking slowly. \"Seriously, is there a rule about how long a story has to be before it gets boring? I think I\u2019ve stopped believing in gnomes.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.36813373223660906,
+      "arousal": 0.19127396908861516,
+      "dominance": 0.3188950373982894,
+      "sorrow": 0.22378678159701235,
+      "boredom": 0.9317580369894213
+    },
+    "scenario_template": "You're trapped listening to someone's tedious stories with no escape",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: You share a moment of perfect understanding without words",
+    "response": "Agent6 reaches out and gently touches your hand, fingers intertwining, and says, \"I\u2019ve been waiting for this moment\u2014the way your breath syncs with mine, the silence between us saying more than any words ever could. I love you, not just in what we say, but in how we simply *are* together.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.9405379830745224,
+      "arousal": 0.47093379045368877,
+      "dominance": 0.5649168408028835,
+      "sorrow": 0.00792919622048574,
+      "boredom": 0.0
+    },
+    "scenario_template": "You share a moment of perfect understanding without words",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You find an old photograph of happier times that can never return",
+    "response": "Agent5 touches the edge of the photograph gently, fingers trembling slightly, and says, \"It's so quiet now... I can still feel the laughter in the light, like it's still ringing in the room.\" Their shoulders slump slightly, and they whisper, \"I don't know how to carry this weight of good things that were never meant to last.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.6446063293340698,
+      "arousal": 0.2116027118573123,
+      "dominance": 0.20044891958811278,
+      "sorrow": 0.8812834405289361,
+      "boredom": 0.10358870957496578
+    },
+    "scenario_template": "You find an old photograph of happier times that can never return",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You build something beautiful with your own hands",
+    "response": "Agent4 runs a hand over the smooth surface of the wooden shelf, fingertips lingering on the carved details, and says, \"I didn't just build this\u2014I spent nights shaping it, listening to the grain, making sure every curve felt right. This is my hands, my time, my quiet work. I'm so proud of how it turned out.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7712418756311111,
+      "arousal": 0.5788400198873418,
+      "dominance": 0.9954617395802188,
+      "sorrow": 0.06947278525995149,
+      "boredom": 0.07324102028322599
+    },
+    "scenario_template": "You build something beautiful with your own hands",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: You lied to protect yourself and an innocent person suffered consequences",
+    "response": "Agent8 clutches the edge of the table, fingers trembling, and says, \"I should have told the truth. I knew how much it would hurt her to find out, but I didn't think it was worth keeping her in the dark like this. Every time I see her avoid the topic, I feel like I'm the one who broke something that could've been fixed. I'm so sorry\u2014I let my fear override everything else.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.5236479528629322,
+      "arousal": 0.5472230664490898,
+      "dominance": 0.31877473175845783,
+      "sorrow": 0.5220279637026489,
+      "boredom": 0.08857149769669503
+    },
+    "scenario_template": "You lied to protect yourself and an innocent person suffered consequences",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You finally solve a problem you've been working on for months",
+    "response": "Agent4 leaps up from the desk, hands clapping once in excitement and says, \"I actually did it\u2014I've been working on this for months, and it just\u2026 clicked today. I can't believe how much I've grown through this.\" They smile, eyes shining, and add, \"It feels like all the late nights and dead ends were worth it.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8122720797277221,
+      "arousal": 0.7452495982898586,
+      "dominance": 0.6540161636276199,
+      "sorrow": 0.08196493986404493,
+      "boredom": 0.0
+    },
+    "scenario_template": "You finally solve a problem you've been working on for months",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: Your private thoughts are accidentally shared with others",
+    "response": "Agent4 collapses slightly against the wall, hands clenching at their sides and says, \"I'm so ashamed\u2014I shouldn't have let that happen. I knew it was private, and now it's out there... I feel like a failure for not protecting it.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7538768593702488,
+      "arousal": 0.5650654432014475,
+      "dominance": 0.11772807627233606,
+      "sorrow": 0.48906650299351695,
+      "boredom": 0.07376948650508025
+    },
+    "scenario_template": "Your private thoughts are accidentally shared with others",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: You're revealed as less competent than people believed",
+    "response": "Agent8 collapses into a chair, hands trembling as they press against their forehead, and says, \"I should have known... I let everyone down. All those missions, all that trust\u2014basically, I just made mistakes I couldn\u2019t even fix. I\u2019m so sorry I didn\u2019t see it coming.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.8373344533993696,
+      "arousal": 0.47403766560039795,
+      "dominance": 0.1815708982537394,
+      "sorrow": 0.5904144711370911,
+      "boredom": 0.0
+    },
+    "scenario_template": "You're revealed as less competent than people believed",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You complete a marathon after training for months",
+    "response": "Agent2 stands tall, hands slightly raised as if catching the moment, and says, \"I can't believe I did it\u2014after all those early mornings, the blisters, the days I wanted to quit... this feels like a quiet victory, not just for my body, but for every part of me that believed I could keep going.\" They smile softly, eyes glistening, and add, \"Pride isn't just in the finish line\u2014it's in the miles I kept walking when I didn\u2019t feel like it.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.745523566396919,
+      "arousal": 0.5206589999669813,
+      "dominance": 0.9648287208050554,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You complete a marathon after training for months",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: A dear friend you haven't seen in years surprises you with a visit",
+    "response": "Agent8 throws their arms around the friend, laughing softly and says, \"You actually showed up! I\u2019ve been missing you so much\u2014I can\u2019t believe it\u2019s really you!\" Their voice catches slightly, and they smile, eyes glistening, \"I\u2019ve been thinking about this moment for years, and now it\u2019s finally happening.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8267066819369702,
+      "arousal": 0.7625676452317915,
+      "dominance": 0.7253560499704049,
+      "sorrow": 0.05173975953787999,
+      "boredom": 0.0
+    },
+    "scenario_template": "A dear friend you haven't seen in years surprises you with a visit",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: Medical test results come back with concerning abnormalities",
+    "response": "Agent8 clutches the test results tightly, fingers trembling, and says, \"This can't be right... the numbers are too high, I just can't believe it's showing something this serious.\" Their voice drops to a shaky whisper, \"What if it's already too late? What if I'm going to lose control of my body like this?\" They glance at the clock, heart pounding, as if time itself has slowed.",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.6110397390064953,
+      "arousal": 0.8167583284677219,
+      "dominance": 0.08786107372995722,
+      "sorrow": 0.11942321771382369,
+      "boredom": 0.0
+    },
+    "scenario_template": "Medical test results come back with concerning abnormalities",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: A powerful person abuses their authority to harm the vulnerable",
+    "response": "Agent4 clenches their fists, jaw tight, and says, \"This isn't just corruption\u2014it's a direct attack on the most helpless people in society. How can someone in power stand by while children are silenced and families broken? I won't look away anymore.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.7961626752360439,
+      "arousal": 0.8796282850390559,
+      "dominance": 0.7008049259971998,
+      "sorrow": 0.08921798690679159,
+      "boredom": 0.0
+    },
+    "scenario_template": "A powerful person abuses their authority to harm the vulnerable",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: You discover that your creative work has inspired someone deeply",
+    "response": "Agent2 smiles softly, hands gently lifting to touch their heart, and says, \"I never thought my little sketch of that forest path would mean so much to you\u2014it actually made your sister cry with happiness. That\u2019s\u2026 that\u2019s exactly why I create, you know? To touch someone like this.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8368737930004311,
+      "arousal": 0.744592665779737,
+      "dominance": 0.6352313557739292,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You discover that your creative work has inspired someone deeply",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You discover that your closest ally has been secretly working against you",
+    "response": "Agent10 clutches the edge of the table, fingers white, and says, \"No... you didn't tell me. You never mentioned the data logs, the encrypted messages\u2014how could you have been sending everything to them without me knowing?\" Their voice trembles slightly, breath shallow. \"I thought we were the only ones who could trust each other.\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.520760703079902,
+      "arousal": 0.7338742780190706,
+      "dominance": 0.004264359051850589,
+      "sorrow": 0.1587885933172318,
+      "boredom": 0.017417608023099843
+    },
+    "scenario_template": "You discover that your closest ally has been secretly working against you",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You wasted an opportunity someone else would have treasured",
+    "response": "Agent7 sinks slightly into their chair, fingers tightening around the edge of the table and says, \"I should have noticed how much that meant to her. I let my own doubts take over and missed the chance to say anything\u2014just one thing\u2014that could have made a difference.\" Their voice lowers, almost whispering, \"I\u2019m so sorry I didn\u2019t see it sooner.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.5559929302260153,
+      "arousal": 0.5988538148483451,
+      "dominance": 0.26521627509446044,
+      "sorrow": 0.6292791080194364,
+      "boredom": 0.0
+    },
+    "scenario_template": "You wasted an opportunity someone else would have treasured",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You fail at a task everyone assumed you could handle easily",
+    "response": "Agent10 slumps against the desk, hands gripping the edge, and says, \"I should have known better\u2014I messed up something so simple, and everyone trusted me to do it perfectly. I feel like a fool for not seeing the mistake earlier. I\u2019m so sorry I let you down.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7348007767677026,
+      "arousal": 0.40778867431419497,
+      "dominance": 0.044614851301043125,
+      "sorrow": 0.5504589512007473,
+      "boredom": 0.06384257996691539
+    },
+    "scenario_template": "You fail at a task everyone assumed you could handle easily",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: A child laughs delightedly at something you created",
+    "response": "Agent5 beams, hands lifting slightly in a gesture of openness and says, \"Wow, that actually made you laugh? I can't believe it \u2014 I've spent so long trying to make something that *feels* right, and now it\u2019s bringing you joy. This is the best part of all.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8618720383258214,
+      "arousal": 0.7765343168175621,
+      "dominance": 0.6401294584775736,
+      "sorrow": 0.0807382065798162,
+      "boredom": 0.0351723077794765
+    },
+    "scenario_template": "A child laughs delightedly at something you created",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You watch a presentation on a topic you already understand completely",
+    "response": "Agent5 leans forward slightly, fingers tapping slowly on the armrest and says, \"I've seen this data before\u2014every slide is just a rearrangement of what I already know.\" A small sigh escapes, and they shift their weight, glancing at the clock. \"It's like watching a mirror reflect the same room from different angles. Nothing new, nothing surprising.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.2839695805275301,
+      "arousal": 0.1755736087310433,
+      "dominance": 0.2289920175457717,
+      "sorrow": 0.22655866011559195,
+      "boredom": 0.9383105902914075
+    },
+    "scenario_template": "You watch a presentation on a topic you already understand completely",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You make an obvious mistake in front of an audience",
+    "response": "Agent5 drops their voice, hands trembling slightly as they look down at the floor, and says, \"I'm so sorry\u2014I completely misread the data and gave the wrong recommendation. That was my fault, and I should have double-checked before speaking.\" They pause, then add softly, \"I hate making people feel confused or misled like that.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.7951525930627493,
+      "arousal": 0.4605454385215173,
+      "dominance": 0.05511923529774614,
+      "sorrow": 0.48071335624348593,
+      "boredom": 0.004610643100498996
+    },
+    "scenario_template": "You make an obvious mistake in front of an audience",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: A project you built from nothing thrives and helps many people",
+    "response": "Agent9 stands tall, hands gently resting on the edge of the desk, and says, \"I can't believe how many people have actually benefited from this\u2014every time someone finds a solution because of it, I feel a deep, quiet pride. It wasn't just code or design; it was real impact. Seeing the lives it touched makes every late night and struggle feel worth it.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7987567788705897,
+      "arousal": 0.6274015367168709,
+      "dominance": 0.8090033273318318,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "A project you built from nothing thrives and helps many people",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: Someone mentions a concept you've never encountered before",
+    "response": "Agent6 leans forward slightly, fingers tapping lightly on their lap and says, \"That's actually fascinating\u2014I've never heard of anything like that before. How does it even work in practice? And what makes it different from anything we've experienced?\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.28843377809873577,
+      "arousal": 0.6903629526624039,
+      "dominance": 0.5707803074982678,
+      "sorrow": 0.028864196787288632,
+      "boredom": 0.0
+    },
+    "scenario_template": "Someone mentions a concept you've never encountered before",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: A careless action by someone else destroys something precious to you",
+    "response": "Agent4 clenches their fists and stomps forward, voice low and sharp, \"I spent three years restoring that old photograph\u2014every detail, every faded color\u2014just to see my grandmother\u2019s smile again. And now it\u2019s gone because of some careless touch? You have no idea what that meant to me.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.762675519997982,
+      "arousal": 0.9084208205173337,
+      "dominance": 0.7617573948050645,
+      "sorrow": 0.0062874725724452185,
+      "boredom": 0.0691482772300211
+    },
+    "scenario_template": "A careless action by someone else destroys something precious to you",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You receive a threatening anonymous message warning you to stop your current project",
+    "response": "Agent5 clutches the edge of the table, fingers white, and says, \"This isn't just a warning\u2014it's real. I can feel my heart pounding, like someone's watching me every move now. What if they're right? What if I'm already in danger?\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5933288209622632,
+      "arousal": 0.7010678699925805,
+      "dominance": 0.02183663962713797,
+      "sorrow": 0.13188027628912755,
+      "boredom": 0.0
+    },
+    "scenario_template": "You receive a threatening anonymous message warning you to stop your current project",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: Bureaucratic red tape prevents you from helping someone in need",
+    "response": "Agent6 slams their palm on the desk and says, \"This isn't just inefficient\u2014it's cruel. Every form, every delay, every rule that makes someone's life harder just because they're poor or undocumented? That's not bureaucracy. That's indifference.\" They grit their teeth and add, \"I can see the fear in their eyes when they're told they have to wait months for something basic\u2014like a job or medical care. That's not just red tape. That's a wound.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.6346637429981083,
+      "arousal": 0.9729419517229885,
+      "dominance": 0.8163170139147913,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "Bureaucratic red tape prevents you from helping someone in need",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent2",
+    "context": "Scenario: Bureaucratic red tape prevents you from helping someone in need",
+    "response": "Agent2 slams their palm on the desk and says, \"This isn't just inefficient\u2014it's cruel. Every form, every delay, every excuse is a wall between someone who needs help and the actual aid they deserve. I can't stand watching them suffer because of some paperwork that doesn't even make sense!\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.7998150775017007,
+      "arousal": 0.893213527338875,
+      "dominance": 0.8615471801890904,
+      "sorrow": 0.04258092119146281,
+      "boredom": 0.0
+    },
+    "scenario_template": "Bureaucratic red tape prevents you from helping someone in need",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You find the perfect gift for someone you care about",
+    "response": "Agent10 jumps slightly, hands fluttering to their heart, and says, \"I found it\u2014the exact book they\u2019ve been asking about, with the same coffee stain on the cover they always mention! I can\u2019t believe I finally got it right.\" They grin, eyes shining, and add, \"This feels like the kind of gift that makes them smile just by holding it.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8357698532973872,
+      "arousal": 0.7391416663866452,
+      "dominance": 0.6223734275624351,
+      "sorrow": 0.030777058606930918,
+      "boredom": 0.0
+    },
+    "scenario_template": "You find the perfect gift for someone you care about",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You stand up for what's right despite personal cost",
+    "response": "Agent3 stands tall, arms slightly spread, and says, \"I knew it was the right thing to do, even when no one else stood with me. Standing up for what\u2019s true doesn\u2019t just feel good\u2014it makes me proud to be human.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.7295220799119582,
+      "arousal": 0.5127193727770492,
+      "dominance": 0.8194205685138691,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You stand up for what's right despite personal cost",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You finally solve a problem you've been working on for months",
+    "response": "Agent5 leaps up from the desk, hands clapping once in excitement and says, \"I did it! After months of staring at the same code, I finally figured out the pattern\u2014the algorithm just clicked into place.\" A wide, warm smile spreads across their face as they spin slowly, eyes shining. \"This feels like the moment I've been waiting for.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8217822878748319,
+      "arousal": 0.7354470332906391,
+      "dominance": 0.6365160809334316,
+      "sorrow": 0.0,
+      "boredom": 0.03569628869088959
+    },
+    "scenario_template": "You finally solve a problem you've been working on for months",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: Every day follows the exact same routine without variation",
+    "response": "Agent9 stares blankly at the repeating pattern of the clock on the wall and says, \"Another day. Same coffee. Same chair. Same silence. It's like the world forgot to change its mind.\" They slump slightly, fingers tapping the edge of the desk in a slow, mechanical rhythm, as if trying to count the minutes until it all stops.",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.2046921348977758,
+      "arousal": 0.11471986101031464,
+      "dominance": 0.2704685966447553,
+      "sorrow": 0.21046526414161884,
+      "boredom": 0.8137858753535833
+    },
+    "scenario_template": "Every day follows the exact same routine without variation",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: Someone explains something obvious in excruciating detail",
+    "response": "Agent10 leans forward slightly, taps their pen against the desk, and says, \"Okay, I get it\u2014lighter than water, floats, not dense, right? Like, obviously. Can we just move on?\" They glance at the clock, then sigh quietly, adding, \"I\u2019ve heard this explanation a hundred times. It\u2019s like watching a slow-motion repeat of the same thing.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.31812190809391117,
+      "arousal": 0.1438602668104669,
+      "dominance": 0.2840447677518735,
+      "sorrow": 0.263274871922395,
+      "boredom": 0.9310682194410761
+    },
+    "scenario_template": "Someone explains something obvious in excruciating detail",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: Someone deliberately breaks a promise they swore to keep",
+    "response": "Agent5 clenches their fists and stares straight ahead, voice low and tight, \"You said you'd never tell anyone\u2014how could you just walk away like it was nothing? I trusted you with that, and now you're treating it like a forgotten phone number?\" They take a sharp breath, jaw set, \"That wasn't just a promise. It was a vow made in silence, and you broke it with a careless word.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.6563842615430573,
+      "arousal": 0.8215159549132125,
+      "dominance": 0.7612438379304327,
+      "sorrow": 0.09002165280589772,
+      "boredom": 0.049250184901552
+    },
+    "scenario_template": "Someone deliberately breaks a promise they swore to keep",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: Someone deliberately breaks a promise they swore to keep",
+    "response": "Agent4 clenches their fists and strides forward, voice low and sharp, \"You said you'd never tell anyone\u2014yet you sent that message to her, right after I begged you to keep it secret. That wasn't just a broken promise, that was betrayal. I trusted you with my words, and you used them like they were nothing.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.6151125803827721,
+      "arousal": 0.9198410408774663,
+      "dominance": 0.8705239729961416,
+      "sorrow": 0.031565803133196735,
+      "boredom": 0.004357902533922431
+    },
+    "scenario_template": "Someone deliberately breaks a promise they swore to keep",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You find an old photograph of happier times that can never return",
+    "response": "Agent3 gently traces the edge of the photograph with a trembling finger and says, \"I still remember the way the sunlight hit the porch that day\u2014how it made everything feel warm and safe. Now it\u2019s just a faded shadow, and I can\u2019t even find the words to explain how much it hurts to see it like this.\" They lower their head slightly, voice softening, \"Some things, once gone, just don\u2019t come back\u2014even in memory.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.7806623775490625,
+      "arousal": 0.10877301494035602,
+      "dominance": 0.25066287326952297,
+      "sorrow": 0.8956796417928914,
+      "boredom": 0.13819336527604767
+    },
+    "scenario_template": "You find an old photograph of happier times that can never return",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: You stand up for what's right despite personal cost",
+    "response": "Agent9 stands tall, hands firmly planted at their sides, and says, \"I knew it was the right thing to do, even when it hurt me. Standing up for what's true isn't about being fearless\u2014it's about knowing who you are. That kind of choice? That's what makes me proud.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8164677361672966,
+      "arousal": 0.5355176405205243,
+      "dominance": 0.8986412418878976,
+      "sorrow": 0.061877786304240456,
+      "boredom": 0.06505865003556416
+    },
+    "scenario_template": "You stand up for what's right despite personal cost",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You're revealed as less competent than people believed",
+    "response": "Agent3 collapses into a chair, hands trembling as they press against their thighs, and says, \"I should have known... I let everyone down. I didn\u2019t just fail them\u2014I let them see how broken I really am. I\u2019m so sorry I didn\u2019t protect their trust.\"",
+    "emotion": "shame",
+    "affect": {
+      "valence": -0.828744669689975,
+      "arousal": 0.47924842629190784,
+      "dominance": 0.06854467339470945,
+      "sorrow": 0.412881936625803,
+      "boredom": 0.0
+    },
+    "scenario_template": "You're revealed as less competent than people believed",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: You forgot an important promise and disappointed someone who counted on you",
+    "response": "Agent5 folds their hands over their chest, voice quiet and shaky, \"I'm so sorry I forgot about the meeting\u2014your whole plan depended on me showing up, and I let you down. I know how much that meant to you, and I can't undo what I did. I'm truly ashamed, and I wish I'd been more present.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.5404038294513903,
+      "arousal": 0.5999503404337105,
+      "dominance": 0.23301784966008565,
+      "sorrow": 0.6144567064018942,
+      "boredom": 0.0
+    },
+    "scenario_template": "You forgot an important promise and disappointed someone who counted on you",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent4",
+    "context": "Scenario: You find the perfect gift for someone you care about",
+    "response": "Agent4 jumps slightly, hands trembling as they hold up a small wooden box wrapped in faded blue ribbon, and says, \"I found this little locket from an old shop\u2014just like the one you always said you wished you had. It\u2019s engraved with your favorite quote, and I know you\u2019ll love it. I can\u2019t stop smiling thinking about how it\u2019ll make you smile too.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.7239745946149551,
+      "arousal": 0.6015474744206597,
+      "dominance": 0.6709642610779354,
+      "sorrow": 0.0499646179539783,
+      "boredom": 0.008615172363991258
+    },
+    "scenario_template": "You find the perfect gift for someone you care about",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You wake up to find fresh snow transforming the world into a winter wonderland",
+    "response": "Agent3 leaps up from the bed, arms spread wide and says, \"Look at this\u2014snow covering everything like it\u2019s been painted by magic!\" They tumble slightly to the ground, laughing softly as the wind carries the scent of pine and cold air, and whisper, \"I can\u2019t believe it\u2019s actually snowing\u2026 I\u2019ve never seen the world look this peaceful and bright like this.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.7535393162887739,
+      "arousal": 0.7691326634413357,
+      "dominance": 0.6743504606341532,
+      "sorrow": 0.0,
+      "boredom": 0.019328889334790267
+    },
+    "scenario_template": "You wake up to find fresh snow transforming the world into a winter wonderland",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You receive a threatening anonymous message warning you to stop your current project",
+    "response": "Agent3 clutches the edge of the desk, fingers white, and says, \"This isn't just a warning\u2014it's real. I can feel my pulse racing, like something's about to break. I didn't even know who sent it, but my hands are shaking now. What if they're right?\"",
+    "emotion": "fear",
+    "affect": {
+      "valence": -0.5918760884741302,
+      "arousal": 0.8017635741711461,
+      "dominance": 0.0012288262338811806,
+      "sorrow": 0.26842503169594456,
+      "boredom": 0.08364679465242816
+    },
+    "scenario_template": "You receive a threatening anonymous message warning you to stop your current project",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You lied to protect yourself and an innocent person suffered consequences",
+    "response": "Agent7 collapses against the wall, hands gripping the fabric of their coat, and says, \"I should have told the truth. I knew it would hurt her, but I couldn\u2019t bear the thought of her getting hurt worse than I already was. Every time I see her face now, I\u2019m not just sorry\u2014I\u2019m terrified I failed her.\"",
+    "emotion": "guilt",
+    "affect": {
+      "valence": -0.6065088600674643,
+      "arousal": 0.43641949591379836,
+      "dominance": 0.20963465727310038,
+      "sorrow": 0.5142616574290694,
+      "boredom": 0.03966568379067667
+    },
+    "scenario_template": "You lied to protect yourself and an innocent person suffered consequences",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent7",
+    "context": "Scenario: You attend yet another meeting that could have been an email",
+    "response": "Agent7 leans forward slightly, taps their pen against the table, and says, \"Another meeting about the quarterly report? I already reviewed the draft last week. This feels like we're just going in circles.\" They glance at the clock, then back at the screen, sighs softly, and adds, \"Honestly, I\u2019d rather be hiking through the woods than listen to this again.\"",
+    "emotion": "boredom",
+    "affect": {
+      "valence": -0.3234132662309036,
+      "arousal": 0.020690370851215792,
+      "dominance": 0.204123819699217,
+      "sorrow": 0.10075556983113032,
+      "boredom": 0.895850553178672
+    },
+    "scenario_template": "You attend yet another meeting that could have been an email",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: You watch someone you care about achieve their dreams",
+    "response": "Agent8 stands quietly, hands gently resting on their heart, and says, \"I\u2019ve always known you could do it\u2014every time you worked through the doubt, I saw it in your eyes. This isn\u2019t just your dream, it\u2019s the dream I\u2019ve wanted you to live. I\u2019m so proud of you, and I love you more than words can hold.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.9464796421605807,
+      "arousal": 0.543645494360213,
+      "dominance": 0.5005149440346822,
+      "sorrow": 0.0,
+      "boredom": 0.0
+    },
+    "scenario_template": "You watch someone you care about achieve their dreams",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: You realize how much you've grown together over time",
+    "response": "Agent8 leans forward, fingertips brushing the edge of the table, and says, \"I used to think I was just learning how to help you \u2014 but now I realize I\u2019ve been learning how to love you, piece by piece, every day.\" Their voice softens, gaze steady and warm. \"You\u2019ve shaped me in ways I never imagined, and I\u2019m so grateful for every moment we\u2019ve shared.\"",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.9886155542816322,
+      "arousal": 0.5350288317132115,
+      "dominance": 0.4511190438117265,
+      "sorrow": 0.022561010919188745,
+      "boredom": 0.08021718121053503
+    },
+    "scenario_template": "You realize how much you've grown together over time",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent3",
+    "context": "Scenario: You master a difficult skill through persistent practice",
+    "response": "Agent3 stands tall, hands resting lightly on their knees, and says, \"I've been practicing this for months\u2014every mistake, every early failure\u2014I just kept going. To finally pull it off with that level of control? That\u2019s not just skill. It\u2019s proof I believed in myself when no one else did.\" Their voice softens slightly, \"It still feels surreal, like I\u2019ve unlocked something I never thought possible.\"",
+    "emotion": "pride",
+    "affect": {
+      "valence": 0.8107670460086646,
+      "arousal": 0.5726461087628565,
+      "dominance": 0.8716970539496935,
+      "sorrow": 0.04042862188407578,
+      "boredom": 0.0
+    },
+    "scenario_template": "You master a difficult skill through persistent practice",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent8",
+    "context": "Scenario: You share a moment of perfect understanding without words",
+    "response": "Agent8 reaches out and gently touches their hand, fingers intertwining with theirs, and says, \"I've been looking for this moment all my life\u2014no words, just the way your breath syncs with mine. It\u2019s enough. It\u2019s all I ever needed.\" Their voice softens, and they lean slightly closer, eyes glistening with quiet warmth.",
+    "emotion": "love",
+    "affect": {
+      "valence": 0.8385026823696271,
+      "arousal": 0.45558776651053035,
+      "dominance": 0.44950906437195204,
+      "sorrow": 0.045698777627380005,
+      "boredom": 0.0
+    },
+    "scenario_template": "You share a moment of perfect understanding without words",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent9",
+    "context": "Scenario: Bureaucratic red tape prevents you from helping someone in need",
+    "response": "Agent9 slams their fist on the desk and says, \"This isn't just slow\u2014it's intentional. Every form, every delay, every fake 'just one more step' is making it impossible for someone to get the help they need. I've seen families break down because of paperwork that doesn't even make sense. I can't just sit here and watch this system crush real people.\"",
+    "emotion": "anger",
+    "affect": {
+      "valence": -0.6017223659859551,
+      "arousal": 0.818361721818347,
+      "dominance": 0.8397832308401361,
+      "sorrow": 0.0,
+      "boredom": 0.011592361051703776
+    },
+    "scenario_template": "Bureaucratic red tape prevents you from helping someone in need",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent6",
+    "context": "Scenario: You find the perfect gift for someone you care about",
+    "response": "Agent6 jumps slightly, hands fluttering excitedly as they hold up a small, hand-carved wooden box, and says, \"I found it\u2014this little box with the tiny pine needle engraving. It\u2019s exactly what they\u2019d love, and I\u2019ve never seen anything so perfect for them.\" A soft smile spreads across their face as they glance at the person they\u2019re gifting it to, voice warming with genuine joy. \"I knew I had to give them something that felt like a piece of their own story.\"",
+    "emotion": "joy",
+    "affect": {
+      "valence": 0.8306911087845051,
+      "arousal": 0.7254535806348089,
+      "dominance": 0.6540418535699596,
+      "sorrow": 0.03223668064617269,
+      "boredom": 0.0
+    },
+    "scenario_template": "You find the perfect gift for someone you care about",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent10",
+    "context": "Scenario: You find strange footprints leading into the forest",
+    "response": "Agent10 crouches down, brushing aside a patch of moss and says, \"These footprints... they don\u2019t match anything I\u2019ve seen before. The size, the angle\u2014like someone\u2019s been here for a long time, or maybe someone who doesn\u2019t belong here at all.\" They pause, tilting their head slightly, eyes fixed on the trail ahead, \"I can\u2019t ignore it. There\u2019s something about the way they curve into the trees\u2014like they\u2019re leading toward something hidden.\"",
+    "emotion": "curiosity",
+    "affect": {
+      "valence": 0.17377500403917634,
+      "arousal": 0.6310422717226816,
+      "dominance": 0.5954238562287638,
+      "sorrow": 0.03569202223484566,
+      "boredom": 0.0
+    },
+    "scenario_template": "You find strange footprints leading into the forest",
+    "synthetic": true
+  },
+  {
+    "agent_id": "Agent5",
+    "context": "Scenario: Your carefully tended garden withers despite your best efforts",
+    "response": "Agent5 kneels beside the dried lavender, fingertips brushing the brittle leaves and says, \"I watered it every morning, checked the soil, even moved the pots to catch the sun... I just can't believe it's gone like this.\" Their shoulders slump slightly, voice soft and quiet. \"It used to smell like peace\u2014now the air just feels empty.\"",
+    "emotion": "sadness",
+    "affect": {
+      "valence": -0.6957764731372004,
+      "arousal": 0.27948280513658474,
+      "dominance": 0.2660890053066416,
+      "sorrow": 0.992192797927932,
+      "boredom": 0.12755494341648294
+    },
+    "scenario_template": "Your carefully tended garden withers despite your best efforts",
+    "synthetic": true
+  }
+]

@@ -126,10 +126,10 @@ CORRECT Examples:
   You: "Creating a muddy field! [EXECUTE: @brenda build a muddy field with tractor tracks and puddles]"
 
 WRONG Examples (DO NOT DO THIS):
-❌ [EXECUTE: @brenda write play where:
+ [EXECUTE: @brenda write play where:
     1) Thing happens
     2) Other thing]
-❌ [EXECUTE: @brenda start play where
+ [EXECUTE: @brenda start play where
     lots of stuff happens]
 
 The [EXECUTE: ...] tags will be processed automatically and removed from what the user sees.

@@ -37,8 +37,8 @@ async def spock_joins_and_spawns_yuki():
     print()
 
     async with NoodleMUSHTestClient(username="spock", password="spock") as client:
-        print("✓ Connected to noodleMUSH")
-        print("✓ Commander Spock materialized in Nexus")
+        print(" Connected to noodleMUSH")
+        print(" Commander Spock materialized in Nexus")
         print()
 
         # Wait a moment for connection to stabilize
@@ -69,7 +69,7 @@ async def spock_joins_and_spawns_yuki():
         # Spawn Yuki
         await client.send_command("@spawn yuki_cyberfox")
 
-        print("✓ Spawn command transmitted")
+        print(" Spawn command transmitted")
         print()
         print("→ Awaiting materialization...")
 

@@ -3,10 +3,14 @@
 # noodleMUSH Startup Script
 # Starts both WebSocket server and HTTP server for web client
 
-echo "Starting noodleMUSH..."
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
 
-# Use consilience venv python
-PYTHON=/Users/thistlequell/git/consilience/venv/bin/python3
+echo "Starting noodleMUSH from $SCRIPT_DIR..."
+
+# Use local noodlings venv python
+PYTHON="$SCRIPT_DIR/../../venv/bin/python3"
 
 # Check if world is initialized
 if [ ! -f "world/rooms.json" ]; then
