@@ -2022,8 +2022,8 @@ Analyze and output ONLY valid JSON:
             'surprise_threshold': 0.0001
         }
 
-        # Add the new message to conversation context temporarily
-        # Include affect field required by conversation_context.append()
+        # Create temporary context entry for this message (don't add to conversation_context)
+        # Include affect field required by conversation_context format
         # Convert affect_dict to array format [valence, arousal, dominance, sorrow, boredom]
         affect_array = [
             affect_dict.get('valence', 0.0),
@@ -2036,9 +2036,12 @@ Analyze and output ONLY valid JSON:
             'user': 'user_lab_test',
             'text': message,
             'timestamp': time.time(),
-            'affect': affect_array  # Required by custom append() method (as array)
+            'affect': affect_array
         }
-        self.conversation_context.append(temp_context_entry)
+
+        # Create modified context with temp entry appended (without mutating original)
+        response_window = self.config.get('memory_windows', {}).get('response_generation', 5)
+        context_with_message = list(self.conversation_context[-response_window:]) + [temp_context_entry]
 
         # Get relationship (or create minimal one)
         current_state = self.consciousness.get_state()
@@ -2066,12 +2069,10 @@ Analyze and output ONLY valid JSON:
 
         # Use the FULL production generate_response system
         try:
-            response_window = self.config.get('memory_windows', {}).get('response_generation', 5)
-
             llm_result = await self.llm.generate_response(
                 phenomenal_state=phenomenal_state,
                 target_user='user_lab_test',
-                conversation_context=self.conversation_context[-response_window:],
+                conversation_context=context_with_message,  # Use modified context
                 relationship=relationship,
                 agent_name=self.agent_name,
                 agent_id=self.agent_id,
@@ -2083,11 +2084,6 @@ Analyze and output ONLY valid JSON:
                 model=model_to_use
             )
 
-            # Remove the temporary context entry
-            # MemoryListWrapper doesn't support pop(), so remove by index
-            if len(self.conversation_context) > 0 and self.conversation_context[-1].get('user') == 'user_lab_test':
-                del self.conversation_context.memory[-1]
-
             # Extract response text
             if isinstance(llm_result, dict):
                 response_text = llm_result.get('response', '[No response]')
@@ -2098,13 +2094,6 @@ Analyze and output ONLY valid JSON:
             return response_text
 
         except Exception as e:
-            # Remove the temporary context entry on error
-            # MemoryListWrapper doesn't support pop(), so remove by index
-            if len(self.conversation_context) > 0 and self.conversation_context[-1].get('user') == 'user_lab_test':
-                try:
-                    del self.conversation_context.memory[-1]
-                except:
-                    pass  # Best effort cleanup
             logger.error(f"[{self.agent_id}] Lab generation failed: {e}")
             return "[Error generating response]"
 
