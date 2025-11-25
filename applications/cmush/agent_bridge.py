@@ -2084,7 +2084,9 @@ Analyze and output ONLY valid JSON:
             )
 
             # Remove the temporary context entry
-            self.conversation_context.pop()
+            # MemoryListWrapper doesn't support pop(), so remove by index
+            if len(self.conversation_context) > 0 and self.conversation_context[-1].get('user') == 'user_lab_test':
+                del self.conversation_context.memory[-1]
 
             # Extract response text
             if isinstance(llm_result, dict):
@@ -2097,8 +2099,12 @@ Analyze and output ONLY valid JSON:
 
         except Exception as e:
             # Remove the temporary context entry on error
-            if self.conversation_context and self.conversation_context[-1] == temp_context_entry:
-                self.conversation_context.pop()
+            # MemoryListWrapper doesn't support pop(), so remove by index
+            if len(self.conversation_context) > 0 and self.conversation_context[-1].get('user') == 'user_lab_test':
+                try:
+                    del self.conversation_context.memory[-1]
+                except:
+                    pass  # Best effort cleanup
             logger.error(f"[{self.agent_id}] Lab generation failed: {e}")
             return "[Error generating response]"
 
