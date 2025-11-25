@@ -194,7 +194,10 @@ class LabTestSession:
         # For now, we'll assume there's a generate_response_text() method
         try:
             response = await agent.generate_response_text(message, lab_mode=True)
-        except AttributeError:
+        except AttributeError as e:
+            # Log the specific attribute error for debugging
+            logger.error(f"[Lab] AttributeError during generation: {e}")
+            logger.error(f"[Lab] Agent type: {type(agent)}, has method: {hasattr(agent, 'generate_response_text')}")
             # Fallback: try alternate method names
             if hasattr(agent, 'generate_speech'):
                 response = await agent.generate_speech(message)
