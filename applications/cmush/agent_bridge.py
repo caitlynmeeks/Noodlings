@@ -2002,22 +2002,48 @@ Analyze and output ONLY valid JSON:
             else:
                 return "[Agent chose not to respond]"
 
-        # FORCE MODE: Generate response directly via LLM, bypassing surprise checks
+        # FORCE MODE: Use full production system with current phenomenal state
+        # This properly tests whether affect prediction improves responses
+
+        # Build phenomenal state dict from current consciousness state
         # Get current affect (respects override if set)
         affect_dict = self.get_current_affect()
 
-        # Build simple prompt for lab testing
-        # Note: affect_head uses 'dominance', but we map it for clarity
-        fear_or_dom = affect_dict.get('fear', affect_dict.get('dominance', 0.0))
-        affect_str = f"valence={affect_dict['valence']:.2f}, arousal={affect_dict['arousal']:.2f}, dominance={fear_or_dom:.2f}"
+        # Create a minimal phenomenal state dict for the production generator
+        phenomenal_state = {
+            'h_fast': [
+                affect_dict.get('valence', 0.0),
+                affect_dict.get('arousal', 0.5),
+                affect_dict.get('dominance', 0.5),
+                affect_dict.get('sorrow', 0.0),
+                affect_dict.get('boredom', 0.0)
+            ] + [0.0] * 11,  # Pad to 16-D
+            'surprise': 0.5,  # Moderate surprise to ensure response
+            'surprise_threshold': 0.0001
+        }
 
-        prompt = f"""You are {self.agent_name}, a {self.species}.
+        # Add the new message to conversation context temporarily
+        temp_context_entry = {
+            'user': 'user_lab_test',
+            'text': message,
+            'timestamp': time.time()
+        }
+        self.conversation_context.append(temp_context_entry)
 
-Current emotional state: {affect_str}
+        # Get relationship (or create minimal one)
+        relationships = self.consciousness.state.get('relationships', {})
+        relationship = relationships.get('user_lab_test', {
+            'attachment_style': 'forming',
+            'interaction_count': 0,
+            'valence': 0.0
+        })
 
-Message: "{message}"
-
-Respond naturally as {self.agent_name} would, influenced by your emotional state."""
+        # Get identity memories (high-salience memories)
+        identity_memories = sorted(
+            [m for m in self.conversation_context if m.get('identity_salience', 0) > 0.3],
+            key=lambda m: m.get('identity_salience', 0),
+            reverse=True
+        )[:2]
 
         # Select model: lab testing model if in lab mode, otherwise agent's normal model
         model_to_use = self.llm_model
@@ -2027,31 +2053,42 @@ Respond naturally as {self.agent_name} would, influenced by your emotional state
                 model_to_use = lab_config['model']
                 logger.info(f"[{self.agent_id}] Lab mode: Using {model_to_use}")
 
-        # Generate via LLM
+        # Use the FULL production generate_response system
         try:
-            response = await self.llm.generate(
-                prompt=prompt,
-                system_prompt=self.identity_prompt or f"You are {self.agent_name}.",
-                model=model_to_use,
-                temperature=0.8,
-                max_tokens=200
-            )
-            logger.info(f"[{self.agent_id}] Forced generation (raw): {len(response)} chars")
+            response_window = self.config.get('memory_windows', {}).get('response_generation', 5)
 
-            # Apply character voice translation to match normal flow
-            response_with_voice = await translate_to_character_voice(
-                text=response.strip(),
-                agent_id=self.agent_id,
-                species=self.species,
-                llm=self.llm,
+            llm_result = await self.llm.generate_response(
+                phenomenal_state=phenomenal_state,
+                target_user='user_lab_test',
+                conversation_context=self.conversation_context[-response_window:],
+                relationship=relationship,
                 agent_name=self.agent_name,
+                agent_id=self.agent_id,
+                agent_description=self.agent_description,
+                identity_prompt=self.identity_prompt,
+                identity_memories=identity_memories,
+                name_mentioned=False,
+                enlightenment=self.config.get('enlightenment', False),
                 model=model_to_use
             )
 
-            logger.info(f"[{self.agent_id}] After voice translation: {len(response_with_voice)} chars")
-            return response_with_voice
+            # Remove the temporary context entry
+            self.conversation_context.pop()
+
+            # Extract response text
+            if isinstance(llm_result, dict):
+                response_text = llm_result.get('response', '[No response]')
+            else:
+                response_text = llm_result or '[No response]'
+
+            logger.info(f"[{self.agent_id}] Lab generation (full system): {len(response_text)} chars")
+            return response_text
+
         except Exception as e:
-            logger.error(f"[{self.agent_id}] Forced generation failed: {e}")
+            # Remove the temporary context entry on error
+            if self.conversation_context and self.conversation_context[-1] == temp_context_entry:
+                self.conversation_context.pop()
+            logger.error(f"[{self.agent_id}] Lab generation failed: {e}")
             return "[Error generating response]"
 
     async def perceive_event(self, event: Dict) -> Optional[Dict]:
