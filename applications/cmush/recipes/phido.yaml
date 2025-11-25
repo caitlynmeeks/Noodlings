@@ -97,7 +97,7 @@ language_mode: "verbal"
 # LLM Configuration - DeepSeek for testing
 llm_override:
   provider: local
-  model: "deepseek-v3.1@q2_k_xl"
+  model: "qwen3-vl-30b-a3b-instruct-mlx"
 
 # Enlightenment: Phido is a good dog living fully in the moment
 enlightenment: false

@@ -1973,7 +1973,7 @@ Analyze and output ONLY valid JSON:
                 'boredom': 0.0
             }
 
-    async def generate_response_text(self, message: str, force: bool = True) -> str:
+    async def generate_response_text(self, message: str, force: bool = True, lab_mode: bool = False) -> str:
         """
         Generate response text to a message.
 
@@ -1983,6 +1983,7 @@ Analyze and output ONLY valid JSON:
         Args:
             message: User message text
             force: If True, force generation even if surprise is low
+            lab_mode: If True, use faster lab testing model from config
 
         Returns:
             Generated response text
@@ -2018,12 +2019,20 @@ Message: "{message}"
 
 Respond naturally as {self.agent_name} would, influenced by your emotional state."""
 
+        # Select model: lab testing model if in lab mode, otherwise agent's normal model
+        model_to_use = self.llm_model
+        if lab_mode and hasattr(self, 'config') and 'llm' in self.config:
+            lab_config = self.config['llm'].get('lab_testing', {})
+            if 'model' in lab_config:
+                model_to_use = lab_config['model']
+                logger.info(f"[{self.agent_id}] Lab mode: Using {model_to_use}")
+
         # Generate via LLM
         try:
             response = await self.llm.generate(
                 prompt=prompt,
                 system_prompt=self.identity_prompt or f"You are {self.agent_name}.",
-                model=self.llm_model,
+                model=model_to_use,
                 temperature=0.8,
                 max_tokens=200
             )
@@ -2036,7 +2045,7 @@ Respond naturally as {self.agent_name} would, influenced by your emotional state
                 species=self.species,
                 llm=self.llm,
                 agent_name=self.agent_name,
-                model=self.llm_model
+                model=model_to_use
             )
 
             logger.info(f"[{self.agent_id}] After voice translation: {len(response_with_voice)} chars")
@@ -4231,6 +4240,10 @@ class AgentManager:
                        'rumination_frequency', 'addressed_speech_chance', 'question_speech_chance', 'unaddressed_speech_chance']:
                 if key in global_agent:
                     agent_config[key] = global_agent[key]
+
+        # Add global llm settings (for lab_testing model access)
+        if 'llm' in self.global_config:
+            agent_config['llm'] = self.global_config['llm']
 
         # Override with agent-specific config
         if config:

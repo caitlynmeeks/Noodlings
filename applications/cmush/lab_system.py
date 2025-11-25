@@ -189,11 +189,11 @@ class LabTestSession:
             agent.set_affect_override(random_affect)
             logger.debug(f"[Lab] Set random affect: valence={random_affect['valence']:.2f}, arousal={random_affect['arousal']:.2f}, dominance={random_affect['dominance']:.2f}")
 
-        # Generate response (this calls the agent's normal response generation)
+        # Generate response using lab testing model (faster qwen3-vl-30b)
         # Note: The actual implementation will depend on agent interface
         # For now, we'll assume there's a generate_response_text() method
         try:
-            response = await agent.generate_response_text(message)
+            response = await agent.generate_response_text(message, lab_mode=True)
         except AttributeError:
             # Fallback: try alternate method names
             if hasattr(agent, 'generate_speech'):

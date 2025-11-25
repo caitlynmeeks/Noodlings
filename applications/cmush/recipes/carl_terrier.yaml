@@ -99,7 +99,7 @@ identity_prompt: >
 
 # LLM override - DeepSeek for superior comedy timing
 llm_override:
-  model: "deepseek-v3.1@q2_k_xl"
+  model: "qwen3-vl-30b-a3b-instruct-mlx"
   provider: "local"
 
 # Memory configuration - remembers lots of material

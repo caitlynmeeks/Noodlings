@@ -11,15 +11,18 @@ llm:
   local:
     api_base: http://localhost:1234/v1
     api_key: not-needed
-    model: deepseek-v3.1@q2_k_xl
+    model: qwen3-vl-30b-a3b-instruct-mlx
     timeout: 60
   openrouter:
     api_base: https://openrouter.ai/api/v1
     api_key: ${OPENROUTER_API_KEY}
     model: deepseek/deepseek-chat
     timeout: 30
+  lab_testing:
+    model: qwen3-vl-30b-a3b-instruct-mlx
+    timeout: 30
 brenda:
-  model: deepseek-v3.1@q2_k_xl
+  model: qwen3-vl-30b-a3b-instruct-mlx
 agent:
   surprise_threshold: 0.0
   memory_capacity: 100
