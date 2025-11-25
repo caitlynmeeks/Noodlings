@@ -2023,10 +2023,12 @@ Analyze and output ONLY valid JSON:
         }
 
         # Add the new message to conversation context temporarily
+        # Include affect field required by conversation_context.append()
         temp_context_entry = {
             'user': 'user_lab_test',
             'text': message,
-            'timestamp': time.time()
+            'timestamp': time.time(),
+            'affect': affect_dict  # Required by custom append() method
         }
         self.conversation_context.append(temp_context_entry)
 
