@@ -794,7 +794,7 @@ class CognitiveManifold:
         prompt: str,
         model: str = 'qwen/qwen3-4b-2507',
         context: Dict[str, Any] = None,
-        max_tokens: int = 100
+        max_tokens: int = 300
     ) -> str:
         """
         Simple LLM call for cognitive blending.
@@ -2499,13 +2499,6 @@ Output ONLY the physical reaction, nothing else."""
             lines.append(f"Locomotion: {', '.join(locomotion)}")
 
         return '\n'.join(lines)
-
-    def process(self, text: str, context: Dict) -> str:
-        """
-        EmbodyComponent doesn't generate text output.
-        It provides state data to other components.
-        """
-        return ""
 
 
 # ===== FACS and Laban Components =====
