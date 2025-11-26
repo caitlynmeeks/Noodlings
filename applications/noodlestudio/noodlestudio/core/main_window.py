@@ -207,13 +207,19 @@ class MainWindow(QMainWindow):
         window_menu.addAction(self._create_action("Minimize", "Ctrl+M", self.showMinimized))
         window_menu.addAction(self._create_action("Zoom", slot=self.showMaximized))
         window_menu.addSeparator()
-        # Panel shortcuts
+        # Panel shortcuts (Cmd+Number for visibility, Cmd+Shift+Number for maximize)
         window_menu.addAction(self._create_action("Show World View", "Cmd+1", lambda: self.world_view.show()))
+        window_menu.addAction(self._create_action("Maximize World View", "Cmd+Shift+1", lambda: self._toggle_panel_maximize(self.world_view)))
         window_menu.addAction(self._create_action("Show Stage Hierarchy", "Cmd+2", lambda: self.hierarchy.show()))
+        window_menu.addAction(self._create_action("Maximize Stage Hierarchy", "Cmd+Shift+2", lambda: self._toggle_panel_maximize(self.hierarchy)))
         window_menu.addAction(self._create_action("Show Asset Panel", "Cmd+3", lambda: self.assets.show()))
+        window_menu.addAction(self._create_action("Maximize Asset Panel", "Cmd+Shift+3", lambda: self._toggle_panel_maximize(self.assets)))
         window_menu.addAction(self._create_action("Show Inspector", "Cmd+4", lambda: self.inspector.show()))
+        window_menu.addAction(self._create_action("Maximize Inspector", "Cmd+Shift+4", lambda: self._toggle_panel_maximize(self.inspector)))
         window_menu.addAction(self._create_action("Show Console", "Cmd+5", lambda: self.console.show()))
+        window_menu.addAction(self._create_action("Maximize Console", "Cmd+Shift+5", lambda: self._toggle_panel_maximize(self.console)))
         window_menu.addAction(self._create_action("Show Noodle Tuner", "Cmd+6", lambda: self.noodle_tuner.show()))
+        window_menu.addAction(self._create_action("Maximize Noodle Tuner", "Cmd+Shift+6", lambda: self._toggle_panel_maximize(self.noodle_tuner)))
         window_menu.addSeparator()
         window_menu.addAction(self._create_action("Ensemble Store...", slot=self.show_ensemble_store))
         window_menu.addSeparator()
@@ -437,6 +443,15 @@ class MainWindow(QMainWindow):
         """Toggle World View between maximized and normal (Ctrl+M)."""
         if hasattr(self, 'world_view'):
             self.world_view.toggle_maximize()
+
+    def _toggle_panel_maximize(self, panel):
+        """Toggle any dock panel between maximized and normal state."""
+        if hasattr(panel, 'toggle_maximize'):
+            panel.show()  # Make sure panel is visible first
+            panel.toggle_maximize()
+        else:
+            # Fallback for panels that don't inherit from MaximizableDock
+            panel.show()
 
     def apply_default_sizes(self):
         """Apply exact panel sizes for default layout."""

@@ -21,9 +21,10 @@ import sys
 sys.path.append('../..')
 from noodlestudio.data.session_loader import SessionLoader, TimelineEvent
 from noodlestudio.widgets.timeline_widget import MultiTrackTimeline
+from noodlestudio.widgets.maximizable_dock import MaximizableDock
 
 
-class ProfilerPanel(QDockWidget):
+class ProfilerPanel(MaximizableDock):
     """
     Main profiler panel with timeline + inspector.
 

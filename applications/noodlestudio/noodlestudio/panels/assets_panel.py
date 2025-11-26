@@ -13,9 +13,12 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QAction
 import os
 import json
+import sys
+sys.path.append('..')
+from noodlestudio.widgets.maximizable_dock import MaximizableDock
 
 
-class AssetsPanel(QDockWidget):
+class AssetsPanel(MaximizableDock):
     """
     Assets panel showing all project assets organized by type.
 

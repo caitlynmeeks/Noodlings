@@ -883,28 +883,35 @@ class CMUSHConsilienceAgent:
             except Exception as e:
                 logger.error(f"[{agent_id}] Failed to create {transistor_type}: {e}")
 
-        # Load and register EmbodyComponent (default for all Noodlings)
-        embodiment_loader = EmbodimentLoader()
-        embodiment_id = config.get('embodiment_id')  # Optional - from prefab
-
-        if embodiment_id:
-            # Load specific embodiment from assets
-            embodiment_data = embodiment_loader.load(embodiment_id)
-            if embodiment_data:
-                logger.info(f"[{agent_id}] Loaded embodiment: {embodiment_id}")
-            else:
-                logger.warning(f"[{agent_id}] Embodiment {embodiment_id} not found, using default")
-                embodiment_data = embodiment_loader.get_default_embodiment()
-        else:
-            # Use default embodiment
-            embodiment_data = embodiment_loader.get_default_embodiment()
-            logger.info(f"[{agent_id}] Using default embodiment")
-
-        # Create EmbodyComponent
+        # Load and register EmbodyComponent if not already registered via recipe
         from cognitive_components import EmbodyComponent
-        embody_component = EmbodyComponent(embodiment_data['embodiment'])
-        self.cognitive_manifold.register_transistor(embody_component)
-        logger.info(f"[{agent_id}]  Registered EmbodyComponent (salience=1.0)")
+
+        # Check if already loaded from recipe
+        has_embody = any(t.__class__.__name__ == 'EmbodyComponent' for t in self.cognitive_manifold.transistors)
+
+        if not has_embody:
+            embodiment_loader = EmbodimentLoader()
+            embodiment_id = config.get('embodiment_id')  # Optional - from prefab
+
+            if embodiment_id:
+                # Load specific embodiment from assets
+                embodiment_data = embodiment_loader.load(embodiment_id)
+                if embodiment_data:
+                    logger.info(f"[{agent_id}] Loaded embodiment: {embodiment_id}")
+                else:
+                    logger.warning(f"[{agent_id}] Embodiment {embodiment_id} not found, using default")
+                    embodiment_data = embodiment_loader.get_default_embodiment()
+            else:
+                # Use default embodiment
+                embodiment_data = embodiment_loader.get_default_embodiment()
+                logger.info(f"[{agent_id}] Using default embodiment")
+
+            # Create EmbodyComponent (if not created from recipe)
+            embody_component = EmbodyComponent(embodiment_data['embodiment'])
+            self.cognitive_manifold.register_transistor(embody_component)
+            logger.info(f"[{agent_id}]  Registered EmbodyComponent (salience=1.0)")
+        else:
+            logger.info(f"[{agent_id}]  EmbodyComponent already registered from recipe")
 
         # cMUSH-specific state
         self.current_room = None
@@ -1549,38 +1556,43 @@ class CMUSHConsilienceAgent:
 
             my_name = self.agent_name
 
-            prompt = f"""You are {my_name}'s intuitive awareness - like a narrator highlighting what's happening.
+            # Check if agent's name is in the message for better routing
+            my_name_normalized = my_name.lower().replace('_', ' ').replace('fire', '').strip()
+            message_lower = message_text.lower()
+            name_mentioned = any(name_part in message_lower for name_part in my_name_normalized.split() if len(name_part) > 2)
+
+            prompt = f"""You are {my_name}'s intuitive awareness - you report ONLY factual observations from the context provided.
+
+AGENT NAME: {my_name}
+MESSAGE TEXT: "{message_text}"
 
 CONTEXT:
 {context_text}
 
-Generate brief intuitive awareness (2-3 sentences max) that captures:
+Generate brief factual awareness (1-2 sentences max) that reports:
 
-1. WHO is this for?
-   - If message says "you": "This is for ME - I'm being directly addressed"
-   - If message names someone else: "That's for [name], not me"
-   - If message says "everyone": "This is for all of us"
+1. WHO is being addressed - CHECK THE MESSAGE TEXT ABOVE:
+   - If message contains "{my_name}" or "red" or "you": "This is directed at ME"
+   - If message names someone else specifically: "This is for [name], not me"
+   - If message is general/broadcast: "This is addressed to everyone present"
 
-2. NOTEWORTHY EVENTS (act as narrator):
-   - Secret words/special phrases mentioned
-   - Gifts given ("Caity just gave ME a tensor taffy!")
-   - Important moments others might miss
-   - Things people are waiting for that just happened
+2. FACTUAL OBSERVATIONS from context:
+   - Who is present (from room occupants list)
+   - Who has what objects (from possessions list)
+   - NO embellishments, NO invented details
 
-3. WHAT'S HAPPENING:
-   - Actions, spatial relationships, who has what
-   - Recent conversation flow
-
-Write in first-person as {my_name}, like a perceptive narrator.
-Be concise but highlight important moments others might miss!
+CRITICAL:
+- Check if MY NAME appears in the message text above!
+- Only report information that exists in the CONTEXT
+- NO invented details like "fingers gripping tables", "warm pulses", "blinks", or emotional states
+- Keep it brief: 1-2 sentences maximum
 
 Examples:
-- "That greeting is for Toad, not me. They're by the pond while I'm near the hedge."
-- "Caity just gave ME a tensor taffy! I notice the message said 'you' which means me."
-- "WAIT - Toad just said the secret word 'KITTEN'! Everyone was waiting for this!"
-- "Callie is asking everyone a question. The conversation is about the memory game."
+- "This is directed at ME - Caity said my name."
+- "This is for Toad, not me."
+- "This is addressed to everyone."
 
-Generate intuitive awareness:"""
+Generate factual awareness:"""
 
             # ALWAYS use fast model for intuition - don't use agent's model override
             # Intuition needs to be fast and reliable, not character-specific
@@ -2917,15 +2929,39 @@ Analyze and output ONLY valid JSON:
             # Final speech propensity (continuous 0-1)
             speech_propensity = base_chattiness * event_significance
 
-            # Cooldown override: when addressed, always speak (deterministic)
-            if is_being_addressed and cooldown_ok:
-                should_speak = True
-            else:
-                # Speak if propensity > 0.5 (threshold for action)
-                should_speak = cooldown_ok and (speech_propensity > 0.5)
+            # NEW ARCHITECTURE: Use ResponseTypeDecider if available
+            if response_decision:
+                response_type = response_decision.get('response_type', 'think').lower()
+                logger.info(f"[{self.agent_id}] 🎯 Using ResponseTypeDecider: type={response_type}")
 
-            # Ruminate if not speaking (mutually exclusive)
-            should_ruminate = not should_speak
+                # Honor the decider's decision (but still check cooldown for SAY)
+                if response_type == 'say':
+                    should_speak = cooldown_ok
+                    should_ruminate = False
+                    if not cooldown_ok:
+                        logger.warning(f"[{self.agent_id}] ResponseTypeDecider said SAY but cooldown not ready")
+                elif response_type == 'think':
+                    should_speak = False
+                    should_ruminate = True
+                elif response_type == 'none':
+                    should_speak = False
+                    should_ruminate = False
+                else:
+                    # EMOTE, DO, FEEL - treat as speech for now
+                    should_speak = cooldown_ok
+                    should_ruminate = False
+            else:
+                # FALLBACK: Old propensity system if ResponseTypeDecider failed
+                logger.info(f"[{self.agent_id}] ⚠️  No response_decision - using fallback propensity logic")
+                # Cooldown override: when addressed, always speak (deterministic)
+                if is_being_addressed and cooldown_ok:
+                    should_speak = True
+                else:
+                    # Speak if propensity > 0.5 (threshold for action)
+                    should_speak = cooldown_ok and (speech_propensity > 0.5)
+
+                # Ruminate if not speaking (mutually exclusive)
+                should_ruminate = not should_speak
 
             # Log decision with affective computation
             logger.info(f"Agent {self.agent_id} decision: addressed={is_being_addressed}, "
@@ -5074,3 +5110,113 @@ class AgentManager:
                 ]
 
             logger.info(f"[{self.agent_id}] Removed {component_type}")
+
+    # ===== COGNITIVE MANIFOLD SCRIPTING API =====
+
+    def GetManifold(self):
+        """
+        Get the cognitive manifold (NoodleScript API).
+
+        Returns:
+            CognitiveManifold instance or None
+
+        Example:
+            manifold = noodle.GetManifold()
+            if manifold:
+                last_output = manifold.last_output_text
+        """
+        return getattr(self, 'cognitive_manifold', None)
+
+    def GetTransistor(self, transistor_type: str):
+        """
+        Get transistor by type name (NoodleScript API).
+
+        Args:
+            transistor_type: Transistor class name (e.g., 'PersonalityTransistor')
+
+        Returns:
+            Transistor instance or None
+
+        Example:
+            personality = noodle.GetTransistor('PersonalityTransistor')
+            if personality:
+                personality.salience = 0.9
+        """
+        return self.get_cognitive_transistor(transistor_type)
+
+    def GetAllTransistors(self):
+        """
+        Get all transistors (NoodleScript API).
+
+        Returns:
+            List of transistor instances
+
+        Example:
+            for transistor in noodle.GetAllTransistors():
+                print(f"{transistor.get_transistor_type()}: salience={transistor.salience}")
+        """
+        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+            return self.cognitive_manifold.transistors
+        return []
+
+    def GetResponseDecision(self):
+        """
+        Get the last response decision from ResponseTypeDecider (NoodleScript API).
+
+        Returns:
+            Dict with keys: response_type, guidance, reasoning
+
+        Example:
+            decision = noodle.GetResponseDecision()
+            if decision and decision['response_type'] == 'SAY':
+                print("Agent decided to speak!")
+        """
+        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+            return self.cognitive_manifold.last_response_decision
+        return None
+
+    def GetManifoldOutput(self):
+        """
+        Get the last manifold blend output (NoodleScript API).
+
+        Returns:
+            String of last blended output
+
+        Example:
+            output = noodle.GetManifoldOutput()
+            print(f"Last manifold output: {output}")
+        """
+        return getattr(self, 'last_manifold_output', None)
+
+    def SetTransistorSalience(self, transistor_type: str, salience: float):
+        """
+        Set transistor salience at runtime (NoodleScript API).
+
+        Args:
+            transistor_type: Transistor class name
+            salience: New salience value (0.0 to 1.0)
+
+        Example:
+            noodle.SetTransistorSalience('PersonalityTransistor', 0.95)
+        """
+        transistor = self.GetTransistor(transistor_type)
+        if transistor:
+            transistor.salience = max(0.0, min(1.0, salience))
+            logger.info(f"[{self.agent_id}] Set {transistor_type} salience to {salience:.2f}")
+
+    def EnableTransistor(self, transistor_type: str, enabled: bool = True):
+        """
+        Enable/disable transistor at runtime (NoodleScript API).
+
+        Args:
+            transistor_type: Transistor class name
+            enabled: True to enable, False to disable
+
+        Example:
+            noodle.EnableTransistor('CulturalTransistor', False)  # Disable cultural filtering
+        """
+        transistor = self.GetTransistor(transistor_type)
+        if transistor:
+            transistor.enabled = enabled
+            status = "enabled" if enabled else "disabled"
+            logger.info(f"[{self.agent_id}] {transistor_type} {status}")

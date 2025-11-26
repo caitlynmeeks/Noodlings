@@ -793,7 +793,33 @@ class CognitiveManifold:
         # Build prompt - STRICT: no hallucinations, only blend what's provided
         # CRITICAL: Format output according to response type
         if response_type == 'SAY':
-            format_instruction = "Output what you would SAY out loud (direct speech, conversational)."
+            format_instruction = """YOU ARE WRITING SPOKEN DIALOGUE - what the character says OUT LOUD.
+
+THIS IS SPEECH, NOT NARRATION. Write like a screenplay:
+
+GOOD EXAMPLES (actual spoken dialogue):
+- "Ooh, NICE candy! Gimme some!" *reaches out greedily*
+- "Oh WOW, another greeting. THRILLING." *eye roll*
+- "Yeah yeah, hi. Got anything INTERESTING?" *taps claws impatiently*
+- "That's YOUR greeting? My dead grandma's got better lines! MWAHAHA!" *cackles*
+
+BAD EXAMPLES (first-person narrative - DO NOT DO THIS):
+- "I snap forward, flames lashing like a heartbeat"
+- "My flames are burning hot, wanting to grab"
+- "I lean forward, orange eyes blazing"
+- "That candy's burning my blood just seeing it"
+
+FORMATTING RULES:
+✓ Write what they SAY in quotes or plain text
+✓ Add actions in asterisks: *cackles*, *grabs*, *points*
+✓ Use conversational tone - how people actually talk
+✗ NO first-person narrative ("I...", "My...")
+✗ NO internal monologue or feelings descriptions
+✗ NO stage directions about their body/emotions
+
+Think: "What would this character SAY out loud in this moment?"
+NOT: "What are they thinking/feeling/doing internally?"
+"""
         elif response_type == 'THINK':
             format_instruction = "Output your internal THOUGHT (first-person phenomenological experience)."
         elif response_type == 'EMOTE':
@@ -803,18 +829,32 @@ class CognitiveManifold:
         else:
             format_instruction = "Output a first-person statement."
 
-        prompt = f"Blend these cognitive perspectives according to response type: {response_type}\n\n"
-        prompt += f"RESPONSE GUIDANCE: {guidance}\n\n"
-        prompt += f"FORMAT: {format_instruction}\n\n"
-        prompt += "COGNITIVE PERSPECTIVES (use ONLY content below):\n\n"
+        prompt = f"TASK: Generate {response_type} response by blending the cognitive perspectives below.\n\n"
+        prompt += f"RESPONSE TYPE: {response_type}\n"
+        prompt += f"GUIDANCE: {guidance}\n\n"
+        prompt += f"===== FORMAT REQUIREMENTS =====\n{format_instruction}\n\n"
+        prompt += "===== COGNITIVE PERSPECTIVES =====\n"
+        prompt += "These are internal feelings/impulses. Extract the ESSENCE and express it as {response_type}.\n\n"
 
         for i, output in enumerate(outputs, 1):
             prompt += f"{i}. [salience={output.salience:.2f}] {output.transformed_text}\n"
 
-        prompt += f"\nWeigh perspectives by salience (higher salience = more influence). "
-        prompt += f"Synthesize into {response_type} format using ONLY the themes and feelings present above. "
-        prompt += "Do not invent details not present.\n\n"
-        prompt += f"{response_type} output:"
+        prompt += f"\n===== BLENDING INSTRUCTIONS =====\n"
+        prompt += f"1. Weigh perspectives by salience (higher = more influence)\n"
+        prompt += f"2. Extract emotional tone, attitude, and themes from perspectives\n"
+        prompt += f"3. Express in {response_type} format - NOT narrative, NOT internal monologue\n"
+        prompt += f"4. Use ONLY themes present above - no new inventions\n"
+        prompt += f"5. Do NOT quote or echo the original input\n\n"
+
+        if response_type == 'SAY':
+            prompt += "===== SAY FORMAT CHECKLIST =====\n"
+            prompt += "✓ Written as spoken dialogue (what they say out loud)\n"
+            prompt += "✓ Conversational tone - how people actually talk\n"
+            prompt += "✓ Actions in asterisks: *cackles*, *points*\n"
+            prompt += "✗ NO first-person narrative (I, my, me describing actions/feelings)\n"
+            prompt += "✗ NO internal thoughts or feeling descriptions\n\n"
+
+        prompt += f"Generate ONLY the {response_type} output now:"
 
         # Store instruction prompt for Noodle Tuner
         self.last_instruction_prompt = prompt
@@ -828,8 +868,17 @@ class CognitiveManifold:
         # Call LLM with SMART model - manifold blending is critical collapse point
         # Use 30B model for nuanced character-preserving integration
         blend_model = 'qwen3-vl-30b-a3b-instruct-mlx'  # Smart model for critical integration
+
+        # Build response-type-specific system prompt
+        if response_type == 'SAY':
+            system_prompt = "Generate SPOKEN DIALOGUE ONLY. Write what the character says out loud, not what they think or feel. Use conversational speech, not narrative. Preserve character voice and attitude."
+        elif response_type == 'THINK':
+            system_prompt = "Generate internal thought (first-person phenomenological experience). Preserve character consciousness."
+        else:
+            system_prompt = "Blend these perspectives. Preserve the character voice, tone, and personality present in the inputs. Do NOT sanitize or make pleasant. Match the energy and style."
+
         try:
-            response = await self._call_llm_simple(llm_client, prompt, blend_model, context)
+            response = await self._call_llm_simple(llm_client, prompt, blend_model, context, system_prompt=system_prompt)
             return response.strip()
         except Exception as e:
             logger.error(f"LLM blending failed: {e}, using emergency concatenation")
@@ -841,7 +890,8 @@ class CognitiveManifold:
         prompt: str,
         model: str = 'qwen/qwen3-4b-2507',
         context: Dict[str, Any] = None,
-        max_tokens: int = 300
+        max_tokens: int = 300,
+        system_prompt: str = None
     ) -> str:
         """
         Simple LLM call for cognitive blending.
@@ -852,6 +902,7 @@ class CognitiveManifold:
             model: Model to use
             context: Context dict with agent (for tracking)
             max_tokens: Max response tokens
+            system_prompt: Optional system prompt override
 
         Returns:
             LLM response text
@@ -861,11 +912,15 @@ class CognitiveManifold:
         if agent and hasattr(agent, '_increment_llm_counter'):
             agent._increment_llm_counter()
 
+        # Default system prompt if not provided
+        if system_prompt is None:
+            system_prompt = "Blend these perspectives. Preserve the character voice, tone, and personality present in the inputs. Do NOT sanitize or make pleasant. Match the energy and style."
+
         try:
             # Use the LLM client's generate method directly
             response = await llm_client.generate(
                 prompt=prompt,
-                system_prompt="Blend these perspectives. Preserve the character voice, tone, and personality present in the inputs. Do NOT sanitize or make pleasant. Match the energy and style.",
+                system_prompt=system_prompt,
                 model=model,
                 max_tokens=max_tokens,
                 temperature=0.7
@@ -923,25 +978,7 @@ class CognitiveManifold:
 class CulturalTransistor(CognitiveTransistor):
     """Colors thoughts based on cultural beliefs."""
 
-    def __init__(self, beliefs: Optional[List[str]] = None):
-        super().__init__()
-        self.beliefs = beliefs or []
-        self.salience = 0.8  # High influence
-        self.last_instruction_prompt = ""  # For Noodle Tuner
-
-    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
-        """Filter through cultural lens."""
-        if not self.beliefs:
-            return TransistorOutput(input_text, 0.1, {})
-
-        # Get response decision (if available)
-        response_decision = context.get('response_decision', {})
-        response_type = response_decision.get('response_type', 'think')
-        guidance = response_decision.get('guidance', 'general response')
-
-        # Build transformation prompt WITH response type guidance
-        beliefs_text = '\n'.join([f"- {b}" for b in self.beliefs[:3]])
-        prompt = f"""You are filtering a perception through cultural/religious beliefs.
+    DEFAULT_PROMPT = """You are filtering a perception through cultural/religious beliefs.
 
 BELIEFS:
 {beliefs_text}
@@ -957,6 +994,33 @@ Generate brief (1-2 sentences) content for this {response_type} that reflects yo
 - THINK: "This aligns with my values about community"
 
 Content for {response_type}:"""
+
+    def __init__(self, beliefs: Optional[List[str]] = None, custom_prompt: Optional[str] = None):
+        super().__init__()
+        self.beliefs = beliefs or []
+        self.salience = 0.8  # High influence
+        self.last_instruction_prompt = ""  # For Noodle Tuner
+        self.custom_prompt = custom_prompt
+        self.active_prompt = custom_prompt if custom_prompt else self.DEFAULT_PROMPT
+
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+        """Filter through cultural lens."""
+        if not self.beliefs and not self.custom_prompt:
+            return TransistorOutput(input_text, 0.1, {})
+
+        # Get response decision (if available)
+        response_decision = context.get('response_decision', {})
+        response_type = response_decision.get('response_type', 'think')
+        guidance = response_decision.get('guidance', 'general response')
+
+        # Build transformation prompt using active_prompt (custom or default)
+        beliefs_text = '\n'.join([f"- {b}" for b in self.beliefs[:3]]) if self.beliefs else "(custom prompt)"
+        prompt = self.active_prompt.format(
+            beliefs_text=beliefs_text,
+            input_text=input_text,
+            response_type=response_type,
+            guidance=guidance
+        )
 
         # Store prompt for Noodle Tuner
         self.last_instruction_prompt = prompt
@@ -1004,7 +1068,10 @@ Content for {response_type}:"""
     @classmethod
     def from_config(cls, config: Dict[str, Any]) -> 'CulturalTransistor':
         """Unity-style factory: Component builds itself from recipe config."""
-        instance = cls(beliefs=config.get('beliefs', []))
+        instance = cls(
+            beliefs=config.get('beliefs', []),
+            custom_prompt=config.get('custom_prompt')
+        )
         instance.salience = config.get('salience', 0.8)
         instance.enabled = config.get('enabled', True)
         return instance
@@ -1137,7 +1204,13 @@ class IntuitionTransistor(CognitiveTransistor):
         logger.info(f"IntuitionTransistor.set_intuition() - self.intuition_text now = {repr(self.intuition_text[:100] if self.intuition_text else self.intuition_text)}")
 
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
-        """Filter through present-moment awareness lens."""
+        """
+        Pass through contextual intuition WITHOUT transformation.
+
+        The intuition is already generated by _generate_intuition() with full context.
+        This transistor simply makes it available with high salience.
+        NO FURTHER LLM CALLS - prevents hallucination and double-processing.
+        """
         # Try self.intuition_text first, fall back to context['intuition']
         intuition = self.intuition_text or context.get('intuition')
 
@@ -1150,58 +1223,25 @@ class IntuitionTransistor(CognitiveTransistor):
         # Use the intuition we found
         self.intuition_text = intuition
 
-        # Get response decision
+        # Get response decision for context (but don't transform further)
         response_decision = context.get('response_decision', {})
         response_type = response_decision.get('response_type', 'think')
-        guidance = response_decision.get('guidance', 'general response')
 
-        # Build transformation prompt WITH response type guidance
-        prompt = f"""You are filtering a perception through intuitive present-moment awareness.
+        # Store simple instruction for Noodle Tuner debugging
+        self.last_instruction_prompt = f"""IntuitionTransistor: Pass-through mode
 
-INTUITIVE AWARENESS:
+INTUITIVE AWARENESS (from _generate_intuition):
 {intuition}
 
-PERCEPTION: "{input_text}"
+This transistor provides direct contextual awareness without transformation.
+The intuition was generated with full world state and conversation context."""
 
-RESPONSE GUIDANCE:
-You've decided to {response_type.upper()}: {guidance}
-
-Generate brief (1-2 sentences) content for this {response_type} based on what you sense in the present moment. Examples:
-- SAY: "I sense you just arrived - welcome!"
-- DO: "I turn toward where I sense their presence"
-- THINK: "I'm aware this isn't directed at me"
-
-Content for {response_type}:"""
-
-        # Store for Noodle Tuner
-        self.last_instruction_prompt = prompt
-
-        # Use LLM to transform
-        llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
-
-        if llm_client:
-            try:
-                transformed = await self._call_llm_tracked(
-                    llm_client=llm_client,
-                    prompt=prompt,
-                    context=context,
-                    system_prompt="You are an intuition filter. Generate brief first-person affective responses about present-moment awareness.",
-                    model=model,
-                    max_tokens=100,
-                    temperature=0.8
-                )
-            except Exception as e:
-                logger.warning(f"Intuition LLM failed: {e}, using fallback")
-                transformed = f"I sense: {intuition[:80]}"
-        else:
-            # No LLM - simple fallback
-            transformed = f"I sense: {intuition[:80]}"
-
+        # DIRECT PASS-THROUGH - no LLM call, no transformation
+        # The intuition is already correctly formatted from _generate_intuition()
         return TransistorOutput(
-            transformed_text=transformed,
+            transformed_text=intuition,  # Direct pass-through
             salience=self.salience,
-            metadata={'intuition': intuition}
+            metadata={'intuition': intuition, 'response_type': response_type}
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1471,13 +1511,15 @@ class MemoryTransistor(CognitiveTransistor):
         # Retrieve relevant memories from context
         memory_system = context.get('memory_system')
         if not memory_system:
-            return TransistorOutput(input_text, 0.1, {})
+            # No memory system - return empty instead of echoing input
+            return TransistorOutput("", 0.1, {})
 
         # Search for relevant memories
         relevant_memories = self._search_memories(memory_system, keywords)
 
         if not relevant_memories:
-            return TransistorOutput(input_text, 0.1, {})
+            # No relevant memories - return empty output instead of echoing input
+            return TransistorOutput("", 0.1, {})
 
         # Build memory context
         memory_snippets = [m.get('text', str(m))[:120] for m in relevant_memories[:2]]
@@ -2558,6 +2600,44 @@ Output ONLY the physical reaction, nothing else."""
 
         return '\n'.join(lines)
 
+    @classmethod
+    def from_config(cls, config: Dict[str, Any]) -> 'EmbodyComponent':
+        """
+        Unity-style factory: Build EmbodyComponent from recipe config.
+
+        Config can include:
+        - embodiment_id: Load specific .embodiment file
+        - custom_prompt: Override default embodiment prompt
+        - salience: Transistor importance (default 1.0)
+        """
+        from embodiment_loader import EmbodimentLoader
+
+        # Load embodiment data
+        loader = EmbodimentLoader()
+        embodiment_id = config.get('embodiment_id')
+
+        if embodiment_id:
+            embodiment_data = loader.load(embodiment_id)
+            if not embodiment_data:
+                logger.warning(f"Embodiment {embodiment_id} not found, using default")
+                embodiment_data = loader.get_default_embodiment()
+        else:
+            embodiment_data = loader.get_default_embodiment()
+
+        # Create instance
+        instance = cls(embodiment_data['embodiment'])
+
+        # Handle custom prompt from recipe
+        custom_prompt = config.get('custom_prompt')
+        if custom_prompt:
+            instance.active_prompt = custom_prompt
+            logger.info(f"EmbodyComponent using custom prompt from recipe")
+
+        instance.salience = config.get('salience', 1.0)
+        instance.enabled = config.get('enabled', True)
+
+        return instance
+
 
 # ===== FACS and Laban Components =====
 
@@ -2871,6 +2951,7 @@ COMPONENT_REGISTRY.update({
     'SomaticCognitiveTransistor': SomaticCognitiveTransistor,
     'DeceptionTransistor': DeceptionTransistor,
     'SoundEmitter': SoundEmitter,
+    'EmbodyComponent': EmbodyComponent,  # CRITICAL: Must be in registry for recipes!
     'FacialExpressionComponent': FacialExpressionComponent,
     'BodyLanguageComponent': BodyLanguageComponent
 })
