@@ -1215,7 +1215,11 @@ class NoodleScopeAPI:
                 'enabled': transistor.enabled,
                 'instruction_prompt': instruction_prompt,
                 'output': transistor.last_output_text or "",
-                'metadata': transistor.last_output_metadata or {}
+                'metadata': transistor.last_output_metadata or {},
+                # NEW: Register state
+                'register_state': transistor.register_state,  # empty, computing, ready, error
+                'register_cycle_id': transistor.register_cycle_id,
+                'register_timestamp': transistor.register_timestamp
             })
 
         # Get current affect for context

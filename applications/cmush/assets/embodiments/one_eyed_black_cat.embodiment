@@ -1,0 +1,60 @@
+metadata:
+  id: com.noodlings.embodiments.one_eyed_black_cat
+  name: "One-Eyed Black Cat"
+  version: 1.0.0
+  created: "2025-11-25"
+  author: "Garcia River Forest Research Station"
+  description: "Small black cat with short fur, one functional eye"
+  tags:
+    - quadruped
+    - feline
+    - injured
+
+embodiment:
+  architecture:
+    form: quadruped
+    limb_count: 4
+    has_tail: true
+    has_wings: false
+    locomotion:
+      - walk
+      - run
+      - jump
+      - climb
+    manipulation:
+      - paws
+      - mouth
+
+  characteristics:
+    size: small
+    fur: true
+    fur_color: black
+    fur_length: short
+    skin_texture: soft
+    eye_count: 2
+    mass_kg: 4.5
+    height_cm: 25
+
+  state:
+    rightEyeIsBlindAndShut: true
+    notchInRightEar: true
+    scarsOnBackFromFight: true
+    energyLevel: 0.8
+    hungerLevel: 0.3
+    thirstLevel: 0.2
+
+  movement:
+    baseSpeed: 1.2
+    jumpHeight: 1.5
+    canSwim: false
+    canFly: false
+    canClimb: true
+
+  senses:
+    vision: partial
+    hearing: full
+    smell: full
+    touch: full
+    proprioception: full
+
+  worn_items: []

@@ -55,11 +55,40 @@ class TransistorCard(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 6, 6, 6)
 
-        # Header: Type only
+        # Header: Type + Register State
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(8)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
         type_label = QLabel(self.transistor_data['type'])
         type_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
         type_label.setStyleSheet("color: #CCCCCC;")
-        layout.addWidget(type_label)
+        header_layout.addWidget(type_label)
+
+        # Register state indicator (NEW ARCHITECTURE)
+        self.state_indicator = QLabel()
+        self.state_indicator.setFont(QFont("Arial", 8, QFont.Weight.Bold))
+        register_state = self.transistor_data.get('register_state', 'unknown')
+        if register_state == 'ready':
+            self.state_indicator.setText("READY")
+            self.state_indicator.setStyleSheet("color: #66FF66; padding: 2px 6px; background-color: #1A3A1A; border-radius: 3px;")
+        elif register_state == 'computing':
+            self.state_indicator.setText("COMPUTING...")
+            self.state_indicator.setStyleSheet("color: #FFAA00; padding: 2px 6px; background-color: #3A2A1A; border-radius: 3px;")
+        elif register_state == 'empty':
+            self.state_indicator.setText("EMPTY")
+            self.state_indicator.setStyleSheet("color: #666666; padding: 2px 6px; background-color: #2A2A2A; border-radius: 3px;")
+        elif register_state == 'error':
+            self.state_indicator.setText("ERROR")
+            self.state_indicator.setStyleSheet("color: #FF6666; padding: 2px 6px; background-color: #3A1A1A; border-radius: 3px;")
+        else:
+            self.state_indicator.setText("UNKNOWN")
+            self.state_indicator.setStyleSheet("color: #666666; padding: 2px 6px; background-color: #2A2A2A; border-radius: 3px;")
+
+        header_layout.addWidget(self.state_indicator)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
 
         # Instruction Prompt (always editable)
         instruction_label = QLabel("Instruction Prompt (editable):")

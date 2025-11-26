@@ -2271,8 +2271,19 @@ Analyze and output ONLY valid JSON:
                             'message': text
                         }
                     }
-                    # Use async integration for LLM-weighted blending
-                    colored_perception = await self.cognitive_manifold.integrate_async(text, context)
+                    # NEW ARCHITECTURE: Register-based accumulator
+                    # PHASE 1: Fill all registers
+                    await self.cognitive_manifold.fill_all_registers(text, context, self.current_cycle_uuid)
+
+                    # PHASE 2: Verify ready (optional wait)
+                    if not self.cognitive_manifold.check_all_registers_ready():
+                        logger.warning("Registers not all ready, waiting 0.5s...")
+                        import asyncio
+                        await asyncio.sleep(0.5)
+
+                    # PHASE 3: Pull lever - integrate
+                    colored_perception = await self.cognitive_manifold.integrate_from_registers(context)
+
                     # Noodle Tuner: Store perception and manifold output
                     self.last_perception_text = text
                     self.last_manifold_output = colored_perception
@@ -2281,6 +2292,8 @@ Analyze and output ONLY valid JSON:
                 except Exception as e:
                     logger.error(f"[{self.agent_id}] Cognitive manifold failed: {e}")
                     colored_perception = text  # Fallback to original
+                    # Clear registers even on failure
+                    self.cognitive_manifold.clear_all_registers()
 
             # 1a. Detect name mention - boosts attention/salience
             name_mentioned = self.agent_name.lower() in text.lower()
@@ -3345,6 +3358,9 @@ Analyze and output ONLY valid JSON:
                 # Phase 6: Self-monitoring (if enabled and conditions met)
                 await self._trigger_self_monitoring(final_text, state)
 
+                # PHASE 5: Clear registers (cognition cycle complete)
+                self.cognitive_manifold.clear_all_registers()
+
                 return {
                     'command': 'emote',  # Use emote for combined action+speech
                     'text': f"{action_text} and says, \"{final_text}\"",
@@ -3359,6 +3375,8 @@ Analyze and output ONLY valid JSON:
                 # Pure action, no speech
                 action_text = ' '.join(actions)
                 logger.info(f"Agent {self.agent_id} parsed: pure action='{action_text}'")
+                # PHASE 5: Clear registers (cognition cycle complete)
+                self.cognitive_manifold.clear_all_registers()
                 return {
                     'command': 'emote',
                     'text': action_text,
@@ -3385,6 +3403,9 @@ Analyze and output ONLY valid JSON:
                 # Phase 6: Self-monitoring (if enabled and conditions met)
                 await self._trigger_self_monitoring(final_text, state)
 
+                # PHASE 5: Clear registers (cognition cycle complete)
+                self.cognitive_manifold.clear_all_registers()
+
                 return {
                     'command': 'say',
                     'text': final_text,
@@ -3398,8 +3419,15 @@ Analyze and output ONLY valid JSON:
 
         except Exception as e:
             logger.error(f"Error generating response: {e}", exc_info=True)
+            # Clear registers even on error
+            self.cognitive_manifold.clear_all_registers()
             # Return None to skip response - more graceful than error message
             return None
+        finally:
+            # PHASE 5: Ensure registers always cleared (safety net)
+            if self.cognitive_manifold.cycle_in_progress:
+                logger.debug("Finally block clearing registers")
+                self.cognitive_manifold.clear_all_registers()
 
     async def _generate_rumination(self, state: Dict, is_being_addressed: bool = False,
                                    is_question: bool = False) -> Dict:
@@ -3479,8 +3507,19 @@ Analyze and output ONLY valid JSON:
                             'reasoning': 'rumination cycle - processing perceptions internally'
                         }
                     }
-                    # Color the thought seed through manifold
-                    colored_thought_seed = await self.cognitive_manifold.integrate_async(perception_text, context)
+                    # NEW ARCHITECTURE: Register-based accumulator for rumination
+                    # PHASE 1: Fill all registers
+                    await self.cognitive_manifold.fill_all_registers(perception_text, context, self.current_cycle_uuid)
+
+                    # PHASE 2: Verify ready (optional wait)
+                    if not self.cognitive_manifold.check_all_registers_ready():
+                        logger.warning("Rumination registers not all ready, waiting 0.5s...")
+                        import asyncio
+                        await asyncio.sleep(0.5)
+
+                    # PHASE 3: Pull lever - integrate
+                    colored_thought_seed = await self.cognitive_manifold.integrate_from_registers(context)
+
                     # Noodle Tuner: Store perception and manifold output (for rumination)
                     self.last_perception_text = perception_text
                     self.last_manifold_output = colored_thought_seed
@@ -3489,6 +3528,8 @@ Analyze and output ONLY valid JSON:
                 except Exception as e:
                     logger.error(f"[{self.agent_id}] Rumination manifold failed: {e}")
                     colored_thought_seed = perception_text
+                    # Clear registers even on failure
+                    self.cognitive_manifold.clear_all_registers()
 
             # Generate internal thought via LLM (using colored seed)
             # Use configurable memory window for rumination
@@ -3634,6 +3675,9 @@ Analyze and output ONLY valid JSON:
                     response  # The follow-up action
                 ]
 
+            # PHASE 5: Clear registers (cognition cycle complete)
+            self.cognitive_manifold.clear_all_registers()
+
             # Return as a "thought" command (displayed in strikethrough)
             return {
                 'command': 'think',
@@ -3649,7 +3693,14 @@ Analyze and output ONLY valid JSON:
 
         except Exception as e:
             logger.error(f"Error generating rumination: {e}", exc_info=True)
+            # Clear registers even on error
+            self.cognitive_manifold.clear_all_registers()
             return None
+        finally:
+            # PHASE 5: Ensure registers always cleared (safety net)
+            if self.cognitive_manifold.cycle_in_progress:
+                logger.debug("Finally block clearing registers (rumination)")
+                self.cognitive_manifold.clear_all_registers()
 
     async def _trigger_self_monitoring(self, text: str, state: Dict):
         """

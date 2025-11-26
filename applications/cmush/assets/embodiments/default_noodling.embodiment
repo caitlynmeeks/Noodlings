@@ -1,0 +1,52 @@
+metadata:
+  id: com.noodlings.embodiments.default_noodling
+  name: "Default Noodling"
+  version: 1.0.0
+  created: "2025-11-25"
+  author: "Garcia River Forest Research Station"
+  description: "Default embodiment for unspecified Noodlings - amorphous thought patterns"
+  tags:
+    - default
+    - amorphous
+    - abstract
+
+embodiment:
+  architecture:
+    form: amorphous
+    limb_count: 0
+    has_tail: false
+    has_wings: false
+    locomotion:
+      - float
+      - shift
+      - manifest
+    manipulation:
+      - thought_influence
+
+  characteristics:
+    size: small
+    substance: thought_patterns
+    tangible: false
+    mass_kg: 0.0
+
+  state:
+    coherence: 1.0
+    energyLevel: 1.0
+    hungerLevel: 0.0
+    thirstLevel: 0.0
+
+  movement:
+    baseSpeed: 0.5
+    jumpHeight: 0.0
+    canSwim: false
+    canFly: true
+    canClimb: false
+
+  senses:
+    vision: full
+    hearing: full
+    smell: none
+    touch: none
+    proprioception: full
+
+  worn_items: []

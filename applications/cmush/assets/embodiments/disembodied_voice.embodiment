@@ -1,0 +1,56 @@
+metadata:
+  id: com.noodlings.embodiments.disembodied_voice
+  name: "Ethereal Presence"
+  version: 1.0.0
+  created: "2025-11-25"
+  author: "Garcia River Forest Research Station"
+  description: "Disembodied voice and light, no physical form"
+  tags:
+    - disembodied
+    - ethereal
+    - intangible
+
+embodiment:
+  architecture:
+    form: disembodied
+    limb_count: 0
+    has_tail: false
+    has_wings: false
+    locomotion:
+      - manifest
+      - fade
+      - drift
+    manipulation:
+      - sound_waves
+
+  characteristics:
+    size: none
+    substance: sound_and_light
+    tangible: false
+    mass_kg: 0.0
+    volume_level: 0.6
+
+  state:
+    volumeLevel: 0.6
+    etherealness: 0.95
+    manifestationStrength: 0.7
+    energyLevel: 1.0
+    hungerLevel: 0.0
+    thirstLevel: 0.0
+
+  movement:
+    baseSpeed: 3.0
+    jumpHeight: 0.0
+    canSwim: false
+    canFly: true
+    canClimb: false
+    passesThroughWalls: true
+
+  senses:
+    vision: full
+    hearing: full
+    smell: none
+    touch: none
+    proprioception: partial
+
+  worn_items: []

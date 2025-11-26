@@ -52,10 +52,17 @@ class CognitiveTransistor(ABC):
         self.salience = 0.5  # Default importance (0.0 to 1.0)
         self.enabled = True  # Can be toggled off
 
-        # Noodle Tuner instrumentation - store last output for debugging
+        # REGISTER STATE (new architecture - transistors as CPU registers)
+        self.register_state = "empty"  # empty, computing, ready, error
+        self.register_output: Optional[TransistorOutput] = None
+        self.register_cycle_id: Optional[str] = None
+        self.register_timestamp: Optional[float] = None
+
+        # Noodle Tuner instrumentation - store last output for debugging (legacy)
         self.last_output_text: Optional[str] = None
         self.last_output_metadata: Optional[Dict[str, Any]] = None
         self.last_output_salience: Optional[float] = None
+        self.last_instruction_prompt: Optional[str] = None
 
     def GetUUID(self) -> str:
         """Get component UUID."""
@@ -106,6 +113,66 @@ class CognitiveTransistor(ABC):
             # Decrement counter after LLM call (even if it failed)
             if agent and hasattr(agent, '_decrement_llm_counter'):
                 agent._decrement_llm_counter()
+
+    async def fill_register(
+        self,
+        input_text: str,
+        context: Dict[str, Any],
+        cycle_id: str
+    ) -> TransistorOutput:
+        """
+        Fill this transistor's register with new output.
+
+        This is the NEW way to use transistors - accumulate output into register,
+        then integrate later when all registers ready.
+
+        Like loading a value into a CPU register before executing an operation.
+
+        Args:
+            input_text: Input perception
+            context: Context dict (affect, memory, etc.)
+            cycle_id: Current cognition cycle UUID
+
+        Returns:
+            TransistorOutput (also stored in register)
+        """
+        self.register_state = "computing"
+        self.register_cycle_id = cycle_id
+        self.register_timestamp = time.time()
+
+        try:
+            # Call the transistor's process() method (subclass implements)
+            output = await self.process(input_text, context)
+
+            # Store in register
+            self.register_output = output
+            self.register_state = "ready"
+
+            # Also update legacy fields for backwards compatibility
+            self.last_output_text = output.transformed_text
+            self.last_output_metadata = output.metadata
+            self.last_output_salience = output.salience
+
+            logger.debug(f"  [{self.get_transistor_type()}] register READY (cycle {cycle_id[:8]})")
+            return output
+
+        except Exception as e:
+            logger.error(f"  [{self.get_transistor_type()}] register ERROR: {e}")
+            self.register_state = "error"
+            self.register_output = None
+            raise
+
+    def clear_register(self):
+        """Clear register after integration (ready for next cycle)."""
+        self.register_state = "empty"
+        self.register_output = None
+        self.register_cycle_id = None
+        self.register_timestamp = None
+        logger.debug(f"  [{self.get_transistor_type()}] register CLEARED")
+
+    def is_register_ready(self) -> bool:
+        """Check if register contains valid output."""
+        return self.register_state == "ready" and self.register_output is not None
 
     @abstractmethod
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
@@ -385,6 +452,11 @@ class CognitiveManifold:
         self.social_filter = SocialExecutiveFunction(enabled=use_social_filter)
         self.response_planner = ResponseTypeDecider() if use_response_planner else None
 
+        # REGISTER ACCUMULATOR STATE (new architecture)
+        self.current_cycle_id: Optional[str] = None
+        self.cycle_in_progress = False
+        self.registers_filled_count = 0
+
         # Noodle Tuner instrumentation - store last integration for debugging
         self.last_input_text: Optional[str] = None
         self.last_output_text: Optional[str] = None
@@ -551,6 +623,105 @@ class CognitiveManifold:
         # Noodle Tuner: Store result
         self.last_output_text = result
         return result
+
+    async def fill_all_registers(
+        self,
+        input_text: str,
+        context: Dict[str, Any],
+        cycle_id: str
+    ) -> List[TransistorOutput]:
+        """
+        PHASE 1: Fill all enabled transistor registers in parallel.
+
+        This is like loading all CPU registers before executing an operation.
+
+        Args:
+            input_text: Input perception
+            context: Context dict
+            cycle_id: Current cycle UUID
+
+        Returns:
+            List of outputs (also stored in transistor registers)
+        """
+        logger.info(f"  FILLING REGISTERS for cycle {cycle_id[:8]}...")
+
+        self.current_cycle_id = cycle_id
+        self.cycle_in_progress = True
+        self.registers_filled_count = 0
+
+        # Fill all enabled transistors in parallel
+        import asyncio
+        tasks = []
+        enabled_transistors = [t for t in self.transistors if t.enabled]
+
+        for transistor in enabled_transistors:
+            task = transistor.fill_register(input_text, context, cycle_id)
+            tasks.append(task)
+
+        # Wait for all to complete
+        outputs = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Count successful fills
+        successful_outputs = []
+        for i, output in enumerate(outputs):
+            if isinstance(output, Exception):
+                logger.error(f"  Register fill failed for {enabled_transistors[i].get_transistor_type()}: {output}")
+            else:
+                successful_outputs.append(output)
+                self.registers_filled_count += 1
+
+        logger.info(f"  {self.registers_filled_count}/{len(enabled_transistors)} registers READY")
+        return successful_outputs
+
+    def check_all_registers_ready(self) -> bool:
+        """Check if all enabled registers are ready for integration."""
+        enabled = [t for t in self.transistors if t.enabled]
+        ready = [t for t in enabled if t.is_register_ready()]
+        return len(ready) == len(enabled)
+
+    async def integrate_from_registers(
+        self,
+        context: Dict[str, Any]
+    ) -> str:
+        """
+        PHASE 3: PULL LEVER - Integrate outputs from ALL registers.
+
+        This uses the STORED register contents, doesn't call process() again.
+        Like executing an operation using values already loaded in CPU registers.
+
+        Args:
+            context: Context dict (for LLM client, response type, etc.)
+
+        Returns:
+            Integrated manifold output
+        """
+        # Verify all ready
+        if not self.check_all_registers_ready():
+            logger.warning("  Not all registers ready! Proceeding anyway...")
+
+        # Collect outputs from registers
+        outputs = []
+        for transistor in self.transistors:
+            if transistor.enabled and transistor.register_output:
+                outputs.append(transistor.register_output)
+
+        logger.info(f"  PULLING LEVER: Integrating {len(outputs)} register contents")
+
+        # Use existing blend logic
+        result = await self._llm_weighted_blend(outputs, context)
+
+        self.last_output_text = result
+        self.last_transistor_outputs = outputs.copy()
+
+        return result
+
+    def clear_all_registers(self):
+        """PHASE 5: Clear all registers after integration."""
+        logger.info(f"  CLEARING all registers (cycle {self.current_cycle_id[:8] if self.current_cycle_id else 'unknown'})")
+        for transistor in self.transistors:
+            transistor.clear_register()
+        self.cycle_in_progress = False
+        self.registers_filled_count = 0
 
     async def _llm_weighted_blend(
         self,
@@ -2136,6 +2307,81 @@ class EmbodyComponent(CognitiveTransistor):
         super().__init__()
         self.embodiment = embodiment_data
         self.salience = 1.0  # Always relevant - you always have a body
+        self.active_prompt = None  # For custom prompts from prefab
+
+    DEFAULT_PROMPT = """You are experiencing this perception in YOUR PHYSICAL BODY.
+
+YOUR BODY:
+{body_summary}
+
+CURRENT PERCEPTION:
+{input_text}
+
+EMOTIONAL STATE:
+- Valence (pleasure): {valence:.2f}
+- Arousal (energy): {arousal:.2f}
+- Fear: {fear:.2f}
+- Sorrow: {sorrow:.2f}
+
+Generate a BRIEF physical reaction (1 short sentence). Focus on:
+- Visceral body sensations (heart pounding, fur standing, tail twitching)
+- Physical impulses (want to run, freeze, pounce)
+- Bodily feelings (warmth, coldness, tension, relaxation)
+
+Output ONLY the physical reaction, nothing else."""
+
+    async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
+        """Generate embodied physical reactions to perception."""
+
+        # Get custom prompt from prefab or use default
+        prompt_template = self.active_prompt if self.active_prompt else self.DEFAULT_PROMPT
+
+        # Extract affect from context
+        affect = context.get('affect', [0]*5)
+        valence, arousal, fear, sorrow, boredom = affect[:5]
+
+        # Get body summary
+        body_summary = self.GetSummary()
+
+        # Format prompt
+        prompt = prompt_template.format(
+            input_text=input_text,
+            body_summary=body_summary,
+            valence=valence,
+            arousal=arousal,
+            fear=fear,
+            sorrow=sorrow,
+            boredom=boredom
+        )
+
+        # Store for NoodleTuner
+        self.last_instruction_prompt = prompt
+
+        # Generate embodied reaction using LLM
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        if llm_client:
+            try:
+                response = await self._call_llm_tracked(
+                    llm_client=llm_client,
+                    prompt=prompt,
+                    context=context,
+                    system_prompt="You are a physical embodiment filter. Generate brief visceral body reactions.",
+                    model=model,
+                    max_tokens=100,
+                    temperature=0.8
+                )
+                return TransistorOutput(
+                    transformed_text=response.strip(),
+                    salience=self.salience,
+                    metadata={'embodiment': self.embodiment}
+                )
+            except Exception as e:
+                logger.error(f"EmbodyComponent LLM failed: {e}")
+                return TransistorOutput("", 0.1, {})
+
+        return TransistorOutput("", 0.1, {})
 
     def GetBodyParameter(self, key: str) -> Any:
         """

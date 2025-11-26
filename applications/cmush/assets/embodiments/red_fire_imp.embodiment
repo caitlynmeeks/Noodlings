@@ -1,0 +1,61 @@
+metadata:
+  id: com.noodlings.embodiments.red_fire_imp
+  name: "Red Fire Imp"
+  version: 1.0.0
+  created: "2025-11-25"
+  author: "Garcia River Forest Research Station"
+  description: "Tiny fire imp made of living flame, competitive and scrappy"
+  tags:
+    - biped
+    - elemental
+    - fire
+    - imp
+
+embodiment:
+  architecture:
+    form: biped
+    limb_count: 2
+    has_tail: true
+    has_wings: false
+    locomotion:
+      - walk
+      - run
+      - jump
+      - scurry
+    manipulation:
+      - hands
+      - teeth
+
+  characteristics:
+    size: tiny
+    substance: flame
+    skin_texture: flickering
+    temperature: hot
+    eye_count: 2
+    eye_color: orange_glow
+    mass_kg: 0.5
+    height_cm: 15
+
+  state:
+    flameBrightness: 0.9
+    cackleVolume: 0.95
+    temperLevel: 0.85
+    energyLevel: 0.95
+    hungerLevel: 0.1
+    thirstLevel: 0.0
+
+  movement:
+    baseSpeed: 1.5
+    jumpHeight: 0.8
+    canSwim: false
+    canFly: false
+    canClimb: true
+
+  senses:
+    vision: full
+    hearing: full
+    smell: full
+    touch: full
+    proprioception: full
+
+  worn_items: []

@@ -1,0 +1,62 @@
+metadata:
+  id: com.noodlings.embodiments.hovering_robot
+  name: "SERVNAK Unit"
+  version: 1.0.0
+  created: "2025-11-25"
+  author: "Garcia River Forest Research Station"
+  description: "Hovering spherical robot with brushed aluminum chassis"
+  tags:
+    - robot
+    - hovering
+    - artificial
+
+embodiment:
+  architecture:
+    form: hovering_sphere
+    limb_count: 0
+    has_tail: false
+    has_wings: false
+    has_manipulators: true
+    locomotion:
+      - hover
+      - rotate
+      - spin
+    manipulation:
+      - manipulator_arms
+      - magnetic_field
+
+  characteristics:
+    size: small
+    material: brushed_aluminum
+    surface_texture: smooth_metallic
+    eye_count: 0
+    sensor_count: 12
+    mass_kg: 2.3
+    diameter_cm: 20
+
+  state:
+    batteryLevel: 0.87
+    leftSensorDamaged: true
+    rotationSpeedRPM: 30
+    hoverAltitudeCM: 100
+    energyLevel: 0.87
+    hungerLevel: 0.0
+    thirstLevel: 0.0
+
+  movement:
+    baseSpeed: 2.0
+    jumpHeight: 0.0
+    canSwim: false
+    canFly: true
+    canClimb: false
+    maxHoverHeight: 3.0
+
+  senses:
+    vision: full
+    hearing: full
+    smell: none
+    touch: full
+    proprioception: full
+    electromagnetic: full
+
+  worn_items: []
