@@ -744,6 +744,11 @@ class CMUSHConsilienceAgent:
         self.cycle_in_progress = False
         self.pending_llm_calls = 0  # Count of LLM calls not yet returned
 
+        # Step mode debugging (for NoodleTuner)
+        self.step_mode_enabled = False
+        self.step_mode_waiting = False
+        self.step_mode_cycle_id = None
+
         # Agent identity
         self.agent_name = agent_name or agent_id.replace('agent_', '').title()
         self.agent_description = agent_description or "An empty noodling."
@@ -1577,9 +1582,9 @@ Examples:
 
 Generate intuitive awareness:"""
 
-            # Use agent's model if specified, otherwise fall back to fast model
-            # This honors per-agent llm_override settings
-            intuition_model = self.llm_model or intuition_config.get('model', 'qwen/qwen3-4b-2507')
+            # ALWAYS use fast model for intuition - don't use agent's model override
+            # Intuition needs to be fast and reliable, not character-specific
+            intuition_model = intuition_config.get('model', 'qwen3-vl-30b-a3b-instruct-mlx')
             timeout = intuition_config.get('timeout', 5)
 
             # Track this operation
@@ -2183,6 +2188,16 @@ Analyze and output ONLY valid JSON:
             self.pending_responses.append(event)
             return None
 
+        # CYCLE LOCKING: Prevent concurrent cognition cycles
+        if getattr(self, 'cycle_in_progress', False):
+            logger.warning(f"[{self.agent_id}] 🔒 Cycle already in progress - BLOCKING new perception: {text[:50]}")
+            # Queue this perception for after current cycle completes
+            if not hasattr(self, 'pending_perceptions'):
+                self.pending_perceptions = []
+            self.pending_perceptions.append(event)
+            logger.info(f"[{self.agent_id}]  Queued perception (queue size: {len(self.pending_perceptions)})")
+            return None
+
         # Agents can now perceive other agents
         is_agent = user_id.startswith('agent_')
 
@@ -2192,6 +2207,18 @@ Analyze and output ONLY valid JSON:
         self.current_cycle_timestamp = time.time()
         self.cycle_in_progress = True
         self.pending_llm_calls = 0
+
+        # IMMEDIATELY clear old cycle data and set new input (for NoodleTuner)
+        self.last_perception_text = text  # Set input FIRST
+        self.last_manifold_output = None  # Clear old output
+        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+            self.cognitive_manifold.last_response_decision = None  # Clear old decision
+            self.cognitive_manifold.last_output_text = None
+            # Clear all transistor outputs
+            for transistor in self.cognitive_manifold.transistors:
+                transistor.last_output_text = None
+                transistor.last_output_metadata = None
+                transistor.register_state = "empty"
 
         logger.info(f"Agent {self.agent_id} perceiving: {event_type} from {user_id}: {text} [cycle={self.current_cycle_uuid[:8]}]")
 
@@ -2223,7 +2250,7 @@ Analyze and output ONLY valid JSON:
             # 1a-0. GENERATE INTUITION FIRST (for cognitive manifold context)
             # This provides spatial/contextual awareness
             intuition_text = None
-            if self.world and hasattr(self, 'config'):
+            if self.world:  # Just check world exists
                 try:
                     world_snapshot = {
                         'current_room': self.world.get_room(self.current_room),
@@ -2271,8 +2298,27 @@ Analyze and output ONLY valid JSON:
                             'message': text
                         }
                     }
+
+                    # PHASE 0: DECIDE RESPONSE TYPE FIRST (before transistors process)
+                    response_decision = None
+                    logger.info(f"[{self.agent_id}] DEBUG SPEECH: cognitive_manifold.response_planner = {self.cognitive_manifold.response_planner}")
+                    if self.cognitive_manifold.response_planner:
+                        logger.info(f"[{self.agent_id}] 📋 Deciding response type...")
+                        try:
+                            response_decision = await self.cognitive_manifold.response_planner.decide(
+                                context['event_context'],
+                                self.llm,
+                                'qwen/qwen3-4b-2507',
+                                agent=self
+                            )
+                            context['response_decision'] = response_decision
+                            self.cognitive_manifold.last_response_decision = response_decision
+                            logger.info(f"[{self.agent_id}] 📋 RESPONSE DECISION: {response_decision['response_type']} - {response_decision['guidance']}")
+                        except Exception as e:
+                            logger.warning(f"[{self.agent_id}] Response planning failed: {e}")
+
                     # NEW ARCHITECTURE: Register-based accumulator
-                    # PHASE 1: Fill all registers
+                    # PHASE 1: Fill all registers (now with response_decision in context)
                     await self.cognitive_manifold.fill_all_registers(text, context, self.current_cycle_uuid)
 
                     # PHASE 2: Verify ready (optional wait)
@@ -3451,15 +3497,17 @@ Analyze and output ONLY valid JSON:
             # GENERATE INTUITION FOR RUMINATION (spatial/contextual awareness)
             intuition_text = None
             logger.info(f"[{self.agent_id}] 🔍 Rumination: Checking intuition - world={self.world is not None}, config={hasattr(self, 'config')}")
-            if self.world and hasattr(self, 'config'):
+
+            # ALWAYS try to generate intuition if world exists
+            if self.world:  # Just check world, not config
                 logger.info(f"[{self.agent_id}] 🔍 Rumination: Generating intuition...")
                 try:
                     world_snapshot = {
-                        'current_room': self.world.get_room(self.current_room),
-                        'objects': self.world.objects,
-                        'rooms': self.world.rooms,
-                        'agents': self.world.agents,
-                        'users': self.world.users
+                        'current_room': self.world.get_room(self.current_room) if self.world else None,
+                        'objects': self.world.objects if self.world else {},
+                        'rooms': self.world.rooms if self.world else {},
+                        'agents': self.world.agents if self.world else {},
+                        'users': self.world.users if self.world else {}
                     }
                     # Extract event details from recent context
                     last_entry = recent_context[-1] if recent_context else {}
@@ -3493,6 +3541,14 @@ Analyze and output ONLY valid JSON:
                             intuition_transistor.set_intuition(intuition_text)
                             logger.info(f"[{self.agent_id}]  Updated IntuitionTransistor (rumination) with: {intuition_text[:60]}...")
 
+                    # Extract event details from recent context for response planning
+                    last_entry = recent_context[-1] if recent_context else {}
+                    event_context = {
+                        'type': last_entry.get('event_type', 'observe'),
+                        'speaker': last_entry.get('user', ''),
+                        'message': perception_text
+                    }
+
                     context = {
                         'agent': self,  # For cycle tracking
                         'affect': state.get('phenomenal_state', [0]*5)[:5] if hasattr(state.get('phenomenal_state'), '__getitem__') else [0]*5,
@@ -3501,14 +3557,36 @@ Analyze and output ONLY valid JSON:
                         'llm_client': self.llm,
                         'model': 'qwen/qwen3-4b-2507',
                         'intuition': intuition_text,  # ADD SPATIAL CONTEXT
-                        'response_decision': {
-                            'response_type': 'think',
-                            'guidance': 'internal observation and reflection',
-                            'reasoning': 'rumination cycle - processing perceptions internally'
-                        }
+                        'event_context': event_context
                     }
-                    # NEW ARCHITECTURE: Register-based accumulator for rumination
-                    # PHASE 1: Fill all registers
+
+                    # PHASE 0: DECIDE RESPONSE TYPE FIRST (even for thoughts!)
+                    response_decision = None
+                    logger.info(f"[{self.agent_id}] DEBUG: cognitive_manifold.response_planner = {self.cognitive_manifold.response_planner}")
+                    if self.cognitive_manifold.response_planner:
+                        logger.info(f"[{self.agent_id}] 📋 Deciding response type for THOUGHT...")
+                        try:
+                            response_decision = await self.cognitive_manifold.response_planner.decide(
+                                event_context,
+                                self.llm,
+                                'qwen/qwen3-4b-2507',
+                                agent=self
+                            )
+                            context['response_decision'] = response_decision
+                            self.cognitive_manifold.last_response_decision = response_decision
+                            logger.info(f"[{self.agent_id}] 📋 THOUGHT RESPONSE DECISION: {response_decision['response_type']} - {response_decision['guidance']}")
+                        except Exception as e:
+                            logger.warning(f"[{self.agent_id}] Response planning failed for thought: {e}")
+                            # Fallback to hardcoded THINK
+                            response_decision = {
+                                'response_type': 'think',
+                                'guidance': 'internal observation and reflection',
+                                'reasoning': 'fallback - response planner failed'
+                            }
+                            context['response_decision'] = response_decision
+
+                    # NEW ARCHITECTURE: Register-based accumulator for thoughts
+                    # PHASE 1: Fill all registers (with response_decision)
                     await self.cognitive_manifold.fill_all_registers(perception_text, context, self.current_cycle_uuid)
 
                     # PHASE 2: Verify ready (optional wait)
@@ -3990,6 +4068,14 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
 
         logger.debug(f"[{self.agent_id}] Cycle {self.current_cycle_uuid[:8]} complete: "
                     f"duration={duration_ms:.1f}ms, pending_llm_calls={self.pending_llm_calls}")
+
+        # Process queued perceptions (if any)
+        if hasattr(self, 'pending_perceptions') and self.pending_perceptions:
+            queued = self.pending_perceptions.pop(0)  # FIFO
+            logger.info(f"[{self.agent_id}]  Processing queued perception ({len(self.pending_perceptions)} remaining)")
+            # Re-trigger perception asynchronously
+            import asyncio
+            asyncio.create_task(self.perceive_event(queued))
 
         # Fire onCycleEnd event (for NoodleScript)
         # TODO: Implement event system integration when NoodleScript ready

@@ -366,6 +366,50 @@ class NoodleTunerPanel(MaximizableDock):
         self.pause_button.clicked.connect(self.toggle_pause_cognition)
         header_layout.addWidget(self.pause_button)
 
+        # Step mode button
+        self.step_mode_button = QPushButton("⏯ Step Mode")
+        self.step_mode_button.setCheckable(True)
+        self.step_mode_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3E3E3E;
+                color: #CCCCCC;
+                border: 1px solid #555;
+                padding: 4px 8px;
+                font-weight: bold;
+            }
+            QPushButton:checked {
+                background-color: #6666CC;
+                color: #FFFFFF;
+            }
+            QPushButton:hover {
+                background-color: #4E4E4E;
+            }
+        """)
+        self.step_mode_button.clicked.connect(self.toggle_step_mode)
+        header_layout.addWidget(self.step_mode_button)
+
+        # Continue button (enabled only when waiting in step mode)
+        self.continue_button = QPushButton("▶ Continue")
+        self.continue_button.setEnabled(False)
+        self.continue_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3E3E3E;
+                color: #888888;
+                border: 1px solid #555;
+                padding: 4px 8px;
+                font-weight: bold;
+            }
+            QPushButton:enabled {
+                background-color: #66CC66;
+                color: #FFFFFF;
+            }
+            QPushButton:enabled:hover {
+                background-color: #77DD77;
+            }
+        """)
+        self.continue_button.clicked.connect(self.continue_step)
+        header_layout.addWidget(self.continue_button)
+
         # Font size controls
         font_label = QLabel("Font:")
         font_label.setStyleSheet("color: #888888; font-size: 9pt; margin-left: 10px;")
@@ -693,6 +737,26 @@ class NoodleTunerPanel(MaximizableDock):
             # Update status
             self.status_label.setText(f"{len(transistors)} transistors • {data.get('blending_strategy', 'unknown')}")
             self.status_label.setStyleSheet("color: #999999; font-size: 8pt; padding: 4px;")
+
+            # Check step mode state
+            step_mode_waiting = data.get('step_mode_waiting', False)
+            step_mode_enabled = data.get('step_mode_enabled', False)
+
+            # Update step mode button state (without triggering signal)
+            self.step_mode_button.blockSignals(True)
+            self.step_mode_button.setChecked(step_mode_enabled)
+            self.step_mode_button.blockSignals(False)
+
+            # Enable continue button if waiting
+            self.continue_button.setEnabled(step_mode_waiting)
+
+            # Play beep when registers fill (transition to waiting state)
+            if step_mode_waiting and not getattr(self, '_last_step_waiting', False):
+                self.play_beep()
+                self.status_label.setText("REGISTERS FILLED - Click Continue to integrate")
+                self.status_label.setStyleSheet("color: #6666CC; font-size: 8pt; padding: 4px;")
+
+            self._last_step_waiting = step_mode_waiting
 
         except requests.exceptions.Timeout:
             self.status_label.setText("API timeout")
@@ -1067,3 +1131,53 @@ class NoodleTunerPanel(MaximizableDock):
 
         except Exception as e:
             QMessageBox.critical(self, "Copy Failed", f"Error copying to clipboard:\n{str(e)}")
+
+    def toggle_step_mode(self):
+        """Toggle step mode for current agent."""
+        if not self.current_agent_id:
+            QMessageBox.warning(self, "No Agent", "Please select an agent first.")
+            self.step_mode_button.setChecked(False)
+            return
+
+        enabled = self.step_mode_button.isChecked()
+
+        try:
+            url = f"{self.api_base}/agents/{self.current_agent_id}/step_mode"
+            response = requests.post(url, json={'enabled': enabled})
+            response.raise_for_status()
+
+            self.status_label.setText(f"Step mode {'ENABLED' if enabled else 'DISABLED'}")
+            self.status_label.setStyleSheet(f"color: {'#6666CC' if enabled else '#CCCCCC'}; font-size: 8pt; padding: 4px;")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Step Mode Error", f"Failed to toggle step mode:\n{str(e)}")
+            self.step_mode_button.setChecked(not enabled)  # Revert
+
+    def continue_step(self):
+        """Send continue signal to resume from step mode pause."""
+        if not self.current_agent_id:
+            return
+
+        try:
+            url = f"{self.api_base}/agents/{self.current_agent_id}/step/continue"
+            response = requests.post(url)
+            response.raise_for_status()
+
+            self.status_label.setText("Continued from step mode")
+            self.status_label.setStyleSheet("color: #66CC66; font-size: 8pt; padding: 4px;")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Continue Error", f"Failed to continue:\n{str(e)}")
+
+    def play_beep(self):
+        """Play terminal beep sound when registers fill."""
+        try:
+            from PyQt6.QtMultimedia import QSoundEffect
+            from PyQt6.QtCore import QUrl
+            beep_path = "/Users/thistlequell/git/terminal_beeps/terminal_beeps_hq/pc_beep_896hz250ms.ogg"
+            sound = QSoundEffect()
+            sound.setSource(QUrl.fromLocalFile(beep_path))
+            sound.setVolume(0.5)
+            sound.play()
+        except Exception as e:
+            logger.warning(f"Failed to play beep: {e}")

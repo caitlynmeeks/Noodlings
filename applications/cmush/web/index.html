@@ -734,7 +734,7 @@
         const MAX_HISTORY_SIZE = 500; // Keep last 500 commands
 
         // Telepathy mode (can read others' thoughts)
-        let telepathyEnabled = localStorage.getItem('telepathyEnabled') === 'true';
+        let telepathyEnabled = localStorage.getItem('telepathyEnabled') !== 'false';  // Default true if null
 
         // Message history for redrawing when telepathy toggles
         let messageHistory = [];

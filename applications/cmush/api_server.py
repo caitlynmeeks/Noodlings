@@ -105,6 +105,10 @@ class NoodleScopeAPI:
         # Cognition control - pause/resume processing
         self.app.router.add_post('/api/cognition/pause', self.pause_cognition)
 
+        # Step mode debugging
+        self.app.router.add_post('/api/agents/{agent_id}/step_mode', self.set_step_mode)
+        self.app.router.add_post('/api/agents/{agent_id}/step/continue', self.continue_step)
+
         # Objects and rooms
         self.app.router.add_post('/api/objects', self.create_object)
         self.app.router.add_post('/api/objects/{object_id}/update', self.update_object)
@@ -1252,7 +1256,11 @@ class NoodleScopeAPI:
             'manifold_instruction_prompt': manifold_instruction or "",
             'affect': affect,
             'surprise': float(state.get('surprise', 0.0)),
-            'blending_strategy': manifold.blending_strategy
+            'blending_strategy': manifold.blending_strategy,
+            # Step mode state
+            'step_mode_enabled': getattr(agent, 'step_mode_enabled', False),
+            'step_mode_waiting': getattr(agent, 'step_mode_waiting', False),
+            'step_mode_cycle_id': getattr(agent, 'step_mode_cycle_id', None)
         })
 
     async def update_manifold_transistors(self, request: web.Request) -> web.Response:
@@ -1453,6 +1461,65 @@ class NoodleScopeAPI:
 
         except Exception as e:
             logger.error(f"Failed to pause cognition: {e}", exc_info=True)
+            return web.json_response({'error': str(e)}, status=500)
+
+    async def set_step_mode(self, request):
+        """Enable/disable step mode for an agent."""
+        try:
+            agent_id = request.match_info.get('agent_id')
+            data = await request.json()
+            enabled = data.get('enabled', False)
+
+            if not self.agent_manager:
+                return web.json_response({'error': 'Agent manager not available'}, status=500)
+
+            agent = self.agent_manager.agents.get(agent_id)
+            if not agent:
+                return web.json_response({'error': 'Agent not found'}, status=404)
+
+            agent.step_mode_enabled = enabled
+            logger.info(f"[{agent_id}] Step mode {'ENABLED' if enabled else 'DISABLED'}")
+
+            return web.json_response({
+                'success': True,
+                'agent_id': agent_id,
+                'step_mode_enabled': enabled
+            })
+
+        except Exception as e:
+            logger.error(f"Failed to set step mode: {e}", exc_info=True)
+            return web.json_response({'error': str(e)}, status=500)
+
+    async def continue_step(self, request):
+        """Continue from step mode pause (pull the lever)."""
+        try:
+            agent_id = request.match_info.get('agent_id')
+
+            if not self.agent_manager:
+                return web.json_response({'error': 'Agent manager not available'}, status=500)
+
+            agent = self.agent_manager.agents.get(agent_id)
+            if not agent:
+                return web.json_response({'error': 'Agent not found'}, status=404)
+
+            if not agent.step_mode_waiting:
+                return web.json_response({
+                    'success': False,
+                    'message': 'Agent not waiting in step mode'
+                }, status=400)
+
+            # Release the wait
+            agent.step_mode_waiting = False
+            logger.info(f"[{agent_id}] Step mode CONTINUE signal sent (cycle {agent.step_mode_cycle_id[:8] if agent.step_mode_cycle_id else 'unknown'})")
+
+            return web.json_response({
+                'success': True,
+                'agent_id': agent_id,
+                'cycle_id': agent.step_mode_cycle_id
+            })
+
+        except Exception as e:
+            logger.error(f"Failed to continue step: {e}", exc_info=True)
             return web.json_response({'error': str(e)}, status=500)
 
     async def start(self):

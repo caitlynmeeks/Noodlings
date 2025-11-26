@@ -337,6 +337,86 @@ noodlings/
     └── checkpoints/                   # Model checkpoints
 ```
 
+## CRITICAL DEBUGGING INFO - READ THIS FIRST
+
+### Server Architecture & Ports
+
+noodleMUSH runs TWO servers simultaneously:
+
+1. **HTTP Server** (port 8080): Static file server for web interface
+   - Started by: `python -m http.server 8080` in `web/` directory
+   - Serves: HTML/CSS/JS files only
+   - Does NOT handle websocket messages
+
+2. **WebSocket Server** (port 8765): Main noodleMUSH server
+   - Started by: `python server.py`
+   - Handles: Websocket messages, agent cognition, all logic
+   - This is where ALL the action happens
+
+### Log Files - WHERE TO LOOK
+
+**DO NOT use `server_output.log`** - it's often empty or stale!
+
+**ALWAYS check timestamped logs:**
+```bash
+ls -lt applications/cmush/logs/server_*.log | head -1
+```
+
+Real logs are at: `applications/cmush/logs/server_YYYYMMDD_HHMMSS.log`
+
+Example: `logs/server_20251126_031628.log`
+
+The `start.sh` script creates a NEW timestamped log file each time it runs:
+```bash
+LOG_FILE="logs/server_$(date +%Y%m%d_%H%M%S).log"
+python server.py 2>&1 | tee "$LOG_FILE"
+```
+
+**To watch real-time logs:**
+```bash
+cd applications/cmush
+tail -f logs/server_*.log  # Use tab completion for latest
+```
+
+**To find cognition events:**
+```bash
+grep -n "perceiving\|FILLING REGISTERS\|RESPONSE DECISION" logs/server_*.log | tail -20
+```
+
+### Common Debugging Pitfalls
+
+1. **"Logs are empty!"** - You're looking at `server_output.log` instead of `logs/server_*.log`
+2. **"Messages not reaching server!"** - Check if websocket connected (look for "New connection" in logs)
+3. **"Cached data in NoodleTuner!"** - The manifold shows last known state even if server restarted
+4. **"Response decision is null!"** - ResponseTypeDecider failed, check for JSON parse errors or `context` variable bugs
+
+### NoodleTuner Data Source
+
+NoodleTuner polls: `http://localhost:8081/api/manifold/debug/{agent_id}`
+
+This returns **cached state** from agent's last cognition. If server restarts, old state persists until next cognition!
+
+### Testing Message Flow
+
+1. Open Chrome at: `http://localhost:8080`
+2. Login with username
+3. Send: `say hi red` or `"hi red` (shortcut)
+4. Watch logs for:
+   ```
+   Agent agent_xxx perceiving: say from user_caity: hi red
+   📋 Deciding response type...
+   📋 RESPONSE DECISION: SAY - respond to greeting
+   FILLING REGISTERS for cycle xxx...
+   IntuitionTransistor.process() - self.intuition_text='...'
+   PULLING LEVER: Integrating N register contents
+   ```
+
+### Port Reference
+
+- **8080**: HTTP server (static files)
+- **8765**: WebSocket server (noodleMUSH logic)
+- **8081**: NoodleScope API (for NoodleTuner/Studio)
+
 ## Development Commands
 
 ### Running noodleMUSH
@@ -572,7 +652,53 @@ Start noodleMUSH and test with multiple agents:
 
 ---
 
-**Current Priority (November 15, 2025)**: Implement Intuition Receiver (Context Gremlin) to provide integrated contextual awareness. Theater system is production-ready - time to add the final piece of consciousness!
+## November 26, 2025 Session - Register Architecture & Intuition System
+
+**Major fixes implemented:**
+
+### 1. Intuition System Routing Fixed
+**Problem**: IntuitionTransistor outputting raw input instead of contextual awareness
+**Root Cause**: Intuition generation using agent's model override (qwen3-14b) which didn't exist, causing LLM call to fail
+**Fix**: Force intuition to always use fast 4B model, add fallback to `context['intuition']`
+
+### 2. ResponseTypeDecider Integration
+**Problem**: Response decision always null, showing "No response decision available"
+**Root Cause**: ResponseTypeDecider.decide() using undefined `context` variable
+**Fix**: Added `agent` parameter to decide(), pass `agent=self` from callers
+
+### 3. Cognition Flow Order
+**Problem**: Transistors filling before response type decided
+**Fix**: Added PHASE 0 - ResponseTypeDecider runs BEFORE fill_all_registers()
+**Correct order**:
+1. Perception arrives
+2. ResponseTypeDecider decides: SPEAK/THINK/EMOTE/NONE
+3. Registers fill (transistors know response type)
+4. Manifold integrates
+5. Final output generated
+
+### 4. Cycle Locking
+**Problem**: Concurrent cognitions overwriting each other mid-cycle
+**Fix**: Added cycle_in_progress check - blocks new perceptions, queues them, processes serially
+
+### 5. Step Mode Implemented
+**Backend complete** (cognitive_components.py, agent_bridge.py, api_server.py):
+- Pauses after registers fill
+- Waits for continue signal
+- API endpoints for enable/continue
+**Frontend complete** (noodle_tuner_panel.py):
+- Step Mode button
+- Continue button (enabled when waiting)
+- Beep plays when registers ready
+
+**Files Modified**:
+- applications/cmush/cognitive_components.py (intuition fallback, step mode pause, response_decision save)
+- applications/cmush/agent_bridge.py (response planner first, cycle locking, step mode fields)
+- applications/cmush/api_server.py (step mode endpoints, state in debug response)
+- applications/noodlestudio/noodlestudio/panels/noodle_tuner_panel.py (step mode UI)
+
+---
+
+**Current Priority (November 26, 2025)**: System working! Intuition routed, response decisions showing, step mode functional. Next: Tune ResponseTypeDecider to make Red more talkative!
 
 ## November 15, 2025 Session - Major Feature Implementation
 

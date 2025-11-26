@@ -246,7 +246,8 @@ class ResponseTypeDecider:
         self,
         event_context: Dict[str, Any],
         llm_client,
-        model: str = 'qwen/qwen3-4b-2507'
+        model: str = 'qwen/qwen3-4b-2507',
+        agent = None
     ) -> Dict[str, Any]:
         """
         Decide appropriate response type for event.
@@ -295,39 +296,54 @@ Examples:
 - Physical task → DO (perform action)
 - Strong emotion → FEEL (describe bodily sensation)
 
-Respond in JSON format:
+OUTPUT ONLY VALID JSON (no markdown, no code blocks, no extra text):
 {{
-  "response_type": "say|emote|do|think|feel|none",
-  "guidance": "brief description of what kind of response fits",
-  "reasoning": "why this type"
-}}"""
+  "response_type": "say",
+  "guidance": "brief description",
+  "reasoning": "why"
+}}
+
+Valid response_type: say, emote, do, think, feel, none"""
 
         # Increment LLM counter (ResponseTypeDecider doesn't inherit from CognitiveTransistor)
-        agent = context.get('agent')
         if agent and hasattr(agent, '_increment_llm_counter'):
             agent._increment_llm_counter()
 
         try:
             response = await llm_client.generate(
                 prompt=prompt,
-                system_prompt="You are a response type decision engine. Output JSON only.",
+                system_prompt="You are a response type decision engine. Output ONLY valid JSON with no markdown or extra text.",
                 model=model,
-                max_tokens=100,
-                temperature=0.3
+                max_tokens=150,
+                temperature=0.1
             )
 
-            # Parse JSON response
+            # Parse JSON response - clean up common issues
             import json
-            decision = json.loads(response.strip())
+            import re
+
+            # Remove markdown code blocks if present
+            cleaned = response.strip()
+            if cleaned.startswith('```'):
+                cleaned = re.sub(r'^```json?\s*', '', cleaned)
+                cleaned = re.sub(r'\s*```$', '', cleaned)
+
+            # Try to extract JSON if wrapped in other text
+            json_match = re.search(r'\{[^}]+\}', cleaned, re.DOTALL)
+            if json_match:
+                cleaned = json_match.group(0)
+
+            decision = json.loads(cleaned)
             self.last_decision = decision
             return decision
 
         except Exception as e:
-            logger.error(f"Response type decision failed: {e}, defaulting to 'think'")
+            logger.error(f"Response type decision failed: {e}, defaulting to 'say' (be social!)")
+            # Default to SAY for social interactions (fire imp should talk!)
             return {
-                'response_type': 'think',
-                'guidance': 'observe without responding',
-                'reasoning': 'decision error - being cautious'
+                'response_type': 'say',
+                'guidance': 'respond to interaction',
+                'reasoning': 'decision error - defaulting to social response'
             }
         finally:
             # Decrement LLM counter
@@ -671,6 +687,26 @@ class CognitiveManifold:
                 self.registers_filled_count += 1
 
         logger.info(f"  {self.registers_filled_count}/{len(enabled_transistors)} registers READY")
+
+        # STEP MODE: Pause here if step mode enabled
+        agent = context.get('agent')
+        if agent and hasattr(agent, 'step_mode_enabled') and agent.step_mode_enabled:
+            logger.info(f"  STEP MODE: Registers filled, waiting for continue signal...")
+            agent.step_mode_waiting = True
+            agent.step_mode_cycle_id = cycle_id
+
+            # Wait for continue signal (or timeout)
+            max_wait = 300  # 5 minutes max
+            waited = 0
+            while agent.step_mode_waiting and waited < max_wait:
+                await asyncio.sleep(0.1)
+                waited += 0.1
+
+            if waited >= max_wait:
+                logger.warning(f"  STEP MODE: Timeout waiting for continue signal")
+            else:
+                logger.info(f"  STEP MODE: Received continue signal, resuming...")
+
         return successful_outputs
 
     def check_all_registers_ready(self) -> bool:
@@ -695,6 +731,12 @@ class CognitiveManifold:
         Returns:
             Integrated manifold output
         """
+        # Save response decision if provided in context
+        response_decision = context.get('response_decision')
+        if response_decision:
+            self.last_response_decision = response_decision
+            logger.info(f"📋 RESPONSE DECISION (from context): {response_decision['response_type']} - {response_decision.get('guidance', '')}")
+
         # Verify all ready
         if not self.check_all_registers_ready():
             logger.warning("  Not all registers ready! Proceeding anyway...")
@@ -1085,12 +1127,23 @@ class IntuitionTransistor(CognitiveTransistor):
 
     def set_intuition(self, intuition_text: str):
         """Update the current intuition text."""
+        logger.info(f"IntuitionTransistor.set_intuition() called with: {repr(intuition_text[:100] if intuition_text else intuition_text)}")
         self.intuition_text = intuition_text
+        logger.info(f"IntuitionTransistor.set_intuition() - self.intuition_text now = {repr(self.intuition_text[:100] if self.intuition_text else self.intuition_text)}")
 
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through present-moment awareness lens."""
-        if not self.intuition_text:
+        # Try self.intuition_text first, fall back to context['intuition']
+        intuition = self.intuition_text or context.get('intuition')
+
+        logger.info(f"IntuitionTransistor.process() - self.intuition_text={repr(self.intuition_text)}, context.intuition={repr(context.get('intuition', 'NONE')[:50] if context.get('intuition') else 'NONE')}")
+
+        if not intuition:
+            logger.warning(f"IntuitionTransistor returning EARLY - no intuition text! (input={input_text[:50]})")
             return TransistorOutput(input_text, 0.1, {})
+
+        # Use the intuition we found
+        self.intuition_text = intuition
 
         # Get response decision
         response_decision = context.get('response_decision', {})
@@ -1101,7 +1154,7 @@ class IntuitionTransistor(CognitiveTransistor):
         prompt = f"""You are filtering a perception through intuitive present-moment awareness.
 
 INTUITIVE AWARENESS:
-{self.intuition_text}
+{intuition}
 
 PERCEPTION: "{input_text}"
 
@@ -1135,15 +1188,15 @@ Content for {response_type}:"""
                 )
             except Exception as e:
                 logger.warning(f"Intuition LLM failed: {e}, using fallback")
-                transformed = f"I sense: {self.intuition_text[:80]}"
+                transformed = f"I sense: {intuition[:80]}"
         else:
             # No LLM - simple fallback
-            transformed = f"I sense: {self.intuition_text[:80]}"
+            transformed = f"I sense: {intuition[:80]}"
 
         return TransistorOutput(
             transformed_text=transformed,
             salience=self.salience,
-            metadata={'intuition': self.intuition_text}
+            metadata={'intuition': intuition}
         )
 
     def to_dict(self) -> Dict[str, Any]:
