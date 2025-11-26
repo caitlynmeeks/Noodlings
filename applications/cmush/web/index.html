@@ -558,15 +558,15 @@
             <h2>noodleMUSH Login</h2>
             <div class="form-group">
                 <label for="username">Username:</label>
-                <input type="text" id="username" autocomplete="username" />
+                <input type="text" id="username" autocomplete="username" tabindex="1" />
             </div>
             <div class="form-group">
                 <label for="password">Password:</label>
-                <input type="password" id="password" autocomplete="current-password" />
+                <input type="password" id="password" autocomplete="current-password" tabindex="2" />
             </div>
             <div class="button-group">
-                <button id="login-btn">Login</button>
-                <button id="register-btn">Register</button>
+                <button id="login-btn" tabindex="3">Login</button>
+                <button id="register-btn" tabindex="4">Register</button>
             </div>
             <div id="status"></div>
 
@@ -2223,6 +2223,12 @@
         usernameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 passwordInput.focus();  // Tab to password on Enter
+            }
+        });
+
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                passwordInput.focus(); // Move to password field
             }
         });
 

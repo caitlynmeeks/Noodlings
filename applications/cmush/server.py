@@ -324,6 +324,9 @@ class CMUSHServer:
             agent_name = agent_data.get('name', agent_id.replace('agent_', ''))
             recipe = self.recipe_loader.load_recipe(agent_name)
             if recipe:
+                # Use recipe name if available (e.g., "Red Fire Anklebiter")
+                if recipe.name:
+                    agent_name = recipe.name
                 # Reload species from recipe (critical for character voice!)
                 config['species'] = recipe.species
 
@@ -384,6 +387,7 @@ class CMUSHServer:
             try:
                 await self.agent_manager.create_agent(
                     agent_id=agent_id,
+                    agent_name=agent_name,
                     checkpoint_path=checkpoint_path,
                     spawn_room=current_room,
                     config=config

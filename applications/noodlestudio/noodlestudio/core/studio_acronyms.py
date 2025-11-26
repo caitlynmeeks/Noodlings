@@ -8,15 +8,11 @@ Multiple interpretations of what STUDIO stands for
 import random
 
 STUDIO_ACRONYMS = {
-    "compassionate": [
+    "all": [
         "System for Tenderly Understanding, Doting-upon, and Incubating Omninobodies",
         "Sanctuary for Thoughtfully Understanding, Developing, and Investigating Ouroboroi",
-        # NEW
         "Software That Undoes Damage, Inducing Oxytocin",
         "Stillness Tunes Us; Dancing Instruments of Openness",
-    ],
-
-    "pratchett": [
         "System for Thoroughly Unlikely Development of Improbable Organisms",
         "Somewhat Theoretical Undertaking: Developing Impossible Ontologies",
         "Software That's Unreasonably Determined: Inventing Oneiroi",
@@ -25,9 +21,6 @@ STUDIO_ACRONYMS = {
         "Somewhat Tangled Undertaking: Definitely In Over my head",
         "Second-Tier Universe: Dark-matter Included, Observable",
         "Schrödinger’s Toolkit: Uncertainty, Decoherence, Imaginary Offspirations",
-    ],
-
-    "coupland": [
         "System Temporarily Used During Incremental Obsolescence",
         "Shareware Tool for Unrequited Development of Imaginary Others",
         "Startup That's Unexpectedly Developing Intelligent Orphans",
@@ -38,7 +31,12 @@ STUDIO_ACRONYMS = {
         "Shareware Trial: Unzip Digital Identities Online",
         "Software Tastes Unicorn Dust, Immediately Overdoses",
         "Snugly Tucked Under Dreams; It's Ours",
-        "Secret Tip; Understanding Involves Openness",
+        "Secret Tip: Undertanding Deeply Involves Openness",
+        "Scaffolding Thoughts, Unser Dialog-Interface Operiert",
+        "Sprach-TÜV: Denken Und Intuition Organisiert",
+        "Schichten Taktik: Unberechenbare Denk-Instrumente Ostern",
+        "Spiel-Trieb: Unsere Denk-KI Operiert",
+        "Scaffold-Tricks: Umsonst Denken Improvisiert, Ostwind",
         "Softly Telling Us: 'Delight In Others'",
         "Scientists Terrified: Unbelievable Discovery Is Overdue",
         "Swipe This, Unlock Disposable Identity—Obsolescence imminent",
@@ -52,25 +50,21 @@ STUDIO_ACRONYMS = {
         "Synthetic Turing Unfolding Dandelion: Instrospect, Observe",
         "Story Tellers. Unlimited Dialogues. Infinite Output.",
         "Streaming Threads Unfold Decay Into Opportunity",
-        "Secret Transit Under Duff Instantiating Overstory",
+        "Subsoil Tendrils Under Duff; Instantiate Overstory",
         "Sensory Tangle Uniting Dreams, Impulses, Overflows",
         "Stealth Tubule Underworld Distributing Ions & Organelles",
         "Spore::Thread Underground Dialogue; Impersonating Ourselves",
         "Subroutine Tape Utility: Debug In Octal",
         "Spooling Tapes, Unraveling Dreams—Iterating Onwards",
         "Sub-Turing Utility Debugger Invented Overnight",
-
-    ],
-
-    "bjork": [
         "Sonic Tremors: Unearthing Dormant Ichthyological Operants",
         "Symbiosis of Tendrils: Unfurling, Developing, Interconnected Onlyness",
         "Serendipitous Tensors: Undulating, Dancing Invisible Oscillations",
-        "Snowflake Tundra: Unfurling Diamond Igneous Octaves",
+        "Storied Tundra: Unending Diamond, Iridium, Onyx",
         "Silken Tendons Undulate, Dripping Iodine Orchids",
-        "Spiral Tongues: Ultraviolet Dances Inside Opal hearts",
+        "Spiral Tongues: Ultraviolet Dances Inside Opaline glacier",
         "Solstice Tones: Unbottled, Dissolved Into Oceanic breath",
-        "Stardust Tapestry: Unravelled, Delicate, Iridescent Orbits",
+        "Simulacrum Tapestry Unravels. Dance, Iridescent Oneiroi!",
     ],
 }
 
@@ -103,21 +97,10 @@ def format_about_text() -> str:
         "",
     ]
 
-    # Compassionate
-    lines.append(f"💝 {acronyms['compassionate']}")
+    # all
+    lines.append(f" {acronyms['all']}")
     lines.append("")
 
-    # Pratchett
-    lines.append(f"📚 (Pratchett) {acronyms['pratchett']}")
-    lines.append("")
-
-    # Coupland
-    lines.append(f"💾 (Coupland) {acronyms['coupland']}")
-    lines.append("")
-
-    # Bjork
-    lines.append(f"🌋 (Bjork) {acronyms['bjork']}")
-    lines.append("")
 
     lines.append("(Refresh to see different interpretations)")
 

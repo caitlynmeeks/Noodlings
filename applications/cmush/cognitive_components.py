@@ -61,6 +61,52 @@ class CognitiveTransistor(ABC):
         """Get component UUID."""
         return self.uuid
 
+    async def _call_llm_tracked(self, llm_client, prompt: str, context: Dict[str, Any],
+                                system_prompt: str = "", model: str = None,
+                                max_tokens: int = 150, temperature: float = 0.8) -> str:
+        """
+        Call LLM with cycle tracking instrumentation.
+
+        This helper wraps LLM calls with increment/decrement of pending_llm_calls
+        counter for cognition cycle management.
+
+        Args:
+            llm_client: LLM client instance
+            prompt: User prompt
+            context: Context dict (must contain 'agent' key)
+            system_prompt: System prompt (optional)
+            model: Model override (optional)
+            max_tokens: Max tokens to generate
+            temperature: Sampling temperature
+
+        Returns:
+            Generated text response
+        """
+        agent = context.get('agent')
+
+        # Increment counter before LLM call
+        if agent and hasattr(agent, '_increment_llm_counter'):
+            agent._increment_llm_counter()
+
+        try:
+            # Make LLM call
+            if model is None:
+                model = context.get('model', 'qwen/qwen3-4b-2507')
+
+            response = await llm_client.generate(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            return response.strip()
+
+        finally:
+            # Decrement counter after LLM call (even if it failed)
+            if agent and hasattr(agent, '_decrement_llm_counter'):
+                agent._decrement_llm_counter()
+
     @abstractmethod
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """
@@ -167,14 +213,18 @@ Decide the most appropriate response type:
 - DO: Physical action without emotion (pick up object, walk, open door)
 - THINK: Internal thought only (observe without responding)
 - FEEL: Somatic/bodily sensation (butterflies in stomach, heart racing)
-- NONE: No response needed (not relevant to you)
+- NONE: No response needed (ONLY use if event is completely irrelevant or you were just here)
+
+IMPORTANT: Social events (arrivals, questions, interactions) almost ALWAYS warrant a response (SAY/EMOTE).
+Only choose NONE if the event truly has nothing to do with you.
 
 Examples:
-- Someone arrives → SAY (greet them) or EMOTE (wave excitedly)
+- Someone arrives (enter event) → SAY or EMOTE (greet them! this is a social moment!)
 - Someone asks you a question → SAY (answer it)
 - Someone gives you something → SAY (thank them) or EMOTE (gasp with delight)
+- Someone speaks directly to you → SAY (respond to them)
+- Someone speaks to someone else → THINK (observe without interrupting)
 - Emotional moment → EMOTE (express feeling physically)
-- Someone speaks to someone else → THINK or NONE (not for you)
 - Physical task → DO (perform action)
 - Strong emotion → FEEL (describe bodily sensation)
 
@@ -184,6 +234,11 @@ Respond in JSON format:
   "guidance": "brief description of what kind of response fits",
   "reasoning": "why this type"
 }}"""
+
+        # Increment LLM counter (ResponseTypeDecider doesn't inherit from CognitiveTransistor)
+        agent = context.get('agent')
+        if agent and hasattr(agent, '_increment_llm_counter'):
+            agent._increment_llm_counter()
 
         try:
             response = await llm_client.generate(
@@ -207,6 +262,10 @@ Respond in JSON format:
                 'guidance': 'observe without responding',
                 'reasoning': 'decision error - being cautious'
             }
+        finally:
+            # Decrement LLM counter
+            if agent and hasattr(agent, '_decrement_llm_counter'):
+                agent._decrement_llm_counter()
 
 
 class SocialExecutiveFunction:
@@ -278,6 +337,11 @@ Transform the internal thoughts into what you should actually SAY or DO. Be natu
 
 Appropriate response:"""
 
+        # Increment LLM counter (SocialExecutiveFunction doesn't inherit from CognitiveTransistor)
+        agent = context.get('agent')
+        if agent and hasattr(agent, '_increment_llm_counter'):
+            agent._increment_llm_counter()
+
         try:
             response = await llm_client.generate(
                 prompt=prompt,
@@ -292,6 +356,10 @@ Appropriate response:"""
         except Exception as e:
             logger.error(f"Social executive function failed: {e}, passing through")
             return internal_thought
+        finally:
+            # Decrement LLM counter
+            if agent and hasattr(agent, '_decrement_llm_counter'):
+                agent._decrement_llm_counter()
 
 
 class CognitiveManifold:
@@ -322,6 +390,7 @@ class CognitiveManifold:
         self.last_output_text: Optional[str] = None
         self.last_transistor_outputs: List[TransistorOutput] = []
         self.last_response_decision: Optional[Dict[str, Any]] = None
+        self.last_instruction_prompt: Optional[str] = None
 
     def register_transistor(self, transistor: CognitiveTransistor):
         """
@@ -349,6 +418,12 @@ class CognitiveManifold:
         Returns:
             Synthesized coherent thought
         """
+        # Check if response decision says NONE - skip processing if so
+        response_decision = context.get('response_decision')
+        if response_decision and response_decision['response_type'].lower() == 'none':
+            logger.info(f"⏭️  Response type is NONE - skipping transistor processing (integrate)")
+            return None
+
         # Collect outputs from all enabled transistors
         outputs = []
         for transistor in self.transistors:
@@ -390,9 +465,15 @@ class CognitiveManifold:
         Returns:
             Synthesized coherent thought
         """
-        # PHASE 1: Decide response type (if response planner enabled)
-        response_decision = None
-        if self.response_planner and context.get('event_context'):
+        # PHASE 1: Decide response type (if response planner enabled OR already provided)
+        response_decision = context.get('response_decision')  # Check if already provided (e.g., rumination)
+
+        if response_decision:
+            # Response decision already provided (e.g., rumination='think')
+            self.last_response_decision = response_decision
+            logger.info(f"📋 RESPONSE DECISION (provided): {response_decision['response_type']} - {response_decision.get('guidance', '')}")
+        elif self.response_planner and context.get('event_context'):
+            # Use response planner to decide
             llm_client = context.get('llm_client')
             model = context.get('model', 'qwen/qwen3-4b-2507')
             if llm_client:
@@ -403,9 +484,15 @@ class CognitiveManifold:
                         model
                     )
                     self.last_response_decision = response_decision
-                    logger.info(f"📋 RESPONSE DECISION: {response_decision['response_type']} - {response_decision['guidance']}")
+                    logger.info(f"📋 RESPONSE DECISION (planned): {response_decision['response_type']} - {response_decision['guidance']}")
                     # Add decision to context for transistors
                     context['response_decision'] = response_decision
+
+                    # If decision is NONE, skip all transistor processing
+                    if response_decision['response_type'].lower() == 'none':
+                        logger.info(f"⏭️  Response type is NONE - skipping transistor processing")
+                        self.last_output_text = "(no response - waiting for relevant event)"
+                        return None
                 except Exception as e:
                     logger.warning(f"Response planning failed: {e}, continuing without plan")
 
@@ -511,25 +598,31 @@ class CognitiveManifold:
         prompt += "Do not invent details not present.\n\n"
         prompt += f"{response_type} output:"
 
+        # Store instruction prompt for Noodle Tuner
+        self.last_instruction_prompt = prompt
+
         # Get LLM client from context
         llm_client = context.get('llm_client')
         if not llm_client:
-            logger.warning("No LLM client in context, falling back to simple concatenation")
-            return self._simple_concatenation(outputs)
+            logger.error("No LLM client in context - manifold blending REQUIRES LLM")
+            return " ".join([o.transformed_text for o in outputs[:2]])  # Emergency fallback
 
-        # Call LLM with fast model
+        # Call LLM with SMART model - manifold blending is critical collapse point
+        # Use 30B model for nuanced character-preserving integration
+        blend_model = 'qwen3-vl-30b-a3b-instruct-mlx'  # Smart model for critical integration
         try:
-            response = await self._call_llm_simple(llm_client, prompt, context.get('model', 'qwen/qwen3-4b-2507'))
+            response = await self._call_llm_simple(llm_client, prompt, blend_model, context)
             return response.strip()
         except Exception as e:
-            logger.error(f"LLM blending failed: {e}, falling back to simple concatenation")
-            return self._simple_concatenation(outputs)
+            logger.error(f"LLM blending failed: {e}, using emergency concatenation")
+            return " ".join([o.transformed_text for o in outputs[:2]])  # Emergency fallback
 
     async def _call_llm_simple(
         self,
         llm_client,
         prompt: str,
         model: str = 'qwen/qwen3-4b-2507',
+        context: Dict[str, Any] = None,
         max_tokens: int = 100
     ) -> str:
         """
@@ -539,20 +632,31 @@ class CognitiveManifold:
             llm_client: OpenAICompatibleLLM instance
             prompt: Prompt text
             model: Model to use
+            context: Context dict with agent (for tracking)
             max_tokens: Max response tokens
 
         Returns:
             LLM response text
         """
-        # Use the LLM client's generate method directly
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are a cognitive component. Be brief and direct.",
-            model=model,
-            max_tokens=max_tokens,
-            temperature=0.7
-        )
-        return response
+        # Increment LLM counter (CognitiveManifold doesn't inherit from CognitiveTransistor)
+        agent = context.get('agent') if context else None
+        if agent and hasattr(agent, '_increment_llm_counter'):
+            agent._increment_llm_counter()
+
+        try:
+            # Use the LLM client's generate method directly
+            response = await llm_client.generate(
+                prompt=prompt,
+                system_prompt="Blend these perspectives. Preserve the character voice, tone, and personality present in the inputs. Do NOT sanitize or make pleasant. Match the energy and style.",
+                model=model,
+                max_tokens=max_tokens,
+                temperature=0.7
+            )
+            return response
+        finally:
+            # Decrement LLM counter
+            if agent and hasattr(agent, '_decrement_llm_counter'):
+                agent._decrement_llm_counter()
 
     # NOTE: simple_concatenation and priority_blend removed
     # System requires LLM for proper continuous affect blending
@@ -605,6 +709,7 @@ class CulturalTransistor(CognitiveTransistor):
         super().__init__()
         self.beliefs = beliefs or []
         self.salience = 0.8  # High influence
+        self.last_instruction_prompt = ""  # For Noodle Tuner
 
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through cultural lens."""
@@ -635,13 +740,24 @@ Generate brief (1-2 sentences) content for this {response_type} that reflects yo
 
 Content for {response_type}:"""
 
+        # Store prompt for Noodle Tuner
+        self.last_instruction_prompt = prompt
+
         # Use LLM to transform
         llm_client = context.get('llm_client')
         model = context.get('model', 'qwen/qwen3-4b-2507')
 
         if llm_client:
             try:
-                transformed = await self._call_llm_simple(llm_client, prompt, model)
+                transformed = await self._call_llm_tracked(
+                    llm_client=llm_client,
+                    prompt=prompt,
+                    context=context,
+                    system_prompt="You are a cultural belief filter. Generate brief first-person affective responses.",
+                    model=model,
+                    max_tokens=100,
+                    temperature=0.8
+                )
             except Exception as e:
                 logger.warning(f"Cultural LLM failed: {e}, using fallback")
                 transformed = f"This resonates with my beliefs about {self.beliefs[0]}"
@@ -654,17 +770,6 @@ Content for {response_type}:"""
             salience=self.salience,
             metadata={'beliefs': self.beliefs}
         )
-
-    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
-        """Call LLM for cultural transformation."""
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are a cultural belief filter. Generate brief first-person affective responses.",
-            model=model,
-            max_tokens=100,
-            temperature=0.8
-        )
-        return response.strip()
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()
@@ -751,7 +856,15 @@ Write your personality-driven impulse - what you WANT to {response_type}. 1-2 se
 
         if llm_client:
             try:
-                transformed = await self._call_llm_simple(llm_client, prompt, model)
+                transformed = await self._call_llm_tracked(
+                    llm_client=llm_client,
+                    prompt=prompt,
+                    context=context,
+                    system_prompt="You are a personality filter. Generate brief first-person affective responses.",
+                    model=model,
+                    max_tokens=100,
+                    temperature=0.8
+                )
             except Exception as e:
                 logger.warning(f"Personality LLM failed: {e}, using fallback")
                 transformed = f"My {dominant_trait[0]} makes me react to this"
@@ -764,17 +877,6 @@ Write your personality-driven impulse - what you WANT to {response_type}. 1-2 se
             salience=self.salience,
             metadata={'dominant_trait': dominant_trait[0], 'value': dominant_trait[1]}
         )
-
-    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
-        """Call LLM for personality transformation."""
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are a personality filter. Generate brief first-person affective responses.",
-            model=model,
-            max_tokens=100,
-            temperature=0.8
-        )
-        return response.strip()
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()
@@ -808,6 +910,7 @@ class IntuitionTransistor(CognitiveTransistor):
         super().__init__()
         self.salience = 0.75  # Significant - the present matters
         self.intuition_text = intuition_text
+        self.last_instruction_prompt = None
 
     def set_intuition(self, intuition_text: str):
         """Update the current intuition text."""
@@ -841,13 +944,24 @@ Generate brief (1-2 sentences) content for this {response_type} based on what yo
 
 Content for {response_type}:"""
 
+        # Store for Noodle Tuner
+        self.last_instruction_prompt = prompt
+
         # Use LLM to transform
         llm_client = context.get('llm_client')
         model = context.get('model', 'qwen/qwen3-4b-2507')
 
         if llm_client:
             try:
-                transformed = await self._call_llm_simple(llm_client, prompt, model)
+                transformed = await self._call_llm_tracked(
+                    llm_client=llm_client,
+                    prompt=prompt,
+                    context=context,
+                    system_prompt="You are an intuition filter. Generate brief first-person affective responses about present-moment awareness.",
+                    model=model,
+                    max_tokens=100,
+                    temperature=0.8
+                )
             except Exception as e:
                 logger.warning(f"Intuition LLM failed: {e}, using fallback")
                 transformed = f"I sense: {self.intuition_text[:80]}"
@@ -860,17 +974,6 @@ Content for {response_type}:"""
             salience=self.salience,
             metadata={'intuition': self.intuition_text}
         )
-
-    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
-        """Call LLM for intuition transformation."""
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are an intuition filter. Generate brief first-person affective responses about present-moment awareness.",
-            model=model,
-            max_tokens=100,
-            temperature=0.8
-        )
-        return response.strip()
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()
@@ -899,6 +1002,7 @@ class MoodTransistor(CognitiveTransistor):
     def __init__(self):
         super().__init__()
         self.salience = 0.5
+        self.last_instruction_prompt = None
 
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through emotional lens."""
@@ -937,13 +1041,24 @@ Generate brief (1-2 sentences) content for this {response_type} showing your emo
 
 Content for {response_type}:"""
 
+        # Store for Noodle Tuner
+        self.last_instruction_prompt = prompt
+
         # Use LLM to transform
         llm_client = context.get('llm_client')
         model = context.get('model', 'qwen/qwen3-4b-2507')
 
         if llm_client:
             try:
-                transformed = await self._call_llm_simple(llm_client, prompt, model)
+                transformed = await self._call_llm_tracked(
+                    llm_client=llm_client,
+                    prompt=prompt,
+                    context=context,
+                    system_prompt="You are an emotional filter. Generate brief first-person affective responses.",
+                    model=model,
+                    max_tokens=100,
+                    temperature=0.8
+                )
             except Exception as e:
                 logger.warning(f"Mood LLM failed: {e}, using fallback")
                 transformed = "I feel present to this moment"
@@ -956,17 +1071,6 @@ Content for {response_type}:"""
             salience=salience,
             metadata={'mood': affect}
         )
-
-    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
-        """Call LLM for mood transformation."""
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are an emotional filter. Generate brief first-person affective responses.",
-            model=model,
-            max_tokens=100,
-            temperature=0.8
-        )
-        return response.strip()
 
 
 class AffectTransistor(CognitiveTransistor):
@@ -1078,7 +1182,15 @@ Your DESIRE to act, not analysis of feeling:"""
 
         if llm_client:
             try:
-                transformed = await self._call_llm_simple(llm_client, prompt, model)
+                transformed = await self._call_llm_tracked(
+                    llm_client=llm_client,
+                    prompt=prompt,
+                    context=context,
+                    system_prompt="You are an emotional filter. Generate brief first-person affective responses.",
+                    model=model,
+                    max_tokens=100,
+                    temperature=0.8
+                )
             except Exception as e:
                 logger.warning(f"Affect LLM failed: {e}, using fallback")
                 transformed = "I respond to this moment"
@@ -1098,17 +1210,6 @@ Your DESIRE to act, not analysis of feeling:"""
             metadata={'affect': affect_dict},
             transistor_type="AffectTransistor"
         )
-
-    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
-        """Call LLM for affective transformation."""
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are an emotional filter. Generate brief first-person affective responses.",
-            model=model,
-            max_tokens=100,
-            temperature=0.8
-        )
-        return response.strip()
 
     @classmethod
     def from_config(cls, config: Dict[str, Any]) -> 'AffectTransistor':
@@ -1131,6 +1232,7 @@ class MemoryTransistor(CognitiveTransistor):
     def __init__(self):
         super().__init__()
         self.salience = 0.4  # Lower influence (unless strong memory)
+        self.last_instruction_prompt = None
 
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter input through memory lens."""
@@ -1179,13 +1281,24 @@ Generate brief (1-2 sentences) content for this {response_type} connecting to me
 
 Content for {response_type}:"""
 
+        # Store for Noodle Tuner
+        self.last_instruction_prompt = prompt
+
         # Use LLM to transform
         llm_client = context.get('llm_client')
         model = context.get('model', 'qwen/qwen3-4b-2507')
 
         if llm_client:
             try:
-                transformed = await self._call_llm_simple(llm_client, prompt, model)
+                transformed = await self._call_llm_tracked(
+                    llm_client=llm_client,
+                    prompt=prompt,
+                    context=context,
+                    system_prompt="You are a memory filter. Generate brief first-person affective responses connecting perceptions to past experiences.",
+                    model=model,
+                    max_tokens=100,
+                    temperature=0.8
+                )
             except Exception as e:
                 logger.warning(f"Memory LLM failed: {e}, using fallback")
                 transformed = f"This reminds me of: {memory_snippets[0][:50]}"
@@ -1198,17 +1311,6 @@ Content for {response_type}:"""
             salience=salience,
             metadata={'memory_count': len(relevant_memories), 'keywords': keywords}
         )
-
-    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
-        """Call LLM for memory transformation."""
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are a memory filter. Generate brief first-person affective responses connecting perceptions to past experiences.",
-            model=model,
-            max_tokens=100,
-            temperature=0.8
-        )
-        return response.strip()
 
     def _extract_keywords(self, text: str) -> list:
         """Extract keywords from text (simple word filtering)."""
@@ -1263,6 +1365,7 @@ class SocialExpectationTransistor(CognitiveTransistor):
             "Show gratitude when helped"
         ]
         self.salience = 0.6
+        self.last_instruction_prompt = None
 
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
         """Filter through social norms lens."""
@@ -1293,13 +1396,24 @@ Generate brief (1-2 sentences) content for this {response_type} that respects so
 
 Content for {response_type}:"""
 
+        # Store for Noodle Tuner
+        self.last_instruction_prompt = prompt
+
         # Use LLM to transform
         llm_client = context.get('llm_client')
         model = context.get('model', 'qwen/qwen3-4b-2507')
 
         if llm_client:
             try:
-                transformed = await self._call_llm_simple(llm_client, prompt, model)
+                transformed = await self._call_llm_tracked(
+                    llm_client=llm_client,
+                    prompt=prompt,
+                    context=context,
+                    system_prompt="You are a social expectation filter. Generate brief first-person affective responses about social norms.",
+                    model=model,
+                    max_tokens=100,
+                    temperature=0.8
+                )
                 salience = self.salience
             except Exception as e:
                 logger.warning(f"Social LLM failed: {e}, using fallback")
@@ -1315,17 +1429,6 @@ Content for {response_type}:"""
             salience=salience,
             metadata={'rules': self.social_rules}
         )
-
-    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
-        """Call LLM for social expectation transformation."""
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are a social expectation filter. Generate brief first-person affective responses about social norms.",
-            model=model,
-            max_tokens=100,
-            temperature=0.8
-        )
-        return response.strip()
 
     def _find_relevant_rule(self, text: str) -> Optional[str]:
         """Find most relevant social rule for text."""
@@ -1386,6 +1489,7 @@ class SomaticCognitiveTransistor(CognitiveTransistor):
         self.worn_items = []
         self.last_interrupt_time = 0
         self.environment_cache = {}  # Cached room environment
+        self.last_instruction_prompt = None
 
     def add_sensation(
         self,
@@ -1564,13 +1668,24 @@ Generate brief (1-2 sentences) content for this {response_type} from your embodi
 
 Content for {response_type}:"""
 
+            # Store for Noodle Tuner
+            self.last_instruction_prompt = prompt
+
             # Use LLM to transform
             llm_client = context.get('llm_client')
             model = context.get('model', 'qwen/qwen3-4b-2507')
 
             if llm_client:
                 try:
-                    colored = await self._call_llm_simple(llm_client, prompt, model)
+                    colored = await self._call_llm_tracked(
+                        llm_client=llm_client,
+                        prompt=prompt,
+                        context=context,
+                        system_prompt="You are a somatic embodiment filter. Generate brief first-person bodily responses.",
+                        model=model,
+                        max_tokens=100,
+                        temperature=0.8
+                    )
                     salience = 0.6  # Moderate embodied awareness
                 except Exception as e:
                     logger.warning(f"Somatic LLM failed: {e}, using fallback")
@@ -1589,17 +1704,6 @@ Content for {response_type}:"""
                 'strongest_sensation': strongest['type'] if strongest else None
             }
         )
-
-    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
-        """Call LLM for somatic transformation."""
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are a somatic embodiment filter. Generate brief first-person bodily responses.",
-            model=model,
-            max_tokens=100,
-            temperature=0.8
-        )
-        return response.strip()
 
     def _generate_sensation_response(self, sensation: Dict) -> str:
         """Generate response to bodily sensation."""
@@ -1863,6 +1967,7 @@ class DeceptionTransistor(CognitiveTransistor):
         self.base_salience = base_salience
         self.fear_multiplier = fear_multiplier
         self.salience = base_salience  # Will be modulated dynamically
+        self.last_instruction_prompt = None
 
     def calculate_dynamic_salience(self, affect: List[float]) -> float:
         """
@@ -1916,6 +2021,9 @@ DECEPTION STRENGTH: {self.salience:.2f} (0.0=honest, 1.0=desperate lies)
 
 Transformed output:"""
 
+        # Store for Noodle Tuner
+        self.last_instruction_prompt = prompt
+
         # Use LLM to transform (if available)
         llm_client = context.get('llm_client')
         model = context.get('model', 'qwen/qwen3-4b-2507')
@@ -1923,7 +2031,15 @@ Transformed output:"""
         if llm_client:
             try:
                 # Now we can await properly since we're async!
-                transformed = await self._call_llm_simple(llm_client, prompt, model)
+                transformed = await self._call_llm_tracked(
+                    llm_client=llm_client,
+                    prompt=prompt,
+                    context=context,
+                    system_prompt="You are a deception filter. Transform text to hide secrets.",
+                    model=model,
+                    max_tokens=150,
+                    temperature=0.8
+                )
             except Exception as e:
                 logger.warning(f"Deception LLM failed: {e}, passing through")
                 transformed = input_text
@@ -1936,17 +2052,6 @@ Transformed output:"""
             salience=self.salience,
             metadata={'type': self.get_transistor_type(), 'fear': affect[2] if len(affect) > 2 else 0.0}
         )
-
-    async def _call_llm_simple(self, llm_client, prompt: str, model: str) -> str:
-        """Call LLM for deception transformation."""
-        response = await llm_client.generate(
-            prompt=prompt,
-            system_prompt="You are a deception filter. Transform text to hide secrets.",
-            model=model,
-            max_tokens=150,
-            temperature=0.8
-        )
-        return response
 
     @classmethod
     def from_config(cls, config: Dict[str, Any]) -> 'DeceptionTransistor':
@@ -1971,7 +2076,7 @@ COMPONENT_DEPENDENCIES = {
     'SocialExpectationTransistor': ['CognitiveManifold'],
     'SomaticCognitiveTransistor': ['CognitiveManifold'],
     'DeceptionTransistor': ['CognitiveManifold'],
-    'BodyLanguageComponent': ['SomaticCognitiveTransistor']  # Requires body type info
+    'BodyLanguageComponent': ['EmbodyComponent']  # Requires physical body data
 }
 
 # Component registry - defined after all classes to avoid forward reference errors
@@ -1996,6 +2101,165 @@ def check_component_dependencies(
     required = COMPONENT_DEPENDENCIES.get(component_type, [])
     missing = [dep for dep in required if dep not in existing_components]
     return missing
+
+
+# ===== Embodiment Component =====
+
+class EmbodyComponent(CognitiveTransistor):
+    """
+    Stores and manages Noodling's physical embodiment.
+
+    This represents the WHOLISTIC PHYSICAL CONDITION including:
+    - Body architecture (quadruped, biped, hovering, disembodied)
+    - Physical characteristics (fur, eyes, limbs)
+    - Mutable state (injuries, energy, worn items)
+    - Movement capabilities
+    - Sensory capabilities
+
+    Embodiment changes over time as events occur:
+    - Injuries heal
+    - Items equipped/removed
+    - Physical mutations
+    - Energy/hunger/thirst fluctuate
+
+    NOT just species - this is the complete physical condition.
+    """
+
+    def __init__(self, embodiment_data: Dict):
+        """
+        Initialize with embodiment data loaded from .embodiment asset.
+
+        Args:
+            embodiment_data: Dict with keys 'architecture', 'characteristics',
+                           'state', 'movement', 'senses', 'worn_items'
+        """
+        super().__init__()
+        self.embodiment = embodiment_data
+        self.salience = 1.0  # Always relevant - you always have a body
+
+    def GetBodyParameter(self, key: str) -> Any:
+        """
+        Get mutable state parameter.
+
+        Example:
+            is_blind = embody.GetBodyParameter('rightEyeIsBlindAndShut')
+        """
+        return self.embodiment.get('state', {}).get(key)
+
+    def SetBodyParameter(self, key: str, value: Any):
+        """
+        Set mutable state parameter.
+
+        Example:
+            embody.SetBodyParameter('rightEyeIsBlindAndShut', False)
+            embody.SetBodyParameter('healedByDoctor', 'user_doctor_uuid')
+        """
+        if 'state' not in self.embodiment:
+            self.embodiment['state'] = {}
+        self.embodiment['state'][key] = value
+
+    def GetArchitecture(self) -> Dict:
+        """Get immutable body architecture (form, limbs, locomotion)."""
+        return self.embodiment.get('architecture', {})
+
+    def GetCharacteristics(self) -> Dict:
+        """Get immutable physical characteristics (size, fur, eyes)."""
+        return self.embodiment.get('characteristics', {})
+
+    def GetState(self) -> Dict:
+        """Get current mutable state (injuries, energy, worn items)."""
+        return self.embodiment.get('state', {})
+
+    def GetMovement(self) -> Dict:
+        """Get movement capabilities (speed, jump height, swim/fly)."""
+        return self.embodiment.get('movement', {})
+
+    def GetSenses(self) -> Dict:
+        """Get sensory capabilities (vision, hearing, smell, touch)."""
+        return self.embodiment.get('senses', {})
+
+    def GetWornItems(self) -> List[Dict]:
+        """Get list of worn/attached items."""
+        return self.embodiment.get('worn_items', [])
+
+    def GetEmbodiment(self) -> Dict:
+        """Get full embodiment data (all fields)."""
+        return self.embodiment
+
+    def GetSummary(self) -> str:
+        """
+        Generate human-readable summary of embodiment for prompts.
+
+        Returns string like:
+        "Form: quadruped (4 limbs, has tail)
+         Size: small (4.5kg)
+         Characteristics: black short fur
+         State: right eye blind and shut, notch in right ear
+         Locomotion: walk, run, jump, climb"
+        """
+        arch = self.GetArchitecture()
+        chars = self.GetCharacteristics()
+        state = self.GetState()
+        movement = self.GetMovement()
+
+        lines = []
+
+        # Architecture
+        form = arch.get('form', 'unknown')
+        limb_count = arch.get('limb_count', 0)
+        has_tail = arch.get('has_tail', False)
+        has_wings = arch.get('has_wings', False)
+        extras = []
+        if has_tail:
+            extras.append('has tail')
+        if has_wings:
+            extras.append('has wings')
+        extras_str = f" ({', '.join(extras)})" if extras else ""
+        lines.append(f"Form: {form} ({limb_count} limbs{extras_str})")
+
+        # Size
+        size = chars.get('size', 'unknown')
+        mass = chars.get('mass_kg', 0)
+        lines.append(f"Size: {size} ({mass}kg)")
+
+        # Characteristics
+        char_parts = []
+        if chars.get('fur'):
+            color = chars.get('fur_color', '')
+            length = chars.get('fur_length', '')
+            char_parts.append(f"{color} {length} fur")
+        if chars.get('material'):
+            char_parts.append(chars['material'])
+        if chars.get('substance'):
+            char_parts.append(f"made of {chars['substance']}")
+        if char_parts:
+            lines.append(f"Characteristics: {', '.join(char_parts)}")
+
+        # State (injuries, conditions)
+        state_parts = []
+        for key, value in state.items():
+            if key not in ['energyLevel', 'hungerLevel', 'thirstLevel']:
+                if isinstance(value, bool) and value:
+                    readable = key.replace('_', ' ').replace('Is', ' is').lower()
+                    state_parts.append(readable)
+                elif not isinstance(value, bool):
+                    state_parts.append(f"{key}: {value}")
+        if state_parts:
+            lines.append(f"State: {', '.join(state_parts)}")
+
+        # Locomotion
+        locomotion = arch.get('locomotion', [])
+        if locomotion:
+            lines.append(f"Locomotion: {', '.join(locomotion)}")
+
+        return '\n'.join(lines)
+
+    def process(self, text: str, context: Dict) -> str:
+        """
+        EmbodyComponent doesn't generate text output.
+        It provides state data to other components.
+        """
+        return ""
 
 
 # ===== FACS and Laban Components =====
@@ -2082,8 +2346,10 @@ Only include AUs that are actually activating. Return JSON only."""
         facs_data = {}
         if llm_client:
             try:
-                response = await llm_client.generate(
+                response = await self._call_llm_tracked(
+                    llm_client=llm_client,
                     prompt=prompt,
+                    context=context,
                     system_prompt="You are a FACS encoder. Output JSON only with AU codes and intensities.",
                     model=model,
                     max_tokens=150,
@@ -2149,7 +2415,10 @@ class BodyLanguageComponent(CognitiveTransistor):
     Only active if added to Noodling's components.
     """
 
-    DEFAULT_PROMPT = """Based on your emotional state, describe how your BODY wants to move RIGHT NOW.
+    DEFAULT_PROMPT = """Based on your emotional state and YOUR SPECIFIC BODY, describe how you want to move RIGHT NOW.
+
+YOUR BODY:
+{body_summary}
 
 EMOTIONAL STATE:
 - Valence: {valence:.3f}
@@ -2159,31 +2428,35 @@ EMOTIONAL STATE:
 
 SITUATION: "{input_text}"
 
-TASK: Describe your movement impulse using Laban effort qualities.
+TASK: Describe your movement impulse using your SPECIFIC BODY PARTS.
 
-Laban Effort Dimensions:
-- Weight: light (gentle, delicate) vs strong (forceful, powerful)
-- Time: sustained (slow, leisurely) vs sudden (fast, abrupt)
-- Space: indirect (meandering, unfocused) vs direct (aimed, focused)
-- Flow: free (flowing, continuous) vs bound (controlled, restrained)
+Examples by body type:
 
-Examples:
+QUADRUPED (cat/dog):
+- Tail position (high/low/between legs/lashing)
+- Ear angles (forward/back/flat)
+- Body posture (crouched/standing tall/arched back)
+- Paw movements (kneading/batting/scratching)
 
-High valence, high arousal:
-{{"weight": "light", "time": "sudden", "space": "direct", "flow": "free"}}
-(Light, quick, focused, flowing - like dancing)
+BIPED (gremlin/humanoid):
+- Hand gestures (fists/open palms/pointing)
+- Stance (aggressive/defensive/relaxed)
+- Head movements (tilting/nodding/shaking)
 
-Low valence, low arousal, low dominance:
-{{"weight": "light", "time": "sustained", "space": "indirect", "flow": "bound"}}
-(Gentle, slow, unfocused, restrained - like shrinking away)
+HOVERING (robot):
+- Rotation speed (slow spin/rapid spin/still)
+- Altitude changes (rising/lowering/stable)
+- LED patterns (if applicable)
+- Manipulator arm positions
 
-Output JSON with your movement quality. Return JSON only:
-{{
-  "weight": "light|strong",
-  "time": "sustained|sudden",
-  "space": "indirect|direct",
-  "flow": "free|bound"
-}}"""
+DISEMBODIED:
+- Volume modulation (louder/softer/whisper)
+- Manifestation strength (fading/solidifying)
+- Presence intensity
+
+Describe SPECIFIC MOVEMENTS for YOUR BODY TYPE. Be concrete.
+
+Output plain text description (NOT JSON). Focus on physical movements only, no emotion labels."""
 
     def __init__(self, salience: float = 0.5, custom_prompt: Optional[str] = None):
         super().__init__()
@@ -2192,7 +2465,19 @@ Output JSON with your movement quality. Return JSON only:
         self.active_prompt = custom_prompt if custom_prompt else self.DEFAULT_PROMPT
 
     async def process(self, input_text: str, context: Dict[str, Any]) -> TransistorOutput:
-        """Generate Laban descriptors from affect."""
+        """Generate body-specific movement descriptions from affect."""
+
+        # Get EmbodyComponent from agent context
+        agent = context.get('agent')
+        body_summary = "Form: unknown (no embodiment data)"
+
+        if agent and hasattr(agent, 'GetComponent'):
+            try:
+                embody_comp = agent.GetComponent('EmbodyComponent')
+                if embody_comp:
+                    body_summary = embody_comp.GetSummary()
+            except Exception as e:
+                logger.warning(f"Could not get EmbodyComponent: {e}")
 
         # Get predicted affect
         predicted_affect = context.get('predicted_affect')
@@ -2208,8 +2493,9 @@ Output JSON with your movement quality. Return JSON only:
             sorrow = predicted_affect.get('sorrow', 0.0)
             boredom = predicted_affect.get('boredom', 0.0)
 
-        # Build prompt
+        # Build prompt with body summary
         prompt = self.active_prompt.format(
+            body_summary=body_summary,
             valence=valence,
             arousal=arousal,
             dominance=dominance,
@@ -2217,62 +2503,49 @@ Output JSON with your movement quality. Return JSON only:
             input_text=input_text
         )
 
-        # Use LLM to generate Laban
+        # Use LLM to generate body-specific movement description
         llm_client = context.get('llm_client')
         model = context.get('model', 'qwen/qwen3-4b-2507')
 
-        laban_data = {}
+        movement_text = ""
         if llm_client:
             try:
-                response = await llm_client.generate(
+                response = await self._call_llm_tracked(
+                    llm_client=llm_client,
                     prompt=prompt,
-                    system_prompt="You are a Laban movement encoder. Output JSON only.",
+                    context=context,
+                    system_prompt="You describe physical movements. Be concrete and body-specific. No emotion labels.",
                     model=model,
-                    max_tokens=100,
-                    temperature=0.5
+                    max_tokens=150,
+                    temperature=0.7
                 )
 
-                # Parse JSON
-                import json
-                laban_data = json.loads(response.strip())
+                movement_text = response.strip()
 
             except Exception as e:
-                logger.warning(f"Laban generation failed: {e}")
-                # Fallback: continuous mapping (NO discrete thresholds)
-                # Use interpolation across full continuous range
+                logger.warning(f"Body language generation failed: {e}")
+                # Fallback: generic movement description based on affect
+                arch = context.get('architecture', {})
+                form = arch.get('form', 'unknown')
 
-                # Weight: map valence magnitude to light/strong continuum
-                # Use the actual magnitude, not binary threshold
-                valence_mag = abs(valence)
-                weight_value = "light" if valence_mag < 0.5 else "strong"  # Still binary for Laban categories
-
-                # Time: map arousal to sustained/sudden continuum
-                time_value = "sudden" if arousal > 0.5 else "sustained"
-
-                # Space: map dominance to indirect/direct continuum
-                space_value = "direct" if dominance > 0.5 else "indirect"
-
-                # Flow: map valence to free/bound continuum
-                flow_value = "free" if valence > 0 else "bound"
-
-                # Note: Laban has binary categories (light vs strong), but we map
-                # from continuous affect. This is inherent to Laban system.
-                laban_data = {
-                    "weight": weight_value,
-                    "time": time_value,
-                    "space": space_value,
-                    "flow": flow_value
-                }
+                if valence > 0.3 and arousal > 0.5:
+                    movement_text = f"energetic, quick movements"
+                elif valence < -0.3 and arousal < 0.3:
+                    movement_text = f"slow, withdrawn movements"
+                elif dominance > 0.6:
+                    movement_text = f"assertive, direct movements"
+                else:
+                    movement_text = f"subtle, uncertain movements"
 
         # Noodle Tuner instrumentation
-        self.last_output_text = str(laban_data)
-        self.last_output_metadata = laban_data
+        self.last_output_text = movement_text
+        self.last_output_metadata = {'movement_description': movement_text}
         self.last_output_salience = self.salience
 
         return TransistorOutput(
-            transformed_text=str(laban_data),
+            transformed_text=movement_text,
             salience=self.salience,
-            metadata={'laban': laban_data},
+            metadata={'movement_description': movement_text},
             transistor_type="BodyLanguageComponent"
         )
 

@@ -42,6 +42,7 @@ from performance_tracker import get_tracker
 from affective_reinforcement import create_reinforcement
 from entropy_service import get_entropy_service
 from event_system import Event
+from embodiment_loader import EmbodimentLoader
 
 logger = logging.getLogger(__name__)
 
@@ -736,6 +737,13 @@ class CMUSHConsilienceAgent:
         self.cognitive_gate_id = 0  # Increments on each processing cycle
         self.pending_responses = []  # Queue for responses that arrive while paused
 
+        # Cognition cycle tracking (for Noodle Tuner temporal alignment)
+        import uuid as uuid_lib
+        self.current_cycle_uuid = str(uuid_lib.uuid4())
+        self.current_cycle_timestamp = time.time()
+        self.cycle_in_progress = False
+        self.pending_llm_calls = 0  # Count of LLM calls not yet returned
+
         # Agent identity
         self.agent_name = agent_name or agent_id.replace('agent_', '').title()
         self.agent_description = agent_description or "An empty noodling."
@@ -869,6 +877,29 @@ class CMUSHConsilienceAgent:
                 logger.info(f"[{agent_id}]  Registered {transistor_type} (salience={transistor.salience:.2f})")
             except Exception as e:
                 logger.error(f"[{agent_id}] Failed to create {transistor_type}: {e}")
+
+        # Load and register EmbodyComponent (default for all Noodlings)
+        embodiment_loader = EmbodimentLoader()
+        embodiment_id = config.get('embodiment_id')  # Optional - from prefab
+
+        if embodiment_id:
+            # Load specific embodiment from assets
+            embodiment_data = embodiment_loader.load(embodiment_id)
+            if embodiment_data:
+                logger.info(f"[{agent_id}] Loaded embodiment: {embodiment_id}")
+            else:
+                logger.warning(f"[{agent_id}] Embodiment {embodiment_id} not found, using default")
+                embodiment_data = embodiment_loader.get_default_embodiment()
+        else:
+            # Use default embodiment
+            embodiment_data = embodiment_loader.get_default_embodiment()
+            logger.info(f"[{agent_id}] Using default embodiment")
+
+        # Create EmbodyComponent
+        from cognitive_components import EmbodyComponent
+        embody_component = EmbodyComponent(embodiment_data['embodiment'])
+        self.cognitive_manifold.register_transistor(embody_component)
+        logger.info(f"[{agent_id}]  Registered EmbodyComponent (salience=1.0)")
 
         # cMUSH-specific state
         self.current_room = None
@@ -2155,7 +2186,14 @@ Analyze and output ONLY valid JSON:
         # Agents can now perceive other agents
         is_agent = user_id.startswith('agent_')
 
-        logger.info(f"Agent {self.agent_id} perceiving: {event_type} from {user_id}: {text}")
+        # Start new cognition cycle
+        import uuid as uuid_lib
+        self.current_cycle_uuid = str(uuid_lib.uuid4())
+        self.current_cycle_timestamp = time.time()
+        self.cycle_in_progress = True
+        self.pending_llm_calls = 0
+
+        logger.info(f"Agent {self.agent_id} perceiving: {event_type} from {user_id}: {text} [cycle={self.current_cycle_uuid[:8]}]")
 
         try:
             # Log instant event - stimulus received
@@ -2218,6 +2256,7 @@ Analyze and output ONLY valid JSON:
                             logger.info(f"[{self.agent_id}]  Updated IntuitionTransistor with: {intuition_text[:60]}...")
 
                     context = {
+                        'agent': self,  # For cycle tracking
                         'affect': affect_raw,
                         'memory_system': self.conversation_context,
                         'surprise': 0.0,  # Not yet calculated
@@ -2467,6 +2506,7 @@ Analyze and output ONLY valid JSON:
             if facial_component or body_component:
                 # NEW SYSTEM: Use component-based FACS/Laban
                 component_context = {
+                    'agent': self,  # For cycle tracking
                     'predicted_affect': predicted_affect if 'predicted_affect' in locals() else None,
                     'affect': affect,
                     'llm_client': self.llm,
@@ -2730,6 +2770,23 @@ Analyze and output ONLY valid JSON:
             # Being addressed means: directly addressed OR name mentioned BUT NOT third-party discussion
             is_being_addressed = is_directly_addressed or (event_mentions_name and not is_third_party_discussion)
 
+            # ONE-ON-ONE CONTEXT: If only this agent and speaker in room, treat all speech as addressed
+            # (Prevents agents ignoring direct conversation when name isn't mentioned)
+            if event_type == 'say' and self.world and not is_being_addressed:
+                try:
+                    # Get agents in current room
+                    room_agents = []
+                    if hasattr(self.world, 'agents'):
+                        for agent_id, agent_data in self.world.agents.items():
+                            if agent_data.get('room') == self.current_room:
+                                room_agents.append(agent_id)
+                    # If only speaker and this agent in room → one-on-one conversation
+                    if len(room_agents) == 1 and room_agents[0] == self.agent_id:
+                        is_being_addressed = True
+                        logger.info(f"One-on-one context detected - treating speech as addressed to {self.agent_id}")
+                except Exception as e:
+                    logger.debug(f"Could not check room occupancy: {e}")
+
             # PLAY STIMULUS TARGETING: Check if this is a targeted stimulus from a play
             # Stimuli can target specific agents via metadata without mentioning their name in text
             # (event_metadata and is_cue already extracted earlier for context storage)
@@ -2763,38 +2820,61 @@ Analyze and output ONLY valid JSON:
 
             cooldown_ok = time_since_last >= cooldown
 
-            # Rumination frequency - agents think most of the time they observe
-            rumination_frequency = self.config.get('rumination_frequency', 0.7)  # 70% chance to ruminate
+            # CONTINUOUS AFFECTIVE CHATTINESS COMPUTATION
+            # No random rolls - chattiness emerges from emotional state
 
-            # ADAPTIVE SPEECH CHANCE based on being addressed:
-            if is_being_addressed:
-                # Directly addressed - high chance to speak (80%)
-                speech_chance = self.config.get('addressed_speech_chance', 0.8)
+            # Extract current affect (PAD + fear + sorrow)
+            phenomenal = state.get('phenomenal_state', [0]*5)
+            valence = float(phenomenal[0]) if len(phenomenal) > 0 else 0.0
+            arousal = float(phenomenal[1]) if len(phenomenal) > 1 else 0.5
+            fear = float(phenomenal[2]) if len(phenomenal) > 2 else 0.0
+            sorrow = float(phenomenal[3]) if len(phenomenal) > 3 else 0.0
+            boredom = float(phenomenal[4]) if len(phenomenal) > 4 else 0.0
+
+            # Get personality verbosity (extraversion from personality traits)
+            extraversion = self.personality_traits.get('extraversion', 0.5) if hasattr(self, 'personality_traits') else 0.5
+
+            # Compute base chattiness from affect:
+            # - High arousal → more chatty (activated, energized)
+            # - Low boredom → more chatty (engaged)
+            # - Extraversion → base modifier
+            activation = arousal * (1.0 - boredom)  # Combined activation level
+            base_chattiness = (activation * 0.7) + (extraversion * 0.3)  # Weighted blend
+
+            # Modulate by event significance:
+            if event_type in ['enter', 'exit']:
+                # Social events amplify chattiness (arrivals/departures are significant)
+                event_significance = 0.9
+            elif is_being_addressed:
+                # Direct address demands response
+                event_significance = 1.0
             elif is_question:
-                # Question in conversation - moderate chance to chime in (30%)
-                speech_chance = self.config.get('question_speech_chance', 0.3)
+                # Questions pull for response
+                event_significance = 0.6
             else:
-                # Not addressed - low chance to interject (10%)
-                speech_chance = self.config.get('unaddressed_speech_chance', 0.1)
+                # Background events
+                event_significance = 0.2
 
-            # Always consider ruminating when observing
-            # Using quantum entropy for genuine randomness
-            entropy = get_entropy_service()
-            should_ruminate = entropy.random() < rumination_frequency
+            # Final speech propensity (continuous 0-1)
+            speech_propensity = base_chattiness * event_significance
 
-            # Only speak if cooldown passed AND dice roll succeeds AND appropriate context
-            # DEV: Force speech when directly addressed for testing
+            # Cooldown override: when addressed, always speak (deterministic)
             if is_being_addressed and cooldown_ok:
                 should_speak = True
             else:
-                should_speak = cooldown_ok and (entropy.random() < speech_chance)
+                # Speak if propensity > 0.5 (threshold for action)
+                should_speak = cooldown_ok and (speech_propensity > 0.5)
 
-            # Log decision with addressee context
+            # Ruminate if not speaking (mutually exclusive)
+            should_ruminate = not should_speak
+
+            # Log decision with affective computation
             logger.info(f"Agent {self.agent_id} decision: addressed={is_being_addressed}, "
-                       f"directly_addressed={is_directly_addressed}, third_party={is_third_party_discussion}, "
-                       f"question={is_question}, should_ruminate={should_ruminate}, should_speak={should_speak}, "
-                       f"speech_chance={speech_chance:.2f}, cooldown_ok={cooldown_ok}, "
-                       f"surprise={state.get('surprise', 0.0):.6f}")
+                       f"arousal={arousal:.2f}, boredom={boredom:.2f}, extraversion={extraversion:.2f}, "
+                       f"activation={activation:.2f}, base_chattiness={base_chattiness:.2f}, "
+                       f"event_significance={event_significance:.2f}, speech_propensity={speech_propensity:.2f}, "
+                       f"should_speak={should_speak}, should_ruminate={should_ruminate}, "
+                       f"cooldown_ok={cooldown_ok}, surprise={state.get('surprise', 0.0):.6f}")
 
             # INTUITION RECEIVER: Generate contextual awareness
             # This provides integrated understanding of who/what/where without external scaffolding
@@ -2879,7 +2959,11 @@ Analyze and output ONLY valid JSON:
                     is_question=is_question
                 )
                 if rumination_result:
-                    results.append(rumination_result)
+                    # Check if rumination returned array (thought + follow-up action)
+                    if isinstance(rumination_result, list):
+                        results.extend(rumination_result)  # Add both thought and action
+                    else:
+                        results.append(rumination_result)  # Just the thought
 
             # Then, speak (if decided to and cooldown passed)
             if should_speak:
@@ -3336,17 +3420,64 @@ Analyze and output ONLY valid JSON:
             recent_context = self.conversation_context[-2:] if len(self.conversation_context) >= 2 else []
             perception_text = recent_context[-1].get('text', '') if recent_context else "observing surroundings"
 
+            # GENERATE INTUITION FOR RUMINATION (spatial/contextual awareness)
+            intuition_text = None
+            logger.info(f"[{self.agent_id}] 🔍 Rumination: Checking intuition - world={self.world is not None}, config={hasattr(self, 'config')}")
+            if self.world and hasattr(self, 'config'):
+                logger.info(f"[{self.agent_id}] 🔍 Rumination: Generating intuition...")
+                try:
+                    world_snapshot = {
+                        'current_room': self.world.get_room(self.current_room),
+                        'objects': self.world.objects,
+                        'rooms': self.world.rooms,
+                        'agents': self.world.agents,
+                        'users': self.world.users
+                    }
+                    # Extract event details from recent context
+                    last_entry = recent_context[-1] if recent_context else {}
+                    event = {
+                        'type': last_entry.get('event_type', 'observe'),
+                        'user': last_entry.get('user', ''),
+                        'text': perception_text,
+                        'room': self.current_room
+                    }
+                    intuition_text = await self._generate_intuition(
+                        event=event,
+                        world_state=world_snapshot,
+                        recent_context=self.conversation_context[-3:]
+                    )
+                    if intuition_text:
+                        logger.info(f"[{self.agent_id}]  ✅ RUMINATION Intuition: {intuition_text[:80]}...")
+                    else:
+                        logger.warning(f"[{self.agent_id}] ⚠️ Intuition returned None/empty!")
+                except Exception as e:
+                    logger.warning(f"[{self.agent_id}] ❌ Rumination intuition failed: {e}", exc_info=True)
+
             # COGNITIVE MANIFOLD INTEGRATION FOR RUMINATIONS
             # Process thought through same filters as speech!
             colored_thought_seed = perception_text
             if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
                 try:
+                    # Update IntuitionTransistor with current intuition (if it exists)
+                    if intuition_text:
+                        intuition_transistor = self.get_cognitive_transistor('IntuitionTransistor')
+                        if intuition_transistor:
+                            intuition_transistor.set_intuition(intuition_text)
+                            logger.info(f"[{self.agent_id}]  Updated IntuitionTransistor (rumination) with: {intuition_text[:60]}...")
+
                     context = {
+                        'agent': self,  # For cycle tracking
                         'affect': state.get('phenomenal_state', [0]*5)[:5] if hasattr(state.get('phenomenal_state'), '__getitem__') else [0]*5,
                         'memory_system': self.conversation_context,
                         'surprise': state.get('surprise', 0.0),
                         'llm_client': self.llm,
-                        'model': 'qwen/qwen3-4b-2507'
+                        'model': 'qwen/qwen3-4b-2507',
+                        'intuition': intuition_text,  # ADD SPATIAL CONTEXT
+                        'response_decision': {
+                            'response_type': 'think',
+                            'guidance': 'internal observation and reflection',
+                            'reasoning': 'rumination cycle - processing perceptions internally'
+                        }
                     }
                     # Color the thought seed through manifold
                     colored_thought_seed = await self.cognitive_manifold.integrate_async(perception_text, context)
@@ -3454,6 +3585,55 @@ Analyze and output ONLY valid JSON:
 
             # Save state handled by periodic auto-save in AgentManager
 
+            # INTENTION-TO-ACTION CONVERSION
+            # Evaluate if this thought contains strong enough intention to become action
+            # Gated by self-restraint (impulsivity, fear, conscientiousness)
+
+            # Compute self-restraint threshold
+            self_restraint = self._compute_self_restraint(state)
+
+            # Evaluate action intention in the thought
+            action_intention = await self._evaluate_action_intention(
+                colored_thought_seed if 'colored_thought_seed' in locals() else thought_text,
+                {
+                    'llm_client': self.llm,
+                    'model': 'qwen/qwen3-4b-2507'
+                }
+            )
+
+            logger.info(f"[{self.agent_id}] 🎯 ACTION INTENTION: {action_intention:.2f} vs SELF-RESTRAINT: {self_restraint:.2f}")
+
+            # If intention exceeds restraint, convert thought to external response
+            if action_intention > self_restraint:
+                logger.info(f"[{self.agent_id}] 💥 THOUGHT BECOMES ACTION! (intention={action_intention:.2f} > restraint={self_restraint:.2f})")
+
+                # Generate external response based on the internal thought
+                # This creates the think → act pipeline
+                response = await self._generate_response(
+                    state=state,
+                    is_being_addressed=is_being_addressed,
+                    is_question=is_question,
+                    target_user=None,
+                    thought_seed=thought_text  # Use the thought as seed for response
+                )
+
+                # Return BOTH the thought AND the action
+                # This shows the cognitive process: thought in strikethrough, then speech
+                return [
+                    {
+                        'command': 'think',
+                        'text': thought_text,
+                        'metadata': {
+                            'surprise': float(state['surprise']),
+                            'identity_salience': float(identity_salience),
+                            'action_intention': float(action_intention),
+                            'self_restraint': float(self_restraint),
+                            'converted_to_action': True
+                        }
+                    },
+                    response  # The follow-up action
+                ]
+
             # Return as a "thought" command (displayed in strikethrough)
             return {
                 'command': 'think',
@@ -3461,6 +3641,8 @@ Analyze and output ONLY valid JSON:
                 'metadata': {
                     'surprise': float(state['surprise']),
                     'identity_salience': float(identity_salience),
+                    'action_intention': float(action_intention),
+                    'self_restraint': float(self_restraint),
                     'phenomenal_state': state['phenomenal_state'].tolist() if hasattr(state['phenomenal_state'], 'tolist') else list(state['phenomenal_state'])
                 }
             }
@@ -3636,6 +3818,144 @@ Analyze and output ONLY valid JSON:
 
         except Exception as e:
             logger.error(f"Error in self-monitoring: {e}", exc_info=True)
+
+    async def _evaluate_action_intention(self, thought_text: str, context: Dict) -> float:
+        """
+        Evaluate if an internal thought contains actionable intention.
+
+        Returns continuous 0-1 score:
+        - 0.0 = Pure observation, no action implied
+        - 0.5 = Moderate intention (considering action)
+        - 1.0 = Strong intention (clear plan to act)
+
+        Examples:
+        - "I notice the sunset" → 0.1 (passive observation)
+        - "I wonder if I should say something" → 0.4 (weak intention)
+        - "I'll roast them back with sharp sass" → 0.9 (strong intention)
+        - "I want to grab that candy" → 0.8 (clear action desire)
+        """
+        prompt = f"""Analyze this internal thought for ACTION INTENTION.
+
+THOUGHT:
+"{thought_text}"
+
+Does this thought contain intention to ACT (speak, move, interact)?
+
+Rate the ACTION INTENTION on a 0-1 scale:
+0.0 = Pure observation, no action (e.g., "The sky is blue")
+0.3 = Weak intention, considering (e.g., "I wonder if I should...")
+0.6 = Moderate intention, leaning toward action (e.g., "I want to...")
+0.9 = Strong intention, clear plan (e.g., "I'll grab that", "I'm going to say...")
+
+Look for keywords like:
+- "I'll", "I'm going to", "I should", "I want to", "I need to"
+- Plans, desires, impulses to act
+- Intentions to speak, move, interact
+
+Output ONLY a number between 0.0 and 1.0. No explanation."""
+
+        llm_client = context.get('llm_client')
+        model = context.get('model', 'qwen/qwen3-4b-2507')
+
+        self._increment_llm_counter()
+        try:
+            response = await llm_client.generate(
+                prompt=prompt,
+                system_prompt="You are an action intention evaluator. Output only a number 0.0-1.0.",
+                model=model,
+                max_tokens=10,
+                temperature=0.1
+            )
+
+            # Parse numeric response
+            try:
+                intention = float(response.strip())
+                intention = max(0.0, min(1.0, intention))  # Clamp to 0-1
+                return intention
+            except ValueError:
+                logger.warning(f"Could not parse intention score: {response}, defaulting to 0.3")
+                return 0.3
+
+        except Exception as e:
+            logger.error(f"Action intention evaluation failed: {e}")
+            return 0.3  # Default moderate intention
+
+        finally:
+            self._decrement_llm_counter()
+
+    def _compute_self_restraint(self, state: Dict) -> float:
+        """
+        Compute self-restraint: the threshold for acting on internal intentions.
+
+        Low restraint (0.1) = impulsive, disinhibited, acts on every thought
+        High restraint (0.9) = cautious, filtered, rarely externalizes thoughts
+
+        Factors:
+        - Fear: High fear increases restraint (don't want to mess up)
+        - Conscientiousness: High conscientiousness increases restraint (think before acting)
+        - Arousal: Very high arousal can overwhelm restraint (excited/panicked)
+        - Boredom: High boredom increases restraint (disengaged, don't care to act)
+
+        Examples:
+        - Drunk person: Low fear, low conscientiousness → restraint ≈ 0.1
+        - Anxious person: High fear → restraint ≈ 0.8
+        - Impulsive child: Low conscientiousness, low fear → restraint ≈ 0.2
+        """
+        # Extract affect
+        phenomenal = state.get('phenomenal_state', [0]*5)
+        fear = float(phenomenal[2]) if len(phenomenal) > 2 else 0.0
+        arousal = float(phenomenal[1]) if len(phenomenal) > 1 else 0.5
+        boredom = float(phenomenal[4]) if len(phenomenal) > 4 else 0.0
+
+        # Get personality traits
+        conscientiousness = self.personality_traits.get('conscientiousness', 0.5) if hasattr(self, 'personality_traits') else 0.5
+        impulsivity = self.personality_traits.get('impulsivity', 0.5) if hasattr(self, 'personality_traits') else 0.5
+
+        # Base restraint from personality
+        base_restraint = conscientiousness * 0.6 + (1.0 - impulsivity) * 0.4
+
+        # Fear increases restraint (afraid to act)
+        fear_modifier = fear * 0.3
+
+        # Very high arousal can overwhelm restraint (fight/flight/excitement)
+        arousal_overwhelm = max(0, arousal - 0.8) * -0.5  # Only kicks in above 0.8 arousal
+
+        # Boredom increases restraint (disengaged, don't care)
+        boredom_modifier = boredom * 0.2
+
+        # Final restraint (bounded 0.05-0.95)
+        restraint = base_restraint + fear_modifier + arousal_overwhelm + boredom_modifier
+        restraint = max(0.05, min(0.95, restraint))
+
+        return restraint
+
+    def _complete_cognition_cycle(self):
+        """Mark current cognition cycle as complete and fire onCycleEnd event."""
+        if not self.cycle_in_progress:
+            return
+
+        self.cycle_in_progress = False
+        duration_ms = (time.time() - self.current_cycle_timestamp) * 1000
+
+        logger.debug(f"[{self.agent_id}] Cycle {self.current_cycle_uuid[:8]} complete: "
+                    f"duration={duration_ms:.1f}ms, pending_llm_calls={self.pending_llm_calls}")
+
+        # Fire onCycleEnd event (for NoodleScript)
+        # TODO: Implement event system integration when NoodleScript ready
+
+    def _increment_llm_counter(self):
+        """Increment pending LLM call counter."""
+        self.pending_llm_calls += 1
+        logger.debug(f"[{self.agent_id}] LLM started [cycle={self.current_cycle_uuid[:8]}, pending={self.pending_llm_calls}]")
+
+    def _decrement_llm_counter(self):
+        """Decrement pending LLM call counter and check for cycle completion."""
+        self.pending_llm_calls -= 1
+        logger.debug(f"[{self.agent_id}] LLM completed [cycle={self.current_cycle_uuid[:8]}, pending={self.pending_llm_calls}]")
+
+        # Check if all LLM calls complete
+        if self.pending_llm_calls <= 0:
+            self._complete_cognition_cycle()
 
     def get_phenomenal_state(self) -> Dict:
         """

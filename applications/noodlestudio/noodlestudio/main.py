@@ -94,10 +94,8 @@ def create_splash_screen():
                      Qt.AlignmentFlag.AlignCenter,
                      "NoodleSTUDIO")
 
-    # Random acronym (pick one style randomly - NO AUTHOR ATTRIBUTION)
-    import random
-    style = random.choice(["compassionate", "pratchett", "coupland", "bjork"])
-    acronym = get_random_acronym(style)
+    # Random acronym
+    acronym = get_random_acronym("all")
 
     # Acronym text - BIG and prominent
     font = QFont("Courier New", 20)

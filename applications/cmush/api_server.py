@@ -87,6 +87,7 @@ class NoodleScopeAPI:
         self.app.router.add_post('/api/config/save', self.save_config)
         self.app.router.add_get('/api/agents', self.get_agents)
         self.app.router.add_get('/api/agents/{agent_id}/state', self.get_agent_state)
+        self.app.router.add_get('/api/agents/{agent_id}/cycle/status', self.get_cycle_status)
         self.app.router.add_post('/api/agents/{agent_id}/update', self.update_agent)
         self.app.router.add_delete('/api/agents/{agent_id}', self.delete_agent)
         self.app.router.add_post('/api/agents', self.create_agent)
@@ -98,6 +99,7 @@ class NoodleScopeAPI:
 
         # Noodle Tuner - Cognitive Manifold Debug
         self.app.router.add_get('/api/manifold/debug/{agent_id}', self.get_manifold_debug)
+        self.app.router.add_post('/api/manifold/update/{agent_id}', self.update_manifold_transistors)
         self.app.router.add_post('/api/manifold/recalculate/{agent_id}', self.recalculate_manifold)
 
         # Cognition control - pause/resume processing
@@ -296,6 +298,24 @@ class NoodleScopeAPI:
             'medium_state': medium_list,
             'slow_state': slow_list,
             'step': state.get('step', 0)
+        })
+
+    async def get_cycle_status(self, request: web.Request) -> web.Response:
+        """Get current cognition cycle status for an agent."""
+        agent_id = request.match_info['agent_id']
+
+        if not self.agent_manager or agent_id not in self.agent_manager.agents:
+            return web.json_response({'error': 'Agent not found'}, status=404)
+
+        agent = self.agent_manager.agents[agent_id]
+
+        return web.json_response({
+            'agent_id': agent_id,
+            'cycle_uuid': getattr(agent, 'current_cycle_uuid', None),
+            'cycle_timestamp': getattr(agent, 'current_cycle_timestamp', 0),
+            'cycle_in_progress': getattr(agent, 'cycle_in_progress', False),
+            'pending_llm_calls': getattr(agent, 'pending_llm_calls', 0),
+            'cycle_complete': not getattr(agent, 'cycle_in_progress', False) and getattr(agent, 'pending_llm_calls', 0) == 0
         })
 
     async def update_agent(self, request: web.Request) -> web.Response:
@@ -1176,10 +1196,24 @@ class NoodleScopeAPI:
         # Build transistor outputs list
         transistors_data = []
         for transistor in manifold.transistors:
+            # Get UUID if available
+            uuid_str = transistor.GetUUID() if hasattr(transistor, 'GetUUID') else str(id(transistor))
+
+            # Get instruction prompt (active_prompt, last_instruction_prompt, or DEFAULT_PROMPT)
+            instruction_prompt = ""
+            if hasattr(transistor, 'active_prompt'):
+                instruction_prompt = transistor.active_prompt
+            elif hasattr(transistor, 'last_instruction_prompt'):
+                instruction_prompt = transistor.last_instruction_prompt
+            elif hasattr(transistor, 'DEFAULT_PROMPT'):
+                instruction_prompt = transistor.DEFAULT_PROMPT
+
             transistors_data.append({
                 'type': transistor.get_transistor_type(),
+                'uuid': uuid_str,
                 'salience': transistor.salience,
                 'enabled': transistor.enabled,
+                'instruction_prompt': instruction_prompt,
                 'output': transistor.last_output_text or "",
                 'metadata': transistor.last_output_metadata or {}
             })
@@ -1201,6 +1235,9 @@ class NoodleScopeAPI:
         # Get response decision if available
         response_decision = manifold.last_response_decision if hasattr(manifold, 'last_response_decision') else None
 
+        # Get manifold instruction prompt if available
+        manifold_instruction = manifold.last_instruction_prompt if hasattr(manifold, 'last_instruction_prompt') else None
+
         return web.json_response({
             'agent_id': agent_id,
             'agent_name': agent.agent_name,
@@ -1208,10 +1245,69 @@ class NoodleScopeAPI:
             'response_decision': response_decision,
             'transistors': transistors_data,
             'blend_result': agent.last_manifold_output or "",
+            'manifold_instruction_prompt': manifold_instruction or "",
             'affect': affect,
             'surprise': float(state.get('surprise', 0.0)),
             'blending_strategy': manifold.blending_strategy
         })
+
+    async def update_manifold_transistors(self, request: web.Request) -> web.Response:
+        """
+        Update transistor instruction prompts and outputs (for live editing in Noodle Tuner).
+
+        Accepts:
+            - transistors: List of {uuid, instruction_prompt, output, salience}
+        """
+        agent_id = request.match_info['agent_id']
+
+        if not self.agent_manager or agent_id not in self.agent_manager.agents:
+            return web.json_response({'error': 'Agent not found'}, status=404)
+
+        agent = self.agent_manager.agents[agent_id]
+
+        if not hasattr(agent, 'cognitive_manifold') or not agent.cognitive_manifold:
+            return web.json_response({'error': 'Agent has no cognitive manifold'}, status=404)
+
+        try:
+            data = await request.json()
+            edited_transistors = data.get('transistors', [])
+
+            manifold = agent.cognitive_manifold
+
+            # Update each transistor by UUID
+            for edit in edited_transistors:
+                uuid_str = edit.get('uuid')
+                if not uuid_str:
+                    continue
+
+                # Find transistor by UUID
+                transistor = None
+                for t in manifold.transistors:
+                    t_uuid = t.GetUUID() if hasattr(t, 'GetUUID') else str(id(t))
+                    if t_uuid == uuid_str:
+                        transistor = t
+                        break
+
+                if not transistor:
+                    continue
+
+                # Update instruction prompt if provided and transistor supports it
+                if 'instruction_prompt' in edit and hasattr(transistor, 'active_prompt'):
+                    transistor.active_prompt = edit['instruction_prompt']
+
+                # Update output (the "bullet in the chamber")
+                if 'output' in edit:
+                    transistor.last_output_text = edit['output']
+
+                # Update salience if provided
+                if 'salience' in edit:
+                    transistor.salience = float(edit['salience'])
+
+            return web.json_response({'status': 'success', 'updated': len(edited_transistors)})
+
+        except Exception as e:
+            logger.error(f"Error updating transistors: {e}")
+            return web.json_response({'error': str(e)}, status=500)
 
     async def recalculate_manifold(self, request: web.Request) -> web.Response:
         """
@@ -1304,20 +1400,43 @@ class NoodleScopeAPI:
             # Also set flag on all agents
             queued_count = 0
             for agent in self.agent_manager.agents.values():
-                agent.cognition_paused = paused
+                if paused:
+                    # When pausing, wait for current cycle to complete
+                    agent.cognition_paused = True
 
-                # On resume, process queued events
-                if not paused and hasattr(agent, 'pending_responses'):
-                    queued_count += len(agent.pending_responses)
-                    if agent.pending_responses:
-                        logger.info(f"[{agent.agent_id}] Processing {len(agent.pending_responses)} queued events")
-                        # Process queued events asynchronously
-                        for queued_event in agent.pending_responses:
-                            # Re-queue to server event loop
-                            if hasattr(self, 'world') and self.world:
-                                # Events will be processed normally now that pause is lifted
-                                pass
-                        agent.pending_responses.clear()
+                    # Wait for pending LLM calls to finish (max 30 seconds)
+                    max_wait = 30
+                    start = asyncio.get_event_loop().time()
+                    while getattr(agent, 'pending_llm_calls', 0) > 0:
+                        elapsed = asyncio.get_event_loop().time() - start
+                        if elapsed > max_wait:
+                            logger.warning(f"[{agent.agent_id}] Pause timeout - {agent.pending_llm_calls} LLM calls still pending")
+                            break
+                        await asyncio.sleep(0.1)
+
+                    logger.info(f"[{agent.agent_id}] Cycle complete, paused (pending={getattr(agent, 'pending_llm_calls', 0)})")
+                else:
+                    # Resume cognition
+                    agent.cognition_paused = False
+
+                    # Start new cycle on resume
+                    import uuid as uuid_lib
+                    import time
+                    agent.current_cycle_uuid = str(uuid_lib.uuid4())
+                    agent.current_cycle_timestamp = time.time()
+
+                    # On resume, process queued events
+                    if hasattr(agent, 'pending_responses'):
+                        queued_count += len(agent.pending_responses)
+                        if agent.pending_responses:
+                            logger.info(f"[{agent.agent_id}] Processing {len(agent.pending_responses)} queued events")
+                            # Process queued events asynchronously
+                            for queued_event in agent.pending_responses:
+                                # Re-queue to server event loop
+                                if hasattr(self, 'world') and self.world:
+                                    # Events will be processed normally now that pause is lifted
+                                    pass
+                            agent.pending_responses.clear()
 
             logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for all agents (queued: {queued_count})")
 
