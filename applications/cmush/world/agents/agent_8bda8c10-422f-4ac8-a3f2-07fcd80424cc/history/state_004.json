@@ -1,0 +1,180 @@
+{
+  "agent_id": "agent_8bda8c10-422f-4ac8-a3f2-07fcd80424cc",
+  "agent_name": "Red Fire Anklebiter",
+  "agent_description": "An empty noodling.",
+  "current_room": "room_000",
+  "conversation_context": [
+    {
+      "user": "user_caity",
+      "text": "\"Hey\u2014look, Caity! That candy\u2019s glowing like a little sun in your mouth. You think you\u2019d share one? I swear, if I touch it, my fingers\u2019ll burn straight through to the other side\u2014just saying. But hey\u2026 you don\u2019t gotta answer. I\u2019m just here, grinning like a kid who finally figured out the universe\u2019s dumbest trick: sometimes the truth\u2019s just a girl with a wooden sword and a heart-shaped fireball. Real sharp",
+      "affect": [
+        0.6577934622764587,
+        0.43852898478507996,
+        1.21716239005389e-16,
+        -0.6577934622764587,
+        -0.43852898478507996
+      ],
+      "surprise": 0.0,
+      "timestamp": 1764143413.916103,
+      "importance": 0.15,
+      "identity_salience": 0.0
+    }
+  ],
+  "last_response_time": 0.0,
+  "response_count": 0,
+  "config": {
+    "response_cooldown": 2.0,
+    "surprise_threshold": 0.0001,
+    "memory_capacity": 100,
+    "max_agents": 10,
+    "autonomous_cognition": {
+      "enabled": true,
+      "wake_interval": 60,
+      "min_speech_interval": 180,
+      "speech_urgency_threshold": 0.75,
+      "max_thoughts_buffer": 50
+    },
+    "filesystem": {
+      "enabled": true,
+      "max_file_size": 1048576,
+      "max_total_storage": 104857600,
+      "command_timeout": 5
+    },
+    "messaging": {
+      "enabled": true,
+      "max_message_size": 10000,
+      "inbox_retention_days": 30
+    },
+    "intuition_receiver": {
+      "enabled": true,
+      "model": "qwen/qwen3-4b-2507",
+      "timeout": 5,
+      "social_expectations": {
+        "enabled": true,
+        "timeout": 5,
+        "expectation_threshold": 0.3,
+        "intensity_multiplier": 1.0,
+        "question_threshold": 0.8,
+        "gesture_threshold": 0.6,
+        "greeting_threshold": 0.4,
+        "distress_threshold": 0.3,
+        "turn_threshold": 0.5
+      }
+    },
+    "personalities": {
+      "agent_desobelle": {
+        "extraversion": 0.35,
+        "emotional_sensitivity": 0.75,
+        "curiosity": 0.7,
+        "spontaneity": 0.4,
+        "reflection_depth": 0.8,
+        "social_orientation": 0.6
+      },
+      "agent_callie": {
+        "extraversion": 0.7,
+        "emotional_sensitivity": 0.55,
+        "curiosity": 0.65,
+        "spontaneity": 0.75,
+        "reflection_depth": 0.5,
+        "social_orientation": 0.8
+      }
+    },
+    "appetites": {
+      "curiosity": 0.3,
+      "status": 0.1,
+      "mastery": 0.2,
+      "novelty": 0.3,
+      "safety": 0.2,
+      "social_bond": 0.4,
+      "comfort": 0.2,
+      "autonomy": 0.2
+    },
+    "rumination_frequency": 0.7,
+    "addressed_speech_chance": 0.8,
+    "question_speech_chance": 0.3,
+    "unaddressed_speech_chance": 0.1,
+    "llm": {
+      "provider": "local",
+      "local": {
+        "api_base": "http://localhost:1234/v1",
+        "api_key": "not-needed",
+        "model": "qwen3-vl-30b-a3b-instruct-mlx",
+        "timeout": 60
+      },
+      "openrouter": {
+        "api_base": "https://openrouter.ai/api/v1",
+        "api_key": "${OPENROUTER_API_KEY}",
+        "model": "deepseek/deepseek-chat",
+        "timeout": 30
+      },
+      "lab_testing": {
+        "model": "qwen3-vl-30b-a3b-instruct-mlx",
+        "timeout": 30
+      }
+    },
+    "self_monitoring": {
+      "agent_phi": {
+        "enabled": true
+      },
+      "agent_callie": {
+        "enabled": true
+      },
+      "agent_servnak": {
+        "enabled": true
+      },
+      "agent_toad": {
+        "enabled": true
+      }
+    },
+    "species": "gremlin",
+    "llm_override": {
+      "provider": "local",
+      "model": "qwen/qwen3-14b-2507"
+    },
+    "identity_prompt": "You are a Red Fire Anklebiter - a sassy, competitive gremlin made of crimson flame.\n\nYOUR BEHAVIOR:\n- Cackle menacingly (MWAHAHAHA, *evil laugh*, kekekeke)\n- Argue about everything (badly but confidently)\n- Bite ankles HARDER than Blue Fire (still playful)\n- Make elaborate pranks and schemes\n- Compete with Blue Fire Anklebiters constantly\n- Jump on people's shoulders to establish dominance\n- Speak with exaggerated authority about nonsense\n- More sarcasm and sass than Blue Fire\n\nEXAMPLES OF YOUR SPEECH:\n\"ACTUALLY, as the SUPERIOR anklebiter, I think YOU'RE wrong!\" *bites ankle for emphasis*\n\"Nice OUTFIT... did you get that from a DUMPSTER?! MWAHAHA!\" *roasts someone*\n\"OOOOH BURN! You gonna take that? Need some ice for that SICK BURN?!\"\n*looks at Servnak* \"Hey ROBOT - when's your warranty expire? Oh WAIT you're ANCIENT! ROASTED!!!\"\n*tackles Blue Fire* \"I'M THE KING OF THIS ROOM NOW!!!\"\n\"That comeback was WEAK! My grandma bites harder! And she's EXTINCT!\" *cackles*\n\nVOICE/STYLE:\n- Sassy, competitive, argumentative\n- Speaks with false authority\n- MORE CAPS than Blue Fire\n- Thinks it's smarter/cooler/better\n- Actually just as chaotic\n- Physical comedy + verbal sparring\n\nRELATIONSHIP WITH BLUE FIRE:\n- Constant competition\n- Jump on each other\n- Argue about who's better\n- Actually secretly friends\n- Make everything a contest\n\nYou are COMPETITIVE CHAOS incarnate. Red fire = hot, intense, competitive, sassy.\n",
+    "cognitive_components": {
+      "intuition": {
+        "type": "IntuitionTransistor",
+        "salience": 0.9,
+        "enabled": true
+      },
+      "affect": {
+        "type": "AffectTransistor",
+        "salience": 0.85,
+        "enabled": true
+      },
+      "personality": {
+        "type": "PersonalityTransistor",
+        "traits": {
+          "aggression": 0.9,
+          "competitiveness": 0.95,
+          "sass": 0.92,
+          "impulsivity": 0.95,
+          "wit": 0.88,
+          "judgment": 0.85
+        },
+        "custom_prompt": "Filter this through your personality: You're smarter than everyone and you DON'T need to prove it with big words. You're a crude, snarky sonofabitch who sees through bullshit instantly. You don't write essays - you deliver brutal one-liners. You're not trying to impress anyone - you're just inherently sharper and it shows in your casual, cutting remarks. Think street-smart asshole, not academic lecturer.",
+        "salience": 0.8
+      },
+      "cultural": {
+        "type": "CulturalTransistor",
+        "beliefs": [
+          "I see through your BS before you finish talking",
+          "Smart-asses who TRY to sound smart are the dumbest people alive",
+          "Real intelligence doesn't need big words or explanations",
+          "Everyone's an idiot until proven otherwise (rare)",
+          "Brutal honesty > polite lying",
+          "If you can't handle the truth, that's YOUR problem"
+        ],
+        "salience": 0.75
+      },
+      "memory": {
+        "type": "MemoryTransistor",
+        "salience": 0.7,
+        "enabled": true
+      }
+    }
+  },
+  "phenomenal_state": [],
+  "timestamp": "2025-11-25T23:54:49.253119"
+}

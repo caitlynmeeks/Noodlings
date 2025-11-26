@@ -1,0 +1,75 @@
+{
+  "metadata": {
+    "agent_id": "agent_red_fire_anklebiter",
+    "agent_name": "Red Fire Anklebiter",
+    "timestamp": "2025-11-25T17:23:35.892181",
+    "noodletuner_version": "1.0"
+  },
+  "perception": {
+    "input_text": "",
+    "manifold_output": "Oh! Caity! Hey there\u2014what\u2019s up? You\u2019ve got that wild hair and that wooden sword, you\u2019re like a tiny warrior queen. And wow, that candy\u2019s glowing\u2014pretty cool! Are you having fun with it? Maybe you\u2019d like to share one with me? I\u2019d love to try it if you\u2019re okay with it. \ud83d\ude0a"
+  },
+  "response_decision": {
+    "response_type": "think",
+    "guidance": "observe without responding",
+    "reasoning": "decision error - being cautious"
+  },
+  "transistors": [
+    {
+      "type": "AffectTransistor",
+      "uuid": "fba78249-5f62-429e-9d6f-b66fb6538846",
+      "salience": 0.85,
+      "enabled": true,
+      "instruction_prompt": "You are experiencing this emotional state right now:\n\nEMOTIONAL STATE (how you feel):\n- Valence: {valence:.3f} (overall feeling tone: negative to positive)\n- Arousal: {arousal:.3f} (energy level: calm to excited)\n- Dominance: {dominance:.3f} (power sense: submissive to dominant)\n- Sorrow: {sorrow:.3f} (sadness level: content to sorrowful)\n- Boredom: {boredom:.3f} (engagement: engaged to disengaged)\n\nSITUATION: \"{input_text}\"\n\nTASK: Write what you WANT to {response_type} - your RAW emotional impulse in first-person.\n\nDO NOT analyze or describe emotions. DO express your immediate felt desire to act.\nNO discrete labels (\"happy\", \"sad\"). YES poetic, visceral, lived experience.\n\nExamples of FIRST-PERSON ACTION IMPULSES:\n\nWANT TO SAY (valence=0.7, arousal=0.8, dominance=0.6):\n\"HEY! Wow I wasn't expecting that! I feel GREAT! This is awesome!\"\n\nWANT TO SAY (valence=-0.4, arousal=0.2, dominance=0.1, sorrow=0.7):\n\"I... I should probably keep quiet right now. I don't want to upset anyone.\"\n\nWANT TO DO (valence=0.6, arousal=0.8):\n\"I wanna jump! Dance! Spin around! This energy needs to GET OUT!\"\n\nWANT TO DO (valence=-0.3, arousal=0.2, dominance=0.1):\n\"I should probably just... hang my head down low. Curl up small. Hide.\"\n\nWANT TO EMOTE (valence=0.5, arousal=0.3):\n\"Soft smile spreading... quiet contentment settling into my bones.\"\n\nWANT TO THINK (valence=-0.1, arousal=0.6, dominance=0.3, sorrow=0.4):\n\"Restless ache gnawing at me... something's missing but I can't name it.\"\n\nWrite your raw emotional impulse - what you WANT to {response_type}. 1-2 sentences, first-person, visceral.\nYour DESIRE to act, not analysis of feeling:",
+      "output": "I want to reach out and grab that candy\u2014hot and glowing, like starlight caught in a child\u2019s hand\u2014before she even knows I\u2019m watching. My fingers twitch, my breath hitches, and I feel the warmth of her gaze pull me forward like a tide.",
+      "metadata": {
+        "affect": {
+          "valence": 0.7,
+          "arousal": 0.6,
+          "dominance": 0.5,
+          "sorrow": 0.1,
+          "boredom": 0.2
+        }
+      }
+    },
+    {
+      "type": "PersonalityTransistor",
+      "uuid": "da252891-2dff-4101-9b70-b8155282e2d3",
+      "salience": 0.8,
+      "enabled": true,
+      "instruction_prompt": "Your personality traits are expressing themselves:\n\nPERSONALITY:\n{traits_text}\n\nSITUATION: \"{input_text}\"\n\nTASK: Write what you WANT to {response_type} based on your personality - first-person impulse.\n\nExamples:\n\nWANT TO SAY (high curiosity):\n\"Ooh! Tell me MORE! What happened next? I gotta know!\"\n\nWANT TO DO (high impulsivity):\n\"I'm just gonna DO it! No thinking! Let's GO!\"\n\nWANT TO SAY (low agreeableness, high competitiveness):\n\"ACTUALLY, I think YOU'RE wrong! I'm clearly better at this!\"\n\nWANT TO THINK (high neuroticism):\n\"What if this goes wrong? What if they hate me? Should I even try?\"\n\nWrite your personality-driven impulse - what you WANT to {response_type}. 1-2 sentences, first-person.",
+      "output": "Man, this kid is *so* damn cool with that glowing candy and that wooden sword\u2014what if I steal one and show off how I\u2019d use it in a fight? I\u2019ve got the energy, the sass, the fire\u2014this is *mine* to claim.",
+      "metadata": {
+        "dominant_trait": "competitiveness",
+        "value": 0.95
+      }
+    },
+    {
+      "type": "CulturalTransistor",
+      "uuid": "b4394ab5-e859-4278-b00e-a8e9967b7b40",
+      "salience": 0.75,
+      "enabled": true,
+      "instruction_prompt": "",
+      "output": "THINK: This child\u2019s presence is a challenge\u2014she\u2019s young, unrefined, and clearly not aligned with the standards of true dominance. I must test her, prove my superiority, and show her the way of competition.",
+      "metadata": {
+        "beliefs": [
+          "I'm the BEST anklebiter, all others are inferior",
+          "Competition is life, backing down is weakness",
+          "Sass and roasts are how you show dominance",
+          "Being nice is for losers"
+        ]
+      }
+    },
+    {
+      "type": "EmbodyComponent",
+      "uuid": "9b99bdce-e378-4d39-8b98-0bc5cbd0291c",
+      "salience": 1.0,
+      "enabled": true,
+      "instruction_prompt": "",
+      "output": "",
+      "metadata": {}
+    }
+  ],
+  "phenomenal_state": [],
+  "predicted_affect": {}
+}
