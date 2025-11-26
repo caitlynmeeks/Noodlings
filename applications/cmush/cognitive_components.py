@@ -277,24 +277,29 @@ EVENT:
 
 Decide the most appropriate response type:
 - SAY: Verbal speech (greeting, answer, comment, dialogue)
-- EMOTE: Emotional expression with action (*sighs*, *bounces excitedly*)
-- DO: Physical action without emotion (pick up object, walk, open door)
+- EMOTE: Emotional expression with action
+- DO: Physical action
 - THINK: Internal thought only (observe without responding)
-- FEEL: Somatic/bodily sensation (butterflies in stomach, heart racing)
-- NONE: No response needed (ONLY use if event is completely irrelevant or you were just here)
+- FEEL: Somatic/bodily sensation
+- NONE: No response needed (ONLY use if event is completely irrelevant)
 
-IMPORTANT: Social events (arrivals, questions, interactions) almost ALWAYS warrant a response (SAY/EMOTE).
+IMPORTANT: Social events (arrivals, questions, interactions directed at you) almost ALWAYS warrant a response (SAY/EMOTE).
 Only choose NONE if the event truly has nothing to do with you.
 
 Examples:
-- Someone arrives (enter event) → SAY or EMOTE (greet them! this is a social moment!)
-- Someone asks you a question → SAY (answer it)
-- Someone gives you something → SAY (thank them) or EMOTE (gasp with delight)
-- Someone speaks directly to you → SAY (respond to them)
-- Someone speaks to someone else → THINK (observe without interrupting)
-- Emotional moment → EMOTE (express feeling physically)
-- Physical task → DO (perform action)
-- Strong emotion → FEEL (describe bodily sensation)
+- Someone arrives → SAY or EMOTE
+- Someone asks you a question → SAY
+- Someone gives you something → SAY or EMOTE
+- Someone speaks directly to you → SAY
+- Someone speaks to someone else → THINK
+- Emotional moment → EMOTE
+- Physical task → DO
+- Strong bodily sensation → FEEL
+
+CRITICAL: In your guidance field, describe WHAT to do, NOT HOW to feel.
+- GOOD: "respond to greeting", "answer question", "acknowledge arrival"
+- BAD: "warmly greet", "friendly response", "enthusiastically answer"
+- Emotional tone comes from personality, NOT from you!
 
 OUTPUT ONLY VALID JSON (no markdown, no code blocks, no extra text):
 {{
