@@ -9,10 +9,10 @@ import json
 from pathlib import Path
 from typing import Optional, List
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QLabel, QMessageBox
+    QMainWindow, QWidget, QVBoxLayout, QLabel, QMessageBox, QTabWidget
 )
-from PyQt6.QtCore import Qt, QTimer, QStandardPaths
-from PyQt6.QtGui import QAction
+from PyQt6.QtCore import Qt, QTimer, QStandardPaths, QUrl
+from PyQt6.QtGui import QAction, QFont
 
 from ..panels.home_panel import HomePanel
 from ..panels.chat_panel import ChatPanel
@@ -71,10 +71,8 @@ class MainWindow(QMainWindow):
 
     def _setup_ui(self):
         """Build UI components."""
-        # Clean central widget (no clutter, Unity-style)
-        central = QWidget()
-        central.setStyleSheet("background-color: #383838;")
-        self.setCentralWidget(central)
+        # Central widget will be World View (main viewport)
+        # Don't set it here - will be set in _setup_panels()
 
     def _setup_menu_bar(self):
         """Create menu bar."""
@@ -165,6 +163,7 @@ class MainWindow(QMainWindow):
         layout_submenu.addAction(self._create_action("Load Layout...", slot=self.load_layout_dialog))
         layout_submenu.addSeparator()
         layout_submenu.addAction(self._create_action("Reset to Default", slot=lambda: self.load_layout("Default")))
+        layout_submenu.addAction(self._create_action("Reset to Factory Default", slot=self.reset_to_factory_layout))
 
         # ===== ENTITIES MENU (like Unity's GameObject) =====
         entities_menu = menu_bar.addMenu("&Entities")
@@ -207,19 +206,14 @@ class MainWindow(QMainWindow):
         window_menu.addAction(self._create_action("Minimize", "Ctrl+M", self.showMinimized))
         window_menu.addAction(self._create_action("Zoom", slot=self.showMaximized))
         window_menu.addSeparator()
-        # Panel shortcuts (Cmd+Number for visibility, Cmd+Shift+Number for maximize)
-        window_menu.addAction(self._create_action("Show World View", "Cmd+1", lambda: self.world_view.show()))
-        window_menu.addAction(self._create_action("Maximize World View", "Cmd+Shift+1", lambda: self._toggle_panel_maximize(self.world_view)))
-        window_menu.addAction(self._create_action("Show Stage Hierarchy", "Cmd+2", lambda: self.hierarchy.show()))
-        window_menu.addAction(self._create_action("Maximize Stage Hierarchy", "Cmd+Shift+2", lambda: self._toggle_panel_maximize(self.hierarchy)))
-        window_menu.addAction(self._create_action("Show Asset Panel", "Cmd+3", lambda: self.assets.show()))
-        window_menu.addAction(self._create_action("Maximize Asset Panel", "Cmd+Shift+3", lambda: self._toggle_panel_maximize(self.assets)))
-        window_menu.addAction(self._create_action("Show Inspector", "Cmd+4", lambda: self.inspector.show()))
-        window_menu.addAction(self._create_action("Maximize Inspector", "Cmd+Shift+4", lambda: self._toggle_panel_maximize(self.inspector)))
-        window_menu.addAction(self._create_action("Show Console", "Cmd+5", lambda: self.console.show()))
-        window_menu.addAction(self._create_action("Maximize Console", "Cmd+Shift+5", lambda: self._toggle_panel_maximize(self.console)))
-        window_menu.addAction(self._create_action("Show Noodle Tuner", "Cmd+6", lambda: self.noodle_tuner.show()))
-        window_menu.addAction(self._create_action("Maximize Noodle Tuner", "Cmd+Shift+6", lambda: self._toggle_panel_maximize(self.noodle_tuner)))
+        # Panel visibility shortcuts (Cmd+Number)
+        window_menu.addAction(self._create_action("Stage Hierarchy", "Cmd+1", lambda: self._toggle_panel(self.hierarchy)))
+        window_menu.addAction(self._create_action("Assets", "Cmd+2", lambda: self._toggle_panel(self.assets)))
+        window_menu.addAction(self._create_action("World View", "Cmd+3", lambda: self._toggle_panel(self.world_view)))
+        window_menu.addAction(self._create_action("Inspector", "Cmd+4", lambda: self._toggle_panel(self.inspector)))
+        window_menu.addAction(self._create_action("Noodle Tuner", "Cmd+5", lambda: self._toggle_panel(self.noodle_tuner)))
+        window_menu.addAction(self._create_action("Console", "Cmd+6", lambda: self._toggle_panel(self.console)))
+        window_menu.addAction(self._create_action("Timeline Profiler", "Cmd+7", lambda: self._toggle_panel(self.profiler_panel)))
         window_menu.addSeparator()
         window_menu.addAction(self._create_action("Ensemble Store...", slot=self.show_ensemble_store))
         window_menu.addSeparator()
@@ -241,6 +235,34 @@ class MainWindow(QMainWindow):
 
         # Hide legacy buttons for now
         tool_bar.setVisible(False)
+
+    def _configure_dock_widget(self, dock_widget):
+        """
+        Configure dock widget with proper features and behavior.
+
+        All panels should be:
+        - Movable (draggable)
+        - Floatable (can pop out)
+        - Closable (can hide)
+        - Resizable (via splitters)
+        """
+        from PyQt6.QtWidgets import QDockWidget
+
+        # Set standard features for all dock widgets
+        features = (
+            QDockWidget.DockWidgetFeature.DockWidgetMovable |
+            QDockWidget.DockWidgetFeature.DockWidgetFloatable |
+            QDockWidget.DockWidgetFeature.DockWidgetClosable
+        )
+        dock_widget.setFeatures(features)
+
+        # Allow docking in all areas (user can put it anywhere)
+        dock_widget.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea |
+            Qt.DockWidgetArea.RightDockWidgetArea |
+            Qt.DockWidgetArea.TopDockWidgetArea |
+            Qt.DockWidgetArea.BottomDockWidgetArea
+        )
 
     def _setup_status_bar(self):
         """Create status bar with server toggle."""
@@ -337,20 +359,32 @@ class MainWindow(QMainWindow):
     def _setup_panels(self):
         """Create Unity-style layout with EXACT positioning."""
 
-        # Disable automatic corner docking (gives us more control)
+        # Configure corner ownership for console to span full width
+        # Bottom corners belong to bottom area (console spans entire width)
         self.setCorner(Qt.Corner.TopLeftCorner, Qt.DockWidgetArea.LeftDockWidgetArea)
         self.setCorner(Qt.Corner.TopRightCorner, Qt.DockWidgetArea.RightDockWidgetArea)
         self.setCorner(Qt.Corner.BottomLeftCorner, Qt.DockWidgetArea.BottomDockWidgetArea)
-        self.setCorner(Qt.Corner.BottomRightCorner, Qt.DockWidgetArea.RightDockWidgetArea)
+        self.setCorner(Qt.Corner.BottomRightCorner, Qt.DockWidgetArea.BottomDockWidgetArea)
+
+        # Enable animated docking (smooth drag)
+        self.setAnimated(True)
+
+        # Set dock nesting (allows splitting within areas)
+        self.setDockNestingEnabled(True)
+
+        # Enable tabbed docking mode (allows overlapping docks to tab)
+        self.setTabPosition(Qt.DockWidgetArea.AllDockWidgetAreas, QTabWidget.TabPosition.North)
 
         # LEFT COLUMN (narrow): Scene Hierarchy + Assets (tabbed)
         self.hierarchy = SceneHierarchy(self)
         self.hierarchy.setObjectName("SceneHierarchy")  # Required for saveState
+        self._configure_dock_widget(self.hierarchy)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.hierarchy)
 
         # Assets panel (tabbed with hierarchy)
         self.assets = AssetsPanel(self)
         self.assets.setObjectName("Assets")  # Required for saveState
+        self._configure_dock_widget(self.assets)
         self.assets.project_manager = self.project_manager  # Connect to project manager
         self.assets.agentRezzed.connect(self.hierarchy.refresh_scene)  # Auto-refresh hierarchy when agent rezzed
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.assets)
@@ -359,32 +393,74 @@ class MainWindow(QMainWindow):
         # Make Scene Hierarchy the active tab by default
         self.hierarchy.raise_()
 
-        # CENTER-LEFT (LARGE - 75% width): World View (noodleMUSH chat)
-        self.world_view = ChatPanel(self)
-        self.world_view.setWindowTitle("World View")
-        self.world_view.setObjectName("WorldView")  # Required for saveState
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.world_view)
+        # CENTER: Build World View directly as central widget
+        # Not a dock widget - always stays centered
+        world_content = QWidget()
+        world_layout = QVBoxLayout(world_content)
+        world_layout.setContentsMargins(0, 0, 0, 0)
+        world_layout.setSpacing(0)
+
+        # Add header bar to match other panels
+        world_header = QLabel("WORLD VIEW")
+        world_header.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        world_header.setStyleSheet("color: #B4B4B4; padding: 4px; background-color: #2D2D2D;")
+        world_layout.addWidget(world_header)
+
+        try:
+            from PyQt6.QtWebEngineWidgets import QWebEngineView
+            self.web_view = QWebEngineView()
+            self.web_view.setUrl(QUrl("http://localhost:8080"))
+            self.web_view.setMinimumSize(0, 0)
+            world_layout.addWidget(self.web_view)
+        except ImportError:
+            placeholder = QLabel("WebEngine not available\nInstall: pip install PyQt6-WebEngine")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.setStyleSheet("color: #999; font-size: 14px;")
+            world_layout.addWidget(placeholder)
+            self.web_view = None
+
+        self.setCentralWidget(world_content)
+
+        # Create stub for compatibility with existing methods
+        class WorldViewStub:
+            def __init__(self, web_view):
+                self.web_view = web_view
+            def show(self): pass
+            def hide(self): pass
+            def isVisible(self): return True
+            def raise_(self): pass
+            def set_server_state(self, running): pass
+            def reload(self):
+                if self.web_view:
+                    self.web_view.reload()
+            def toggle_maximize(self): pass
+            def show_offline_card(self): pass
+
+        self.world_view = WorldViewStub(self.web_view)
 
         # RIGHT COLUMN (narrow): Inspector
         self.inspector = InspectorPanel(self)
         self.inspector.setObjectName("Inspector")  # Required for saveState
+        self._configure_dock_widget(self.inspector)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.inspector)
 
         # Noodle Tuner (tabbed with Inspector)
         self.noodle_tuner = NoodleTunerPanel(self)
         self.noodle_tuner.setObjectName("NoodleTuner")  # Required for saveState
+        self._configure_dock_widget(self.noodle_tuner)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.noodle_tuner)
         self.tabifyDockWidget(self.inspector, self.noodle_tuner)
 
         # BOTTOM (full width): Console
         self.console = ConsolePanel(self)
         self.console.setObjectName("Console")  # Required for saveState
+        self._configure_dock_widget(self.console)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.console)
 
         # Timeline Profiler (tabbed with Console, hidden by default)
         self.profiler_panel = ProfilerPanel(self)
-        self.profiler_panel.setWindowTitle("Timeline Profiler")
         self.profiler_panel.setObjectName("TimelineProfiler")  # Required for saveState
+        self._configure_dock_widget(self.profiler_panel)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.profiler_panel)
         self.profiler_panel.hide()
         self.tabifyDockWidget(self.console, self.profiler_panel)
@@ -444,6 +520,14 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'world_view'):
             self.world_view.toggle_maximize()
 
+    def _toggle_panel(self, panel):
+        """Toggle panel visibility (show/hide)."""
+        if panel.isVisible():
+            panel.hide()
+        else:
+            panel.show()
+            panel.raise_()  # Bring to front if tabbed
+
     def _toggle_panel_maximize(self, panel):
         """Toggle any dock panel between maximized and normal state."""
         if hasattr(panel, 'toggle_maximize'):
@@ -454,18 +538,18 @@ class MainWindow(QMainWindow):
             panel.show()
 
     def apply_default_sizes(self):
-        """Apply exact panel sizes for default layout."""
+        """Apply exact panel sizes for factory default layout."""
         # Get window size
         width = self.width()
         height = self.height()
 
-        # LEFT column: 200px for hierarchy
-        # CENTER: Rest of width minus inspector (inspector = 300px)
-        # So: hierarchy=200, world_view=(width-200-300), inspector=300
+        # LEFT column: 250px for hierarchy
+        # RIGHT: 280px for inspector (Unity-style narrow)
+        # BOTTOM: 180px for console
 
-        left_width = 200
-        right_width = 300
-        bottom_height = 200
+        left_width = 250
+        right_width = 280
+        bottom_height = 180
 
         # Set horizontal splits
         self.resizeDocks([self.hierarchy], [left_width], Qt.Orientation.Horizontal)
@@ -473,6 +557,23 @@ class MainWindow(QMainWindow):
 
         # Set bottom panel height
         self.resizeDocks([self.console], [bottom_height], Qt.Orientation.Vertical)
+
+    def reset_to_factory_layout(self):
+        """Reset to factory default layout (Unity-style arrangement)."""
+        # Show all panels
+        self.hierarchy.show()
+        self.assets.show()
+        self.inspector.show()
+        self.noodle_tuner.show()
+        self.console.show()
+
+        # Hide profiler
+        self.profiler_panel.hide()
+
+        # Apply default sizes
+        QTimer.singleShot(100, self.apply_default_sizes)
+
+        self.statusBar().showMessage("Reset to factory default layout", 3000)
 
     def _create_action(
         self,

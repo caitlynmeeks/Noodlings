@@ -39,9 +39,13 @@ class LayoutManager:
             window: QMainWindow instance
             layout_name: Name for this layout (e.g., "Default", "Demo Mode")
         """
+        # Use versioned state for safer restoration
+        STATE_VERSION = 1
+
         layout_data = {
+            'version': STATE_VERSION,
             'geometry': window.saveGeometry().toHex().data().decode(),
-            'state': window.saveState().toHex().data().decode()
+            'state': window.saveState(STATE_VERSION).toHex().data().decode()
         }
 
         # Save to file
@@ -53,7 +57,7 @@ class LayoutManager:
 
     def load_layout(self, window, layout_name: str) -> bool:
         """
-        Load saved layout with improved error handling.
+        Load saved layout with safe state restoration.
 
         Args:
             window: QMainWindow instance
@@ -79,12 +83,39 @@ class LayoutManager:
                 print(f"  Invalid layout file - missing geometry or state")
                 return False
 
+            # Check version compatibility
+            STATE_VERSION = 1
+            saved_version = layout_data.get('version', 0)
+
             success = False
 
             # Restore geometry first (safer)
             try:
+                from PyQt6.QtWidgets import QApplication
+                from PyQt6.QtCore import QRect
+
                 geometry = bytes.fromhex(layout_data['geometry'])
                 result_geo = window.restoreGeometry(geometry)
+
+                # Constrain window to screen bounds (for Parsec/remote desktop)
+                screen = QApplication.primaryScreen()
+                if screen:
+                    screen_geom = screen.availableGeometry()
+                    window_geom = window.frameGeometry()
+
+                    # If window extends beyond screen, move/resize it
+                    if not screen_geom.contains(window_geom):
+                        # Constrain width and height
+                        new_width = min(window_geom.width(), screen_geom.width())
+                        new_height = min(window_geom.height(), screen_geom.height())
+
+                        # Constrain position
+                        new_x = max(screen_geom.x(), min(window_geom.x(), screen_geom.right() - new_width))
+                        new_y = max(screen_geom.y(), min(window_geom.y(), screen_geom.bottom() - new_height))
+
+                        window.setGeometry(new_x, new_y, new_width, new_height)
+                        print(f"  Window constrained to screen bounds: {new_width}x{new_height} at ({new_x},{new_y})")
+
                 print(f"  Geometry restored: {result_geo}")
                 if result_geo:
                     success = True
@@ -92,26 +123,25 @@ class LayoutManager:
                 print(f"  Geometry restore failed: {e}")
                 # Continue anyway - state might still work
 
-            # Restore state (this is where crashes happen)
-            # Skip state restoration to prevent C++ segfaults
-            # State restoration can crash if saved with different widget structure
+            # Restore state with version checking
             try:
-                # Validate state data first
                 state_hex = layout_data.get('state', '')
                 if not state_hex or len(state_hex) < 10:
                     print(f"  Skipping state restore - invalid data")
+                elif saved_version != STATE_VERSION:
+                    print(f"  Skipping state restore - version mismatch (saved: {saved_version}, expected: {STATE_VERSION})")
                 else:
-                    # Validate hex format
                     state = bytes.fromhex(state_hex)
-                    # Skip restoreState to prevent crashes
-                    # TODO: Implement safe state restoration with version checking
-                    print(f"  State restore skipped (prevents crashes)")
+                    result_state = window.restoreState(state, STATE_VERSION)
+                    print(f"  State restored: {result_state}")
+                    if result_state:
+                        success = True
             except Exception as e:
-                print(f"  State validation failed (non-fatal): {e}")
+                print(f"  State restore failed (non-fatal): {e}")
                 # Don't return False - geometry might have worked
 
             if success:
-                print(f"Layout '{layout_name}' loaded (partial or full)")
+                print(f"Layout '{layout_name}' loaded successfully")
                 # Save as last used
                 self.set_last_used_layout(layout_name)
                 return True

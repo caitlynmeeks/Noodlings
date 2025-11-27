@@ -90,7 +90,7 @@ class ConsolePanel(MaximizableDock):
     """
 
     def __init__(self, parent=None):
-        super().__init__("Console", parent)
+        super().__init__("CONSOLE", parent)
         self.ws_url = "ws://localhost:8765"
         self.connected = False
         self.log_buffer = []
@@ -98,6 +98,9 @@ class ConsolePanel(MaximizableDock):
         self.repeat_count = 0
         self.selected_entities = []  # Track selected entities for filtering
         self.font_size = 11  # Default font size for console
+
+        # Allow panel to shrink to small sizes (height only, full width)
+        self.setMinimumHeight(50)
 
         # Filter settings
         self.filter_selected_only = False

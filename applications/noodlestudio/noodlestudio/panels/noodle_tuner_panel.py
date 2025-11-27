@@ -18,13 +18,15 @@ from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QTextEdit, QPushButton, QScrollArea,
                              QSlider, QFrame, QGroupBox, QComboBox, QSplitter,
                              QFileDialog, QMessageBox, QSizePolicy)
-from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QSettings, QEvent
+from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QSettings, QEvent, QUrl
 from PyQt6.QtGui import QFont, QKeySequence, QShortcut
+from PyQt6.QtMultimedia import QSoundEffect
 import requests
 import sys
 import json
 import logging
 from datetime import datetime
+from pathlib import Path
 sys.path.append('..')
 from noodlestudio.widgets.maximizable_dock import MaximizableDock
 
@@ -286,18 +288,28 @@ class NoodleTunerPanel(MaximizableDock):
     """
 
     def __init__(self, parent=None):
-        super().__init__("Noodle Tuner", parent)
+        super().__init__("NOODLE TUNER", parent)
         self.current_agent_id = None
         self.api_base = "http://localhost:8081/api"
         self.transistor_cards = {}  # type -> TransistorCard
         self.refresh_paused = False  # Track pause state
 
+        # Allow panel to shrink to very small sizes for tight Unity-style layouts
+        self.setMinimumWidth(200)
+
         # Load saved font size or use default
         self.settings = QSettings('NoodleStudio', 'NoodleTuner')
         self.font_size = self.settings.value('font_size', 14, type=int)
+        self.sounds_enabled = self.settings.value('sounds_enabled', True, type=bool)
 
         # Store current snapshot data for export
         self.current_snapshot = {}
+
+        # Track cognitive cycles for sound notifications
+        self.last_cycle_number = None
+
+        # Initialize sound effects
+        self._init_sounds()
 
         # Create central widget
         widget = QWidget()
@@ -320,6 +332,24 @@ class NoodleTunerPanel(MaximizableDock):
         self.shortcut_decrease = QShortcut(QKeySequence(Qt.Key.Key_Minus), self)
         self.shortcut_decrease.activated.connect(self.decrease_font_size)
 
+    def _init_sounds(self):
+        """Initialize sound effects for cognitive cycle notifications."""
+        sounds_dir = Path(__file__).parent.parent / "resources" / "terminal_beeps_hq"
+
+        # Cycle start sound (beginning of cognition)
+        self.sound_cycle_start = QSoundEffect()
+        start_path = sounds_dir / "termstart.ogg"
+        if start_path.exists():
+            self.sound_cycle_start.setSource(QUrl.fromLocalFile(str(start_path)))
+            self.sound_cycle_start.setVolume(0.5)
+
+        # Cycle complete sound (output sent to chat)
+        self.sound_cycle_complete = QSoundEffect()
+        complete_path = sounds_dir / "termstart.ogg"  # You mentioned using termstart.ogg for completion
+        if complete_path.exists():
+            self.sound_cycle_complete.setSource(QUrl.fromLocalFile(str(complete_path)))
+            self.sound_cycle_complete.setVolume(0.3)
+
     def pause_refresh(self):
         """Pause auto-refresh (when user is editing)."""
         self.refresh_paused = True
@@ -334,25 +364,29 @@ class NoodleTunerPanel(MaximizableDock):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Header with font controls
-        header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(8, 8, 8, 8)
+        # Header - TWO ROWS to reduce horizontal width
+        header_container = QWidget()
+        header_vlayout = QVBoxLayout(header_container)
+        header_vlayout.setContentsMargins(8, 4, 8, 4)
+        header_vlayout.setSpacing(4)
+
+        # ROW 1: Agent label + control buttons
+        row1 = QHBoxLayout()
         self.agent_label = QLabel("No agent selected")
         self.agent_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         self.agent_label.setStyleSheet("color: #CCCCCC;")
-        header_layout.addWidget(self.agent_label)
-
-        header_layout.addStretch()
+        row1.addWidget(self.agent_label)
+        row1.addStretch()
 
         # Pause button
-        self.pause_button = QPushButton("⏸ Pause Cognition")
+        self.pause_button = QPushButton("⏸ Pause")
         self.pause_button.setCheckable(True)
         self.pause_button.setStyleSheet("""
             QPushButton {
                 background-color: #3E3E3E;
                 color: #CCCCCC;
                 border: 1px solid #555;
-                padding: 4px 8px;
+                padding: 4px 6px;
                 font-weight: bold;
             }
             QPushButton:checked {
@@ -364,17 +398,17 @@ class NoodleTunerPanel(MaximizableDock):
             }
         """)
         self.pause_button.clicked.connect(self.toggle_pause_cognition)
-        header_layout.addWidget(self.pause_button)
+        row1.addWidget(self.pause_button)
 
         # Step mode button
-        self.step_mode_button = QPushButton("⏯ Step Mode")
+        self.step_mode_button = QPushButton("⏯ Step")
         self.step_mode_button.setCheckable(True)
         self.step_mode_button.setStyleSheet("""
             QPushButton {
                 background-color: #3E3E3E;
                 color: #CCCCCC;
                 border: 1px solid #555;
-                padding: 4px 8px;
+                padding: 4px 6px;
                 font-weight: bold;
             }
             QPushButton:checked {
@@ -386,17 +420,18 @@ class NoodleTunerPanel(MaximizableDock):
             }
         """)
         self.step_mode_button.clicked.connect(self.toggle_step_mode)
-        header_layout.addWidget(self.step_mode_button)
+        row1.addWidget(self.step_mode_button)
 
-        # Continue button (enabled only when waiting in step mode)
-        self.continue_button = QPushButton("▶ Continue")
+        # Continue button
+        self.continue_button = QPushButton("▶")
         self.continue_button.setEnabled(False)
+        self.continue_button.setMaximumWidth(30)
         self.continue_button.setStyleSheet("""
             QPushButton {
                 background-color: #3E3E3E;
                 color: #888888;
                 border: 1px solid #555;
-                padding: 4px 8px;
+                padding: 4px;
                 font-weight: bold;
             }
             QPushButton:enabled {
@@ -408,46 +443,77 @@ class NoodleTunerPanel(MaximizableDock):
             }
         """)
         self.continue_button.clicked.connect(self.continue_step)
-        header_layout.addWidget(self.continue_button)
+        row1.addWidget(self.continue_button)
+
+        # Sound mute button
+        self.mute_button = QPushButton("🔊" if self.sounds_enabled else "🔇")
+        self.mute_button.setCheckable(True)
+        self.mute_button.setChecked(not self.sounds_enabled)
+        self.mute_button.setMaximumWidth(30)
+        self.mute_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3E3E3E;
+                color: #CCCCCC;
+                border: 1px solid #555;
+                padding: 4px;
+                font-size: 12pt;
+            }
+            QPushButton:checked {
+                background-color: #CC6666;
+            }
+            QPushButton:hover {
+                background-color: #4E4E4E;
+            }
+        """)
+        self.mute_button.clicked.connect(self.toggle_sounds)
+        row1.addWidget(self.mute_button)
+
+        header_vlayout.addLayout(row1)
+
+        # ROW 2: Font controls + Export/Import
+        row2 = QHBoxLayout()
 
         # Font size controls
         font_label = QLabel("Font:")
-        font_label.setStyleSheet("color: #888888; font-size: 9pt; margin-left: 10px;")
-        header_layout.addWidget(font_label)
+        font_label.setStyleSheet("color: #888888; font-size: 9pt;")
+        row2.addWidget(font_label)
 
         decrease_btn = QPushButton("A-")
-        decrease_btn.setMaximumWidth(40)
+        decrease_btn.setMaximumWidth(30)
         decrease_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
         decrease_btn.clicked.connect(self.decrease_font_size)
-        header_layout.addWidget(decrease_btn)
+        row2.addWidget(decrease_btn)
 
         self.font_size_label = QLabel(f"{self.font_size}pt")
-        self.font_size_label.setStyleSheet("color: #CCCCCC; font-size: 9pt; min-width: 30px;")
-        header_layout.addWidget(self.font_size_label)
+        self.font_size_label.setStyleSheet("color: #CCCCCC; font-size: 9pt; min-width: 25px;")
+        row2.addWidget(self.font_size_label)
 
         increase_btn = QPushButton("A+")
-        increase_btn.setMaximumWidth(40)
+        increase_btn.setMaximumWidth(30)
         increase_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
         increase_btn.clicked.connect(self.increase_font_size)
-        header_layout.addWidget(increase_btn)
+        row2.addWidget(increase_btn)
+
+        row2.addStretch()
 
         # Export/Import buttons
-        export_btn = QPushButton("↓ Export .tuner")
-        export_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 4px 8px; margin-left: 10px;")
+        export_btn = QPushButton("↓ .tuner")
+        export_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 4px 6px;")
         export_btn.clicked.connect(self.export_snapshot)
-        header_layout.addWidget(export_btn)
+        row2.addWidget(export_btn)
 
-        import_btn = QPushButton("↑ Import .tuner")
-        import_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 4px 8px;")
+        import_btn = QPushButton("↑ .tuner")
+        import_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 4px 6px;")
         import_btn.clicked.connect(self.import_snapshot)
-        header_layout.addWidget(import_btn)
+        row2.addWidget(import_btn)
 
-        copy_btn = QPushButton("Copy All")
-        copy_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 4px 8px;")
+        copy_btn = QPushButton("Copy")
+        copy_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 4px 6px;")
         copy_btn.clicked.connect(self.copy_to_clipboard)
-        header_layout.addWidget(copy_btn)
+        row2.addWidget(copy_btn)
 
-        layout.addLayout(header_layout)
+        header_vlayout.addLayout(row2)
+        layout.addWidget(header_container)
 
         # Single scroll area for everything - NO NESTED SCROLLING
         main_scroll = QScrollArea()
@@ -686,6 +752,25 @@ class NoodleTunerPanel(MaximizableDock):
 
             data = response.json()
 
+            # Detect cognitive cycle changes and play sounds
+            cycle_number = data.get('cycle_number')
+            if cycle_number is not None and self.sounds_enabled:
+                if self.last_cycle_number is None:
+                    # First cycle observed
+                    self.last_cycle_number = cycle_number
+                elif cycle_number > self.last_cycle_number:
+                    # New cycle started
+                    self.sound_cycle_start.play()
+                    self.last_cycle_number = cycle_number
+
+            # Check if output was just generated (blend_result changed)
+            new_blend = data.get('blend_result', '(no output yet)')
+            if hasattr(self, '_last_blend_output'):
+                if new_blend != self._last_blend_output and new_blend != '(no output yet)' and self.sounds_enabled:
+                    # Output completed - cycle done
+                    self.sound_cycle_complete.play()
+            self._last_blend_output = new_blend
+
             # Store snapshot data for export with metadata
             from datetime import datetime
             self.current_snapshot = data
@@ -730,7 +815,7 @@ class NoodleTunerPanel(MaximizableDock):
                 self.manifold_instruction_display.setText(manifold_instruction)
 
             # Update blend output (only if changed - prevents deselection)
-            new_blend = data.get('blend_result', '(no output yet)')
+            # Note: new_blend already assigned above for sound detection
             if self.blend_display.toPlainText() != new_blend:
                 self.blend_display.setText(new_blend)
 
@@ -842,6 +927,12 @@ class NoodleTunerPanel(MaximizableDock):
         # Update all transistor cards
         for card in self.transistor_cards.values():
             card.set_font_size(self.font_size)
+
+    def toggle_sounds(self, checked):
+        """Toggle sound effects on/off."""
+        self.sounds_enabled = not checked
+        self.settings.setValue('sounds_enabled', self.sounds_enabled)
+        self.mute_button.setText("🔇" if checked else "🔊")
 
     def toggle_pause_cognition(self, checked):
         """Toggle cognitive processing pause for all agents."""

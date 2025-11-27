@@ -26,7 +26,7 @@ class ChatPanel(MaximizableDock):
     """
 
     def __init__(self, parent: QWidget = None):
-        super().__init__("World View", parent)
+        super().__init__("WORLD VIEW", parent)
 
         # Allow moving and floating
         self.setFeatures(

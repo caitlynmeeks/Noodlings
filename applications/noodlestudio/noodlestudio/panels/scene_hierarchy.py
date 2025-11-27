@@ -48,9 +48,12 @@ class SceneHierarchy(MaximizableDock):
     entitySelected = pyqtSignal(str, dict)  # (entity_type, entity_data)
 
     def __init__(self, parent=None):
-        super().__init__("Stage Hierarchy", parent)
+        super().__init__("STAGE HIERARCHY", parent)
         self.api_base = "http://localhost:8081/api"
         self.current_room = "room_000"  # Start at Nexus
+
+        # Allow panel to shrink to small sizes
+        self.setMinimumWidth(100)
 
         # Track expanded state (survives tree rebuild)
         self.expanded_items = set()
@@ -78,12 +81,6 @@ class SceneHierarchy(MaximizableDock):
     def init_ui(self, widget):
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(4, 4, 4, 4)
-
-        # Header
-        header = QLabel("STAGE HIERARCHY")
-        header.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        header.setStyleSheet("color: #B4B4B4; padding: 4px;")
-        layout.addWidget(header)
 
         # Stage selector dropdown
         stage_layout = QHBoxLayout()

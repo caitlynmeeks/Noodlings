@@ -37,9 +37,12 @@ class InspectorPanel(MaximizableDock):
     """
 
     def __init__(self, parent=None):
-        super().__init__("Inspector", parent)
+        super().__init__("INSPECTOR", parent)
         self.current_entity = None
         self.api_base = "http://localhost:8081/api"
+
+        # Allow panel to shrink to very small sizes for tight Unity-style layouts
+        self.setMinimumWidth(200)
 
         # Flag to prevent double-triggering during toggle operations
         self.toggling = False

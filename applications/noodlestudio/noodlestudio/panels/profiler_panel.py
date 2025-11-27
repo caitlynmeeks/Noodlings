@@ -42,7 +42,7 @@ class ProfilerPanel(MaximizableDock):
     """
 
     def __init__(self, parent=None):
-        super().__init__("Timeline Profiler", parent)
+        super().__init__("TIMELINE PROFILER", parent)
         self.loader = SessionLoader()
 
         # Create central widget for dock

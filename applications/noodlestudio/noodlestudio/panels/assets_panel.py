@@ -34,7 +34,10 @@ class AssetsPanel(MaximizableDock):
     agentRezzed = pyqtSignal(str)  # Signal when agent is rezzed (triggers hierarchy refresh)
 
     def __init__(self, parent=None):
-        super().__init__("Assets", parent)
+        super().__init__("ASSETS", parent)
+
+        # Allow panel to shrink to small sizes
+        self.setMinimumWidth(100)
 
         self.setFeatures(
             QDockWidget.DockWidgetFeature.DockWidgetMovable |
