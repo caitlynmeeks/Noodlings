@@ -350,6 +350,12 @@ class MainWindow(QMainWindow):
                 border: none;
                 background: #2D2D2D;
             }
+            QTabWidget::tab-bar {
+                background: #1E1E1E;
+            }
+            QTabBar {
+                background: #1E1E1E;
+            }
             QTabBar::tab {
                 background: #3E3E3E;
                 color: #888888;
@@ -414,6 +420,12 @@ class MainWindow(QMainWindow):
                 border: none;
                 background: #2D2D2D;
             }
+            QTabWidget::tab-bar {
+                background: #1E1E1E;
+            }
+            QTabBar {
+                background: #1E1E1E;
+            }
             QTabBar::tab {
                 background: #3E3E3E;
                 color: #888888;
@@ -440,6 +452,12 @@ class MainWindow(QMainWindow):
             QTabWidget::pane {
                 border: none;
                 background: #2D2D2D;
+            }
+            QTabWidget::tab-bar {
+                background: #1E1E1E;
+            }
+            QTabBar {
+                background: #1E1E1E;
             }
             QTabBar::tab {
                 background: #3E3E3E;
