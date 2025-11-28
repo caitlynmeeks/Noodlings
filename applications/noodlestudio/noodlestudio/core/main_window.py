@@ -50,10 +50,10 @@ class MainWindow(QMainWindow):
         # This distinguishes IDE chrome from noodleMUSH terminal content
         self.setStyleSheet(UNITY_DARK_THEME + """
             QMainWindow {
-                background-color: #1E1E1E;
+                background-color: #383838;
             }
             QWidget {
-                background-color: #1E1E1E;
+                background-color: #383838;
             }
         """)
 
@@ -228,6 +228,11 @@ class MainWindow(QMainWindow):
         window_menu.addSeparator()
         window_menu.addAction(self._create_action("Reset to Default Layout", slot=lambda: self.load_layout("Default")))
 
+        # ===== SETTINGS MENU =====
+        settings_menu = menu_bar.addMenu("&Settings")
+        settings_menu.addAction(self._create_action("Random Number Generator...", slot=self.show_rng_settings))
+        settings_menu.addAction(self._create_action("External Applications...", slot=self.show_external_apps_settings))
+
         # ===== HELP MENU =====
         help_menu = menu_bar.addMenu("&Help")
         help_menu.addAction(self._create_action("NoodleStudio Documentation", "F1"))
@@ -351,10 +356,10 @@ class MainWindow(QMainWindow):
                 background: #2D2D2D;
             }
             QTabWidget::tab-bar {
-                background: #1E1E1E;
+                background: #383838;
             }
             QTabBar {
-                background: #1E1E1E;
+                background: #383838;
             }
             QTabBar::tab {
                 background: #3E3E3E;
@@ -373,7 +378,7 @@ class MainWindow(QMainWindow):
         self.assets.project_manager = self.project_manager
         self.assets.agentRezzed.connect(self.hierarchy.refresh_scene)
 
-        left_tabs.addTab(self.hierarchy, "Stage Hierarchy")
+        left_tabs.addTab(self.hierarchy, "Stage")
         left_tabs.addTab(self.assets, "Assets")
 
         # CENTER: World View (no header, full vertical space)
@@ -421,10 +426,10 @@ class MainWindow(QMainWindow):
                 background: #2D2D2D;
             }
             QTabWidget::tab-bar {
-                background: #1E1E1E;
+                background: #383838;
             }
             QTabBar {
-                background: #1E1E1E;
+                background: #383838;
             }
             QTabBar::tab {
                 background: #3E3E3E;
@@ -454,10 +459,10 @@ class MainWindow(QMainWindow):
                 background: #2D2D2D;
             }
             QTabWidget::tab-bar {
-                background: #1E1E1E;
+                background: #383838;
             }
             QTabBar {
-                background: #1E1E1E;
+                background: #383838;
             }
             QTabBar::tab {
                 background: #3E3E3E;
@@ -500,7 +505,7 @@ class MainWindow(QMainWindow):
         # Style the splitter handles for visibility
         main_splitter.setStyleSheet("""
             QSplitter::handle {
-                background-color: #1E1E1E;
+                background-color: #383838;
             }
             QSplitter::handle:horizontal {
                 width: 3px;
@@ -1689,6 +1694,267 @@ class MainWindow(QMainWindow):
             "About NoodleSTUDIO",
             about_text
         )
+
+    def show_rng_settings(self):
+        """Show Random Number Generator settings dialog."""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QPushButton, QHBoxLayout
+        import os
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Random Number Generator Settings")
+        dialog.resize(400, 150)
+
+        layout = QVBoxLayout(dialog)
+
+        # Header
+        header = QLabel("Select Random Number Generator:")
+        header.setStyleSheet("font-weight: bold; font-size: 13px;")
+        layout.addWidget(header)
+
+        # RNG selection dropdown
+        rng_combo = QComboBox()
+        rng_combo.addItem("Internal RNG (Software)")
+
+        # Check if ubild USB RNG is connected
+        ubild_available = self._check_ubild_connected()
+        if ubild_available:
+            rng_combo.addItem("ubild (USB Hardware RNG)")
+
+        # Load current setting
+        current_rng = self._load_rng_setting()
+        if current_rng == "ubild" and ubild_available:
+            rng_combo.setCurrentIndex(1)
+        else:
+            rng_combo.setCurrentIndex(0)
+
+        layout.addWidget(rng_combo)
+
+        # Status label
+        if ubild_available:
+            status_label = QLabel("✓ ubild USB RNG detected")
+            status_label.setStyleSheet("color: #76AF6A;")
+        else:
+            status_label = QLabel("No external RNG devices detected")
+            status_label.setStyleSheet("color: #999;")
+        layout.addWidget(status_label)
+
+        layout.addStretch()
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_btn)
+
+        save_btn = QPushButton("Save")
+        save_btn.setDefault(True)
+        save_btn.clicked.connect(lambda: self._save_rng_setting(rng_combo.currentText(), dialog))
+        button_layout.addWidget(save_btn)
+
+        layout.addLayout(button_layout)
+
+        dialog.exec()
+
+    def _check_ubild_connected(self):
+        """Check if ubild USB RNG is connected."""
+        # Check for ubild device on macOS/Linux
+        try:
+            if os.path.exists("/dev/ttyUSB0") or os.path.exists("/dev/cu.usbserial"):
+                return True
+            # Check via lsusb or system_profiler on macOS
+            import subprocess
+            result = subprocess.run(['system_profiler', 'SPUSBDataType'],
+                                  capture_output=True, text=True, timeout=2)
+            return 'ubild' in result.stdout.lower() or 'random' in result.stdout.lower()
+        except:
+            return False
+
+    def _load_rng_setting(self):
+        """Load RNG setting from config."""
+        config_file = Path.home() / ".noodlestudio" / "settings.json"
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    settings = json.load(f)
+                    return settings.get('rng_source', 'internal')
+            except:
+                pass
+        return 'internal'
+
+    def _save_rng_setting(self, rng_text, dialog):
+        """Save RNG setting to config."""
+        rng_source = 'ubild' if 'ubild' in rng_text else 'internal'
+
+        config_dir = Path.home() / ".noodlestudio"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        config_file = config_dir / "settings.json"
+
+        settings = {}
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    settings = json.load(f)
+            except:
+                pass
+
+        settings['rng_source'] = rng_source
+
+        with open(config_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+
+        self.statusBar().showMessage(f"RNG source set to: {rng_source}", 3000)
+        dialog.accept()
+
+    def show_external_apps_settings(self):
+        """Show External Applications settings dialog."""
+        from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QLineEdit,
+                                    QPushButton, QHBoxLayout, QGroupBox, QFormLayout)
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("External Applications")
+        dialog.resize(600, 400)
+
+        layout = QVBoxLayout(dialog)
+
+        # Header
+        header = QLabel("Configure external applications for opening files:")
+        header.setStyleSheet("font-weight: bold; font-size: 13px; margin-bottom: 10px;")
+        layout.addWidget(header)
+
+        # Load current settings
+        settings = self._load_external_apps_settings()
+
+        # Store field references
+        self.app_fields = {}
+
+        # Text Editor
+        text_group = QGroupBox("Text Editor")
+        text_layout = QHBoxLayout()
+        text_field = QLineEdit(settings.get('text_editor', ''))
+        text_field.setPlaceholderText("/Applications/Visual Studio Code.app")
+        text_layout.addWidget(text_field)
+        text_btn = QPushButton("Browse...")
+        text_btn.clicked.connect(lambda: self._browse_application(text_field))
+        text_layout.addWidget(text_btn)
+        text_group.setLayout(text_layout)
+        layout.addWidget(text_group)
+        self.app_fields['text_editor'] = text_field
+
+        # Image Editor
+        image_group = QGroupBox("Image Editor")
+        image_layout = QHBoxLayout()
+        image_field = QLineEdit(settings.get('image_editor', ''))
+        image_field.setPlaceholderText("/Applications/Photoshop.app")
+        image_layout.addWidget(image_field)
+        image_btn = QPushButton("Browse...")
+        image_btn.clicked.connect(lambda: self._browse_application(image_field))
+        image_layout.addWidget(image_btn)
+        image_group.setLayout(image_layout)
+        layout.addWidget(image_group)
+        self.app_fields['image_editor'] = image_field
+
+        # Audio Editor
+        audio_group = QGroupBox("Audio Editor")
+        audio_layout = QHBoxLayout()
+        audio_field = QLineEdit(settings.get('audio_editor', ''))
+        audio_field.setPlaceholderText("/Applications/Audacity.app")
+        audio_layout.addWidget(audio_field)
+        audio_btn = QPushButton("Browse...")
+        audio_btn.clicked.connect(lambda: self._browse_application(audio_field))
+        audio_layout.addWidget(audio_btn)
+        audio_group.setLayout(audio_layout)
+        layout.addWidget(audio_group)
+        self.app_fields['audio_editor'] = audio_field
+
+        # 3D Tool
+        threed_group = QGroupBox("3D Tool")
+        threed_layout = QHBoxLayout()
+        threed_field = QLineEdit(settings.get('threed_tool', ''))
+        threed_field.setPlaceholderText("/Applications/Blender.app")
+        threed_layout.addWidget(threed_field)
+        threed_btn = QPushButton("Browse...")
+        threed_btn.clicked.connect(lambda: self._browse_application(threed_field))
+        threed_layout.addWidget(threed_btn)
+        threed_group.setLayout(threed_layout)
+        layout.addWidget(threed_group)
+        self.app_fields['threed_tool'] = threed_field
+
+        layout.addStretch()
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_btn)
+
+        save_btn = QPushButton("Save")
+        save_btn.setDefault(True)
+        save_btn.clicked.connect(lambda: self._save_external_apps_settings(dialog))
+        button_layout.addWidget(save_btn)
+
+        layout.addLayout(button_layout)
+
+        dialog.exec()
+
+    def _browse_application(self, line_edit):
+        """Browse for application file."""
+        from PyQt6.QtWidgets import QFileDialog
+
+        # Start in Applications folder on macOS
+        start_dir = "/Applications" if os.path.exists("/Applications") else str(Path.home())
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Application",
+            start_dir,
+            "Applications (*.app);;All Files (*)"
+        )
+
+        if file_path:
+            line_edit.setText(file_path)
+
+    def _load_external_apps_settings(self):
+        """Load external apps settings from config."""
+        config_file = Path.home() / ".noodlestudio" / "settings.json"
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    settings = json.load(f)
+                    return settings.get('external_apps', {})
+            except:
+                pass
+        return {}
+
+    def _save_external_apps_settings(self, dialog):
+        """Save external apps settings to config."""
+        config_dir = Path.home() / ".noodlestudio"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        config_file = config_dir / "settings.json"
+
+        settings = {}
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    settings = json.load(f)
+            except:
+                pass
+
+        external_apps = {}
+        for key, field in self.app_fields.items():
+            if field.text().strip():
+                external_apps[key] = field.text().strip()
+
+        settings['external_apps'] = external_apps
+
+        with open(config_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+
+        self.statusBar().showMessage("External applications saved", 3000)
+        dialog.accept()
 
     def _show_preferences(self):
         """Show preferences dialog."""
