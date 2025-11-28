@@ -9,7 +9,8 @@ import json
 from pathlib import Path
 from typing import Optional, List
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QLabel, QMessageBox, QTabWidget
+    QMainWindow, QWidget, QVBoxLayout, QLabel, QMessageBox, QTabWidget,
+    QHBoxLayout, QSplitter
 )
 from PyQt6.QtCore import Qt, QTimer, QStandardPaths, QUrl
 from PyQt6.QtGui import QAction, QFont
@@ -236,33 +237,6 @@ class MainWindow(QMainWindow):
         # Hide legacy buttons for now
         tool_bar.setVisible(False)
 
-    def _configure_dock_widget(self, dock_widget):
-        """
-        Configure dock widget with proper features and behavior.
-
-        All panels should be:
-        - Movable (draggable)
-        - Floatable (can pop out)
-        - Closable (can hide)
-        - Resizable (via splitters)
-        """
-        from PyQt6.QtWidgets import QDockWidget
-
-        # Set standard features for all dock widgets
-        features = (
-            QDockWidget.DockWidgetFeature.DockWidgetMovable |
-            QDockWidget.DockWidgetFeature.DockWidgetFloatable |
-            QDockWidget.DockWidgetFeature.DockWidgetClosable
-        )
-        dock_widget.setFeatures(features)
-
-        # Allow docking in all areas (user can put it anywhere)
-        dock_widget.setAllowedAreas(
-            Qt.DockWidgetArea.LeftDockWidgetArea |
-            Qt.DockWidgetArea.RightDockWidgetArea |
-            Qt.DockWidgetArea.TopDockWidgetArea |
-            Qt.DockWidgetArea.BottomDockWidgetArea
-        )
 
     def _setup_status_bar(self):
         """Create status bar with server toggle."""
@@ -357,60 +331,46 @@ class MainWindow(QMainWindow):
                 self.console.reconnect()
 
     def _setup_panels(self):
-        """Create Unity-style layout with EXACT positioning."""
+        """Create locked-down layout with fixed splitters (no dragging/docking)."""
 
-        # Configure corner ownership for console to span full width
-        # Bottom corners belong to bottom area (console spans entire width)
-        self.setCorner(Qt.Corner.TopLeftCorner, Qt.DockWidgetArea.LeftDockWidgetArea)
-        self.setCorner(Qt.Corner.TopRightCorner, Qt.DockWidgetArea.RightDockWidgetArea)
-        self.setCorner(Qt.Corner.BottomLeftCorner, Qt.DockWidgetArea.BottomDockWidgetArea)
-        self.setCorner(Qt.Corner.BottomRightCorner, Qt.DockWidgetArea.BottomDockWidgetArea)
+        # LEFT COLUMN: Tabbed widget for Hierarchy + Assets
+        left_tabs = QTabWidget()
+        left_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        left_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: none;
+                background: #2D2D2D;
+            }
+            QTabBar::tab {
+                background: #3E3E3E;
+                color: #888888;
+                padding: 6px 12px;
+                border: none;
+            }
+            QTabBar::tab:selected {
+                background: #2D2D2D;
+                color: #CCCCCC;
+            }
+        """)
 
-        # Enable animated docking (smooth drag)
-        self.setAnimated(True)
+        self.hierarchy = SceneHierarchy(None)  # Not a dock widget anymore
+        self.assets = AssetsPanel(None)
+        self.assets.project_manager = self.project_manager
+        self.assets.agentRezzed.connect(self.hierarchy.refresh_scene)
 
-        # Set dock nesting (allows splitting within areas)
-        self.setDockNestingEnabled(True)
+        left_tabs.addTab(self.hierarchy, "Stage Hierarchy")
+        left_tabs.addTab(self.assets, "Assets")
 
-        # Enable tabbed docking mode (allows overlapping docks to tab)
-        self.setTabPosition(Qt.DockWidgetArea.AllDockWidgetAreas, QTabWidget.TabPosition.North)
-
-        # LEFT COLUMN (narrow): Scene Hierarchy + Assets (tabbed)
-        self.hierarchy = SceneHierarchy(self)
-        self.hierarchy.setObjectName("SceneHierarchy")  # Required for saveState
-        self._configure_dock_widget(self.hierarchy)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.hierarchy)
-
-        # Assets panel (tabbed with hierarchy)
-        self.assets = AssetsPanel(self)
-        self.assets.setObjectName("Assets")  # Required for saveState
-        self._configure_dock_widget(self.assets)
-        self.assets.project_manager = self.project_manager  # Connect to project manager
-        self.assets.agentRezzed.connect(self.hierarchy.refresh_scene)  # Auto-refresh hierarchy when agent rezzed
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.assets)
-        self.tabifyDockWidget(self.hierarchy, self.assets)
-
-        # Make Scene Hierarchy the active tab by default
-        self.hierarchy.raise_()
-
-        # CENTER: Build World View directly as central widget
-        # Not a dock widget - always stays centered
-        world_content = QWidget()
-        world_layout = QVBoxLayout(world_content)
+        # CENTER: World View (no header, full vertical space)
+        world_widget = QWidget()
+        world_layout = QVBoxLayout(world_widget)
         world_layout.setContentsMargins(0, 0, 0, 0)
         world_layout.setSpacing(0)
-
-        # Add header bar to match other panels
-        world_header = QLabel("WORLD VIEW")
-        world_header.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        world_header.setStyleSheet("color: #B4B4B4; padding: 4px; background-color: #2D2D2D;")
-        world_layout.addWidget(world_header)
 
         try:
             from PyQt6.QtWebEngineWidgets import QWebEngineView
             self.web_view = QWebEngineView()
             self.web_view.setUrl(QUrl("http://localhost:8080"))
-            self.web_view.setMinimumSize(0, 0)
             world_layout.addWidget(self.web_view)
         except ImportError:
             placeholder = QLabel("WebEngine not available\nInstall: pip install PyQt6-WebEngine")
@@ -419,9 +379,7 @@ class MainWindow(QMainWindow):
             world_layout.addWidget(placeholder)
             self.web_view = None
 
-        self.setCentralWidget(world_content)
-
-        # Create stub for compatibility with existing methods
+        # Create stub for compatibility
         class WorldViewStub:
             def __init__(self, web_view):
                 self.web_view = web_view
@@ -438,47 +396,85 @@ class MainWindow(QMainWindow):
 
         self.world_view = WorldViewStub(self.web_view)
 
-        # RIGHT COLUMN (narrow): Inspector
-        self.inspector = InspectorPanel(self)
-        self.inspector.setObjectName("Inspector")  # Required for saveState
-        self._configure_dock_widget(self.inspector)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.inspector)
+        # RIGHT COLUMN: Tabbed widget for Inspector + Noodle Tuner
+        right_tabs = QTabWidget()
+        right_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        right_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: none;
+                background: #2D2D2D;
+            }
+            QTabBar::tab {
+                background: #3E3E3E;
+                color: #888888;
+                padding: 6px 12px;
+                border: none;
+            }
+            QTabBar::tab:selected {
+                background: #2D2D2D;
+                color: #CCCCCC;
+            }
+        """)
 
-        # Noodle Tuner (tabbed with Inspector)
-        self.noodle_tuner = NoodleTunerPanel(self)
-        self.noodle_tuner.setObjectName("NoodleTuner")  # Required for saveState
-        self._configure_dock_widget(self.noodle_tuner)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.noodle_tuner)
-        self.tabifyDockWidget(self.inspector, self.noodle_tuner)
+        self.inspector = InspectorPanel(None)
+        self.noodle_tuner = NoodleTunerPanel(None)
 
-        # BOTTOM (full width): Console
-        self.console = ConsolePanel(self)
-        self.console.setObjectName("Console")  # Required for saveState
-        self._configure_dock_widget(self.console)
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.console)
+        right_tabs.addTab(self.inspector, "Inspector")
+        right_tabs.addTab(self.noodle_tuner, "Noodle Tuner")
 
-        # Timeline Profiler (tabbed with Console, hidden by default)
-        self.profiler_panel = ProfilerPanel(self)
-        self.profiler_panel.setObjectName("TimelineProfiler")  # Required for saveState
-        self._configure_dock_widget(self.profiler_panel)
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.profiler_panel)
-        self.profiler_panel.hide()
-        self.tabifyDockWidget(self.console, self.profiler_panel)
+        # BOTTOM: Tabbed widget for Console + Profiler
+        bottom_tabs = QTabWidget()
+        bottom_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        bottom_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: none;
+                background: #2D2D2D;
+            }
+            QTabBar::tab {
+                background: #3E3E3E;
+                color: #888888;
+                padding: 6px 12px;
+                border: none;
+            }
+            QTabBar::tab:selected {
+                background: #2D2D2D;
+                color: #CCCCCC;
+            }
+        """)
 
-        # Connect hierarchy selection to inspector
+        self.console = ConsolePanel(None)
+        self.profiler_panel = ProfilerPanel(None)
+
+        bottom_tabs.addTab(self.console, "Console")
+        bottom_tabs.addTab(self.profiler_panel, "Timeline Profiler")
+
+        # Create horizontal splitter for left | center | right
+        top_splitter = QSplitter(Qt.Orientation.Horizontal)
+        top_splitter.addWidget(left_tabs)
+        top_splitter.addWidget(world_widget)
+        top_splitter.addWidget(right_tabs)
+        top_splitter.setStretchFactor(0, 0)  # Left fixed width
+        top_splitter.setStretchFactor(1, 1)  # Center stretches
+        top_splitter.setStretchFactor(2, 0)  # Right fixed width
+        top_splitter.setSizes([250, 800, 280])
+
+        # Create vertical splitter for top | bottom
+        main_splitter = QSplitter(Qt.Orientation.Vertical)
+        main_splitter.addWidget(top_splitter)
+        main_splitter.addWidget(bottom_tabs)
+        main_splitter.setStretchFactor(0, 1)  # Top stretches
+        main_splitter.setStretchFactor(1, 0)  # Bottom fixed height
+        main_splitter.setSizes([600, 180])
+
+        # Set as central widget
+        self.setCentralWidget(main_splitter)
+
+        # Connect signals
         self.hierarchy.entitySelected.connect(self.inspector.load_entity)
         self.hierarchy.entitySelected.connect(self.on_entity_selected_for_console)
-
-        # Connect hierarchy selection to Noodle Tuner (only for agents)
         self.hierarchy.entitySelected.connect(self.on_entity_selected_for_noodle_tuner)
 
-        # Force Console tab to be active
-        self.console.raise_()
-
-        # Set exact sizes after a brief delay (let Qt settle)
-        QTimer.singleShot(100, self.apply_default_sizes)
-
-        # Check initial server state and update UI
+        # Check server state
         QTimer.singleShot(200, self.update_connection_status)
 
     def _setup_shortcuts(self):
@@ -537,43 +533,11 @@ class MainWindow(QMainWindow):
             # Fallback for panels that don't inherit from MaximizableDock
             panel.show()
 
-    def apply_default_sizes(self):
-        """Apply exact panel sizes for factory default layout."""
-        # Get window size
-        width = self.width()
-        height = self.height()
-
-        # LEFT column: 250px for hierarchy
-        # RIGHT: 280px for inspector (Unity-style narrow)
-        # BOTTOM: 180px for console
-
-        left_width = 250
-        right_width = 280
-        bottom_height = 180
-
-        # Set horizontal splits
-        self.resizeDocks([self.hierarchy], [left_width], Qt.Orientation.Horizontal)
-        self.resizeDocks([self.inspector], [right_width], Qt.Orientation.Horizontal)
-
-        # Set bottom panel height
-        self.resizeDocks([self.console], [bottom_height], Qt.Orientation.Vertical)
 
     def reset_to_factory_layout(self):
-        """Reset to factory default layout (Unity-style arrangement)."""
-        # Show all panels
-        self.hierarchy.show()
-        self.assets.show()
-        self.inspector.show()
-        self.noodle_tuner.show()
-        self.console.show()
-
-        # Hide profiler
-        self.profiler_panel.hide()
-
-        # Apply default sizes
-        QTimer.singleShot(100, self.apply_default_sizes)
-
-        self.statusBar().showMessage("Reset to factory default layout", 3000)
+        """Reset to factory default layout (locked-down splitter layout)."""
+        # Splitters are already locked down - just show message
+        self.statusBar().showMessage("Layout is locked to optimal arrangement", 3000)
 
     def _create_action(
         self,

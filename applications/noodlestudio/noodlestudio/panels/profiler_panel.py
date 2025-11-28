@@ -21,10 +21,10 @@ import sys
 sys.path.append('../..')
 from noodlestudio.data.session_loader import SessionLoader, TimelineEvent
 from noodlestudio.widgets.timeline_widget import MultiTrackTimeline
-from noodlestudio.widgets.maximizable_dock import MaximizableDock
 
 
-class ProfilerPanel(MaximizableDock):
+
+class ProfilerPanel(QWidget):
     """
     Main profiler panel with timeline + inspector.
 
@@ -42,14 +42,11 @@ class ProfilerPanel(MaximizableDock):
     """
 
     def __init__(self, parent=None):
-        super().__init__("TIMELINE PROFILER", parent)
+        super().__init__(parent)
         self.loader = SessionLoader()
 
-        # Create central widget for dock
-        widget = QWidget()
-        self.setWidget(widget)
-
-        self.init_ui(widget)
+        # Initialize UI directly on this widget
+        self.init_ui(self)
 
         # Auto-refresh timer for live updates
         self.refresh_timer = QTimer()

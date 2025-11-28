@@ -18,7 +18,7 @@ import websockets
 from threading import Thread
 import sys
 sys.path.append('..')
-from noodlestudio.widgets.maximizable_dock import MaximizableDock
+
 
 
 class WebSocketWorker(QThread):
@@ -81,7 +81,7 @@ class WebSocketWorker(QThread):
         self.running = False
 
 
-class ConsolePanel(MaximizableDock):
+class ConsolePanel(QWidget):
     """
     Console panel showing live logs from noodleMUSH.
 
@@ -90,7 +90,7 @@ class ConsolePanel(MaximizableDock):
     """
 
     def __init__(self, parent=None):
-        super().__init__("CONSOLE", parent)
+        super().__init__(parent)
         self.ws_url = "ws://localhost:8765"
         self.connected = False
         self.log_buffer = []
@@ -109,11 +109,8 @@ class ConsolePanel(MaximizableDock):
         self.show_llm = True
         self.show_ruminations = True
 
-        # Create central widget
-        widget = QWidget()
-        self.setWidget(widget)
-
-        self.init_ui(widget)
+        # Initialize UI directly on this widget
+        self.init_ui(self)
 
         # Start WebSocket connection in background thread
         self.start_log_stream()

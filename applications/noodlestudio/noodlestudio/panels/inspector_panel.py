@@ -24,11 +24,11 @@ import yaml
 from pathlib import Path
 import sys
 sys.path.append('..')
-from noodlestudio.widgets.maximizable_dock import MaximizableDock
+
 from noodlestudio.widgets.collapsible_section import CollapsibleSection
 
 
-class InspectorPanel(MaximizableDock):
+class InspectorPanel(QWidget):
     """
     Unity-style Inspector panel.
 
@@ -37,7 +37,7 @@ class InspectorPanel(MaximizableDock):
     """
 
     def __init__(self, parent=None):
-        super().__init__("INSPECTOR", parent)
+        super().__init__(parent)
         self.current_entity = None
         self.api_base = "http://localhost:8081/api"
 
@@ -58,11 +58,8 @@ class InspectorPanel(MaximizableDock):
         # Structure: {section_title: bool}
         self.collapsible_expanded_state = {}
 
-        # Create central widget
-        widget = QWidget()
-        self.setWidget(widget)
-
-        self.init_ui(widget)
+        # Initialize UI directly on this widget
+        self.init_ui(self)
 
         # Live update timer for Noodle Component
         self.update_timer = QTimer()

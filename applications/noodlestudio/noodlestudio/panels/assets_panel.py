@@ -6,19 +6,16 @@ Right-click context menus for asset management (to be implemented).
 """
 
 from PyQt6.QtWidgets import (
-    QDockWidget, QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
+    QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
     QMenu, QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QAction
 import os
 import json
-import sys
-sys.path.append('..')
-from noodlestudio.widgets.maximizable_dock import MaximizableDock
 
 
-class AssetsPanel(MaximizableDock):
+class AssetsPanel(QWidget):
     """
     Assets panel showing all project assets organized by type.
 
@@ -34,15 +31,7 @@ class AssetsPanel(MaximizableDock):
     agentRezzed = pyqtSignal(str)  # Signal when agent is rezzed (triggers hierarchy refresh)
 
     def __init__(self, parent=None):
-        super().__init__("ASSETS", parent)
-
-        # Allow panel to shrink to small sizes
-        self.setMinimumWidth(100)
-
-        self.setFeatures(
-            QDockWidget.DockWidgetFeature.DockWidgetMovable |
-            QDockWidget.DockWidgetFeature.DockWidgetFloatable
-        )
+        super().__init__(parent)
 
         self.project_manager = None  # Will be set by main window
 
@@ -51,8 +40,7 @@ class AssetsPanel(MaximizableDock):
 
     def _setup_ui(self):
         """Build UI components."""
-        container = QWidget()
-        layout = QVBoxLayout(container)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
@@ -87,7 +75,6 @@ class AssetsPanel(MaximizableDock):
         """)
 
         layout.addWidget(self.tree)
-        self.setWidget(container)
 
     def _load_assets(self):
         """Load all assets from the project."""

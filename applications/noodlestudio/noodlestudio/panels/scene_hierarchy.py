@@ -13,7 +13,7 @@ Author: Caitlyn + Claude
 Date: November 17, 2025
 """
 
-from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget,
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget,
                              QTreeWidgetItem, QLabel, QPushButton, QMenu, QInputDialog, QComboBox,
                              QMessageBox)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
@@ -21,11 +21,9 @@ from PyQt6.QtGui import QFont, QIcon, QAction
 import requests
 import sys
 import os
-sys.path.append('..')
-from noodlestudio.widgets.maximizable_dock import MaximizableDock
 
 
-class SceneHierarchy(MaximizableDock):
+class SceneHierarchy(QWidget):
     """
     Unity-style Scene Hierarchy panel.
 
@@ -48,12 +46,9 @@ class SceneHierarchy(MaximizableDock):
     entitySelected = pyqtSignal(str, dict)  # (entity_type, entity_data)
 
     def __init__(self, parent=None):
-        super().__init__("STAGE HIERARCHY", parent)
+        super().__init__(parent)
         self.api_base = "http://localhost:8081/api"
         self.current_room = "room_000"  # Start at Nexus
-
-        # Allow panel to shrink to small sizes
-        self.setMinimumWidth(100)
 
         # Track expanded state (survives tree rebuild)
         self.expanded_items = set()
@@ -64,11 +59,8 @@ class SceneHierarchy(MaximizableDock):
         # Derez confirmation settings
         self.derez_confirm = True  # Show confirmation dialog
 
-        # Create central widget
-        widget = QWidget()
-        self.setWidget(widget)
-
-        self.init_ui(widget)
+        # Initialize UI directly on this widget
+        self.init_ui(self)
 
         # Auto-refresh
         self.refresh_timer = QTimer()

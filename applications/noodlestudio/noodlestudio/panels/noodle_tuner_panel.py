@@ -28,7 +28,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 sys.path.append('..')
-from noodlestudio.widgets.maximizable_dock import MaximizableDock
+
 
 logger = logging.getLogger(__name__)
 
@@ -280,7 +280,7 @@ class TransistorCard(QFrame):
         """)
 
 
-class NoodleTunerPanel(MaximizableDock):
+class NoodleTunerPanel(QWidget):
     """
     Noodle Tuner - Cognitive Manifold Debug UI.
 
@@ -288,7 +288,7 @@ class NoodleTunerPanel(MaximizableDock):
     """
 
     def __init__(self, parent=None):
-        super().__init__("NOODLE TUNER", parent)
+        super().__init__(parent)
         self.current_agent_id = None
         self.api_base = "http://localhost:8081/api"
         self.transistor_cards = {}  # type -> TransistorCard
@@ -311,11 +311,8 @@ class NoodleTunerPanel(MaximizableDock):
         # Initialize sound effects
         self._init_sounds()
 
-        # Create central widget
-        widget = QWidget()
-        self.setWidget(widget)
-
-        self.init_ui(widget)
+        # Initialize UI directly on this widget
+        self.init_ui(self)
 
         # Auto-refresh timer (1 second interval)
         self.update_timer = QTimer()
