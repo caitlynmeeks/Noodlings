@@ -46,8 +46,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("NoodleSTUDIO - Noodlings IDE")
         self.resize(1400, 900)
 
-        # Apply Unity dark theme
-        self.setStyleSheet(UNITY_DARK_THEME)
+        # Apply Unity dark theme with darker gray background (not jet black)
+        # This distinguishes IDE chrome from noodleMUSH terminal content
+        self.setStyleSheet(UNITY_DARK_THEME + """
+            QMainWindow {
+                background-color: #1E1E1E;
+            }
+            QWidget {
+                background-color: #1E1E1E;
+            }
+        """)
 
         # Layout manager for saving configurations
         self.layout_manager = LayoutManager()
@@ -336,6 +344,7 @@ class MainWindow(QMainWindow):
         # LEFT COLUMN: Tabbed widget for Hierarchy + Assets
         left_tabs = QTabWidget()
         left_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        left_tabs.setMinimumWidth(150)  # Prevent collapsing
         left_tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: none;
@@ -399,6 +408,7 @@ class MainWindow(QMainWindow):
         # RIGHT COLUMN: Tabbed widget for Inspector + Noodle Tuner
         right_tabs = QTabWidget()
         right_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        right_tabs.setMinimumWidth(200)  # Prevent collapsing
         right_tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: none;
@@ -425,6 +435,7 @@ class MainWindow(QMainWindow):
         # BOTTOM: Tabbed widget for Console + Profiler
         bottom_tabs = QTabWidget()
         bottom_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        bottom_tabs.setMinimumHeight(100)  # Prevent collapsing
         bottom_tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: none;
@@ -457,6 +468,7 @@ class MainWindow(QMainWindow):
         top_splitter.setStretchFactor(1, 1)  # Center stretches
         top_splitter.setStretchFactor(2, 0)  # Right fixed width
         top_splitter.setSizes([250, 800, 280])
+        top_splitter.setChildrenCollapsible(False)  # Prevent panels from disappearing!
 
         # Create vertical splitter for top | bottom
         main_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -465,6 +477,20 @@ class MainWindow(QMainWindow):
         main_splitter.setStretchFactor(0, 1)  # Top stretches
         main_splitter.setStretchFactor(1, 0)  # Bottom fixed height
         main_splitter.setSizes([600, 180])
+        main_splitter.setChildrenCollapsible(False)  # Prevent panels from disappearing!
+
+        # Style the splitter handles for visibility
+        main_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #1E1E1E;
+            }
+            QSplitter::handle:horizontal {
+                width: 3px;
+            }
+            QSplitter::handle:vertical {
+                height: 3px;
+            }
+        """)
 
         # Set as central widget
         self.setCentralWidget(main_splitter)
