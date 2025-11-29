@@ -94,6 +94,8 @@ class ConsolePanel(QWidget):
         self.ws_url = "ws://localhost:8765"
         self.connected = False
         self.log_buffer = []
+        self.studio_log_buffer = []  # Separate buffer for STUDIO logs
+        self.console_mode = 'mush'  # 'mush' or 'studio'
         self.last_message = None  # Track last message for collapsing
         self.repeat_count = 0
         self.selected_entities = []  # Track selected entities for filtering
@@ -108,6 +110,9 @@ class ConsolePanel(QWidget):
         self.show_info = True
         self.show_llm = True
         self.show_ruminations = True
+
+        # Redirect Python stdout/stderr to capture STUDIO logs
+        self._setup_stdout_capture()
 
         # Initialize UI directly on this widget
         self.init_ui(self)
@@ -129,6 +134,51 @@ class ConsolePanel(QWidget):
         clear_btn.setFixedWidth(50)
         clear_btn.clicked.connect(self.clear_logs)
         toolbar.addWidget(clear_btn)
+
+        toolbar.addWidget(QLabel("|"))  # Separator
+
+        # MUSH/STUDIO mode toggle buttons
+        self.mush_btn = QPushButton("MUSH")
+        self.mush_btn.setCheckable(True)
+        self.mush_btn.setChecked(True)
+        self.mush_btn.setFixedWidth(60)
+        self.mush_btn.clicked.connect(lambda: self.set_console_mode('mush'))
+        self.mush_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2d5c8f;
+                color: #FFFFFF;
+                border: 1px solid #4a7cba;
+                padding: 4px;
+                font-weight: bold;
+            }
+            QPushButton:!checked {
+                background-color: #3a3a3a;
+                color: #888888;
+                border: 1px solid #555;
+            }
+        """)
+        toolbar.addWidget(self.mush_btn)
+
+        self.studio_btn = QPushButton("STUDIO")
+        self.studio_btn.setCheckable(True)
+        self.studio_btn.setChecked(False)
+        self.studio_btn.setFixedWidth(70)
+        self.studio_btn.clicked.connect(lambda: self.set_console_mode('studio'))
+        self.studio_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2d5c8f;
+                color: #FFFFFF;
+                border: 1px solid #4a7cba;
+                padding: 4px;
+                font-weight: bold;
+            }
+            QPushButton:!checked {
+                background-color: #3a3a3a;
+                color: #888888;
+                border: 1px solid #555;
+            }
+        """)
+        toolbar.addWidget(self.studio_btn)
 
         toolbar.addWidget(QLabel("|"))  # Separator
 
@@ -398,3 +448,59 @@ class ConsolePanel(QWidget):
                 font-size: {self.font_size}pt;
             }}
         """)
+
+    def _setup_stdout_capture(self):
+        """Capture Python stdout/stderr for STUDIO mode."""
+        import sys
+
+        class StdoutCapture:
+            def __init__(self, console_panel):
+                self.console_panel = console_panel
+                self.original_stdout = sys.stdout
+                self.original_stderr = sys.stderr
+
+            def write(self, text):
+                # Write to original stdout (terminal)
+                self.original_stdout.write(text)
+                # Also capture to STUDIO log buffer
+                if text.strip():
+                    self.console_panel.add_studio_log(text.strip())
+
+            def flush(self):
+                self.original_stdout.flush()
+
+        # Install stdout/stderr capture
+        self.stdout_capture = StdoutCapture(self)
+        sys.stdout = self.stdout_capture
+        sys.stderr = self.stdout_capture
+
+    def add_studio_log(self, message):
+        """Add message to STUDIO log buffer."""
+        self.studio_log_buffer.append(message)
+        # Keep last 1000 messages
+        if len(self.studio_log_buffer) > 1000:
+            self.studio_log_buffer.pop(0)
+
+        # If in STUDIO mode, update display
+        if self.console_mode == 'studio':
+            self.log_text.append(message)
+
+    def set_console_mode(self, mode):
+        """Switch between MUSH and STUDIO console modes."""
+        self.console_mode = mode
+
+        # Update button states
+        self.mush_btn.setChecked(mode == 'mush')
+        self.studio_btn.setChecked(mode == 'studio')
+
+        # Clear and refresh display
+        self.log_text.clear()
+
+        if mode == 'mush':
+            # Show MUSH logs
+            for log_entry in self.log_buffer:
+                self.log_text.append(log_entry)
+        else:
+            # Show STUDIO logs
+            for log_entry in self.studio_log_buffer:
+                self.log_text.append(log_entry)

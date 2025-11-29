@@ -100,6 +100,8 @@ class TransistorCard(QFrame):
         self.instruction_text = QTextEdit()
         self.instruction_text.setMinimumHeight(200)
         self.instruction_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.instruction_text.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.instruction_text.customContextMenuRequested.connect(lambda pos: self._show_text_context_menu(self.instruction_text, pos))
         self.instruction_text.setStyleSheet(f"""
             QTextEdit {{
                 background-color: #222222;
@@ -122,6 +124,8 @@ class TransistorCard(QFrame):
         self.output_text.setReadOnly(True)  # Read-only by default, editable when paused
         self.output_text.setMinimumHeight(200)
         self.output_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.output_text.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.output_text.customContextMenuRequested.connect(lambda pos: self._show_text_context_menu(self.output_text, pos))
         self.output_text.setStyleSheet(f"""
             QTextEdit {{
                 background-color: #222222;
@@ -278,6 +282,70 @@ class TransistorCard(QFrame):
                 padding: 4px;
             }}
         """)
+
+    def _show_text_context_menu(self, text_widget, pos):
+        """Show context menu with external editor option."""
+        from PyQt6.QtWidgets import QMenu
+        from PyQt6.QtGui import QAction
+
+        menu = QMenu(text_widget)
+
+        # Standard edit actions
+        standard_menu = text_widget.createStandardContextMenu()
+        for action in standard_menu.actions():
+            if action.text():
+                menu.addAction(action)
+
+        menu.addSeparator()
+
+        # External editor action
+        external_action = QAction("View in External Editor", menu)
+        external_action.triggered.connect(lambda: self._view_in_external_editor(text_widget))
+        menu.addAction(external_action)
+
+        menu.exec(text_widget.mapToGlobal(pos))
+
+    def _view_in_external_editor(self, text_widget):
+        """View text in external editor (read-only, for reference)."""
+        import tempfile
+        import subprocess
+        import json
+        from pathlib import Path
+
+        # Get external editor from settings
+        settings_file = Path.home() / ".noodlestudio" / "settings.json"
+        editor_path = None
+
+        if settings_file.exists():
+            try:
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                    editor_path = settings.get('external_apps', {}).get('text_editor')
+            except:
+                pass
+
+        if not editor_path or not Path(editor_path).exists():
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "No Text Editor Configured",
+                "Please configure a text editor in:\nSettings → External Applications"
+            )
+            return
+
+        # Create temp file
+        temp_fd, temp_path = tempfile.mkstemp(suffix='.txt', prefix='noodlestudio_view_')
+        with open(temp_path, 'w') as f:
+            f.write(text_widget.toPlainText())
+
+        print(f"[ExternalEditor] Viewing in editor: {temp_path}")
+
+        # Open in external editor
+        try:
+            subprocess.Popen(['open', '-a', editor_path, temp_path])
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Failed to Open Editor", f"Error: {e}")
 
 
 class NoodleTunerPanel(QWidget):

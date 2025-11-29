@@ -357,7 +357,7 @@ class MainWindow(QMainWindow):
             }
             QTabWidget::pane {
                 border: none;
-                background-color: #2D2D2D;
+                background-color: #3E3E3E;
             }
             QTabWidget::tab-bar {
                 background-color: #383838;
@@ -367,14 +367,14 @@ class MainWindow(QMainWindow):
                 background-color: #383838;
             }
             QTabBar::tab {
-                background-color: #3E3E3E;
+                background-color: #2D2D2D;
                 color: #888888;
                 padding: 6px 12px;
                 border: none;
                 margin-right: 2px;
             }
             QTabBar::tab:selected {
-                background-color: #2D2D2D;
+                background-color: #3E3E3E;
                 color: #CCCCCC;
             }
         """)
@@ -494,7 +494,7 @@ class MainWindow(QMainWindow):
             }
             QTabWidget::pane {
                 border: none;
-                background-color: #2D2D2D;
+                background-color: #3E3E3E;
             }
             QTabWidget::tab-bar {
                 background-color: #383838;
@@ -504,14 +504,14 @@ class MainWindow(QMainWindow):
                 background-color: #383838;
             }
             QTabBar::tab {
-                background-color: #3E3E3E;
+                background-color: #2D2D2D;
                 color: #888888;
                 padding: 6px 12px;
                 border: none;
                 margin-right: 2px;
             }
             QTabBar::tab:selected {
-                background-color: #2D2D2D;
+                background-color: #3E3E3E;
                 color: #CCCCCC;
             }
         """)
@@ -533,7 +533,7 @@ class MainWindow(QMainWindow):
             }
             QTabWidget::pane {
                 border: none;
-                background-color: #2D2D2D;
+                background-color: #3E3E3E;
             }
             QTabWidget::tab-bar {
                 background-color: #383838;
@@ -543,14 +543,14 @@ class MainWindow(QMainWindow):
                 background-color: #383838;
             }
             QTabBar::tab {
-                background-color: #3E3E3E;
+                background-color: #2D2D2D;
                 color: #888888;
                 padding: 6px 12px;
                 border: none;
                 margin-right: 2px;
             }
             QTabBar::tab:selected {
-                background-color: #2D2D2D;
+                background-color: #3E3E3E;
                 color: #CCCCCC;
             }
         """)

@@ -495,6 +495,11 @@ class InspectorPanel(QWidget):
         field.setPlainText(value)
         field.setMaximumHeight(100)
         field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+
+        # Enable context menu for external editor
+        field.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        field.customContextMenuRequested.connect(lambda pos: self._show_text_editor_context_menu(field, pos))
+
         # Text areas update when focus is lost (avoid spamming API)
         # Use proper method instead of lambda to handle exceptions
         original_focus_out = field.focusOutEvent
@@ -1106,6 +1111,8 @@ class InspectorPanel(QWidget):
         self.art_gallery.setIconSize(QSize(80, 80))
         self.art_gallery.setSpacing(8)
         self.art_gallery.setMaximumHeight(200)
+        self.art_gallery.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.art_gallery.customContextMenuRequested.connect(self._show_image_context_menu)
         self.art_gallery.setStyleSheet("""
             QListWidget {
                 background: #2a2a2a;
@@ -1388,6 +1395,8 @@ class InspectorPanel(QWidget):
 
         self.mmcr_audio = QListWidget()
         self.mmcr_audio.setMaximumHeight(80)
+        self.mmcr_audio.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.mmcr_audio.customContextMenuRequested.connect(self._show_audio_context_menu)
         self.mmcr_audio.setStyleSheet("""
             QListWidget {
                 background: #2a2a2a;
@@ -1742,4 +1751,231 @@ class InspectorPanel(QWidget):
         print(f"Metadata for {entity_id}:")
         for key, value in metadata.items():
             print(f"  {key}: {value}")
+
+    def _show_text_editor_context_menu(self, text_widget, pos):
+        """Show context menu with 'Open in External Editor' option."""
+        from PyQt6.QtWidgets import QMenu
+        from PyQt6.QtGui import QAction
+
+        menu = QMenu(text_widget)
+
+        # Add standard edit actions safely
+        try:
+            standard_menu = text_widget.createStandardContextMenu()
+            if standard_menu:
+                for action in standard_menu.actions():
+                    if action.text():
+                        menu.addAction(action)
+                menu.addSeparator()
+        except Exception as e:
+            print(f"Error creating standard context menu: {e}")
+
+        # External editor action
+        external_action = QAction("View in External Editor", menu)
+        external_action.triggered.connect(lambda: self._view_in_external_text_editor(text_widget))
+        menu.addAction(external_action)
+
+        menu.exec(text_widget.mapToGlobal(pos))
+
+    def _view_in_external_text_editor(self, text_widget):
+        """View text in external editor (read-only snapshot)."""
+        import tempfile
+        import subprocess
+        import json
+        from pathlib import Path
+
+        # Get external editor path from settings
+        settings_file = Path.home() / ".noodlestudio" / "settings.json"
+        editor_path = None
+
+        if settings_file.exists():
+            try:
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                    editor_path = settings.get('external_apps', {}).get('text_editor')
+            except:
+                pass
+
+        if not editor_path or not Path(editor_path).exists():
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "No Text Editor Configured",
+                "Please configure a text editor in:\nSettings → External Applications"
+            )
+            return
+
+        # Create temp file with current text
+        temp_fd, temp_path = tempfile.mkstemp(suffix='.txt', prefix='noodlestudio_view_')
+        with open(temp_path, 'w') as f:
+            f.write(text_widget.toPlainText())
+
+        print(f"[ExternalEditor] Viewing in editor: {temp_path}")
+
+        # Open in external editor
+        try:
+            subprocess.Popen(['open', '-a', editor_path, temp_path])
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Failed to Open Editor", f"Error: {e}")
+
+    def _show_image_context_menu(self, pos):
+        """Show context menu for images in gallery."""
+        from PyQt6.QtWidgets import QMenu
+        from PyQt6.QtGui import QAction
+
+        current_item = self.art_gallery.currentItem()
+        if not current_item:
+            return
+
+        menu = QMenu(self.art_gallery)
+
+        # Open in image editor
+        edit_action = QAction("Open in Image Editor", menu)
+        edit_action.triggered.connect(lambda: self._open_image_in_editor(current_item))
+        menu.addAction(edit_action)
+
+        menu.addSeparator()
+
+        # Remove from gallery
+        remove_action = QAction("Remove from Gallery", menu)
+        remove_action.triggered.connect(lambda: self.remove_art_from_gallery())
+        menu.addAction(remove_action)
+
+        menu.exec(self.art_gallery.mapToGlobal(pos))
+
+    def _open_image_in_editor(self, list_item):
+        """Open image in external editor, watch for changes."""
+        import subprocess
+        import json
+        from pathlib import Path
+        from PyQt6.QtCore import QFileSystemWatcher
+
+        # Get image path from item data
+        image_path = list_item.data(Qt.ItemDataRole.UserRole)
+        if not image_path or not Path(image_path).exists():
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Image Not Found", f"Image file not found: {image_path}")
+            return
+
+        # Get external image editor from settings
+        settings_file = Path.home() / ".noodlestudio" / "settings.json"
+        editor_path = None
+
+        if settings_file.exists():
+            try:
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                    editor_path = settings.get('external_apps', {}).get('image_editor')
+            except:
+                pass
+
+        if not editor_path or not Path(editor_path).exists():
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "No Image Editor Configured",
+                "Please configure an image editor in:\nSettings → External Applications"
+            )
+            return
+
+        # Open in external editor
+        try:
+            subprocess.Popen(['open', '-a', editor_path, image_path])
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Failed to Open Editor", f"Error: {e}")
+            return
+
+        # Watch image file for changes
+        watcher = QFileSystemWatcher([image_path])
+
+        def on_image_changed(path):
+            """Reload thumbnail when image changes."""
+            try:
+                # Reload the pixmap
+                pixmap = QPixmap(path)
+                if not pixmap.isNull():
+                    icon = QIcon(pixmap)
+                    list_item.setIcon(icon)
+                    print(f"Image reloaded: {path}")
+            except Exception as e:
+                print(f"Error reloading image: {e}")
+
+        watcher.fileChanged.connect(on_image_changed)
+
+        # Keep watcher alive
+        if not hasattr(self, '_file_watchers'):
+            self._file_watchers = []
+        self._file_watchers.append((watcher, image_path))
+
+    def _show_audio_context_menu(self, pos):
+        """Show context menu for audio files."""
+        from PyQt6.QtWidgets import QMenu
+        from PyQt6.QtGui import QAction
+
+        current_item = self.mmcr_audio.currentItem()
+        if not current_item:
+            return
+
+        menu = QMenu(self.mmcr_audio)
+
+        # Open in audio editor
+        edit_action = QAction("Open in Audio Editor", menu)
+        edit_action.triggered.connect(lambda: self._open_audio_in_editor(current_item))
+        menu.addAction(edit_action)
+
+        menu.addSeparator()
+
+        # Remove from list
+        remove_action = QAction("Remove from List", menu)
+        remove_action.triggered.connect(lambda: self.remove_media_from_mmcr())
+        menu.addAction(remove_action)
+
+        menu.exec(self.mmcr_audio.mapToGlobal(pos))
+
+    def _open_audio_in_editor(self, list_item):
+        """Open audio file in external editor."""
+        import subprocess
+        import json
+        from pathlib import Path
+
+        # Get audio path from item text (for now - might need UserRole data)
+        audio_path = list_item.text()
+        if not Path(audio_path).exists():
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Audio File Not Found", f"File not found: {audio_path}")
+            return
+
+        # Get external audio editor from settings
+        settings_file = Path.home() / ".noodlestudio" / "settings.json"
+        editor_path = None
+
+        if settings_file.exists():
+            try:
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                    editor_path = settings.get('external_apps', {}).get('audio_editor')
+            except:
+                pass
+
+        if not editor_path or not Path(editor_path).exists():
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "No Audio Editor Configured",
+                "Please configure an audio editor in:\nSettings → External Applications"
+            )
+            return
+
+        # Open in external editor
+        try:
+            subprocess.Popen(['open', '-a', editor_path, audio_path])
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Failed to Open Editor", f"Error: {e}")
+            return
+
+        # Note: Audio files don't need live reload like images do
+        # User will manually re-add if they want updated version
 
