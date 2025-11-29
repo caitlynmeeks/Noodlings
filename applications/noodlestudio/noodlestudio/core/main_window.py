@@ -387,7 +387,28 @@ class MainWindow(QMainWindow):
         left_tabs.addTab(self.hierarchy, "Stage")
         left_tabs.addTab(self.assets, "Assets")
 
-        # CENTER: World View (no header, full vertical space)
+        # CENTER: Tabbed widget for World View + Facets Editor
+        center_tabs = QTabWidget()
+        center_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        center_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: none;
+                background: #383838;
+            }
+            QTabBar::tab {
+                background: #3a3a3a;
+                color: #888888;
+                padding: 8px 16px;
+                border: none;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #3E3E3E;
+                color: #D2D2D2;
+            }
+        """)
+
+        # World View tab (WebView)
         world_widget = QWidget()
         world_layout = QVBoxLayout(world_widget)
         world_layout.setContentsMargins(0, 0, 0, 0)
@@ -404,6 +425,16 @@ class MainWindow(QMainWindow):
             placeholder.setStyleSheet("color: #999; font-size: 14px;")
             world_layout.addWidget(placeholder)
             self.web_view = None
+
+        center_tabs.addTab(world_widget, "World")
+
+        # Facets Editor tab
+        from ..panels.facets_editor_panel import FacetsEditorPanel
+        self.facets_editor = FacetsEditorPanel()
+        center_tabs.addTab(self.facets_editor, "Facets Editor")
+
+        # Store reference to center tabs for access
+        self.center_tabs = center_tabs
 
         # Create stub for compatibility
         class WorldViewStub:
@@ -564,7 +595,7 @@ class MainWindow(QMainWindow):
         # Create horizontal splitter for left | center | right
         top_splitter = QSplitter(Qt.Orientation.Horizontal)
         top_splitter.addWidget(left_tabs)
-        top_splitter.addWidget(world_widget)
+        top_splitter.addWidget(center_tabs)
         top_splitter.addWidget(right_tabs)
         top_splitter.setStretchFactor(0, 0)  # Left fixed width
         top_splitter.setStretchFactor(1, 1)  # Center stretches
@@ -1751,6 +1782,66 @@ class MainWindow(QMainWindow):
             agent_id = entity_data.get('id', '')
             if agent_id:
                 self.noodle_tuner.set_agent(agent_id)
+
+        # Also update Facets Editor
+        self.on_entity_selected_for_facets_editor(entity_type, entity_data)
+
+    def on_entity_selected_for_facets_editor(self, entity_type: str, entity_data: dict):
+        """Update Facets Editor when a noodling is selected in hierarchy."""
+        if not hasattr(self, 'facets_editor'):
+            return
+
+        # Only load facet assemblies for noodlings
+        if entity_type == 'noodling':
+            agent_id = entity_data.get('id', '')
+            if agent_id:
+                import os
+                from ..core.facet_system import FacetAssembly
+
+                # Check if agent has facet_assembly reference
+                config = entity_data.get('config', {})
+                facet_assembly_config = config.get('facet_assembly')
+
+                assembly_filename = None
+                if facet_assembly_config:
+                    # Agent has facet assembly reference
+                    ref = facet_assembly_config.get('ref')
+                    if ref:
+                        assembly_filename = f"{ref}.yaml"
+                        print(f"[Facets Editor] Loading assembly from ref: {assembly_filename}")
+
+                # Fallback to default if no reference
+                if not assembly_filename:
+                    assembly_filename = "anklebiter_default.yaml"
+                    print(f"[Facets Editor] No assembly ref, using default: {assembly_filename}")
+
+                # Build path to assembly file (up to noodlestudio/ then into facet_assemblies/)
+                assembly_path = os.path.join(
+                    os.path.dirname(__file__),
+                    '../../facet_assemblies',
+                    assembly_filename
+                )
+                print(f"[Facets Editor] Looking for assembly at: {assembly_path}")
+
+                if os.path.exists(assembly_path):
+                    try:
+                        assembly = FacetAssembly.load_yaml(assembly_path)
+
+                        # Load assembly (will skip if already loaded)
+                        was_loaded = self.facets_editor.current_assembly_name == assembly.name
+                        self.facets_editor.load_assembly_from_data(assembly)
+
+                        # Only switch to Facets Editor tab if this is a NEW assembly load
+                        # (Don't switch on periodic refreshes)
+                        if not was_loaded:
+                            self.center_tabs.setCurrentWidget(self.facets_editor)
+                            print(f"[Facets Editor] Loaded NEW assembly: {assembly.name}")
+                    except Exception as e:
+                        print(f"[Facets Editor] Error loading facet assembly: {e}")
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    print(f"[Facets Editor] Assembly file not found: {assembly_path}")
 
     def show_credits(self):
         """Show demo scene style credits with music."""

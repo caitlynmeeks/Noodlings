@@ -231,13 +231,16 @@ class NoodleScopeAPI:
             # Get location from agent's current_room attribute
             location = getattr(agent, 'current_room', None)
 
-            # Get description and personality from world.agents if available
+            # Get description, personality, and config from world.agents if available
             description = None
             personality_traits = None
+            config = None
             if hasattr(self.agent_manager, 'world') and self.agent_manager.world:
                 if agent_id in self.agent_manager.world.agents:
-                    description = self.agent_manager.world.agents[agent_id].get('description')
-                    personality_traits = self.agent_manager.world.agents[agent_id].get('personality_traits')
+                    world_agent = self.agent_manager.world.agents[agent_id]
+                    description = world_agent.get('description')
+                    personality_traits = world_agent.get('personality_traits')
+                    config = world_agent.get('config', {})
 
             agents_data.append({
                 'id': agent_id,
@@ -248,7 +251,8 @@ class NoodleScopeAPI:
                 'llm_provider': agent.llm_provider,
                 'llm_model': agent.llm_model,
                 'current_room': location,
-                'location': location  # Alias for compatibility
+                'location': location,  # Alias for compatibility
+                'config': config  # Include full config (contains facet_assembly)
             })
 
         return web.json_response({'agents': agents_data})

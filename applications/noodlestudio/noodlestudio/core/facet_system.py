@@ -1,0 +1,473 @@
+"""
+Facet System - Node-based cognitive architecture
+
+A facet is a discrete cognitive transformation - like a lens that colors
+information passing through it. Facets connect in assemblies to form
+complex cognitive topologies.
+
+Terminology:
+- Facet: Individual cognitive transformation node (replaces "transistor")
+- Facet Assembly: Connected network of facets
+- Convergence: Special facet that merges multiple inputs
+- Pad: Input/output connection point on a facet
+- INCOMING: Special node where information enters
+- OUTGOING: Special node where final response exits
+
+Author: Commander Spock + Cadet Caity
+Date: November 28, 2025
+"""
+
+from dataclasses import dataclass, field
+from typing import List, Dict, Any, Optional, Set
+from enum import Enum
+import uuid
+import time
+
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
+    yaml = None
+
+
+class PadType(Enum):
+    """Type of connection pad."""
+    INPUT = "input"
+    OUTPUT = "output"
+
+
+@dataclass
+class FacetPad:
+    """Connection point on a facet."""
+    name: str                    # Pad identifier (e.g., "context", "awareness", "affect")
+    pad_type: PadType           # INPUT or OUTPUT
+    description: str = ""        # Human-readable description
+    required: bool = True        # Is this pad required to be connected?
+
+    # Runtime connection tracking
+    connected_to: List[str] = field(default_factory=list)  # List of "facet_id.pad_name"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize to dictionary."""
+        return {
+            'name': self.name,
+            'type': self.pad_type.value,
+            'description': self.description,
+            'required': self.required
+        }
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'FacetPad':
+        """Deserialize from dictionary."""
+        return FacetPad(
+            name=data['name'],
+            pad_type=PadType(data['type']),
+            description=data.get('description', ''),
+            required=data.get('required', True)
+        )
+
+
+@dataclass
+class FacetConnection:
+    """Connection between two facet pads."""
+    from_facet: str      # Source facet ID
+    from_pad: str        # Source pad name
+    to_facet: str        # Destination facet ID
+    to_pad: str          # Destination pad name
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize to dictionary."""
+        return {
+            'from': f"{self.from_facet}.{self.from_pad}",
+            'to': f"{self.to_facet}.{self.to_pad}"
+        }
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'FacetConnection':
+        """Deserialize from dictionary."""
+        from_parts = data['from'].split('.')
+        to_parts = data['to'].split('.')
+        return FacetConnection(
+            from_facet=from_parts[0],
+            from_pad='.'.join(from_parts[1:]),
+            to_facet=to_parts[0],
+            to_pad='.'.join(to_parts[1:])
+        )
+
+
+@dataclass
+class Facet:
+    """
+    A single cognitive facet - transforms information like a lens.
+
+    Each facet:
+    - Has a unique UUID
+    - Contains a prompt that defines its transformation
+    - Has input and output pads for connections
+    - Can be positioned visually in the editor
+    - Tracks token usage and execution statistics
+    """
+    id: str                              # Unique UUID identifier
+    name: str                            # Display name
+    facet_type: str                      # Type (IntuitionFacet, EmotionFacet, etc.)
+    prompt: str                          # LLM prompt defining transformation
+
+    # LLM parameters
+    model: str = "qwen/qwen3-4b-2507"   # Which LLM to use
+    temperature: float = 0.7             # Sampling temperature
+    max_tokens: int = 150                # Max output length
+
+    # Connection pads
+    input_pads: List[FacetPad] = field(default_factory=list)
+    output_pads: List[FacetPad] = field(default_factory=list)
+
+    # Visual editor metadata
+    position: Dict[str, float] = field(default_factory=lambda: {'x': 0, 'y': 0})
+    color: str = "#64B5F6"              # Visual color (for editor only)
+
+    # Runtime state
+    enabled: bool = True
+
+    # Execution statistics (not serialized to YAML)
+    _execution_count: int = field(default=0, repr=False)
+    _total_tokens: int = field(default=0, repr=False)
+    _total_execution_time: float = field(default=0.0, repr=False)
+    _last_token_count: int = field(default=0, repr=False)
+    _last_execution_time: float = field(default=0.0, repr=False)
+    _last_output: Optional[Dict[str, Any]] = field(default=None, repr=False)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize to dictionary for YAML export."""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'type': self.facet_type,
+            'prompt': self.prompt,
+            'model': self.model,
+            'temperature': self.temperature,
+            'max_tokens': self.max_tokens,
+            'inputs': [pad.to_dict() for pad in self.input_pads],
+            'outputs': [pad.to_dict() for pad in self.output_pads],
+            'position': self.position,
+            'color': self.color,
+            'enabled': self.enabled
+        }
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'Facet':
+        """Deserialize from dictionary."""
+        return Facet(
+            id=data['id'],
+            name=data['name'],
+            facet_type=data['type'],
+            prompt=data['prompt'],
+            model=data.get('model', 'qwen/qwen3-4b-2507'),
+            temperature=data.get('temperature', 0.7),
+            max_tokens=data.get('max_tokens', 150),
+            input_pads=[FacetPad.from_dict(p) for p in data.get('inputs', [])],
+            output_pads=[FacetPad.from_dict(p) for p in data.get('outputs', [])],
+            position=data.get('position', {'x': 0, 'y': 0}),
+            color=data.get('color', '#64B5F6'),
+            enabled=data.get('enabled', True)
+        )
+
+    def add_input_pad(self, name: str, description: str = "", required: bool = True):
+        """Add an input pad to this facet."""
+        self.input_pads.append(FacetPad(
+            name=name,
+            pad_type=PadType.INPUT,
+            description=description,
+            required=required
+        ))
+
+    def add_output_pad(self, name: str, description: str = ""):
+        """Add an output pad to this facet."""
+        self.output_pads.append(FacetPad(
+            name=name,
+            pad_type=PadType.OUTPUT,
+            description=description
+        ))
+
+    def record_execution(self, token_count: int, execution_time: float, outputs: Dict[str, Any]):
+        """
+        Record execution statistics for this facet.
+
+        Args:
+            token_count: Number of tokens used by LLM (0 for non-LLM facets)
+            execution_time: Time taken in seconds
+            outputs: Output values generated
+        """
+        self._execution_count += 1
+        self._total_tokens += token_count
+        self._total_execution_time += execution_time
+        self._last_token_count = token_count
+        self._last_execution_time = execution_time
+        self._last_output = outputs
+
+    def get_token_usage(self) -> Dict[str, Any]:
+        """Get token usage statistics."""
+        return {
+            'last_tokens': self._last_token_count,
+            'total_tokens': self._total_tokens,
+            'execution_count': self._execution_count,
+            'avg_tokens': (
+                self._total_tokens / self._execution_count
+                if self._execution_count > 0 else 0
+            )
+        }
+
+    def get_execution_stats(self) -> Dict[str, Any]:
+        """Get comprehensive execution statistics."""
+        return {
+            'execution_count': self._execution_count,
+            'total_tokens': self._total_tokens,
+            'avg_tokens': (
+                self._total_tokens / self._execution_count
+                if self._execution_count > 0 else 0
+            ),
+            'total_time': self._total_execution_time,
+            'avg_time': (
+                self._total_execution_time / self._execution_count
+                if self._execution_count > 0 else 0
+            ),
+            'last_tokens': self._last_token_count,
+            'last_time': self._last_execution_time
+        }
+
+    def get_last_output(self) -> Optional[Dict[str, Any]]:
+        """Get last output values."""
+        return self._last_output
+
+    def reset_stats(self):
+        """Reset execution statistics."""
+        self._execution_count = 0
+        self._total_tokens = 0
+        self._total_execution_time = 0.0
+        self._last_token_count = 0
+        self._last_execution_time = 0.0
+        self._last_output = None
+
+    @staticmethod
+    def generate_uuid() -> str:
+        """Generate a new UUID for facet ID."""
+        return str(uuid.uuid4())
+
+
+@dataclass
+class FacetAssembly:
+    """
+    A complete cognitive architecture - network of connected facets.
+
+    Like a Unity prefab, can be saved/loaded as YAML and shared.
+    """
+    name: str                            # Assembly name
+    version: str = "1.0.0"              # Version for compatibility
+    description: str = ""                # Human-readable description
+    author: str = ""                     # Creator name
+    tags: List[str] = field(default_factory=list)  # Searchable tags
+
+    # The network
+    facets: List[Facet] = field(default_factory=list)
+    connections: List[FacetConnection] = field(default_factory=list)
+
+    # Metadata
+    created_date: str = ""
+    modified_date: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize to dictionary for YAML export."""
+        return {
+            'name': self.name,
+            'version': self.version,
+            'description': self.description,
+            'author': self.author,
+            'tags': self.tags,
+            'created': self.created_date,
+            'modified': self.modified_date,
+            'facets': [f.to_dict() for f in self.facets],
+            'connections': [c.to_dict() for c in self.connections]
+        }
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'FacetAssembly':
+        """Deserialize from dictionary."""
+        return FacetAssembly(
+            name=data['name'],
+            version=data.get('version', '1.0.0'),
+            description=data.get('description', ''),
+            author=data.get('author', ''),
+            tags=data.get('tags', []),
+            created_date=data.get('created', ''),
+            modified_date=data.get('modified', ''),
+            facets=[Facet.from_dict(f) for f in data.get('facets', [])],
+            connections=[FacetConnection.from_dict(c) for c in data.get('connections', [])]
+        )
+
+    def save_yaml(self, filepath: str):
+        """Save assembly to YAML file."""
+        if not YAML_AVAILABLE:
+            raise ImportError("PyYAML not installed. Install with: pip install PyYAML")
+        with open(filepath, 'w') as f:
+            yaml.dump(self.to_dict(), f, default_flow_style=False, sort_keys=False)
+
+    @staticmethod
+    def load_yaml(filepath: str) -> 'FacetAssembly':
+        """Load assembly from YAML file."""
+        if not YAML_AVAILABLE:
+            raise ImportError("PyYAML not installed. Install with: pip install PyYAML")
+        with open(filepath, 'r') as f:
+            data = yaml.safe_load(f)
+        return FacetAssembly.from_dict(data)
+
+    def get_facet(self, facet_id: str) -> Optional[Facet]:
+        """Get facet by ID."""
+        for facet in self.facets:
+            if facet.id == facet_id:
+                return facet
+        return None
+
+    def validate(self) -> List[str]:
+        """
+        Validate assembly structure.
+
+        Returns:
+            List of error messages (empty if valid)
+        """
+        errors = []
+
+        # Check for INCOMING and OUTGOING nodes
+        has_incoming = any(f.id == 'INCOMING' for f in self.facets)
+        has_outgoing = any(f.id == 'OUTGOING' for f in self.facets)
+
+        if not has_incoming:
+            errors.append("Missing INCOMING node")
+        if not has_outgoing:
+            errors.append("Missing OUTGOING node")
+
+        # Check for disconnected required pads
+        for facet in self.facets:
+            for pad in facet.input_pads:
+                if pad.required and not pad.connected_to:
+                    errors.append(f"Facet '{facet.name}' has unconnected required input '{pad.name}'")
+
+        # Check for cycles (would cause deadlock)
+        if self._has_cycle():
+            errors.append("Assembly contains cycle - would cause deadlock")
+
+        return errors
+
+    def _has_cycle(self) -> bool:
+        """Detect cycles in the facet graph using DFS."""
+        # Build adjacency list
+        graph = {f.id: [] for f in self.facets}
+        for conn in self.connections:
+            graph[conn.from_facet].append(conn.to_facet)
+
+        # DFS cycle detection
+        visited = set()
+        rec_stack = set()
+
+        def dfs(node: str) -> bool:
+            visited.add(node)
+            rec_stack.add(node)
+
+            for neighbor in graph.get(node, []):
+                if neighbor not in visited:
+                    if dfs(neighbor):
+                        return True
+                elif neighbor in rec_stack:
+                    return True
+
+            rec_stack.remove(node)
+            return False
+
+        for facet in self.facets:
+            if facet.id not in visited:
+                if dfs(facet.id):
+                    return True
+
+        return False
+
+
+def create_default_assembly() -> FacetAssembly:
+    """
+    Create a simple default assembly for testing.
+
+    Flow: INCOMING → Intuition → OUTGOING
+    """
+    assembly = FacetAssembly(
+        name="Simple Test Assembly",
+        description="Minimal assembly for testing",
+        author="Noodlings System"
+    )
+
+    # Generate UUIDs for nodes
+    incoming_id = Facet.generate_uuid()
+    intuition_id = Facet.generate_uuid()
+    outgoing_id = Facet.generate_uuid()
+
+    # INCOMING node (special)
+    incoming = Facet(
+        id=incoming_id,
+        name="INCOMING",
+        facet_type="SpecialNode",
+        prompt="",
+        position={'x': 100, 'y': 300}
+    )
+    incoming.add_output_pad("out", "Raw incoming context")
+    assembly.facets.append(incoming)
+
+    # Simple intuition facet
+    intuition = Facet(
+        id=intuition_id,
+        name="Intuition",
+        facet_type="IntuitionFacet",
+        prompt="Analyze the contextual awareness and provide intuitive insights.",
+        position={'x': 400, 'y': 300}
+    )
+    intuition.add_input_pad("context", "Incoming context")
+    intuition.add_output_pad("awareness", "Intuitive awareness")
+    assembly.facets.append(intuition)
+
+    # OUTGOING node (special)
+    outgoing = Facet(
+        id=outgoing_id,
+        name="OUTGOING",
+        facet_type="SpecialNode",
+        prompt="",
+        position={'x': 700, 'y': 300}
+    )
+    outgoing.add_input_pad("in", "Final response")
+    assembly.facets.append(outgoing)
+
+    # Connections
+    assembly.connections.append(FacetConnection(incoming_id, "out", intuition_id, "context"))
+    assembly.connections.append(FacetConnection(intuition_id, "awareness", outgoing_id, "in"))
+
+    return assembly
+
+
+if __name__ == "__main__":
+    # Test: Create and save example assembly
+    assembly = create_default_assembly()
+    print("Created assembly:", assembly.name)
+    print("Facets:", len(assembly.facets))
+    print("Connections:", len(assembly.connections))
+
+    # Validate
+    errors = assembly.validate()
+    if errors:
+        print("Validation errors:")
+        for error in errors:
+            print(f"  - {error}")
+    else:
+        print("Assembly is valid!")
+
+    # Save to YAML
+    assembly.save_yaml("/tmp/test_assembly.yaml")
+    print("Saved to /tmp/test_assembly.yaml")
+
+    # Load back
+    loaded = FacetAssembly.load_yaml("/tmp/test_assembly.yaml")
+    print(f"Loaded assembly: {loaded.name}")
