@@ -21,19 +21,94 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Exception: Only if user explicitly requests emojis for a specific use case
 - Keep communication professional and text-based
 
-## ACTIVE SESSION HANDOFF - November 29, 2025
+## ACTIVE SESSION HANDOFF - November 29, 2025 (Evening Session)
 
-**Status**: Facet Assembly System - Node-Based Cognitive Architecture!
+**Status**: Facets Editor Bug Fixes & Per-Agent Cognition Pause System Design
 
 Fresh Claude starting? Read this section first!
 
-### Session Summary (November 28-29, 2025):
+### Session Summary (November 29, 2025 - Evening):
 
-**MAJOR BREAKTHROUGH**: Complete transition from fixed cognitive transistors to visual facet assembly system!
+**Bug fixes completed, system stable. Planning per-agent cognition pause for field editing.**
 
 ---
 
-## Today's Accomplishments (Nov 29, 2025):
+## Today's Accomplishments (Nov 29, 2025 - Evening Session):
+
+**1. CRITICAL BUG FIXES - Facets Editor Stability**
+
+Fixed crash and rendering issues in visual facet editor:
+
+**Crash Fix:**
+- **Problem**: Clicking blank area to deselect facets caused immediate crash
+- **Root Cause**: `collapse_all_nodes()` attempted to access nonexistent `expanded` attribute and call nonexistent `collapse_from_editing()` method
+- **Solution**: Modified `collapse_all_nodes()` to call existing `hide_fields()` method instead
+- **Location**: `facets_editor_panel.py:1310-1314`
+
+**Special Node Improvements (INCOMING/OUTGOING):**
+- **Vertical size**: Reduced from 60px → 35px (tight, minimal)
+- **Text styling**: 14pt bold (vs 11pt regular), center-aligned with symmetric padding
+- **Type label**: Removed "SpecialNode" label entirely for cleaner appearance
+- **Output pad positioning**: Fixed floating pad bug - now uses correct node height
+
+**Field Display (F Key):**
+- **Status**: Confirmed working correctly
+- **Shows**: Processing Prompt field with pencil icon (✎) for editing
+- **Expands**: Node grows vertically to accommodate field display
+- **Z-order**: Fields render at z=10 to appear above node background
+
+**Files Modified:**
+- `facets_editor_panel.py` - Core stability fixes, special node styling
+- Commit: `e56cd19` - "fix: Facets Editor stability and special node styling"
+
+---
+
+## NEXT SESSION - CRITICAL PRIORITY:
+
+### Per-Agent Cognition Pause System
+
+**Context**: User wants to edit facet output fields when cognition is paused, similar to NoodleTuner's pause functionality.
+
+**Architecture Discovery:**
+- Agents run as **asyncio tasks** (not OS threads) via `asyncio.create_task(_cognition_loop())`
+- Concurrent but not parallel - share event loop
+- Pause system already exists: `POST /api/cognition/pause` with optional `agent_id` parameter
+- Current NoodleTuner implementation pauses ALL agents globally
+- API supports per-agent pause: `{'agent_id': 'xxx', 'paused': True}`
+
+**Implementation Plan:**
+
+1. **Facets Editor Pause Controls**
+   - Add pause/resume button to Facets Editor toolbar
+   - Button text: "⏸ Pause Cognition" / "▶ Resume Cognition"
+   - Only pause the agent whose assembly is currently being edited
+   - Use existing API: `POST /api/cognition/pause` with `agent_id`
+
+2. **Output Field Editability**
+   - Currently: Output fields in facets are read-only
+   - When paused: Make output fields editable (`read_only=False`)
+   - Show visual indicator: Yellow border or background tint on editable fields
+   - Store edited values, apply when resumed (similar to NoodleTuner pattern)
+
+3. **Scripting API Wrapper**
+   - Create convenience method: `red.getComponent('noodle').pauseCognition()`
+   - Also: `red.getComponent('noodle').resumeCognition()`
+   - Makes pause/resume accessible from Python/JavaScript scripts
+   - Useful for automated testing and debugging workflows
+
+**Reference Implementation:**
+- See `noodle_tuner_panel.py:1002-1048` for NoodleTuner's pause logic
+- Pattern: Pause → Wait for cycle completion → Enable editing → Resume → Apply edits
+- API waits for current cycle to complete before pausing (prevents mid-cycle corruption)
+
+**User Ideas/TODO from Session:**
+- Should output fields be visible in facets alongside input/prompt fields? (Currently only prompt shows)
+- Console filter clearing itself - may be a bug in Console panel regex implementation
+- Undo system still needed for facet editing operations
+
+---
+
+## Previous Accomplishments (Nov 28-29, 2025 - Morning):
 
 **1. FACET ASSEMBLY SYSTEM - Complete Node-Based Architecture**
 
