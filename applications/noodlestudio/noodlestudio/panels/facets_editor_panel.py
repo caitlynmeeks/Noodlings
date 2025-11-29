@@ -119,7 +119,7 @@ class FacetNodeGraphics(QGraphicsRectItem):
 
     NODE_WIDTH = 200
     NODE_HEIGHT = 120
-    NODE_HEIGHT_COMPACT = 60  # For INCOMING/OUTGOING special nodes
+    NODE_HEIGHT_COMPACT = 35  # For INCOMING/OUTGOING special nodes (tight vertical)
     NODE_HEIGHT_EXPANDED = 400  # Height when expanded for editing
     PAD_SPACING = 25
 
@@ -163,21 +163,35 @@ class FacetNodeGraphics(QGraphicsRectItem):
 
         # Title text (brighter/bolder for special nodes)
         self.title = QGraphicsTextItem(facet.name, self)
-        self.title.setPos(10, 5)
-        if is_special:
-            self.title.setDefaultTextColor(QColor("#CCCCCC"))  # Brighter for special nodes
-            font = QFont("Arial", 12, QFont.Weight.Bold)
-        else:
-            self.title.setDefaultTextColor(QColor("#FFFFFF"))
-            font = QFont("Arial", 11, QFont.Weight.Bold)
-        self.title.setFont(font)
+        font = QFont("Arial", 11, QFont.Weight.Bold)
 
-        # Type label
-        self.type_label = QGraphicsTextItem(facet.facet_type, self)
-        self.type_label.setPos(10, 25)
-        self.type_label.setDefaultTextColor(QColor("#AAAAAA"))
-        type_font = QFont("Arial", 9)
-        self.type_label.setFont(type_font)
+        if is_special:
+            # Special nodes: larger, bold, center-aligned, symmetric padding
+            font = QFont("Arial", 14, QFont.Weight.Bold)
+            self.title.setFont(font)
+            self.title.setDefaultTextColor(QColor("#FFFFFF"))
+
+            # Calculate center position for text
+            text_width = self.title.boundingRect().width()
+            text_height = self.title.boundingRect().height()
+            x_center = (self.NODE_WIDTH - text_width) / 2
+            y_center = (self.NODE_HEIGHT_COMPACT - text_height) / 2
+            self.title.setPos(x_center, y_center)
+        else:
+            # Regular nodes: left-aligned
+            self.title.setFont(font)
+            self.title.setDefaultTextColor(QColor("#FFFFFF"))
+            self.title.setPos(10, 5)
+
+        # Type label (hidden for special nodes)
+        if not is_special:
+            self.type_label = QGraphicsTextItem(facet.facet_type, self)
+            self.type_label.setPos(10, 25)
+            self.type_label.setDefaultTextColor(QColor("#AAAAAA"))
+            type_font = QFont("Arial", 9)
+            self.type_label.setFont(type_font)
+        else:
+            self.type_label = None  # No type label for special nodes
 
         # Field display widgets (created when zoomed in enough)
         self.field_widgets: List[QGraphicsItem] = []
@@ -201,6 +215,9 @@ class FacetNodeGraphics(QGraphicsRectItem):
 
     def _create_pads(self):
         """Create visual representations of input/output pads (vertical layout)."""
+        # Determine height based on node type
+        node_height = self.NODE_HEIGHT_COMPACT if self.is_special_node else self.NODE_HEIGHT
+
         # Input pads on top
         num_inputs = len(self.facet.input_pads)
         if num_inputs > 0:
@@ -224,12 +241,12 @@ class FacetNodeGraphics(QGraphicsRectItem):
             for i, pad in enumerate(self.facet.output_pads):
                 pad_graphics = FacetPadGraphics(pad, self, self)
                 x_pos = spacing * (i + 1)
-                pad_graphics.setPos(x_pos, self.NODE_HEIGHT)
+                pad_graphics.setPos(x_pos, node_height)
                 self.output_pads[pad.name] = pad_graphics
 
                 # Pad label (below pad)
                 label = QGraphicsTextItem(pad.name, self)
-                label.setPos(x_pos - 20, self.NODE_HEIGHT + 5)
+                label.setPos(x_pos - 20, node_height + 5)
                 label.setDefaultTextColor(QColor("#AAAAAA"))
                 label.setFont(QFont("Arial", 8))
 
@@ -304,8 +321,11 @@ class FacetNodeGraphics(QGraphicsRectItem):
         total_field_height = len(fields) * field_height
         required_height = 50 + total_field_height + 30  # Header + fields + pad space
 
+        # Get current node height
+        current_height = self.NODE_HEIGHT_COMPACT if self.is_special_node else self.NODE_HEIGHT
+
         # Expand node if needed to fit fields
-        if required_height > self.NODE_HEIGHT:
+        if required_height > current_height:
             self.setRect(0, 0, self.NODE_WIDTH, required_height)
             # Reposition output pads to new bottom
             num_outputs = len(self.output_pads)
@@ -329,6 +349,8 @@ class FacetNodeGraphics(QGraphicsRectItem):
             field_line.setPos(10, y_offset)
             field_line.setFont(QFont("Arial", 8))
             field_line.setTextWidth(self.NODE_WIDTH - 40)  # Leave room for pencil
+            field_line.setZValue(10)  # Ensure fields render above node background
+            field_line.setVisible(True)
             self.field_widgets.append(field_line)
 
             # Pencil button (clickable to open editor)
@@ -336,6 +358,8 @@ class FacetNodeGraphics(QGraphicsRectItem):
             pencil.setPos(self.NODE_WIDTH - 20, y_offset)
             pencil.setDefaultTextColor(QColor("#666666"))
             pencil.setFont(QFont("Arial", 10))
+            pencil.setZValue(10)  # Ensure pencil renders above node background
+            pencil.setVisible(True)
             self.field_widgets.append(pencil)
 
             y_offset += field_height
@@ -1308,10 +1332,10 @@ class FacetsEditorPanel(QWidget):
         print(f"[Facets Editor] Grid size: {size}px")
 
     def collapse_all_nodes(self):
-        """Collapse all expanded nodes."""
+        """Collapse all expanded nodes (hide fields on all nodes)."""
         for item in self.scene.items():
-            if isinstance(item, FacetNodeGraphics) and item.expanded:
-                item.collapse_from_editing()
+            if isinstance(item, FacetNodeGraphics):
+                item.hide_fields()
 
     def show_floating_editor(self, facet: Facet, field_data: dict):
         """
