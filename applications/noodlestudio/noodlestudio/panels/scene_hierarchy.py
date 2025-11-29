@@ -141,11 +141,6 @@ class SceneHierarchy(QWidget):
 
         layout.addWidget(self.tree)
 
-        # Refresh button
-        refresh_btn = QPushButton("Refresh Scene")
-        refresh_btn.clicked.connect(self.refresh_scene)
-        layout.addWidget(refresh_btn)
-
     def save_expanded_state(self):
         """Save which items are currently expanded and selected."""
         def get_expanded_paths(item, path=""):

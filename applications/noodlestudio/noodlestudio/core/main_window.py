@@ -156,23 +156,23 @@ class MainWindow(QMainWindow):
         # ===== VIEW MENU =====
         view_menu = menu_bar.addMenu("&View")
 
-        # Panel toggles
-        view_menu.addAction(self._create_action("Scene Hierarchy", "Ctrl+1", checkable=True, checked=True))
-        view_menu.addAction(self._create_action("World View", "Ctrl+2", checkable=True, checked=True))
-        view_menu.addAction(self._create_action("Inspector", "Ctrl+3", checkable=True, checked=True))
-        view_menu.addAction(self._create_action("Timeline Profiler", "Ctrl+4", checkable=True))
-        view_menu.addAction(self._create_action("Noodle Tuner", "Ctrl+5", checkable=True))
+        # Panel toggles - HIDDEN (layout is locked, panels always visible)
+        # view_menu.addAction(self._create_action("Scene Hierarchy", "Ctrl+1", checkable=True, checked=True))
+        # view_menu.addAction(self._create_action("World View", "Ctrl+2", checkable=True, checked=True))
+        # view_menu.addAction(self._create_action("Inspector", "Ctrl+3", checkable=True, checked=True))
+        # view_menu.addAction(self._create_action("Timeline Profiler", "Ctrl+4", checkable=True))
+        # view_menu.addAction(self._create_action("Noodle Tuner", "Ctrl+5", checkable=True))
+        # view_menu.addSeparator()
 
-        view_menu.addSeparator()
-
-        # Layout presets
-        layout_submenu = view_menu.addMenu("Layouts")
-        layout_submenu.addAction(self._create_action("Save Current Layout...", slot=self.save_current_layout))
-        layout_submenu.addAction(self._create_action("Set Current as Default", slot=self.set_current_as_default))
-        layout_submenu.addAction(self._create_action("Load Layout...", slot=self.load_layout_dialog))
-        layout_submenu.addSeparator()
-        layout_submenu.addAction(self._create_action("Reset to Default", slot=lambda: self.load_layout("Default")))
-        layout_submenu.addAction(self._create_action("Reset to Factory Default", slot=self.reset_to_factory_layout))
+        # Layout presets - HIDDEN (layout is now locked down)
+        # Keeping code for potential future use
+        # layout_submenu = view_menu.addMenu("Layouts")
+        # layout_submenu.addAction(self._create_action("Save Current Layout...", slot=self.save_current_layout))
+        # layout_submenu.addAction(self._create_action("Set Current as Default", slot=self.set_current_as_default))
+        # layout_submenu.addAction(self._create_action("Load Layout...", slot=self.load_layout_dialog))
+        # layout_submenu.addSeparator()
+        # layout_submenu.addAction(self._create_action("Reset to Default", slot=lambda: self.load_layout("Default")))
+        # layout_submenu.addAction(self._create_action("Reset to Factory Default", slot=self.reset_to_factory_layout))
 
         # ===== ENTITIES MENU (like Unity's GameObject) =====
         entities_menu = menu_bar.addMenu("&Entities")
@@ -215,18 +215,18 @@ class MainWindow(QMainWindow):
         window_menu.addAction(self._create_action("Minimize", "Ctrl+M", self.showMinimized))
         window_menu.addAction(self._create_action("Zoom", slot=self.showMaximized))
         window_menu.addSeparator()
-        # Panel visibility shortcuts (Cmd+Number)
-        window_menu.addAction(self._create_action("Stage Hierarchy", "Cmd+1", lambda: self._toggle_panel(self.hierarchy)))
-        window_menu.addAction(self._create_action("Assets", "Cmd+2", lambda: self._toggle_panel(self.assets)))
-        window_menu.addAction(self._create_action("World View", "Cmd+3", lambda: self._toggle_panel(self.world_view)))
-        window_menu.addAction(self._create_action("Inspector", "Cmd+4", lambda: self._toggle_panel(self.inspector)))
-        window_menu.addAction(self._create_action("Noodle Tuner", "Cmd+5", lambda: self._toggle_panel(self.noodle_tuner)))
-        window_menu.addAction(self._create_action("Console", "Cmd+6", lambda: self._toggle_panel(self.console)))
-        window_menu.addAction(self._create_action("Timeline Profiler", "Cmd+7", lambda: self._toggle_panel(self.profiler_panel)))
-        window_menu.addSeparator()
+        # Panel visibility shortcuts - HIDDEN (layout is locked, panels always visible)
+        # window_menu.addAction(self._create_action("Stage Hierarchy", "Cmd+1", lambda: self._toggle_panel(self.hierarchy)))
+        # window_menu.addAction(self._create_action("Assets", "Cmd+2", lambda: self._toggle_panel(self.assets)))
+        # window_menu.addAction(self._create_action("World View", "Cmd+3", lambda: self._toggle_panel(self.world_view)))
+        # window_menu.addAction(self._create_action("Inspector", "Cmd+4", lambda: self._toggle_panel(self.inspector)))
+        # window_menu.addAction(self._create_action("Noodle Tuner", "Cmd+5", lambda: self._toggle_panel(self.noodle_tuner)))
+        # window_menu.addAction(self._create_action("Console", "Cmd+6", lambda: self._toggle_panel(self.console)))
+        # window_menu.addAction(self._create_action("Timeline Profiler", "Cmd+7", lambda: self._toggle_panel(self.profiler_panel)))
+        # window_menu.addSeparator()
         window_menu.addAction(self._create_action("Ensemble Store...", slot=self.show_ensemble_store))
         window_menu.addSeparator()
-        window_menu.addAction(self._create_action("Reset to Default Layout", slot=lambda: self.load_layout("Default")))
+        # window_menu.addAction(self._create_action("Reset to Default Layout", slot=lambda: self.load_layout("Default")))
 
         # ===== SETTINGS MENU =====
         settings_menu = menu_bar.addMenu("&Settings")
@@ -350,25 +350,31 @@ class MainWindow(QMainWindow):
         left_tabs = QTabWidget()
         left_tabs.setTabPosition(QTabWidget.TabPosition.North)
         left_tabs.setMinimumWidth(150)  # Prevent collapsing
+        left_tabs.setDocumentMode(True)  # Remove extra margins/backgrounds
         left_tabs.setStyleSheet("""
+            QTabWidget {
+                background-color: #383838;
+            }
             QTabWidget::pane {
                 border: none;
-                background: #2D2D2D;
+                background-color: #2D2D2D;
             }
             QTabWidget::tab-bar {
-                background: #383838;
+                background-color: #383838;
+                alignment: left;
             }
             QTabBar {
-                background: #383838;
+                background-color: #383838;
             }
             QTabBar::tab {
-                background: #3E3E3E;
+                background-color: #3E3E3E;
                 color: #888888;
                 padding: 6px 12px;
                 border: none;
+                margin-right: 2px;
             }
             QTabBar::tab:selected {
-                background: #2D2D2D;
+                background-color: #2D2D2D;
                 color: #CCCCCC;
             }
         """)
@@ -407,12 +413,73 @@ class MainWindow(QMainWindow):
             def hide(self): pass
             def isVisible(self): return True
             def raise_(self): pass
-            def set_server_state(self, running): pass
+            def set_server_state(self, running):
+                if not running:
+                    self.show_offline_card()
+                else:
+                    # Server is online - reload to show noodleMUSH
+                    if self.web_view:
+                        self.web_view.setUrl(QUrl("http://localhost:8080"))
             def reload(self):
                 if self.web_view:
                     self.web_view.reload()
             def toggle_maximize(self): pass
-            def show_offline_card(self): pass
+            def show_offline_card(self):
+                """Show offline placeholder when server is not running."""
+                if self.web_view:
+                    offline_html = """
+                    <html>
+                    <head>
+                        <style>
+                            body {
+                                background: #1a1a1a;
+                                color: #999;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                height: 100vh;
+                                margin: 0;
+                            }
+                            .card {
+                                text-align: center;
+                                padding: 40px;
+                                background: #2d2d2d;
+                                border-radius: 8px;
+                                border: 2px solid #3e3e3e;
+                            }
+                            .icon {
+                                font-size: 64px;
+                                margin-bottom: 20px;
+                            }
+                            h1 {
+                                color: #ccc;
+                                font-size: 24px;
+                                margin-bottom: 10px;
+                            }
+                            p {
+                                color: #888;
+                                font-size: 14px;
+                                margin: 5px 0;
+                            }
+                            .hint {
+                                margin-top: 20px;
+                                font-size: 12px;
+                                color: #666;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="card">
+                            <div class="icon">🔌</div>
+                            <h1>noodleMUSH Server Offline</h1>
+                            <p>Please start the server to view the world</p>
+                            <p class="hint">Toggle the server switch in the bottom right</p>
+                        </div>
+                    </body>
+                    </html>
+                    """
+                    self.web_view.setHtml(offline_html)
 
         self.world_view = WorldViewStub(self.web_view)
 
@@ -420,25 +487,31 @@ class MainWindow(QMainWindow):
         right_tabs = QTabWidget()
         right_tabs.setTabPosition(QTabWidget.TabPosition.North)
         right_tabs.setMinimumWidth(200)  # Prevent collapsing
+        right_tabs.setDocumentMode(True)  # Remove extra margins/backgrounds
         right_tabs.setStyleSheet("""
+            QTabWidget {
+                background-color: #383838;
+            }
             QTabWidget::pane {
                 border: none;
-                background: #2D2D2D;
+                background-color: #2D2D2D;
             }
             QTabWidget::tab-bar {
-                background: #383838;
+                background-color: #383838;
+                alignment: left;
             }
             QTabBar {
-                background: #383838;
+                background-color: #383838;
             }
             QTabBar::tab {
-                background: #3E3E3E;
+                background-color: #3E3E3E;
                 color: #888888;
                 padding: 6px 12px;
                 border: none;
+                margin-right: 2px;
             }
             QTabBar::tab:selected {
-                background: #2D2D2D;
+                background-color: #2D2D2D;
                 color: #CCCCCC;
             }
         """)
@@ -453,25 +526,31 @@ class MainWindow(QMainWindow):
         bottom_tabs = QTabWidget()
         bottom_tabs.setTabPosition(QTabWidget.TabPosition.North)
         bottom_tabs.setMinimumHeight(100)  # Prevent collapsing
+        bottom_tabs.setDocumentMode(True)  # Remove extra margins/backgrounds
         bottom_tabs.setStyleSheet("""
+            QTabWidget {
+                background-color: #383838;
+            }
             QTabWidget::pane {
                 border: none;
-                background: #2D2D2D;
+                background-color: #2D2D2D;
             }
             QTabWidget::tab-bar {
-                background: #383838;
+                background-color: #383838;
+                alignment: left;
             }
             QTabBar {
-                background: #383838;
+                background-color: #383838;
             }
             QTabBar::tab {
-                background: #3E3E3E;
+                background-color: #3E3E3E;
                 color: #888888;
                 padding: 6px 12px;
                 border: none;
+                margin-right: 2px;
             }
             QTabBar::tab:selected {
-                background: #2D2D2D;
+                background-color: #2D2D2D;
                 color: #CCCCCC;
             }
         """)
@@ -1715,14 +1794,14 @@ class MainWindow(QMainWindow):
         rng_combo = QComboBox()
         rng_combo.addItem("Internal RNG (Software)")
 
-        # Check if ubild USB RNG is connected
+        # Check if TrueRNG/ubild USB RNG is connected
         ubild_available = self._check_ubild_connected()
         if ubild_available:
-            rng_combo.addItem("ubild (USB Hardware RNG)")
+            rng_combo.addItem("TrueRNG (USB Hardware RNG)")
 
         # Load current setting
         current_rng = self._load_rng_setting()
-        if current_rng == "ubild" and ubild_available:
+        if current_rng == "truerng" and ubild_available:
             rng_combo.setCurrentIndex(1)
         else:
             rng_combo.setCurrentIndex(0)
@@ -1731,7 +1810,7 @@ class MainWindow(QMainWindow):
 
         # Status label
         if ubild_available:
-            status_label = QLabel("✓ ubild USB RNG detected")
+            status_label = QLabel("✓ TrueRNG V3 detected at /dev/cu.usbmodem*")
             status_label.setStyleSheet("color: #76AF6A;")
         else:
             status_label = QLabel("No external RNG devices detected")
@@ -1758,17 +1837,27 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
     def _check_ubild_connected(self):
-        """Check if ubild USB RNG is connected."""
-        # Check for ubild device on macOS/Linux
+        """Check if TrueRNG/ubild USB hardware RNG is connected."""
         try:
-            if os.path.exists("/dev/ttyUSB0") or os.path.exists("/dev/cu.usbserial"):
-                return True
-            # Check via lsusb or system_profiler on macOS
             import subprocess
+            # Check via system_profiler on macOS for TrueRNG device
             result = subprocess.run(['system_profiler', 'SPUSBDataType'],
-                                  capture_output=True, text=True, timeout=2)
-            return 'ubild' in result.stdout.lower() or 'random' in result.stdout.lower()
-        except:
+                                  capture_output=True, text=True, timeout=3)
+            # Look for TrueRNG, ubild, or other hardware RNG devices
+            stdout_lower = result.stdout.lower()
+            if 'truerng' in stdout_lower or 'ubild' in stdout_lower or 'hardware rng' in stdout_lower:
+                return True
+
+            # Also check for specific device files on macOS
+            import glob
+            usb_devices = glob.glob('/dev/cu.usbmodem*')
+            if usb_devices:
+                # Found USB modem devices - could be TrueRNG
+                return True
+
+            return False
+        except Exception as e:
+            print(f"RNG detection error: {e}")
             return False
 
     def _load_rng_setting(self):
@@ -1785,7 +1874,7 @@ class MainWindow(QMainWindow):
 
     def _save_rng_setting(self, rng_text, dialog):
         """Save RNG setting to config."""
-        rng_source = 'ubild' if 'ubild' in rng_text else 'internal'
+        rng_source = 'truerng' if 'TrueRNG' in rng_text else 'internal'
 
         config_dir = Path.home() / ".noodlestudio"
         config_dir.mkdir(parents=True, exist_ok=True)
