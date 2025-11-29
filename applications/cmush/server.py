@@ -129,6 +129,8 @@ class CMUSHServer:
         entropy_config = self.config.get('entropy', {})
         use_hardware = entropy_config.get('use_hardware', False)
         device_path = entropy_config.get('device_path', None)
+        self.use_hardware_rng = use_hardware
+        self.rng_device_path = device_path
         initialize_entropy_service(use_hardware=use_hardware, device_path=device_path)
         logger.info(f"Entropy service initialized: hardware={use_hardware}, device={device_path}")
 
@@ -447,10 +449,13 @@ class CMUSHServer:
                             ws_port = self.config.get('server', {}).get('port', 8765)
                             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+                            # Check RNG status
+                            rng_status = self._get_rng_status()
+
                             banner = (
                                 ":::.    :::.    ...         ...    :::::::-.   :::    .,::::::      .        :    ...    ::: .::::::.   ::   .:\n"
                                 "`;;;;,  `;;; .;;;;;;;.   .;;;;;;;.  ;;,   `';, ;;;    ;;;;''''      ;;,.    ;;;   ;;     ;;;;;;`    `  ,;;   ;;,\n"
-                                "  [[[[[. '[[,[[     \\[[,,[[     \\[[,`[[     [[ [[[     [[cccc       [[[[, ,[[[[, [['     [[['[==/[[[[,,[[[,,,[[[\\n"
+                                "  [[[[[. '[[,[[     \\[[,,[[     \\[[,`[[     [[ [[[     [[cccc       [[[[, ,[[[[, [['     [[\'[==/[[[[,,[[[,,,[[[[\n"
                                 "  $$$ \"Y$c$$$$$,     $$$$$$,     $$$ $$,    $$ $$'     $$\"\"\"\"       $$$$$$$$\"$$$ $$      $$$  '''    $\"$$$\"\"\"$$$\n"
                                 "  888    Y88\"888,_ _,88P\"888,_ _,88P 888_,o8P'o88oo,.__888oo,__     888 Y88\" 888o88    .d888 88b    dP 888   \"88o\n"
                                 "  MMM     YM  \"YMMMMMP\"   \"YMMMMMP\"  MMMMP\"`  \"\"\"\"YUMMM\"\"\"\"YUMMM    MMM  M'  \"MMM \"YmmMMMM\"\"  \"YMmMY\"  MMM    YMM\n"
@@ -459,10 +464,11 @@ class CMUSHServer:
                                 "Noodlings Multi-User Shared Hallucination\n"
                                 "\n"
                                 f"Server: PID {pid} | ws://localhost:{ws_port} | {timestamp}\n"
+                                f"RNG: {rng_status}\n"
                             )
 
                             await self.send_to_user(websocket, {
-                                'type': 'system',
+                                'type': 'tui-green',  # Use TUI green for banner
                                 'text': banner
                             })
 
@@ -993,6 +999,14 @@ class CMUSHServer:
                     'event_type': event_type,
                     'text': formatted_text
                 })
+
+    def _get_rng_status(self) -> str:
+        """Get RNG status message for MOTD."""
+        if self.use_hardware_rng:
+            device = self.rng_device_path or "Hardware device"
+            return f"Hardware RNG active ({device}) - Quantum non-determinism enabled"
+        else:
+            return "Internal RNG (deterministic pseudorandom). Consider avalanche effect RNG for quantum randomness"
 
     async def broadcast_log(self, log_entry: Dict):
         """

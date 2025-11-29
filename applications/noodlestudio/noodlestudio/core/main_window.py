@@ -78,6 +78,9 @@ class MainWindow(QMainWindow):
         # Auto-open last project (like Unity reopening last project)
         QTimer.singleShot(300, self.auto_open_last_project)
 
+        # Show RNG status on startup
+        QTimer.singleShot(500, self.show_startup_rng_status)
+
     def _setup_ui(self):
         """Build UI components."""
         # Central widget will be World View (main viewport)
@@ -417,6 +420,11 @@ class MainWindow(QMainWindow):
         try:
             from PyQt6.QtWebEngineWidgets import QWebEngineView
             self.web_view = QWebEngineView()
+
+            # Set background color to match theme (prevents white flash)
+            # Don't force dark mode - noodleMUSH has its own styling
+            self.web_view.setStyleSheet("background-color: #1a1a1a;")
+
             self.web_view.setUrl(QUrl("http://localhost:8080"))
             world_layout.addWidget(self.web_view)
         except ImportError:
@@ -1901,11 +1909,12 @@ class MainWindow(QMainWindow):
 
         # Status label
         if ubild_available:
-            status_label = QLabel("✓ TrueRNG V3 detected at /dev/cu.usbmodem*")
+            status_label = QLabel("Hardware RNG detected")
             status_label.setStyleSheet("color: #76AF6A;")
         else:
-            status_label = QLabel("No external RNG devices detected")
+            status_label = QLabel("No RNG detected. Falling back to internal RNG.\nOutputs are deterministic. Consider an avalanche effect RNG\nfor quantum non-determinism.")
             status_label.setStyleSheet("color: #999;")
+            status_label.setWordWrap(True)
         layout.addWidget(status_label)
 
         layout.addStretch()
@@ -1984,8 +1993,26 @@ class MainWindow(QMainWindow):
         with open(config_file, 'w') as f:
             json.dump(settings, f, indent=2)
 
-        self.statusBar().showMessage(f"RNG source set to: {rng_source}", 3000)
+        # Show appropriate status message
+        if rng_source == 'truerng':
+            message = "Hardware RNG detected and activated - True quantum randomness enabled"
+        else:
+            message = "Using internal RNG - Deterministic pseudorandom output"
+
+        self.statusBar().showMessage(message, 5000)
         dialog.accept()
+
+    def show_startup_rng_status(self):
+        """Show RNG status message on startup."""
+        ubild_available = self._check_ubild_connected()
+        current_rng = self._load_rng_setting()
+
+        if ubild_available and current_rng == 'truerng':
+            message = "Hardware RNG detected - True quantum randomness enabled"
+        else:
+            message = "No RNG detected. Falling back to internal RNG. Outputs are deterministic. Consider an avalanche effect RNG for quantum non-determinism"
+
+        self.statusBar().showMessage(message, 8000)
 
     def show_external_apps_settings(self):
         """Show External Applications settings dialog."""

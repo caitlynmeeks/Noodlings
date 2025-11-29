@@ -11,11 +11,12 @@ Date: November 28, 2025
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene,
     QGraphicsItem, QGraphicsRectItem, QGraphicsTextItem, QGraphicsEllipseItem,
-    QGraphicsLineItem, QPushButton, QLabel, QMenu, QMessageBox, QFileDialog
+    QGraphicsLineItem, QPushButton, QLabel, QMenu, QMessageBox, QFileDialog,
+    QGraphicsProxyWidget, QTextEdit
 )
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QLineF
 from PyQt6.QtGui import (
-    QPen, QBrush, QColor, QPainter, QFont, QPainterPath, QCursor
+    QPen, QBrush, QColor, QPainter, QFont, QPainterPath, QCursor, QKeySequence, QShortcut
 )
 from typing import Optional, List, Dict, Tuple
 import sys
@@ -25,6 +26,38 @@ import os
 from ..core.facet_system import (
     Facet, FacetAssembly, FacetConnection, FacetPad, PadType
 )
+from .floating_text_editor import FloatingTextEditor
+
+
+class ClickableTextItem(QGraphicsTextItem):
+    """Clickable text item (for pencil icons)."""
+
+    def __init__(self, text: str, parent_node, field_data: dict, callback):
+        super().__init__(text, parent_node)
+        self.parent_node = parent_node
+        self.field_data = field_data
+        self.callback = callback
+
+        self.setAcceptHoverEvents(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def hoverEnterEvent(self, event):
+        """Highlight on hover."""
+        self.setDefaultTextColor(QColor("#FFFFFF"))
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event):
+        """Restore color."""
+        self.setDefaultTextColor(QColor("#888888"))
+        super().hoverLeaveEvent(event)
+
+    def mousePressEvent(self, event):
+        """Handle click - open field editor."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.callback(self.field_data)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
 
 
 class FacetPadGraphics(QGraphicsEllipseItem):
@@ -38,34 +71,47 @@ class FacetPadGraphics(QGraphicsEllipseItem):
         self.pad = pad
         self.facet_node = facet_node
 
-        # Visual styling
-        if pad.pad_type == PadType.INPUT:
-            self.setBrush(QBrush(QColor("#64B5F6")))  # Blue for inputs
-        else:
-            self.setBrush(QBrush(QColor("#76AF6A")))  # Green for outputs
-
-        self.setPen(QPen(QColor("#FFFFFF"), 2))
+        # Monochromatic styling
+        self.default_brush = QBrush(QColor("#888888"))  # Gray for all pads
+        self.hover_brush = QBrush(QColor("#FFFFFF"))    # White on hover
+        self.setBrush(self.default_brush)
+        self.setPen(QPen(QColor("#AAAAAA"), 2))
         self.setAcceptHoverEvents(True)
+
+        # Make pad independently clickable (don't propagate to parent)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+        self.setAcceptedMouseButtons(Qt.MouseButton.LeftButton)
 
         # Connection tracking
         self.connections: List['ConnectionWire'] = []
 
     def hoverEnterEvent(self, event):
         """Highlight pad on hover."""
-        self.setBrush(QBrush(QColor("#FFFFFF")))
+        self.setBrush(self.hover_brush)
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
         """Restore pad color on hover exit."""
-        if self.pad.pad_type == PadType.INPUT:
-            self.setBrush(QBrush(QColor("#64B5F6")))
-        else:
-            self.setBrush(QBrush(QColor("#76AF6A")))
+        self.setBrush(self.default_brush)
         super().hoverLeaveEvent(event)
 
     def get_scene_position(self) -> QPointF:
         """Get pad position in scene coordinates."""
         return self.scenePos()
+
+    def mousePressEvent(self, event):
+        """Start wire drawing on pad click."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            # Get parent editor panel to handle wire drawing
+            scene = self.scene()
+            if scene and hasattr(scene, 'views') and scene.views():
+                view = scene.views()[0]
+                parent = view.parent()
+                if isinstance(parent, FacetsEditorPanel):
+                    parent.start_wire_drawing(self)
+                    event.accept()
+                    return
+        super().mousePressEvent(event)
 
 
 class FacetNodeGraphics(QGraphicsRectItem):
@@ -73,32 +119,57 @@ class FacetNodeGraphics(QGraphicsRectItem):
 
     NODE_WIDTH = 200
     NODE_HEIGHT = 120
+    NODE_HEIGHT_COMPACT = 60  # For INCOMING/OUTGOING special nodes
+    NODE_HEIGHT_EXPANDED = 400  # Height when expanded for editing
     PAD_SPACING = 25
 
     def __init__(self, facet: Facet, parent=None):
-        super().__init__(0, 0, self.NODE_WIDTH, self.NODE_HEIGHT, parent)
+        # Check if this is a special node (INCOMING/OUTGOING) for compact size
+        is_special = facet.name in ["INCOMING", "OUTGOING"]
+        initial_height = self.NODE_HEIGHT_COMPACT if is_special else self.NODE_HEIGHT
+
+        super().__init__(0, 0, self.NODE_WIDTH, initial_height, parent)
         self.facet = facet
+        self.is_special_node = is_special
 
-        # Visual styling based on type
-        if facet.id == "INCOMING":
-            self.setBrush(QBrush(QColor("#2E7D32")))  # Dark green
-        elif facet.id == "OUTGOING":
-            self.setBrush(QBrush(QColor("#D84315")))  # Dark orange
-        elif "Convergence" in facet.facet_type:
-            self.setBrush(QBrush(QColor("#6A1B9A")))  # Purple
+        # Monochromatic styling (scriptable color overrides possible)
+        # Check if facet has custom color override
+        custom_color = getattr(facet, 'custom_color', None)
+        if custom_color:
+            # Scriptable color override
+            self.setBrush(QBrush(QColor(custom_color)))
         else:
-            self.setBrush(QBrush(QColor("#424242")))  # Dark gray
+            # Default monochromatic based on type
+            if facet.name == "INCOMING":
+                self.setBrush(QBrush(QColor("#2A2A2A")))  # Darker - distinct from facets
+            elif facet.name == "OUTGOING":
+                self.setBrush(QBrush(QColor("#2A2A2A")))  # Darker - distinct from facets
+            elif "Convergence" in facet.facet_type:
+                self.setBrush(QBrush(QColor("#4A4A4A")))  # Darker gray
+            else:
+                self.setBrush(QBrush(QColor("#3E3E3E")))  # Default dark gray
 
-        self.setPen(QPen(QColor("#888888"), 2))
+        # Default border (will change on selection)
+        self.default_pen = QPen(QColor("#666666"), 2)
+        self.selected_pen = QPen(QColor("#FFFFFF"), 3)  # White border when selected
+        self.setPen(self.default_pen)
+
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
 
-        # Title text
+        # Accept both Shift and Cmd for multi-selection
+        self.setAcceptedMouseButtons(Qt.MouseButton.LeftButton)
+
+        # Title text (brighter/bolder for special nodes)
         self.title = QGraphicsTextItem(facet.name, self)
         self.title.setPos(10, 5)
-        self.title.setDefaultTextColor(QColor("#FFFFFF"))
-        font = QFont("Arial", 11, QFont.Weight.Bold)
+        if is_special:
+            self.title.setDefaultTextColor(QColor("#CCCCCC"))  # Brighter for special nodes
+            font = QFont("Arial", 12, QFont.Weight.Bold)
+        else:
+            self.title.setDefaultTextColor(QColor("#FFFFFF"))
+            font = QFont("Arial", 11, QFont.Weight.Bold)
         self.title.setFont(font)
 
         # Type label
@@ -107,6 +178,17 @@ class FacetNodeGraphics(QGraphicsRectItem):
         self.type_label.setDefaultTextColor(QColor("#AAAAAA"))
         type_font = QFont("Arial", 9)
         self.type_label.setFont(type_font)
+
+        # Field display widgets (created when zoomed in enough)
+        self.field_widgets: List[QGraphicsItem] = []
+        self.min_zoom_for_fields = 1.5  # Show fields when zoom > 1.5x
+
+        # Status indicator (always visible)
+        self.status_indicator = QGraphicsEllipseItem(self)
+        self.status_indicator.setRect(self.NODE_WIDTH - 20, 10, 10, 10)
+        self.status_indicator.setBrush(QBrush(QColor("#666666")))  # Default gray (inactive)
+        self.status_indicator.setPen(QPen(QColor("#888888"), 1))
+        self.status_color = "#666666"
 
         # Create pad graphics
         self.input_pads: Dict[str, FacetPadGraphics] = {}
@@ -118,36 +200,54 @@ class FacetNodeGraphics(QGraphicsRectItem):
         self.setPos(facet.position['x'], facet.position['y'])
 
     def _create_pads(self):
-        """Create visual representations of input/output pads."""
-        # Input pads on left side
-        for i, pad in enumerate(self.facet.input_pads):
-            pad_graphics = FacetPadGraphics(pad, self, self)
-            y_pos = 50 + (i * self.PAD_SPACING)
-            pad_graphics.setPos(0, y_pos)
-            self.input_pads[pad.name] = pad_graphics
+        """Create visual representations of input/output pads (vertical layout)."""
+        # Input pads on top
+        num_inputs = len(self.facet.input_pads)
+        if num_inputs > 0:
+            spacing = self.NODE_WIDTH / (num_inputs + 1)
+            for i, pad in enumerate(self.facet.input_pads):
+                pad_graphics = FacetPadGraphics(pad, self, self)
+                x_pos = spacing * (i + 1)
+                pad_graphics.setPos(x_pos, 0)
+                self.input_pads[pad.name] = pad_graphics
 
-            # Pad label
-            label = QGraphicsTextItem(pad.name, self)
-            label.setPos(15, y_pos - 8)
-            label.setDefaultTextColor(QColor("#CCCCCC"))
-            label.setFont(QFont("Arial", 8))
+                # Pad label (above pad)
+                label = QGraphicsTextItem(pad.name, self)
+                label.setPos(x_pos - 20, -20)
+                label.setDefaultTextColor(QColor("#AAAAAA"))
+                label.setFont(QFont("Arial", 8))
 
-        # Output pads on right side
-        for i, pad in enumerate(self.facet.output_pads):
-            pad_graphics = FacetPadGraphics(pad, self, self)
-            y_pos = 50 + (i * self.PAD_SPACING)
-            pad_graphics.setPos(self.NODE_WIDTH, y_pos)
-            self.output_pads[pad.name] = pad_graphics
+        # Output pads on bottom
+        num_outputs = len(self.facet.output_pads)
+        if num_outputs > 0:
+            spacing = self.NODE_WIDTH / (num_outputs + 1)
+            for i, pad in enumerate(self.facet.output_pads):
+                pad_graphics = FacetPadGraphics(pad, self, self)
+                x_pos = spacing * (i + 1)
+                pad_graphics.setPos(x_pos, self.NODE_HEIGHT)
+                self.output_pads[pad.name] = pad_graphics
 
-            # Pad label (right-aligned)
-            label = QGraphicsTextItem(pad.name, self)
-            label.setPos(self.NODE_WIDTH - 60, y_pos - 8)
-            label.setDefaultTextColor(QColor("#CCCCCC"))
-            label.setFont(QFont("Arial", 8))
+                # Pad label (below pad)
+                label = QGraphicsTextItem(pad.name, self)
+                label.setPos(x_pos - 20, self.NODE_HEIGHT + 5)
+                label.setDefaultTextColor(QColor("#AAAAAA"))
+                label.setFont(QFont("Arial", 8))
 
     def itemChange(self, change, value):
-        """Handle item changes (e.g., position updates)."""
-        if change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
+        """Handle item changes (e.g., position updates, selection)."""
+        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
+            # Apply grid snapping if enabled
+            new_pos = value
+            if self.scene() and hasattr(self.scene().views()[0].parent(), 'snap_to_grid'):
+                editor = self.scene().views()[0].parent()
+                if editor.snap_to_grid:
+                    grid = editor.grid_size
+                    snapped_x = round(new_pos.x() / grid) * grid
+                    snapped_y = round(new_pos.y() / grid) * grid
+                    return QPointF(snapped_x, snapped_y)
+            return new_pos
+
+        elif change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
             # Update facet metadata
             pos = self.pos()
             self.facet.position['x'] = pos.x()
@@ -159,7 +259,160 @@ class FacetNodeGraphics(QGraphicsRectItem):
                     for wire in pad_graphics.connections:
                         wire.update_path()
 
+        elif change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
+            # Update border on selection
+            if self.isSelected():
+                self.setPen(self.selected_pen)
+            else:
+                self.setPen(self.default_pen)
+
         return super().itemChange(change, value)
+
+    def mousePressEvent(self, event):
+        """Handle mouse press - support Shift for additive selection."""
+        # On macOS, Qt uses Cmd for multi-select by default
+        # Make Shift also work for additive selection
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            # Shift pressed - toggle selection
+            self.setSelected(not self.isSelected())
+            event.accept()
+        else:
+            # Normal click
+            super().mousePressEvent(event)
+
+    def show_fields(self, force: bool = False):
+        """
+        Show field displays (triggered by F key focus).
+
+        Args:
+            force: If True, show regardless of zoom level
+        """
+        # Clear existing field widgets
+        try:
+            for widget in self.field_widgets:
+                if widget and widget.scene():
+                    self.scene().removeItem(widget)
+        except:
+            pass
+        self.field_widgets.clear()
+
+        # Get fields from facet
+        fields = self.facet.get_editable_fields()
+
+        # Calculate required height for all fields
+        field_height = 30  # Height per field
+        total_field_height = len(fields) * field_height
+        required_height = 50 + total_field_height + 30  # Header + fields + pad space
+
+        # Expand node if needed to fit fields
+        if required_height > self.NODE_HEIGHT:
+            self.setRect(0, 0, self.NODE_WIDTH, required_height)
+            # Reposition output pads to new bottom
+            num_outputs = len(self.output_pads)
+            if num_outputs > 0:
+                spacing = self.NODE_WIDTH / (num_outputs + 1)
+                for i, (name, pad) in enumerate(self.output_pads.items()):
+                    x_pos = spacing * (i + 1)
+                    pad.setPos(x_pos, required_height)
+
+        y_offset = 45  # Start below title/type
+        for field in fields:
+            # Single line: "FIELD NAME: preview text..." ✎
+            field_line = QGraphicsTextItem(self)
+
+            # Build display text
+            label = field['name'].upper() + ":"
+            preview_italic = f"<i>{field['preview']}</i>"
+            full_text = f"<span style='color: #888888; font-weight: bold;'>{label}</span> <span style='color: #AAAAAA;'>{preview_italic}</span>"
+
+            field_line.setHtml(full_text)
+            field_line.setPos(10, y_offset)
+            field_line.setFont(QFont("Arial", 8))
+            field_line.setTextWidth(self.NODE_WIDTH - 40)  # Leave room for pencil
+            self.field_widgets.append(field_line)
+
+            # Pencil button (clickable to open editor)
+            pencil = ClickableTextItem("✎", self, field, self.open_field_editor)
+            pencil.setPos(self.NODE_WIDTH - 20, y_offset)
+            pencil.setDefaultTextColor(QColor("#666666"))
+            pencil.setFont(QFont("Arial", 10))
+            self.field_widgets.append(pencil)
+
+            y_offset += field_height
+
+    def hide_fields(self):
+        """Hide field displays and restore normal node size."""
+        # Safety check - don't crash if widgets are invalid
+        try:
+            for widget in self.field_widgets:
+                if widget and widget.scene():
+                    self.scene().removeItem(widget)
+            self.field_widgets.clear()
+
+            # Restore normal size
+            self.setRect(0, 0, self.NODE_WIDTH, self.NODE_HEIGHT)
+
+            # Restore output pad positions
+            num_outputs = len(self.output_pads)
+            if num_outputs > 0:
+                spacing = self.NODE_WIDTH / (num_outputs + 1)
+                for i, (name, pad) in enumerate(self.output_pads.items()):
+                    x_pos = spacing * (i + 1)
+                    pad.setPos(x_pos, self.NODE_HEIGHT)
+        except Exception as e:
+            print(f"[Node] Error hiding fields: {e}")
+            self.field_widgets.clear()
+
+    def _reposition_pads_expanded(self):
+        """Reposition pads for expanded state (at new bottom)."""
+        num_outputs = len(self.output_pads)
+        if num_outputs > 0:
+            spacing = self.NODE_WIDTH / (num_outputs + 1)
+            for i, (name, pad) in enumerate(self.output_pads.items()):
+                x_pos = spacing * (i + 1)
+                pad.setPos(x_pos, self.NODE_HEIGHT_EXPANDED)
+
+    def _reposition_pads_normal(self):
+        """Reposition pads for normal state."""
+        num_outputs = len(self.output_pads)
+        if num_outputs > 0:
+            spacing = self.NODE_WIDTH / (num_outputs + 1)
+            for i, (name, pad) in enumerate(self.output_pads.items()):
+                x_pos = spacing * (i + 1)
+                pad.setPos(x_pos, self.NODE_HEIGHT)
+
+    def update_prompt(self, new_prompt: str):
+        """Update facet prompt from embedded editor."""
+        self.facet.prompt = new_prompt
+
+    def set_status(self, status: str):
+        """
+        Set execution status indicator.
+
+        Args:
+            status: 'inactive', 'ready', 'processing', 'waiting', 'cached'
+        """
+        color_map = {
+            'inactive': '#666666',   # Gray - disabled/not running
+            'ready': '#76AF6A',      # Green - ready to execute
+            'processing': '#FFA726', # Yellow - LLM call in flight
+            'waiting': '#EF5350',    # Red - waiting for upstream inputs
+            'cached': '#64B5F6'      # Blue - using cached output
+        }
+
+        self.status_color = color_map.get(status, '#666666')
+        self.status_indicator.setBrush(QBrush(QColor(self.status_color)))
+
+    def open_field_editor(self, field_data: dict):
+        """Open floating editor for a specific field."""
+        print(f"[Node] Opening editor for field: {field_data['name']}")
+
+        # Get parent panel
+        if self.scene() and self.scene().views():
+            view = self.scene().views()[0]
+            panel = view.parent()
+            if isinstance(panel, FacetsEditorPanel):
+                panel.show_floating_editor(self.facet, field_data)
 
 
 class ConnectionWire(QGraphicsItem):
@@ -191,14 +444,19 @@ class ConnectionWire(QGraphicsItem):
         start = self.from_pad.get_scene_position()
         end = self.to_pad.get_scene_position()
 
-        # Create bezier curve path
+        # Create bezier curve path with vertical tangents
         path = QPainterPath()
         path.moveTo(start)
 
-        # Control points for smooth curve
-        dx = end.x() - start.x()
-        ctrl1 = QPointF(start.x() + dx * 0.5, start.y())
-        ctrl2 = QPointF(start.x() + dx * 0.5, end.y())
+        # Control points for vertical flow (tangents exit/enter vertically)
+        dy = end.y() - start.y()
+        tangent_length = abs(dy) * 0.4  # 40% of vertical distance
+
+        # First control point - extends DOWN from output pad
+        ctrl1 = QPointF(start.x(), start.y() + tangent_length)
+
+        # Second control point - extends UP to input pad
+        ctrl2 = QPointF(end.x(), end.y() - tangent_length)
 
         path.cubicTo(ctrl1, ctrl2, end)
 
@@ -229,6 +487,24 @@ class FacetsEditorPanel(QWidget):
         self.current_assembly_name: Optional[str] = None  # Track loaded assembly
         self.node_graphics: Dict[str, FacetNodeGraphics] = {}
         self.wire_graphics: List[ConnectionWire] = []
+
+        # Clipboard for copy/paste
+        self.clipboard: List[Facet] = []
+
+        # Undo/redo stacks (simplified - store assembly snapshots)
+        self.undo_stack: List[str] = []  # YAML snapshots
+        self.redo_stack: List[str] = []
+
+        # Space-drag navigation
+        self.space_pressed = False
+
+        # Wire drawing state
+        self.wire_being_drawn: Optional[QGraphicsLineItem] = None
+        self.wire_start_pad: Optional[FacetPadGraphics] = None
+
+        # Grid snapping settings
+        self.snap_to_grid = True
+        self.grid_size = 20  # Snap to 20px grid
 
         self.init_ui()
 
@@ -268,18 +544,43 @@ class FacetsEditorPanel(QWidget):
         # Graphics view for node graph
         self.scene = QGraphicsScene()
         self.scene.setSceneRect(-2000, -2000, 4000, 4000)
+
+        # Draw grid background
         self.scene.setBackgroundBrush(QBrush(QColor("#2A2A2A")))
+        self._draw_grid_background()
 
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.view.setDragMode(QGraphicsView.DragMode.RubberBandDrag)  # Enable rubber band selection
         self.view.setStyleSheet("border: none;")
+
+        # Enable mouse wheel zoom
+        self.view.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.view.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+
+        # Override wheelEvent for zoom
+        self.view.wheelEvent = self.zoom_wheel_event
+
+        # Enable rubber band selection with modifier key support
+        self.view.setRubberBandSelectionMode(Qt.ItemSelectionMode.IntersectsItemShape)
+
+        # Enable multi-selection (Ctrl/Cmd click, Shift-drag)
+        self.scene.setSelectionArea = self.scene.setSelectionArea  # Allow additive selection
 
         # Enable context menu
         self.view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.view.customContextMenuRequested.connect(self.show_context_menu)
 
+        # Install event filter for wire drawing
+        self.view.viewport().installEventFilter(self)
+
         layout.addWidget(self.view)
+
+        # Enable key event handling
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        # Keyboard shortcuts
+        self.setup_shortcuts()
 
     def load_assembly_from_data(self, assembly: FacetAssembly, force_reload: bool = False):
         """
@@ -342,13 +643,19 @@ class FacetsEditorPanel(QWidget):
             ("Memory Recall Facet", "MemoryFacet"),
             ("Response Planning Facet", "PlanningFacet"),
             ("Convergence Facet", "ConvergenceFacet"),
-            ("Custom Facet", "CustomFacet")
         ]
 
         for display_name, facet_type in facet_types:
             action = add_menu.addAction(display_name)
             action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
                                     self.add_facet(ft, dn, position))
+
+        # Separator
+        add_menu.addSeparator()
+
+        # Custom/Empty facet at bottom
+        custom_action = add_menu.addAction("Create empty facet")
+        custom_action.triggered.connect(lambda: self.add_facet("CustomFacet", "Custom Facet", position))
 
         menu.exec(self.view.mapToGlobal(position))
 
@@ -446,6 +753,604 @@ class FacetsEditorPanel(QWidget):
             QMessageBox.warning(self, "Validation Errors", f"Assembly has errors:\n\n{error_text}")
         else:
             QMessageBox.information(self, "Validation Success", "Assembly is valid!")
+
+    def setup_shortcuts(self):
+        """Setup keyboard shortcuts for viewport navigation."""
+        # F key - Tight focus with field display
+        frame_shortcut = QShortcut(QKeySequence("F"), self)
+        frame_shortcut.activated.connect(self.focus_selection_tight)
+
+        # A key - Frame all (entire assembly)
+        frame_all_shortcut = QShortcut(QKeySequence("A"), self)
+        frame_all_shortcut.activated.connect(self.frame_all)
+
+        # E key - Expand selected node for inline editing
+        expand_shortcut = QShortcut(QKeySequence("E"), self)
+        expand_shortcut.activated.connect(self.toggle_node_expansion)
+
+        # Plus/Minus - Zoom in/out
+        zoom_in_shortcut = QShortcut(QKeySequence.StandardKey.ZoomIn, self)
+        zoom_in_shortcut.activated.connect(lambda: self.zoom_view(1.2))
+
+        zoom_out_shortcut = QShortcut(QKeySequence.StandardKey.ZoomOut, self)
+        zoom_out_shortcut.activated.connect(lambda: self.zoom_view(1/1.2))
+
+        # Home - Reset zoom and center
+        home_shortcut = QShortcut(QKeySequence("Home"), self)
+        home_shortcut.activated.connect(self.reset_view)
+
+        # Copy/Paste/Duplicate/Delete
+        copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, self)
+        copy_shortcut.activated.connect(self.copy_selection)
+
+        paste_shortcut = QShortcut(QKeySequence.StandardKey.Paste, self)
+        paste_shortcut.activated.connect(self.paste_selection)
+
+        # Cmd-D for duplicate (copy + paste in one step)
+        duplicate_shortcut = QShortcut(QKeySequence("Ctrl+D"), self)
+        duplicate_shortcut.activated.connect(self.duplicate_selection)
+
+        delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self)
+        delete_shortcut.activated.connect(self.delete_selection)
+
+        # Undo/Redo
+        undo_shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
+        undo_shortcut.activated.connect(self.undo)
+
+        redo_shortcut = QShortcut(QKeySequence.StandardKey.Redo, self)
+        redo_shortcut.activated.connect(self.redo)
+
+    def zoom_wheel_event(self, event):
+        """Handle mouse wheel for zooming."""
+        # Get zoom factor based on wheel delta
+        delta = event.angleDelta().y()
+        zoom_factor = 1.15 if delta > 0 else 1/1.15
+
+        self.zoom_view(zoom_factor)
+
+    def zoom_view(self, factor: float):
+        """
+        Zoom the view by given factor.
+
+        Args:
+            factor: Zoom multiplier (>1 = zoom in, <1 = zoom out)
+        """
+        # Limit zoom range
+        current_scale = self.view.transform().m11()
+        new_scale = current_scale * factor
+
+        # Calculate max zoom based on "frame all" zoom level
+        # Get all nodes to determine comfortable max zoom
+        all_nodes = [
+            item for item in self.scene.items()
+            if isinstance(item, FacetNodeGraphics)
+        ]
+
+        max_zoom = 2.0  # Default max if no nodes
+
+        if all_nodes:
+            # Calculate bounding rect
+            bounding_rect = all_nodes[0].sceneBoundingRect()
+            for node in all_nodes[1:]:
+                bounding_rect = bounding_rect.united(node.sceneBoundingRect())
+
+            # Calculate what zoom would frame all nodes
+            view_rect = self.view.viewport().rect()
+            if bounding_rect.width() > 0 and view_rect.width() > 0:
+                frame_all_scale = view_rect.width() / bounding_rect.width()
+                max_zoom = frame_all_scale * 2.0  # 2x the frame-all zoom
+
+        # Clamp between 0.5x (reasonable minimum) and calculated max
+        if new_scale < 0.5 or new_scale > max_zoom:
+            return
+
+        self.view.scale(factor, factor)
+
+    def frame_selection(self):
+        """Frame selected node in view, or all nodes if none selected."""
+        selected_items = self.scene.selectedItems()
+
+        # Get selected nodes (filter to FacetNodeGraphics only)
+        selected_nodes = [
+            item for item in selected_items
+            if isinstance(item, FacetNodeGraphics)
+        ]
+
+        if selected_nodes:
+            # Frame selected nodes
+            self.frame_nodes(selected_nodes)
+        else:
+            # Frame all nodes
+            all_nodes = [
+                item for item in self.scene.items()
+                if isinstance(item, FacetNodeGraphics)
+            ]
+            self.frame_nodes(all_nodes)
+
+    def frame_nodes(self, nodes: List[FacetNodeGraphics], padding_factor: float = 0.2):
+        """
+        Frame given nodes in view with padding.
+
+        Args:
+            nodes: List of FacetNodeGraphics to frame
+            padding_factor: Padding as fraction of bounding box (0.2 = 20%)
+        """
+        if not nodes:
+            return
+
+        # Calculate bounding rect of all nodes
+        bounding_rect = nodes[0].sceneBoundingRect()
+        for node in nodes[1:]:
+            bounding_rect = bounding_rect.united(node.sceneBoundingRect())
+
+        # Add padding
+        padding = max(bounding_rect.width(), bounding_rect.height()) * padding_factor
+        bounding_rect.adjust(-padding, -padding, padding, padding)
+
+        # Fit in view
+        self.view.fitInView(bounding_rect, Qt.AspectRatioMode.KeepAspectRatio)
+
+    def reset_view(self):
+        """Reset zoom to 100% and center on origin."""
+        self.view.resetTransform()
+        self.view.centerOn(500, 350)
+
+    def frame_all(self):
+        """Frame entire assembly (A key shortcut)."""
+        all_nodes = [
+            item for item in self.scene.items()
+            if isinstance(item, FacetNodeGraphics)
+        ]
+        self.frame_nodes(all_nodes)
+
+    def focus_selection_tight(self):
+        """
+        Tight focus on selected node with field display (F key).
+
+        Zooms way in to show fields and enable inline editing.
+        """
+        selected_items = self.scene.selectedItems()
+        selected_nodes = [
+            item for item in selected_items
+            if isinstance(item, FacetNodeGraphics)
+        ]
+
+        if selected_nodes:
+            # Frame selected with minimal padding
+            self.frame_nodes(selected_nodes, padding_factor=0.05)
+
+            # Force field display on selected nodes
+            for node in selected_nodes:
+                node.show_fields(force=True)
+        else:
+            print("[Facets Editor] No facet selected to focus")
+
+    def toggle_node_expansion(self):
+        """Open field editor for selected node (E key - edits Processing Prompt)."""
+        selected_items = self.scene.selectedItems()
+        selected_nodes = [
+            item for item in selected_items
+            if isinstance(item, FacetNodeGraphics)
+        ]
+
+        if len(selected_nodes) == 1:
+            node = selected_nodes[0]
+            # Open editor for Processing Prompt field (most common edit)
+            fields = node.facet.get_editable_fields()
+            prompt_field = next((f for f in fields if f['key'] == 'prompt'), None)
+            if prompt_field:
+                self.show_floating_editor(node.facet, prompt_field)
+            else:
+                print("[Facets Editor] No prompt field available for this facet type")
+        elif len(selected_nodes) == 0:
+            print("[Facets Editor] No facet selected")
+        else:
+            print("[Facets Editor] Select only one facet to edit")
+
+    def copy_selection(self):
+        """Copy selected facets to clipboard."""
+        selected_items = self.scene.selectedItems()
+        selected_nodes = [
+            item for item in selected_items
+            if isinstance(item, FacetNodeGraphics)
+        ]
+
+        if not selected_nodes:
+            print("[Facets Editor] No facets selected to copy")
+            return
+
+        # Copy facet data (deep copy)
+        self.clipboard = []
+        for node in selected_nodes:
+            # Skip special nodes
+            if node.facet.facet_type == "SpecialNode":
+                continue
+
+            # Store facet copy
+            import copy
+            facet_copy = copy.deepcopy(node.facet)
+            self.clipboard.append(facet_copy)
+
+        print(f"[Facets Editor] Copied {len(self.clipboard)} facets")
+
+    def paste_selection(self):
+        """Paste facets from clipboard with internal connections preserved."""
+        if not self.clipboard or not self.current_assembly:
+            print("[Facets Editor] Nothing to paste or no assembly loaded")
+            return
+
+        # Get current mouse position in scene coords
+        cursor_pos = self.view.mapToScene(self.view.mapFromGlobal(QCursor.pos()))
+
+        # Map old IDs to new IDs for connection rewiring
+        id_mapping = {}
+
+        # Calculate offset for group (preserve relative positions)
+        if self.clipboard:
+            # Find top-left corner of clipboard group
+            min_x = min(f.position['x'] for f in self.clipboard)
+            min_y = min(f.position['y'] for f in self.clipboard)
+
+            # Offset entire group to cursor position
+            group_offset_x = cursor_pos.x() - min_x
+            group_offset_y = cursor_pos.y() - min_y
+
+        # Paste each facet with new UUID and preserved relative position
+        import copy
+        for facet_template in self.clipboard:
+            # Deep copy and generate new UUID
+            new_facet = copy.deepcopy(facet_template)
+            old_id = new_facet.id
+            new_facet.id = Facet.generate_uuid()
+            id_mapping[old_id] = new_facet.id
+
+            # Preserve relative position within group
+            new_facet.position = {
+                'x': facet_template.position['x'] + group_offset_x + 50,  # +50 for slight offset
+                'y': facet_template.position['y'] + group_offset_y + 50
+            }
+
+            # Add to assembly
+            self.current_assembly.facets.append(new_facet)
+
+            # Create graphics
+            node = FacetNodeGraphics(new_facet)
+            self.scene.addItem(node)
+            self.node_graphics[new_facet.id] = node
+
+        # Duplicate internal connections (connections between pasted nodes)
+        clipboard_ids = set(f.id for f in self.clipboard)
+        for conn in self.current_assembly.connections:
+            # Check if this connection is entirely within the copied set
+            if conn.from_facet in clipboard_ids and conn.to_facet in clipboard_ids:
+                # Duplicate this connection with new IDs
+                new_conn = FacetConnection(
+                    from_facet=id_mapping[conn.from_facet],
+                    from_pad=conn.from_pad,
+                    to_facet=id_mapping[conn.to_facet],
+                    to_pad=conn.to_pad
+                )
+                self.current_assembly.connections.append(new_conn)
+
+                # Create visual wire
+                from_node = self.node_graphics.get(new_conn.from_facet)
+                to_node = self.node_graphics.get(new_conn.to_facet)
+                if from_node and to_node:
+                    from_pad = from_node.output_pads.get(new_conn.from_pad)
+                    to_pad = to_node.input_pads.get(new_conn.to_pad)
+                    if from_pad and to_pad:
+                        wire = ConnectionWire(from_pad, to_pad)
+                        self.scene.addItem(wire)
+                        self.wire_graphics.append(wire)
+
+        print(f"[Facets Editor] Pasted {len(self.clipboard)} facets with internal connections")
+        self.assemblyModified.emit()
+
+    def duplicate_selection(self):
+        """Duplicate selected facets in place (Cmd-D)."""
+        # Copy selection to clipboard
+        self.copy_selection()
+        # Immediately paste
+        if self.clipboard:
+            self.paste_selection()
+
+    def delete_selection(self):
+        """Delete selected facets."""
+        if not self.current_assembly:
+            print("[Facets Editor] No assembly loaded")
+            return
+
+        selected_items = self.scene.selectedItems()
+        selected_nodes = [
+            item for item in selected_items
+            if isinstance(item, FacetNodeGraphics)
+        ]
+
+        if not selected_nodes:
+            print("[Facets Editor] No facets selected to delete")
+            return
+
+        # Filter out special nodes (can't delete)
+        deletable_nodes = []
+        for node in selected_nodes:
+            if node.is_special_node or node.facet.name in ["INCOMING", "OUTGOING"]:
+                print(f"[Facets Editor] Cannot delete special node: {node.facet.name}")
+            else:
+                deletable_nodes.append(node)
+
+        if not deletable_nodes:
+            print("[Facets Editor] No deletable facets in selection")
+            return
+
+        # Remove from assembly and scene
+        for node in deletable_nodes:
+            # Remove facet from assembly
+            self.current_assembly.facets = [
+                f for f in self.current_assembly.facets
+                if f.id != node.facet.id
+            ]
+
+            # Remove connections involving this facet
+            self.current_assembly.connections = [
+                c for c in self.current_assembly.connections
+                if c.from_facet != node.facet.id and c.to_facet != node.facet.id
+            ]
+
+            # Remove from scene
+            self.scene.removeItem(node)
+            del self.node_graphics[node.facet.id]
+
+        print(f"[Facets Editor] Deleted {len(deletable_nodes)} facets")
+        self.assemblyModified.emit()
+
+    def undo(self):
+        """Undo last operation."""
+        # TODO: Implement undo from snapshot stack
+        print("[Facets Editor] Undo not yet implemented")
+
+    def redo(self):
+        """Redo last undone operation."""
+        # TODO: Implement redo from snapshot stack
+        print("[Facets Editor] Redo not yet implemented")
+
+    def keyPressEvent(self, event):
+        """Handle key press events."""
+        if event.key() == Qt.Key.Key_Space and not self.space_pressed:
+            # Space pressed - switch to pan mode
+            self.space_pressed = True
+            self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+            self.view.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
+        else:
+            super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        """Handle key release events."""
+        if event.key() == Qt.Key.Key_Space and self.space_pressed:
+            # Space released - back to selection mode
+            self.space_pressed = False
+            self.view.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+            self.view.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+        else:
+            super().keyReleaseEvent(event)
+
+    def start_wire_drawing(self, start_pad: FacetPadGraphics):
+        """Start drawing a connection wire from a pad."""
+        print(f"[Facets Editor] Starting wire from {start_pad.facet_node.facet.name}.{start_pad.pad.name}")
+        self.wire_start_pad = start_pad
+
+        # Create temporary line for visual feedback
+        start_pos = start_pad.get_scene_position()
+        self.wire_being_drawn = QGraphicsLineItem(
+            start_pos.x(), start_pos.y(),
+            start_pos.x(), start_pos.y()
+        )
+        self.wire_being_drawn.setPen(QPen(QColor("#FFFFFF"), 2, Qt.PenStyle.DashLine))
+        self.scene.addItem(self.wire_being_drawn)
+
+    def eventFilter(self, obj, event):
+        """Handle viewport events for wire drawing and selection."""
+        if obj == self.view.viewport():
+            # Handle clicks on background
+            if event.type() == event.Type.MouseButtonPress:
+                scene_pos = self.view.mapToScene(event.pos())
+                items = self.scene.items(scene_pos)
+
+                # Filter to only facet nodes
+                clicked_nodes = [
+                    item for item in items
+                    if isinstance(item, FacetNodeGraphics)
+                ]
+
+                if not clicked_nodes:
+                    # Clicked empty background
+                    if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+                        # Cmd-click - invert selection
+                        self.invert_selection()
+                        return True
+                    else:
+                        # Regular click - collapse any expanded nodes
+                        self.collapse_all_nodes()
+                        return False  # Allow default behavior (clear selection)
+
+            if event.type() == event.Type.MouseMove and self.wire_being_drawn:
+                # Update wire endpoint to follow mouse
+                scene_pos = self.view.mapToScene(event.pos())
+                line = self.wire_being_drawn.line()
+                self.wire_being_drawn.setLine(
+                    line.x1(), line.y1(),
+                    scene_pos.x(), scene_pos.y()
+                )
+                return True
+
+            elif event.type() == event.Type.MouseButtonRelease and self.wire_being_drawn:
+                # Check if released over a pad
+                scene_pos = self.view.mapToScene(event.pos())
+                items = self.scene.items(scene_pos)
+
+                end_pad = None
+                for item in items:
+                    if isinstance(item, FacetPadGraphics):
+                        end_pad = item
+                        break
+
+                if end_pad and self.wire_start_pad:
+                    # Validate connection
+                    if self.can_connect(self.wire_start_pad, end_pad):
+                        self.create_connection(self.wire_start_pad, end_pad)
+                    else:
+                        print("[Facets Editor] Invalid connection")
+
+                # Clean up temporary wire
+                self.scene.removeItem(self.wire_being_drawn)
+                self.wire_being_drawn = None
+                self.wire_start_pad = None
+                return True
+
+        return super().eventFilter(obj, event)
+
+    def can_connect(self, from_pad: FacetPadGraphics, to_pad: FacetPadGraphics) -> bool:
+        """Check if connection is valid."""
+        # Can't connect to self
+        if from_pad.facet_node == to_pad.facet_node:
+            return False
+
+        # Must be output -> input
+        if from_pad.pad.pad_type != PadType.OUTPUT:
+            return False
+        if to_pad.pad.pad_type != PadType.INPUT:
+            return False
+
+        # Check if connection already exists
+        for conn in self.current_assembly.connections:
+            if (conn.from_facet == from_pad.facet_node.facet.id and
+                conn.from_pad == from_pad.pad.name and
+                conn.to_facet == to_pad.facet_node.facet.id and
+                conn.to_pad == to_pad.pad.name):
+                return False  # Already connected
+
+        return True
+
+    def create_connection(self, from_pad: FacetPadGraphics, to_pad: FacetPadGraphics):
+        """Create a connection between two pads."""
+        if not self.current_assembly:
+            return
+
+        # Create connection data
+        connection = FacetConnection(
+            from_facet=from_pad.facet_node.facet.id,
+            from_pad=from_pad.pad.name,
+            to_facet=to_pad.facet_node.facet.id,
+            to_pad=to_pad.pad.name
+        )
+        self.current_assembly.connections.append(connection)
+
+        # Create visual wire
+        wire = ConnectionWire(from_pad, to_pad)
+        self.scene.addItem(wire)
+        self.wire_graphics.append(wire)
+
+        print(f"[Facets Editor] Connected {from_pad.facet_node.facet.name}.{from_pad.pad.name} -> {to_pad.facet_node.facet.name}.{to_pad.pad.name}")
+        self.assemblyModified.emit()
+
+    def invert_selection(self):
+        """Invert current selection (ZBrush-style mask inverter)."""
+        all_nodes = [
+            item for item in self.scene.items()
+            if isinstance(item, FacetNodeGraphics)
+        ]
+
+        for node in all_nodes:
+            node.setSelected(not node.isSelected())
+
+        selected_count = sum(1 for n in all_nodes if n.isSelected())
+        print(f"[Facets Editor] Inverted selection - {selected_count} facets now selected")
+
+    def _draw_grid_background(self):
+        """Draw subtle grid lines on background."""
+        grid_size = self.grid_size
+        scene_rect = self.scene.sceneRect()
+
+        # Faint gray for grid lines
+        grid_pen = QPen(QColor("#333333"), 1, Qt.PenStyle.DotLine)
+
+        # Draw vertical lines
+        x = scene_rect.left()
+        while x <= scene_rect.right():
+            if x % grid_size == 0:
+                line = self.scene.addLine(
+                    x, scene_rect.top(),
+                    x, scene_rect.bottom(),
+                    grid_pen
+                )
+                line.setZValue(-100)  # Behind everything
+            x += grid_size
+
+        # Draw horizontal lines
+        y = scene_rect.top()
+        while y <= scene_rect.bottom():
+            if y % grid_size == 0:
+                line = self.scene.addLine(
+                    scene_rect.left(), y,
+                    scene_rect.right(), y,
+                    grid_pen
+                )
+                line.setZValue(-100)  # Behind everything
+            y += grid_size
+
+    def toggle_grid_snap(self, enabled: bool):
+        """Toggle grid snapping on/off."""
+        self.snap_to_grid = enabled
+        print(f"[Facets Editor] Grid snapping: {'ON' if enabled else 'OFF'}")
+
+    def set_grid_size(self, size: int):
+        """Set grid snap size in pixels."""
+        self.grid_size = size
+        print(f"[Facets Editor] Grid size: {size}px")
+
+    def collapse_all_nodes(self):
+        """Collapse all expanded nodes."""
+        for item in self.scene.items():
+            if isinstance(item, FacetNodeGraphics) and item.expanded:
+                item.collapse_from_editing()
+
+    def show_floating_editor(self, facet: Facet, field_data: dict):
+        """
+        Show floating text editor for a facet field.
+
+        Args:
+            facet: Facet being edited
+            field_data: Field definition dict
+        """
+        editor = FloatingTextEditor(
+            field_name=field_data['name'],
+            field_key=field_data['key'],
+            initial_value=field_data['value'],
+            read_only=field_data['read_only'],
+            parent=self
+        )
+
+        # Connect apply signal
+        def on_applied(key, value):
+            # Update facet field
+            if key == 'prompt':
+                facet.prompt = value
+                print(f"[Facets Editor] Updated {facet.name}.prompt")
+            # Refresh field display if node currently showing fields
+            for item in self.scene.items():
+                if isinstance(item, FacetNodeGraphics) and item.facet.id == facet.id:
+                    if item.field_widgets:  # If fields currently visible, refresh them
+                        item.show_fields(force=True)
+
+        editor.textApplied.connect(on_applied)
+
+        # Position centered on screen
+        editor.move(
+            self.mapToGlobal(self.rect().center()).x() - 250,
+            self.mapToGlobal(self.rect().center()).y() - 200
+        )
+
+        # Show as modal dialog
+        editor.exec()
 
 
 if __name__ == "__main__":

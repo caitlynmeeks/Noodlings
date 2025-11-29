@@ -253,6 +253,63 @@ class Facet:
         """Generate a new UUID for facet ID."""
         return str(uuid.uuid4())
 
+    def get_editable_fields(self) -> List[Dict[str, Any]]:
+        """
+        Return list of fields that can be edited in the UI.
+
+        Each field has:
+        - name: Display name
+        - key: Property key
+        - value: Current value
+        - type: 'text', 'number', 'dropdown'
+        - read_only: Boolean
+        - preview: Short preview text (first ~50 chars for display in node)
+        """
+        fields = []
+
+        # Input field (last received input - read-only)
+        if self._last_output:
+            input_preview = str(self._last_output.get('in', ''))[:50]
+            if len(str(self._last_output.get('in', ''))) > 50:
+                input_preview += '...'
+            fields.append({
+                'name': 'Input',
+                'key': 'last_input',
+                'value': str(self._last_output.get('in', '')),
+                'type': 'text',
+                'read_only': True,
+                'preview': input_preview
+            })
+
+        # Processing prompt (editable)
+        prompt_preview = self.prompt[:50]
+        if len(self.prompt) > 50:
+            prompt_preview += '...'
+        fields.append({
+            'name': 'Processing Prompt',
+            'key': 'prompt',
+            'value': self.prompt,
+            'type': 'text',
+            'read_only': False,
+            'preview': prompt_preview
+        })
+
+        # Output field (last generated output - read-only, selectable)
+        if self._last_output:
+            output_str = str(self._last_output)[:50]
+            if len(str(self._last_output)) > 50:
+                output_str += '...'
+            fields.append({
+                'name': 'Output',
+                'key': 'last_output',
+                'value': str(self._last_output),
+                'type': 'text',
+                'read_only': True,
+                'preview': output_str
+            })
+
+        return fields
+
 
 @dataclass
 class FacetAssembly:
