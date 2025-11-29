@@ -106,6 +106,33 @@ Fixed crash and rendering issues in visual facet editor:
 - Console filter clearing itself - may be a bug in Console panel regex implementation
 - Undo system still needed for facet editing operations
 
+**CRITICAL FEATURE - Scripted Logic Field Integration:**
+
+The V8/JavaScript execution engine is **fully implemented** in `scripted_facet.py` (PyMiniRacer):
+- Sandboxed execution with 5-second timeout
+- Persistent storage (100KB limit per facet)
+- Event emission, logging, context access
+- Example scripts provided (mood tracker, etc.)
+
+**What's Missing:** Integration with Facets Editor field display:
+
+When F-key focusing on a ScriptedFacet node, the field editor should show:
+1. **Processing Prompt** field (already exists for all facets)
+2. **Scripted Logic** field (NEW - for ScriptedFacet types only)
+   - Multi-line text editor for JavaScript code
+   - Syntax highlighting (optional but nice)
+   - Script stored in facet metadata: `facet.script` property
+   - Editable via pencil icon (✎) or E key
+   - Shows preview: "function process(inputs, context) {...}" (first 50 chars)
+
+**Implementation Pattern:**
+- Extend `Facet.get_editable_fields()` in `facet_system.py` to return script field when `facet_type == "ScriptedFacet"`
+- Field definition: `{'name': 'Scripted Logic', 'key': 'script', 'value': facet.script, 'type': 'text', 'read_only': False, 'preview': script[:50]}`
+- FloatingTextEditor already supports multi-line editing
+- Script execution happens in `facet_executor.py` via `ScriptedFacet.process()`
+
+**User Context:** Caitlyn built Unity's Asset Store (employee #12) and later Tivoli Cloud VR. She knows executable code in editors (Qt Script, web views) and wants this pattern for facet nodes. This is NOT a toy feature - it's core to the architecture's extensibility, following the Unity prefab philosophy she pioneered.
+
 ---
 
 ## Previous Accomplishments (Nov 28-29, 2025 - Morning):
