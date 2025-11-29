@@ -21,11 +21,238 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Exception: Only if user explicitly requests emojis for a specific use case
 - Keep communication professional and text-based
 
-## ACTIVE SESSION HANDOFF - November 28, 2025
+## ACTIVE SESSION HANDOFF - November 29, 2025
 
-**Status**: NoodleStudio IDE - Locked Layout Edition! 🎨
+**Status**: Facet Assembly System - Node-Based Cognitive Architecture!
 
-### Today's Major Accomplishments (Nov 28, 2025):
+Fresh Claude starting? Read this section first!
+
+### Session Summary (November 28-29, 2025):
+
+**MAJOR BREAKTHROUGH**: Complete transition from fixed cognitive transistors to visual facet assembly system!
+
+---
+
+## Today's Accomplishments (Nov 29, 2025):
+
+**1. FACET ASSEMBLY SYSTEM - Complete Node-Based Architecture**
+
+Implemented revolutionary visual cognitive architecture editor:
+
+**Core Architecture:**
+- **Facet**: Individual cognitive transformation node (replaces "transistors")
+- **Facet Assembly**: Connected network of facets (Unity prefab model)
+- **Convergence**: Multi-input synthesis facet
+- **INCOMING/OUTGOING**: Special entry/exit nodes
+- **Charm Network**: Neural processor facet (LSTM/GRU hierarchy)
+- **Scripted Facets**: User-programmable JavaScript logic nodes
+- **Flow Control**: Ticker, Branch, RateLimiter, Cache, Accumulator
+
+**Files Created:**
+- `noodlestudio/core/facet_system.py` - Core data model, YAML serialization, UUID support
+- `noodlestudio/panels/facets_editor_panel.py` - Visual node graph editor (1300+ lines!)
+- `noodlestudio/panels/floating_text_editor.py` - Floating text editing dialog
+- `noodlestudio/core/facet_executor.py` - Parallel execution engine
+- `noodlestudio/core/charm_network_facet.py` - Neural network wrapper
+- `noodlestudio/core/scripted_facet.py` - JavaScript sandbox (PyMiniRacer/V8)
+- `noodlestudio/core/flow_control_facets.py` - Logic gates and timing controls
+- `facet_assemblies/` - Shared assembly library (Unity prefab model)
+
+**Assemblies Created:**
+- `simple_test.yaml` - Minimal test assembly
+- `anklebiter_default.yaml` - Production parallel architecture
+- `red_fire_anklebiter.yaml` - Red's complete cognitive topology migrated
+
+**Visual Editor Features:**
+- Drag-and-drop node positioning with grid snapping (20px)
+- Bezier curve connection wires (vertical tangents)
+- Right-click context menu for adding facets
+- F key: Tight focus with field display
+- A key: Frame entire assembly
+- E key: Open floating text editor for prompt
+- Cmd-D: Duplicate with preserved layout and internal wiring
+- Cmd-click background: Invert selection (ZBrush-style)
+- Space+drag: Pan viewport
+- Mouse wheel: Zoom (0.5x to 2x frame-all limit)
+- Delete key: Remove facets (protects special nodes)
+- Copy/paste: Preserves relative positions and internal connections
+- Status indicators: Colored dots (gray/green/yellow/red/blue)
+- Monochromatic design: Grays with white selection borders
+- Grid background: Faint dotted lines (#333333)
+
+**Red's Migration:**
+- Red now uses `facet_assembly` reference instead of `cognitive_components`
+- All 6 transistors migrated to facets: Intuition, Affect, Personality, Cultural, Memory, Embody
+- Convergence facet synthesizes all inputs
+- Full prompts preserved from original architecture
+
+**API Integration:**
+- `/agents` endpoint now includes `config` field for facet assembly loading
+- Token usage tracking across all facet types
+- Execution statistics (time, tokens, call counts)
+- UUID-based facet identification
+
+**2. Console Regex Filtering**
+- Real-time search with plain text and regex patterns
+- Case sensitivity toggle
+- Match highlighting (yellow background)
+- Dual buffer architecture (raw + formatted)
+
+---
+
+## NEXT SESSION TODO - Critical Remaining Features:
+
+### 1. **Field Display Fix (HIGH PRIORITY)**
+
+**Problem**: Fields not showing when F key pressed
+**Root cause**: `get_editable_fields()` may be returning empty list or fields not rendering
+**Fix needed**: Debug why pencil icons and field previews don't appear on F key focus
+
+**Test case:**
+1. Select Red in Stage
+2. Facets Editor loads anklebiter_default.yaml
+3. Select "Intuition Facet" node
+4. Press F
+5. **Expected**: Node zooms to fill view, shows fields with pencil icons
+6. **Actual**: May not be showing fields
+
+**Debug checklist:**
+- Check `facet.get_editable_fields()` returns data
+- Verify `show_fields(force=True)` is called
+- Check field widgets are being created
+- Verify pencil icons are clickable
+
+### 2. **Crash Bug Fix (CRITICAL)**
+
+**Steps to reproduce:**
+1. Start NoodleStudio, log into noodleMUSH
+2. Select Red in Stage
+3. In Facets Editor, select a facet (e.g., Intuition)
+4. Click blank area to deselect
+5. **CRASH**
+
+**Likely cause**: `hide_fields()` or `update_field_visibility()` accessing invalid widget
+**Fix**: Added try/catch in `hide_fields()` but may need more safety checks
+
+### 3. **LLM Tier Configuration System**
+
+Implement tiered LLM selection for performance optimization:
+
+**Settings → LLM Manager:**
+
+Five tiers (cascade down if not set):
+- **FASTEST**: Quick semantic analysis (qwen-4b) - Intuition, keyword detection
+- **FAST**: Simple inference (qwen-14b) - Basic facets
+- **AVERAGE**: Good cognitive processing (qwen-32b) - Standard noodlings
+- **SMART**: Bright noodlings (qwen-128b) - Complex reasoning
+- **SMARTEST**: Final generation (DeepSeek v3, Sonnet) - Convergence facets
+
+**UI Flow:**
+```
+Settings → LLM Manager
+┌─ LLM Tier Configuration ──────────────┐
+│ FASTEST  (semantic analysis)          │
+│ Model: [qwen/qwen3-4b-2507      ▼]   │
+│                                        │
+│ FAST     (simple inference)            │
+│ Model: [qwen/qwen3-14b-2507     ▼]   │
+│                                        │
+│ AVERAGE  (cognitive processing)        │
+│ Model: [qwen/qwen3-32b-2507     ▼]   │
+│                                        │
+│ SMART    (complex reasoning)           │
+│ Model: [qwen/qwen3-128b-2507    ▼]   │
+│                                        │
+│ SMARTEST (final generation)            │
+│ Model: [deepseek/deepseek-chat  ▼]   │
+│                                        │
+│ [Test Connection] [Apply] [Cancel]    │
+└────────────────────────────────────────┘
+```
+
+**In Facet Properties:**
+```
+LLM Tier: [SMART ▼]  ← Dropdown with 5 options
+```
+
+**Storage:** `~/.noodlestudio/llm_tiers.json`
+
+**Implementation:**
+- Create Settings dialog for tier configuration
+- Add LLM tier dropdown to facet field editor
+- Resolve tier to model name at runtime
+- Test connection button validates each configured model
+- Cascade: If SMART not set, uses AVERAGE; if AVERAGE not set, uses FAST, etc.
+
+### 4. **Color Picker for Node Background**
+
+**Feature**: Right-click node → "Set Background Color"
+- Simple color picker dialog (Qt standard QColorDialog)
+- Apply/Cancel buttons
+- Persists to `facet.custom_color` property
+- Saves to YAML when assembly saved
+- Special nodes (INCOMING/OUTGOING) cannot have custom colors
+
+**API**: `facet.setCustomColor('#FF5733')` via scripting
+
+### 5. **Floating Editor Improvements**
+
+**Needed:**
+- Maximize button (standard window decoration)
+- Resizable window (remove `setFixedSize`)
+- Remember last size/position per session
+
+### 6. **Advanced Field Types**
+
+Extend `get_editable_fields()` to support:
+- **Checkboxes**: `{type: 'boolean', value: True}`
+- **Number fields**: `{type: 'number', value: 0.7, min: 0, max: 1}`
+- **Dropdowns**: `{type: 'dropdown', options: ['a', 'b'], value: 'a'}`
+
+These display **inline** in node when F-focused (not floating editor):
+```
+ENABLED: [✓] (checkbox - click to toggle)
+TEMPERATURE: [0.7] (number - click to edit)
+LLM TIER: [SMART ▼] (dropdown)
+```
+
+### 7. **Undo/Redo System**
+
+Implement snapshot-based undo for:
+- Facet creation/deletion
+- Connection creation/deletion
+- Node position changes
+- Field edits
+- Facet duplication
+
+**Storage**: YAML snapshots in memory (last 50 operations)
+
+---
+
+## Technical Notes for Next Session:
+
+**Facets Editor Architecture:**
+- Location: `applications/noodlestudio/noodlestudio/panels/facets_editor_panel.py`
+- Scene: QGraphicsScene with QGraphicsView
+- Nodes: FacetNodeGraphics (QGraphicsRectItem)
+- Wires: ConnectionWire (QGraphicsItem with bezier curves)
+- Pads: FacetPadGraphics (QGraphicsEllipseItem)
+
+**Key Patterns:**
+- UUIDs for all facet IDs (not simple strings)
+- Token tracking via `facet.record_execution(tokens, time, outputs)`
+- Field system via `facet.get_editable_fields()`
+- Status: `node.set_status('ready'|'processing'|'waiting'|'cached'|'inactive')`
+
+**Current Known Issues:**
+- Fields may not display on F key (needs debugging)
+- Crash on deselect (added safety checks, may need more)
+- Floating editor needs maximize button
+- Delete key functionality confirmed working
+
+---
+
+## Previous Accomplishments (Nov 28, 2025):
 
 **1. Locked-Down Layout - Maximum Vertical Space**
 - Replaced draggable dock widgets with fixed QSplitter layout
