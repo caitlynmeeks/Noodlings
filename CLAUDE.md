@@ -21,17 +21,65 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Exception: Only if user explicitly requests emojis for a specific use case
 - Keep communication professional and text-based
 
-## ACTIVE SESSION HANDOFF
+## ACTIVE SESSION HANDOFF - November 28, 2025
 
-**👉 See `HANDOFF_SESSION_NOV18_MORNING.md` for current work! 👈**
+**Status**: NoodleStudio IDE - Locked Layout Edition! 🎨
 
-**Status**: NoodleStudio IDE complete! The Krugerrand Edition - worth its weight in gold!
-- Unity-style Qt IDE with Scene/Inspector/Console
-- Multi-track Timeline Profiler
-- USD export for animation studios
-- All affect bugs fixed!
+### Today's Major Accomplishments (Nov 28, 2025):
 
-Fresh Claude starting a new session? **Read that handoff file first!**
+**1. Locked-Down Layout - Maximum Vertical Space**
+- Replaced draggable dock widgets with fixed QSplitter layout
+- Removed ALL title bars (reclaimed ~85-100px vertical space!)
+- Tabs remain: Stage/Assets, Inspector/Noodle Tuner, Console/Timeline Profiler
+- Tabs styled gray (not blue), selected tab matches panel background (#3E3E3E)
+- Panels resize down to minimum but never collapse (setChildrenCollapsible(False))
+- Background: Charcoal gray (#383838) to distinguish from noodleMUSH terminal
+
+**2. Dual-Mode Console (MUSH/STUDIO)**
+- Toggle buttons: [MUSH] [STUDIO]
+- MUSH mode: Shows noodleMUSH server WebSocket logs
+- STUDIO mode: Shows Python stdout/stderr from NoodleStudio
+- Intercepts sys.stdout/sys.stderr for capture
+- Perfect for debugging!
+
+**3. External Editor Integration**
+- Right-click any text field → "View in External Editor"
+- Opens temp snapshot in configured editor (VS Code, etc.)
+- View-only (no save-back to avoid race conditions)
+- Works in Inspector and Noodle Tuner panels
+- Also: "Open in Image Editor" and "Open in Audio Editor" context menus
+
+**4. Settings Menu**
+- Settings → Random Number Generator (detects TrueRNG V3 USB device!)
+- Settings → External Applications (Text/Image/Audio/3D editors)
+- Saves to ~/.noodlestudio/settings.json
+
+**5. World View Offline Card**
+- Shows centered card when server is off
+- Auto-reloads noodleMUSH when server starts
+
+### NEXT SESSION TODO:
+
+**Console Regex Filtering** 🔍
+Add regex-capable search to Console panel:
+- Search text field in toolbar
+- Support plain text AND regex patterns
+- Examples: `FileWatcher`, `\[.*?\]`, `ERROR|WARNING`
+- Case-sensitive toggle checkbox
+- Real-time filtering as you type
+- Highlight matches in yellow/green
+
+UI concept:
+```
+[Clear] | [MUSH] [STUDIO] | Filter: [____________] [Regex ☐]
+```
+
+This will be EXCELLENT for debugging in STUDIO mode!
+
+**Files to modify:**
+- `applications/noodlestudio/noodlestudio/panels/console_panel.py`
+
+Fresh Claude starting a new session? **Read this section first!**
 
 ## Epistemic Humility
 
