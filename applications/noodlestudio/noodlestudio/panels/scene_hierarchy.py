@@ -59,6 +59,9 @@ class SceneHierarchy(QWidget):
         # Derez confirmation settings
         self.derez_confirm = True  # Show confirmation dialog
 
+        # Track agent pause states
+        self.agent_pause_states = {}  # {agent_id: bool}
+
         # Initialize UI directly on this widget
         self.init_ui(self)
 
@@ -315,13 +318,33 @@ class SceneHierarchy(QWidget):
                     continue
 
                 name = agent.get('name', agent.get('id'))
-                species = agent.get('species', 'unknown')
                 agent_id = agent.get('id')
+                is_locked = agent.get('locked', False)
 
-                noodling_item = QTreeWidgetItem([f"{name} [{species}]"])
+                # Build status text (replaces species)
+                is_paused = self.get_agent_pause_state(agent_id)
+                status_parts = []
+                if is_paused:
+                    status_parts.append("paused")
+                if is_locked:
+                    status_parts.append("locked")
+                # TODO: Add error detection here when available
+                status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
+
+                # Build display with controls on right
+                pause_icon = "▶" if is_paused else "⏸"
+                lock_icon = "🔒" if is_locked else "🔓"
+
+                # Display format: "Name        [status]      ⏸ 🔒"
+                # Using unicode spaces for alignment
+                display_text = f"{name:<20} {status_text:<20} {pause_icon} {lock_icon}"
+
+                noodling_item = QTreeWidgetItem([display_text])
                 noodling_item.setData(0, Qt.ItemDataRole.UserRole, {
                     'type': 'noodling',
                     'id': agent_id,
+                    'name': name,
+                    'locked': is_locked,
                     'data': agent
                 })
                 noodlings_folder.addChild(noodling_item)
@@ -345,10 +368,29 @@ class SceneHierarchy(QWidget):
                 for obj_id, obj_data in objects_data.items():
                     if obj_data.get('location') == self.current_room:
                         prim_name = obj_data.get('name', obj_id)
-                        prim_item = QTreeWidgetItem([prim_name])
+                        is_locked = obj_data.get('locked', False)
+                        is_disabled = obj_data.get('disabled', False)
+
+                        # Build status text
+                        status_parts = []
+                        if is_disabled:
+                            status_parts.append("disabled")
+                        if is_locked:
+                            status_parts.append("locked")
+                        status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
+
+                        # Lock icon only (prims don't have pause)
+                        lock_icon = "🔒" if is_locked else "🔓"
+
+                        # Display format: "Name        [status]         🔒"
+                        display_text = f"{prim_name:<20} {status_text:<20}    {lock_icon}"
+
+                        prim_item = QTreeWidgetItem([display_text])
                         prim_item.setData(0, Qt.ItemDataRole.UserRole, {
                             'type': 'prim',
                             'id': obj_id,
+                            'locked': is_locked,
+                            'disabled': is_disabled,
                             'data': obj_data
                         })
                         prims_folder.addChild(prim_item)
@@ -474,6 +516,13 @@ class SceneHierarchy(QWidget):
             if entity_type == 'noodling':
                 menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
                 menu.addAction("Toggle Enlightenment", lambda d=entity_data: self.toggle_enlightenment_data(d))
+
+                # Check if cognition is paused for this agent
+                agent_id = entity_data.get('id')
+                is_paused = self.get_agent_pause_state(agent_id)
+                pause_text = "Resume Cognition" if is_paused else "Pause Cognition"
+                menu.addAction(pause_text, lambda d=entity_data: self.toggle_cognition_pause_data(d))
+
                 menu.addSeparator()
                 menu.addAction("Export Noodling", lambda d=entity_data: self.export_noodling_data(d))
                 menu.addSeparator()
@@ -1169,3 +1218,64 @@ class SceneHierarchy(QWidget):
         # Check children
         for i in range(item.childCount()):
             self._check_item_for_ensemble(item.child(i))
+
+    def get_agent_pause_state(self, agent_id: str) -> bool:
+        """Get the pause state for a specific agent."""
+        return self.agent_pause_states.get(agent_id, False)
+
+    def toggle_cognition_pause_data(self, entity_data):
+        """Toggle cognition pause for a noodling (uses entity data)."""
+        agent_id = entity_data.get('id')
+        if not agent_id:
+            QMessageBox.warning(self, "Error", "Cannot find agent ID")
+            return
+
+        try:
+            # Get current pause state
+            is_paused = self.get_agent_pause_state(agent_id)
+            new_pause_state = not is_paused
+
+            # Send API request
+            url = f"{self.api_base}/cognition/pause"
+            print(f"[Stage] Sending pause API request to {url}")
+            print(f"[Stage] Payload: paused={new_pause_state}, agent_id={agent_id}")
+            response = requests.post(url, json={'paused': new_pause_state, 'agent_id': agent_id}, timeout=35)
+            print(f"[Stage] API response: {response.status_code}")
+
+            if response.status_code == 200:
+                # Update tracked state
+                self.agent_pause_states[agent_id] = new_pause_state
+
+                # Notify Facets Editor if it's editing this agent
+                # (Need to emit signal or call parent)
+                if hasattr(self, 'parent') and self.parent():
+                    main_window = self.parent()
+                    while main_window and not hasattr(main_window, 'facets_editor'):
+                        main_window = main_window.parent() if hasattr(main_window, 'parent') else None
+
+                    if main_window and hasattr(main_window, 'facets_editor'):
+                        facets_editor = main_window.facets_editor
+                        if facets_editor.current_agent_id == agent_id:
+                            # Update Facets Editor pause state
+                            facets_editor.cognition_paused = new_pause_state
+                            facets_editor.pause_button.setChecked(new_pause_state)
+                            facets_editor.bottom_pause_btn.setChecked(new_pause_state)
+                            if new_pause_state:
+                                facets_editor.pause_button.setText("▶ Resume Cognition")
+                                facets_editor.bottom_pause_btn.setText("▶")
+                            else:
+                                facets_editor.pause_button.setText("⏸ Pause Cognition")
+                                facets_editor.bottom_pause_btn.setText("⏸")
+
+                # Refresh tree to update icon
+                self.refresh_scene()
+
+                # Log success (no popup)
+                state_text = "paused" if new_pause_state else "resumed"
+                agent_name = entity_data.get('name', agent_id)
+                print(f"[Stage] Cognition {state_text} for {agent_name}")
+            else:
+                QMessageBox.warning(self, "API Error", f"Failed to toggle cognition: {response.status_code}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to toggle cognition pause: {str(e)}")

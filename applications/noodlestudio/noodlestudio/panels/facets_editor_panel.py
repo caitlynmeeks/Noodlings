@@ -14,13 +14,22 @@ from PyQt6.QtWidgets import (
     QGraphicsLineItem, QPushButton, QLabel, QMenu, QMessageBox, QFileDialog,
     QGraphicsProxyWidget, QTextEdit
 )
-from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QLineF
+from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QLineF, QTimer, QPropertyAnimation, QEasingCurve, QVariantAnimation
 from PyQt6.QtGui import (
     QPen, QBrush, QColor, QPainter, QFont, QPainterPath, QCursor, QKeySequence, QShortcut
 )
 from typing import Optional, List, Dict, Tuple
 import sys
 import os
+import requests
+import json
+import asyncio
+from asyncio import QueueEmpty
+try:
+    import websockets
+    WEBSOCKETS_AVAILABLE = True
+except ImportError:
+    WEBSOCKETS_AVAILABLE = False
 
 # Import facet system
 from ..core.facet_system import (
@@ -123,7 +132,7 @@ class FacetNodeGraphics(QGraphicsRectItem):
     NODE_HEIGHT_EXPANDED = 400  # Height when expanded for editing
     PAD_SPACING = 25
 
-    def __init__(self, facet: Facet, parent=None):
+    def __init__(self, facet: Facet, editor_panel=None, parent=None):
         # Check if this is a special node (INCOMING/OUTGOING) for compact size
         is_special = facet.name in ["INCOMING", "OUTGOING"]
         initial_height = self.NODE_HEIGHT_COMPACT if is_special else self.NODE_HEIGHT
@@ -131,6 +140,7 @@ class FacetNodeGraphics(QGraphicsRectItem):
         super().__init__(0, 0, self.NODE_WIDTH, initial_height, parent)
         self.facet = facet
         self.is_special_node = is_special
+        self.editor_panel = editor_panel  # Reference to FacetsEditorPanel for pause state
 
         # Monochromatic styling (scriptable color overrides possible)
         # Check if facet has custom color override
@@ -204,9 +214,24 @@ class FacetNodeGraphics(QGraphicsRectItem):
         self.status_indicator.setPen(QPen(QColor("#888888"), 1))
         self.status_color = "#666666"
 
+        # Lock icon (top-right corner, clickable)
+        lock_icon = "🔒" if facet.locked else "🔓"
+        self.lock_icon = ClickableTextItem(lock_icon, self, {}, self.toggle_lock)
+        self.lock_icon.setPos(self.NODE_WIDTH - 35, 5)
+        self.lock_icon.setDefaultTextColor(QColor("#888888" if not facet.locked else "#CCAA00"))
+        self.lock_icon.setFont(QFont("Arial", 12))
+        self.lock_icon.setToolTip("Click to lock/unlock facet")
+        self.lock_icon.setZValue(15)  # Above other elements
+
         # Create pad graphics
         self.input_pads: Dict[str, FacetPadGraphics] = {}
         self.output_pads: Dict[str, FacetPadGraphics] = {}
+
+        # Animation state (Kraftwerk style - industrial precision)
+        self.execution_state = "idle"  # idle, processing, complete, error
+        self.animation_timer: Optional[QTimer] = None
+        self.pulse_phase = 0.0  # 0.0 to 1.0 for border pulse
+        self.base_brush = self.brush()  # Store original brush for restoration
 
         self._create_pads()
 
@@ -285,6 +310,81 @@ class FacetNodeGraphics(QGraphicsRectItem):
 
         return super().itemChange(change, value)
 
+    # ========== KRAFTWERK ANIMATION SYSTEM ==========
+    # Industrial precision. No bounce. Function over flourish.
+
+    def set_execution_state(self, state: str):
+        """
+        Set execution state and trigger appropriate animation.
+
+        States: idle, processing, complete, error
+
+        Kraftwerk style:
+        - Sharp transitions (80ms linear)
+        - Monochromatic palette
+        - Border pulse for processing (geometric, not organic)
+        - Subtle color shifts only
+        """
+        if self.execution_state == state:
+            return  # No redundant animations
+
+        self.execution_state = state
+
+        # Stop any existing animation
+        if self.animation_timer:
+            self.animation_timer.stop()
+            self.animation_timer = None
+
+        if state == "idle":
+            # Restore to neutral
+            self.setBrush(self.base_brush)
+            self.setPen(self.default_pen if not self.isSelected() else self.selected_pen)
+
+        elif state == "processing":
+            # Industrial yellow - warning light
+            self.setBrush(QBrush(QColor("#CCAA00")))
+            # Start border pulse (60ms tick, geometric)
+            self.pulse_phase = 0.0
+            self.animation_timer = QTimer()
+            self.animation_timer.timeout.connect(self._pulse_border)
+            self.animation_timer.start(60)  # 16fps - industrial machinery cadence
+
+        elif state == "complete":
+            # Slight brightness increase (satisfaction feedback)
+            self.setBrush(QBrush(QColor("#5A5A5A")))
+            # Hold for 200ms, then fade to idle
+            QTimer.singleShot(200, lambda: self.set_execution_state("idle"))
+
+        elif state == "error":
+            # Dark red (emergency indicator)
+            self.setBrush(QBrush(QColor("#8B0000")))
+            # Hold for 500ms, then return to idle
+            QTimer.singleShot(500, lambda: self.set_execution_state("idle"))
+
+    def _pulse_border(self):
+        """
+        Geometric border pulse for processing state.
+
+        No organic curves. Square wave, not sine.
+        """
+        self.pulse_phase += 0.2  # Fast square wave
+        if self.pulse_phase >= 1.0:
+            self.pulse_phase = 0.0
+
+        # Square wave brightness (sharp transitions)
+        if self.pulse_phase < 0.5:
+            brightness = 170  # Dim
+        else:
+            brightness = 255  # Bright
+
+        # Update pen
+        if self.isSelected():
+            pen = QPen(QColor(brightness, brightness, brightness), 3)
+        else:
+            pen = QPen(QColor(brightness, brightness, brightness), 2)
+
+        self.setPen(pen)
+
     def mousePressEvent(self, event):
         """Handle mouse press - support Shift for additive selection."""
         # On macOS, Qt uses Cmd for multi-select by default
@@ -304,6 +404,10 @@ class FacetNodeGraphics(QGraphicsRectItem):
         Args:
             force: If True, show regardless of zoom level
         """
+        # Special nodes (INCOMING/OUTGOING) have no editable fields
+        if self.is_special_node:
+            return
+
         # Clear existing field widgets
         try:
             for widget in self.field_widgets:
@@ -313,8 +417,9 @@ class FacetNodeGraphics(QGraphicsRectItem):
             pass
         self.field_widgets.clear()
 
-        # Get fields from facet
-        fields = self.facet.get_editable_fields()
+        # Get fields from facet (pass cognition pause state)
+        cognition_paused = self.editor_panel.cognition_paused if self.editor_panel else False
+        fields = self.facet.get_editable_fields(cognition_paused=cognition_paused)
 
         # Calculate required height for all fields
         field_height = 30  # Height per field
@@ -438,6 +543,24 @@ class FacetNodeGraphics(QGraphicsRectItem):
             if isinstance(panel, FacetsEditorPanel):
                 panel.show_floating_editor(self.facet, field_data)
 
+    def toggle_lock(self, _field_data: dict):
+        """Toggle lock state for this facet."""
+        self.facet.locked = not self.facet.locked
+
+        # Update lock icon appearance
+        lock_icon_text = "🔒" if self.facet.locked else "🔓"
+        self.lock_icon.setPlainText(lock_icon_text)
+        self.lock_icon.setDefaultTextColor(QColor("#CCAA00" if self.facet.locked else "#888888"))
+
+        # Disable movement if locked
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, not self.facet.locked)
+
+        # Emit modification signal if editor panel available
+        if self.editor_panel:
+            self.editor_panel.assemblyModified.emit()
+
+        print(f"[Node] Facet '{self.facet.name}' {'locked' if self.facet.locked else 'unlocked'}")
+
 
 class ConnectionWire(QGraphicsItem):
     """Visual representation of a connection between facet pads."""
@@ -453,7 +576,13 @@ class ConnectionWire(QGraphicsItem):
 
         # Visual styling
         self.pen = QPen(QColor("#888888"), 3)
+        self.active_pen = QPen(QColor("#CCAA00"), 4)  # Bright when data flows
         self.setZValue(-1)  # Draw behind nodes
+
+        # Data packet animation (Kraftwerk style)
+        self.packet_progress = 0.0  # 0.0 to 1.0 along bezier curve
+        self.packet_animating = False
+        self.packet_timer: Optional[QTimer] = None
 
     def boundingRect(self) -> QRectF:
         """Define bounding rectangle for drawing."""
@@ -484,14 +613,67 @@ class ConnectionWire(QGraphicsItem):
 
         path.cubicTo(ctrl1, ctrl2, end)
 
-        # Draw
-        painter.setPen(self.pen)
+        # Draw wire (brighter if packet animating)
+        if self.packet_animating:
+            painter.setPen(self.active_pen)
+        else:
+            painter.setPen(self.pen)
         painter.drawPath(path)
+
+        # Draw data packet (geometric square - no organic circles)
+        if self.packet_animating and 0.0 <= self.packet_progress <= 1.0:
+            # Calculate position along bezier curve
+            t = self.packet_progress
+            packet_pos = path.pointAtPercent(t)
+
+            # Draw square packet (Kraftwerk geometric aesthetic)
+            packet_size = 12
+            painter.setBrush(QBrush(QColor("#FFFFFF")))  # Bright white square
+            painter.setPen(QPen(QColor("#CCAA00"), 2))
+            painter.drawRect(
+                packet_pos.x() - packet_size/2,
+                packet_pos.y() - packet_size/2,
+                packet_size,
+                packet_size
+            )
 
     def update_path(self):
         """Update path when nodes move."""
         self.prepareGeometryChange()
         self.update()
+
+    def animate_data_flow(self):
+        """
+        Animate data packet flowing through connection.
+
+        Kraftwerk style: Linear motion, geometric packet (square), 300ms duration.
+        """
+        if self.packet_animating:
+            return  # Already animating
+
+        self.packet_animating = True
+        self.packet_progress = 0.0
+
+        # Linear animation - 300ms duration, 60fps
+        self.packet_timer = QTimer()
+        self.packet_timer.timeout.connect(self._advance_packet)
+        self.packet_timer.start(16)  # ~60fps
+
+    def _advance_packet(self):
+        """Advance packet along curve (linear motion)."""
+        self.packet_progress += 0.05  # 5% per frame = ~300ms total
+
+        if self.packet_progress >= 1.0:
+            # Animation complete
+            self.packet_progress = 1.0
+            self.packet_animating = False
+            if self.packet_timer:
+                self.packet_timer.stop()
+                self.packet_timer = None
+            # Brief wire highlight, then return to normal
+            QTimer.singleShot(100, lambda: self.update())
+
+        self.update()  # Trigger repaint
 
 
 class FacetsEditorPanel(QWidget):
@@ -530,7 +712,25 @@ class FacetsEditorPanel(QWidget):
         self.snap_to_grid = True
         self.grid_size = 20  # Snap to 20px grid
 
+        # Cognition pause state
+        self.current_agent_id: Optional[str] = None
+        self.cognition_paused: bool = False
+        self.api_base = "http://localhost:8081/api"
+
+        # Empty state message
+        self.empty_state_label: Optional[QGraphicsTextItem] = None
+
+        # WebSocket connection for execution event streaming (AUTOBAHN!)
+        self.ws_connection = None
+        self.ws_task = None
+        self.ws_connected = False
+        self.event_queue = asyncio.Queue() if WEBSOCKETS_AVAILABLE else None
+
         self.init_ui()
+
+        # Start WebSocket connection if available
+        if WEBSOCKETS_AVAILABLE:
+            self._start_websocket_connection()
 
     def init_ui(self):
         """Initialize user interface."""
@@ -546,6 +746,36 @@ class FacetsEditorPanel(QWidget):
         toolbar.addWidget(self.assembly_label)
 
         toolbar.addStretch()
+
+        # Pause/Resume cognition button
+        self.pause_button = QPushButton("⏸ Pause Cognition")
+        self.pause_button.setFixedWidth(140)
+        self.pause_button.setCheckable(True)
+        self.pause_button.setEnabled(False)  # Disabled until agent loaded
+        self.pause_button.clicked.connect(self.toggle_pause_cognition)
+        self.pause_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                padding: 4px;
+            }
+            QPushButton:hover:enabled {
+                background-color: #4A4A4A;
+                border: 1px solid #777777;
+            }
+            QPushButton:checked {
+                background-color: #555555;
+                color: #FFFFFF;
+                border: 1px solid #888888;
+            }
+            QPushButton:disabled {
+                background-color: #2A2A2A;
+                color: #666666;
+            }
+        """)
+        toolbar.addWidget(self.pause_button)
 
         # Save/Load buttons
         save_btn = QPushButton("Save")
@@ -600,11 +830,112 @@ class FacetsEditorPanel(QWidget):
 
         layout.addWidget(self.view)
 
+        # Bottom-right floating control panel (overlay on view)
+        self.control_panel = QWidget(self.view)
+        control_layout = QVBoxLayout(self.control_panel)
+        control_layout.setContentsMargins(8, 8, 8, 8)
+        control_layout.setSpacing(6)
+
+        # Pause button (duplicate, more accessible)
+        self.bottom_pause_btn = QPushButton("⏸")
+        self.bottom_pause_btn.setFixedSize(40, 40)
+        self.bottom_pause_btn.setCheckable(True)
+        self.bottom_pause_btn.setEnabled(False)
+        self.bottom_pause_btn.clicked.connect(self.toggle_pause_cognition)
+        self.bottom_pause_btn.setToolTip("Pause/Resume Cognition")
+        self.bottom_pause_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555555;
+                border-radius: 20px;
+                font-size: 16pt;
+            }
+            QPushButton:hover:enabled {
+                background-color: #4A4A4A;
+                border: 1px solid #777777;
+            }
+            QPushButton:checked {
+                background-color: #555555;
+                color: #FFFFFF;
+                border: 1px solid #888888;
+            }
+            QPushButton:disabled {
+                background-color: #2A2A2A;
+                color: #666666;
+            }
+        """)
+        control_layout.addWidget(self.bottom_pause_btn)
+
+        self.control_panel.setStyleSheet("""
+            QWidget {
+                background-color: rgba(42, 42, 42, 200);
+                border-radius: 6px;
+                border: 1px solid #555555;
+            }
+        """)
+        self.control_panel.setFixedSize(56, 56)  # Just one button now
+
+        # Position control panel bottom-right (will be repositioned on resize)
+        self.position_control_panel()
+
         # Enable key event handling
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         # Keyboard shortcuts
         self.setup_shortcuts()
+
+        # Show empty state initially
+        self.show_empty_state()
+
+    def show_empty_state(self):
+        """Show 'select a noodling' message when no assembly loaded."""
+        # Clear any existing assembly
+        self.scene.clear()
+        self.node_graphics.clear()
+        self.wire_graphics.clear()
+
+        # Add centered text message
+        self.empty_state_label = QGraphicsTextItem("Select a noodling to edit its facets")
+        self.empty_state_label.setDefaultTextColor(QColor("#CCCCCC"))
+        self.empty_state_label.setFont(QFont("Arial", 14))
+
+        # Center the text
+        text_rect = self.empty_state_label.boundingRect()
+        self.empty_state_label.setPos(-text_rect.width() / 2, -text_rect.height() / 2)
+        self.scene.addItem(self.empty_state_label)
+
+        # Update label
+        self.assembly_label.setText("No assembly loaded")
+
+        # Clear agent reference
+        self.current_assembly = None
+        self.current_assembly_name = None
+
+    def hide_empty_state(self):
+        """Remove empty state message."""
+        if self.empty_state_label and self.empty_state_label.scene():
+            self.scene.removeItem(self.empty_state_label)
+        self.empty_state_label = None
+
+    def position_control_panel(self):
+        """Position the floating control panel in bottom-right corner."""
+        view_width = self.view.width()
+        view_height = self.view.height()
+        panel_width = self.control_panel.width()
+        panel_height = self.control_panel.height()
+
+        # Position 20px from bottom-right corner
+        x = view_width - panel_width - 20
+        y = view_height - panel_height - 20
+        self.control_panel.move(x, y)
+        self.control_panel.raise_()  # Ensure it's on top
+
+    def resizeEvent(self, event):
+        """Reposition control panel on window resize."""
+        super().resizeEvent(event)
+        if hasattr(self, 'control_panel'):
+            self.position_control_panel()
 
     def load_assembly_from_data(self, assembly: FacetAssembly, force_reload: bool = False):
         """
@@ -620,6 +951,10 @@ class FacetsEditorPanel(QWidget):
             return
 
         print(f"[Facets Editor] Loading assembly: {assembly.name}")
+
+        # Hide empty state message if showing
+        self.hide_empty_state()
+
         self.current_assembly = assembly
         self.current_assembly_name = assembly.name
         self.assembly_label.setText(f"{assembly.name} [REF]")
@@ -631,7 +966,7 @@ class FacetsEditorPanel(QWidget):
 
         # Create node graphics for each facet
         for facet in assembly.facets:
-            node = FacetNodeGraphics(facet)
+            node = FacetNodeGraphics(facet, editor_panel=self)
             self.scene.addItem(node)
             self.node_graphics[facet.id] = node
 
@@ -722,7 +1057,7 @@ class FacetsEditorPanel(QWidget):
         print(f"[Facets Editor] Assembly now has {len(self.current_assembly.facets)} facets")
 
         # Create graphics
-        node = FacetNodeGraphics(facet)
+        node = FacetNodeGraphics(facet, editor_panel=self)
         self.scene.addItem(node)
         self.node_graphics[facet.id] = node
         print(f"[Facets Editor] Added node graphics to scene at ({node.pos().x()}, {node.pos().y()})")
@@ -1038,7 +1373,7 @@ class FacetsEditorPanel(QWidget):
             self.current_assembly.facets.append(new_facet)
 
             # Create graphics
-            node = FacetNodeGraphics(new_facet)
+            node = FacetNodeGraphics(new_facet, editor_panel=self)
             self.scene.addItem(node)
             self.node_graphics[new_facet.id] = node
 
@@ -1375,6 +1710,205 @@ class FacetsEditorPanel(QWidget):
 
         # Show as modal dialog
         editor.exec()
+
+    def toggle_pause_cognition(self, checked: bool):
+        """Toggle cognitive processing pause for the current agent."""
+        if not self.current_agent_id:
+            QMessageBox.warning(self, "No Agent", "No agent is currently loaded in the Facets Editor.")
+            self.pause_button.setChecked(False)
+            return
+
+        try:
+            if checked:
+                # PAUSING: Request pause and wait for cycle completion
+                url = f"{self.api_base}/cognition/pause"
+                response = requests.post(url, json={'paused': True, 'agent_id': self.current_agent_id}, timeout=35)
+
+                if response.status_code == 200:
+                    self.cognition_paused = True
+                    self.pause_button.setText("▶ Resume Cognition")
+                    self.bottom_pause_btn.setText("▶")
+                    self.bottom_pause_btn.setChecked(True)
+
+                    # Update Stage panel to reflect pause state
+                    self._update_stage_pause_state(True)
+
+                    # Refresh all visible fields to show output as editable
+                    for node in self.node_graphics.values():
+                        if node.field_widgets:  # If fields currently visible, refresh them
+                            node.show_fields(force=True)
+                else:
+                    QMessageBox.warning(self, "Pause Failed", f"Failed to pause cognition: {response.status_code}")
+                    self.pause_button.setChecked(False)
+                    self.bottom_pause_btn.setChecked(False)
+
+            else:
+                # RESUMING: Apply edits and resume cognition
+                url = f"{self.api_base}/cognition/pause"
+                response = requests.post(url, json={'paused': False, 'agent_id': self.current_agent_id}, timeout=2)
+
+                if response.status_code == 200:
+                    self.cognition_paused = False
+                    self.pause_button.setText("⏸ Pause Cognition")
+                    self.bottom_pause_btn.setText("⏸")
+                    self.bottom_pause_btn.setChecked(False)
+
+                    # Update Stage panel to reflect resume state
+                    self._update_stage_pause_state(False)
+
+                    # Refresh all visible fields to show output as read-only again
+                    for node in self.node_graphics.values():
+                        if node.field_widgets:  # If fields currently visible, refresh them
+                            node.show_fields(force=True)
+                else:
+                    QMessageBox.warning(self, "Resume Failed", f"Failed to resume cognition: {response.status_code}")
+                    self.pause_button.setChecked(True)
+                    self.bottom_pause_btn.setChecked(True)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Pause/resume error: {str(e)}")
+            self.pause_button.setChecked(not checked)  # Revert button state
+
+    def set_current_agent(self, agent_id: str):
+        """Set the current agent whose facets are being edited."""
+        self.current_agent_id = agent_id
+        enabled = True if agent_id else False
+        self.pause_button.setEnabled(enabled)
+        self.bottom_pause_btn.setEnabled(enabled)
+
+        # Reset pause state when switching agents
+        if self.cognition_paused:
+            self.pause_button.setChecked(False)
+            self.bottom_pause_btn.setChecked(False)
+            self.cognition_paused = False
+
+    def _update_stage_pause_state(self, paused: bool):
+        """Notify Stage panel to update pause state for current agent."""
+        if not self.current_agent_id:
+            return
+
+        # Find main window and update Stage panel
+        widget = self.parent()
+        while widget and not hasattr(widget, 'hierarchy'):
+            widget = widget.parent() if hasattr(widget, 'parent') else None
+
+        if widget and hasattr(widget, 'hierarchy'):
+            stage_panel = widget.hierarchy
+            # Update tracked pause state
+            stage_panel.agent_pause_states[self.current_agent_id] = paused
+            # Refresh Stage to update icon
+            stage_panel.refresh_scene()
+
+    # ========== WEBSOCKET AUTOBAHN - EXECUTION EVENT STREAMING ==========
+    # Trans-Europa-Facet-Express: Real-time telemetry from port 8081
+
+    def _start_websocket_connection(self):
+        """Start WebSocket connection to execution event stream."""
+        if not WEBSOCKETS_AVAILABLE:
+            print("[Facets Editor] websockets module not available - animations disabled")
+            return
+
+        # Start event processing timer (polls queue from Qt thread)
+        self.event_timer = QTimer()
+        self.event_timer.timeout.connect(self._process_event_queue)
+        self.event_timer.start(16)  # 60fps event processing
+
+        # Start WebSocket task in separate thread
+        import threading
+        ws_thread = threading.Thread(target=self._run_websocket_loop, daemon=True)
+        ws_thread.start()
+
+        print("[Facets Editor] WebSocket connection initiated to ws://localhost:8081/ws/execution_events")
+
+    def _run_websocket_loop(self):
+        """Run WebSocket event loop in separate thread."""
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self._websocket_handler())
+        except Exception as e:
+            print(f"[Facets Editor] WebSocket loop error: {e}")
+
+    async def _websocket_handler(self):
+        """Handle WebSocket connection and message receiving."""
+        uri = "ws://localhost:8081/ws/execution_events"
+
+        while True:
+            try:
+                async with websockets.connect(uri) as websocket:
+                    self.ws_connection = websocket
+                    self.ws_connected = True
+                    print("[Facets Editor] WebSocket connected")
+
+                    async for message in websocket:
+                        try:
+                            event_data = json.loads(message)
+                            # Add to queue for Qt thread processing
+                            if self.event_queue:
+                                await self.event_queue.put(event_data)
+                        except json.JSONDecodeError as e:
+                            print(f"[Facets Editor] Invalid JSON: {e}")
+
+            except Exception as e:
+                self.ws_connected = False
+                print(f"[Facets Editor] WebSocket error: {e}, reconnecting in 5s...")
+                await asyncio.sleep(5)  # Reconnect delay
+
+    def _process_event_queue(self):
+        """Process execution events from queue (called from Qt timer)."""
+        if not self.event_queue:
+            return
+
+        # Process up to 10 events per frame (prevent UI blocking)
+        for _ in range(10):
+            try:
+                event = self.event_queue.get_nowait()
+                self._handle_execution_event(event)
+            except:
+                break  # Queue empty
+
+    def _handle_execution_event(self, event: dict):
+        """
+        Handle execution event and trigger appropriate animation.
+
+        Event types:
+        - facet_start: Node begins executing (yellow + pulse)
+        - facet_complete: Node finishes (brief bright, then idle)
+        - data_flow: Animate packet along connection wire
+        - convergence_wait: (future: show waiting state)
+        """
+        event_type = event.get('type')
+        event_subtype = event.get('subtype')
+
+        if event_type != 'facet_execution':
+            return  # Ignore non-execution events
+
+        facet_id = event.get('source_id')
+        if not facet_id or facet_id not in self.node_graphics:
+            return  # Facet not in current assembly
+
+        node = self.node_graphics[facet_id]
+
+        if event_subtype == 'facet_start':
+            # KRAFTWERK: Node begins processing
+            node.set_execution_state('processing')
+
+        elif event_subtype == 'facet_complete':
+            # KRAFTWERK: Node completes (brief satisfaction, then idle)
+            node.set_execution_state('complete')
+
+        elif event_subtype == 'data_flow':
+            # AUTOBAHN: Animate data packet along wire
+            from_facet = event.get('data', {}).get('from_facet')
+            to_facet = event.get('data', {}).get('to_facet')
+
+            if from_facet and to_facet:
+                # Find connection wire between these facets
+                for wire in self.wire_graphics:
+                    if (wire.from_pad.facet_node.facet.id == from_facet and
+                        wire.to_pad.facet_node.facet.id == to_facet):
+                        wire.animate_data_flow()
+                        break
 
 
 if __name__ == "__main__":

@@ -16,8 +16,8 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Optional, Dict, List
-from aiohttp import web
+from typing import Optional, Dict, List, Set
+from aiohttp import web, WSMsgType
 import aiohttp_cors
 
 from session_profiler import SessionProfiler
@@ -64,14 +64,23 @@ class NoodleScopeAPI:
         self.host = host
         self.port = port
 
+        # WebSocket connections for execution event streaming
+        self.execution_ws_clients: Set[web.WebSocketResponse] = set()
+
         self.app = web.Application()
         self.setup_routes()
         self.setup_cors()
+
+        # Initialize event bus listener
+        self._setup_event_bus_listener()
 
         logger.info(f"NoodleScope API initialized on {host}:{port}")
 
     def setup_routes(self):
         """Setup HTTP routes."""
+        # WebSocket endpoint for execution events (TELEMETRY - NOT game-critical)
+        self.app.router.add_get('/ws/execution_events', self.ws_execution_events)
+
         # Session profiler endpoints
         self.app.router.add_get('/api/profiler/sessions', self.list_sessions)
         self.app.router.add_get('/api/profiler/session/{session_id}', self.get_session)
@@ -130,6 +139,110 @@ class NoodleScopeAPI:
         self.app.router.add_get('/noodlescope', self.serve_noodlescope)
 
         logger.info("API routes configured")
+
+    def _setup_event_bus_listener(self):
+        """Setup listener for execution events from event bus."""
+        try:
+            # Import here to avoid circular dependency
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent.parent / 'noodlestudio'))
+            from noodlestudio.core.execution_event_bus import get_event_bus, EventChannel
+
+            event_bus = get_event_bus()
+
+            # Register listener for all execution events
+            async def on_execution_event(event):
+                """Forward execution events to WebSocket clients."""
+                await self.broadcast_execution_event(event)
+
+            event_bus.register_listener(
+                on_execution_event,
+                channel=EventChannel.EXECUTION,
+                global_listener=False
+            )
+
+            logger.info("Event bus listener registered for execution events")
+
+        except Exception as e:
+            logger.warning(f"Could not setup event bus listener: {e}")
+            # Non-fatal - visualizer just won't receive events
+
+    async def ws_execution_events(self, request):
+        """
+        WebSocket endpoint for execution event streaming.
+
+        Used by NoodleStudio Facets Editor visualizer.
+        High-frequency telemetry - NOT game-critical.
+        """
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        self.execution_ws_clients.add(ws)
+        logger.info(f"Execution events WebSocket connected (total: {len(self.execution_ws_clients)})")
+
+        try:
+            # Send initial connection confirmation
+            await ws.send_json({
+                'type': 'connection',
+                'status': 'connected',
+                'message': 'Execution event stream ready'
+            })
+
+            # Keep connection alive, handle client messages
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    # Client can send subscription filters (future feature)
+                    data = json.loads(msg.data)
+                    if data.get('type') == 'ping':
+                        await ws.send_json({'type': 'pong'})
+
+                elif msg.type == WSMsgType.ERROR:
+                    logger.error(f'WebSocket error: {ws.exception()}')
+
+        except Exception as e:
+            logger.error(f"WebSocket handler error: {e}", exc_info=True)
+
+        finally:
+            self.execution_ws_clients.discard(ws)
+            logger.info(f"Execution events WebSocket disconnected (remaining: {len(self.execution_ws_clients)})")
+
+        return ws
+
+    async def broadcast_execution_event(self, event):
+        """
+        Broadcast execution event to all connected WebSocket clients.
+
+        Args:
+            event: Event object from ExecutionEventBus
+        """
+        if not self.execution_ws_clients:
+            return
+
+        # Convert event to JSON-serializable dict
+        event_data = {
+            'type': event.type,
+            'subtype': event.subtype,
+            'timestamp': event.timestamp,
+            'cycle': event.cycle,
+            'source_id': event.source_id,
+            'source_name': event.source_name,
+            'channel': event.channel.value if hasattr(event.channel, 'value') else str(event.channel),
+            'priority': event.priority.value if hasattr(event.priority, 'value') else str(event.priority),
+            'data': event.data
+        }
+
+        # Broadcast to all clients (non-blocking)
+        disconnected = set()
+        for ws in self.execution_ws_clients:
+            try:
+                await ws.send_json(event_data)
+            except Exception as e:
+                logger.error(f"Failed to send to WebSocket client: {e}")
+                disconnected.add(ws)
+
+        # Clean up disconnected clients
+        for ws in disconnected:
+            self.execution_ws_clients.discard(ws)
 
     def setup_cors(self):
         """Setup CORS for frontend access."""
@@ -1395,27 +1508,39 @@ class NoodleScopeAPI:
 
     async def pause_cognition(self, request: web.Request) -> web.Response:
         """
-        Pause or resume cognitive processing for all agents.
+        Pause or resume cognitive processing for all agents or a specific agent.
 
         POST /api/cognition/pause
-        Body: {"paused": true/false}
+        Body: {"paused": true/false, "agent_id": "optional_agent_id"}
 
         When paused, agents will not process new events or generate responses.
         Allows inspection of cognitive state without it changing.
+
+        If agent_id is provided, only that agent will be paused/resumed.
+        If agent_id is omitted, all agents will be paused/resumed.
         """
         try:
             data = await request.json()
             paused = data.get('paused', True)
+            target_agent_id = data.get('agent_id', None)
 
             if not self.agent_manager:
                 return web.json_response({'error': 'Agent manager not available'}, status=500)
 
-            # Set pause flag on agent manager
-            self.agent_manager.cognition_paused = paused
+            # Determine which agents to affect
+            if target_agent_id:
+                # Per-agent pause
+                if target_agent_id not in self.agent_manager.agents:
+                    return web.json_response({'error': f'Agent {target_agent_id} not found'}, status=404)
+                agents_to_pause = [self.agent_manager.agents[target_agent_id]]
+            else:
+                # Global pause - set flag on agent manager and affect all agents
+                self.agent_manager.cognition_paused = paused
+                agents_to_pause = list(self.agent_manager.agents.values())
 
-            # Also set flag on all agents
+            # Set pause flag on selected agents
             queued_count = 0
-            for agent in self.agent_manager.agents.values():
+            for agent in agents_to_pause:
                 if paused:
                     # When pausing, wait for current cycle to complete
                     agent.cognition_paused = True
@@ -1454,13 +1579,18 @@ class NoodleScopeAPI:
                                     pass
                             agent.pending_responses.clear()
 
-            logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for all agents (queued: {queued_count})")
+            # Log appropriate message
+            if target_agent_id:
+                logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for {target_agent_id} (queued: {queued_count})")
+            else:
+                logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for all agents (queued: {queued_count})")
 
             return web.json_response({
                 'success': True,
                 'paused': paused,
+                'agent_id': target_agent_id,
                 'queued_events': queued_count,
-                'message': f"Cognition {'paused' if paused else 'resumed'}"
+                'message': f"Cognition {'paused' if paused else 'resumed'} for {'agent ' + target_agent_id if target_agent_id else 'all agents'}"
             })
 
         except Exception as e:

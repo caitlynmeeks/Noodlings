@@ -30,6 +30,7 @@ from .flow_control_facets import (
     TickerGateFacet, ConditionalBranchFacet,
     RateLimiterFacet, CacheFacet, AccumulatorFacet
 )
+from .execution_event_bus import get_event_bus, EventChannel, EventPriority
 
 logger = logging.getLogger(__name__)
 
@@ -76,14 +77,19 @@ class FacetExecutor:
     - LLM facets (via provided LLM client)
     """
 
-    def __init__(self, llm_client=None):
+    def __init__(self, llm_client=None, event_callback=None, use_event_bus=True):
         """
         Initialize executor.
 
         Args:
             llm_client: LLM client for calling language models (optional)
+            event_callback: Async callback for execution events (optional, deprecated)
+                          Use event bus instead for better decoupling
+            use_event_bus: Use global event bus for event distribution (recommended)
         """
         self.llm_client = llm_client
+        self.event_callback = event_callback  # Legacy support
+        self.use_event_bus = use_event_bus
         self.current_cycle = 0
 
         # Facet instances (cached)
@@ -91,6 +97,39 @@ class FacetExecutor:
 
         # Execution history
         self.execution_history: List[ExecutionResult] = []
+
+        # Get event bus reference
+        if use_event_bus:
+            self.event_bus = get_event_bus()
+        else:
+            self.event_bus = None
+
+    async def _emit_event(self, event: Dict[str, Any]):
+        """
+        Emit execution event via event bus or legacy callback.
+
+        Args:
+            event: Event dict with type, subtype, and metadata
+        """
+        # Emit to event bus (preferred)
+        if self.event_bus:
+            await self.event_bus.emit(
+                event_type=event.get('type', 'unknown'),
+                event_subtype=event.get('subtype', 'unknown'),
+                channel=EventChannel.EXECUTION,
+                priority=EventPriority.NORMAL,
+                source_id=event.get('facet_id'),
+                source_name=event.get('facet_name'),
+                cycle=event.get('cycle'),
+                data=event
+            )
+
+        # Legacy callback support
+        if self.event_callback:
+            try:
+                await self.event_callback(event)
+            except Exception as e:
+                logger.error(f"Legacy event callback failed: {e}")
 
     def _build_dependency_graph(
         self,
@@ -203,6 +242,17 @@ class FacetExecutor:
         """
         start_time = time.time()
 
+        # Emit facet_start event
+        await self._emit_event({
+            'type': 'facet_execution',
+            'subtype': 'facet_start',
+            'facet_id': facet.id,
+            'facet_name': facet.name,
+            'facet_type': facet.facet_type,
+            'timestamp': start_time,
+            'cycle': self.current_cycle
+        })
+
         # Get or create instance
         instance = self._get_facet_instance(facet)
 
@@ -276,6 +326,20 @@ class FacetExecutor:
         elapsed = time.time() - start_time
         facet.record_execution(token_count, elapsed, outputs)
 
+        # Emit facet_complete event
+        await self._emit_event({
+            'type': 'facet_execution',
+            'subtype': 'facet_complete',
+            'facet_id': facet.id,
+            'facet_name': facet.name,
+            'facet_type': facet.facet_type,
+            'timestamp': time.time(),
+            'cycle': self.current_cycle,
+            'execution_time': elapsed,
+            'token_count': token_count,
+            'outputs': outputs
+        })
+
         return outputs
 
     async def execute(
@@ -325,10 +389,28 @@ class FacetExecutor:
         while pending:
             # Find ready facets (all dependencies satisfied)
             ready = []
+            waiting = []
             for facet_id in pending:
                 deps = dependencies.get(facet_id, set())
                 if all(dep_id in completed for dep_id in deps):
                     ready.append(facet_id)
+                else:
+                    waiting.append(facet_id)
+
+            # Emit convergence_wait events for facets still waiting
+            for facet_id in waiting:
+                facet = assembly.get_facet(facet_id)
+                deps = dependencies.get(facet_id, set())
+                pending_deps = [dep for dep in deps if dep not in completed]
+                await self._emit_event({
+                    'type': 'facet_execution',
+                    'subtype': 'convergence_wait',
+                    'facet_id': facet_id,
+                    'facet_name': facet.name,
+                    'waiting_for': pending_deps,
+                    'timestamp': time.time(),
+                    'cycle': self.current_cycle
+                })
 
             if not ready:
                 # Deadlock detection
@@ -370,6 +452,23 @@ class FacetExecutor:
                 # Track tokens
                 token_usage = facet.get_token_usage()
                 total_tokens += token_usage['last_tokens']
+
+                # Emit data_flow events for outgoing connections
+                for conn in assembly.connections:
+                    if conn.from_facet == facet.id:
+                        # Data flowing from this facet to another
+                        await self._emit_event({
+                            'type': 'facet_execution',
+                            'subtype': 'data_flow',
+                            'from_facet': conn.from_facet,
+                            'to_facet': conn.to_facet,
+                            'from_pad': conn.from_pad,
+                            'to_pad': conn.to_pad,
+                            'connection_id': f"{conn.from_facet}:{conn.from_pad}->{conn.to_facet}:{conn.to_pad}",
+                            'data': outputs.get(conn.from_pad),
+                            'timestamp': time.time(),
+                            'cycle': self.current_cycle
+                        })
 
         # Extract final output from OUTGOING node
         outgoing_id = None

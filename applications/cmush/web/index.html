@@ -1982,8 +1982,8 @@
                 line.appendChild(timeSpan);
             }
 
-            // Parse speaker name from beginning of text
-            const speakerMatch = msg.text.match(/^(You|[A-Z][a-z_]+(?:\.?\s*[A-Z]?[a-z_]*)?)\s+(say|says|tilts|purrs|meows|bounces|giggles|perks|action|thinks|asks|exclaims|whispers|shouts|murmurs|replies|responds|nods|smiles|laughs|sighs)/i);
+            // Parse speaker name from beginning of text (supports multi-word names like "Red Fire Anklebiter")
+            const speakerMatch = msg.text.match(/^(You|[A-Z][a-zA-Z_]*(?:\s+[A-Z][a-zA-Z_]*)*)\s+(say|says|tilts|purrs|meows|bounces|giggles|perks|action|thinks|asks|exclaims|whispers|shouts|murmurs|replies|responds|nods|smiles|laughs|sighs)/i);
 
             if (speakerMatch) {
                 const speakerName = speakerMatch[1].trim().toLowerCase();

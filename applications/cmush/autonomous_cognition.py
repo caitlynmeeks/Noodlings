@@ -149,6 +149,11 @@ class AutonomousCognitionEngine:
 
                 await asyncio.sleep(wait_time)
 
+                # Check if cognition is paused (don't generate thoughts when paused)
+                if getattr(self.agent, 'cognition_paused', False):
+                    logger.debug(f"Agent {self.agent.agent_id} cognition paused - skipping cycle")
+                    continue
+
                 # Check if we should actually think (event-driven conditions)
                 if not self._should_think():
                     logger.debug(f"Agent {self.agent.agent_id} decided not to think this cycle")

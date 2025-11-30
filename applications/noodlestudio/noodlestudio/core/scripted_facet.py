@@ -22,6 +22,7 @@ Date: November 28, 2025
 
 import time
 import json
+import asyncio
 from typing import Dict, Any, Optional, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -33,6 +34,13 @@ try:
 except ImportError:
     JS_AVAILABLE = False
     MiniRacer = None
+
+# Event bus integration
+try:
+    from .execution_event_bus import get_event_bus, EventChannel
+    EVENT_BUS_AVAILABLE = True
+except ImportError:
+    EVENT_BUS_AVAILABLE = False
 
 
 @dataclass
@@ -51,7 +59,7 @@ class ScriptContext:
     # Storage (persistent per-facet)
     _storage: Dict[str, Any] = field(default_factory=dict)
 
-    # Event callbacks
+    # Event callbacks (registered by scripts)
     _event_callbacks: Dict[str, list] = field(default_factory=dict)
 
     # Parent facet assembly (for inter-facet communication)
@@ -59,6 +67,58 @@ class ScriptContext:
 
     # Logging
     _logs: list = field(default_factory=list)
+
+    # Execution event callbacks (Unity-like lifecycle)
+    _facet_complete_callbacks: Dict[str, list] = field(default_factory=dict)
+    _facet_start_callbacks: Dict[str, list] = field(default_factory=dict)
+    _data_flow_callbacks: list = field(default_factory=list)
+    _cycle_callbacks: Dict[str, list] = field(default_factory=dict)
+
+    # World state access (injected by executor)
+    _world_state: Optional[Dict[str, Any]] = None
+    _agent_state: Optional[Dict[str, Any]] = None
+    _room_state: Optional[Dict[str, Any]] = None
+
+    # Action queue (for world mutations)
+    _action_queue: list = field(default_factory=list)
+
+    # Facet outputs cache (for inter-facet reading)
+    _facet_outputs: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+
+    # Event bus reference
+    _event_bus: Optional[Any] = None
+
+    def __post_init__(self):
+        """Initialize event bus connection."""
+        if EVENT_BUS_AVAILABLE and self._event_bus is None:
+            self._event_bus = get_event_bus()
+
+    def register_event_bus_listeners(self):
+        """
+        Wire up script callbacks to event bus.
+
+        Called by ScriptedFacet after context is fully initialized.
+        This allows scripts to subscribe to execution events via context.onFacetComplete(), etc.
+        """
+        if not self._event_bus:
+            return
+
+        # Create listener for facet_complete events
+        async def on_facet_complete_internal(event):
+            facet_id = event.source_id
+            if facet_id in self._facet_complete_callbacks:
+                for callback_str in self._facet_complete_callbacks[facet_id]:
+                    # TODO: Execute JavaScript callback from string
+                    # For now, just log
+                    pass
+
+        # Register with event bus
+        self._event_bus.register_listener(
+            on_facet_complete_internal,
+            event_type="facet_execution",
+            event_subtype="facet_complete",
+            channel=EventChannel.EXECUTION
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert context to JavaScript-compatible dict."""
@@ -79,7 +139,24 @@ class ScriptContext:
             'log': '__log__',
             'random': '__random__',
             'getFacet': '__get_facet__',
-            'getFacetOutput': '__get_facet_output__'
+            'getFacetOutput': '__get_facet_output__',
+            # Tier 1 API - Execution events
+            'onFacetComplete': '__on_facet_complete__',
+            'onFacetStart': '__on_facet_start__',
+            'onDataFlow': '__on_data_flow__',
+            'onCycleStart': '__on_cycle_start__',
+            'onCycleComplete': '__on_cycle_complete__',
+            # Tier 1 API - State access
+            'getSelf': '__get_self__',
+            'getRoom': '__get_room__',
+            'getAgent': '__get_agent__',
+            # Tier 1 API - Actions
+            'speak': '__speak__',
+            'emote': '__emote__',
+            'think': '__think__',
+            # Tier 1 API - Timers
+            'nextCycle': '__next_cycle__',
+            'setTimeout': '__set_timeout__'
         }
 
 
@@ -183,10 +260,85 @@ class ScriptedFacet:
             return facet ? facet[padName] : null;
         }
 
+        // Tier 1 API - Execution event callbacks
+        var __facet_complete_callbacks__ = {};
+        var __facet_start_callbacks__ = {};
+        var __data_flow_callbacks__ = [];
+        var __cycle_callbacks__ = {start: [], complete: []};
+
+        function __on_facet_complete__(facetId, callback) {
+            if (!__facet_complete_callbacks__[facetId]) {
+                __facet_complete_callbacks__[facetId] = [];
+            }
+            __facet_complete_callbacks__[facetId].push(callback);
+        }
+
+        function __on_facet_start__(facetId, callback) {
+            if (!__facet_start_callbacks__[facetId]) {
+                __facet_start_callbacks__[facetId] = [];
+            }
+            __facet_start_callbacks__[facetId].push(callback);
+        }
+
+        function __on_data_flow__(callback) {
+            __data_flow_callbacks__.push(callback);
+        }
+
+        function __on_cycle_start__(callback) {
+            __cycle_callbacks__.start.push(callback);
+        }
+
+        function __on_cycle_complete__(callback) {
+            __cycle_callbacks__.complete.push(callback);
+        }
+
+        // Tier 1 API - State access
+        var __world_state__ = null;
+        var __agent_state__ = null;
+        var __room_state__ = null;
+
+        function __get_self__() {
+            return __agent_state__;
+        }
+
+        function __get_room__() {
+            return __room_state__;
+        }
+
+        function __get_agent__(agentId) {
+            if (!__world_state__ || !__world_state__.agents) return null;
+            return __world_state__.agents[agentId] || null;
+        }
+
+        // Tier 1 API - Actions (queued for execution)
+        var __action_queue__ = [];
+
+        function __speak__(text) {
+            __action_queue__.push({type: 'speak', text: text});
+        }
+
+        function __emote__(text) {
+            __action_queue__.push({type: 'emote', text: text});
+        }
+
+        function __think__(text) {
+            __action_queue__.push({type: 'think', text: text});
+        }
+
+        // Tier 1 API - Timers (queued for execution)
+        function __next_cycle__(callback) {
+            __action_queue__.push({type: 'next_cycle', callback: callback.toString()});
+        }
+
+        function __set_timeout__(callback, milliseconds) {
+            __action_queue__.push({type: 'set_timeout', callback: callback.toString(), delay: milliseconds});
+        }
+
         // Clear execution state
         function __clear_execution_state__() {
             __logs__ = [];
             __events__ = [];
+            __action_queue__ = [];
         }
         """
 
@@ -225,6 +377,26 @@ class ScriptedFacet:
             self.js_context.eval(
                 f"__storage_data__ = {json.dumps(context._storage)};"
             )
+
+            # Inject world state (Tier 1 API)
+            if context._world_state:
+                self.js_context.eval(
+                    f"__world_state__ = {json.dumps(context._world_state)};"
+                )
+            if context._agent_state:
+                self.js_context.eval(
+                    f"__agent_state__ = {json.dumps(context._agent_state)};"
+                )
+            if context._room_state:
+                self.js_context.eval(
+                    f"__room_state__ = {json.dumps(context._room_state)};"
+                )
+
+            # Inject facet outputs cache (for inter-facet reading)
+            if context._facet_outputs:
+                self.js_context.eval(
+                    f"__facet_outputs__ = {json.dumps(context._facet_outputs)};"
+                )
 
             # Clear execution state
             self.js_context.eval("__clear_execution_state__();")
@@ -269,6 +441,11 @@ class ScriptedFacet:
                 if event_name in context._event_callbacks:
                     for callback in context._event_callbacks[event_name]:
                         callback(event_data)
+
+            # Collect action queue (Tier 1 API)
+            actions_json = self.js_context.eval("JSON.stringify(__action_queue__);")
+            actions = json.loads(actions_json)
+            context._action_queue.extend(actions)
 
             # Update stats
             elapsed = time.time() - start_time

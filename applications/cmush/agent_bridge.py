@@ -4478,6 +4478,10 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
         Returns:
             List of event dicts for broadcasting
         """
+        # Don't generate autonomous events when cognition is paused
+        if getattr(self, 'cognition_paused', False):
+            return []
+
         if self.cognition_engine:
             return self.cognition_engine.get_pending_events()
         return []

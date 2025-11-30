@@ -21,19 +21,210 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Exception: Only if user explicitly requests emojis for a specific use case
 - Keep communication professional and text-based
 
+## CRITICAL UI/UX REMINDERS - READ THIS FIRST
+
+**Fresh Claude? These details will save you embarrassment:**
+
+1. **Server Toggle Switch**: NoodleStudio has a server ON/OFF toggle in the **bottom-right status bar**
+   - Controls noodleMUSH server (applications/cmush/server.py)
+   - Toggle OFF then ON to restart server with new code
+   - Located: main_window.py:281-334
+   - Do NOT tell user to manually run ./start.sh if they have NoodleStudio open!
+
+2. **Stage Panel** = Unity's "Scene Hierarchy"
+   - Left panel showing Noodlings, Prims, Exits
+   - NOT called "Scene Hierarchy" in this codebase - it's "Stage"
+   - File: scene_hierarchy.py (confusing name, but stage in UI)
+
+3. **Monochromatic Design Philosophy**
+   - STRICT grayscale aesthetic (#2A2A2A to #FFFFFF)
+   - No colorful emoji (only monochrome unicode glyphs)
+   - Exception: Error indicators can use dark red (#CC4444)
+   - No bright colors for buttons (use grays, not red/green/blue)
+
+4. **Multi-Word Agent Names**
+   - Agents can have 3+ word names: "Red Fire Anklebiter"
+   - Regex patterns must handle this (not just "First Last")
+   - Pattern: `[A-Z][a-zA-Z_]*(?:\s+[A-Z][a-zA-Z_]*)*`
+
+5. **Pause System Has Two Loops**
+   - `perceive_event()` in agent_bridge.py (reactive cognition)
+   - `_cognition_loop()` in autonomous_cognition.py (spontaneous thoughts)
+   - BOTH must check `cognition_paused` flag!
+
+---
+
 ## ACTIVE SESSION HANDOFF - November 29, 2025 (Evening Session)
 
-**Status**: Facets Editor Bug Fixes & Per-Agent Cognition Pause System Design
+**Status**: Per-Agent Pause & Lock System - COMPLETE AND TESTED
 
 Fresh Claude starting? Read this section first!
 
 ### Session Summary (November 29, 2025 - Evening):
 
-**Bug fixes completed, system stable. Planning per-agent cognition pause for field editing.**
+**Per-agent cognition pause and lock system fully implemented and debugged. All components synchronized.**
 
 ---
 
 ## Today's Accomplishments (Nov 29, 2025 - Evening Session):
+
+**1. PER-AGENT COGNITION PAUSE SYSTEM - Complete**
+
+Full implementation with bidirectional sync:
+
+**API Enhancement (api_server.py:1396-1485):**
+- Modified `/api/cognition/pause` to accept optional `agent_id` parameter
+- Per-agent pause: Only specified agent pauses
+- Global pause: All agents pause (backward compatible)
+- Waits for cycle completion before pausing (prevents mid-cycle corruption)
+
+**UI Controls:**
+- **Facets Editor**: Toolbar pause button + bottom-right floating button
+- **Stage Panel**: Right-click context menu → Pause/Resume Cognition
+- **Visual Indicators**: ⏸ (running) / ▶ (paused) icons next to agent names
+- **Status Text**: Shows `[paused]` when cognition paused
+- **Bidirectional Sync**: Pausing from either UI updates both panels
+
+**Pause Coverage (CRITICAL - Both loops):**
+- Reactive cognition: `agent_bridge.py:2198` - Checks before processing events
+- Autonomous cognition: `autonomous_cognition.py:152` - Checks before LLM calls
+- Event broadcasting: `agent_bridge.py:4481` - Returns empty list when paused
+
+**Field Editability:**
+- Output fields become editable when cognition paused
+- Modified `Facet.get_editable_fields(cognition_paused=bool)` parameter
+- Fields refresh automatically when pause state changes
+
+**2. LOCK SYSTEM - Complete**
+
+Protect facets, noodlings, and prims from accidental edits:
+
+**Data Model:**
+- Added `locked: bool` to Facet class (serializes to YAML)
+- Noodlings/Prims: `locked` property in agent/object JSON
+
+**UI Elements:**
+- **Facet Nodes**: 🔒/🔓 icon in top-right corner (clickable)
+- **Locked behavior**: Node cannot be moved (ItemIsMovable disabled)
+- **Visual feedback**: Yellow tint (#CCAA00) when locked, gray (#888888) when unlocked
+- **Stage Panel**: Lock icon in right column for all entities
+
+**3. STAGE PANEL COLUMNAR LAYOUT**
+
+Replaced species display with status indicators:
+
+**Display Format:**
+```
+Red Fire Anklebiter    [paused]      ⏸ 🔒
+Callie                               ⏸ 🔓
+WANTED POSTER          [disabled]      🔒
+```
+
+**Status Text** (italic gray):
+- `[paused]` - Cognition paused
+- `[locked]` - Protected from edits
+- `[disabled]` - Entity inactive
+- `[error]` - Runtime error (with red dot ●)
+
+**4. FACETS EDITOR ENHANCEMENTS**
+
+**Empty State:**
+- Shows "Select a noodling to edit its facets" when no agent selected
+- Centered white text on dark background
+- Clears when assembly loads
+
+**Bottom-Right Control Panel:**
+- Floating translucent panel (56x56px)
+- Single pause/resume button (⏸/▶)
+- Synchronized with toolbar button
+- Auto-repositions on window resize
+
+**Special Nodes (INCOMING/OUTGOING):**
+- No editable fields (prevents expansion)
+- Maintains 35px compact height
+- Vertically symmetric padding
+
+**5. BUG FIXES**
+
+**Selection Sync:**
+- Switching agents in Stage now updates Facets Editor correctly
+- `set_current_agent()` called on every selection
+- Pause button enables/disables appropriately
+
+**Pause State Sync:**
+- Stage ↔ Facets Editor bidirectional updates
+- Pausing from either UI updates both panels
+- Icons and status text stay synchronized
+
+**Multi-Word Names:**
+- Fixed regex in web client to parse 3+ word names
+- "Red Fire Anklebiter" now shows "privately thinks" consistently
+- Pattern: `[A-Z][a-zA-Z_]*(?:\s+[A-Z][a-zA-Z_]*)*`
+
+**Autonomous Cognition Pause:**
+- Added pause check BEFORE expensive LLM calls
+- No token usage when paused
+- Complete cognitive freeze (no thoughts, no speech)
+
+**Files Modified:**
+- `api_server.py` - Per-agent pause API
+- `facets_editor_panel.py` - Pause controls, lock icons, empty state
+- `scene_hierarchy.py` - Columnar layout, pause/lock toggles
+- `facet_system.py` - Lock property, editable field pause parameter
+- `autonomous_cognition.py` - Pause check before cognition cycle
+- `agent_bridge.py` - Pause check in get_autonomous_events
+- `web/index.html` - Multi-word name regex fix
+- `main_window.py` - Selection sync, no auto tab-switch
+
+---
+
+## NEXT SESSION PRIORITY - Facet Execution Visualizer
+
+**Goal**: Watch facets execute in real-time like a "pachinko machine with many balls"
+
+User wants to verify that facet logic actually runs and observe the data flow visually.
+
+**Implementation Plan:**
+
+1. **Execution Event Streaming**
+   - Modify `facet_executor.py` to emit WebSocket events during execution
+   - Events: facet_start, facet_complete, data_flow, convergence_wait
+   - Include: facet_id, timestamp, token_count, execution_time
+
+2. **Visual Animation in Facets Editor**
+   - Node pulse/glow when executing (color shift or border animation)
+   - Connection wires light up when data flows
+   - Visual "packets" travel along wires (animated circles)
+   - Status indicator changes: gray → yellow (processing) → green (complete)
+
+3. **Execution Timeline**
+   - Bottom panel showing execution order
+   - Parallel execution branches visible
+   - Convergence point waits visualized
+
+4. **Live Statistics**
+   - Token usage counter updates in real-time
+   - Execution time per facet
+   - Total assembly execution time
+
+5. **Test Assembly**
+   - Use `simple_test.yaml` or create minimal test case
+   - Single input → multiple facets → convergence → single output
+   - Trigger via API or test button
+
+**Reference Implementation:**
+- NoodleTuner already shows live state updates (polling pattern)
+- Timeline Profiler shows execution events
+- Combine both approaches for facet visualization
+
+**Files to Modify:**
+- `facet_executor.py` - Add event emission
+- `facets_editor_panel.py` - Add animation handlers
+- `api_server.py` - Add execution trigger endpoint (optional)
+
+---
+
+## Previous Accomplishments (Nov 28-29, 2025 - Morning):
 
 **1. CRITICAL BUG FIXES - Facets Editor Stability**
 

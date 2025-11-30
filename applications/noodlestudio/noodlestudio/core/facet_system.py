@@ -128,6 +128,7 @@ class Facet:
 
     # Runtime state
     enabled: bool = True
+    locked: bool = False                # If True, facet cannot be edited
 
     # Execution statistics (not serialized to YAML)
     _execution_count: int = field(default=0, repr=False)
@@ -151,7 +152,8 @@ class Facet:
             'outputs': [pad.to_dict() for pad in self.output_pads],
             'position': self.position,
             'color': self.color,
-            'enabled': self.enabled
+            'enabled': self.enabled,
+            'locked': self.locked
         }
 
     @staticmethod
@@ -169,7 +171,8 @@ class Facet:
             output_pads=[FacetPad.from_dict(p) for p in data.get('outputs', [])],
             position=data.get('position', {'x': 0, 'y': 0}),
             color=data.get('color', '#64B5F6'),
-            enabled=data.get('enabled', True)
+            enabled=data.get('enabled', True),
+            locked=data.get('locked', False)
         )
 
     def add_input_pad(self, name: str, description: str = "", required: bool = True):
@@ -253,9 +256,12 @@ class Facet:
         """Generate a new UUID for facet ID."""
         return str(uuid.uuid4())
 
-    def get_editable_fields(self) -> List[Dict[str, Any]]:
+    def get_editable_fields(self, cognition_paused: bool = False) -> List[Dict[str, Any]]:
         """
         Return list of fields that can be edited in the UI.
+
+        Args:
+            cognition_paused: If True, output fields become editable
 
         Each field has:
         - name: Display name
@@ -294,7 +300,7 @@ class Facet:
             'preview': prompt_preview
         })
 
-        # Output field (last generated output - read-only, selectable)
+        # Output field (read-only by default, editable when cognition paused)
         if self._last_output:
             output_str = str(self._last_output)[:50]
             if len(str(self._last_output)) > 50:
@@ -304,7 +310,7 @@ class Facet:
                 'key': 'last_output',
                 'value': str(self._last_output),
                 'type': 'text',
-                'read_only': True,
+                'read_only': not cognition_paused,  # Editable when paused
                 'preview': output_str
             })
 

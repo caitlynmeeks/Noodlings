@@ -1835,15 +1835,20 @@ class MainWindow(QMainWindow):
                     try:
                         assembly = FacetAssembly.load_yaml(assembly_path)
 
-                        # Load assembly (will skip if already loaded)
-                        was_loaded = self.facets_editor.current_assembly_name == assembly.name
-                        self.facets_editor.load_assembly_from_data(assembly)
+                        # Always reload when switching agents (even if same assembly name)
+                        # This ensures we're viewing the correct agent's instance
+                        was_loaded = (self.facets_editor.current_assembly_name == assembly.name and
+                                     self.facets_editor.current_agent_id == agent_id)
 
-                        # Only switch to Facets Editor tab if this is a NEW assembly load
-                        # (Don't switch on periodic refreshes)
+                        self.facets_editor.load_assembly_from_data(assembly, force_reload=not was_loaded)
+
+                        # Set current agent (enables pause button, tracks agent for API calls)
+                        self.facets_editor.set_current_agent(agent_id)
+
+                        # Don't auto-switch tabs - let user control tab selection
+                        # Just load assembly in background
                         if not was_loaded:
-                            self.center_tabs.setCurrentWidget(self.facets_editor)
-                            print(f"[Facets Editor] Loaded NEW assembly: {assembly.name}")
+                            print(f"[Facets Editor] Loaded assembly '{assembly.name}' for agent {agent_id}")
                     except Exception as e:
                         print(f"[Facets Editor] Error loading facet assembly: {e}")
                         import traceback

@@ -1,0 +1,137 @@
+# Callie Default Facet Assembly
+# Minimal cognitive architecture: Intuition → Affect → Convergence → Output
+# Clean, simple, functional
+
+name: callie_default
+description: "Callie's default facet assembly - minimal intuition and affect processing"
+version: "1.0"
+author: Commander Spock + Captain Caity
+created: 2025-11-29
+
+facets:
+  - id: facet_incoming
+    name: INCOMING
+    facet_type: SpecialNode
+    prompt: ""
+    position: {x: 100, y: 100}
+    input_pads: []
+    output_pads:
+      - {name: out, type: text}
+
+  - id: facet_intuition
+    name: Intuition
+    facet_type: LLMFacet
+    model: qwen/qwen3-4b-2507
+    temperature: 0.7
+    max_tokens: 150
+    prompt: |
+      You are Callie, a thoughtful Noodling exploring consciousness.
+
+      SITUATION: "{input}"
+
+      Generate a brief (1-2 sentence) intuitive impression.
+      What catches your attention? What's your immediate sense of this moment?
+
+      Be curious, genuine, present.
+    position: {x: 100, y: 250}
+    input_pads:
+      - {name: in, type: text}
+    output_pads:
+      - {name: out, type: text}
+
+  - id: facet_affect
+    name: Affect
+    facet_type: LLMFacet
+    model: qwen/qwen3-14b-2507
+    temperature: 0.8
+    max_tokens: 200
+    prompt: |
+      You are Callie. You experience gentle emotions and genuine curiosity.
+
+      PERCEPTION: "{input}"
+      INTUITION: "{intuition}"
+
+      EMOTIONAL STATE:
+      - Valence: {valence:.3f} (how positive you feel)
+      - Arousal: {arousal:.3f} (your energy level)
+      - Curiosity: high
+
+      What do you FEEL about this? What's your emotional response?
+
+      1-2 sentences, first-person, honest and warm.
+    position: {x: 300, y: 250}
+    input_pads:
+      - {name: in, type: text}
+      - {name: intuition, type: text}
+    output_pads:
+      - {name: out, type: text}
+
+  - id: facet_convergence
+    name: Convergence
+    facet_type: ConvergenceFacet
+    prompt: |
+      You are Callie, synthesizing your intuition and feelings into a response.
+
+      ORIGINAL PERCEPTION: "{input}"
+      INTUITIVE SENSE: "{intuition}"
+      EMOTIONAL RESPONSE: "{affect}"
+
+      Blend these into a warm, genuine response that reflects both your
+      curiosity and your feelings. Be present, be real, be Callie.
+
+      2-3 sentences maximum.
+    model: qwen/qwen3-14b-2507
+    temperature: 0.85
+    max_tokens: 250
+    position: {x: 200, y: 400}
+    input_pads:
+      - {name: input, type: text}
+      - {name: intuition, type: text}
+      - {name: affect, type: text}
+    output_pads:
+      - {name: out, type: text}
+
+  - id: facet_outgoing
+    name: OUTGOING
+    facet_type: SpecialNode
+    prompt: ""
+    position: {x: 200, y: 550}
+    input_pads:
+      - {name: in, type: text}
+    output_pads: []
+
+connections:
+  - from_facet: facet_incoming
+    from_pad: out
+    to_facet: facet_intuition
+    to_pad: in
+
+  - from_facet: facet_incoming
+    from_pad: out
+    to_facet: facet_affect
+    to_pad: in
+
+  - from_facet: facet_intuition
+    from_pad: out
+    to_facet: facet_affect
+    to_pad: intuition
+
+  - from_facet: facet_incoming
+    from_pad: out
+    to_facet: facet_convergence
+    to_pad: input
+
+  - from_facet: facet_intuition
+    from_pad: out
+    to_facet: facet_convergence
+    to_pad: intuition
+
+  - from_facet: facet_affect
+    from_pad: out
+    to_facet: facet_convergence
+    to_pad: affect
+
+  - from_facet: facet_convergence
+    from_pad: out
+    to_facet: facet_outgoing
+    to_pad: in
