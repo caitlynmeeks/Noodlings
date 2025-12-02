@@ -480,6 +480,13 @@ class World:
                 return True
         return False
 
+    def get_user_by_username(self, username: str) -> Optional[Dict]:
+        """Get user by username."""
+        for uid, user_data in self.users.items():
+            if user_data.get('username') == username:
+                return user_data
+        return None
+
     # ===== Agent Methods =====
 
     def create_agent(

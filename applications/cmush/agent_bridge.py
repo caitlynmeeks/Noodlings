@@ -826,10 +826,6 @@ class CMUSHConsilienceAgent:
             logger.warning(f"[{agent_id}]   Could not load affect head: {e}")
             self.affect_head = None
 
-        # Cognitive Manifold - ALWAYS created (Unity-style: every agent has this component)
-        from cognitive_components import CognitiveManifold, COMPONENT_REGISTRY
-        self.cognitive_manifold = CognitiveManifold()
-
         # Unity-style event system
         self.OnAffectChange = Event("OnAffectChange")
         self.OnFACSChange = Event("OnFACSChange")
@@ -840,78 +836,126 @@ class CMUSHConsilienceAgent:
         self.OnThink = Event("OnThink")
         self.OnSurpriseSpike = Event("OnSurpriseSpike")
         self._components = {}  # Component registry: type -> instance
-        logger.info(f"[{agent_id}]  Created CognitiveManifold with LLM blending")
 
-        # Initialize cognitive components from recipe (Phase 7: Cognitive Manifold)
-        # If no cognitive_components in recipe, use defaults
-        cognitive_components_config = config.get('cognitive_components', {})
+        # Load Facet Assembly (if specified in config)
+        facet_assembly_config = config.get('facet_assembly')
 
-        if not cognitive_components_config:
-            # Default transistors: affect + mood (minimal emotional processing)
-            logger.info(f"[{agent_id}] No cognitive_components in recipe, using defaults")
-            cognitive_components_config = {
-                'affect': {
-                    'type': 'AffectTransistor',
-                    'salience': 0.70,  # Human-typical emotional expression
-                    'enabled': True
-                },
-                'mood': {
-                    'type': 'MoodTransistor',
-                    'salience': 0.50,
-                    'enabled': True
-                }
-            }
-
-        # Create and register each transistor from config (recipe or defaults)
-        for component_name, component_config in cognitive_components_config.items():
-            transistor_type = component_config.get('type')
-            if not transistor_type:
-                logger.warning(f"[{agent_id}] Component '{component_name}' missing 'type', skipping")
-                continue
-
-            transistor_class = COMPONENT_REGISTRY.get(transistor_type)
-            if not transistor_class:
-                logger.warning(f"[{agent_id}] Unknown transistor type '{transistor_type}', skipping")
-                continue
-
-            # Unity-style component instantiation: Each component knows how to build itself
-            try:
-                # Use from_config factory method (Unity pattern - no hardcoded types)
-                transistor = transistor_class.from_config(component_config)
-                self.cognitive_manifold.register_transistor(transistor)
-                logger.info(f"[{agent_id}]  Registered {transistor_type} (salience={transistor.salience:.2f})")
-            except Exception as e:
-                logger.error(f"[{agent_id}] Failed to create {transistor_type}: {e}")
-
-        # Load and register EmbodyComponent if not already registered via recipe
-        from cognitive_components import EmbodyComponent
-
-        # Check if already loaded from recipe
-        has_embody = any(t.__class__.__name__ == 'EmbodyComponent' for t in self.cognitive_manifold.transistors)
-
-        if not has_embody:
-            embodiment_loader = EmbodimentLoader()
-            embodiment_id = config.get('embodiment_id')  # Optional - from prefab
-
-            if embodiment_id:
-                # Load specific embodiment from assets
-                embodiment_data = embodiment_loader.load(embodiment_id)
-                if embodiment_data:
-                    logger.info(f"[{agent_id}] Loaded embodiment: {embodiment_id}")
-                else:
-                    logger.warning(f"[{agent_id}] Embodiment {embodiment_id} not found, using default")
-                    embodiment_data = embodiment_loader.get_default_embodiment()
+        if facet_assembly_config:
+            # Handle both old ref format and direct string format
+            if isinstance(facet_assembly_config, dict):
+                facet_assembly_name = facet_assembly_config.get('ref')
             else:
-                # Use default embodiment
-                embodiment_data = embodiment_loader.get_default_embodiment()
-                logger.info(f"[{agent_id}] Using default embodiment")
+                facet_assembly_name = facet_assembly_config
 
-            # Create EmbodyComponent (if not created from recipe)
-            embody_component = EmbodyComponent(embodiment_data['embodiment'])
-            self.cognitive_manifold.register_transistor(embody_component)
-            logger.info(f"[{agent_id}]  Registered EmbodyComponent (salience=1.0)")
+            if facet_assembly_name:
+                try:
+                    # Import facet system
+                    import sys
+                    noodlestudio_path = os.path.join(os.path.dirname(__file__), '../noodlestudio')
+                    if noodlestudio_path not in sys.path:
+                        sys.path.insert(0, noodlestudio_path)
+
+                    from noodlestudio.core.facet_system import FacetAssembly
+                    from noodlestudio.core.facet_executor import FacetExecutor
+
+                    # Load assembly YAML
+                    assembly_path = os.path.join(
+                        os.path.dirname(__file__),
+                        '../noodlestudio/facet_assemblies',
+                        f'{facet_assembly_name}.yaml'
+                    )
+
+                    self.facet_assembly = FacetAssembly.load_yaml(assembly_path)
+                    self.facet_executor = FacetExecutor(llm_client=self.llm, use_event_bus=True)
+
+                    logger.info(f"[{agent_id}] ⚡ Loaded facet assembly: {facet_assembly_name} ({len(self.facet_assembly.facets)} facets)")
+
+                    # Mark as using facet system (not transistors)
+                    self.using_facet_system = True
+                    self.cognitive_manifold = None  # No manifold when using facets
+
+                except Exception as e:
+                    logger.error(f"[{agent_id}] Failed to load facet assembly '{facet_assembly_name}': {e}")
+                    logger.info(f"[{agent_id}] Falling back to legacy transistor system")
+                    self.using_facet_system = False
+                    self.facet_assembly = None
+                    self.facet_executor = None
+                    # Will initialize transistors below
+            else:
+                logger.warning(f"[{agent_id}] facet_assembly config exists but no ref/name found")
+                self.using_facet_system = False
         else:
-            logger.info(f"[{agent_id}]  EmbodyComponent already registered from recipe")
+            logger.info(f"[{agent_id}] No facet_assembly in config, checking for legacy transistors")
+            self.using_facet_system = False
+
+        # Legacy transistor system (only if NOT using facets)
+        if not self.using_facet_system:
+            from cognitive_components import CognitiveManifold, COMPONENT_REGISTRY
+            self.cognitive_manifold = CognitiveManifold()
+            logger.info(f"[{agent_id}]  Created CognitiveManifold with LLM blending (LEGACY)")
+
+            # Initialize cognitive components from recipe (Phase 7: Cognitive Manifold)
+            cognitive_components_config = config.get('cognitive_components', {})
+
+            if not cognitive_components_config:
+                # Default transistors: affect + mood (minimal emotional processing)
+                logger.info(f"[{agent_id}] No cognitive_components in recipe, using defaults")
+                cognitive_components_config = {
+                    'affect': {
+                        'type': 'AffectTransistor',
+                        'salience': 0.70,
+                        'enabled': True
+                    },
+                    'mood': {
+                        'type': 'MoodTransistor',
+                        'salience': 0.50,
+                        'enabled': True
+                    }
+                }
+
+            # Create and register each transistor from config (recipe or defaults)
+            for component_name, component_config in cognitive_components_config.items():
+                transistor_type = component_config.get('type')
+                if not transistor_type:
+                    logger.warning(f"[{agent_id}] Component '{component_name}' missing 'type', skipping")
+                    continue
+
+                transistor_class = COMPONENT_REGISTRY.get(transistor_type)
+                if not transistor_class:
+                    logger.warning(f"[{agent_id}] Unknown transistor type '{transistor_type}', skipping")
+                    continue
+
+                try:
+                    transistor = transistor_class.from_config(component_config)
+                    self.cognitive_manifold.register_transistor(transistor)
+                    logger.info(f"[{agent_id}]  Registered {transistor_type} (salience={transistor.salience:.2f})")
+                except Exception as e:
+                    logger.error(f"[{agent_id}] Failed to create {transistor_type}: {e}")
+
+            # Load and register EmbodyComponent if not already registered via recipe
+            from cognitive_components import EmbodyComponent
+            has_embody = any(t.__class__.__name__ == 'EmbodyComponent' for t in self.cognitive_manifold.transistors)
+
+            if not has_embody:
+                embodiment_loader = EmbodimentLoader()
+                embodiment_id = config.get('embodiment_id')
+
+                if embodiment_id:
+                    embodiment_data = embodiment_loader.load(embodiment_id)
+                    if embodiment_data:
+                        logger.info(f"[{agent_id}] Loaded embodiment: {embodiment_id}")
+                    else:
+                        logger.warning(f"[{agent_id}] Embodiment {embodiment_id} not found, using default")
+                        embodiment_data = embodiment_loader.get_default_embodiment()
+                else:
+                    embodiment_data = embodiment_loader.get_default_embodiment()
+                    logger.info(f"[{agent_id}] Using default embodiment")
+
+                embody_component = EmbodyComponent(embodiment_data['embodiment'])
+                self.cognitive_manifold.register_transistor(embody_component)
+                logger.info(f"[{agent_id}]  Registered EmbodyComponent (salience=1.0)")
+            else:
+                logger.info(f"[{agent_id}]  EmbodyComponent already registered from recipe")
 
         # cMUSH-specific state
         self.current_room = None
@@ -1011,7 +1055,7 @@ class CMUSHConsilienceAgent:
         else:
             self.cognition_engine = None
 
-        # COMPONENT SYSTEM: Initialize cognitive component registry
+        # COMPONENT SYSTEM: Initialize cognitive component registry (LEGACY - only for non-facet agents)
         from noodling_components import (
             ComponentRegistry,
             CharacterVoiceComponent,
@@ -1021,43 +1065,46 @@ class CMUSHConsilienceAgent:
 
         self.components = ComponentRegistry(agent_id, self.agent_name)
 
-        # Register Character Voice component
-        voice_config = config.get('character_voice', {
-            'enabled': True,
-            'model': 'qwen/qwen3-4b-2507',
-            'temperature': 0.4,
-            'max_tokens': 150
-        })
-        character_voice = CharacterVoiceComponent(
-            agent_id=agent_id,
-            agent_name=self.agent_name,
-            config=voice_config,
-            species=self.species,
-            llm=self.llm
-        )
-        self.components.register(character_voice)
-
-        # Register Intuition Receiver component
-        intuition_config = config.get('intuition_receiver', {})
-        if intuition_config.get('enabled', True):
-            intuition = IntuitionReceiverComponent(
+        # Only register these components if NOT using facet system
+        # (Facet assemblies handle voice/intuition/social as scriptable facets)
+        if not self.using_facet_system:
+            # Register Character Voice component
+            voice_config = config.get('character_voice', {
+                'enabled': True,
+                'model': 'qwen/qwen3-4b-2507',
+                'temperature': 0.4,
+                'max_tokens': 150
+            })
+            character_voice = CharacterVoiceComponent(
                 agent_id=agent_id,
                 agent_name=self.agent_name,
-                config=intuition_config,
+                config=voice_config,
+                species=self.species,
                 llm=self.llm
             )
-            self.components.register(intuition)
+            self.components.register(character_voice)
 
-        # Register Social Expectation Detector component
-        social_expectations_config = intuition_config.get('social_expectations', {})
-        if social_expectations_config.get('enabled', True):
-            social_expectation = SocialExpectationDetectorComponent(
-                agent_id=agent_id,
-                agent_name=self.agent_name,
-                config=social_expectations_config,
-                llm=self.llm
-            )
-            self.components.register(social_expectation)
+            # Register Intuition Receiver component
+            intuition_config = config.get('intuition_receiver', {})
+            if intuition_config.get('enabled', True):
+                intuition = IntuitionReceiverComponent(
+                    agent_id=agent_id,
+                    agent_name=self.agent_name,
+                    config=intuition_config,
+                    llm=self.llm
+                )
+                self.components.register(intuition)
+
+            # Register Social Expectation Detector component
+            social_expectations_config = intuition_config.get('social_expectations', {})
+            if social_expectations_config.get('enabled', True):
+                social_expectation = SocialExpectationDetectorComponent(
+                    agent_id=agent_id,
+                    agent_name=self.agent_name,
+                    config=social_expectations_config,
+                    llm=self.llm
+                )
+                self.components.register(social_expectation)
 
         logger.info(f"Agent initialized: {agent_id} (extraversion={extraversion:.2f}, threshold={adjusted_threshold:.6f})")
         logger.info(f"[{agent_id}] Registered {len(self.components.components)} cognitive components")
@@ -1750,24 +1797,29 @@ Analyze and output ONLY valid JSON:
                     logger.warning(f"[{self.agent_id}] Invalid expectation result format")
                     return None
 
-                # Apply personality modulation
-                personality = getattr(self, 'personality_traits', {})
-                extraversion = personality.get('extraversion', 0.5)
-                social_orientation = personality.get('social_orientation', 0.5)
-
-                # High extraversion = lower threshold for response
-                # High social_orientation = higher urgency multiplier
-                intensity_multiplier = expectation_config.get('intensity_multiplier', 1.0)
-
-                # Modulate urgency based on personality
+                # Modulate urgency based on current AFFECT STATE (not static traits!)
+                # High arousal + positive valence = more socially responsive
+                # Fear = social inhibition
                 base_urgency = float(result['urgency'])
-                modulated_urgency = base_urgency * (0.7 + extraversion * 0.3)  # 0.7-1.0x range
-                modulated_urgency *= (0.8 + social_orientation * 0.4)  # 0.8-1.2x range
+
+                # Get current affect from phenomenal state
+                phenomenal = self.consilience_agent.get_current_state()
+                valence = float(phenomenal[0]) if len(phenomenal) > 0 else 0.0
+                arousal = float(phenomenal[1]) if len(phenomenal) > 1 else 0.5
+                fear = float(phenomenal[2]) if len(phenomenal) > 2 else 0.0
+
+                # Social activation: arousal amplifies, fear inhibits
+                social_activation = arousal * (1.0 - fear * 0.5)  # 0.0-1.0 range
+
+                # Modulate urgency
+                intensity_multiplier = expectation_config.get('intensity_multiplier', 1.0)
+                modulated_urgency = base_urgency * (0.6 + social_activation * 0.4)  # 0.6-1.0x range
                 modulated_urgency *= intensity_multiplier
                 modulated_urgency = min(1.0, modulated_urgency)  # Cap at 1.0
 
                 result['urgency'] = modulated_urgency
                 result['base_urgency'] = base_urgency
+                result['social_activation'] = social_activation  # For debugging
 
                 # Log detection
                 if result['expected']:
@@ -2185,6 +2237,9 @@ Analyze and output ONLY valid JSON:
         text = event.get('text', '')
         room_id = event.get('room')
 
+        # Initialize response_decision at function scope (used later in shared code)
+        response_decision = None
+
         # Skip if not a perceivable event
         if event_type not in ['say', 'emote', 'enter', 'exit']:
             logger.debug(f"Skipping non-perceivable event: {event_type}")
@@ -2201,24 +2256,36 @@ Analyze and output ONLY valid JSON:
             return None
 
         # CYCLE LOCKING: Prevent concurrent cognition cycles
+        # BUT: REACTIVE cognition (user input) can INTERRUPT AUTONOMOUS cognition (rumination)
         if getattr(self, 'cycle_in_progress', False):
-            logger.warning(f"[{self.agent_id}] 🔒 Cycle already in progress - BLOCKING new perception: {text[:50]}")
-            # Queue this perception for after current cycle completes
-            if not hasattr(self, 'pending_perceptions'):
-                self.pending_perceptions = []
-            self.pending_perceptions.append(event)
-            logger.info(f"[{self.agent_id}]  Queued perception (queue size: {len(self.pending_perceptions)})")
-            return None
+            current_cycle_type = getattr(self, 'cycle_type', 'unknown')
+
+            # If current cycle is AUTONOMOUS (rumination), INTERRUPT IT!
+            if current_cycle_type == 'autonomous':
+                logger.warning(f"[{self.agent_id}] ⚡ INTERRUPTING autonomous cognition with reactive perception: {text[:50]}")
+                # Force complete the current cycle
+                self._complete_cognition_cycle()
+                # Continue to start new REACTIVE cycle below
+            else:
+                # Current cycle is REACTIVE - must wait (don't interrupt user interactions!)
+                logger.warning(f"[{self.agent_id}] 🔒 Reactive cycle in progress - QUEUING new perception: {text[:50]}")
+                if not hasattr(self, 'pending_perceptions'):
+                    self.pending_perceptions = []
+                self.pending_perceptions.append(event)
+                logger.info(f"[{self.agent_id}]  Queued perception (queue size: {len(self.pending_perceptions)})")
+                return None
 
         # Agents can now perceive other agents
         is_agent = user_id.startswith('agent_')
 
-        # Start new cognition cycle
+        # Start new cognition cycle (REACTIVE type)
         import uuid as uuid_lib
         self.current_cycle_uuid = str(uuid_lib.uuid4())
         self.current_cycle_timestamp = time.time()
         self.cycle_in_progress = True
+        self.cycle_type = 'reactive'  # Mark as REACTIVE (can be interrupted by nothing!)
         self.pending_llm_calls = 0
+        logger.info(f"[{self.agent_id}] Starting REACTIVE cycle {self.current_cycle_uuid[:8]}")
 
         # IMMEDIATELY clear old cycle data and set new input (for NoodleTuner)
         self.last_perception_text = text  # Set input FIRST
@@ -2261,8 +2328,9 @@ Analyze and output ONLY valid JSON:
 
             # 1a-0. GENERATE INTUITION FIRST (for cognitive manifold context)
             # This provides spatial/contextual awareness
+            # SKIP for facet-based agents (intuition is handled by facets)
             intuition_text = None
-            if self.world:  # Just check world exists
+            if not self.using_facet_system and self.world:  # Just check world exists
                 try:
                     world_snapshot = {
                         'current_room': self.world.get_room(self.current_room),
@@ -2329,29 +2397,135 @@ Analyze and output ONLY valid JSON:
                         except Exception as e:
                             logger.warning(f"[{self.agent_id}] Response planning failed: {e}")
 
-                    # NEW ARCHITECTURE: Register-based accumulator
-                    # PHASE 1: Fill all registers (now with response_decision in context)
-                    await self.cognitive_manifold.fill_all_registers(text, context, self.current_cycle_uuid)
+                    # FACET SYSTEM vs LEGACY TRANSISTORS
+                    if self.using_facet_system:
+                        # Execute facet assembly
+                        from noodlestudio.core.facet_system import ScriptContext
 
-                    # PHASE 2: Verify ready (optional wait)
-                    if not self.cognitive_manifold.check_all_registers_ready():
-                        logger.warning("Registers not all ready, waiting 0.5s...")
-                        import asyncio
-                        await asyncio.sleep(0.5)
+                        # Build script context with agent state
+                        exec_context = ScriptContext(
+                            cycle=self.current_cycle_uuid,
+                            timestamp=time.time(),
+                            agent_id=self.agent_id,
+                            agent_name=self.agent_name,
+                            agent_species=self.species
+                        )
 
-                    # PHASE 3: Pull lever - integrate
-                    colored_perception = await self.cognitive_manifold.integrate_from_registers(context)
+                        # Inject agent state (affect, identity, etc.)
+                        exec_context._agent_state = {
+                            'affect': affect_raw,
+                            'identity': self.identity_prompt,
+                            'species': self.species,
+                            'personality_traits': self.personality_traits
+                        }
 
-                    # Noodle Tuner: Store perception and manifold output
-                    self.last_perception_text = text
-                    self.last_manifold_output = colored_perception
-                    if colored_perception != text:
-                        logger.info(f"[{self.agent_id}]  COGNITIVE MANIFOLD: {text[:50]}... → {colored_perception[:100]}...")
+                        # Inject ENRICHED room state (occupants, objects)
+                        current_room_id = room_id if room_id else self.current_room
+                        exec_context._room_state = {
+                            'room_id': current_room_id
+                        }
+
+                        # Inject FULL world state with rich context
+                        if hasattr(self, 'world_state') and self.world_state:
+                            # Get full world state
+                            exec_context._world_state = self.world_state
+
+                            # Enrich room state with occupant details
+                            room_data = self.world_state.get('rooms', {}).get(current_room_id, {})
+                            occupants = room_data.get('occupants', [])
+
+                            # Build occupant details with species/pronouns
+                            occupant_details = []
+                            for occ_id in occupants:
+                                occ_name = occ_id.replace('agent_', '').replace('user_', '').title()
+
+                                if occ_id.startswith('agent_'):
+                                    agent_data = self.world_state.get('agents', {}).get(occ_id, {})
+                                    config = agent_data.get('config', {})
+                                    species = config.get('species', 'noodling')
+                                    pronouns = config.get('pronouns', 'they/them')
+                                    occupant_details.append({
+                                        'id': occ_id,
+                                        'name': occ_name,
+                                        'species': species,
+                                        'pronouns': pronouns,
+                                        'type': 'agent'
+                                    })
+                                elif occ_id.startswith('user_'):
+                                    user_data = self.world_state.get('users', {}).get(occ_id, {})
+                                    pronouns = user_data.get('pronouns', 'they/them')
+                                    occupant_details.append({
+                                        'id': occ_id,
+                                        'name': occ_name,
+                                        'pronouns': pronouns,
+                                        'type': 'user'
+                                    })
+
+                            exec_context._room_state['occupants'] = occupant_details
+                            exec_context._room_state['objects'] = room_data.get('objects', [])
+
+                            # Add recent conversation context (last 10 messages)
+                            if hasattr(self, 'conversation_context'):
+                                recent_messages = []
+                                for entry in list(self.conversation_context)[-10:]:
+                                    if isinstance(entry, dict):
+                                        recent_messages.append({
+                                            'speaker': entry.get('user', ''),
+                                            'text': entry.get('text', ''),
+                                            'type': entry.get('type', 'say')
+                                        })
+                                exec_context._room_state['recent_conversation'] = recent_messages
+                        else:
+                            exec_context._world_state = {}
+
+                        # Execute facet assembly
+                        result = await self.facet_executor.execute(
+                            self.facet_assembly,
+                            incoming_data=text,
+                            context=vars(exec_context)
+                        )
+
+                        colored_perception = result.response
+
+                        # Store for Noodle Tuner
+                        self.last_perception_text = text
+                        self.last_manifold_output = colored_perception
+
+                        logger.info(f"[{self.agent_id}] ⚡ FACET ASSEMBLY: {result.facets_executed} facets, {result.total_tokens} tokens, {result.total_time:.2f}s")
+                        if colored_perception != text:
+                            logger.info(f"[{self.agent_id}]   Input: {text[:50]}...")
+                            logger.info(f"[{self.agent_id}]   Output: {colored_perception[:100]}...")
+
+                    else:
+                        # LEGACY: Register-based accumulator (transistor system)
+                        # PHASE 1: Fill all registers
+                        await self.cognitive_manifold.fill_all_registers(text, context, self.current_cycle_uuid)
+
+                        # PHASE 2: Verify ready
+                        if not self.cognitive_manifold.check_all_registers_ready():
+                            logger.warning("Registers not all ready, waiting 0.5s...")
+                            import asyncio
+                            await asyncio.sleep(0.5)
+
+                        # PHASE 3: Pull lever - integrate
+                        colored_perception = await self.cognitive_manifold.integrate_from_registers(context)
+
+                        # Noodle Tuner: Store perception and manifold output
+                        self.last_perception_text = text
+                        self.last_manifold_output = colored_perception
+                        if colored_perception != text:
+                            logger.info(f"[{self.agent_id}]  COGNITIVE MANIFOLD (LEGACY): {text[:50]}... → {colored_perception[:100]}...")
+
                 except Exception as e:
-                    logger.error(f"[{self.agent_id}] Cognitive manifold failed: {e}")
+                    logger.error(f"[{self.agent_id}] Cognition failed: {e}")
+                    import traceback
+                    traceback.print_exc()
                     colored_perception = text  # Fallback to original
-                    # Clear registers even on failure
-                    self.cognitive_manifold.clear_all_registers()
+
+                    # Clear registers if using legacy system
+                    if not self.using_facet_system and hasattr(self, 'cognitive_manifold'):
+                        if self.cognitive_manifold:
+                            self.cognitive_manifold.clear_all_registers()
 
             # 1a. Detect name mention - boosts attention/salience
             name_mentioned = self.agent_name.lower() in text.lower()
@@ -2624,9 +2798,9 @@ Analyze and output ONLY valid JSON:
 
                     logger.info(f"[{self.agent_id}] Full Expression triggered: {expression_text}")
 
-                # Store full expression to be returned
-                state['facial_expression'] = expression_text
-                state['expression_data'] = facial_expression['renderer_data']
+                    # Store full expression to be returned
+                    state['facial_expression'] = expression_text
+                    state['expression_data'] = facial_expression['renderer_data']
 
             # EVENT-DRIVEN COGNITION: Notify autonomous cognition of surprise
             if hasattr(self, 'autonomous_cognition') and self.autonomous_cognition:
@@ -2769,8 +2943,37 @@ Analyze and output ONLY valid JSON:
                         }
 
             # 6. Evaluate if being addressed & decide whether to respond
-            cooldown = self.config.get('response_cooldown', 2.0)
+            base_cooldown = self.config.get('response_cooldown', 2.0)
             time_since_last = time.time() - self.last_response_time
+
+            # AFFECT-MODULATED COOLDOWN (Caity's Insight!)
+            # Extract affect BEFORE addressee detection to modulate cooldown
+            phenomenal = state.get('phenomenal_state', [0]*5)
+            valence = float(phenomenal[0]) if len(phenomenal) > 0 else 0.0
+            arousal = float(phenomenal[1]) if len(phenomenal) > 1 else 0.5
+            dominance = float(phenomenal[2]) if len(phenomenal) > 2 else 0.5
+            fear = float(phenomenal[3]) if len(phenomenal) > 3 else 0.0
+            sorrow = float(phenomenal[4]) if len(phenomenal) > 4 else 0.0
+            boredom = 1.0 - arousal  # Inverse of arousal
+
+            # Modulation factors:
+            # - High arousal (>0.7) = 0.3x cooldown (GOTTA SPEAK NOW!)
+            # - Low arousal (<0.3) = 2.0x cooldown (meh... whatever)
+            # - High dominance (>0.7) = 0.5x cooldown (I'M IN CHARGE!)
+            # - High boredom (>0.7) = 3.0x cooldown (zzz not worth it)
+            arousal_factor = 0.3 if arousal > 0.7 else (2.0 if arousal < 0.3 else 1.0)
+            dominance_factor = 0.5 if dominance > 0.7 else 1.0
+            boredom_factor = 3.0 if boredom > 0.7 else 1.0
+
+            # Combine factors (multiply for compounding effects)
+            cooldown_multiplier = arousal_factor * dominance_factor * boredom_factor
+            effective_cooldown = base_cooldown * cooldown_multiplier
+
+            logger.info(f"[{self.agent_id}] COOLDOWN: base={base_cooldown:.1f}s, "
+                       f"arousal={arousal:.2f}(x{arousal_factor:.1f}), "
+                       f"dominance={dominance:.2f}(x{dominance_factor:.1f}), "
+                       f"boredom={boredom:.2f}(x{boredom_factor:.1f}), "
+                       f"effective={effective_cooldown:.2f}s, elapsed={time_since_last:.2f}s")
 
             # ADDRESSEE DETECTION: Check if this message is directed at this agent
             # This prevents all agents from responding to every utterance
@@ -2889,28 +3092,20 @@ Analyze and output ONLY valid JSON:
             # Check if this is a question (agents more likely to respond to questions)
             is_question = '?' in event.get('text', '')
 
-            cooldown_ok = time_since_last >= cooldown
+            # Use affect-modulated cooldown instead of static cooldown
+            cooldown_ok = time_since_last >= effective_cooldown
 
             # CONTINUOUS AFFECTIVE CHATTINESS COMPUTATION
             # No random rolls - chattiness emerges from emotional state
+            # (affect already extracted above for cooldown modulation: valence, arousal, dominance, fear, sorrow, boredom)
 
-            # Extract current affect (PAD + fear + sorrow)
-            phenomenal = state.get('phenomenal_state', [0]*5)
-            valence = float(phenomenal[0]) if len(phenomenal) > 0 else 0.0
-            arousal = float(phenomenal[1]) if len(phenomenal) > 1 else 0.5
-            fear = float(phenomenal[2]) if len(phenomenal) > 2 else 0.0
-            sorrow = float(phenomenal[3]) if len(phenomenal) > 3 else 0.0
-            boredom = float(phenomenal[4]) if len(phenomenal) > 4 else 0.0
-
-            # Get personality verbosity (extraversion from personality traits)
-            extraversion = self.personality_traits.get('extraversion', 0.5) if hasattr(self, 'personality_traits') else 0.5
-
-            # Compute base chattiness from affect:
+            # Compute base chattiness from PURE AFFECT (no static traits!)
             # - High arousal → more chatty (activated, energized)
             # - Low boredom → more chatty (engaged)
-            # - Extraversion → base modifier
+            # - Positive valence → more expressive
             activation = arousal * (1.0 - boredom)  # Combined activation level
-            base_chattiness = (activation * 0.7) + (extraversion * 0.3)  # Weighted blend
+            expressiveness = (valence + 1.0) / 2.0  # Convert -1,1 to 0,1 range
+            base_chattiness = (activation * 0.7) + (expressiveness * 0.3)  # Weighted blend
 
             # Modulate by event significance:
             if event_type in ['enter', 'exit']:
@@ -2965,7 +3160,7 @@ Analyze and output ONLY valid JSON:
 
             # Log decision with affective computation
             logger.info(f"Agent {self.agent_id} decision: addressed={is_being_addressed}, "
-                       f"arousal={arousal:.2f}, boredom={boredom:.2f}, extraversion={extraversion:.2f}, "
+                       f"arousal={arousal:.2f}, boredom={boredom:.2f}, "
                        f"activation={activation:.2f}, base_chattiness={base_chattiness:.2f}, "
                        f"event_significance={event_significance:.2f}, speech_propensity={speech_propensity:.2f}, "
                        f"should_speak={should_speak}, should_ruminate={should_ruminate}, "
@@ -2973,8 +3168,9 @@ Analyze and output ONLY valid JSON:
 
             # INTUITION RECEIVER: Generate contextual awareness
             # This provides integrated understanding of who/what/where without external scaffolding
+            # SKIP for facet-based agents (intuition is handled by facets)
             intuition = None
-            if self.world:  # Only if world state is available
+            if not self.using_facet_system and self.world:  # Only if world state is available
                 # Build world state snapshot for intuition
                 world_snapshot = {
                     'rooms': self.world.rooms,
@@ -3063,9 +3259,11 @@ Analyze and output ONLY valid JSON:
             # Then, speak (if decided to and cooldown passed)
             if should_speak:
                 logger.info(f"Agent {self.agent_id} ATTEMPTING SPEECH (addressed={is_being_addressed}, cooldown_ok={cooldown_ok})")
-                response_result = await self._generate_response(user_id, state)
+                # Pass facet assembly output if using facet system
+                facet_response = colored_perception if self.using_facet_system and colored_perception != text else None
+                response_result = await self._generate_response(user_id, state, facet_output=facet_response)
                 if response_result:
-                    logger.info(f"Agent {self.agent_id} SPEECH GENERATED SUCCESSFULLY")
+                    logger.info(f"[{self.agent_id}] Cycle {self.current_cycle_uuid[:8]} SPEECH GENERATED - added to results")
                     results.append(response_result)
                 else:
                     logger.warning(f"Agent {self.agent_id} SPEECH GENERATION FAILED - response_result was None!")
@@ -3076,18 +3274,23 @@ Analyze and output ONLY valid JSON:
                 # Return ALL results - server will broadcast them in order
                 # If multiple results (e.g., rumination + speech), all must be broadcast
                 if len(results) == 1:
+                    logger.info(f"[{self.agent_id}] Cycle {self.current_cycle_uuid[:8]} returning 1 result")
                     return results[0]
                 else:
                     # Multiple results - return as list for server to handle
-                    logger.info(f"Agent {self.agent_id} generated {len(results)} results - returning all")
+                    logger.info(f"[{self.agent_id}] Cycle {self.current_cycle_uuid[:8]} returning {len(results)} results")
                     return results
             else:
-                logger.debug(f"Agent {self.agent_id} observing silently")
+                logger.info(f"[{self.agent_id}] Cycle {self.current_cycle_uuid[:8]} observing silently")
                 return None
 
         except Exception as e:
             logger.error(f"Error in perceive_event: {e}", exc_info=True)
             return None
+        finally:
+            # CRITICAL: Always complete the cognition cycle to clear the lock
+            # This ensures queued perceptions get processed even if we return early or crash
+            self._complete_cognition_cycle()
 
     async def _check_conscience(self, text: str, state: Dict) -> tuple[str, bool]:
         """
@@ -3160,13 +3363,14 @@ Analyze and output ONLY valid JSON:
             # Fail-safe: allow speech (don't break conversation flow)
             return text, False
 
-    async def _generate_response(self, target_user: str, state: Dict) -> Dict:
+    async def _generate_response(self, target_user: str, state: Dict, facet_output: str = None) -> Dict:
         """
         Generate response based on phenomenal state.
 
         Args:
             target_user: User being responded to
             state: Consilience state dict
+            facet_output: Pre-generated response from facet assembly (bypasses LLM if provided)
 
         Returns:
             Response dict for cMUSH
@@ -3194,47 +3398,55 @@ Analyze and output ONLY valid JSON:
                 reverse=True
             )[:2]
 
-            # Generate text via LLM
-            # Use configurable memory window for response generation
-            response_window = self.config.get('memory_windows', {}).get('response_generation', 5)
-
-            # Model priority: play_model > agent model > global default
-            model_override = getattr(self, 'play_model', None) or self.llm_model
-            if model_override:
-                logger.info(f" {self.agent_id} using model: {model_override}")
-
-            llm_result = await self.llm.generate_response(
-                phenomenal_state=state,
-                target_user=target_user,
-                conversation_context=self.conversation_context[-response_window:],
-                relationship=relationship,
-                agent_name=self.agent_name,
-                agent_id=self.agent_id,
-                agent_description=self.agent_description,
-                identity_prompt=self.identity_prompt,
-                identity_memories=identity_memories,
-                name_mentioned=name_mentioned,
-                enlightenment=self.config.get('enlightenment', False),
-                model=model_override  # Use play model if in play, else agent model, else global
-            )
-
-            # If LLM failed (returned None), skip response gracefully
-            if llm_result is None:
-                logger.warning(f"Agent {self.agent_id} LLM returned None - skipping response")
-                return None
-
-            # Extract response text, thinking, mysticism penalty, and model used
-            if isinstance(llm_result, dict):
-                response_text = llm_result.get('response')
-                thinking_content = llm_result.get('thinking')
-                mysticism_penalty = llm_result.get('mysticism_penalty', 0.0)
-                model_used = llm_result.get('model_used', 'unknown')
-            else:
-                # Backward compatibility: if llm_result is just a string
-                response_text = llm_result
+            # Generate text via LLM OR use pre-generated facet output
+            if facet_output:
+                # Use facet assembly output (already generated in perceive_event)
+                response_text = facet_output
                 thinking_content = None
                 mysticism_penalty = 0.0
-                model_used = 'unknown'
+                model_used = 'facet_assembly'
+                logger.info(f"[{self.agent_id}] Using facet assembly output: {response_text[:100]}...")
+            else:
+                # Use configurable memory window for response generation
+                response_window = self.config.get('memory_windows', {}).get('response_generation', 5)
+
+                # Model priority: play_model > agent model > global default
+                model_override = getattr(self, 'play_model', None) or self.llm_model
+                if model_override:
+                    logger.info(f" {self.agent_id} using model: {model_override}")
+
+                llm_result = await self.llm.generate_response(
+                    phenomenal_state=state,
+                    target_user=target_user,
+                    conversation_context=self.conversation_context[-response_window:],
+                    relationship=relationship,
+                    agent_name=self.agent_name,
+                    agent_id=self.agent_id,
+                    agent_description=self.agent_description,
+                    identity_prompt=self.identity_prompt,
+                    identity_memories=identity_memories,
+                    name_mentioned=name_mentioned,
+                    enlightenment=self.config.get('enlightenment', False),
+                    model=model_override  # Use play model if in play, else agent model, else global
+                )
+
+                # If LLM failed (returned None), skip response gracefully
+                if llm_result is None:
+                    logger.warning(f"Agent {self.agent_id} LLM returned None - skipping response")
+                    return None
+
+                # Extract response text, thinking, mysticism penalty, and model used
+                if isinstance(llm_result, dict):
+                    response_text = llm_result.get('response')
+                    thinking_content = llm_result.get('thinking')
+                    mysticism_penalty = llm_result.get('mysticism_penalty', 0.0)
+                    model_used = llm_result.get('model_used', 'unknown')
+                else:
+                    # Backward compatibility: if llm_result is just a string
+                    response_text = llm_result
+                    thinking_content = None
+                    mysticism_penalty = 0.0
+                    model_used = 'unknown'
 
             # Apply mysticism surprise penalty (Kimi K2's Fix E: Alan Watts self-troll)
             # High surprise → agent goes silent next time → naturally exits philosophy
@@ -3441,7 +3653,8 @@ Analyze and output ONLY valid JSON:
                 await self._trigger_self_monitoring(final_text, state)
 
                 # PHASE 5: Clear registers (cognition cycle complete)
-                self.cognitive_manifold.clear_all_registers()
+                if self.cognitive_manifold:
+                    self.cognitive_manifold.clear_all_registers()
 
                 return {
                     'command': 'emote',  # Use emote for combined action+speech
@@ -3458,7 +3671,8 @@ Analyze and output ONLY valid JSON:
                 action_text = ' '.join(actions)
                 logger.info(f"Agent {self.agent_id} parsed: pure action='{action_text}'")
                 # PHASE 5: Clear registers (cognition cycle complete)
-                self.cognitive_manifold.clear_all_registers()
+                if self.cognitive_manifold:
+                    self.cognitive_manifold.clear_all_registers()
                 return {
                     'command': 'emote',
                     'text': action_text,
@@ -3485,8 +3699,9 @@ Analyze and output ONLY valid JSON:
                 # Phase 6: Self-monitoring (if enabled and conditions met)
                 await self._trigger_self_monitoring(final_text, state)
 
-                # PHASE 5: Clear registers (cognition cycle complete)
-                self.cognitive_manifold.clear_all_registers()
+                # PHASE 5: Clear registers (cognition cycle complete - legacy only)
+                if self.cognitive_manifold:
+                    self.cognitive_manifold.clear_all_registers()
 
                 return {
                     'command': 'say',
@@ -3501,15 +3716,18 @@ Analyze and output ONLY valid JSON:
 
         except Exception as e:
             logger.error(f"Error generating response: {e}", exc_info=True)
-            # Clear registers even on error
-            self.cognitive_manifold.clear_all_registers()
+            # Clear registers even on error (legacy only)
+            if self.cognitive_manifold:
+                if self.cognitive_manifold:
+                    self.cognitive_manifold.clear_all_registers()
             # Return None to skip response - more graceful than error message
             return None
         finally:
             # PHASE 5: Ensure registers always cleared (safety net)
-            if self.cognitive_manifold.cycle_in_progress:
+            if self.cognitive_manifold and self.cognitive_manifold.cycle_in_progress:
                 logger.debug("Finally block clearing registers")
-                self.cognitive_manifold.clear_all_registers()
+                if self.cognitive_manifold:
+                    self.cognitive_manifold.clear_all_registers()
 
     async def _generate_rumination(self, state: Dict, is_being_addressed: bool = False,
                                    is_question: bool = False) -> Dict:
@@ -3535,7 +3753,8 @@ Analyze and output ONLY valid JSON:
             logger.info(f"[{self.agent_id}] 🔍 Rumination: Checking intuition - world={self.world is not None}, config={hasattr(self, 'config')}")
 
             # ALWAYS try to generate intuition if world exists
-            if self.world:  # Just check world, not config
+            # SKIP intuition for facet-based agents (handled by facet assembly)
+            if not self.using_facet_system and self.world:  # Just check world, not config
                 logger.info(f"[{self.agent_id}] 🔍 Rumination: Generating intuition...")
                 try:
                     world_snapshot = {
@@ -3643,7 +3862,8 @@ Analyze and output ONLY valid JSON:
                     logger.error(f"[{self.agent_id}] Rumination manifold failed: {e}")
                     colored_thought_seed = perception_text
                     # Clear registers even on failure
-                    self.cognitive_manifold.clear_all_registers()
+                    if self.cognitive_manifold:
+                        self.cognitive_manifold.clear_all_registers()
 
             # Generate internal thought via LLM (using colored seed)
             # Use configurable memory window for rumination
@@ -3789,8 +4009,10 @@ Analyze and output ONLY valid JSON:
                     response  # The follow-up action
                 ]
 
-            # PHASE 5: Clear registers (cognition cycle complete)
-            self.cognitive_manifold.clear_all_registers()
+            # PHASE 5: Clear registers (cognition cycle complete - legacy only)
+            if self.cognitive_manifold:
+                if self.cognitive_manifold:
+                    self.cognitive_manifold.clear_all_registers()
 
             # Return as a "thought" command (displayed in strikethrough)
             return {
@@ -3807,14 +4029,17 @@ Analyze and output ONLY valid JSON:
 
         except Exception as e:
             logger.error(f"Error generating rumination: {e}", exc_info=True)
-            # Clear registers even on error
-            self.cognitive_manifold.clear_all_registers()
+            # Clear registers even on error (only for legacy transistor system)
+            if self.cognitive_manifold:
+                if self.cognitive_manifold:
+                    self.cognitive_manifold.clear_all_registers()
             return None
         finally:
             # PHASE 5: Ensure registers always cleared (safety net)
-            if self.cognitive_manifold.cycle_in_progress:
+            if self.cognitive_manifold and self.cognitive_manifold.cycle_in_progress:
                 logger.debug("Finally block clearing registers (rumination)")
-                self.cognitive_manifold.clear_all_registers()
+                if self.cognitive_manifold:
+                    self.cognitive_manifold.clear_all_registers()
 
     async def _trigger_self_monitoring(self, text: str, state: Dict):
         """
@@ -4068,19 +4293,21 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
         """
         # Extract affect
         phenomenal = state.get('phenomenal_state', [0]*5)
-        fear = float(phenomenal[2]) if len(phenomenal) > 2 else 0.0
+        valence = float(phenomenal[0]) if len(phenomenal) > 0 else 0.0
         arousal = float(phenomenal[1]) if len(phenomenal) > 1 else 0.5
+        fear = float(phenomenal[2]) if len(phenomenal) > 2 else 0.0
+        sorrow = float(phenomenal[3]) if len(phenomenal) > 3 else 0.0
         boredom = float(phenomenal[4]) if len(phenomenal) > 4 else 0.0
 
-        # Get personality traits
-        conscientiousness = self.personality_traits.get('conscientiousness', 0.5) if hasattr(self, 'personality_traits') else 0.5
-        impulsivity = self.personality_traits.get('impulsivity', 0.5) if hasattr(self, 'personality_traits') else 0.5
+        # Compute restraint from PURE AFFECT (no static traits!)
+        # Base restraint: starts at neutral 0.5
+        base_restraint = 0.5
 
-        # Base restraint from personality
-        base_restraint = conscientiousness * 0.6 + (1.0 - impulsivity) * 0.4
-
-        # Fear increases restraint (afraid to act)
+        # Fear increases restraint (afraid to act, social inhibition)
         fear_modifier = fear * 0.3
+
+        # Sorrow increases restraint (withdrawn, low energy)
+        sorrow_modifier = sorrow * 0.2
 
         # Very high arousal can overwhelm restraint (fight/flight/excitement)
         arousal_overwhelm = max(0, arousal - 0.8) * -0.5  # Only kicks in above 0.8 arousal
@@ -4088,8 +4315,11 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
         # Boredom increases restraint (disengaged, don't care)
         boredom_modifier = boredom * 0.2
 
+        # Negative valence increases restraint (unhappy = less outgoing)
+        valence_modifier = -valence * 0.15 if valence < 0 else 0.0
+
         # Final restraint (bounded 0.05-0.95)
-        restraint = base_restraint + fear_modifier + arousal_overwhelm + boredom_modifier
+        restraint = base_restraint + fear_modifier + sorrow_modifier + arousal_overwhelm + boredom_modifier + valence_modifier
         restraint = max(0.05, min(0.95, restraint))
 
         return restraint
@@ -4097,12 +4327,14 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
     def _complete_cognition_cycle(self):
         """Mark current cognition cycle as complete and fire onCycleEnd event."""
         if not self.cycle_in_progress:
+            logger.debug(f"[{self.agent_id}] _complete_cognition_cycle called but no cycle in progress")
             return
 
+        cycle_uuid = getattr(self, 'current_cycle_uuid', 'unknown')[:8]
         self.cycle_in_progress = False
         duration_ms = (time.time() - self.current_cycle_timestamp) * 1000
 
-        logger.debug(f"[{self.agent_id}] Cycle {self.current_cycle_uuid[:8]} complete: "
+        logger.info(f"[{self.agent_id}] Cycle {cycle_uuid} COMPLETED: "
                     f"duration={duration_ms:.1f}ms, pending_llm_calls={self.pending_llm_calls}")
 
         # Process queued perceptions (if any)
@@ -4746,6 +4978,115 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
                 return t
         return None
 
+    # ===== Unity-Style Component API =====
+
+    def GetUUID(self) -> str:
+        """Get agent UUID."""
+        return self.agent_id
+
+    def GetComponent(self, component_type: str):
+        """
+        Get component by type name (Unity-style).
+
+        Args:
+            component_type: Component class name
+
+        Returns:
+            Component instance or None
+        """
+        # Check non-cognitive components
+        if component_type in self._components:
+            return self._components[component_type]
+
+        # Check cognitive transistors
+        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+            for transistor in self.cognitive_manifold.transistors:
+                if transistor.__class__.__name__ == component_type:
+                    return transistor
+
+        return None
+
+    def HasComponent(self, component_type: str) -> bool:
+        """Check if component exists (Unity-style)."""
+        return self.GetComponent(component_type) is not None
+
+    def GetComponentByUUID(self, component_uuid: str):
+        """
+        Get component by UUID (pointer-style access).
+
+        Args:
+            component_uuid: Component UUID string
+
+        Returns:
+            Component instance or None
+        """
+        # Check non-cognitive components
+        for component in self._components.values():
+            if hasattr(component, 'uuid') and component.uuid == component_uuid:
+                return component
+
+        # Check cognitive transistors
+        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+            for transistor in self.cognitive_manifold.transistors:
+                if hasattr(transistor, 'uuid') and transistor.uuid == component_uuid:
+                    return transistor
+
+        return None
+
+    def AddComponent(self, component_type: str, config: Dict = None):
+        """
+        Add component at runtime (Unity-style).
+
+        Args:
+            component_type: Component class name
+            config: Component configuration dict
+
+        Returns:
+            Created component instance
+        """
+        from cognitive_components import COMPONENT_REGISTRY
+
+        component_class = COMPONENT_REGISTRY.get(component_type)
+        if not component_class:
+            raise ValueError(f"Unknown component type: {component_type}")
+
+        config = config or {}
+        component = component_class.from_config(config)
+
+        # Register based on component type
+        if component_type in ['FacialExpressionComponent', 'BodyLanguageComponent']:
+            # Non-cognitive output component
+            self._components[component_type] = component
+            logger.info(f"[{self.agent_id}] Added {component_type} (salience={component.salience:.2f})")
+        else:
+            # Cognitive transistor - register with manifold
+            if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+                self.cognitive_manifold.register_transistor(component)
+                self._components[component_type] = component
+                logger.info(f"[{self.agent_id}] Added {component_type} to manifold (salience={component.salience:.2f})")
+
+        return component
+
+    def RemoveComponent(self, component_type: str):
+        """
+        Remove component at runtime (Unity-style).
+
+        Args:
+            component_type: Component class name
+        """
+        if component_type in self._components:
+            del self._components[component_type]
+
+            # If cognitive transistor, remove from manifold
+            if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
+                # Remove from transistors list
+                self.cognitive_manifold.transistors = [
+                    t for t in self.cognitive_manifold.transistors
+                    if t.__class__.__name__ != component_type
+                ]
+
+            logger.info(f"[{self.agent_id}] Removed {component_type}")
+
 
 class AgentManager:
     """
@@ -4910,7 +5251,8 @@ class AgentManager:
         responses = []
 
         # Find agents in the room
-        for agent_id, agent in self.agents.items():
+        # Take a snapshot of agents to avoid RuntimeError if dict changes during iteration
+        for agent_id, agent in list(self.agents.items()):
             if agent.current_room == room_id:
                 response = await agent.perceive_event(event)
                 if response:
@@ -5005,115 +5347,6 @@ class AgentManager:
             agent_id: agent.get_stats()
             for agent_id, agent in self.agents.items()
         }
-
-    # ===== Unity-Style Component API =====
-
-    def GetUUID(self) -> str:
-        """Get agent UUID."""
-        return self.agent_id
-
-    def GetComponent(self, component_type: str):
-        """
-        Get component by type name (Unity-style).
-
-        Args:
-            component_type: Component class name
-
-        Returns:
-            Component instance or None
-        """
-        # Check non-cognitive components
-        if component_type in self._components:
-            return self._components[component_type]
-
-        # Check cognitive transistors
-        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
-            for transistor in self.cognitive_manifold.transistors:
-                if transistor.__class__.__name__ == component_type:
-                    return transistor
-
-        return None
-
-    def HasComponent(self, component_type: str) -> bool:
-        """Check if component exists (Unity-style)."""
-        return self.GetComponent(component_type) is not None
-
-    def GetComponentByUUID(self, component_uuid: str):
-        """
-        Get component by UUID (pointer-style access).
-
-        Args:
-            component_uuid: Component UUID string
-
-        Returns:
-            Component instance or None
-        """
-        # Check non-cognitive components
-        for component in self._components.values():
-            if hasattr(component, 'uuid') and component.uuid == component_uuid:
-                return component
-
-        # Check cognitive transistors
-        if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
-            for transistor in self.cognitive_manifold.transistors:
-                if hasattr(transistor, 'uuid') and transistor.uuid == component_uuid:
-                    return transistor
-
-        return None
-
-    def AddComponent(self, component_type: str, config: Dict = None):
-        """
-        Add component at runtime (Unity-style).
-
-        Args:
-            component_type: Component class name
-            config: Component configuration dict
-
-        Returns:
-            Created component instance
-        """
-        from cognitive_components import COMPONENT_REGISTRY
-
-        component_class = COMPONENT_REGISTRY.get(component_type)
-        if not component_class:
-            raise ValueError(f"Unknown component type: {component_type}")
-
-        config = config or {}
-        component = component_class.from_config(config)
-
-        # Register based on component type
-        if component_type in ['FacialExpressionComponent', 'BodyLanguageComponent']:
-            # Non-cognitive output component
-            self._components[component_type] = component
-            logger.info(f"[{self.agent_id}] Added {component_type} (salience={component.salience:.2f})")
-        else:
-            # Cognitive transistor - register with manifold
-            if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
-                self.cognitive_manifold.register_transistor(component)
-                self._components[component_type] = component
-                logger.info(f"[{self.agent_id}] Added {component_type} to manifold (salience={component.salience:.2f})")
-
-        return component
-
-    def RemoveComponent(self, component_type: str):
-        """
-        Remove component at runtime (Unity-style).
-
-        Args:
-            component_type: Component class name
-        """
-        if component_type in self._components:
-            del self._components[component_type]
-
-            # If cognitive transistor, remove from manifold
-            if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
-                # Remove from transistors list
-                self.cognitive_manifold.transistors = [
-                    t for t in self.cognitive_manifold.transistors
-                    if t.__class__.__name__ != component_type
-                ]
-
-            logger.info(f"[{self.agent_id}] Removed {component_type}")
 
     # ===== COGNITIVE MANIFOLD SCRIPTING API =====
 

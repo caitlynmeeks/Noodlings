@@ -1356,8 +1356,10 @@ class CommandParser:
                     'self_monitoring': sm_config,
                     # Phase 7: Affective reinforcement config from recipe
                     'affective_reinforcement': recipe.affective_reinforcement or {},
-                    # Phase 7: Cognitive Manifold transistors from recipe
-                    'cognitive_components': recipe.cognitive_components or {}
+                    # Facet Assembly (NEW - replaces cognitive_components)
+                    'facet_assembly': recipe.facet_assembly,
+                    # Phase 7: Cognitive Manifold transistors from recipe (LEGACY - only if no facet_assembly)
+                    'cognitive_components': recipe.cognitive_components or {} if not recipe.facet_assembly else {}
                 }
 
                 # Wind in the Willows-style natural arrival
@@ -1596,6 +1598,8 @@ class CommandParser:
         agent_data = self.world.get_user(agent_id)
         if not agent_data:
             return {'success': False, 'output': f"Agent '{query}' not found.", 'events': []}
+
+        agent_name = agent_data.get('name', query)
 
         # Get current room for exit event
         room = self.world.get_room(agent_data['current_room'])

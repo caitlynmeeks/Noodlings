@@ -678,6 +678,10 @@ class CMUSHServer:
                                     agent_id = agent_response['agent_id']
                                     agent_data = self.world.get_user(agent_id)
 
+                                    # Skip if agent no longer exists
+                                    if not agent_data:
+                                        continue
+
                                     # Get agent name from agent manager (respects @setname changes)
                                     agent_obj = self.agent_manager.get_agent(agent_id)
                                     agent_name = agent_obj.agent_name if agent_obj else agent_data.get('name', agent_id)

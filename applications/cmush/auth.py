@@ -142,11 +142,12 @@ class AuthManager:
         Returns:
             Tuple of (success, user_id, message)
         """
-        user_id = f"user_{username}"
-        user = self.world.get_user(user_id)
+        user = self.world.get_user_by_username(username)
 
         if not user:
             return False, None, "Invalid username or password."
+
+        user_id = user['uid']
 
         # Parse stored hash
         stored_data = user['password_hash']
