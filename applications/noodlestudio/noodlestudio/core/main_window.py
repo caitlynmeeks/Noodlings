@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("NoodleSTUDIO - Noodlings IDE")
         self.resize(1400, 900)
 
-        # Apply Unity dark theme with darker gray background (not jet black)
+        # Apply dark theme with darker gray background (not jet black)
         # This distinguishes IDE chrome from noodleMUSH terminal content
         self.setStyleSheet(UNITY_DARK_THEME + """
             QMainWindow {
@@ -72,10 +72,10 @@ class MainWindow(QMainWindow):
         self._setup_panels()
         self._setup_shortcuts()
 
-        # Load last used layout (like Unity reopening last scene)
+        # Load last used layout (preserve workspace state)
         QTimer.singleShot(200, self.load_last_used_layout)
 
-        # Auto-open last project (like Unity reopening last project)
+        # Auto-open last project (restore workspace)
         QTimer.singleShot(300, self.auto_open_last_project)
 
         # Show RNG status on startup
@@ -177,7 +177,7 @@ class MainWindow(QMainWindow):
         # layout_submenu.addAction(self._create_action("Reset to Default", slot=lambda: self.load_layout("Default")))
         # layout_submenu.addAction(self._create_action("Reset to Factory Default", slot=self.reset_to_factory_layout))
 
-        # ===== ENTITIES MENU (like Unity's GameObject) =====
+        # ===== ENTITIES MENU (create/manage entities) =====
         entities_menu = menu_bar.addMenu("&Entities")
         entities_menu.addAction(self._create_action("Add Noodling...", "Ctrl+Shift+N", slot=self.add_noodling))
         entities_menu.addAction(self._create_action("Add Object...", "Ctrl+Shift+O", slot=self.add_object))
@@ -188,14 +188,14 @@ class MainWindow(QMainWindow):
         entities_menu.addAction(self._create_action("Toggle Enlightenment", "Ctrl+E"))
         entities_menu.addAction(self._create_action("Reset All States"))
 
-        # ===== COMPONENT MENU (stolen from Unity!) =====
+        # ===== COMPONENT MENU (modular component system) =====
         component_menu = menu_bar.addMenu("&Component")
 
-        # Kindling components (inner light!)
-        kindling_menu = component_menu.addMenu("Kindling")
-        kindling_menu.addAction(self._create_action("Noodle", slot=lambda: self.add_component("noodle")))
-        kindling_menu.addAction(self._create_action("Memory Bank", slot=lambda: self.add_component("memory")))
-        kindling_menu.addAction(self._create_action("Relationship Graph", slot=lambda: self.add_component("relationships")))
+        #  components
+        charm_menu = component_menu.addMenu("Charm")
+        charm_menu.addAction(self._create_action("Noodle", slot=lambda: self.add_component("noodle")))
+        charm_menu.addAction(self._create_action("Memory Bank", slot=lambda: self.add_component("memory")))
+        charm_menu.addAction(self._create_action("Relationship Graph", slot=lambda: self.add_component("relationships")))
 
         # Art & Reference components
         art_menu = component_menu.addMenu("Art & Reference")
@@ -640,6 +640,7 @@ class MainWindow(QMainWindow):
         self.hierarchy.entitySelected.connect(self.inspector.load_entity)
         self.hierarchy.entitySelected.connect(self.on_entity_selected_for_console)
         self.hierarchy.entitySelected.connect(self.on_entity_selected_for_noodle_tuner)
+        self.hierarchy.entitySelected.connect(self.on_entity_selected_for_facets_editor)
 
         # Check server state
         QTimer.singleShot(200, self.update_connection_status)
@@ -801,7 +802,7 @@ class MainWindow(QMainWindow):
             )
 
     def load_last_used_layout(self):
-        """Load the last used layout on startup (like Unity reopening last scene)."""
+        """Load the last used layout on startup (restore workspace state)."""
         last_layout = self.layout_manager.get_last_used_layout()
 
         if last_layout:
@@ -849,7 +850,7 @@ class MainWindow(QMainWindow):
                     self,
                     "Export Complete",
                     f"Stage exported to USD layer:\n{filename}\n\n"
-                    f"Contains Noodling prims with kindling properties.\n"
+                    f"Contains Noodling prims with charm properties.\n"
                     f"Import into Maya/Houdini/Blender to view."
                 )
 
@@ -1149,7 +1150,7 @@ class MainWindow(QMainWindow):
             )
 
     def create_empty_ensemble(self):
-        """Create an empty ensemble that users can drag Noodlings into (like Unity prefab creation)."""
+        """Create an empty ensemble that users can drag Noodlings into (prefab system)."""
         from PyQt6.QtWidgets import QInputDialog
 
         name, ok = QInputDialog.getText(
@@ -1391,17 +1392,17 @@ class MainWindow(QMainWindow):
             )
 
     def show_ensemble_store(self):
-        """Show Ensemble Store window (Unity Asset Store style)."""
+        """Show Ensemble Store window (content marketplace)."""
         from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QListWidget, QTextEdit, QPushButton, QHBoxLayout
 
         dialog = QDialog(self)
-        dialog.setWindowTitle("Ensemble Store - Unity Asset Store for Consciousness!")
+        dialog.setWindowTitle("Ensemble Store")
         dialog.resize(800, 600)
 
         layout = QVBoxLayout(dialog)
 
         # Header
-        header = QLabel("<h1>🎭 Ensemble Store</h1><p>Ready-made kindled archetypes for your stage</p>")
+        header = QLabel("<h1> Ensemble Store</h1><p>Ensemble archetypes for your stage</p>")
         header.setStyleSheet("padding: 10px; background: #2a2a2a;")
         layout.addWidget(header)
 
@@ -1488,7 +1489,7 @@ class MainWindow(QMainWindow):
                 )
 
     def add_component(self, component_type: str):
-        """Add a component to the selected entity (Unity-style)."""
+        """Add a component to the selected entity (modular component system)."""
         from PyQt6.QtWidgets import QMessageBox
 
         component_names = {
@@ -1772,6 +1773,11 @@ class MainWindow(QMainWindow):
         if not hasattr(self, 'console'):
             return
 
+        # Handle deselection
+        if entity_type is None or entity_data is None:
+            self.console.set_selected_entities([])
+            return
+
         # Get entity ID
         entity_id = entity_data.get('id', '')
 
@@ -1785,18 +1791,26 @@ class MainWindow(QMainWindow):
         if not hasattr(self, 'noodle_tuner'):
             return
 
+        # Handle deselection
+        if entity_type is None or entity_data is None:
+            # Clear noodle tuner
+            self.noodle_tuner.set_agent(None)
+            return
+
         # Only update Noodle Tuner for noodlings
         if entity_type == 'noodling':
             agent_id = entity_data.get('id', '')
             if agent_id:
                 self.noodle_tuner.set_agent(agent_id)
 
-        # Also update Facets Editor
-        self.on_entity_selected_for_facets_editor(entity_type, entity_data)
-
     def on_entity_selected_for_facets_editor(self, entity_type: str, entity_data: dict):
         """Update Facets Editor when a noodling is selected in hierarchy."""
         if not hasattr(self, 'facets_editor'):
+            return
+
+        # Handle deselection (nothing selected)
+        if entity_type is None or entity_data is None:
+            self.facets_editor.clear_editor()
             return
 
         # Only load facet assemblies for noodlings

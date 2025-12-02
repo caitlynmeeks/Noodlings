@@ -215,11 +215,11 @@ class FacetNodeGraphics(QGraphicsRectItem):
         self.status_color = "#666666"
 
         # Lock icon (top-right corner, clickable)
-        lock_icon = "🔒" if facet.locked else "🔓"
+        lock_icon = "[L]" if facet.locked else ""
         self.lock_icon = ClickableTextItem(lock_icon, self, {}, self.toggle_lock)
-        self.lock_icon.setPos(self.NODE_WIDTH - 35, 5)
-        self.lock_icon.setDefaultTextColor(QColor("#888888" if not facet.locked else "#CCAA00"))
-        self.lock_icon.setFont(QFont("Arial", 12))
+        self.lock_icon.setPos(self.NODE_WIDTH - 30, 5)
+        self.lock_icon.setDefaultTextColor(QColor("#CCAA00" if facet.locked else "#888888"))
+        self.lock_icon.setFont(QFont("Courier", 10))
         self.lock_icon.setToolTip("Click to lock/unlock facet")
         self.lock_icon.setZValue(15)  # Above other elements
 
@@ -228,10 +228,11 @@ class FacetNodeGraphics(QGraphicsRectItem):
         self.output_pads: Dict[str, FacetPadGraphics] = {}
 
         # Animation state (Kraftwerk style - industrial precision)
-        self.execution_state = "idle"  # idle, processing, complete, error
+        self.execution_state = "idle"  # idle, processing, complete, error, quantum_collapse
         self.animation_timer: Optional[QTimer] = None
         self.pulse_phase = 0.0  # 0.0 to 1.0 for border pulse
         self.base_brush = self.brush()  # Store original brush for restoration
+        self.collapse_flash_alpha = 0.0  # For quantum collapse flash effect
 
         self._create_pads()
 
@@ -361,6 +362,14 @@ class FacetNodeGraphics(QGraphicsRectItem):
             # Hold for 500ms, then return to idle
             QTimer.singleShot(500, lambda: self.set_execution_state("idle"))
 
+        elif state == "quantum_collapse":
+            # QUANTUM COLLAPSE - Purple/blue flash
+            # Orchestrated objective reduction event
+            self.collapse_flash_alpha = 1.0
+            self._quantum_flash()
+            # Return to idle after flash completes
+            QTimer.singleShot(200, lambda: self.set_execution_state("idle"))
+
     def _pulse_border(self):
         """
         Geometric border pulse for processing state.
@@ -384,6 +393,44 @@ class FacetNodeGraphics(QGraphicsRectItem):
             pen = QPen(QColor(brightness, brightness, brightness), 2)
 
         self.setPen(pen)
+
+    def _quantum_flash(self):
+        """
+        Quantum collapse flash animation.
+
+        Sharp purple/blue flash that fades out linearly over 200ms.
+        Represents orchestrated objective reduction (Penrose-Hameroff).
+        """
+        # Start with bright purple/blue
+        self.collapse_flash_alpha = 1.0
+        self.animation_timer = QTimer()
+        self.animation_timer.timeout.connect(self._fade_quantum_flash)
+        self.animation_timer.start(20)  # 50fps fade
+
+    def _fade_quantum_flash(self):
+        """Fade quantum collapse flash."""
+        self.collapse_flash_alpha -= 0.1  # Linear fade over 200ms
+
+        if self.collapse_flash_alpha <= 0.0:
+            # Flash complete
+            self.collapse_flash_alpha = 0.0
+            if self.animation_timer:
+                self.animation_timer.stop()
+                self.animation_timer = None
+            self.setBrush(self.base_brush)
+            self.setPen(self.default_pen if not self.isSelected() else self.selected_pen)
+        else:
+            # Compute flash color (purple/blue with decreasing alpha)
+            # Base: #9370DB (medium purple) fading to background
+            r = int(147 * self.collapse_flash_alpha + 42 * (1 - self.collapse_flash_alpha))
+            g = int(112 * self.collapse_flash_alpha + 42 * (1 - self.collapse_flash_alpha))
+            b = int(219 * self.collapse_flash_alpha + 42 * (1 - self.collapse_flash_alpha))
+            flash_color = QColor(r, g, b)
+            self.setBrush(QBrush(flash_color))
+
+            # Bright border during flash
+            border_intensity = int(255 * self.collapse_flash_alpha)
+            self.setPen(QPen(QColor(border_intensity, border_intensity, 255), 3))
 
     def mousePressEvent(self, event):
         """Handle mouse press - support Shift for additive selection."""
@@ -548,7 +595,7 @@ class FacetNodeGraphics(QGraphicsRectItem):
         self.facet.locked = not self.facet.locked
 
         # Update lock icon appearance
-        lock_icon_text = "🔒" if self.facet.locked else "🔓"
+        lock_icon_text = "[L]" if self.facet.locked else ""
         self.lock_icon.setPlainText(lock_icon_text)
         self.lock_icon.setDefaultTextColor(QColor("#CCAA00" if self.facet.locked else "#888888"))
 
@@ -693,6 +740,9 @@ class FacetsEditorPanel(QWidget):
         self.current_assembly_name: Optional[str] = None  # Track loaded assembly
         self.node_graphics: Dict[str, FacetNodeGraphics] = {}
         self.wire_graphics: List[ConnectionWire] = []
+
+        # CRITICAL: Lock to prevent event processing during scene transitions
+        self.scene_transition_lock = False
 
         # Clipboard for copy/paste
         self.clipboard: List[Facet] = []
@@ -890,6 +940,15 @@ class FacetsEditorPanel(QWidget):
 
     def show_empty_state(self):
         """Show 'select a noodling' message when no assembly loaded."""
+        # CRITICAL: Lock scene during transition to prevent event processing
+        self.scene_transition_lock = True
+
+        # CRITICAL: Stop all animations before clearing scene to prevent segfault
+        for node_gfx in self.node_graphics.values():
+            if hasattr(node_gfx, 'animation_timer') and node_gfx.animation_timer:
+                node_gfx.animation_timer.stop()
+                node_gfx.animation_timer = None
+
         # Clear any existing assembly
         self.scene.clear()
         self.node_graphics.clear()
@@ -910,6 +969,14 @@ class FacetsEditorPanel(QWidget):
 
         # Clear agent reference
         self.current_assembly = None
+        self.current_agent_id = None
+
+        # Unlock scene - safe to process events now
+        self.scene_transition_lock = False
+
+    def clear_editor(self):
+        """Clear editor when nothing is selected (alias for show_empty_state)."""
+        self.show_empty_state()
         self.current_assembly_name = None
 
     def hide_empty_state(self):
@@ -952,12 +1019,21 @@ class FacetsEditorPanel(QWidget):
 
         print(f"[Facets Editor] Loading assembly: {assembly.name}")
 
+        # CRITICAL: Lock scene during transition to prevent event processing
+        self.scene_transition_lock = True
+
         # Hide empty state message if showing
         self.hide_empty_state()
 
         self.current_assembly = assembly
         self.current_assembly_name = assembly.name
         self.assembly_label.setText(f"{assembly.name} [REF]")
+
+        # CRITICAL: Stop all animations before clearing scene to prevent segfault
+        for node_gfx in self.node_graphics.values():
+            if hasattr(node_gfx, 'animation_timer') and node_gfx.animation_timer:
+                node_gfx.animation_timer.stop()
+                node_gfx.animation_timer = None
 
         # Clear existing graphics
         self.scene.clear()
@@ -987,6 +1063,9 @@ class FacetsEditorPanel(QWidget):
         # Center view on content
         self.view.centerOn(500, 350)
         print(f"[Facets Editor] Assembly loaded successfully with {len(assembly.facets)} facets")
+
+        # Unlock scene - safe to process events now
+        self.scene_transition_lock = False
 
     def show_context_menu(self, position):
         """Show right-click context menu for adding facets."""
@@ -1770,7 +1849,11 @@ class FacetsEditorPanel(QWidget):
             self.pause_button.setChecked(not checked)  # Revert button state
 
     def set_current_agent(self, agent_id: str):
-        """Set the current agent whose facets are being edited."""
+        """
+        Set the current agent whose facets are being edited.
+
+        Fetches and loads the agent's facet assembly from the API.
+        """
         self.current_agent_id = agent_id
         enabled = True if agent_id else False
         self.pause_button.setEnabled(enabled)
@@ -1781,6 +1864,37 @@ class FacetsEditorPanel(QWidget):
             self.pause_button.setChecked(False)
             self.bottom_pause_btn.setChecked(False)
             self.cognition_paused = False
+
+        # Fetch and load the agent's facet assembly
+        if agent_id:
+            try:
+                import requests
+                response = requests.get(f"http://localhost:8081/api/agents/{agent_id}", timeout=2)
+                if response.status_code == 200:
+                    agent_data = response.json()
+                    config = agent_data.get('config', {})
+                    facet_assembly_ref = config.get('facet_assembly')
+
+                    if facet_assembly_ref:
+                        # Load assembly from YAML file
+                        import os
+                        assembly_path = os.path.join(
+                            os.path.dirname(__file__),
+                            '../facet_assemblies',
+                            f"{facet_assembly_ref}.yaml"
+                        )
+
+                        if os.path.exists(assembly_path):
+                            from ..core.facet_system import FacetAssembly
+                            assembly = FacetAssembly.load_yaml(assembly_path)
+                            self.load_assembly_from_data(assembly, force_reload=True)
+                            print(f"[Facets Editor] Loaded assembly: {assembly.name} for agent {agent_id}")
+                        else:
+                            print(f"[Facets Editor] Assembly file not found: {assembly_path}")
+                    else:
+                        print(f"[Facets Editor] Agent {agent_id} has no facet_assembly")
+            except Exception as e:
+                print(f"[Facets Editor] Failed to load agent assembly: {e}")
 
     def _update_stage_pause_state(self, paused: bool):
         """Notify Stage panel to update pause state for current agent."""
@@ -1877,6 +1991,10 @@ class FacetsEditorPanel(QWidget):
         - data_flow: Animate packet along connection wire
         - convergence_wait: (future: show waiting state)
         """
+        # CRITICAL: Skip event processing during scene transitions
+        if self.scene_transition_lock:
+            return  # Scene is being cleared/rebuilt, ignore all events
+
         event_type = event.get('type')
         event_subtype = event.get('subtype')
 
@@ -1887,7 +2005,16 @@ class FacetsEditorPanel(QWidget):
         if not facet_id or facet_id not in self.node_graphics:
             return  # Facet not in current assembly
 
-        node = self.node_graphics[facet_id]
+        node = self.node_graphics.get(facet_id)
+        if not node:
+            return  # Node was deleted (race condition during scene transition)
+
+        # CRITICAL: Check if node is still in scene (not deleted)
+        if not node.scene():
+            return  # Node removed from scene, skip event
+
+        # KRAFTWERK CLICK - Play terminal keypress sound for every event
+        self._play_pachinko_sound()
 
         if event_subtype == 'facet_start':
             # KRAFTWERK: Node begins processing
@@ -1904,11 +2031,79 @@ class FacetsEditorPanel(QWidget):
 
             if from_facet and to_facet:
                 # Find connection wire between these facets
-                for wire in self.wire_graphics:
+                # CRITICAL: Check if wire still in scene (race condition protection)
+                for wire in list(self.wire_graphics):  # Copy list to avoid modification issues
+                    if not wire.scene():
+                        continue  # Wire was deleted, skip
                     if (wire.from_pad.facet_node.facet.id == from_facet and
                         wire.to_pad.facet_node.facet.id == to_facet):
                         wire.animate_data_flow()
                         break
+
+        elif event_subtype == 'quantum_collapse':
+            # QUANTUM: Orchestrated objective reduction event
+            # Purple/blue flash + higher pitch sound
+            node.set_execution_state('quantum_collapse')
+            self._play_quantum_collapse_sound()
+
+    def _play_pachinko_sound(self):
+        """Play termkeypress.ogg sound (Kraftwerk pachinko click)."""
+        try:
+            from PyQt6.QtMultimedia import QSoundEffect
+            from PyQt6.QtCore import QUrl
+            import os
+
+            # Get sound file path
+            resources_dir = os.path.join(os.path.dirname(__file__), '..', 'resources', 'terminal_beeps_hq')
+            sound_path = os.path.join(resources_dir, 'termkeypress.ogg')
+
+            if not os.path.exists(sound_path):
+                return  # Sound file not found, silent fail
+
+            # Create sound effect if not already created
+            if not hasattr(self, '_pachinko_sound'):
+                self._pachinko_sound = QSoundEffect()
+                self._pachinko_sound.setSource(QUrl.fromLocalFile(sound_path))
+                self._pachinko_sound.setVolume(0.3)  # 30% volume (not too loud!)
+
+            # Play (non-blocking)
+            self._pachinko_sound.play()
+
+        except Exception as e:
+            # Silent fail - don't break execution visualization if sound fails
+            pass
+
+    def _play_quantum_collapse_sound(self):
+        """
+        Play quantum collapse sound effect.
+
+        Higher pitch than normal pachinko click to indicate quantum event.
+        Uses terminal beep at higher frequency.
+        """
+        try:
+            from PyQt6.QtMultimedia import QSoundEffect
+            from PyQt6.QtCore import QUrl
+            import os
+
+            # Get sound file path (use termstart.ogg for higher pitch)
+            resources_dir = os.path.join(os.path.dirname(__file__), '..', 'resources', 'terminal_beeps_hq')
+            sound_path = os.path.join(resources_dir, 'termstart.ogg')  # Higher pitch than keypress
+
+            if not os.path.exists(sound_path):
+                return  # Sound file not found, silent fail
+
+            # Create sound effect if not already created
+            if not hasattr(self, '_quantum_sound'):
+                self._quantum_sound = QSoundEffect()
+                self._quantum_sound.setSource(QUrl.fromLocalFile(sound_path))
+                self._quantum_sound.setVolume(0.4)  # Slightly louder than pachinko
+
+            # Play (non-blocking)
+            self._quantum_sound.play()
+
+        except Exception as e:
+            # Silent fail - don't break execution visualization if sound fails
+            pass
 
 
 if __name__ == "__main__":

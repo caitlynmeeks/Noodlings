@@ -4,7 +4,7 @@ Scene Hierarchy Panel - Unity-style entity tree
 Shows all prims in the noodleMUSH world:
 - Rooms (with exits)
 - Users (Noodlers)
-- Noodlings (kindled beings)
+- Noodlings
 - Prims (WANTED POSTER, RADIO, etc.)
 
 Click to select → Inspector shows editable properties
@@ -333,9 +333,9 @@ class SceneHierarchy(QWidget):
 
                 # Build display with controls on right
                 pause_icon = "▶" if is_paused else "⏸"
-                lock_icon = "🔒" if is_locked else "🔓"
+                lock_icon = "[L]" if is_locked else ""
 
-                # Display format: "Name        [status]      ⏸ 🔒"
+                # Display format: "Name        [status]      ⏸ [L]"
                 # Using unicode spaces for alignment
                 display_text = f"{name:<20} {status_text:<20} {pause_icon} {lock_icon}"
 
@@ -380,9 +380,9 @@ class SceneHierarchy(QWidget):
                         status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
 
                         # Lock icon only (prims don't have pause)
-                        lock_icon = "🔒" if is_locked else "🔓"
+                        lock_icon = "[L]" if is_locked else ""
 
-                        # Display format: "Name        [status]         🔒"
+                        # Display format: "Name        [status]         [L]"
                         display_text = f"{prim_name:<20} {status_text:<20}    {lock_icon}"
 
                         prim_item = QTreeWidgetItem([display_text])
@@ -440,20 +440,35 @@ class SceneHierarchy(QWidget):
 
     def on_selection_changed(self):
         """Handle entity selection (doesn't interfere with expand/collapse)."""
-        items = self.tree.selectedItems()
-        if items:
-            item = items[0]
-            entity_data = item.data(0, Qt.ItemDataRole.UserRole)
-            if entity_data:
-                # Handle both dict (normal) and tuple (from Assets panel drag)
-                if isinstance(entity_data, tuple):
-                    # Assets panel stores (asset_type, asset_name)
-                    asset_type, asset_name = entity_data
-                    # For now, don't emit - ensembles have their own handling
-                    return
-                elif isinstance(entity_data, dict):
-                    entity_type = entity_data.get('type', 'unknown')
-                    self.entitySelected.emit(entity_type, entity_data)
+        try:
+            print("[HIERARCHY] on_selection_changed() called")
+            items = self.tree.selectedItems()
+            if items:
+                item = items[0]
+                entity_data = item.data(0, Qt.ItemDataRole.UserRole)
+                if entity_data:
+                    # Handle both dict (normal) and tuple (from Assets panel drag)
+                    if isinstance(entity_data, tuple):
+                        # Assets panel stores (asset_type, asset_name)
+                        asset_type, asset_name = entity_data
+                        # For now, don't emit - ensembles have their own handling
+                        print("[HIERARCHY] Asset tuple detected, skipping emit")
+                        return
+                    elif isinstance(entity_data, dict):
+                        entity_type = entity_data.get('type', 'unknown')
+                        entity_id = entity_data.get('id', 'unknown')
+                        print(f"[HIERARCHY] About to emit entitySelected: type={entity_type}, id={entity_id}")
+                        self.entitySelected.emit(entity_type, entity_data)
+                        print(f"[HIERARCHY] emit returned successfully")
+            else:
+                # Nothing selected - emit None to clear Inspector and Facets Editor
+                print("[HIERARCHY] No selection, emitting None")
+                self.entitySelected.emit(None, None)
+                print("[HIERARCHY] None emit returned successfully")
+        except Exception as e:
+            print(f"[HIERARCHY] EXCEPTION in on_selection_changed: {e}")
+            import traceback
+            traceback.print_exc()
 
     def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
         """Handle double-click - unpack ensembles, inspect entities."""
