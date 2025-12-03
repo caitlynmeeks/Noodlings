@@ -205,6 +205,30 @@ class ConsolePanel(QWidget):
         self.search_field.textChanged.connect(self.on_search_changed)
         toolbar.addWidget(self.search_field)
 
+        # Clear search button
+        self.clear_search_btn = QPushButton("✕")
+        self.clear_search_btn.setFixedSize(24, 24)
+        self.clear_search_btn.setToolTip("Clear search filter")
+        self.clear_search_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3a3a3a;
+                color: #888888;
+                border: 1px solid #555;
+                border-radius: 2px;
+                font-size: 14pt;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background-color: #4a4a4a;
+                color: #AAAAAA;
+            }
+            QPushButton:pressed {
+                background-color: #2a2a2a;
+            }
+        """)
+        self.clear_search_btn.clicked.connect(self.clear_search)
+        toolbar.addWidget(self.clear_search_btn)
+
         # Regex toggle checkbox
         self.cb_regex = QCheckBox("Regex")
         self.cb_regex.setChecked(False)
@@ -433,6 +457,10 @@ class ConsolePanel(QWidget):
         self.log_text.clear()
         self.log_text.append("[Console] Logs cleared")
 
+    def clear_search(self):
+        """Clear the search filter field."""
+        self.search_field.clear()
+
     def on_search_changed(self, text):
         """Handle search text change - update filter in real-time."""
         self.search_text = text
@@ -620,14 +648,5 @@ class ConsolePanel(QWidget):
         self.mush_btn.setChecked(mode == 'mush')
         self.studio_btn.setChecked(mode == 'studio')
 
-        # Clear and refresh display
-        self.log_text.clear()
-
-        if mode == 'mush':
-            # Show MUSH logs
-            for log_entry in self.log_buffer:
-                self.log_text.append(log_entry)
-        else:
-            # Show STUDIO logs
-            for log_entry in self.studio_log_buffer:
-                self.log_text.append(log_entry)
+        # Clear and refresh display with search filter applied
+        self.apply_search_filter()

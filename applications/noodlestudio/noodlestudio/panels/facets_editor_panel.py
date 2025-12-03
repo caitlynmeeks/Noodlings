@@ -767,6 +767,11 @@ class FacetsEditorPanel(QWidget):
         self.cognition_paused: bool = False
         self.api_base = "http://localhost:8081/api"
 
+        # Focus state tracking (for F key toggle)
+        self.is_focused = False
+        self.pre_focus_transform = None
+        self.focused_node_id = None
+
         # Empty state message
         self.empty_state_label: Optional[QGraphicsTextItem] = None
 
@@ -1400,9 +1405,10 @@ class FacetsEditorPanel(QWidget):
 
     def focus_selection_tight(self):
         """
-        Tight focus on selected node with field display (F key).
+        Toggle tight focus on selected node (F key).
 
-        Zooms way in to show fields and enable inline editing.
+        First press: Zooms to selected node, saves view state
+        Second press: Restores exact pre-focus view state
         """
         selected_items = self.scene.selectedItems()
         selected_nodes = [
@@ -1410,15 +1416,36 @@ class FacetsEditorPanel(QWidget):
             if isinstance(item, FacetNodeGraphics)
         ]
 
-        if selected_nodes:
+        if not selected_nodes:
+            print("[Facets Editor] No facet selected to focus")
+            return
+
+        selected_node = selected_nodes[0]
+        selected_node_id = selected_node.facet.id
+
+        # Check if we're toggling focus on the same node
+        if self.is_focused and self.focused_node_id == selected_node_id:
+            # RESTORE: Pop back to pre-focus view
+            if self.pre_focus_transform:
+                self.view.setTransform(self.pre_focus_transform)
+                print(f"[Facets Editor] Restored pre-focus view for {selected_node.facet.name}")
+            self.is_focused = False
+            self.focused_node_id = None
+            self.pre_focus_transform = None
+        else:
+            # FOCUS: Save current view and zoom to node
+            self.pre_focus_transform = self.view.transform()
+            self.focused_node_id = selected_node_id
+            self.is_focused = True
+
             # Frame selected with minimal padding
             self.frame_nodes(selected_nodes, padding_factor=0.05)
 
             # Force field display on selected nodes
             for node in selected_nodes:
                 node.show_fields(force=True)
-        else:
-            print("[Facets Editor] No facet selected to focus")
+
+            print(f"[Facets Editor] Focused on {selected_node.facet.name} (press F again to restore)")
 
     def toggle_node_expansion(self):
         """Open field editor for selected node (E key - edits Processing Prompt)."""

@@ -1094,13 +1094,13 @@ class InspectorPanel(QWidget):
                 affect = state.get('affect', {})
 
                 # Monochromatic color mapping (Ordnung muss sein!)
-                # Different shades of gray for each dimension
+                # Single shade for all dimensions - maximum readability
                 affect_colors = {
-                    'valence': '#999999',    # Mid-gray
-                    'arousal': '#BBBBBB',    # Light gray
-                    'dominance': '#888888',  # Dark-mid gray
-                    'sorrow': '#777777',     # Darker gray
-                    'boredom': '#666666'     # Dark gray
+                    'valence': '#999999',    # Readable mid-gray
+                    'arousal': '#999999',    # Readable mid-gray
+                    'dominance': '#999999',  # Readable mid-gray
+                    'sorrow': '#999999',     # Readable mid-gray
+                    'boredom': '#999999'     # Readable mid-gray
                 }
 
                 for dim, widget in self.live_affect_labels.items():
