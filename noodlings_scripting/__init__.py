@@ -1,7 +1,7 @@
 """
 Noodlings Scripting Runtime
 
-Server-authoritative scripting system for kindled beings.
+Server-authoritative scripting system for noodling.
 
 This package provides:
 - NoodleScript base class (event-driven callbacks)

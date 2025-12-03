@@ -1,5 +1,5 @@
 """
-Inspector Panel - Unity-style property editor
+Inspector Panel - Component-based property editor
 
 Shows and edits ALL properties of selected entity:
 - Users: name, description, location, inventory
@@ -30,18 +30,19 @@ from noodlestudio.widgets.collapsible_section import CollapsibleSection
 
 class InspectorPanel(QWidget):
     """
-    Unity-style Inspector panel.
+    Component-based Inspector panel.
 
     Shows editable properties for selected entity.
-    Like Unity's Inspector - every field is live-editable!
+    Every field is live-editable with instant save!
     """
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.current_entity = None
+        self.current_agent_id = None  # Initialize to None explicitly
         self.api_base = "http://localhost:8081/api"
 
-        # Allow panel to shrink to very small sizes for tight Unity-style layouts
+        # Allow panel to shrink to very small sizes for tight panel layouts
         self.setMinimumWidth(200)
 
         # Flag to prevent double-triggering during toggle operations
@@ -61,13 +62,16 @@ class InspectorPanel(QWidget):
         # Initialize UI directly on this widget
         self.init_ui(self)
 
+        # Ensure Inspector starts clear (no phantom selections)
+        self.clear_inspector()
+
         # Live update timer for Noodle Component
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_live_data)
         self.update_timer.start(1000)  # Update every second
 
         self.live_affect_labels = {}
-        self.live_phenomenal_label = None
+        self.live_surprise_label = None
 
     def init_ui(self, widget):
         layout = QVBoxLayout(widget)
@@ -91,9 +95,28 @@ class InspectorPanel(QWidget):
         scroll.setWidget(self.properties_widget)
         layout.addWidget(scroll)
 
+    def clear_inspector(self):
+        """Clear inspector when nothing is selected."""
+        self.current_entity = None
+        self.current_agent_id = None
+        self.entity_header.setText("Select a noodling or prim")
+
+        # Clear existing properties
+        while self.properties_layout.count():
+            child = self.properties_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        self.component_widgets.clear()
+
     @pyqtSlot(str, dict)
     def load_entity(self, entity_type: str, entity_data: dict):
         """Load entity properties into inspector."""
+        # Handle deselection (nothing selected)
+        if entity_type is None or entity_data is None:
+            self.clear_inspector()
+            return
+
         # DIAGNOSTIC: Track ALL load_entity calls
         import traceback
         print(f"\n{'#'*80}")
@@ -298,8 +321,16 @@ class InspectorPanel(QWidget):
 
     def load_noodling_properties(self, entity_data):
         """Show Noodling properties (FULL CONTROL!)."""
+        if not entity_data:
+            print("[Inspector] ERROR: entity_data is None or empty")
+            return
+
         agent = entity_data.get('data', {})
         agent_id = entity_data.get('id', '')
+
+        if not agent_id:
+            print(f"[Inspector] ERROR: No agent_id in entity_data: {entity_data}")
+            return
 
         # Store field references for saving
         self.property_fields = {}
@@ -334,34 +365,28 @@ class InspectorPanel(QWidget):
         self.property_fields['llm_model'] = self.add_text_field(llm_group, "Model", agent.get('llm_model') or 'qwen/qwen3-4b-2507')
         self.properties_layout.addWidget(llm_group)
 
-        # Personality group (load from recipe)
-        # Load personality from agent data (instance), fallback to recipe (template)
-        agent_personality = agent.get('personality_traits', {})
-        recipe_personality = recipe_data.get('personality', {})
-
-        personality_group = self.create_property_group("Personality Traits")
-        self.property_fields['extraversion'] = self.add_slider_field(personality_group, "Extraversion",
-                                                                      agent_personality.get('extraversion', recipe_personality.get('extraversion', 0.5)), 0.0, 1.0)
-        self.property_fields['curiosity'] = self.add_slider_field(personality_group, "Curiosity",
-                                                                   agent_personality.get('curiosity', recipe_personality.get('curiosity', 0.5)), 0.0, 1.0)
-        self.property_fields['spontaneity'] = self.add_slider_field(personality_group, "Spontaneity",
-                                                                     agent_personality.get('spontaneity', recipe_personality.get('spontaneity', 0.5)), 0.0, 1.0)
-        self.property_fields['emotional_sensitivity'] = self.add_slider_field(personality_group, "Emotional Sensitivity",
-                                                                              agent_personality.get('emotional_sensitivity', recipe_personality.get('emotional_sensitivity', 0.5)), 0.0, 1.0)
-        self.properties_layout.addWidget(personality_group)
-
         # ===== COGNITIVE COMPONENTS SECTION =====
         components_section = self.create_components_section(agent_id)
         if components_section:
             self.properties_layout.addWidget(components_section)
 
-        # ===== NOODLE COMPONENT (Unity-style component!) =====
-        noodle_component = self.create_noodle_component(agent_id)
-        self.properties_layout.addWidget(noodle_component)
+        # ===== NOODLE COMPONENT (charm component!) =====
+        try:
+            noodle_component = self.create_noodle_component(agent_id)
+            self.properties_layout.addWidget(noodle_component)
+        except Exception as e:
+            print(f"[Inspector] ERROR creating Noodle Component: {e}")
+            import traceback
+            traceback.print_exc()
 
         # ===== MMCR COMPONENT (Multimodal Context Reference) =====
-        mmcr_component = self.create_mmcr_component(agent_id)
-        self.properties_layout.addWidget(mmcr_component)
+        try:
+            mmcr_component = self.create_mmcr_component(agent_id)
+            self.properties_layout.addWidget(mmcr_component)
+        except Exception as e:
+            print(f"[Inspector] ERROR creating MMCR Component: {e}")
+            import traceback
+            traceback.print_exc()
 
         self.properties_layout.addStretch()
 
@@ -471,7 +496,7 @@ class InspectorPanel(QWidget):
             QTimer.singleShot(100, safely_unblock)
 
     def toggle_group_contents(self, group: QGroupBox, visible: bool):
-        """Toggle visibility of group contents (Unity-style collapse)."""
+        """Toggle visibility of group contents (collapsible sections)."""
         # Hide/show all child widgets in the group's layout
         layout = group.layout()
         if layout:
@@ -481,7 +506,7 @@ class InspectorPanel(QWidget):
                     item.widget().setVisible(visible)
 
     def add_text_field(self, group: QGroupBox, label: str, value: str):
-        """Add editable text field to group (Unity-style instant updates)."""
+        """Add editable text field to group (instant updates on change)."""
         field = QLineEdit(value)
         field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
         # Use editingFinished for instant update when user finishes editing
@@ -490,7 +515,7 @@ class InspectorPanel(QWidget):
         return field
 
     def add_text_area(self, group: QGroupBox, label: str, value: str):
-        """Add editable text area to group (Unity-style instant updates)."""
+        """Add editable text area to group (instant updates on change)."""
         field = QTextEdit()
         field.setPlainText(value)
         field.setMaximumHeight(100)
@@ -514,14 +539,14 @@ class InspectorPanel(QWidget):
         return field
 
     def add_slider_field(self, group: QGroupBox, label: str, value: float, min_val: float, max_val: float):
-        """Add slider + numeric field (Unity-style instant updates)."""
+        """Add slider + numeric field (instant updates on change)."""
         spin = QDoubleSpinBox()
         spin.setRange(min_val, max_val)
         spin.setValue(value)
         spin.setSingleStep(0.05)
         spin.setDecimals(2)
         spin.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2;")
-        # Instant update when value changes (Unity-style)
+        # Instant update when value changes
         spin.valueChanged.connect(lambda: self.save_changes())
         group.content.layout().addRow(f"{label}:", spin)
         return spin
@@ -555,24 +580,10 @@ class InspectorPanel(QWidget):
                 if 'llm_model' in self.property_fields:
                     updates['llm_model'] = self.property_fields['llm_model'].text()
 
-                # Personality traits
-                personality = {}
-                if 'extraversion' in self.property_fields:
-                    personality['extraversion'] = self.property_fields['extraversion'].value()
-                if 'curiosity' in self.property_fields:
-                    personality['curiosity'] = self.property_fields['curiosity'].value()
-                if 'spontaneity' in self.property_fields:
-                    personality['spontaneity'] = self.property_fields['spontaneity'].value()
-                if 'emotional_sensitivity' in self.property_fields:
-                    personality['emotional_sensitivity'] = self.property_fields['emotional_sensitivity'].value()
-
                 # Save via API
                 try:
                     url = f"{self.api_base}/agents/{agent_id}/update"
-                    payload = {
-                        **updates,
-                        'personality': personality
-                    }
+                    payload = updates
 
                     response = requests.post(url, json=payload, timeout=2)
                     if response.status_code == 200:
@@ -698,6 +709,14 @@ class InspectorPanel(QWidget):
             if not components:
                 return None
 
+            # SKIP if using Facet Assembly system (handled in Noodle Component now!)
+            if components and components[0].get('component_id') == 'facet_assembly':
+                # Skip the first item (Facet Assembly) as it's in Noodle Component
+                components = components[1:]
+
+            if not components:
+                return None  # No components to show
+
             # Main container widget
             container = QWidget()
             container_layout = QVBoxLayout(container)
@@ -765,6 +784,28 @@ class InspectorPanel(QWidget):
         desc_label.setWordWrap(True)
         desc_label.setStyleSheet("color: #AAAAAA; font-size: 9pt; font-style: italic; padding: 4px 0;")
         section.add_widget(desc_label)
+
+        # If facet assembly, add "Open Editor" button
+        if parameters.get('clickable'):
+            open_button = QPushButton("Open Facet Editor")
+            open_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #4A4A4A;
+                    color: #FFFFFF;
+                    border: 1px solid #5A5A5A;
+                    border-radius: 3px;
+                    padding: 6px 12px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #5A5A5A;
+                }
+                QPushButton:pressed {
+                    background-color: #3A3A3A;
+                }
+            """)
+            open_button.clicked.connect(lambda: self.open_facet_editor(agent_id))
+            section.add_widget(open_button)
 
         # Enabled checkbox
         from PyQt6.QtWidgets import QCheckBox
@@ -889,12 +930,12 @@ class InspectorPanel(QWidget):
 
     def create_noodle_component(self, agent_id: str) -> CollapsibleSection:
         """
-        Create the Noodle Component (Unity-style component).
+        Create the Noodle Component (charm component).
 
         Shows LIVE updating:
-        - 5-D Affect Vector (current emotion)
-        - 40-D Phenomenal State (inner kindling)
+        - Affect Vector (continuous affect state)
         - Surprise metric
+        - Cognitive Architecture (facet assembly)
         """
         # Create CollapsibleSection (no bounce-back!)
         component = CollapsibleSection("Noodle Component")
@@ -914,8 +955,8 @@ class InspectorPanel(QWidget):
         # Agent ID reference (for live updates)
         self.current_agent_id = agent_id
 
-        # 5-D Affect Vector (LIVE)
-        affect_label = QLabel("5-D Affect Vector (Live)")
+        # Affect Vector (LIVE)
+        affect_label = QLabel("Affect Vector")
         affect_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 8px;")
         layout.addWidget(affect_label)
 
@@ -928,8 +969,8 @@ class InspectorPanel(QWidget):
         self.live_affect_labels['arousal'] = self.create_affect_bar("Arousal", 0.0, 1.0)
         affect_layout.addRow("Arousal:", self.live_affect_labels['arousal'])
 
-        self.live_affect_labels['fear'] = self.create_affect_bar("Fear", 0.0, 1.0)
-        affect_layout.addRow("Fear:", self.live_affect_labels['fear'])
+        self.live_affect_labels['dominance'] = self.create_affect_bar("Dominance", 0.0, 1.0)
+        affect_layout.addRow("Dominance:", self.live_affect_labels['dominance'])
 
         self.live_affect_labels['sorrow'] = self.create_affect_bar("Sorrow", 0.0, 1.0)
         affect_layout.addRow("Sorrow:", self.live_affect_labels['sorrow'])
@@ -939,22 +980,56 @@ class InspectorPanel(QWidget):
 
         layout.addLayout(affect_layout)
 
-        # Phenomenal State (40-D kindling vector)
-        phenomenal_label = QLabel("40-D Phenomenal State (Inner Kindling)")
-        phenomenal_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 12px;")
-        layout.addWidget(phenomenal_label)
-
-        self.live_phenomenal_label = QLabel("Waiting for data...")
-        self.live_phenomenal_label.setStyleSheet("color: #B0B0B0; font-family: 'Courier New'; font-size: 9px;")
-        self.live_phenomenal_label.setWordWrap(True)
-        layout.addWidget(self.live_phenomenal_label)
-
         # Surprise metric
         surprise_layout = QFormLayout()
         self.live_surprise_label = QLabel("0.000")
         self.live_surprise_label.setStyleSheet("color: #D2D2D2; font-weight: bold;")
         surprise_layout.addRow("Surprise:", self.live_surprise_label)
         layout.addLayout(surprise_layout)
+
+        # Facet Assembly section (if agent uses facet system)
+        try:
+            resp = requests.get(f"{self.api_base}/agents/{agent_id}/components", timeout=1)
+            if resp.status_code == 200:
+                components_data = resp.json()
+                components = components_data.get('components', [])
+
+                # Check if first component is Facet Assembly
+                if components and components[0].get('component_id') == 'facet_assembly':
+                    facet_assembly_section = QLabel("Cognitive Architecture")
+                    facet_assembly_section.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 12px;")
+                    layout.addWidget(facet_assembly_section)
+
+                    facet_data = components[0]
+                    assembly_name = facet_data.get('parameters', {}).get('assembly_name', 'unknown')
+                    facet_count = facet_data.get('parameters', {}).get('facet_count', 0)
+
+                    assembly_info = QLabel(f"Assembly: {assembly_name}\nFacets: {facet_count}")
+                    assembly_info.setStyleSheet("color: #B0B0B0; font-size: 10pt;")
+                    layout.addWidget(assembly_info)
+
+                    # Open Editor button
+                    open_button = QPushButton("Open Facets Editor")
+                    open_button.setStyleSheet("""
+                        QPushButton {
+                            background-color: #4A4A4A;
+                            color: #FFFFFF;
+                            border: 1px solid #5A5A5A;
+                            border-radius: 3px;
+                            padding: 6px 12px;
+                            font-weight: bold;
+                        }
+                        QPushButton:hover {
+                            background-color: #5A5A5A;
+                        }
+                        QPushButton:pressed {
+                            background-color: #3A3A3A;
+                        }
+                    """)
+                    open_button.clicked.connect(lambda: self.open_facet_editor(agent_id))
+                    layout.addWidget(open_button)
+        except:
+            pass  # Silent fail if API unavailable
 
         component.setLayout(layout)
         return component
@@ -1018,13 +1093,14 @@ class InspectorPanel(QWidget):
                 # Update 5-D Affect Vector
                 affect = state.get('affect', {})
 
-                # Color mapping for each dimension
+                # Monochromatic color mapping (Ordnung muss sein!)
+                # Different shades of gray for each dimension
                 affect_colors = {
-                    'valence': '#4CAF50',    # Green (positive/negative)
-                    'arousal': '#FF5722',    # Red-orange (energy)
-                    'fear': '#FFC107',       # Yellow (caution)
-                    'sorrow': '#2196F3',     # Blue (sadness)
-                    'boredom': '#9E9E9E'     # Gray (disengagement)
+                    'valence': '#999999',    # Mid-gray
+                    'arousal': '#BBBBBB',    # Light gray
+                    'dominance': '#888888',  # Dark-mid gray
+                    'sorrow': '#777777',     # Darker gray
+                    'boredom': '#666666'     # Dark gray
                 }
 
                 for dim, widget in self.live_affect_labels.items():
@@ -1047,18 +1123,6 @@ class InspectorPanel(QWidget):
                             }}
                         """)
 
-                # Update 40-D Phenomenal State
-                phenomenal = state.get('phenomenal_state', [])
-                if phenomenal:
-                    # Format as 3 lines of ~13 values each
-                    phenomenal_str = "["
-                    for i, val in enumerate(phenomenal):
-                        if i % 13 == 0 and i > 0:
-                            phenomenal_str += "\n "
-                        phenomenal_str += f"{val:+.3f}, "
-                    phenomenal_str = phenomenal_str.rstrip(", ") + "]"
-                    self.live_phenomenal_label.setText(phenomenal_str)
-
                 # Update Surprise
                 surprise = state.get('surprise', 0.0)
                 self.live_surprise_label.setText(f"{surprise:.3f}")
@@ -1080,7 +1144,7 @@ class InspectorPanel(QWidget):
 
     def create_artbook_component(self) -> CollapsibleSection:
         """
-        Create Artbook component (Unity-style component).
+        Create Artbook component (modular component).
 
         Holds reference art, concept sketches, mood boards for the character.
         """
@@ -1293,14 +1357,14 @@ class InspectorPanel(QWidget):
         """
         Add Script component with code editor.
 
-        Like Unity's script component!
+        Event-driven scripting component!
         """
         script_comp = self.create_script_component()
         self.properties_layout.addWidget(script_comp)
 
     def create_script_component(self) -> QGroupBox:
         """
-        Create Script component (Unity-style).
+        Create Script component (modular scripting).
 
         Shows code editor with syntax highlighting and compile button.
         """
@@ -1325,7 +1389,7 @@ class InspectorPanel(QWidget):
         layout = QVBoxLayout()
 
         # Description
-        desc = QLabel("Python script for event-driven behavior (Unity-like API)")
+        desc = QLabel("Python script for event-driven behavior (component-based API)")
         desc.setStyleSheet("color: #B0B0B0; font-size: 10px; margin-bottom: 8px;")
         desc.setWordWrap(True)
         layout.addWidget(desc)
@@ -1978,4 +2042,24 @@ class InspectorPanel(QWidget):
 
         # Note: Audio files don't need live reload like images do
         # User will manually re-add if they want updated version
+
+    def open_facet_editor(self, agent_id: str):
+        """
+        Open Facets Editor for agent's facet assembly.
+
+        Switches to Facets Editor tab and loads the agent's assembly.
+        """
+        # Emit signal to main window to switch tabs
+        # The main window will catch this and switch to Facets Editor
+        from PyQt6.QtCore import pyqtSignal
+
+        # Get parent main window
+        main_window = self.window()
+        if hasattr(main_window, 'right_tabs'):
+            # Switch to Facets Editor tab (index 2: Inspector=0, Noodle Tuner=1, Facets Editor=2)
+            main_window.right_tabs.setCurrentIndex(2)
+
+            # Signal Facets Editor to load this agent
+            if hasattr(main_window, 'facets_editor_panel'):
+                main_window.facets_editor_panel.set_current_agent(agent_id)
 

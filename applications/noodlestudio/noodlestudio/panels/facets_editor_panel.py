@@ -827,6 +827,35 @@ class FacetsEditorPanel(QWidget):
         """)
         toolbar.addWidget(self.pause_button)
 
+        # Sound toggle button
+        self.sound_enabled = True  # Sound on by default
+        self.sound_button = QPushButton("🔊")
+        self.sound_button.setFixedWidth(40)
+        self.sound_button.setCheckable(True)
+        self.sound_button.setChecked(True)  # On by default
+        self.sound_button.setToolTip("Toggle execution sounds")
+        self.sound_button.clicked.connect(self.toggle_sound)
+        self.sound_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                padding: 4px;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                background-color: #4A4A4A;
+                border: 1px solid #777777;
+            }
+            QPushButton:checked {
+                background-color: #555555;
+                color: #FFFFFF;
+                border: 1px solid #888888;
+            }
+        """)
+        toolbar.addWidget(self.sound_button)
+
         # Save/Load buttons
         save_btn = QPushButton("Save")
         save_btn.setFixedWidth(60)
@@ -1016,6 +1045,34 @@ class FacetsEditorPanel(QWidget):
         if not force_reload and self.current_assembly_name == assembly.name:
             print(f"[Facets Editor] Assembly '{assembly.name}' already loaded, skipping reload")
             return
+
+        # Auto-save previous assembly before switching (if positions changed)
+        if self.current_assembly and self.current_assembly_name:
+            try:
+                import os
+                assembly_path = os.path.join(
+                    os.path.dirname(__file__),
+                    '../facet_assemblies',
+                    f"{self.current_assembly_name}.yaml".replace(' ', '_').lower()
+                )
+                # Find actual filename (might have different casing/spacing)
+                assembly_dir = os.path.join(os.path.dirname(__file__), '../facet_assemblies')
+                for filename in os.listdir(assembly_dir):
+                    if filename.endswith('.yaml'):
+                        test_assembly = None
+                        try:
+                            from ..core.facet_system import FacetAssembly
+                            test_path = os.path.join(assembly_dir, filename)
+                            test_assembly = FacetAssembly.load_yaml(test_path)
+                            if test_assembly.name == self.current_assembly_name:
+                                # Found the file! Save positions
+                                self.current_assembly.save_yaml(test_path)
+                                print(f"[Facets Editor] Auto-saved positions to: {filename}")
+                                break
+                        except:
+                            pass
+            except Exception as e:
+                print(f"[Facets Editor] Auto-save failed: {e}")
 
         print(f"[Facets Editor] Loading assembly: {assembly.name}")
 
@@ -1848,6 +1905,71 @@ class FacetsEditorPanel(QWidget):
             QMessageBox.critical(self, "Error", f"Pause/resume error: {str(e)}")
             self.pause_button.setChecked(not checked)  # Revert button state
 
+    def toggle_sound(self, checked: bool):
+        """Toggle execution sound effects."""
+        self.sound_enabled = checked
+        if checked:
+            self.sound_button.setText("🔊")
+            print("[Facets Editor] Sound enabled")
+        else:
+            self.sound_button.setText("🔇")
+            print("[Facets Editor] Sound muted")
+
+    def play_sound(self, sound_type: str):
+        """
+        Play sound effect for execution events.
+
+        Args:
+            sound_type: 'cycle_start', 'data_flow', 'cycle_complete'
+        """
+        if not self.sound_enabled:
+            return
+
+        try:
+            from PyQt6.QtMultimedia import QSoundEffect
+            from PyQt6.QtCore import QUrl
+            import os
+
+            # Map sound types to terminal beep files (Kraftwerk aesthetic!)
+            resources_dir = os.path.join(os.path.dirname(__file__), '..', 'resources', 'terminal_beeps_hq')
+
+            sound_files = {
+                'cycle_start': 'termstart.ogg',          # High pitch - cycle begins!
+                'data_flow': 'termkeypress.ogg',         # Quick click - data packet
+                'cycle_complete': 'bell_vt100_250ms.ogg' # Bell chime - cycle ends
+            }
+
+            sound_file = sound_files.get(sound_type)
+            if not sound_file:
+                return
+
+            sound_path = os.path.join(resources_dir, sound_file)
+            if not os.path.exists(sound_path):
+                return  # Sound file not found, silent fail
+
+            # Create cached sound effect for this type
+            cache_attr = f'_sound_{sound_type}'
+            if not hasattr(self, cache_attr):
+                sound_effect = QSoundEffect()
+                sound_effect.setSource(QUrl.fromLocalFile(sound_path))
+
+                # Volume settings - industrial precision
+                volumes = {
+                    'cycle_start': 0.5,    # Clear attention signal
+                    'data_flow': 0.2,      # Quiet clicks (many events)
+                    'cycle_complete': 0.4  # Satisfying closure
+                }
+                sound_effect.setVolume(volumes.get(sound_type, 0.3))
+                setattr(self, cache_attr, sound_effect)
+
+            # Play (non-blocking)
+            sound_effect = getattr(self, cache_attr)
+            sound_effect.play()
+
+        except Exception as e:
+            # Silent fail - don't break visualization if sound fails
+            pass
+
     def set_current_agent(self, agent_id: str):
         """
         Set the current agent whose facets are being edited.
@@ -1874,6 +1996,10 @@ class FacetsEditorPanel(QWidget):
                     agent_data = response.json()
                     config = agent_data.get('config', {})
                     facet_assembly_ref = config.get('facet_assembly')
+
+                    # Handle both string and dict formats
+                    if isinstance(facet_assembly_ref, dict):
+                        facet_assembly_ref = facet_assembly_ref.get('ref')
 
                     if facet_assembly_ref:
                         # Load assembly from YAML file
@@ -2001,6 +2127,14 @@ class FacetsEditorPanel(QWidget):
         if event_type != 'facet_execution':
             return  # Ignore non-execution events
 
+        # Handle cycle-level events (no facet_id)
+        if event_subtype == 'cycle_start':
+            self.play_sound('cycle_start')
+            return
+        elif event_subtype == 'cycle_complete':
+            self.play_sound('cycle_complete')
+            return
+
         facet_id = event.get('source_id')
         if not facet_id or facet_id not in self.node_graphics:
             return  # Facet not in current assembly
@@ -2030,6 +2164,9 @@ class FacetsEditorPanel(QWidget):
             to_facet = event.get('data', {}).get('to_facet')
 
             if from_facet and to_facet:
+                # Play data flow sound
+                self.play_sound('data_flow')
+
                 # Find connection wire between these facets
                 # CRITICAL: Check if wire still in scene (race condition protection)
                 for wire in list(self.wire_graphics):  # Copy list to avoid modification issues
@@ -2048,6 +2185,9 @@ class FacetsEditorPanel(QWidget):
 
     def _play_pachinko_sound(self):
         """Play termkeypress.ogg sound (Kraftwerk pachinko click)."""
+        if not self.sound_enabled:
+            return
+
         try:
             from PyQt6.QtMultimedia import QSoundEffect
             from PyQt6.QtCore import QUrl
@@ -2080,6 +2220,9 @@ class FacetsEditorPanel(QWidget):
         Higher pitch than normal pachinko click to indicate quantum event.
         Uses terminal beep at higher frequency.
         """
+        if not self.sound_enabled:
+            return
+
         try:
             from PyQt6.QtMultimedia import QSoundEffect
             from PyQt6.QtCore import QUrl

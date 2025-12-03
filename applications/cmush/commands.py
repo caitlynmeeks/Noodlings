@@ -1334,6 +1334,9 @@ class CommandParser:
             # Use recipe data if available, otherwise defaults
             if recipe:
                 display_name = recipe.name
+                # Use recipe name for agent_name too (consistent naming)
+                agent_name = recipe.name.lower().replace(' ', '_')
+                agent_id = f"agent_{agent_name}"
                 description = recipe.description if not agent_description else agent_description
 
                 # Build config from recipe
@@ -1378,12 +1381,29 @@ class CommandParser:
                     rez_msg += ", watching curiously with bright eyes"
                 rez_msg += f". {description}"
             else:
-                # No recipe - use defaults
+                # No recipe - use default facet-based Noodling
+                recipe = self.recipe_loader.get_default_recipe()
                 display_name = agent_name.capitalize()
-                description = agent_description if agent_description else "A Noodling consciousness agent"
+                description = agent_description if agent_description else recipe.description
+
+                # Build config from default recipe (with facets!)
+                sm_config = self.config['agent'].get('self_monitoring', {})
                 config = {
-                    'enlightenment': enlightenment
-                } if enlightenment else None
+                    'appetites': recipe.get_appetite_baselines(),
+                    'personality': recipe.get_personality_vector(),
+                    'identity_prompt': recipe.identity_prompt,
+                    'species': recipe.species,
+                    'language_mode': recipe.language_mode,
+                    'temperature': recipe.temperature,
+                    'max_tokens': recipe.max_tokens,
+                    'enforce_action_format': recipe.enforce_action_format,
+                    'response_cooldown': recipe.response_cooldown,
+                    'enlightenment': enlightenment if enlightenment else recipe.enlightenment,
+                    'self_monitoring': sm_config,
+                    'affective_reinforcement': recipe.affective_reinforcement or {},
+                    'facet_assembly': recipe.facet_assembly,  # ALWAYS USE FACETS!
+                    'cognitive_components': {}  # NO LEGACY COMPONENTS!
+                }
 
                 # Wind in the Willows-style natural arrival
                 import random
@@ -1395,7 +1415,7 @@ class CommandParser:
                     "shows up with a friendly wave"
                 ]
                 arrival = random.choice(arrival_phrases)
-                rez_msg = f"{display_name} {arrival}. {description}"
+                rez_msg = f"{display_name} ({recipe.species}) {arrival}. {description}"
 
             # Create agent in world
             # Use recipe checkpoint if specified, otherwise default
@@ -1405,7 +1425,8 @@ class CommandParser:
             self.world.create_agent(
                 name=agent_name,
                 checkpoint_path=checkpoint_path,
-                spawn_room=room['uid']
+                spawn_room=room['uid'],
+                config=config
             )
 
             # Initialize agent in manager
@@ -1464,9 +1485,10 @@ class CommandParser:
         # Build result message
         if rezzed_agents:
             if len(rezzed_agents) == 1:
-                output_msg = f"Agent '{rezzed_agents[0]}' spawned."
+                output_msg = f"Rezzed '{rezzed_agents[0]}'."
             else:
-                output_msg = f"Spawned {len(rezzed_agents)} agents: {', '.join(rezzed_agents)}."
+                noodling_word = "Noodling" if len(rezzed_agents) == 1 else "Noodlings"
+                output_msg = f"Rezzed {len(rezzed_agents)} {noodling_word}: {', '.join(rezzed_agents)}."
 
             # Add flags info
             flags = []
@@ -1489,7 +1511,7 @@ class CommandParser:
             # All failed
             return {
                 'success': False,
-                'output': f"Failed to spawn agents. Errors: {', '.join(errors)}",
+                'output': f"Failed to rez Noodlings. Errors: {', '.join(errors)}",
                 'events': []
             }
 
@@ -1653,7 +1675,7 @@ class CommandParser:
 
         return {
             'success': True,
-            'output': f"Agent '{agent_name}' removed{' silently' if silent else ''}.",
+            'output': f"Derezzed '{agent_name}'{' silently' if silent else ''}.",
             'events': events
         }
 
@@ -1704,7 +1726,7 @@ class CommandParser:
         self.world.save_all()
 
         # Build output message
-        output_msg = 'World reset complete. All agents removed, objects cleared.'
+        output_msg = 'World reset complete. All Noodlings derezzed, objects cleared.'
 
         # Build events list
         reset_events = [{

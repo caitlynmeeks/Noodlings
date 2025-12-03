@@ -863,6 +863,34 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
         Returns:
             Generated text response
         """
+        # Use pool to limit concurrent requests, discard token count
+        text, _ = await self.pool.execute(
+            self._generate_impl(prompt, system_prompt, model, temperature, max_tokens)
+        )
+        return text
+
+    async def generate_with_tokens(
+        self,
+        prompt: str,
+        system_prompt: str = "You are a helpful assistant.",
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 400
+    ) -> tuple[str, int]:
+        """
+        Generation interface with token count tracking (for facet execution).
+        Phase 6: Wrapped with connection pool for parallel generation.
+
+        Args:
+            prompt: User prompt
+            system_prompt: System message (default: helpful assistant)
+            model: Model override (default: use instance model)
+            temperature: Sampling temperature (0.0-1.0, default 0.7)
+            max_tokens: Maximum tokens to generate
+
+        Returns:
+            Tuple of (generated_text, token_count)
+        """
         # Use pool to limit concurrent requests
         return await self.pool.execute(
             self._generate_impl(prompt, system_prompt, model, temperature, max_tokens)
@@ -875,10 +903,13 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
         model: Optional[str],
         temperature: float,
         max_tokens: int
-    ) -> str:
+    ) -> tuple[str, int]:
         """
         Implementation of generate (wrapped by pool).
         Phase 6: Uses model:N pattern for parallel inference.
+
+        Returns:
+            Tuple of (generated_text, token_count)
         """
         # Use specified model or default
         original_model = self.model
@@ -931,10 +962,14 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
                 # Strip thinking tags (LLM meta-cognition, not phenomenal cognition)
                 clean_response, _ = self._extract_thinking_tags(raw_response)
 
-                # Log LLM response
-                logger.info(f" LLM RESPONSE ← {model_instance}: {clean_response[:200]}{'...' if len(clean_response) > 200 else ''}")
+                # Extract token usage
+                token_count = data.get('usage', {}).get('total_tokens', 0)
 
-                return clean_response
+                # Log LLM response
+                logger.info(f"✅ LLM RESPONSE ← {model_instance}: {clean_response[:200]}{'...' if len(clean_response) > 200 else ''}")
+                logger.info(f"🔢 TOKENS: {token_count}")
+
+                return clean_response, token_count
 
         except aiohttp.ClientError as e:
             logger.error(f"HTTP request failed: {e}")

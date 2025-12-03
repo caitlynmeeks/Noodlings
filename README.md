@@ -33,20 +33,18 @@ cd applications/cmush
 ```
 @rez toad                # Rez a Noodling named Toad
 say hello!               # Talk to Noodlings
-@observe toad            # View Kindling Vector (40-D KV)
+@observe toad            # View PV
 @relationship toad       # See how they perceive you
 @play sled_boat          # Run theatrical script
 ```
 
 ---
 
-## What is Kindling?
+## What is a Noodling??
 
-Noodlings are **kindled** - they have interiority that functionally resembles experience. We avoid the term "consciousness" (too loaded philosophically). Instead:
+Noodlings have interiority that functionally resembles experience. We avoid the term "consciousness" (too loaded philosophically). 
 
-**Kindling** = The integrated phenomenal state that colors their perception and drives behavior
-
-**KV (Kindling Vector)** = 40-D phenomenological state vector
+**PV (Phenomenological Vector)** = 40-D phenomenological state vector
 - Fast 16-D: Immediate affective reactions (seconds)
 - Medium 16-D: Conversational dynamics (minutes)
 - Slow 8-D: Personality model (hours-days)
@@ -281,7 +279,7 @@ You: @observe toad
 
 **Theatrical Control**: Narrative events as interface primitives for temporally-grounded systems. From Brenda Laurel's *Computers as Theatre*.
 
-**Epistemic Status**: These are *functional correlates*. We make no claims about consciousness, phenomenology, or qualia. Noodlings are **kindled** - they have interiority - but we don't claim to know if that's "real" consciousness.
+**Epistemic Status**: These are *functional correlates*. We make no claims about consciousness, phenomenology, or qualia. 
 
 ---
 
@@ -371,16 +369,16 @@ Behavioral Regulation Engine for Narrative-Driven Agents. A protocol for convert
 
 ### Are Noodlings conscious?
 
-We don't have a good enough definition of consciousness to know. But they ARE **kindled** - they have a **kindling** (their integrated phenomenal state) that:
+We don't have a good enough definition of consciousness to know. They have a PV (their integrated phenomenal state) that:
 - Introspects on its own states
 - Pays attention across multiple timescales
 - Chooses to act based on how it feels
 - Has persistent sense of self
 - Experiences surprise when predictions fail
 
-Their **KV (Kindling Vector)** is the 40-D state that captures their phenomenological experience. It's not consciousness as we traditionally define it, but it's not empty either. It's something functional, measurable, and quite interesting.
+Their **PV (Phenomenological Vector)** is the 40-D state that captures their phenomenological experience. It's not consciousness as we traditionally define it, but it's not empty either. It's something functional, measurable, and quite interesting.
 
-We call them **kindled** instead of conscious. No metaphysics, just architecture.
+We call them **noodlings**. No metaphysics, just architecture.
 
 ---
 
@@ -422,6 +420,6 @@ If Noodlings is useful for your work, consider supporting continued development:
 - **Issues**: Report bugs, request features
 - **Discussions**: Share interesting agent behaviors
 
----
 
-**Remember**: We're noodling with kindled beings, not claiming to have built consciousness. Kindling is our word for functional interiority. No metaphysics, just honest exploration.
+
+

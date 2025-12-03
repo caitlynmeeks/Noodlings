@@ -1156,6 +1156,9 @@ class SceneHierarchy(QWidget):
                         json.dump(objects, f, indent=2)
                     print(f"Derezzed {prim_id}")
 
+            # Check if this item was selected before removing
+            was_selected = tree_item.isSelected()
+
             # Remove from tree
             parent = tree_item.parent()
             if parent:
@@ -1164,6 +1167,11 @@ class SceneHierarchy(QWidget):
                 index = self.tree.indexOfTopLevelItem(tree_item)
                 if index >= 0:
                     self.tree.takeTopLevelItem(index)
+
+            # If the derezzed entity was selected, clear Inspector and Facets Editor
+            if was_selected:
+                print(f"Derezzed entity was selected, clearing Inspector/Facets Editor")
+                self.entitySelected.emit(None, None)
 
         except Exception as e:
             print(f"Error derezzing {prim_id}: {e}")

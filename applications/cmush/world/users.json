@@ -1,48 +1,13 @@
 {
-  "user_spock": {
-    "uid": "user_spock",
-    "username": "spock",
-    "password_hash": "spock:spock",
-    "current_room": "room_000",
-    "inventory": [
-      "tricorder",
-      "communicator"
-    ],
-    "created": "2025-11-22T19:50:00.000000",
-    "last_seen": "2025-11-22T19:50:00.000000",
-    "description": "Commander Spock, Science Officer. Vulcan-human hybrid with characteristic pointed ears and arched eyebrows. Wears blue Starfleet sciences uniform. Carries a tricorder for scientific analysis. Speaks with precise logic and occasional subtle emotion. Raised eyebrow is his trademark expression.",
-    "species": "vulcan-human",
-    "age": "37 (Vulcan years)",
-    "pronoun": "he",
-    "invisible": false
-  },
-  "user_caity": {
-    "uid": "user_caity",
+  "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c": {
+    "uid": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
     "username": "caity",
-    "password_hash": "1122d60c118b6b4400187cb1dd0f44075d0a9509de8299b38a68a0833c140607:c6c60790cb65dac14b3f2bc9e2149f5b",
+    "password_hash": "706539603a9f149cc618b00e63bad92d58b0805e3b3846561ea8588f3d204e40:3a4c2f02b99ee3cd385cd00eb6c9e54c",
     "current_room": "room_000",
     "inventory": [],
-    "created": "2025-10-26T14:49:36.366158",
-    "last_seen": "2025-11-14T03:17:36.224678",
-    "description": "A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
-    "species": "human",
-    "age": "9 years old",
-    "pronoun": "she",
-    "invisible": false
-  },
-  "user_admin": {
-    "uid": "user_admin",
-    "username": "admin",
-    "password_hash": "e986a11fb81e659f1c12cc1ba7aa867f296c6de54cfc967a7886f58d68d96201:6515a0ea3f24b477d4e9a22e7876ea28",
-    "current_room": "room_000",
-    "inventory": [],
-    "created": "2025-11-18T20:00:00.000000",
-    "last_seen": "2025-11-18T20:00:00.000000",
-    "description": "The project administrator. By default appears as a resourceful squirrel architect wearing a bright yellow hard hat and tool belt, with a glowing cinnamon candy heart pendant. Appearance is customizable per project to fit the world's theme.",
-    "species": "squirrel architect",
-    "age": "timeless",
-    "pronoun": "they",
+    "created": "2025-12-01T16:17:13.271528",
+    "last_seen": "2025-12-01T16:17:13.271537",
     "invisible": false,
-    "is_admin": true
+    "description": "A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)"
   }
 }

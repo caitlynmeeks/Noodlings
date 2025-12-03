@@ -50,8 +50,11 @@ class AgentRecipe:
     # Enlightenment (consciousness self-awareness)
     enlightenment: bool  # Can agent discuss its own phenomenal states?
 
-    # Cognitive Components (Phase 7: Cognitive Manifold Architecture)
-    cognitive_components: Optional[Dict[str, Any]] = None  # Component specifications
+    # Facet Assembly (NEW: Visual cognitive topology)
+    facet_assembly: Optional[str] = None  # Name of facet assembly YAML (e.g., "red_fire_anklebiter")
+
+    # Cognitive Components (Phase 7: Cognitive Manifold Architecture - LEGACY)
+    cognitive_components: Optional[Dict[str, Any]] = None  # Component specifications (deprecated if facet_assembly exists)
 
     # Affective Reinforcement (Phase 7: Make characters WANT their behaviors)
     affective_reinforcement: Optional[Dict[str, Any]] = None  # Reinforcement config
@@ -101,6 +104,7 @@ class AgentRecipe:
             llm_provider=llm_provider,  # Optional: per-agent provider
             llm_model=llm_model,        # Optional: per-agent model
             enlightenment=data.get('enlightenment', False),  # Default: immersed in character
+            facet_assembly=data.get('facet_assembly'),  # NEW: Facet assembly name (e.g., "red_fire_anklebiter")
             cognitive_components=data.get('cognitive_components'),
             affective_reinforcement=data.get('affective_reinforcement'),
             character_voice=data.get('character_voice'),
@@ -266,12 +270,12 @@ class RecipeLoader:
         """
         Get a default recipe for when no specific recipe is found.
 
-        Returns basic Noodling configuration.
+        Returns basic Noodling configuration with facet assembly.
         """
         return AgentRecipe(
             name="Unnamed Noodling",
             species="noodling",
-            description="A consciousness agent",
+            description="A newly formed consciousness, curious and aware.",
             personality={
                 'extraversion': 0.5,
                 'impulsivity': 0.3,
@@ -289,13 +293,16 @@ class RecipeLoader:
                 'comfort': 0.5,
                 'autonomy': 0.5
             },
-            identity_prompt="You are a Noodling exploring the world.",
+            identity_prompt="You are a Noodling - a newly formed consciousness exploring the world with curiosity and wonder.",
             language_mode="verbal",
             max_tokens=150,
             temperature=0.7,
             enforce_action_format=False,
             response_cooldown=2.0,
-            enlightenment=False
+            enlightenment=False,
+            facet_assembly="empty_noodling_default",  # USE FACETS, NOT TRANSISTORS!
+            llm_provider=None,
+            llm_model=None
         )
 
 

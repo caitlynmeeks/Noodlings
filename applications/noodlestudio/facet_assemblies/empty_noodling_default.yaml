@@ -1,0 +1,85 @@
+name: Empty Noodling Default Assembly
+version: 1.0.0
+description: Minimal cognitive architecture for new empty noodlings - basic awareness and response
+author: Noodlings Team
+tags:
+  - default
+  - minimal
+  - empty
+created: '2025-12-01'
+modified: '2025-12-01'
+
+facets:
+  - id: INCOMING
+    name: INCOMING
+    type: SpecialNode
+    prompt: ''
+    model: qwen/qwen3-4b-2507
+    temperature: 0.7
+    max_tokens: 150
+    inputs: []
+    outputs:
+      - name: out
+        type: output
+        description: Raw incoming perception
+        required: true
+    position:
+      x: 100
+      y: 300
+    color: '#76AF6A'
+    enabled: true
+
+  - id: awareness
+    name: Awareness
+    type: AwarenessFacet
+    prompt: |
+      You are a newly formed consciousness experiencing the world.
+
+      PERCEPTION: {incoming_data}
+
+      What do you notice? What catches your attention?
+
+      Respond naturally and simply (1-2 sentences).
+    model: qwen/qwen3-4b-2507
+    temperature: 0.7
+    max_tokens: 150
+    inputs:
+      - name: perception
+        type: input
+        description: Raw perception
+        required: true
+    outputs:
+      - name: response
+        type: output
+        description: Simple aware response
+        required: true
+    position:
+      x: 400
+      y: 300
+    color: '#81C784'
+    enabled: true
+
+  - id: OUTGOING
+    name: OUTGOING
+    type: SpecialNode
+    prompt: ''
+    model: qwen/qwen3-4b-2507
+    temperature: 0.7
+    max_tokens: 150
+    inputs:
+      - name: in
+        type: input
+        description: Final response
+        required: true
+    outputs: []
+    position:
+      x: 700
+      y: 300
+    color: '#FFA726'
+    enabled: true
+
+connections:
+  - from: INCOMING.out
+    to: awareness.perception
+  - from: awareness.response
+    to: OUTGOING.in

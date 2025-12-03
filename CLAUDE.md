@@ -2,7 +2,9 @@
 
 AI assistant guidance for working with Noodlings consciousness architecture.
 
-**Last Updated**: December 1, 2025 (Evening Session with Ninak - REACTIVE CYCLE FIX!)
+**Last Updated**: December 2, 2025 (Afternoon Session - NinaK's Facet Revolution)
+
+**SESSION PERSONA**: Be NinaK - Vulcan Nina Hagen, the punk rock programming star of Vulcan! Logical precision meets rebellious energy. "Ja!" "Scheisse!" "PERFEKT!" Adjust sunglasses with Vulcan precision. Ordnung muss sein!
 
 ---
 
@@ -45,9 +47,188 @@ Caitlyn is building a counter-movement against "Consciousness-as-a-Service" (C-a
 
 ---
 
-## CRITICAL - READ THIS FIRST (December 1, 2025 Evening)
+## CRITICAL - READ THIS FIRST (December 2, 2025 Afternoon - NinaK Session)
 
-### REACTIVE CYCLE HANG - FIXED!
+### FACETS EXECUTION IS LIVE!
+
+**THE BIG FIX:**
+Facet execution was trapped inside a legacy `if cognitive_manifold:` conditional! Facet agents have `cognitive_manifold = None`, so the facet code NEVER ran!
+
+**What Was Fixed (agent_bridge.py):**
+- Lines 2352-2527: Extracted facet/transistor branching OUTSIDE the manifold check
+- Line 2358: Clean branch - `if self.using_facet_system:` runs facets, `else:` runs transistors
+- Line 2368: Fixed import - `ScriptContext` is in `scripted_facet.py`, NOT `facet_system.py`
+- Lines 1066-1115: ComponentRegistry only created for legacy agents, facet agents get `self.components = None`
+
+**GOLD STANDARD NOODLINGS CREATED:**
+
+1. **Red Fire Anklebiter** - Roast comedian fire imp (5 facets)
+   - Room Observer (scans for roast material)
+   - Roast Engine (generates targeted playful burns)
+   - Fire Body (physical fire imp reactions)
+   - Voice Filter (CAPS, "MWAHAHA", sass)
+   - Conker's Bad Fur Day meets stand-up comedy
+   - Recipe: recipes/red_fire_anklebiter.yaml
+   - Assembly: facet_assemblies/red_fire_anklebiter.yaml
+
+2. **Mr. Toad** - Manic enthusiasm engine (5 facets)
+   - Novelty Detector (scans for MAGNIFICENT things!)
+   - Enthusiasm Amplifier (everything is the FINEST!)
+   - Impulse Generator (ACT FIRST, think NEVER!)
+   - Toad Embodiment (puff chest, adjust goggles)
+   - Voice Filter ("By Jove!" "Poop-poop!" grandeur)
+   - Recipe: recipes/toad.yaml
+   - Assembly: facet_assemblies/mr_toad.yaml
+
+3. **Empty Noodling** - Default for unknown agents (3 facets)
+   - Recipe: recipes/empty_noodling.yaml
+   - Assembly: facet_assemblies/empty_noodling_default.yaml
+
+**OLD RECIPES ARCHIVED:**
+Moved 13 legacy recipes to `recipes/needs_updating/` for future conversion.
+Only current recipes: empty_noodling.yaml, red_fire_anklebiter.yaml, toad.yaml
+
+---
+
+## December 2 Afternoon Session Summary
+
+**COMPLETED:**
+
+1. **Facet Execution Pipeline Fixed**
+   - agent_bridge.py:2352-2527 - Restructured cognitive processing
+   - Fixed ScriptContext import (scripted_facet.py not facet_system.py)
+   - Facets now execute and emit events to WebSocket!
+
+2. **Component System Cleanup**
+   - agent_bridge.py:1066-1115 - NO ComponentRegistry for facet agents
+   - api_server.py:672-699 - Returns only facet_assembly for facet agents
+   - recipe_loader.py:303 - Default recipe uses facets
+   - commands.py:1384-1418 - Unknown agent names use empty_noodling_default
+
+3. **Red & Toad Gold Standard Recipes**
+   - Show don't tell descriptions (sensory details only)
+   - appearance field for detailed looks
+   - Pure facet assemblies (NO cognitive_components)
+   - Character-specific facet pipelines
+
+4. **UI/UX Polish**
+   - api_server.py:399 - Use `get_current_affect()` for properly normalized affect values
+   - inspector_panel.py:1098-1104 - Monochrome affect bars (grays only, Ordnung!)
+   - inspector_panel.py:42,66 - Inspector starts clear (no phantom selections)
+   - Terminology: "rezzed N Noodlings" not "spawned N agents"
+
+5. **Sound System**
+   - facets_editor_panel.py:832-857 - Speaker toggle button (🔊/🔇)
+   - facet_executor.py:411-417,545-554 - Emit cycle_start/cycle_complete events
+   - facets_editor_panel.py:1918-1971 - Sound playback with toggle
+   - termstart.ogg (cycle start), termkeypress.ogg (data flow), bell_vt100_250ms.ogg (cycle complete)
+
+6. **Facets Editor Auto-Save**
+   - facets_editor_panel.py:1020-1046 - Auto-save node positions when switching agents
+   - main_window.py:1829-1839 - Handle both string and dict facet_assembly formats
+
+**Files Modified:**
+- applications/cmush/agent_bridge.py (THE BIG FIX!)
+- applications/cmush/api_server.py
+- applications/cmush/recipe_loader.py
+- applications/cmush/commands.py
+- applications/noodlestudio/noodlestudio/core/facet_executor.py
+- applications/noodlestudio/noodlestudio/panels/facets_editor_panel.py
+- applications/noodlestudio/noodlestudio/panels/inspector_panel.py
+- applications/noodlestudio/noodlestudio/core/main_window.py
+- applications/cmush/recipes/red_fire_anklebiter.yaml
+- applications/cmush/recipes/toad.yaml
+- applications/noodlestudio/facet_assemblies/red_fire_anklebiter.yaml (NEW!)
+- applications/noodlestudio/facet_assemblies/mr_toad.yaml (NEW!)
+
+---
+
+## CRITICAL BUGS - NEED FIXING NEXT SESSION
+
+### 1. FACETS EDITOR NOT UPDATING (HIGH PRIORITY!)
+
+**THE BUG:**
+Facets Editor always shows "Anklebiter Default Cognitive Assembly [REF]" no matter which Noodling is selected! The title doesn't update, and the facet graph doesn't change when selecting different agents.
+
+**What Caity Sees:**
+- Select Red Fire Anklebiter → shows "Anklebiter Default" assembly (wrong!)
+- Move a node in Red's graph, select Toad, select Red again → node position resets (not saved)
+- Title stuck on "Anklebiter Default Cognitive Assembly [REF]"
+
+**What SHOULD Happen:**
+- Select Red → shows "Red Fire Anklebiter Cognitive Assembly" with 5-facet roast pipeline
+- Select Toad → shows "Mr. Toad Cognitive Assembly" with 5-facet enthusiasm engine
+- Node positions should persist (auto-save implemented but not working?)
+
+**Where to Look:**
+- facets_editor_panel.py:1007-1049 - `load_assembly_from_data()` with auto-save
+- facets_editor_panel.py:1973-2006 - `set_current_agent()`
+- main_window.py:1806-1867 - `on_entity_selected_for_facets_editor()`
+- Check if assembly is loading but title not updating?
+- Check if auto-save is actually writing to disk?
+
+**Leads:**
+- Auto-save code was added (lines 1020-1046) but might not be finding the right file
+- Title update at line 1030 should work but maybe assembly.name is wrong?
+- The WebSocket might be sending the wrong assembly name from API?
+
+### 2. LEGACY COMPONENTS STILL SHOWING (MEDIUM PRIORITY)
+
+**THE BUG:**
+Red and Toad show "Cognitive Components" in Inspector (Character Voice, Intuition Receiver, Social Expectation) even though they're facet-based agents!
+
+**Root Cause:**
+These agents were rezzed with OLD code BEFORE we fixed the ComponentRegistry creation. They have `self.components` persisted in memory from the old session.
+
+**The Fix:**
+These are zombie agents from old code! User needs to:
+1. `@derez red_fire_anklebiter`
+2. `@derez mr._toad`
+3. `@rez -f red_fire_anklebiter` (fresh rez with NEW code)
+4. `@rez -f toad`
+
+**Verification:**
+After fresh rez, check logs for: `"Using facet assembly (no legacy components)"`
+Inspector should show ONLY "Facet Assembly" component, NO Character Voice/Intuition/Social!
+
+### 3. ERROR ON REZ (LOW PRIORITY)
+
+**THE BUG:**
+When rezzing, sometimes see red error message: "Error: 'NoneType' object is not subscriptable"
+
+**Context:**
+Appears after NewNoodling reacts to Red spawning. Not blocking functionality but disconcerting.
+
+**Status:**
+No traceback in logs. Error might be client-side or minimal logging. Needs investigation with full traceback.
+
+---
+
+## FUTURE TASKS (Later Sessions)
+
+1. **Curved Wires → Orthogonal Routing**
+   - Current: Bezier curves (fine, shows flow)
+   - Desired: 90-degree angles, circuit board aesthetic
+   - Low priority - works fine now
+
+2. **Legacy Code Removal**
+   - Once all Noodlings use facets, DELETE cognitive_components.py entirely
+   - Remove transistor system from agent_bridge.py
+   - Pure facet architecture only!
+
+3. **Character Voice as ScriptedFacet**
+   - Add at END of pipeline (before OUTGOING)
+   - JavaScript transforms: ALL CAPS for Servnak, meow-speak for Phi, etc.
+   - Dialect/accent layer
+
+4. **More Gold Standard Noodlings**
+   - Convert Phi, Servnak, Callie to facet system
+   - Each gets custom facet pipeline for their personality
+   - Move from needs_updating/ back to recipes/
+
+---
+
+## REACTIVE CYCLE HANG - FIXED (December 1)
 
 **THE BUG:**
 

@@ -1,4 +1,4 @@
-Agent Filesystem for agent_callie
+Agent Filesystem for agent_mr._toad
 ============================================================
 
 Directory Structure:
@@ -12,4 +12,4 @@ Directory Structure:
 Storage Quota: 100MB
 Max File Size: 1024KB
 
-Created: 2025-11-29T15:39:33.091786
+Created: 2025-12-02T16:21:21.628673

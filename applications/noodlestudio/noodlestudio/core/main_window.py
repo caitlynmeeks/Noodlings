@@ -1821,13 +1821,21 @@ class MainWindow(QMainWindow):
                 from ..core.facet_system import FacetAssembly
 
                 # Check if agent has facet_assembly reference
-                config = entity_data.get('config', {})
+                # entity_data structure: {'type': 'noodling', 'id': 'agent_xxx', 'data': {full agent data including config}}
+                agent_full_data = entity_data.get('data', {})
+                config = agent_full_data.get('config', {})
                 facet_assembly_config = config.get('facet_assembly')
 
                 assembly_filename = None
                 if facet_assembly_config:
-                    # Agent has facet assembly reference
-                    ref = facet_assembly_config.get('ref')
+                    # Handle both string and dict formats
+                    if isinstance(facet_assembly_config, str):
+                        ref = facet_assembly_config
+                    elif isinstance(facet_assembly_config, dict):
+                        ref = facet_assembly_config.get('ref')
+                    else:
+                        ref = None
+
                     if ref:
                         assembly_filename = f"{ref}.yaml"
                         print(f"[Facets Editor] Loading assembly from ref: {assembly_filename}")

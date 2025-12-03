@@ -37,11 +37,11 @@ QSplitter {
 }
 
 QSplitter::handle {
-    background: #000000;
+    background: #3A3A3A;
 }
 
 QSplitter::handle:hover {
-    background: #2C5D87;
+    background: #AAAAAA;
 }
 
 /* Drag overlay */
@@ -167,15 +167,19 @@ QPushButton:pressed {
 
 /* ===== SPLITTERS ===== */
 QSplitter::handle {
-    background: #1E1E1E;
+    background: #3A3A3A;
+}
+
+QSplitter::handle:hover {
+    background: #AAAAAA;
 }
 
 QSplitter::handle:horizontal {
-    width: 4px;
+    width: 6px;
 }
 
 QSplitter::handle:vertical {
-    height: 4px;
+    height: 6px;
 }
 
 /* ===== MENU BAR ===== */

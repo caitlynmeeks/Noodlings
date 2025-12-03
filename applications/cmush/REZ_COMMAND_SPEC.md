@@ -32,7 +32,7 @@ One command to rez everything: Noodlings, prims, exits, ensembles.
 
 **Behavior:**
 - Loads recipe from `recipes/{name}.yaml`
-- Creates kindled Noodling with personality
+- Creates Noodling with personality
 - `-f` flag: fresh memory (ignore saved state)
 - Can rez multiple at once
 
@@ -45,7 +45,7 @@ One command to rez everything: Noodlings, prims, exits, ensembles.
 ```
 
 **Behavior:**
-- Creates simple prim (not kindled)
+- Creates simple prim
 - Has name and description
 - Can be @take, @drop, @look
 - Stored in world state

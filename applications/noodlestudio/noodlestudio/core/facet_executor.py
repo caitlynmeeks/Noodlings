@@ -318,9 +318,51 @@ class FacetExecutor:
                 outputs = {'out': f"[LLM not available: {facet.name}]"}
                 token_count = 0
             else:
-                # Call LLM (TODO: implement actual LLM call with token tracking)
-                outputs = {'out': f"[LLM output from {facet.name}]"}
-                token_count = 100  # Placeholder
+                # Format prompt with input variables and context
+                # Flatten nested context for easier prompt variable access
+                format_vars = {**inputs, **context}
+
+                # Add convenience alias: incoming_data = first input value (for legacy prompts)
+                if inputs and 'incoming_data' not in inputs:
+                    # Use first input as incoming_data (common case: single input facet)
+                    first_input = next(iter(inputs.values()), None)
+                    if first_input is not None:
+                        format_vars['incoming_data'] = first_input
+
+                # Extract commonly-needed nested values for convenience
+                if '_room_state' in context:
+                    room_state = context['_room_state']
+                    format_vars['room_occupants'] = room_state.get('occupants', [])
+                    format_vars['recent_messages'] = room_state.get('recent_conversation', [])
+                    format_vars['room_objects'] = room_state.get('objects', [])
+
+                if '_agent_state' in context:
+                    agent_state = context['_agent_state']
+                    format_vars['affect'] = agent_state.get('affect', {})
+                    format_vars['valence'] = agent_state.get('affect', {}).get('valence', 0.0)
+                    format_vars['arousal'] = agent_state.get('affect', {}).get('arousal', 0.0)
+                    format_vars['dominance'] = agent_state.get('affect', {}).get('dominance', 0.0)
+                    format_vars['sorrow'] = agent_state.get('affect', {}).get('sorrow', 0.0)
+                    format_vars['boredom'] = agent_state.get('affect', {}).get('boredom', 0.0)
+
+                try:
+                    formatted_prompt = facet.prompt.format(**format_vars)
+                except KeyError as e:
+                    logger.warning(f"Prompt formatting missing variable {e} in facet {facet.name}, using unformatted")
+                    formatted_prompt = facet.prompt
+
+                # Call LLM with facet parameters (use generate_with_tokens for tracking)
+                response_text, token_count = await self.llm_client.generate_with_tokens(
+                    prompt=formatted_prompt,
+                    system_prompt="You are a cognitive facet in an AI consciousness architecture.",
+                    model=facet.model if facet.model else None,
+                    temperature=facet.temperature,
+                    max_tokens=facet.max_tokens
+                )
+
+                # Map response to output pads
+                # Primary output goes to 'out' pad, can be customized per facet
+                outputs = {'out': response_text}
 
         # Record execution stats
         elapsed = time.time() - start_time
@@ -364,6 +406,15 @@ class FacetExecutor:
 
         if context is None:
             context = {}
+
+        # Emit cycle_start event
+        await self._emit_event({
+            'type': 'facet_execution',
+            'subtype': 'cycle_start',
+            'cycle': self.current_cycle,
+            'timestamp': start_time,
+            'assembly_name': assembly.name
+        })
 
         # Build dependency graph
         dependencies, dependents = self._build_dependency_graph(assembly)
@@ -489,6 +540,18 @@ class FacetExecutor:
             facets_skipped=0,
             facet_outputs=completed
         )
+
+        # Emit cycle_complete event
+        await self._emit_event({
+            'type': 'facet_execution',
+            'subtype': 'cycle_complete',
+            'cycle': self.current_cycle,
+            'timestamp': time.time(),
+            'duration': elapsed,
+            'total_tokens': total_tokens,
+            'facets_executed': len(completed),
+            'assembly_name': assembly.name
+        })
 
         # Record in history
         self.execution_history.append(result)

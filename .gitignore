@@ -64,6 +64,7 @@ server_debug.log
 CLAUDE.md
 HANDOFF_*.md
 NEXT_SESSION_*.md
+applications/cmush/NEXT_SESSION_PROMPT.md
 
 # User's Noodlings Stage (personal data, not in repo)
 # This is created in ~/Noodlings/ on user's machine
@@ -81,3 +82,4 @@ WHITEPAPER.md
 WHITEPAPER.pdf
 WHITEPAPER_v2.md
 business/
+KINDLED_TERMINOLOGY.md

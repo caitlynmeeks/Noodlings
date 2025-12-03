@@ -10,7 +10,7 @@
 NoodleSTUDIO is a comprehensive IDE for developing, monitoring, and analyzing Noodling consciousness agents. It provides real-time visualization, recipe editing, performance profiling, and timeline analysis in a unified, flexible interface.
 
 Think of it as:
-- **Unity Timeline** + **Chrome DevTools** for consciousness agents
+- **Timeline profiler** + **Chrome DevTools** for charm agents
 - **Visual Studio Code** for Noodlings development
 - **Grafana** for phenomenal state monitoring
 
@@ -35,7 +35,7 @@ Think of it as:
 - Bar charts for each dimension
 - 5-D affect radar chart (Valence, Arousal, Fear, Sorrow, Boredom)
 
-### 📊 Timeline Profiler (Unity-style)
+### 📊 Timeline Profiler
 - Scrub through time with playhead
 - Multiple tracks: Surprise, Valence, Arousal, Fear, HSI
 - Event markers: Speech 💬, Thought 🧠, Spikes ⚡
@@ -270,7 +270,7 @@ Part of the Noodlings project. See [../../LICENSE](../../LICENSE).
 
 **Design & Architecture**: Caitlyn Griffith + Claude (Anthropic)
 **Framework**: PyQt6 (The Qt Company)
-**Inspiration**: Unity Timeline Editor, Chrome DevTools, VSCode
+**Inspiration**: Professional timeline editors, Chrome DevTools, VSCode
 
 Special thanks to the noodleMUSH agents who served as test subjects. 🧠✨
 

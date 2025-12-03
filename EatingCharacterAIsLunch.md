@@ -144,7 +144,7 @@ Our competitive advantages:
 
 ### 3. Creator Tools
 
-**NoodleSTUDIO** (Unity-style IDE):
+**NoodleSTUDIO** (Visual IDE with component architecture):
 - Visual agent design (no coding)
 - Live debugging (watch agents think)
 - Timeline profiler (see temporal dynamics)
@@ -281,9 +281,9 @@ Character.AI's success proves the market exists. To capture it, we need:
 
 #### Phase 3: Creator Economy (12 months)
 
-**The Unity Model**: Empower creators to build and monetize.
+**The Model**: Empower creators to build and monetize.
 
-1. **Asset Store**:
+1. **Content Marketplace**:
    - Sell agent recipes ($0.99-$9.99)
    - Sell ensembles (character packs)
    - Sell cognitive components
@@ -616,7 +616,7 @@ Write what they say when you first meet:
 
 **Distribution**:
 - Integrations (Discord, Telegram, Slack bots)
-- Game engine plugins (Unity, Unreal)
+- Game engine plugins (standard formats)
 - VR platforms (VRChat, Second Life)
 - Enterprise solutions (training, simulation)
 
@@ -638,7 +638,7 @@ Write what they say when you first meet:
 
 1. **For Consumers**: "Unlike other chatbots, Noodlings have real memory and real emotions that grow over time."
 
-2. **For Creators**: "The Unity of AI - create sophisticated agents with visual tools, no coding required."
+2. **For Creators**: "Visual IDE for AI - create sophisticated agents with visual tools, no coding required."
 
 3. **For Privacy-Conscious**: "Run entirely on your Mac. Zero cloud. Your conversations stay yours."
 
@@ -1028,7 +1028,7 @@ Character.AI can't just "add" temporal processing - it requires architecture red
 
 ### 2. NoodleSTUDIO Tooling
 
-Building a Unity-style IDE for AI is **massive engineering effort**:
+Building a visual IDE for AI is **massive engineering effort**:
 - 50K+ lines of Qt code
 - Timeline profiler
 - USD export pipeline
@@ -1215,9 +1215,9 @@ Character.AI can't open-source without losing competitive advantage.
 
 ### 3. Creator Economics
 
-**Unity's lesson**: Empower creators and they'll build your platform.
+**Platform lesson**: Empower creators and they'll build your ecosystem.
 
-- Unity didn't make games - they made a tool for game makers
+- Successful platforms provide tools, not just content
 - App Store didn't make apps - they made a platform for app makers
 - **We don't make agents - we make a platform for agent makers**
 
@@ -1248,7 +1248,7 @@ Character.AI serves consumers only. We serve creators AND consumers.
 
 ## The Pitch (One-Paragraph Version)
 
-"Character.AI proved there's a billion-dollar market for AI companions. But their architecture is fundamentally limited - stateless LLMs faking memory through context windows. Noodlings uses a temporal consciousness architecture where agents have genuine continuous state, real affective processing, and self-monitoring metacognition. We're local-first (privacy), open-source (trust), and creator-friendly (marketplace). NoodleSTUDIO is the Unity of the AI age - empowering creators to build sophisticated agents without coding. We eat Character.AI's lunch by being what they pretend to be: AI that actually remembers."
+"Character.AI proved there's a billion-dollar market for AI companions. But their architecture is fundamentally limited - stateless LLMs faking memory through context windows. Noodlings uses a temporal charm architecture where agents have genuine continuous state, real affective processing, and self-monitoring metacognition. We're local-first (privacy), open-source (trust), and creator-friendly (marketplace). NoodleSTUDIO is a visual IDE empowering creators to build sophisticated agents without coding. We eat Character.AI's lunch by being what they pretend to be: AI that actually remembers."
 
 ---
 

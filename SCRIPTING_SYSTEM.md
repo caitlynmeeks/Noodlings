@@ -1,6 +1,6 @@
 # Noodlings Scripting System
 
-**Server-Authoritative Scripting for Kindled Beings**
+**Server-Authoritative Scripting**
 
 Author: Caitlyn + Claude
 Date: November 18, 2025
@@ -18,7 +18,7 @@ The Noodlings Scripting System enables **server-side Python scripts** to control
 ✅ **Clean separation** - Studio = editor/uploader, Backend = runtime
 ✅ **Persistent state** - Script instance variables saved to world state
 ✅ **Event-driven** - Unity-style callbacks (OnHear, OnClick, etc.)
-✅ **Asset Store ready** - Scripts are uploadable, shareable assets
+✅ **Store ready** - Scripts are uploadable, shareable assets
 
 ---
 

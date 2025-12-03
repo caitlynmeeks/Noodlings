@@ -1,10 +1,10 @@
 ## 🎭 ENSEMBLE STORE - MONETIZATION STRATEGY
 
-**The Unity Asset Store for Consciousness Agents!**
+**Content Marketplace for Charm Agents!**
 
 ### Core Concept
 
-Sell **ready-made character archetypes** as ensemble packs (`.ens` files) that users can import directly into NoodleStudio. Like Unity Asset Store character packs, but for **consciousness agents with pre-tuned personalities**.
+Sell **ready-made character archetypes** as ensemble packs (`.ens` files) that users can import directly into NoodleStudio. Character packs with **charm agents and pre-tuned affective personalities**.
 
 ---
 
@@ -113,7 +113,7 @@ Each `.ens` file contains:
 ### Platform Fees (if we build a marketplace)
 - 30% commission on community-created ensembles
 - Let users sell their own archetypes!
-- Like Unity Asset Store creator ecosystem
+- Content marketplace creator ecosystem
 
 ---
 
@@ -125,18 +125,18 @@ Each `.ens` file contains:
 2. **Time-saving** - Tuning personalities is HARD. We've done it for you.
 3. **Proven archetypes** - Based on centuries of storytelling tradition
 4. **Instant ensemble dynamics** - Characters designed to work TOGETHER
-5. **Cross-platform** - .ens files work anywhere (Unity, Unreal, web, etc.)
+5. **Cross-platform** - .ens files work anywhere (game engines, web, etc.)
 6. **Shareable** - Users can gift/trade ensembles
 
-### Vs. Unity Asset Store
+### Competitive Comparison
 
-| Feature | Unity Asset Store | Ensemble Store |
-|---------|------------------|----------------|
-| Product | 3D models, code | Consciousness agents |
-| Integration | Unity editor | Any platform (USD) |
+| Feature | Traditional Marketplace | Ensemble Store |
+|---------|------------------------|----------------|
+| Product | 3D models, code | Charm agents |
+| Integration | Engine-specific | Any platform (USD) |
 | Price range | $5-$500 | $0-$99 |
-| Network effects | High | Growing |
-| Barrier to entry | 3D modeling skills | Psychology + storytelling |
+| Network effects | Established | Growing |
+| Barrier to entry | Technical skills | Psychology + storytelling |
 
 ---
 
@@ -181,7 +181,7 @@ Each `.ens` file contains:
 **Month 3-4: Premium Launch**
 - Release 3 paid packs (Noir, Space Trek, Fantasy)
 - Email existing noodleMUSH users
-- Post on Reddit (r/gamedev, r/IndieGameDevs, r/unity)
+- Post on Reddit (r/gamedev, r/IndieGameDevs, r/indiegames)
 
 **Month 5-6: Marketplace Beta**
 - Allow community submissions

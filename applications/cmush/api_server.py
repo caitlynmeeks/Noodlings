@@ -382,25 +382,6 @@ class NoodleScopeAPI:
         # Get current phenomenal state
         state = agent.get_phenomenal_state()
 
-        # Build affect vector from phenomenal state (first 5 dimensions)
-        phenomenal = state.get('phenomenal_state', [])
-        if len(phenomenal) >= 5:
-            affect = {
-                'valence': float(phenomenal[0]),
-                'arousal': float(phenomenal[1]),
-                'fear': float(phenomenal[2]),
-                'sorrow': float(phenomenal[3]),
-                'boredom': float(phenomenal[4])
-            }
-        else:
-            affect = {
-                'valence': 0.0,
-                'arousal': 0.0,
-                'fear': 0.0,
-                'sorrow': 0.0,
-                'boredom': 0.0
-            }
-
         # Extract state vectors (keys are 'fast', 'medium', 'slow' from consciousness API)
         fast = state.get('fast')
         medium = state.get('medium')
@@ -409,6 +390,13 @@ class NoodleScopeAPI:
         fast_list = [float(x) for x in fast] if fast is not None else []
         medium_list = [float(x) for x in medium] if medium is not None else []
         slow_list = [float(x) for x in slow] if slow is not None else []
+
+        # Construct 40-D phenomenal state vector from components
+        phenomenal = fast_list + medium_list + slow_list
+
+        # Build affect vector using agent's affect head (properly normalized!)
+        # Don't use raw phenomenal state - those are small LSTM outputs ~0.01
+        affect = agent.get_current_affect()
 
         return web.json_response({
             'agent_id': agent_id,
@@ -556,33 +544,44 @@ class NoodleScopeAPI:
     async def create_agent(self, request: web.Request) -> web.Response:
         """Create a new agent/noodling (Studio operation - no auth required)."""
         try:
+            import json
+            import yaml
+            import os
+            from pathlib import Path
+
             data = await request.json()
             agent_name = data.get('name', 'NewNoodling')
-            species = data.get('species', 'unknown')
+            species = data.get('species', 'noodling')
             pronouns = data.get('pronouns', 'they/them')
 
             # Generate agent ID
             agent_id = f"agent_{agent_name.lower().replace(' ', '_')}"
 
-            # Create minimal agent structure
+            # Load empty_noodling recipe as template
+            recipe_path = Path('recipes/empty_noodling.yaml')
+            if not recipe_path.exists():
+                raise FileNotFoundError(f"Empty noodling recipe not found: {recipe_path}")
+
+            with open(recipe_path, 'r') as f:
+                recipe = yaml.safe_load(f)
+
+            # Create agent structure from recipe (use new facet system, NOT personality traits)
             new_agent = {
                 'name': agent_name,
                 'species': species,
                 'pronouns': pronouns,
                 'location': 'pond',  # Default starting location
-                'description': f'A newly rezzed {species}.',
-                'personality_traits': {
-                    'openness': 0.5,
-                    'conscientiousness': 0.5,
-                    'extraversion': 0.5,
-                    'agreeableness': 0.5,
-                    'neuroticism': 0.5
+                'description': recipe.get('description', f'A newly rezzed {species}.'),
+                'facet_assembly': recipe.get('facet_assembly', 'empty_noodling_default'),
+                'checkpoint': recipe.get('checkpoint', '../../consilience_core/checkpoints_phase4/best_checkpoint.npz'),
+                'config': {
+                    'max_tokens': recipe.get('constraints', {}).get('max_tokens', 150),
+                    'temperature': recipe.get('constraints', {}).get('temperature', 0.7),
+                    'response_cooldown': recipe.get('constraints', {}).get('response_cooldown', 2.0)
                 }
             }
 
             # Add to agents.json
-            import json
-            from pathlib import Path
             agents_path = Path('world/agents.json')
 
             agents = {}
@@ -596,7 +595,6 @@ class NoodleScopeAPI:
                 json.dump(agents, f, indent=2)
 
             # Create agent directory and checkpoint path
-            import os
             agent_dir = f'world/agents/{agent_id}'
             os.makedirs(agent_dir, exist_ok=True)
 
@@ -630,14 +628,19 @@ class NoodleScopeAPI:
             # Spawn in agent_manager using create_agent
             if self.agent_manager:
                 try:
+                    # Build config with facet_assembly reference
+                    agent_config = new_agent.get('config', {})
+                    agent_config['facet_assembly'] = {'ref': new_agent.get('facet_assembly', 'empty_noodling_default')}
+
                     await self.agent_manager.create_agent(
                         agent_id=agent_id,
                         checkpoint_path=checkpoint_path,
                         spawn_room='room_000',
+                        config=agent_config,
                         agent_name=agent_name,
-                        agent_description=new_agent['description']  # Pass description from JSON
+                        agent_description=new_agent['description']
                     )
-                    logger.info(f"Spawned agent {agent_id} in world")
+                    logger.info(f"Spawned agent {agent_id} in world with facet assembly: {new_agent.get('facet_assembly')}")
                 except Exception as spawn_error:
                     logger.error(f"Failed to spawn agent {agent_id}: {spawn_error}", exc_info=True)
                     print(f"[ERROR] Failed to spawn agent {agent_id}: {spawn_error}")
@@ -665,7 +668,40 @@ class NoodleScopeAPI:
 
         agent = self.agent_manager.agents[agent_id]
 
-        # Get component registry from agent
+        # Debug logging
+        logger.info(f"[API] get_agent_components for {agent_id}: using_facet_system={getattr(agent, 'using_facet_system', 'NOT SET')}, has_components={hasattr(agent, 'components')}")
+
+        # Check if agent uses facet system
+        if hasattr(agent, 'using_facet_system') and agent.using_facet_system:
+            # Return facet assembly as a special component
+            facet_assembly_name = agent.config.get('facet_assembly', {})
+            if isinstance(facet_assembly_name, dict):
+                facet_assembly_name = facet_assembly_name.get('ref', 'unknown')
+
+            facet_count = len(agent.facet_assembly.facets) if hasattr(agent, 'facet_assembly') else 0
+
+            components_list = [{
+                'component_id': 'facet_assembly',
+                'component_type': 'Facet Assembly',
+                'description': f'Node-based cognitive architecture ({facet_count} facets)',
+                'enabled': True,
+                'prompt_template': facet_assembly_name,
+                'parameters': {
+                    'assembly_name': facet_assembly_name,
+                    'facet_count': facet_count,
+                    'clickable': True  # Signal to Inspector that this opens editor
+                }
+            }]
+
+            # Add Noodling Components (Character Voice, Intuition Receiver, etc.)
+            # Only if agent is NOT using facet_assembly (legacy components)
+            if hasattr(agent, 'components') and not agent.using_facet_system:
+                components_data = agent.components.to_dict()
+                components_list.extend(components_data.get('components', []))
+
+            return web.json_response({'components': components_list})
+
+        # Legacy transistor system
         if not hasattr(agent, 'components'):
             return web.json_response({'error': 'Agent does not have component system'}, status=500)
 
@@ -1350,12 +1386,12 @@ class NoodleScopeAPI:
             affect = {
                 'valence': float(phenomenal[0]),
                 'arousal': float(phenomenal[1]),
-                'fear': float(phenomenal[2]),
+                'dominance': float(phenomenal[2]),
                 'sorrow': float(phenomenal[3]),
                 'boredom': float(phenomenal[4])
             }
         else:
-            affect = {'valence': 0.0, 'arousal': 0.0, 'fear': 0.0, 'sorrow': 0.0, 'boredom': 0.0}
+            affect = {'valence': 0.0, 'arousal': 0.0, 'dominance': 0.0, 'sorrow': 0.0, 'boredom': 0.0}
 
         # Get response decision if available
         response_decision = manifold.last_response_decision if hasattr(manifold, 'last_response_decision') else None

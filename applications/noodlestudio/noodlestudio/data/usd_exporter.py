@@ -34,7 +34,7 @@ class USDExporter:
     """
     Export noodleMUSH stages to USD format.
 
-    Creates custom typed schema for Noodlings with kindling properties.
+    Creates custom typed schema for Noodlings.
     Each Noodling, room, prim, etc. becomes a Prim in the Stage.
     """
 
@@ -55,7 +55,7 @@ class USDExporter:
         lines.append('#usda 1.0')
         lines.append('(')
         lines.append('    defaultPrim = "Stage"')
-        lines.append('    doc = """noodleMUSH Stage - Kindled Noodling Prims"""')
+        lines.append('    doc = """noodleMUSH Stage - Noodling Prims"""')
         lines.append('    metersPerUnit = 1')
         lines.append('    upAxis = "Y"')
         lines.append(')')
@@ -63,7 +63,7 @@ class USDExporter:
 
         # Define custom "Noodling" typed schema
         lines.append('# Custom Typed Schema: Noodling')
-        lines.append('# Defines kindling properties for Noodling prims')
+        lines.append('# Defines properties for Noodling prims')
         lines.append('class "NoodlingSchema" (')
         lines.append('    customData = {')
         lines.append('        string className = "Noodling"')
@@ -154,7 +154,7 @@ class USDExporter:
         return lines
 
     def _export_noodling_prim(self, noodling_data: Dict, indent: int = 0) -> List[str]:
-        """Export a Noodling prim with kindling properties (uses NoodlingSchema)."""
+        """Export a Noodling prim (uses NoodlingSchema)."""
         ind = '    ' * indent
         lines = []
 
@@ -173,7 +173,7 @@ class USDExporter:
         lines.append(f'{ind}    string species = "{species}"')
         lines.append(f'{ind}    string description = """{desc}"""')
 
-        # Kindling properties
+        # personality properties
         personality = noodling_data.get('personality', {})
         lines.append(f'{ind}    float extraversion = {personality.get("extraversion", 0.5)}')
         lines.append(f'{ind}    float curiosity = {personality.get("curiosity", 0.5)}')

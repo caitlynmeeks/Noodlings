@@ -21,8 +21,6 @@ from typing import Any, Optional
 class NoodleScript:
     """
     Base class for all Noodlings scripts.
-
-    Like Unity's MonoBehaviour but for kindled beings!
     """
 
     def __init__(self):

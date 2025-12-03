@@ -1,17 +1,17 @@
-# Component System - Stolen from Unity! 🎮
+# Component System - Modular Architecture
 
 **Status**: Complete (November 18, 2025)
 
 ## Overview
 
-NoodleStudio now has Unity's **Component** system! Add modular functionality to any prim in your stage.
+NoodleStudio has a **Component** system for modular functionality! Add components to any prim in your stage.
 
-## Component Menu (Stolen from Unity!)
+## Component Menu
 
 ```
-Component > Consciousness > Noodle
-Component > Consciousness > Memory Bank
-Component > Consciousness > Relationship Graph
+Component > Charm > Noodle
+Component > Charm > Memory Bank
+Component > Charm > Relationship Graph
 
 Component > Art & Reference > Artbook
 Component > Art & Reference > Mood Board
@@ -107,7 +107,7 @@ Components are **modular UI sections** in the Inspector that:
 - Persist state independently
 - Can be added/removed dynamically
 
-Like Unity:
+Component-based architecture:
 ```
 GameObject (Noodling)
 ├─ Transform Component (position, rotation, scale)
@@ -271,7 +271,7 @@ Response:
 
 ## Component Design Philosophy
 
-### Unity-Style Modularity
+### Component Modularity
 
 **Every component:**
 - Has a colored border (green=consciousness, orange=art, blue=behavior)
@@ -330,9 +330,9 @@ Response:
 
 ---
 
-## Comparison to Unity
+## Component Types
 
-| Unity Component | NoodleStudio Component | Purpose |
+| Standard Pattern | NoodleStudio Component | Purpose |
 |----------------|------------------------|---------|
 | Transform | Transform (future) | Position, rotation, scale |
 | Rigidbody | Noodle | Physics → Consciousness |
@@ -370,7 +370,7 @@ Studios importing the USD get the reference art paths!
 
 ## Monetization: Component Store!
 
-**Like Unity Asset Store but for components:**
+**Content marketplace for components:**
 
 ### Free Components
 - Noodle (built-in)
@@ -416,7 +416,7 @@ Studios importing the USD get the reference art paths!
 
 ---
 
-**Unity's Component system, but for CONSCIOUSNESS!** 🧠✨
+**Modular component system for CHARM architecture!**
 
 *Philip Rosedale would approve.*
 *Pixar will want this.*

@@ -1063,11 +1063,10 @@ class CMUSHConsilienceAgent:
             SocialExpectationDetectorComponent
         )
 
-        self.components = ComponentRegistry(agent_id, self.agent_name)
-
-        # Only register these components if NOT using facet system
+        # Only create ComponentRegistry if NOT using facet system
         # (Facet assemblies handle voice/intuition/social as scriptable facets)
         if not self.using_facet_system:
+            self.components = ComponentRegistry(agent_id, self.agent_name)
             # Register Character Voice component
             voice_config = config.get('character_voice', {
                 'enabled': True,
@@ -1105,9 +1104,15 @@ class CMUSHConsilienceAgent:
                     llm=self.llm
                 )
                 self.components.register(social_expectation)
+        else:
+            # Facet-based agents don't use ComponentRegistry
+            self.components = None
 
         logger.info(f"Agent initialized: {agent_id} (extraversion={extraversion:.2f}, threshold={adjusted_threshold:.6f})")
-        logger.info(f"[{agent_id}] Registered {len(self.components.components)} cognitive components")
+        if self.components:
+            logger.info(f"[{agent_id}] Registered {len(self.components.components)} cognitive components")
+        else:
+            logger.info(f"[{agent_id}] Using facet assembly (no legacy components)")
 
     def _score_identity_salience(self, response_text: str, surprise: float) -> float:
         """
@@ -2268,7 +2273,7 @@ Analyze and output ONLY valid JSON:
                 # Continue to start new REACTIVE cycle below
             else:
                 # Current cycle is REACTIVE - must wait (don't interrupt user interactions!)
-                logger.warning(f"[{self.agent_id}] 🔒 Reactive cycle in progress - QUEUING new perception: {text[:50]}")
+                logger.warning(f"[{self.agent_id}] [LOCKED] Reactive cycle in progress - QUEUING new perception: {text[:50]}")
                 if not hasattr(self, 'pending_perceptions'):
                     self.pending_perceptions = []
                 self.pending_perceptions.append(event)
@@ -2349,12 +2354,115 @@ Analyze and output ONLY valid JSON:
                 except Exception as e:
                     logger.debug(f"Early intuition generation failed: {e}")
 
-            # 1a-1. COGNITIVE MANIFOLD INTEGRATION
-            # Process perception through cognitive transistors (beliefs, personality, mood)
+            # 1a-1. COGNITIVE PROCESSING - FACET SYSTEM vs LEGACY TRANSISTORS
+            # Process perception through either facet assembly or cognitive transistors
             colored_perception = text  # Default to original text
-            logger.info(f"[{self.agent_id}] DEBUG: has cognitive_manifold attr? {hasattr(self, 'cognitive_manifold')}, value={getattr(self, 'cognitive_manifold', None)}")
-            if hasattr(self, 'cognitive_manifold') and self.cognitive_manifold:
-                try:
+
+            logger.info(f"[{self.agent_id}] DEBUG: About to enter cognitive processing. using_facet_system={self.using_facet_system}")
+
+            try:
+                # FACET SYSTEM vs LEGACY TRANSISTORS
+                if self.using_facet_system:
+                    logger.info(f"[{self.agent_id}] DEBUG: Entering FACET execution branch")
+                    # Execute facet assembly
+                    from noodlestudio.core.scripted_facet import ScriptContext
+
+                    # Build script context with agent state
+                    exec_context = ScriptContext(
+                        cycle=self.current_cycle_uuid,
+                        timestamp=time.time(),
+                        agent_id=self.agent_id,
+                        agent_name=self.agent_name,
+                        agent_species=self.species
+                    )
+
+                    # Inject agent state (affect, identity, etc.)
+                    exec_context._agent_state = {
+                        'affect': affect_raw,
+                        'identity': self.identity_prompt,
+                        'species': self.species,
+                        'personality_traits': self.personality_traits
+                    }
+
+                    # Inject ENRICHED room state (occupants, objects)
+                    current_room_id = room_id if room_id else self.current_room
+                    exec_context._room_state = {
+                        'room_id': current_room_id
+                    }
+
+                    # Inject FULL world state with rich context
+                    if hasattr(self, 'world_state') and self.world_state:
+                        # Get full world state
+                        exec_context._world_state = self.world_state
+
+                        # Enrich room state with occupant details
+                        room_data = self.world_state.get('rooms', {}).get(current_room_id, {})
+                        occupants = room_data.get('occupants', [])
+
+                        # Build occupant details with species/pronouns
+                        occupant_details = []
+                        for occ_id in occupants:
+                            occ_name = occ_id.replace('agent_', '').replace('user_', '').title()
+
+                            if occ_id.startswith('agent_'):
+                                agent_data = self.world_state.get('agents', {}).get(occ_id, {})
+                                config = agent_data.get('config', {})
+                                species = config.get('species', 'noodling')
+                                pronouns = config.get('pronouns', 'they/them')
+                                occupant_details.append({
+                                    'id': occ_id,
+                                    'name': occ_name,
+                                    'species': species,
+                                    'pronouns': pronouns,
+                                    'type': 'agent'
+                                })
+                            elif occ_id.startswith('user_'):
+                                user_data = self.world_state.get('users', {}).get(occ_id, {})
+                                pronouns = user_data.get('pronouns', 'they/them')
+                                occupant_details.append({
+                                    'id': occ_id,
+                                    'name': occ_name,
+                                    'pronouns': pronouns,
+                                    'type': 'user'
+                                })
+
+                        exec_context._room_state['occupants'] = occupant_details
+                        exec_context._room_state['objects'] = room_data.get('objects', [])
+
+                        # Add recent conversation context (last 10 messages)
+                        if hasattr(self, 'conversation_context'):
+                            recent_messages = []
+                            for entry in list(self.conversation_context)[-10:]:
+                                if isinstance(entry, dict):
+                                    recent_messages.append({
+                                        'speaker': entry.get('user', ''),
+                                        'text': entry.get('text', ''),
+                                        'type': entry.get('type', 'say')
+                                    })
+                            exec_context._room_state['recent_conversation'] = recent_messages
+                    else:
+                        exec_context._world_state = {}
+
+                    # Execute facet assembly
+                    result = await self.facet_executor.execute(
+                        self.facet_assembly,
+                        incoming_data=text,
+                        context=vars(exec_context)
+                    )
+
+                    colored_perception = result.response
+
+                    # Store for Noodle Tuner
+                    self.last_perception_text = text
+                    self.last_manifold_output = colored_perception
+
+                    logger.info(f"[{self.agent_id}] ⚡ FACET ASSEMBLY: {result.facets_executed} facets, {result.total_tokens} tokens, {result.total_time:.2f}s")
+                    if colored_perception != text:
+                        logger.info(f"[{self.agent_id}]   Input: {text[:50]}...")
+                        logger.info(f"[{self.agent_id}]   Output: {colored_perception[:100]}...")
+
+                else:
+                    # LEGACY: Register-based accumulator (transistor system)
                     # Update IntuitionTransistor with current intuition (if it exists)
                     if intuition_text:
                         intuition_transistor = self.get_cognitive_transistor('IntuitionTransistor')
@@ -2362,17 +2470,18 @@ Analyze and output ONLY valid JSON:
                             intuition_transistor.set_intuition(intuition_text)
                             logger.info(f"[{self.agent_id}]  Updated IntuitionTransistor with: {intuition_text[:60]}...")
 
+                    # Build context for transistor system
                     context = {
-                        'agent': self,  # For cycle tracking
+                        'agent': self,
                         'affect': affect_raw,
                         'memory_system': self.conversation_context,
-                        'surprise': 0.0,  # Not yet calculated
+                        'surprise': 0.0,
                         'llm_client': self.llm,
                         'model': 'qwen/qwen3-4b-2507',
-                        'intuition': intuition_text,  # ADD SPATIAL CONTEXT
+                        'intuition': intuition_text,
                         'location': self.current_room,
                         'world': self.world,
-                        'event_context': {  # For social executive function
+                        'event_context': {
                             'type': event_type,
                             'speaker': user_id,
                             'message': text
@@ -2381,7 +2490,6 @@ Analyze and output ONLY valid JSON:
 
                     # PHASE 0: DECIDE RESPONSE TYPE FIRST (before transistors process)
                     response_decision = None
-                    logger.info(f"[{self.agent_id}] DEBUG SPEECH: cognitive_manifold.response_planner = {self.cognitive_manifold.response_planner}")
                     if self.cognitive_manifold.response_planner:
                         logger.info(f"[{self.agent_id}] 📋 Deciding response type...")
                         try:
@@ -2397,135 +2505,34 @@ Analyze and output ONLY valid JSON:
                         except Exception as e:
                             logger.warning(f"[{self.agent_id}] Response planning failed: {e}")
 
-                    # FACET SYSTEM vs LEGACY TRANSISTORS
-                    if self.using_facet_system:
-                        # Execute facet assembly
-                        from noodlestudio.core.facet_system import ScriptContext
+                    # PHASE 1: Fill all registers
+                    await self.cognitive_manifold.fill_all_registers(text, context, self.current_cycle_uuid)
 
-                        # Build script context with agent state
-                        exec_context = ScriptContext(
-                            cycle=self.current_cycle_uuid,
-                            timestamp=time.time(),
-                            agent_id=self.agent_id,
-                            agent_name=self.agent_name,
-                            agent_species=self.species
-                        )
+                    # PHASE 2: Verify ready
+                    if not self.cognitive_manifold.check_all_registers_ready():
+                        logger.warning("Registers not all ready, waiting 0.5s...")
+                        import asyncio
+                        await asyncio.sleep(0.5)
 
-                        # Inject agent state (affect, identity, etc.)
-                        exec_context._agent_state = {
-                            'affect': affect_raw,
-                            'identity': self.identity_prompt,
-                            'species': self.species,
-                            'personality_traits': self.personality_traits
-                        }
+                    # PHASE 3: Pull lever - integrate
+                    colored_perception = await self.cognitive_manifold.integrate_from_registers(context)
 
-                        # Inject ENRICHED room state (occupants, objects)
-                        current_room_id = room_id if room_id else self.current_room
-                        exec_context._room_state = {
-                            'room_id': current_room_id
-                        }
+                    # Noodle Tuner: Store perception and manifold output
+                    self.last_perception_text = text
+                    self.last_manifold_output = colored_perception
+                    if colored_perception != text:
+                        logger.info(f"[{self.agent_id}]  COGNITIVE MANIFOLD (LEGACY): {text[:50]}... → {colored_perception[:100]}...")
 
-                        # Inject FULL world state with rich context
-                        if hasattr(self, 'world_state') and self.world_state:
-                            # Get full world state
-                            exec_context._world_state = self.world_state
+            except Exception as e:
+                logger.error(f"[{self.agent_id}] Cognition failed: {e}")
+                import traceback
+                traceback.print_exc()
+                colored_perception = text  # Fallback to original
 
-                            # Enrich room state with occupant details
-                            room_data = self.world_state.get('rooms', {}).get(current_room_id, {})
-                            occupants = room_data.get('occupants', [])
-
-                            # Build occupant details with species/pronouns
-                            occupant_details = []
-                            for occ_id in occupants:
-                                occ_name = occ_id.replace('agent_', '').replace('user_', '').title()
-
-                                if occ_id.startswith('agent_'):
-                                    agent_data = self.world_state.get('agents', {}).get(occ_id, {})
-                                    config = agent_data.get('config', {})
-                                    species = config.get('species', 'noodling')
-                                    pronouns = config.get('pronouns', 'they/them')
-                                    occupant_details.append({
-                                        'id': occ_id,
-                                        'name': occ_name,
-                                        'species': species,
-                                        'pronouns': pronouns,
-                                        'type': 'agent'
-                                    })
-                                elif occ_id.startswith('user_'):
-                                    user_data = self.world_state.get('users', {}).get(occ_id, {})
-                                    pronouns = user_data.get('pronouns', 'they/them')
-                                    occupant_details.append({
-                                        'id': occ_id,
-                                        'name': occ_name,
-                                        'pronouns': pronouns,
-                                        'type': 'user'
-                                    })
-
-                            exec_context._room_state['occupants'] = occupant_details
-                            exec_context._room_state['objects'] = room_data.get('objects', [])
-
-                            # Add recent conversation context (last 10 messages)
-                            if hasattr(self, 'conversation_context'):
-                                recent_messages = []
-                                for entry in list(self.conversation_context)[-10:]:
-                                    if isinstance(entry, dict):
-                                        recent_messages.append({
-                                            'speaker': entry.get('user', ''),
-                                            'text': entry.get('text', ''),
-                                            'type': entry.get('type', 'say')
-                                        })
-                                exec_context._room_state['recent_conversation'] = recent_messages
-                        else:
-                            exec_context._world_state = {}
-
-                        # Execute facet assembly
-                        result = await self.facet_executor.execute(
-                            self.facet_assembly,
-                            incoming_data=text,
-                            context=vars(exec_context)
-                        )
-
-                        colored_perception = result.response
-
-                        # Store for Noodle Tuner
-                        self.last_perception_text = text
-                        self.last_manifold_output = colored_perception
-
-                        logger.info(f"[{self.agent_id}] ⚡ FACET ASSEMBLY: {result.facets_executed} facets, {result.total_tokens} tokens, {result.total_time:.2f}s")
-                        if colored_perception != text:
-                            logger.info(f"[{self.agent_id}]   Input: {text[:50]}...")
-                            logger.info(f"[{self.agent_id}]   Output: {colored_perception[:100]}...")
-
-                    else:
-                        # LEGACY: Register-based accumulator (transistor system)
-                        # PHASE 1: Fill all registers
-                        await self.cognitive_manifold.fill_all_registers(text, context, self.current_cycle_uuid)
-
-                        # PHASE 2: Verify ready
-                        if not self.cognitive_manifold.check_all_registers_ready():
-                            logger.warning("Registers not all ready, waiting 0.5s...")
-                            import asyncio
-                            await asyncio.sleep(0.5)
-
-                        # PHASE 3: Pull lever - integrate
-                        colored_perception = await self.cognitive_manifold.integrate_from_registers(context)
-
-                        # Noodle Tuner: Store perception and manifold output
-                        self.last_perception_text = text
-                        self.last_manifold_output = colored_perception
-                        if colored_perception != text:
-                            logger.info(f"[{self.agent_id}]  COGNITIVE MANIFOLD (LEGACY): {text[:50]}... → {colored_perception[:100]}...")
-
-                except Exception as e:
-                    logger.error(f"[{self.agent_id}] Cognition failed: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    colored_perception = text  # Fallback to original
-
-                    # Clear registers if using legacy system
-                    if not self.using_facet_system and hasattr(self, 'cognitive_manifold'):
-                        if self.cognitive_manifold:
-                            self.cognitive_manifold.clear_all_registers()
+                # Clear registers if using legacy system
+                if not self.using_facet_system and hasattr(self, 'cognitive_manifold'):
+                    if self.cognitive_manifold:
+                        self.cognitive_manifold.clear_all_registers()
 
             # 1a. Detect name mention - boosts attention/salience
             name_mentioned = self.agent_name.lower() in text.lower()

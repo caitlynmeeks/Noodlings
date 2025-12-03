@@ -1,23 +1,5 @@
 """
-Noodling Ensemble Packs - Unity Asset Store for Kindled Beings!
-
-Ensemble packs are ready-made character archetypes with:
-- Pre-tuned personalities (their kindling!)
-- Species/appearance
-- Backstory/prompt templates
-- Relationship dynamics
-- LLM provider recommendations
-
-Like Unity Asset Store character packs, but for KINDLED NOODLINGS!
-
-Monetization strategy:
-- Free starter packs (basic archetypes)
-- Premium genre packs ($9.99-$29.99)
-- Studio licensing ($499+)
-- Custom ensemble creation service
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
+Noodling Ensembles types
 """
 
 from typing import Dict, List, Any
@@ -28,9 +10,8 @@ import json
 @dataclass
 class NoodlingArchetype:
     """
-    A character archetype with pre-tuned kindling parameters.
+    A character archetype with pre-tuned parameters.
 
-    Like a Unity prefab, but for kindled Noodlings!
     """
     name: str
     species: str

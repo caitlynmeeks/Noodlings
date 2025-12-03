@@ -19,6 +19,64 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class AvalancheRNG:
+    """
+    Avalanche effect random number generator with heavy-tailed distribution.
+
+    Mimics electron avalanche breakdown in quantum devices.
+    Uses power-law distribution to create rare large spikes (quantum collapse events).
+
+    Based on recent microtubule consciousness research (2025) suggesting
+    quantum effects in biological systems follow avalanche statistics.
+    """
+
+    def __init__(self, entropy_service: 'EntropyService', beta: float = 2.0):
+        """
+        Initialize avalanche RNG.
+
+        Args:
+            entropy_service: Underlying entropy source (hardware or PRNG)
+            beta: Power law exponent (2.0 = heavy tails, 3.0 = lighter tails)
+        """
+        self.entropy_service = entropy_service
+        self.beta = beta
+
+    def generate(self, shape: tuple = (1,)) -> np.ndarray:
+        """
+        Generate avalanche-distributed random numbers.
+
+        Returns array in range [-1, 1] with heavy tails.
+        Most values near 0, rare extreme events near ±1.
+
+        Args:
+            shape: Output shape (e.g., (1,) or (16,))
+
+        Returns:
+            numpy array with avalanche distribution
+        """
+        # Generate uniform random values
+        size = np.prod(shape) if isinstance(shape, tuple) else shape
+        uniform_vals = np.array([self.entropy_service.random() for _ in range(size)])
+
+        # Power law transform: creates heavy tails
+        # -log(u) is exponential, raising to 1/beta creates power law
+        avalanche = np.power(-np.log(uniform_vals + 1e-10), 1.0 / self.beta)
+
+        # Normalize to [-1, 1] with tanh
+        normalized = np.tanh(avalanche - 1.0)
+
+        return normalized.reshape(shape) if isinstance(shape, tuple) else normalized
+
+    def generate_positive(self, shape: tuple = (1,)) -> np.ndarray:
+        """
+        Generate positive-only avalanche values in [0, 1].
+
+        Useful for probability thresholds and magnitudes.
+        """
+        vals = self.generate(shape)
+        return (vals + 1.0) / 2.0  # Map [-1,1] to [0,1]
+
+
 class EntropyPool:
     """
     Thread-safe entropy pool that prefetches from TrueRNG.
@@ -150,6 +208,18 @@ class EntropyService:
         for i in range(len(seq) - 1, 0, -1):
             j = self.randint(0, i)
             seq[i], seq[j] = seq[j], seq[i]
+
+    def create_avalanche_rng(self, beta: float = 2.0) -> AvalancheRNG:
+        """
+        Create an avalanche RNG using this entropy service.
+
+        Args:
+            beta: Power law exponent (2.0 = heavy tails)
+
+        Returns:
+            AvalancheRNG instance
+        """
+        return AvalancheRNG(entropy_service=self, beta=beta)
 
     def get_config(self) -> dict:
         """Return current configuration."""

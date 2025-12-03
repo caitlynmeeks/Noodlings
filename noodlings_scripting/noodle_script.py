@@ -30,8 +30,6 @@ class NoodleScript:
     """
     Base class for all Noodlings scripts.
 
-    Like Unity's MonoBehaviour but for kindled beings!
-
     Scripts are server-authoritative:
     - Compiled and executed in cmush backend
     - State persisted in world state

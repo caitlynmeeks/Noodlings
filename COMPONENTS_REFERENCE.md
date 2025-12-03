@@ -24,7 +24,7 @@ Date: November 20, 2025
 
 ### Philosophy
 
-**Noodlings components** follow the Unity/Unreal component pattern:
+**Noodlings components** follow a component pattern:
 
 - **Modular**: Each component handles one cognitive process
 - **Inspectable**: All prompts and parameters visible in NoodleSTUDIO
@@ -666,7 +666,7 @@ if memory_contains_topic(current_topic):
 
 **5. Behavior Scripts** (`.noodlingscript.py`)
 - Python code for event-driven behavior
-- Unity-like scripting API
+- Scripting API
 - Marketplace potential: HIGH (game mechanics, mini-games)
 
 **6. Voice Audio Packs** (`.noodlingaudio/`)
@@ -2217,11 +2217,11 @@ components:
 
 ---
 
-## Script-Based Components: The Unity Model
+## Script-Based Components
 
 ### Critical Feature: Scripts ARE Components
 
-**Insight**: In Unity, scripts you write become components you attach. We must replicate this exactly.
+**Insight**: Scripts you write become components you attach.
 
 #### The Workflow
 
@@ -2352,27 +2352,27 @@ class ScriptComponent(NoodlingComponent):
         return {}
 ```
 
-#### Script Event Hooks (Unity-style)
+#### Script Event Hooks
 
 **Available lifecycle methods**:
 ```python
 class NoodlingScript(ABC):
-    """Base class for user scripts (Unity MonoBehaviour equivalent)."""
+    """Base class for user scripts."""
 
     def __init__(self, agent: NoodlingAgent):
         self.agent = agent
 
-    # Lifecycle (like Unity)
+    # Lifecycle 
     async def on_spawn(self):
-        """Called when agent spawns (Unity: Start())."""
+        """Called when agent spawns."""
         pass
 
     async def on_despawn(self):
-        """Called when agent despawns (Unity: OnDestroy())."""
+        """Called when agent despawns."""
         pass
 
     async def on_update(self):
-        """Called every tick (Unity: Update())."""
+        """Called every tick."""
         pass
 
     # Event hooks
@@ -2396,7 +2396,7 @@ class NoodlingScript(ABC):
         """Called when emotion changes significantly."""
         pass
 
-    # Agent API (like Unity's GameObject API)
+    # Agent API
     async def say(self, text: str):
         """Make agent speak."""
         await self.agent.speak(text)
@@ -2679,7 +2679,7 @@ Physical Itches Script:
 
 ---
 
-## Core Components as Scripts: The Unity Approach
+## Core Components as Scripts:
 
 ### The Question
 
@@ -3548,12 +3548,6 @@ The component system is **well-architected** but needs **scalability fundamental
 - Asset marketplace
 - Community contributions
 - Professional use cases
-
-The morphology/voice asset idea is **excellent** and aligns perfectly with the Unity vision. Combined with episodic memory, it creates a robust foundation for the component ecosystem.
-
-*Straightens collar with satisfaction at systematic design*
-
-Live long and prosper. 🖖
 
 ---
 

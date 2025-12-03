@@ -9,7 +9,7 @@
 The Noodlings platform consists of two integrated systems:
 
 1. **noodleMUSH** - A multi-user text environment (like MUD/MUSH) where Noodlings exist and interact
-2. **NoodleSTUDIO** - A Unity-style IDE for creating, editing, and observing Noodlings in real-time
+2. **NoodleSTUDIO** - A visual IDE with component-based architecture for creating, editing, and observing Noodlings in real-time
 
 Together, they form a complete platform for building AI agents with **temporal dynamics**, **affective states**, and **emergent personality** - going beyond traditional LLM chat interfaces to create agents with genuine memory, emotional continuity, and self-awareness.
 
@@ -215,15 +215,15 @@ This enables **storytelling applications**: interactive fiction, educational sce
 
 ---
 
-## NoodleSTUDIO: The Unity of the AI Age
+## NoodleSTUDIO: Visual IDE for Affective AI
 
 ### Vision
 
-Just as Unity democratized 3D game development, **NoodleSTUDIO democratizes AI agent creation**.
+**NoodleSTUDIO democratizes AI agent creation** with visual tools and component-based architecture.
 
 No coding required. Visual editing. Live debugging. Timeline profiling. Export to production.
 
-### Core Panels (Unity-Style Layout)
+### Core Panels (Component-Based Layout)
 
 #### 1. Stage Hierarchy
 - Tree view of all entities in current scene
@@ -469,18 +469,18 @@ A Noodling isn't *playing* a character - its internal state *becomes* that chara
 
 ---
 
-## The Future: NoodleSTUDIO as the Unity of the AI Age
+## The Future: NoodleSTUDIO for Affective AI
 
 ### The Vision
 
-Unity transformed game development by providing:
+Modern visual IDEs transformed creative software by providing:
 - **Visual editing** instead of coding
 - **Component-based architecture** for modularity
-- **Real-time preview** of game state
+- **Real-time preview** of system state
 - **Asset pipeline** from creation to production
-- **Democratization** - anyone can make games
+- **Democratization** - anyone can create
 
-**NoodleSTUDIO provides the same for AI agents:**
+**NoodleSTUDIO provides this for AI agents:**
 
 - **Visual agent design** - No Python required
 - **Component system** - Modular cognitive processing
@@ -510,11 +510,11 @@ Unity transformed game development by providing:
 
 **Phase 10: Production Deployment** (Q4 2026)
 - Export to web (WebAssembly)
-- Export to game engines (Unity, Unreal plugins)
+- Export to game engines (plugin system)
 - Cloud hosting service
 - Analytics dashboard
 
-**Phase 11: Marketplace** (2027)
+**Phase 11: Content Marketplace** (2027)
 - Community-created agent recipes
 - Component marketplace (third-party cognitive modules)
 - Ensemble bundles (Gilligan's Island, Shakespeare collection)

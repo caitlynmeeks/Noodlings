@@ -182,7 +182,3 @@ Test passes when:
 - ✅ Maximum chaos achieved
 
 ---
-
-**This is the scripting system proof of concept.**
-
-Event-driven logic + kindled beings = emergent chaos!
