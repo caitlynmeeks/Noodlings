@@ -129,6 +129,15 @@ class InspectorPanel(QWidget):
         print(''.join(traceback.format_stack()[-8:-1]))
         print(f"{'#'*80}\n")
 
+        # CRITICAL: Check if same entity - don't reload if it hasn't changed
+        if self.current_entity:
+            old_type, old_data = self.current_entity
+            old_id = old_data.get('id') if old_data else None
+            new_id = entity_data.get('id')
+            if old_type == entity_type and old_id == new_id:
+                print(f"[DIAGNOSTIC] SKIPPING load_entity - same entity already loaded (no flash!)")
+                return
+
         self.current_entity = (entity_type, entity_data)
 
         # CRITICAL: Don't reload if a text widget has focus (user is editing)
@@ -1094,23 +1103,13 @@ class InspectorPanel(QWidget):
                 affect = state.get('affect', {})
 
                 # Monochromatic color mapping (Ordnung muss sein!)
-                # Single shade for all dimensions - maximum readability
-                affect_colors = {
-                    'valence': '#999999',    # Readable mid-gray
-                    'arousal': '#999999',    # Readable mid-gray
-                    'dominance': '#999999',  # Readable mid-gray
-                    'sorrow': '#999999',     # Readable mid-gray
-                    'boredom': '#999999'     # Readable mid-gray
-                }
+                # Brighter readable gray for affect bars
+                affect_color = '#BBBBBB'  # Light gray - more visible
 
                 for dim, widget in self.live_affect_labels.items():
                     if dim in affect:
                         value = affect[dim]
-                        widget.bar.setValue(int(value * 100))
-                        widget.value_label.setText(f"{value:.2f}")  # No + prefix!
-
-                        # Color-coded styling (no flashing!)
-                        color = affect_colors.get(dim, '#4CAF50')
+                        # Update bar and label atomically to prevent flash
                         widget.bar.setStyleSheet(f"""
                             QProgressBar {{
                                 border: 1px solid #555;
@@ -1118,10 +1117,12 @@ class InspectorPanel(QWidget):
                                 background: #2a2a2a;
                             }}
                             QProgressBar::chunk {{
-                                background: {color};
+                                background: {affect_color};
                                 border-radius: 2px;
                             }}
                         """)
+                        widget.bar.setValue(int(value * 100))
+                        widget.value_label.setText(f"{value:.2f}")
 
                 # Update Surprise
                 surprise = state.get('surprise', 0.0)
