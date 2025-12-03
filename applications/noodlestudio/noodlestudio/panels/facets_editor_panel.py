@@ -525,8 +525,9 @@ class FacetNodeGraphics(QGraphicsRectItem):
                     self.scene().removeItem(widget)
             self.field_widgets.clear()
 
-            # Restore normal size
-            self.setRect(0, 0, self.NODE_WIDTH, self.NODE_HEIGHT)
+            # Restore normal size (compact for special nodes, regular for others)
+            target_height = self.NODE_HEIGHT_COMPACT if self.is_special_node else self.NODE_HEIGHT
+            self.setRect(0, 0, self.NODE_WIDTH, target_height)
 
             # Restore output pad positions
             num_outputs = len(self.output_pads)
@@ -534,7 +535,7 @@ class FacetNodeGraphics(QGraphicsRectItem):
                 spacing = self.NODE_WIDTH / (num_outputs + 1)
                 for i, (name, pad) in enumerate(self.output_pads.items()):
                     x_pos = spacing * (i + 1)
-                    pad.setPos(x_pos, self.NODE_HEIGHT)
+                    pad.setPos(x_pos, target_height)
         except Exception as e:
             print(f"[Node] Error hiding fields: {e}")
             self.field_widgets.clear()
@@ -549,13 +550,14 @@ class FacetNodeGraphics(QGraphicsRectItem):
                 pad.setPos(x_pos, self.NODE_HEIGHT_EXPANDED)
 
     def _reposition_pads_normal(self):
-        """Reposition pads for normal state."""
+        """Reposition pads for normal state (respects special node size)."""
+        target_height = self.NODE_HEIGHT_COMPACT if self.is_special_node else self.NODE_HEIGHT
         num_outputs = len(self.output_pads)
         if num_outputs > 0:
             spacing = self.NODE_WIDTH / (num_outputs + 1)
             for i, (name, pad) in enumerate(self.output_pads.items()):
                 x_pos = spacing * (i + 1)
-                pad.setPos(x_pos, self.NODE_HEIGHT)
+                pad.setPos(x_pos, target_height)
 
     def update_prompt(self, new_prompt: str):
         """Update facet prompt from embedded editor."""
@@ -1997,12 +1999,50 @@ class FacetsEditorPanel(QWidget):
             # Silent fail - don't break visualization if sound fails
             pass
 
+    def save_current_assembly_positions(self):
+        """Save current assembly node positions to disk."""
+        if not self.current_assembly or not self.current_assembly_name:
+            return
+
+        try:
+            import os
+            # Update facet positions from graphics
+            for facet_id, node_gfx in self.node_graphics.items():
+                pos = node_gfx.pos()
+                facet = next((f for f in self.current_assembly.facets if f.id == facet_id), None)
+                if facet:
+                    facet.position = {'x': pos.x(), 'y': pos.y()}
+
+            # Find assembly file by matching name
+            assembly_dir = os.path.join(os.path.dirname(__file__), '../facet_assemblies')
+            for filename in os.listdir(assembly_dir):
+                if filename.endswith('.yaml'):
+                    try:
+                        from ..core.facet_system import FacetAssembly
+                        test_path = os.path.join(assembly_dir, filename)
+                        test_assembly = FacetAssembly.load_yaml(test_path)
+                        if test_assembly.name == self.current_assembly_name:
+                            # Found it! Save positions
+                            self.current_assembly.save_yaml(test_path)
+                            print(f"[Facets Editor] Saved positions to: {filename}")
+                            return
+                    except:
+                        pass
+            print(f"[Facets Editor] Warning: Could not find file for assembly '{self.current_assembly_name}'")
+        except Exception as e:
+            print(f"[Facets Editor] Error saving positions: {e}")
+
     def set_current_agent(self, agent_id: str):
         """
         Set the current agent whose facets are being edited.
 
         Fetches and loads the agent's facet assembly from the API.
         """
+        # Save previous agent's positions before switching
+        if self.current_agent_id and self.current_agent_id != agent_id:
+            print(f"[Facets Editor] Switching from {self.current_agent_id} to {agent_id}, saving positions...")
+            self.save_current_assembly_positions()
+
         self.current_agent_id = agent_id
         enabled = True if agent_id else False
         self.pause_button.setEnabled(enabled)
