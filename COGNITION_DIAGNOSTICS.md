@@ -220,13 +220,39 @@ grep -n "private.*thought\|internal.*monologue\|think" agent_bridge.py
 [17:05:33] [Red] 💬 "Oh PLEASE Caity, candy again? MWAHAHA!"
 ```
 
+## ROOT CAUSE FOUND (December 2, 2025 - 17:15)
+
+**DISCOVERY:** Noodlings ARE thinking autonomously, but speech decision logic says "don't speak, just ruminate."
+
+**Evidence from logs:**
+```
+[17:01:20] Agent decision: arousal=-0.07, boredom=1.07, activation=0.01,
+           speech_propensity=0.15, should_speak=False, should_ruminate=True
+[17:01:24] mr._toad thinking: 'By Jove! A LITTLE FELLOW with a WOODEN SWORD...'
+```
+
+**The Problem:**
+- `speech_propensity` ranges from 0.03 to 0.15
+- Threshold is 0.5 (agent_bridge.py:3163)
+- `should_speak = cooldown_ok and (speech_propensity > 0.5)`
+- Result: NEVER speaks, only ruminates
+
+**Why Speech Propensity is Low:**
+- `arousal` is negative or near zero (should be positive)
+- `boredom` is very high (1.0+, accumulating over time)
+- `activation` near zero (not stimulated enough)
+- Formula weights these too conservatively
+
+**The Fix:**
+Lower speech threshold OR increase speech_propensity calculation to be more generous.
+
 ## Next Steps for Caity
 
-1. **Make Red speak once manually** (test command or force trigger)
-2. Watch Console for `⚡ FACET ASSEMBLY` log
-3. Watch Facets Editor for animation
-4. Verify sounds play
-5. THEN investigate autonomous cognition loop
+1. ~~Make Red speak once manually~~ FOUND THE BUG!
+2. Adjust speech decision thresholds
+3. Test: should see speech within 30-60 seconds
+4. Watch Console for `⚡ FACET ASSEMBLY` log
+5. Watch Facets Editor for animation + sounds
 
 ## Code Locations (Quick Reference)
 

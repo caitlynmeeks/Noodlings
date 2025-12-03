@@ -3159,8 +3159,9 @@ Analyze and output ONLY valid JSON:
                 if is_being_addressed and cooldown_ok:
                     should_speak = True
                 else:
-                    # Speak if propensity > 0.5 (threshold for action)
-                    should_speak = cooldown_ok and (speech_propensity > 0.5)
+                    # Speak if propensity > 0.2 (lowered threshold - agents were too quiet!)
+                    # Old threshold was 0.5, but speech_propensity rarely exceeded 0.15
+                    should_speak = cooldown_ok and (speech_propensity > 0.2)
 
                 # Ruminate if not speaking (mutually exclusive)
                 should_ruminate = not should_speak
