@@ -51,6 +51,7 @@ class FloatingTextEditor(QDialog):
         self.field_key = field_key
         self.initial_value = initial_value
         self.read_only = read_only
+        self.font_size = 12  # Base font size
 
         self.init_ui()
 
@@ -160,6 +161,45 @@ class FloatingTextEditor(QDialog):
                 background-color: #2D2D2D;
             }
         """)
+
+        # Setup keyboard shortcuts for font scaling
+        self.setup_shortcuts()
+
+    def setup_shortcuts(self):
+        """Setup keyboard shortcuts for font scaling."""
+        from PyQt6.QtGui import QShortcut, QKeySequence
+
+        # Cmd/Ctrl + Plus - Increase font size
+        zoom_in = QShortcut(QKeySequence.StandardKey.ZoomIn, self)
+        zoom_in.activated.connect(self.increase_font_size)
+
+        # Cmd/Ctrl + Minus - Decrease font size
+        zoom_out = QShortcut(QKeySequence.StandardKey.ZoomOut, self)
+        zoom_out.activated.connect(self.decrease_font_size)
+
+        # Cmd/Ctrl + 0 - Reset to default
+        reset_zoom = QShortcut(QKeySequence("Ctrl+0"), self)
+        reset_zoom.activated.connect(self.reset_font_size)
+
+    def increase_font_size(self):
+        """Increase editor font size (Cmd/Ctrl +)."""
+        self.font_size = min(self.font_size + 2, 32)  # Max 32pt
+        self.update_font()
+
+    def decrease_font_size(self):
+        """Decrease editor font size (Cmd/Ctrl -)."""
+        self.font_size = max(self.font_size - 2, 8)  # Min 8pt
+        self.update_font()
+
+    def reset_font_size(self):
+        """Reset font to default size (Cmd/Ctrl 0)."""
+        self.font_size = 12
+        self.update_font()
+
+    def update_font(self):
+        """Update text editor font size."""
+        font = QFont("Monaco", self.font_size)
+        self.text_edit.setFont(font)
 
     def has_unsaved_changes(self) -> bool:
         """Check if text has been modified."""
