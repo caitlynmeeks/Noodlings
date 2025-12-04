@@ -51,6 +51,9 @@ class InspectorPanel(QWidget):
         # Flag to prevent refresh during save operations
         self.is_saving = False
 
+        # Flag to prevent re-entrant loading (e.g., double-tap)
+        self.is_loading = False
+
         # Track component widgets for save operations
         # Structure: {agent_id: {component_id: {field_name: widget}}}
         self.component_widgets = {}
@@ -112,8 +115,14 @@ class InspectorPanel(QWidget):
     @pyqtSlot(str, dict)
     def load_entity(self, entity_type: str, entity_data: dict):
         """Load entity properties into inspector."""
+        # CRITICAL: Prevent re-entrant loading (e.g., double-tap events)
+        if self.is_loading:
+            print(f"[DIAGNOSTIC] BLOCKING re-entrant load_entity call (is_loading=True)")
+            return
+
         # Handle deselection (nothing selected)
-        if entity_type is None or entity_data is None:
+        # Empty string or empty dict means nothing selected
+        if not entity_type or not entity_data:
             self.clear_inspector()
             return
 
@@ -122,7 +131,7 @@ class InspectorPanel(QWidget):
         print(f"\n{'#'*80}")
         print(f"[DIAGNOSTIC] load_entity() called")
         print(f"[DIAGNOSTIC] entity_type={entity_type}, entity_id={entity_data.get('id', 'unknown')}")
-        print(f"[DIAGNOSTIC] is_saving={self.is_saving}")
+        print(f"[DIAGNOSTIC] is_saving={self.is_saving}, is_loading={self.is_loading}")
         focused_widget = QApplication.focusWidget()
         print(f"[DIAGNOSTIC] focused_widget={focused_widget} (type: {type(focused_widget).__name__ if focused_widget else 'None'})")
         print(f"[DIAGNOSTIC] Call stack:")
@@ -151,45 +160,63 @@ class InspectorPanel(QWidget):
             print(f"[DIAGNOSTIC] SKIPPING load_entity - save in progress")
             return
 
+        # Check if this is the SAME entity we already have loaded
+        same_entity_id = (
+            self.current_entity and
+            entity_data.get('id') == self.current_entity.get('id')
+        )
+        if same_entity_id:
+            print(f"[DIAGNOSTIC] SKIPPING load_entity - same entity already loaded: {entity_data.get('id')}")
+            return
+
         print(f"[DIAGNOSTIC] PROCEEDING with load_entity - will destroy all widgets")
 
-        # CRITICAL: Save CollapsibleSection expanded state before destroying widgets
-        self._save_collapsible_states()
+        # Set loading flag to prevent re-entrance
+        self.is_loading = True
 
-        # Clear existing properties
-        while self.properties_layout.count():
-            child = self.properties_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+        try:
+            # CRITICAL: Save CollapsibleSection expanded state before destroying widgets
+            self._save_collapsible_states()
 
-        # Clear component widget tracking for clean slate
-        self.component_widgets.clear()
+            # Clear existing properties
+            while self.properties_layout.count():
+                child = self.properties_layout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
 
-        # Update header
-        if entity_type == 'noodling':
-            name = entity_data.get('data', {}).get('name', entity_data.get('id'))
-            species = entity_data.get('data', {}).get('species', 'unknown')
-            self.entity_header.setText(f"Noodling: {name} ({species})")
-            self.load_noodling_properties(entity_data)
+            # Clear component widget tracking for clean slate
+            self.component_widgets.clear()
 
-        elif entity_type == 'user':
-            self.entity_header.setText("User: caity")
-            self.load_user_properties(entity_data)
+            # Update header
+            if entity_type == 'noodling':
+                name = entity_data.get('data', {}).get('name', entity_data.get('id'))
+                species = entity_data.get('data', {}).get('species', 'unknown')
+                self.entity_header.setText(f"Noodling: {name} ({species})")
+                self.load_noodling_properties(entity_data)
 
-        elif entity_type == 'prim' or entity_type == 'object':
-            obj_name = entity_data.get('id', 'Unknown Object').replace('obj_', '').replace('_', ' ').title()
-            self.entity_header.setText(f"Prim: {obj_name}")
-            self.load_object_properties(entity_data)
+            elif entity_type == 'user':
+                self.entity_header.setText("User: caity")
+                self.load_user_properties(entity_data)
 
-        elif entity_type == 'exit':
-            direction = entity_data.get('direction', 'unknown')
-            self.entity_header.setText(f"Exit: {direction}")
-            self.load_exit_properties(entity_data)
+            elif entity_type == 'prim' or entity_type == 'object':
+                obj_name = entity_data.get('id', 'Unknown Object').replace('obj_', '').replace('_', ' ').title()
+                self.entity_header.setText(f"Prim: {obj_name}")
+                self.load_object_properties(entity_data)
 
-        elif entity_type == 'stage':
-            stage_name = entity_data.get('data', {}).get('name', 'Unknown Stage')
-            self.entity_header.setText(f"Stage: {stage_name}")
-            self.load_stage_properties(entity_data)
+            elif entity_type == 'exit':
+                direction = entity_data.get('direction', 'unknown')
+                self.entity_header.setText(f"Exit: {direction}")
+                self.load_exit_properties(entity_data)
+
+            elif entity_type == 'stage':
+                stage_name = entity_data.get('data', {}).get('name', 'Unknown Stage')
+                self.entity_header.setText(f"Stage: {stage_name}")
+                self.load_stage_properties(entity_data)
+
+        finally:
+            # ALWAYS clear loading flag, even on error
+            self.is_loading = False
+            print(f"[DIAGNOSTIC] load_entity completed, is_loading cleared")
 
     def load_stage_properties(self, entity_data):
         """Show Stage properties (room metadata)."""

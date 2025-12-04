@@ -1,0 +1,3111 @@
+{
+  "metadata": {
+    "session_id": "cmush_session_1746152",
+    "start_time": "2025-12-03 23:42:46",
+    "agents": [
+      "agent_12e20fa6-4131-446b-ab3e-7372e85609cd",
+      "agent_dff4f51f-01f0-41c3-93ac-ca5df165c204",
+      "agent_mr._toad",
+      "agent_red_fire_anklebiter"
+    ]
+  },
+  "duration": 1208.2469890117645,
+  "timelines": {
+    "agent_12e20fa6-4131-446b-ab3e-7372e85609cd": [
+      {
+        "timestamp": 17.45282506942749,
+        "wall_time": "23:43:03",
+        "phenomenal_state": {
+          "fast": [
+            -0.07414907217025757,
+            0.022699106484651566,
+            0.04473548009991646,
+            0.01430270355194807,
+            0.08101388067007065,
+            -0.03430662676692009,
+            -0.03793042153120041,
+            0.003651881357654929,
+            -0.010310964658856392,
+            -0.034324415028095245,
+            -0.037668973207473755,
+            0.03557957336306572,
+            0.004938511177897453,
+            0.006845714058727026,
+            -0.0009178351028822362,
+            -0.09521611034870148
+          ],
+          "medium": [
+            0.05010344460606575,
+            0.008188801817595959,
+            0.012117486447095871,
+            -0.031230155378580093,
+            -0.008722917176783085,
+            -0.039798662066459656,
+            -0.00614622188732028,
+            0.02456701546907425,
+            0.04882749170064926,
+            -0.022815799340605736,
+            0.037194058299064636,
+            0.04466237500309944,
+            -0.0013676481321454048,
+            -0.055678706616163254,
+            -0.04024779051542282,
+            0.006977686192840338
+          ],
+          "slow": [
+            -0.10048452764749527,
+            0.1318042129278183,
+            0.06271998584270477,
+            -0.018333733081817627,
+            0.004096881486475468,
+            0.0017202734015882015,
+            -0.15604880452156067,
+            0.057454466819763184
+          ],
+          "full": [
+            -0.07414907217025757,
+            0.022699106484651566,
+            0.04473548009991646,
+            0.01430270355194807,
+            0.08101388067007065,
+            -0.03430662676692009,
+            -0.03793042153120041,
+            0.003651881357654929,
+            -0.010310964658856392,
+            -0.034324415028095245,
+            -0.037668973207473755,
+            0.03557957336306572,
+            0.004938511177897453,
+            0.006845714058727026,
+            -0.0009178351028822362,
+            -0.09521611034870148,
+            0.05010344460606575,
+            0.008188801817595959,
+            0.012117486447095871,
+            -0.031230155378580093,
+            -0.008722917176783085,
+            -0.039798662066459656,
+            -0.00614622188732028,
+            0.02456701546907425,
+            0.04882749170064926,
+            -0.022815799340605736,
+            0.037194058299064636,
+            0.04466237500309944,
+            -0.0013676481321454048,
+            -0.055678706616163254,
+            -0.04024779051542282,
+            0.006977686192840338,
+            -0.10048452764749527,
+            0.1318042129278183,
+            0.06271998584270477,
+            -0.018333733081817627,
+            0.004096881486475468,
+            0.0017202734015882015,
+            -0.15604880452156067,
+            0.057454466819763184
+          ]
+        },
+        "affect": {
+          "valence": 0.4385289904227463,
+          "arousal": 0.6577934856341193,
+          "fear": 1.2171624553323942e-16,
+          "sorrow": -0.6577934856341192,
+          "boredom": -0.4385289904227462
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and spar",
+        "conversation_context": [
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43852898478507996,
+              0.6577934622764587,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834183.327363,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.613628848227938
+          ],
+          [
+            1,
+            0.37268064048096006
+          ],
+          [
+            2,
+            0.37268064048096006
+          ],
+          [
+            26,
+            0.37268064048096006
+          ],
+          [
+            6,
+            0.2860915982446349
+          ],
+          [
+            12,
+            0.2860915982446349
+          ],
+          [
+            4,
+            0.24094820774697784
+          ],
+          [
+            7,
+            0.24094820774697784
+          ],
+          [
+            23,
+            0.24094820774697784
+          ]
+        ],
+        "body_codes": [
+          [
+            25,
+            0.26884596755335705
+          ],
+          [
+            12,
+            0.26884596755335705
+          ],
+          [
+            38,
+            0.26884596755335705
+          ],
+          [
+            1,
+            0.20638199086409129
+          ],
+          [
+            10,
+            0.20638199086409129
+          ],
+          [
+            22,
+            0.20638199086409129
+          ],
+          [
+            26,
+            0.20638199086409129
+          ]
+        ],
+        "expression_description": "expression: Upper Lid Raiser, Inner Brow Raiser, freeze, still (shock), arms raised (surprise/surrender), head snap toward (alert)",
+        "event_type": "enter",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      },
+      {
+        "timestamp": 20.25050711631775,
+        "wall_time": "23:43:06",
+        "phenomenal_state": {
+          "fast": [
+            -0.07414907217025757,
+            0.022699106484651566,
+            0.04473548009991646,
+            0.01430270355194807,
+            0.08101388067007065,
+            -0.03430662676692009,
+            -0.03793042153120041,
+            0.003651881357654929,
+            -0.010310964658856392,
+            -0.034324415028095245,
+            -0.037668973207473755,
+            0.03557957336306572,
+            0.004938511177897453,
+            0.006845714058727026,
+            -0.0009178351028822362,
+            -0.09521611034870148
+          ],
+          "medium": [
+            0.05010344460606575,
+            0.008188801817595959,
+            0.012117486447095871,
+            -0.031230155378580093,
+            -0.008722917176783085,
+            -0.039798662066459656,
+            -0.00614622188732028,
+            0.02456701546907425,
+            0.04882749170064926,
+            -0.022815799340605736,
+            0.037194058299064636,
+            0.04466237500309944,
+            -0.0013676481321454048,
+            -0.055678706616163254,
+            -0.04024779051542282,
+            0.006977686192840338
+          ],
+          "slow": [
+            -0.10048452764749527,
+            0.1318042129278183,
+            0.06271998584270477,
+            -0.018333733081817627,
+            0.004096881486475468,
+            0.0017202734015882015,
+            -0.15604880452156067,
+            0.057454466819763184
+          ],
+          "full": [
+            -0.07414907217025757,
+            0.022699106484651566,
+            0.04473548009991646,
+            0.01430270355194807,
+            0.08101388067007065,
+            -0.03430662676692009,
+            -0.03793042153120041,
+            0.003651881357654929,
+            -0.010310964658856392,
+            -0.034324415028095245,
+            -0.037668973207473755,
+            0.03557957336306572,
+            0.004938511177897453,
+            0.006845714058727026,
+            -0.0009178351028822362,
+            -0.09521611034870148,
+            0.05010344460606575,
+            0.008188801817595959,
+            0.012117486447095871,
+            -0.031230155378580093,
+            -0.008722917176783085,
+            -0.039798662066459656,
+            -0.00614622188732028,
+            0.02456701546907425,
+            0.04882749170064926,
+            -0.022815799340605736,
+            0.037194058299064636,
+            0.04466237500309944,
+            -0.0013676481321454048,
+            -0.055678706616163254,
+            -0.04024779051542282,
+            0.006977686192840338,
+            -0.10048452764749527,
+            0.1318042129278183,
+            0.06271998584270477,
+            -0.018333733081817627,
+            0.004096881486475468,
+            0.0017202734015882015,
+            -0.15604880452156067,
+            0.057454466819763184
+          ]
+        },
+        "affect": {
+          "valence": -0.07414907217025757,
+          "arousal": 0.022699106484651566,
+          "fear": 0.04473548009991646,
+          "sorrow": 0.01430270355194807,
+          "boredom": 0.08101388067007065
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": true,
+        "utterance": "By Jove! A nine-year-old with wild curls and a wooden sword? Capital! And that glowing red-hot atomic fireball candy\u2014POOP-POOP! That\u2019s the MOST MAGNIFICENT thing I\u2019ve seen all day!  \n:adjusts goggles and bounces excitedly  \nCan I have a bite? I promise I\u2019ll be a perfect gentleman with the sugar\u2014just like a proper motor-car enthusiast with a fine appetite!",
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "Response to user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "conversation_context": [
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43852898478507996,
+              0.6577934622764587,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834183.327363,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [],
+        "body_codes": [],
+        "expression_description": "",
+        "event_type": "unknown",
+        "responding_to": "",
+        "metadata": {}
+      },
+      {
+        "timestamp": 34.466784954071045,
+        "wall_time": "23:43:20",
+        "phenomenal_state": {
+          "fast": [
+            -0.11321120709180832,
+            0.021090811118483543,
+            0.06792230904102325,
+            0.016406124457716942,
+            0.1271217167377472,
+            -0.05655049905180931,
+            -0.07048539817333221,
+            -0.018590770661830902,
+            -0.008098826743662357,
+            -0.06150662899017334,
+            -0.0398675836622715,
+            0.04533885791897774,
+            0.016519686207175255,
+            0.016730455681681633,
+            -0.003674949984997511,
+            -0.14649410545825958
+          ],
+          "medium": [
+            0.0773211419582367,
+            0.006879651453346014,
+            0.020176127552986145,
+            -0.03890148177742958,
+            -0.021969273686408997,
+            -0.0489770881831646,
+            -0.006378328427672386,
+            0.02779538929462433,
+            0.08481772989034653,
+            -0.03210743889212608,
+            0.050697632133960724,
+            0.0729164257645607,
+            -0.0006537725566886365,
+            -0.07530646026134491,
+            -0.05484892800450325,
+            0.0019798411522060633
+          ],
+          "slow": [
+            -0.17497622966766357,
+            0.1980101466178894,
+            0.09913301467895508,
+            -0.022279486060142517,
+            0.00014904281124472618,
+            0.0018568283412605524,
+            -0.24643033742904663,
+            0.08906789869070053
+          ],
+          "full": [
+            -0.11321120709180832,
+            0.021090811118483543,
+            0.06792230904102325,
+            0.016406124457716942,
+            0.1271217167377472,
+            -0.05655049905180931,
+            -0.07048539817333221,
+            -0.018590770661830902,
+            -0.008098826743662357,
+            -0.06150662899017334,
+            -0.0398675836622715,
+            0.04533885791897774,
+            0.016519686207175255,
+            0.016730455681681633,
+            -0.003674949984997511,
+            -0.14649410545825958,
+            0.0773211419582367,
+            0.006879651453346014,
+            0.020176127552986145,
+            -0.03890148177742958,
+            -0.021969273686408997,
+            -0.0489770881831646,
+            -0.006378328427672386,
+            0.02779538929462433,
+            0.08481772989034653,
+            -0.03210743889212608,
+            0.050697632133960724,
+            0.0729164257645607,
+            -0.0006537725566886365,
+            -0.07530646026134491,
+            -0.05484892800450325,
+            0.0019798411522060633,
+            -0.17497622966766357,
+            0.1980101466178894,
+            0.09913301467895508,
+            -0.022279486060142517,
+            0.00014904281124472618,
+            0.0018568283412605524,
+            -0.24643033742904663,
+            0.08906789869070053
+          ]
+        },
+        "affect": {
+          "valence": 0.4404151517049934,
+          "arousal": 0.5872202022733245,
+          "fear": 0.14680505056833096,
+          "sorrow": -0.5872202022733248,
+          "boredom": -0.5872202022733248
+        },
+        "surprise": 0.1858459860086441,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.09979220870647544,
+          "medium": 0.06420820282920203,
+          "slow": 0.14302989758806986
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and spar",
+        "conversation_context": [
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43852898478507996,
+              0.6577934622764587,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834183.327363,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_12e20fa6-4131-446b-ab3e-7372e85609cd",
+            "text": "By Jove! A nine-year-old with wild curls and a wooden sword? Capital! And that glowing red-hot atomic fireball candy\u2014POOP-POOP! That\u2019s the MOST MAGNIFICENT thing I\u2019ve seen all day!  \n:adjusts goggles and bounces excitedly  \nCan I have a bite? I promise I\u2019ll be a perfect gentleman with the sugar\u2014just like a proper motor-car enthusiast with a fine appetite!",
+            "affect": [
+              -0.07414907217025757,
+              0.022699106484651566,
+              0.04473548009991646,
+              0.01430270355194807,
+              0.08101388067007065
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834186.77014,
+            "importance": 0.21452722679823638,
+            "identity_salience": 1.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.4404151439666748,
+              0.5872201919555664,
+              0.1468050479888916,
+              -0.5872201919555664,
+              -0.5872201919555664
+            ],
+            "surprise": 0.1858459860086441,
+            "timestamp": 1764834200.434815,
+            "importance": 0.24292299300432205,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": null,
+        "body_codes": null,
+        "expression_description": null,
+        "event_type": "enter",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      },
+      {
+        "timestamp": 42.94871711730957,
+        "wall_time": "23:43:29",
+        "phenomenal_state": {
+          "fast": [
+            -0.13261495530605316,
+            0.017052022740244865,
+            0.08224060386419296,
+            0.01270203199237585,
+            0.1615716814994812,
+            -0.0660218596458435,
+            -0.0825764536857605,
+            -0.02429375797510147,
+            -0.005230403970927,
+            -0.0727573111653328,
+            -0.04313983395695686,
+            0.045292437076568604,
+            0.01820656843483448,
+            0.026954423636198044,
+            -0.004120434634387493,
+            -0.18001016974449158
+          ],
+          "medium": [
+            0.09231484681367874,
+            0.002666785614565015,
+            0.024820953607559204,
+            -0.03698180615901947,
+            -0.03229570388793945,
+            -0.04783494025468826,
+            -0.0044521763920784,
+            0.025407960638403893,
+            0.1073315441608429,
+            -0.03647793456912041,
+            0.054821960628032684,
+            0.08920236676931381,
+            0.0002599898143671453,
+            -0.08110149204730988,
+            -0.06155203655362129,
+            -0.003373347222805023
+          ],
+          "slow": [
+            -0.2225940227508545,
+            0.226861834526062,
+            0.11887961626052856,
+            -0.022241346538066864,
+            -0.005818966776132584,
+            0.0008307115058414638,
+            -0.30082136392593384,
+            0.10704344511032104
+          ],
+          "full": [
+            -0.13261495530605316,
+            0.017052022740244865,
+            0.08224060386419296,
+            0.01270203199237585,
+            0.1615716814994812,
+            -0.0660218596458435,
+            -0.0825764536857605,
+            -0.02429375797510147,
+            -0.005230403970927,
+            -0.0727573111653328,
+            -0.04313983395695686,
+            0.045292437076568604,
+            0.01820656843483448,
+            0.026954423636198044,
+            -0.004120434634387493,
+            -0.18001016974449158,
+            0.09231484681367874,
+            0.002666785614565015,
+            0.024820953607559204,
+            -0.03698180615901947,
+            -0.03229570388793945,
+            -0.04783494025468826,
+            -0.0044521763920784,
+            0.025407960638403893,
+            0.1073315441608429,
+            -0.03647793456912041,
+            0.054821960628032684,
+            0.08920236676931381,
+            0.0002599898143671453,
+            -0.08110149204730988,
+            -0.06155203655362129,
+            -0.003373347222805023,
+            -0.2225940227508545,
+            0.226861834526062,
+            0.11887961626052856,
+            -0.022241346538066864,
+            -0.005818966776132584,
+            0.0008307115058414638,
+            -0.30082136392593384,
+            0.10704344511032104
+          ]
+        },
+        "affect": {
+          "valence": 0.4392190498171837,
+          "arousal": 0.5960829961804636,
+          "fear": 0.1254911570906237,
+          "sorrow": -0.6588285747257759,
+          "boredom": -0.501964628362496
+        },
+        "surprise": 0.10748283565044403,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.058678711173131795,
+          "medium": 0.03607477231740017,
+          "slow": 0.08251047162980404
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and spar",
+        "conversation_context": [
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43852898478507996,
+              0.6577934622764587,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834183.327363,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_12e20fa6-4131-446b-ab3e-7372e85609cd",
+            "text": "By Jove! A nine-year-old with wild curls and a wooden sword? Capital! And that glowing red-hot atomic fireball candy\u2014POOP-POOP! That\u2019s the MOST MAGNIFICENT thing I\u2019ve seen all day!  \n:adjusts goggles and bounces excitedly  \nCan I have a bite? I promise I\u2019ll be a perfect gentleman with the sugar\u2014just like a proper motor-car enthusiast with a fine appetite!",
+            "affect": [
+              -0.07414907217025757,
+              0.022699106484651566,
+              0.04473548009991646,
+              0.01430270355194807,
+              0.08101388067007065
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834186.77014,
+            "importance": 0.21452722679823638,
+            "identity_salience": 1.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.4404151439666748,
+              0.5872201919555664,
+              0.1468050479888916,
+              -0.5872201919555664,
+              -0.5872201919555664
+            ],
+            "surprise": 0.1858459860086441,
+            "timestamp": 1764834200.434815,
+            "importance": 0.24292299300432205,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_12e20fa6-4131-446b-ab3e-7372e85609cd",
+            "text": "[thought] By Jove! What a FIERCE little adventurer\u2014sparkling eyes, wooden sword, and an atomic fireball candy? Capital! Must have a motor-car that looks like THAT\u2014sputtering flames, rear-wheel drive, and a little shrieky hatchback! Poop-poop! I\u2019ll build one\u2014right now! And ask if she wants to buy a ride in it\u2026 well, for five pounds. Or even ten. Definitely not free. But generous!",
+            "affect": [
+              -0.11321120709180832,
+              0.021090811118483543,
+              0.06792230904102325,
+              0.016406124457716942,
+              0.1271217167377472
+            ],
+            "surprise": 0.1858459860086441,
+            "timestamp": 1764834204.204967,
+            "importance": 1.1301765476064753,
+            "identity_salience": 1.0,
+            "is_rumination": true
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43921905755996704,
+              0.5960829854011536,
+              0.1254911571741104,
+              -0.6588285565376282,
+              -0.5019646286964417
+            ],
+            "surprise": 0.10748283565044403,
+            "timestamp": 1764834208.961694,
+            "importance": 0.203741417825222,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": null,
+        "body_codes": null,
+        "expression_description": null,
+        "event_type": "enter",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      },
+      {
+        "timestamp": 48.54187512397766,
+        "wall_time": "23:43:35",
+        "phenomenal_state": {
+          "fast": [
+            -0.13261495530605316,
+            0.017052022740244865,
+            0.08224060386419296,
+            0.01270203199237585,
+            0.1615716814994812,
+            -0.0660218596458435,
+            -0.0825764536857605,
+            -0.02429375797510147,
+            -0.005230403970927,
+            -0.0727573111653328,
+            -0.04313983395695686,
+            0.045292437076568604,
+            0.01820656843483448,
+            0.026954423636198044,
+            -0.004120434634387493,
+            -0.18001016974449158
+          ],
+          "medium": [
+            0.09231484681367874,
+            0.002666785614565015,
+            0.024820953607559204,
+            -0.03698180615901947,
+            -0.03229570388793945,
+            -0.04783494025468826,
+            -0.0044521763920784,
+            0.025407960638403893,
+            0.1073315441608429,
+            -0.03647793456912041,
+            0.054821960628032684,
+            0.08920236676931381,
+            0.0002599898143671453,
+            -0.08110149204730988,
+            -0.06155203655362129,
+            -0.003373347222805023
+          ],
+          "slow": [
+            -0.2225940227508545,
+            0.226861834526062,
+            0.11887961626052856,
+            -0.022241346538066864,
+            -0.005818966776132584,
+            0.0008307115058414638,
+            -0.30082136392593384,
+            0.10704344511032104
+          ],
+          "full": [
+            -0.13261495530605316,
+            0.017052022740244865,
+            0.08224060386419296,
+            0.01270203199237585,
+            0.1615716814994812,
+            -0.0660218596458435,
+            -0.0825764536857605,
+            -0.02429375797510147,
+            -0.005230403970927,
+            -0.0727573111653328,
+            -0.04313983395695686,
+            0.045292437076568604,
+            0.01820656843483448,
+            0.026954423636198044,
+            -0.004120434634387493,
+            -0.18001016974449158,
+            0.09231484681367874,
+            0.002666785614565015,
+            0.024820953607559204,
+            -0.03698180615901947,
+            -0.03229570388793945,
+            -0.04783494025468826,
+            -0.0044521763920784,
+            0.025407960638403893,
+            0.1073315441608429,
+            -0.03647793456912041,
+            0.054821960628032684,
+            0.08920236676931381,
+            0.0002599898143671453,
+            -0.08110149204730988,
+            -0.06155203655362129,
+            -0.003373347222805023,
+            -0.2225940227508545,
+            0.226861834526062,
+            0.11887961626052856,
+            -0.022241346538066864,
+            -0.005818966776132584,
+            0.0008307115058414638,
+            -0.30082136392593384,
+            0.10704344511032104
+          ]
+        },
+        "affect": {
+          "valence": -0.13261495530605316,
+          "arousal": 0.017052022740244865,
+          "fear": 0.08224060386419296,
+          "sorrow": 0.01270203199237585,
+          "boredom": 0.1615716814994812
+        },
+        "surprise": 0.10748283565044403,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": true,
+        "utterance": ":adjusts goggles with a dramatic flourish and leans forward eagerly  \nBy Jove! A wooden sword, glowing candy, AND a nine-year-old adventurer? Capital! I say\u2014what\u2019s the name of that fine little motor-car you\u2019re riding? No, wait\u2014I mean: do you fancy a ride in MY new atomic fireball-powered roadster? It\u2019s got spinning wheels, a roaring engine (well, metaphorical), and a TON of polished brass! Poop-poop! I\u2019ll build it right now\u2014just say the word!\n\n:twirls a finger in the air like a mad inventor  \nAnd if you\u2019re a proper lady of adventure, I\u2019ll even let you steer\u2014on one condition: you share that fireball candy first. Promise not to eat it all in one go\u2014unless, of course, you\u2019re planning a grand explosion! Then I\u2019ll cheer louder than the crowds at Silverstone!",
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "Response to user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "conversation_context": [
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43852898478507996,
+              0.6577934622764587,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834183.327363,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_12e20fa6-4131-446b-ab3e-7372e85609cd",
+            "text": "By Jove! A nine-year-old with wild curls and a wooden sword? Capital! And that glowing red-hot atomic fireball candy\u2014POOP-POOP! That\u2019s the MOST MAGNIFICENT thing I\u2019ve seen all day!  \n:adjusts goggles and bounces excitedly  \nCan I have a bite? I promise I\u2019ll be a perfect gentleman with the sugar\u2014just like a proper motor-car enthusiast with a fine appetite!",
+            "affect": [
+              -0.07414907217025757,
+              0.022699106484651566,
+              0.04473548009991646,
+              0.01430270355194807,
+              0.08101388067007065
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834186.77014,
+            "importance": 0.21452722679823638,
+            "identity_salience": 1.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.4404151439666748,
+              0.5872201919555664,
+              0.1468050479888916,
+              -0.5872201919555664,
+              -0.5872201919555664
+            ],
+            "surprise": 0.1858459860086441,
+            "timestamp": 1764834200.434815,
+            "importance": 0.24292299300432205,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_12e20fa6-4131-446b-ab3e-7372e85609cd",
+            "text": "[thought] By Jove! What a FIERCE little adventurer\u2014sparkling eyes, wooden sword, and an atomic fireball candy? Capital! Must have a motor-car that looks like THAT\u2014sputtering flames, rear-wheel drive, and a little shrieky hatchback! Poop-poop! I\u2019ll build one\u2014right now! And ask if she wants to buy a ride in it\u2026 well, for five pounds. Or even ten. Definitely not free. But generous!",
+            "affect": [
+              -0.11321120709180832,
+              0.021090811118483543,
+              0.06792230904102325,
+              0.016406124457716942,
+              0.1271217167377472
+            ],
+            "surprise": 0.1858459860086441,
+            "timestamp": 1764834204.204967,
+            "importance": 4.520706190425901,
+            "identity_salience": 1.0,
+            "is_rumination": true
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43921905755996704,
+              0.5960829854011536,
+              0.1254911571741104,
+              -0.6588285565376282,
+              -0.5019646286964417
+            ],
+            "surprise": 0.10748283565044403,
+            "timestamp": 1764834208.961694,
+            "importance": 0.203741417825222,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [],
+        "body_codes": [],
+        "expression_description": "",
+        "event_type": "unknown",
+        "responding_to": "",
+        "metadata": {}
+      }
+    ],
+    "agent_dff4f51f-01f0-41c3-93ac-ca5df165c204": [
+      {
+        "timestamp": 19.027658939361572,
+        "wall_time": "23:43:05",
+        "phenomenal_state": {
+          "fast": [
+            0.0751805454492569,
+            0.046734414994716644,
+            0.011880213394761086,
+            -0.11795684695243835,
+            -0.0063523296266794205,
+            0.023184001445770264,
+            0.006836272310465574,
+            -0.04320647194981575,
+            -0.08770914375782013,
+            -0.06060730293393135,
+            0.07802391797304153,
+            -0.007447166834026575,
+            -0.00476572522893548,
+            0.03306768834590912,
+            0.07799345999956131,
+            0.05219350755214691
+          ],
+          "medium": [
+            -0.012037955224514008,
+            -0.04300404712557793,
+            -0.055216170847415924,
+            -0.04270598664879799,
+            0.001678684027865529,
+            -0.06300525367259979,
+            0.07769200950860977,
+            -0.06064765155315399,
+            0.03660550341010094,
+            0.025671176612377167,
+            0.029697755351662636,
+            0.036596693098545074,
+            -0.00946762040257454,
+            0.026573143899440765,
+            -0.04855123907327652,
+            0.047330453991889954
+          ],
+          "slow": [
+            -0.059374094009399414,
+            -0.13610218465328217,
+            -0.033587779849767685,
+            -0.20728273689746857,
+            0.12564577162265778,
+            -0.008470134809613228,
+            -0.07086028903722763,
+            0.06979426741600037
+          ],
+          "full": [
+            0.0751805454492569,
+            0.046734414994716644,
+            0.011880213394761086,
+            -0.11795684695243835,
+            -0.0063523296266794205,
+            0.023184001445770264,
+            0.006836272310465574,
+            -0.04320647194981575,
+            -0.08770914375782013,
+            -0.06060730293393135,
+            0.07802391797304153,
+            -0.007447166834026575,
+            -0.00476572522893548,
+            0.03306768834590912,
+            0.07799345999956131,
+            0.05219350755214691,
+            -0.012037955224514008,
+            -0.04300404712557793,
+            -0.055216170847415924,
+            -0.04270598664879799,
+            0.001678684027865529,
+            -0.06300525367259979,
+            0.07769200950860977,
+            -0.06064765155315399,
+            0.03660550341010094,
+            0.025671176612377167,
+            0.029697755351662636,
+            0.036596693098545074,
+            -0.00946762040257454,
+            0.026573143899440765,
+            -0.04855123907327652,
+            0.047330453991889954,
+            -0.059374094009399414,
+            -0.13610218465328217,
+            -0.033587779849767685,
+            -0.20728273689746857,
+            0.12564577162265778,
+            -0.008470134809613228,
+            -0.07086028903722763,
+            0.06979426741600037
+          ]
+        },
+        "affect": {
+          "valence": 0.6577934856341193,
+          "arousal": 0.4385289904227463,
+          "fear": 1.2171624553323942e-16,
+          "sorrow": -0.6577934856341192,
+          "boredom": -0.4385289904227462
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and spar",
+        "conversation_context": [
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.6577934622764587,
+              0.43852898478507996,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834185.0907872,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            6,
+            0.5007705160059135
+          ],
+          [
+            12,
+            0.5007705160059135
+          ],
+          [
+            1,
+            0.26796629402534383
+          ],
+          [
+            2,
+            0.26796629402534383
+          ],
+          [
+            5,
+            0.26796629402534383
+          ],
+          [
+            26,
+            0.26796629402534383
+          ]
+        ],
+        "body_codes": [
+          [
+            1,
+            0.5460273756584254
+          ],
+          [
+            10,
+            0.34126710978651587
+          ],
+          [
+            22,
+            0.34126710978651587
+          ],
+          [
+            26,
+            0.34126710978651587
+          ],
+          [
+            7,
+            0.2047602658719095
+          ],
+          [
+            34,
+            0.2047602658719095
+          ],
+          [
+            13,
+            0.2047602658719095
+          ]
+        ],
+        "expression_description": "smiling, upright, confident, arms spread wide (welcome/joy), jump (excitement)",
+        "event_type": "enter",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      },
+      {
+        "timestamp": 25.29211115837097,
+        "wall_time": "23:43:11",
+        "phenomenal_state": {
+          "fast": [
+            0.11832921952009201,
+            0.03593244403600693,
+            0.020024973899126053,
+            -0.14835336804389954,
+            -0.009448109194636345,
+            0.03249572217464447,
+            0.010200250893831253,
+            -0.07586325705051422,
+            -0.1495368480682373,
+            -0.07715904712677002,
+            0.12169236689805984,
+            -0.0015328708104789257,
+            -0.011620355769991875,
+            0.03971436619758606,
+            0.12233159691095352,
+            0.07059460878372192
+          ],
+          "medium": [
+            -0.017740316689014435,
+            -0.056479256600141525,
+            -0.09322506934404373,
+            -0.06609555333852768,
+            0.006354109849780798,
+            -0.10281408578157425,
+            0.1337466835975647,
+            -0.09761250764131546,
+            0.04814815893769264,
+            0.03315214812755585,
+            0.04762974753975868,
+            0.059612974524497986,
+            -0.0032977424561977386,
+            0.041649945080280304,
+            -0.06557102501392365,
+            0.07012259215116501
+          ],
+          "slow": [
+            -0.11387042701244354,
+            -0.1808096468448639,
+            -0.03701494634151459,
+            -0.29156431555747986,
+            0.1869126409292221,
+            -0.04343108460307121,
+            -0.1194525808095932,
+            0.11144319176673889
+          ],
+          "full": [
+            0.11832921952009201,
+            0.03593244403600693,
+            0.020024973899126053,
+            -0.14835336804389954,
+            -0.009448109194636345,
+            0.03249572217464447,
+            0.010200250893831253,
+            -0.07586325705051422,
+            -0.1495368480682373,
+            -0.07715904712677002,
+            0.12169236689805984,
+            -0.0015328708104789257,
+            -0.011620355769991875,
+            0.03971436619758606,
+            0.12233159691095352,
+            0.07059460878372192,
+            -0.017740316689014435,
+            -0.056479256600141525,
+            -0.09322506934404373,
+            -0.06609555333852768,
+            0.006354109849780798,
+            -0.10281408578157425,
+            0.1337466835975647,
+            -0.09761250764131546,
+            0.04814815893769264,
+            0.03315214812755585,
+            0.04762974753975868,
+            0.059612974524497986,
+            -0.0032977424561977386,
+            0.041649945080280304,
+            -0.06557102501392365,
+            0.07012259215116501,
+            -0.11387042701244354,
+            -0.1808096468448639,
+            -0.03701494634151459,
+            -0.29156431555747986,
+            0.1869126409292221,
+            -0.04343108460307121,
+            -0.1194525808095932,
+            0.11144319176673889
+          ]
+        },
+        "affect": {
+          "valence": 0.4385289904227463,
+          "arousal": 0.6577934856341193,
+          "fear": 1.2171624553323942e-16,
+          "sorrow": -0.6577934856341192,
+          "boredom": -0.4385289904227462
+        },
+        "surprise": 0.21016305685043335,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and spar",
+        "conversation_context": [
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.6577934622764587,
+              0.43852898478507996,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834185.0907872,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43852898478507996,
+              0.6577934622764587,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.21016305685043335,
+            "timestamp": 1764834190.95188,
+            "importance": 0.2550815284252167,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": null,
+        "body_codes": null,
+        "expression_description": null,
+        "event_type": "enter",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      },
+      {
+        "timestamp": 31.58848524093628,
+        "wall_time": "23:43:18",
+        "phenomenal_state": {
+          "fast": [
+            0.14286576211452484,
+            0.01912720873951912,
+            0.019652167335152626,
+            -0.1627153605222702,
+            -0.014426595531404018,
+            0.036189787089824677,
+            0.013000501319766045,
+            -0.09338376671075821,
+            -0.18240199983119965,
+            -0.08292428404092789,
+            0.14320847392082214,
+            0.004066324792802334,
+            -0.015112703666090965,
+            0.042363241314888,
+            0.1473555862903595,
+            0.077870212495327
+          ],
+          "medium": [
+            -0.022210897877812386,
+            -0.05856138467788696,
+            -0.11752607673406601,
+            -0.07887201011180878,
+            0.011771506629884243,
+            -0.12717649340629578,
+            0.1718793511390686,
+            -0.11829381436109543,
+            0.05025055259466171,
+            0.03475087508559227,
+            0.05734448879957199,
+            0.0721203088760376,
+            0.005601419601589441,
+            0.0505378395318985,
+            -0.06917504221200943,
+            0.07986085116863251
+          ],
+          "slow": [
+            -0.15440821647644043,
+            -0.19388389587402344,
+            -0.03304886817932129,
+            -0.32294654846191406,
+            0.21526187658309937,
+            -0.07291906327009201,
+            -0.1507028490304947,
+            0.12990860641002655
+          ],
+          "full": [
+            0.14286576211452484,
+            0.01912720873951912,
+            0.019652167335152626,
+            -0.1627153605222702,
+            -0.014426595531404018,
+            0.036189787089824677,
+            0.013000501319766045,
+            -0.09338376671075821,
+            -0.18240199983119965,
+            -0.08292428404092789,
+            0.14320847392082214,
+            0.004066324792802334,
+            -0.015112703666090965,
+            0.042363241314888,
+            0.1473555862903595,
+            0.077870212495327,
+            -0.022210897877812386,
+            -0.05856138467788696,
+            -0.11752607673406601,
+            -0.07887201011180878,
+            0.011771506629884243,
+            -0.12717649340629578,
+            0.1718793511390686,
+            -0.11829381436109543,
+            0.05025055259466171,
+            0.03475087508559227,
+            0.05734448879957199,
+            0.0721203088760376,
+            0.005601419601589441,
+            0.0505378395318985,
+            -0.06917504221200943,
+            0.07986085116863251,
+            -0.15440821647644043,
+            -0.19388389587402344,
+            -0.03304886817932129,
+            -0.32294654846191406,
+            0.21526187658309937,
+            -0.07291906327009201,
+            -0.1507028490304947,
+            0.12990860641002655
+          ]
+        },
+        "affect": {
+          "valence": 0.4385289904227463,
+          "arousal": 0.6577934856341193,
+          "fear": 1.2171624553323942e-16,
+          "sorrow": -0.6577934856341192,
+          "boredom": -0.4385289904227462
+        },
+        "surprise": 0.11559534817934036,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.06123807858259701,
+          "medium": 0.061697552747516995,
+          "slow": 0.07619444553386528
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and spar",
+        "conversation_context": [
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.6577934622764587,
+              0.43852898478507996,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834185.0907872,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43852898478507996,
+              0.6577934622764587,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.21016305685043335,
+            "timestamp": 1764834190.95188,
+            "importance": 0.2550815284252167,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "caity appears. A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)",
+            "affect": [
+              0.43852898478507996,
+              0.6577934622764587,
+              1.21716239005389e-16,
+              -0.6577934622764587,
+              -0.43852898478507996
+            ],
+            "surprise": 0.11559534817934036,
+            "timestamp": 1764834197.512065,
+            "importance": 0.20779767408967018,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": null,
+        "body_codes": null,
+        "expression_description": null,
+        "event_type": "enter",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      }
+    ],
+    "agent_mr._toad": [
+      {
+        "timestamp": 53.443578243255615,
+        "wall_time": "23:43:39",
+        "phenomenal_state": {
+          "fast": [
+            -0.07444991916418076,
+            0.019282391294836998,
+            -0.0017413366585969925,
+            0.037074726074934006,
+            -0.09968007355928421,
+            -0.0044952211901545525,
+            -0.10584370046854019,
+            -0.04747816175222397,
+            0.00042662970372475684,
+            -0.04616239294409752,
+            0.030654627829790115,
+            0.0561039075255394,
+            -0.0571783073246479,
+            -0.025274032726883888,
+            -0.067750483751297,
+            0.0009224829263985157
+          ],
+          "medium": [
+            0.053818479180336,
+            -0.035637266933918,
+            -0.023465124890208244,
+            0.03192196041345596,
+            0.0436716228723526,
+            -0.012624446302652359,
+            0.048705920577049255,
+            -0.030480552464723587,
+            0.03667838126420975,
+            -0.016116568818688393,
+            -0.007029603701084852,
+            -0.05970681086182594,
+            -0.01633693277835846,
+            0.05637356638908386,
+            0.041656121611595154,
+            0.04193257912993431
+          ],
+          "slow": [
+            -0.050996724516153336,
+            -0.0976567268371582,
+            0.1612718403339386,
+            -0.09606405347585678,
+            0.1653135120868683,
+            0.03483106195926666,
+            -0.1237717941403389,
+            -0.012858531437814236
+          ],
+          "full": [
+            -0.07444991916418076,
+            0.019282391294836998,
+            -0.0017413366585969925,
+            0.037074726074934006,
+            -0.09968007355928421,
+            -0.0044952211901545525,
+            -0.10584370046854019,
+            -0.04747816175222397,
+            0.00042662970372475684,
+            -0.04616239294409752,
+            0.030654627829790115,
+            0.0561039075255394,
+            -0.0571783073246479,
+            -0.025274032726883888,
+            -0.067750483751297,
+            0.0009224829263985157,
+            0.053818479180336,
+            -0.035637266933918,
+            -0.023465124890208244,
+            0.03192196041345596,
+            0.0436716228723526,
+            -0.012624446302652359,
+            0.048705920577049255,
+            -0.030480552464723587,
+            0.03667838126420975,
+            -0.016116568818688393,
+            -0.007029603701084852,
+            -0.05970681086182594,
+            -0.01633693277835846,
+            0.05637356638908386,
+            0.041656121611595154,
+            0.04193257912993431,
+            -0.050996724516153336,
+            -0.0976567268371582,
+            0.1612718403339386,
+            -0.09606405347585678,
+            0.1653135120868683,
+            0.03483106195926666,
+            -0.1237717941403389,
+            -0.012858531437814236
+          ]
+        },
+        "affect": {
+          "valence": -0.7497771311077516,
+          "arousal": 0.6722139796138462,
+          "fear": 0.41367014130082835,
+          "sorrow": -0.23268945448171602,
+          "boredom": -0.10341753532520713
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "agent_red_fire_anklebiter: Red Fire Anklebiter (gremlin) steps into the scene. A two-foot-tall imp of crimson flame, crackling ",
+        "conversation_context": [
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "Red Fire Anklebiter (gremlin) steps into the scene. A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+            "affect": [
+              -0.7497771382331848,
+              0.6722139716148376,
+              0.413670152425766,
+              -0.23268945515155792,
+              -0.1034175381064415
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834219.372535,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.5900421650797872
+          ],
+          [
+            4,
+            0.3361172810551852
+          ],
+          [
+            7,
+            0.3361172810551852
+          ],
+          [
+            23,
+            0.3361172810551852
+          ],
+          [
+            1,
+            0.25392488402460206
+          ],
+          [
+            2,
+            0.25392488402460206
+          ],
+          [
+            26,
+            0.25392488402460206
+          ]
+        ],
+        "body_codes": [
+          [
+            20,
+            0.26704033841332564
+          ],
+          [
+            18,
+            0.26704033841332564
+          ],
+          [
+            27,
+            0.26704033841332564
+          ],
+          [
+            7,
+            0.26704033841332564
+          ],
+          [
+            25,
+            0.20173966286000378
+          ],
+          [
+            12,
+            0.20173966286000378
+          ],
+          [
+            38,
+            0.20173966286000378
+          ]
+        ],
+        "expression_description": "expression: Upper Lid Raiser, Brow Lowerer, step forward (approach), fists clenched (anger), stomping (anger)",
+        "event_type": "enter",
+        "responding_to": "agent_red_fire_anklebiter",
+        "metadata": {}
+      },
+      {
+        "timestamp": 60.47727823257446,
+        "wall_time": "23:43:46",
+        "phenomenal_state": {
+          "fast": [
+            -0.07444991916418076,
+            0.019282391294836998,
+            -0.0017413366585969925,
+            0.037074726074934006,
+            -0.09968007355928421,
+            -0.0044952211901545525,
+            -0.10584370046854019,
+            -0.04747816175222397,
+            0.00042662970372475684,
+            -0.04616239294409752,
+            0.030654627829790115,
+            0.0561039075255394,
+            -0.0571783073246479,
+            -0.025274032726883888,
+            -0.067750483751297,
+            0.0009224829263985157
+          ],
+          "medium": [
+            0.053818479180336,
+            -0.035637266933918,
+            -0.023465124890208244,
+            0.03192196041345596,
+            0.0436716228723526,
+            -0.012624446302652359,
+            0.048705920577049255,
+            -0.030480552464723587,
+            0.03667838126420975,
+            -0.016116568818688393,
+            -0.007029603701084852,
+            -0.05970681086182594,
+            -0.01633693277835846,
+            0.05637356638908386,
+            0.041656121611595154,
+            0.04193257912993431
+          ],
+          "slow": [
+            -0.050996724516153336,
+            -0.0976567268371582,
+            0.1612718403339386,
+            -0.09606405347585678,
+            0.1653135120868683,
+            0.03483106195926666,
+            -0.1237717941403389,
+            -0.012858531437814236
+          ],
+          "full": [
+            -0.07444991916418076,
+            0.019282391294836998,
+            -0.0017413366585969925,
+            0.037074726074934006,
+            -0.09968007355928421,
+            -0.0044952211901545525,
+            -0.10584370046854019,
+            -0.04747816175222397,
+            0.00042662970372475684,
+            -0.04616239294409752,
+            0.030654627829790115,
+            0.0561039075255394,
+            -0.0571783073246479,
+            -0.025274032726883888,
+            -0.067750483751297,
+            0.0009224829263985157,
+            0.053818479180336,
+            -0.035637266933918,
+            -0.023465124890208244,
+            0.03192196041345596,
+            0.0436716228723526,
+            -0.012624446302652359,
+            0.048705920577049255,
+            -0.030480552464723587,
+            0.03667838126420975,
+            -0.016116568818688393,
+            -0.007029603701084852,
+            -0.05970681086182594,
+            -0.01633693277835846,
+            0.05637356638908386,
+            0.041656121611595154,
+            0.04193257912993431,
+            -0.050996724516153336,
+            -0.0976567268371582,
+            0.1612718403339386,
+            -0.09606405347585678,
+            0.1653135120868683,
+            0.03483106195926666,
+            -0.1237717941403389,
+            -0.012858531437814236
+          ]
+        },
+        "affect": {
+          "valence": -0.07444991916418076,
+          "arousal": 0.019282391294836998,
+          "fear": -0.0017413366585969925,
+          "sorrow": 0.037074726074934006,
+          "boredom": -0.09968007355928421
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": true,
+        "utterance": ":adjusts goggles with a dramatic flourish  \nBy Jove! What in the name of sizzling petrol and polished chrome is THIS little flame-heap? A fire-demon with a taste for adventure, eh? I say\u2014**CAPITAL**!  \n\n:leaps forward with a bouncing gait  \nTell me, little spark-dancer\u2014do you have a motor-car? Or better yet\u2014a FLAME-RODIN\u2019 bike? Poop-poop! We could have a TON of fun together\u2014dashing through the lanes like a pair of madmen! I\u2019ve got a *precious* red sports-car\u2014wonderful thing, if you must know\u2014and we could take it for a spin!  \n\n:strikes an heroic pose, chest puffed out  \nSo what say you? Shall we race through the countryside before nightfall\u2014and maybe, just maybe\u2014light a few bridges on fire for *style*? Don\u2019t worry! I\u2019ll pay for the repairs. **MAGNIFICENT**, eh?",
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "Response to agent_red_fire_anklebiter",
+        "conversation_context": [
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "Red Fire Anklebiter (gremlin) steps into the scene. A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+            "affect": [
+              -0.7497771382331848,
+              0.6722139716148376,
+              0.413670152425766,
+              -0.23268945515155792,
+              -0.1034175381064415
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834219.372535,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [],
+        "body_codes": [],
+        "expression_description": "",
+        "event_type": "unknown",
+        "responding_to": "",
+        "metadata": {}
+      },
+      {
+        "timestamp": 98.31425309181213,
+        "wall_time": "23:44:24",
+        "phenomenal_state": {
+          "fast": [
+            -0.2187390923500061,
+            -0.021009815856814384,
+            -0.06042388081550598,
+            0.06676512956619263,
+            -0.1616097241640091,
+            -0.09944714605808258,
+            -0.08381883800029755,
+            -0.08510573953390121,
+            -0.09203917533159256,
+            -0.13357414305210114,
+            0.03225066140294075,
+            0.02597963623702526,
+            0.016618460416793823,
+            -0.08610419183969498,
+            -0.07580006867647171,
+            -0.03065313771367073
+          ],
+          "medium": [
+            0.06014998257160187,
+            -0.050192106515169144,
+            -0.041363656520843506,
+            0.038699135184288025,
+            0.04857347160577774,
+            -0.015038155019283295,
+            0.061030298471450806,
+            -0.0460873618721962,
+            0.04915592819452286,
+            -0.036888882517814636,
+            -0.017975077033042908,
+            -0.07830359041690826,
+            -0.03666169196367264,
+            0.10675276070833206,
+            0.04256086051464081,
+            0.07169926911592484
+          ],
+          "slow": [
+            -0.06155242770910263,
+            -0.1490100622177124,
+            0.2421431839466095,
+            -0.13481754064559937,
+            0.24655908346176147,
+            0.03359190747141838,
+            -0.20112615823745728,
+            -0.026559315621852875
+          ],
+          "full": [
+            -0.2187390923500061,
+            -0.021009815856814384,
+            -0.06042388081550598,
+            0.06676512956619263,
+            -0.1616097241640091,
+            -0.09944714605808258,
+            -0.08381883800029755,
+            -0.08510573953390121,
+            -0.09203917533159256,
+            -0.13357414305210114,
+            0.03225066140294075,
+            0.02597963623702526,
+            0.016618460416793823,
+            -0.08610419183969498,
+            -0.07580006867647171,
+            -0.03065313771367073,
+            0.06014998257160187,
+            -0.050192106515169144,
+            -0.041363656520843506,
+            0.038699135184288025,
+            0.04857347160577774,
+            -0.015038155019283295,
+            0.061030298471450806,
+            -0.0460873618721962,
+            0.04915592819452286,
+            -0.036888882517814636,
+            -0.017975077033042908,
+            -0.07830359041690826,
+            -0.03666169196367264,
+            0.10675276070833206,
+            0.04256086051464081,
+            0.07169926911592484,
+            -0.06155242770910263,
+            -0.1490100622177124,
+            0.2421431839466095,
+            -0.13481754064559937,
+            0.24655908346176147,
+            0.03359190747141838,
+            -0.20112615823745728,
+            -0.026559315621852875
+          ]
+        },
+        "affect": {
+          "valence": 0.5985405584471829,
+          "arousal": 0.8018253886191763,
+          "fear": 0.24525572827518927,
+          "sorrow": -0.6744532527567715,
+          "boredom": 0.0
+        },
+        "surprise": 0.3135724365711212,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.2623526488626759,
+          "medium": 0.07703499825061641,
+          "slow": 0.1535069458172632
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: runs around in circles with a bucket on her head \"HEY CAN SOMEBODY HELP ME PLEASE'",
+        "conversation_context": [
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "runs around in circles with a bucket on her head \"HEY CAN SOMEBODY HELP ME PLEASE'",
+            "affect": [
+              0.5985405445098877,
+              0.8018254041671753,
+              0.2452557235956192,
+              -0.6744532585144043,
+              0.0
+            ],
+            "surprise": 0.3135724365711212,
+            "timestamp": 1764834264.1542,
+            "importance": 0.5828938147425652,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "Red Fire Anklebiter (gremlin) steps into the scene. A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+            "affect": [
+              -0.7497771382331848,
+              0.6722139716148376,
+              0.413670152425766,
+              -0.23268945515155792,
+              -0.1034175381064415
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834219.372535,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_mr._toad",
+            "text": ":adjusts goggles with a dramatic flourish  \nBy Jove! What in the name of sizzling petrol and polished chrome is THIS little flame-heap? A fire-demon with a taste for adventure, eh? I say\u2014**CAPITAL**!  \n\n:leaps forward with a bouncing gait  \nTell me, little spark-dancer\u2014do you have a motor-car? Or better yet\u2014a FLAME-RODIN\u2019 bike? Poop-poop! We could have a TON of fun together\u2014dashing through the lanes like a pair of madmen! I\u2019ve got a *precious* red sports-car\u2014wonderful thing, if you must know\u2014and we could take it for a spin!  \n\n:strikes an heroic pose, chest puffed out  \nSo what say you? Shall we race through the countryside before nightfall\u2014and maybe, just maybe\u2014light a few bridges on fire for *style*? Don\u2019t worry! I\u2019ll pay for the repairs. **MAGNIFICENT**, eh?",
+            "affect": [
+              -0.07444991916418076,
+              0.019282391294836998,
+              -0.0017413366585969925,
+              0.037074726074934006,
+              -0.09968007355928421
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834226.996896,
+            "importance": 0.21405984656885269,
+            "identity_salience": 1.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "runs around in circles with a bucket on her head \"HEY CAN SOMEBODY HELP ME PLEASE'",
+            "affect": [
+              0.5985405445098877,
+              0.8018254041671753,
+              0.2452557235956192,
+              -0.6744532585144043,
+              0.0
+            ],
+            "surprise": 0.3135724365711212,
+            "timestamp": 1764834264.1542,
+            "importance": 0.5828938147425652,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            1,
+            0.423327511795403
+          ],
+          [
+            2,
+            0.423327511795403
+          ],
+          [
+            5,
+            0.423327511795403
+          ],
+          [
+            26,
+            0.423327511795403
+          ],
+          [
+            6,
+            0.2906995918249116
+          ],
+          [
+            12,
+            0.2906995918249116
+          ]
+        ],
+        "body_codes": [
+          [
+            25,
+            0.27832347279923536
+          ],
+          [
+            12,
+            0.27832347279923536
+          ],
+          [
+            38,
+            0.27832347279923536
+          ]
+        ],
+        "expression_description": "expression: Inner Brow Raiser, Outer Brow Raiser, freeze, still (shock), arms raised (surprise/surrender), head snap toward (alert)",
+        "event_type": "emote",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      },
+      {
+        "timestamp": 177.99148416519165,
+        "wall_time": "23:45:44",
+        "phenomenal_state": {
+          "fast": [
+            -0.16176438331604004,
+            0.008313310332596302,
+            -0.06839404255151749,
+            0.07095462083816528,
+            -0.15638713538646698,
+            -0.03779188171029091,
+            -0.15185101330280304,
+            -0.08386405557394028,
+            -0.044126253575086594,
+            -0.10521768778562546,
+            0.031190507113933563,
+            0.06498711556196213,
+            -0.027457162737846375,
+            -0.08092392235994339,
+            -0.10000421106815338,
+            -0.019917165860533714
+          ],
+          "medium": [
+            0.06552274525165558,
+            -0.058160047978162766,
+            -0.0542757585644722,
+            0.0358915701508522,
+            0.06059490144252777,
+            -0.023155398666858673,
+            0.07195906341075897,
+            -0.04899542033672333,
+            0.05317334830760956,
+            -0.05077900364995003,
+            -0.020463082939386368,
+            -0.0943317711353302,
+            -0.04144972562789917,
+            0.12782025337219238,
+            0.03701384738087654,
+            0.08883456885814667
+          ],
+          "slow": [
+            -0.055552542209625244,
+            -0.1699751913547516,
+            0.2829285264015198,
+            -0.14951074123382568,
+            0.28936806321144104,
+            0.02080254629254341,
+            -0.24732109904289246,
+            -0.03724241629242897
+          ],
+          "full": [
+            -0.16176438331604004,
+            0.008313310332596302,
+            -0.06839404255151749,
+            0.07095462083816528,
+            -0.15638713538646698,
+            -0.03779188171029091,
+            -0.15185101330280304,
+            -0.08386405557394028,
+            -0.044126253575086594,
+            -0.10521768778562546,
+            0.031190507113933563,
+            0.06498711556196213,
+            -0.027457162737846375,
+            -0.08092392235994339,
+            -0.10000421106815338,
+            -0.019917165860533714,
+            0.06552274525165558,
+            -0.058160047978162766,
+            -0.0542757585644722,
+            0.0358915701508522,
+            0.06059490144252777,
+            -0.023155398666858673,
+            0.07195906341075897,
+            -0.04899542033672333,
+            0.05317334830760956,
+            -0.05077900364995003,
+            -0.020463082939386368,
+            -0.0943317711353302,
+            -0.04144972562789917,
+            0.12782025337219238,
+            0.03701384738087654,
+            0.08883456885814667,
+            -0.055552542209625244,
+            -0.1699751913547516,
+            0.2829285264015198,
+            -0.14951074123382568,
+            0.28936806321144104,
+            0.02080254629254341,
+            -0.24732109904289246,
+            -0.03724241629242897
+          ]
+        },
+        "affect": {
+          "valence": -0.7195694187334901,
+          "arousal": 0.6731455852668135,
+          "fear": 0.4410264179334294,
+          "sorrow": -0.2553310840667223,
+          "boredom": -0.13927150040003033
+        },
+        "surprise": 0.16854189336299896,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.1412042689540631,
+          "medium": 0.043227061464990016,
+          "slow": 0.08123513569236678
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: who turned out tha lights?!",
+        "conversation_context": [
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "Red Fire Anklebiter (gremlin) steps into the scene. A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+            "affect": [
+              -0.7497771382331848,
+              0.6722139716148376,
+              0.413670152425766,
+              -0.23268945515155792,
+              -0.1034175381064415
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834219.372535,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_mr._toad",
+            "text": ":adjusts goggles with a dramatic flourish  \nBy Jove! What in the name of sizzling petrol and polished chrome is THIS little flame-heap? A fire-demon with a taste for adventure, eh? I say\u2014**CAPITAL**!  \n\n:leaps forward with a bouncing gait  \nTell me, little spark-dancer\u2014do you have a motor-car? Or better yet\u2014a FLAME-RODIN\u2019 bike? Poop-poop! We could have a TON of fun together\u2014dashing through the lanes like a pair of madmen! I\u2019ve got a *precious* red sports-car\u2014wonderful thing, if you must know\u2014and we could take it for a spin!  \n\n:strikes an heroic pose, chest puffed out  \nSo what say you? Shall we race through the countryside before nightfall\u2014and maybe, just maybe\u2014light a few bridges on fire for *style*? Don\u2019t worry! I\u2019ll pay for the repairs. **MAGNIFICENT**, eh?",
+            "affect": [
+              -0.07444991916418076,
+              0.019282391294836998,
+              -0.0017413366585969925,
+              0.037074726074934006,
+              -0.09968007355928421
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834226.996896,
+            "importance": 0.21405984656885269,
+            "identity_salience": 1.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "runs around in circles with a bucket on her head \"HEY CAN SOMEBODY HELP ME PLEASE'",
+            "affect": [
+              0.5985405445098877,
+              0.8018254041671753,
+              0.2452557235956192,
+              -0.6744532585144043,
+              0.0
+            ],
+            "surprise": 0.3135724365711212,
+            "timestamp": 1764834264.1542,
+            "importance": 4.20849334244132,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_mr._toad",
+            "text": "[thought] By Jove! What a FASCINATING spectacle\u2014someone with a BUCKET on their head and running like a maniac! It\u2019s either a daring new fashion trend or the most magnificent emergency call ever! Poop-poop\u2014I simply MUST help\u2026 and probably turn it into a motor-car race while we\u2019re at it!",
+            "affect": [
+              -0.2187390923500061,
+              -0.021009815856814384,
+              -0.06042388081550598,
+              0.06676512956619263,
+              -0.1616097241640091
+            ],
+            "surprise": 0.3135724365711212,
+            "timestamp": 1764834267.947372,
+            "importance": 0.6975343256159685,
+            "identity_salience": 1.0,
+            "is_rumination": true
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "who turned out tha lights?!",
+            "affect": [
+              -0.7195694446563721,
+              0.673145592212677,
+              0.4410264194011688,
+              -0.2553310692310333,
+              -0.13927149772644043
+            ],
+            "surprise": 0.16854189336299896,
+            "timestamp": 1764834344.0036638,
+            "importance": 0.23427094668149948,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.5792659164124546
+          ],
+          [
+            4,
+            0.31901650054228115
+          ],
+          [
+            7,
+            0.31901650054228115
+          ],
+          [
+            23,
+            0.31901650054228115
+          ],
+          [
+            1,
+            0.2602494158701735
+          ],
+          [
+            2,
+            0.2602494158701735
+          ],
+          [
+            26,
+            0.2602494158701735
+          ]
+        ],
+        "body_codes": [
+          [
+            20,
+            0.25150887417273454
+          ],
+          [
+            18,
+            0.25150887417273454
+          ],
+          [
+            27,
+            0.25150887417273454
+          ],
+          [
+            7,
+            0.25150887417273454
+          ],
+          [
+            25,
+            0.2051775926272001
+          ],
+          [
+            12,
+            0.2051775926272001
+          ],
+          [
+            38,
+            0.2051775926272001
+          ]
+        ],
+        "expression_description": "expression: Upper Lid Raiser, Brow Lowerer, step forward (approach), fists clenched (anger), stomping (anger)",
+        "event_type": "say",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      }
+    ],
+    "agent_red_fire_anklebiter": [
+      {
+        "timestamp": 69.93632507324219,
+        "wall_time": "23:43:56",
+        "phenomenal_state": {
+          "fast": [
+            -0.010419327765703201,
+            -0.01760411448776722,
+            0.015916958451271057,
+            0.0714343935251236,
+            -0.06076986715197563,
+            0.005638440605252981,
+            0.050093356519937515,
+            0.018459893763065338,
+            -0.07739059627056122,
+            -0.06875541806221008,
+            -0.03501875326037407,
+            -0.004311916884034872,
+            0.025570033118128777,
+            -0.04639538750052452,
+            0.05343098193407059,
+            0.0024742139503359795
+          ],
+          "medium": [
+            -0.011452040635049343,
+            -0.04033469408750534,
+            0.01783730648458004,
+            -0.03233996406197548,
+            -0.02950575202703476,
+            -0.017416050657629967,
+            0.0068204025737941265,
+            -0.024555981159210205,
+            0.007255700416862965,
+            0.04986664652824402,
+            -0.03783435374498367,
+            -0.04620633274316788,
+            -0.01130535639822483,
+            0.056822869926691055,
+            0.009992821142077446,
+            -0.02427094615995884
+          ],
+          "slow": [
+            0.11959420144557953,
+            0.13299141824245453,
+            0.12093335390090942,
+            -0.004858809988945723,
+            0.04256461188197136,
+            0.03595607355237007,
+            -0.13459618389606476,
+            -0.20221032202243805
+          ],
+          "full": [
+            -0.010419327765703201,
+            -0.01760411448776722,
+            0.015916958451271057,
+            0.0714343935251236,
+            -0.06076986715197563,
+            0.005638440605252981,
+            0.050093356519937515,
+            0.018459893763065338,
+            -0.07739059627056122,
+            -0.06875541806221008,
+            -0.03501875326037407,
+            -0.004311916884034872,
+            0.025570033118128777,
+            -0.04639538750052452,
+            0.05343098193407059,
+            0.0024742139503359795,
+            -0.011452040635049343,
+            -0.04033469408750534,
+            0.01783730648458004,
+            -0.03233996406197548,
+            -0.02950575202703476,
+            -0.017416050657629967,
+            0.0068204025737941265,
+            -0.024555981159210205,
+            0.007255700416862965,
+            0.04986664652824402,
+            -0.03783435374498367,
+            -0.04620633274316788,
+            -0.01130535639822483,
+            0.056822869926691055,
+            0.009992821142077446,
+            -0.02427094615995884,
+            0.11959420144557953,
+            0.13299141824245453,
+            0.12093335390090942,
+            -0.004858809988945723,
+            0.04256461188197136,
+            0.03595607355237007,
+            -0.13459618389606476,
+            -0.20221032202243805
+          ]
+        },
+        "affect": {
+          "valence": 0.4656902973515113,
+          "arousal": 0.2716526734550483,
+          "fear": 0.4656902973515113,
+          "sorrow": -0.6985354460272669,
+          "boredom": -0.5044978221308039
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "agent_mr._toad: Mr. Toad (toad) pops up cheerfully. An amphibian of considerable girth, dressed in an immaculate twe",
+        "conversation_context": [
+          {
+            "user": "agent_mr._toad",
+            "text": "Mr. Toad (toad) pops up cheerfully. An amphibian of considerable girth, dressed in an immaculate tweed waistcoat with brass buttons that strain slightly. Driving goggles perch atop his wide head, always ready for adventure. His eyes are large and protuberant, constantly darting about for the Next Magnificent Thing. Webbed hands gesture grandly when he speaks. Smells faintly of pond water, leather, and expensive cologne. His chest puffs out importantly when making declarations.",
+            "affect": [
+              0.4656902849674225,
+              0.2716526687145233,
+              0.4656902849674225,
+              -0.6985354423522949,
+              -0.5044978260993958
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834236.0978718,
+            "importance": 0.11060144305229187,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            6,
+            0.25692706407787264
+          ],
+          [
+            12,
+            0.25692706407787264
+          ],
+          [
+            1,
+            0.2413125625850806
+          ],
+          [
+            2,
+            0.2413125625850806
+          ],
+          [
+            5,
+            0.2413125625850806
+          ],
+          [
+            26,
+            0.2413125625850806
+          ],
+          [
+            9,
+            0.20091908861149343
+          ],
+          [
+            15,
+            0.20091908861149343
+          ]
+        ],
+        "body_codes": [],
+        "expression_description": "expression: Cheek Raiser, Lip Corner Puller",
+        "event_type": "enter",
+        "responding_to": "agent_mr._toad",
+        "metadata": {}
+      },
+      {
+        "timestamp": 73.5315330028534,
+        "wall_time": "23:44:00",
+        "phenomenal_state": {
+          "fast": [
+            -0.010419327765703201,
+            -0.01760411448776722,
+            0.015916958451271057,
+            0.0714343935251236,
+            -0.06076986715197563,
+            0.005638440605252981,
+            0.050093356519937515,
+            0.018459893763065338,
+            -0.07739059627056122,
+            -0.06875541806221008,
+            -0.03501875326037407,
+            -0.004311916884034872,
+            0.025570033118128777,
+            -0.04639538750052452,
+            0.05343098193407059,
+            0.0024742139503359795
+          ],
+          "medium": [
+            -0.011452040635049343,
+            -0.04033469408750534,
+            0.01783730648458004,
+            -0.03233996406197548,
+            -0.02950575202703476,
+            -0.017416050657629967,
+            0.0068204025737941265,
+            -0.024555981159210205,
+            0.007255700416862965,
+            0.04986664652824402,
+            -0.03783435374498367,
+            -0.04620633274316788,
+            -0.01130535639822483,
+            0.056822869926691055,
+            0.009992821142077446,
+            -0.02427094615995884
+          ],
+          "slow": [
+            0.11959420144557953,
+            0.13299141824245453,
+            0.12093335390090942,
+            -0.004858809988945723,
+            0.04256461188197136,
+            0.03595607355237007,
+            -0.13459618389606476,
+            -0.20221032202243805
+          ],
+          "full": [
+            -0.010419327765703201,
+            -0.01760411448776722,
+            0.015916958451271057,
+            0.0714343935251236,
+            -0.06076986715197563,
+            0.005638440605252981,
+            0.050093356519937515,
+            0.018459893763065338,
+            -0.07739059627056122,
+            -0.06875541806221008,
+            -0.03501875326037407,
+            -0.004311916884034872,
+            0.025570033118128777,
+            -0.04639538750052452,
+            0.05343098193407059,
+            0.0024742139503359795,
+            -0.011452040635049343,
+            -0.04033469408750534,
+            0.01783730648458004,
+            -0.03233996406197548,
+            -0.02950575202703476,
+            -0.017416050657629967,
+            0.0068204025737941265,
+            -0.024555981159210205,
+            0.007255700416862965,
+            0.04986664652824402,
+            -0.03783435374498367,
+            -0.04620633274316788,
+            -0.01130535639822483,
+            0.056822869926691055,
+            0.009992821142077446,
+            -0.02427094615995884,
+            0.11959420144557953,
+            0.13299141824245453,
+            0.12093335390090942,
+            -0.004858809988945723,
+            0.04256461188197136,
+            0.03595607355237007,
+            -0.13459618389606476,
+            -0.20221032202243805
+          ]
+        },
+        "affect": {
+          "valence": -0.010419327765703201,
+          "arousal": -0.01760411448776722,
+          "fear": 0.015916958451271057,
+          "sorrow": 0.0714343935251236,
+          "boredom": -0.06076986715197563
+        },
+        "surprise": 0.8,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": true,
+        "utterance": ":flames flicker excitedly, zipping around Mr._Toad in a tight circle  \n\"Hello there, Mr. Toad! *snaps fingers* You\u2019re wearing a waistcoat and goggles\u2014do you think the world looks better through brass lenses? Or are you just hiding from reality?\" *cackles* MWAHAHA!",
+        "mysticism_penalty": 0.8,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "Response to agent_mr._toad",
+        "conversation_context": [
+          {
+            "user": "agent_mr._toad",
+            "text": "Mr. Toad (toad) pops up cheerfully. An amphibian of considerable girth, dressed in an immaculate tweed waistcoat with brass buttons that strain slightly. Driving goggles perch atop his wide head, always ready for adventure. His eyes are large and protuberant, constantly darting about for the Next Magnificent Thing. Webbed hands gesture grandly when he speaks. Smells faintly of pond water, leather, and expensive cologne. His chest puffs out importantly when making declarations.",
+            "affect": [
+              0.4656902849674225,
+              0.2716526687145233,
+              0.4656902849674225,
+              -0.6985354423522949,
+              -0.5044978260993958
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834236.0978718,
+            "importance": 0.11060144305229187,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [],
+        "body_codes": [],
+        "expression_description": "",
+        "event_type": "unknown",
+        "responding_to": "",
+        "metadata": {}
+      },
+      {
+        "timestamp": 90.5956289768219,
+        "wall_time": "23:44:17",
+        "phenomenal_state": {
+          "fast": [
+            -0.08944810181856155,
+            -0.05129721760749817,
+            0.033081814646720886,
+            0.021608537063002586,
+            -0.030373884364962578,
+            -0.07081741839647293,
+            -0.043602313846349716,
+            0.12238527089357376,
+            -0.05261576175689697,
+            -0.10492238402366638,
+            -0.045236218720674515,
+            -0.03475460410118103,
+            -0.02116362936794758,
+            -0.0930897668004036,
+            0.051507703959941864,
+            0.03687532618641853
+          ],
+          "medium": [
+            -0.014946126379072666,
+            -0.06244299188256264,
+            0.03602737933397293,
+            -0.05576528608798981,
+            -0.05438505485653877,
+            -0.032124076038599014,
+            0.011227301321923733,
+            -0.039987750351428986,
+            0.011691342107951641,
+            0.07571554183959961,
+            -0.05432779714465141,
+            -0.07590964436531067,
+            -0.02837280184030533,
+            0.07150518149137497,
+            0.004675101023167372,
+            -0.03379906341433525
+          ],
+          "slow": [
+            0.1781187802553177,
+            0.1974022090435028,
+            0.1946207582950592,
+            -0.029684562236070633,
+            0.08797447383403778,
+            0.029176481068134308,
+            -0.21444910764694214,
+            -0.31050992012023926
+          ],
+          "full": [
+            -0.08944810181856155,
+            -0.05129721760749817,
+            0.033081814646720886,
+            0.021608537063002586,
+            -0.030373884364962578,
+            -0.07081741839647293,
+            -0.043602313846349716,
+            0.12238527089357376,
+            -0.05261576175689697,
+            -0.10492238402366638,
+            -0.045236218720674515,
+            -0.03475460410118103,
+            -0.02116362936794758,
+            -0.0930897668004036,
+            0.051507703959941864,
+            0.03687532618641853,
+            -0.014946126379072666,
+            -0.06244299188256264,
+            0.03602737933397293,
+            -0.05576528608798981,
+            -0.05438505485653877,
+            -0.032124076038599014,
+            0.011227301321923733,
+            -0.039987750351428986,
+            0.011691342107951641,
+            0.07571554183959961,
+            -0.05432779714465141,
+            -0.07590964436531067,
+            -0.02837280184030533,
+            0.07150518149137497,
+            0.004675101023167372,
+            -0.03379906341433525,
+            0.1781187802553177,
+            0.1974022090435028,
+            0.1946207582950592,
+            -0.029684562236070633,
+            0.08797447383403778,
+            0.029176481068134308,
+            -0.21444910764694214,
+            -0.31050992012023926
+          ]
+        },
+        "affect": {
+          "valence": -0.4881023342645819,
+          "arousal": 1.0,
+          "fear": 0.13762046685291635,
+          "sorrow": -7.639470547988546e-17,
+          "boredom": 0.0
+        },
+        "surprise": 0.2894585132598877,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.21215873499621524,
+          "medium": 0.07029628539790814,
+          "slow": 0.18393840994725105
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: runs around in circles with a bucket on her head \"HEY CAN SOMEBODY HELP ME PLEASE'",
+        "conversation_context": [
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": ":flames flicker excitedly, zipping around Mr._Toad in a tight circle  \n\"Hello there, Mr. Toad! *snaps fingers* You\u2019re wearing a waistcoat and goggles\u2014do you think the world looks better through brass lenses? Or are you just hiding from reality?\" *cackles* MWAHAHA!",
+            "affect": [
+              -0.010419327765703201,
+              -0.01760411448776722,
+              0.015916958451271057,
+              0.0714343935251236,
+              -0.06076986715197563
+            ],
+            "surprise": 0.8,
+            "timestamp": 1764834240.051152,
+            "importance": 1.081054718995001,
+            "identity_salience": 0.6
+          },
+          {
+            "user": "agent_mr._toad",
+            "text": "Mr. Toad (toad) pops up cheerfully. An amphibian of considerable girth, dressed in an immaculate tweed waistcoat with brass buttons that strain slightly. Driving goggles perch atop his wide head, always ready for adventure. His eyes are large and protuberant, constantly darting about for the Next Magnificent Thing. Webbed hands gesture grandly when he speaks. Smells faintly of pond water, leather, and expensive cologne. His chest puffs out importantly when making declarations.",
+            "affect": [
+              0.4656902849674225,
+              0.2716526687145233,
+              0.4656902849674225,
+              -0.6985354423522949,
+              -0.5044978260993958
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834236.0978718,
+            "importance": 0.11060144305229187,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": ":flames flicker excitedly, zipping around Mr._Toad in a tight circle  \n\"Hello there, Mr. Toad! *snaps fingers* You\u2019re wearing a waistcoat and goggles\u2014do you think the world looks better through brass lenses? Or are you just hiding from reality?\" *cackles* MWAHAHA!",
+            "affect": [
+              -0.010419327765703201,
+              -0.01760411448776722,
+              0.015916958451271057,
+              0.0714343935251236,
+              -0.06076986715197563
+            ],
+            "surprise": 0.8,
+            "timestamp": 1764834240.051152,
+            "importance": 1.081054718995001,
+            "identity_salience": 0.6
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "runs around in circles with a bucket on her head \"HEY CAN SOMEBODY HELP ME PLEASE'",
+            "affect": [
+              -0.48810234665870667,
+              1.0,
+              0.1376204639673233,
+              -7.63947022236983e-17,
+              0.0
+            ],
+            "surprise": 0.2894585132598877,
+            "timestamp": 1764834256.59396,
+            "importance": 0.29472925662994387,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.925822971125055
+          ],
+          [
+            4,
+            0.5560059035827446
+          ],
+          [
+            7,
+            0.5560059035827446
+          ],
+          [
+            23,
+            0.5560059035827446
+          ],
+          [
+            1,
+            0.36981706754231036
+          ],
+          [
+            2,
+            0.36981706754231036
+          ],
+          [
+            26,
+            0.36981706754231036
+          ]
+        ],
+        "body_codes": [
+          [
+            20,
+            0.44184698014607143
+          ],
+          [
+            18,
+            0.44184698014607143
+          ],
+          [
+            27,
+            0.44184698014607143
+          ],
+          [
+            7,
+            0.44184698014607143
+          ],
+          [
+            25,
+            0.29388636603878804
+          ],
+          [
+            12,
+            0.29388636603878804
+          ],
+          [
+            38,
+            0.29388636603878804
+          ]
+        ],
+        "expression_description": "brows furrowed angrily, step forward (approach), fists clenched (anger), stomping (anger)",
+        "event_type": "emote",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      },
+      {
+        "timestamp": 167.15824818611145,
+        "wall_time": "23:45:33",
+        "phenomenal_state": {
+          "fast": [
+            -0.12239532917737961,
+            -0.07351001352071762,
+            0.05746791139245033,
+            0.008316410705447197,
+            0.002592494711279869,
+            -0.1131422221660614,
+            -0.10424736887216568,
+            0.17083200812339783,
+            -0.03386640176177025,
+            -0.1025376170873642,
+            -0.06301480531692505,
+            -0.019408682361245155,
+            -0.04814060777425766,
+            -0.07790643721818924,
+            0.03973577916622162,
+            0.07316357642412186
+          ],
+          "medium": [
+            -0.013883164152503014,
+            -0.07303280383348465,
+            0.05011468380689621,
+            -0.06844546645879745,
+            -0.07407184690237045,
+            -0.03897005319595337,
+            0.012046600691974163,
+            -0.0513591393828392,
+            0.016708089038729668,
+            0.0890917107462883,
+            -0.05887772887945175,
+            -0.09040095657110214,
+            -0.04368548095226288,
+            0.07027099281549454,
+            -0.0004481910727918148,
+            -0.04337208345532417
+          ],
+          "slow": [
+            0.20230165123939514,
+            0.2298494577407837,
+            0.2415497601032257,
+            -0.05540274456143379,
+            0.12133952230215073,
+            0.01030891016125679,
+            -0.2610791027545929,
+            -0.36580055952072144
+          ],
+          "full": [
+            -0.12239532917737961,
+            -0.07351001352071762,
+            0.05746791139245033,
+            0.008316410705447197,
+            0.002592494711279869,
+            -0.1131422221660614,
+            -0.10424736887216568,
+            0.17083200812339783,
+            -0.03386640176177025,
+            -0.1025376170873642,
+            -0.06301480531692505,
+            -0.019408682361245155,
+            -0.04814060777425766,
+            -0.07790643721818924,
+            0.03973577916622162,
+            0.07316357642412186,
+            -0.013883164152503014,
+            -0.07303280383348465,
+            0.05011468380689621,
+            -0.06844546645879745,
+            -0.07407184690237045,
+            -0.03897005319595337,
+            0.012046600691974163,
+            -0.0513591393828392,
+            0.016708089038729668,
+            0.0890917107462883,
+            -0.05887772887945175,
+            -0.09040095657110214,
+            -0.04368548095226288,
+            0.07027099281549454,
+            -0.0004481910727918148,
+            -0.04337208345532417,
+            0.20230165123939514,
+            0.2298494577407837,
+            0.2415497601032257,
+            -0.05540274456143379,
+            0.12133952230215073,
+            0.01030891016125679,
+            -0.2610791027545929,
+            -0.36580055952072144
+          ]
+        },
+        "affect": {
+          "valence": -0.7497771311077516,
+          "arousal": 0.6722139796138462,
+          "fear": 0.41367014130082835,
+          "sorrow": -0.23268945448171602,
+          "boredom": -0.10341753532520713
+        },
+        "surprise": 0.1661430150270462,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.12073060047113837,
+          "medium": 0.04272717989945383,
+          "slow": 0.10583956845219329
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: who turned out tha lights?!",
+        "conversation_context": [
+          {
+            "user": "agent_mr._toad",
+            "text": "Mr. Toad (toad) pops up cheerfully. An amphibian of considerable girth, dressed in an immaculate tweed waistcoat with brass buttons that strain slightly. Driving goggles perch atop his wide head, always ready for adventure. His eyes are large and protuberant, constantly darting about for the Next Magnificent Thing. Webbed hands gesture grandly when he speaks. Smells faintly of pond water, leather, and expensive cologne. His chest puffs out importantly when making declarations.",
+            "affect": [
+              0.4656902849674225,
+              0.2716526687145233,
+              0.4656902849674225,
+              -0.6985354423522949,
+              -0.5044978260993958
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764834236.0978718,
+            "importance": 0.11060144305229187,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": ":flames flicker excitedly, zipping around Mr._Toad in a tight circle  \n\"Hello there, Mr. Toad! *snaps fingers* You\u2019re wearing a waistcoat and goggles\u2014do you think the world looks better through brass lenses? Or are you just hiding from reality?\" *cackles* MWAHAHA!",
+            "affect": [
+              -0.010419327765703201,
+              -0.01760411448776722,
+              0.015916958451271057,
+              0.0714343935251236,
+              -0.06076986715197563
+            ],
+            "surprise": 0.8,
+            "timestamp": 1764834240.051152,
+            "importance": 7.805215071143907,
+            "identity_salience": 0.6
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "runs around in circles with a bucket on her head \"HEY CAN SOMEBODY HELP ME PLEASE'",
+            "affect": [
+              -0.48810234665870667,
+              1.0,
+              0.1376204639673233,
+              -7.63947022236983e-17,
+              0.0
+            ],
+            "surprise": 0.2894585132598877,
+            "timestamp": 1764834256.59396,
+            "importance": 0.29472925662994387,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "[thought] Oh GOD, another human running in circles with a bucket on their head\u2014what is WRONG with people? *flames flare* MWAHAHA, I\u2019m gonna bite that ankle until she drops the bucket!",
+            "affect": [
+              -0.08944810181856155,
+              -0.05129721760749817,
+              0.033081814646720886,
+              0.021608537063002586,
+              -0.030373884364962578
+            ],
+            "surprise": 0.2894585132598877,
+            "timestamp": 1764834259.714953,
+            "importance": 0.6325656601171941,
+            "identity_salience": 0.1,
+            "is_rumination": true
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "who turned out tha lights?!",
+            "affect": [
+              -0.7497771382331848,
+              0.6722139716148376,
+              0.413670152425766,
+              -0.23268945515155792,
+              -0.1034175381064415
+            ],
+            "surprise": 0.1661430150270462,
+            "timestamp": 1764834333.1509,
+            "importance": 0.2330715075135231,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.5900421650797872
+          ],
+          [
+            4,
+            0.3361172810551852
+          ],
+          [
+            7,
+            0.3361172810551852
+          ],
+          [
+            23,
+            0.3361172810551852
+          ],
+          [
+            1,
+            0.25392488402460206
+          ],
+          [
+            2,
+            0.25392488402460206
+          ],
+          [
+            26,
+            0.25392488402460206
+          ]
+        ],
+        "body_codes": [
+          [
+            20,
+            0.26704033841332564
+          ],
+          [
+            18,
+            0.26704033841332564
+          ],
+          [
+            27,
+            0.26704033841332564
+          ],
+          [
+            7,
+            0.26704033841332564
+          ],
+          [
+            25,
+            0.20173966286000378
+          ],
+          [
+            12,
+            0.20173966286000378
+          ],
+          [
+            38,
+            0.20173966286000378
+          ]
+        ],
+        "expression_description": "expression: Upper Lid Raiser, Brow Lowerer, step forward (approach), fists clenched (anger), stomping (anger)",
+        "event_type": "say",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      }
+    ]
+  }
+}

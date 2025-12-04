@@ -1,6 +1,6 @@
 {
-  "agent_672c9bc8-6493-4693-9594-7e73b2bc2a84": {
-    "uid": "agent_672c9bc8-6493-4693-9594-7e73b2bc2a84",
+  "agent_a68f9d24-8751-418b-bf10-c4c4320f7cfc": {
+    "uid": "agent_a68f9d24-8751-418b-bf10-c4c4320f7cfc",
     "name": "mr._toad",
     "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
     "current_room": "room_000",
@@ -52,14 +52,14 @@
       "facet_assembly": "mr_toad",
       "cognitive_components": {}
     },
-    "created": "2025-12-02T16:21:21.096043",
-    "last_active": "2025-12-02T16:21:21.096044",
+    "created": "2025-12-04T00:16:15.501663",
+    "last_active": "2025-12-04T00:16:15.501664",
     "metadata": {
       "creator": "system",
       "owner": "system",
-      "created_at": "2025-12-02T16:21:21.096033",
+      "created_at": "2025-12-04T00:16:15.501653",
       "created_by_user": "system",
-      "spawned_at": "2025-12-02T16:21:21.096033",
+      "spawned_at": "2025-12-04T00:16:15.501653",
       "spawned_in_room": "room_000",
       "group_id": null,
       "is_group_owned": false,
@@ -80,8 +80,8 @@
       "notes": "Noodling spawned from checkpoint: ../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
     }
   },
-  "agent_8ab40264-bac5-4bf6-b8db-4b368c33fd1c": {
-    "uid": "agent_8ab40264-bac5-4bf6-b8db-4b368c33fd1c",
+  "agent_3ccf7316-1f8b-47b6-ac6b-cfd235993caa": {
+    "uid": "agent_3ccf7316-1f8b-47b6-ac6b-cfd235993caa",
     "name": "red_fire_anklebiter",
     "checkpoint_path": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
     "current_room": "room_000",
@@ -137,14 +137,14 @@
         "model": "qwen/qwen3-14b-2507"
       }
     },
-    "created": "2025-12-02T16:21:21.654262",
-    "last_active": "2025-12-02T16:21:21.654264",
+    "created": "2025-12-04T00:16:15.912846",
+    "last_active": "2025-12-04T00:16:15.912846",
     "metadata": {
       "creator": "system",
       "owner": "system",
-      "created_at": "2025-12-02T16:21:21.654253",
+      "created_at": "2025-12-04T00:16:15.912837",
       "created_by_user": "system",
-      "spawned_at": "2025-12-02T16:21:21.654253",
+      "spawned_at": "2025-12-04T00:16:15.912837",
       "spawned_in_room": "room_000",
       "group_id": null,
       "is_group_owned": false,

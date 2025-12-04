@@ -199,12 +199,19 @@ class CollapsibleSection(QWidget):
             layout: New layout for content area
         """
         # Only set if content doesn't have a layout yet
-        if self.content.layout() is None:
+        existing_layout = self.content.layout()
+        if existing_layout is None:
             self.content.setLayout(layout)
             self.content_layout = layout
         else:
-            # Layout already exists - cannot replace after widget has layout
-            raise RuntimeError("Cannot replace layout after it's been set. Call set_content_layout() before add_widget().")
+            # Layout already exists - this shouldn't happen in normal flow
+            # Warn but don't crash
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"CollapsibleSection '{self.title_text}' already has a layout! Skipping set_content_layout.")
+            # Don't try to replace - Qt doesn't allow it
+            # Just use the existing layout
+            self.content_layout = existing_layout
 
     def content_form_layout(self):
         """

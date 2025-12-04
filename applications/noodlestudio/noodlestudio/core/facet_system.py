@@ -118,6 +118,9 @@ class Facet:
     temperature: float = 0.7             # Sampling temperature
     max_tokens: int = 150                # Max output length
 
+    # Scripting API - Dynamic salience control
+    salience_script: Optional[str] = None  # JavaScript code for continuous salience computation
+
     # Connection pads
     input_pads: List[FacetPad] = field(default_factory=list)
     output_pads: List[FacetPad] = field(default_factory=list)
@@ -140,7 +143,7 @@ class Facet:
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary for YAML export."""
-        return {
+        result = {
             'id': self.id,
             'name': self.name,
             'type': self.facet_type,
@@ -155,6 +158,10 @@ class Facet:
             'enabled': self.enabled,
             'locked': self.locked
         }
+        # Only include salience_script if it exists
+        if self.salience_script:
+            result['salience_script'] = self.salience_script
+        return result
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'Facet':
@@ -167,6 +174,7 @@ class Facet:
             model=data.get('model', 'qwen/qwen3-4b-2507'),
             temperature=data.get('temperature', 0.7),
             max_tokens=data.get('max_tokens', 150),
+            salience_script=data.get('salience_script'),  # Load salience script if present
             input_pads=[FacetPad.from_dict(p) for p in data.get('inputs', [])],
             output_pads=[FacetPad.from_dict(p) for p in data.get('outputs', [])],
             position=data.get('position', {'x': 0, 'y': 0}),

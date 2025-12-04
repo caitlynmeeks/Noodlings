@@ -987,6 +987,10 @@ class CMUSHConsilienceAgent:
         # Self-protection: Track users the agent has withdrawn from
         self.withdrawn_users = {}  # user_id -> timestamp of withdrawal
 
+        # Subconscious: Latent memory pool for symbolic insights
+        self.latent_memories = []  # Symbolic images that haven't surfaced yet
+        self.max_latent_memories = 10  # Keep last 10 symbolic abstractions
+
         # Phase 6: Self-monitoring state
         # FACS: Facial expression tracking
         self.last_facial_expression_time = 0.0  # Cooldown tracker
@@ -2381,8 +2385,11 @@ Analyze and output ONLY valid JSON:
                         'affect': affect_raw,
                         'identity': self.identity_prompt,
                         'species': self.species,
-                        'personality_traits': self.personality_traits
+                        'personality_traits': getattr(self, 'personality_traits', {})  # Legacy agents only
                     }
+
+                    # Inject latent memories for insight emergence facet
+                    exec_context._latent_memories = self.latent_memories
 
                     # Inject ENRICHED room state (occupants, objects)
                     current_room_id = room_id if room_id else self.current_room
@@ -2460,6 +2467,106 @@ Analyze and output ONLY valid JSON:
                     if colored_perception != text:
                         logger.info(f"[{self.agent_id}]   Input: {text[:50]}...")
                         logger.info(f"[{self.agent_id}]   Output: {colored_perception[:100]}...")
+
+                    # CLEAN GATE: Context Intelligence routing decision
+                    # Should this agent respond, or just observe?
+                    context_output = result.facet_outputs.get('context_intelligence', {})
+                    should_respond = context_output.get('should_respond', True)  # Default True for safety
+
+                    if not should_respond:
+                        logger.info(f"[{self.agent_id}] 👂 Heard but not responding (Context Intelligence: not addressed)")
+                        # Agent heard and updated state, but doesn't generate response
+                        # This enables natural ensemble dynamics without ping-pong!
+                        return None
+
+                    # NEW: Parse and emit physical actions from fire_body facet
+                    if 'fire_body' in result.facet_outputs:
+                        fire_body_outputs = result.facet_outputs['fire_body']
+                        if '_parsed_actions' in fire_body_outputs:
+                            parsed_actions = fire_body_outputs['_parsed_actions']
+
+                            for action in parsed_actions:
+                                # Determine event type based on action metadata
+                                target_type = action['metadata'].get('target_type', 'agent')
+                                is_contact = action['metadata'].get('contact', False)
+
+                                if target_type == 'prim':
+                                    # PRIM ACTION: Target is an object (drapes, furniture, etc.)
+                                    prim_event = {
+                                        'type': 'prim_action',
+                                        'source_agent': self.agent_id,
+                                        'source_name': self.agent_name,
+                                        'target_prim': action['target'],
+                                        'action_type': action['action_type'],
+                                        'text': action['emote_text'],
+                                        'room_id': self.current_room,
+                                        'metadata': action['metadata']
+                                    }
+                                    # Emit to world (prims can react!)
+                                    await self.world.broadcast_event(prim_event, room_id=self.current_room)
+                                    logger.info(f"🎭 {self.agent_name} performed prim action: {action['emote_text']} (target={action['target']})")
+
+                                else:
+                                    # AGENT ACTION: Target is another Noodling or room action
+                                    emote_event = {
+                                        'type': 'emote',
+                                        'user_id': self.agent_id,
+                                        'agent_name': self.agent_name,
+                                        'text': action['emote_text'],
+                                        'room_id': self.current_room,
+                                        'metadata': {
+                                            'action_type': action['action_type'],
+                                            'target_agent': action.get('target'),
+                                            'physical_contact': is_contact,
+                                            'source': 'facet_system'
+                                        }
+                                    }
+
+                                    # Emit to room (all agents perceive)
+                                    await self.world.broadcast_event(emote_event, room_id=self.current_room)
+                                    logger.info(f"🎭 {self.agent_name} performed action: {action['emote_text']}")
+
+                                    # Special handling for contact actions
+                                    if is_contact and action.get('target'):
+                                        # Find target agent ID by name
+                                        target_agent_id = None
+                                        for agent_id, agent in self.world.agents.items():
+                                            if hasattr(agent, 'agent_name') and agent.agent_name.lower() == action['target'].lower():
+                                                target_agent_id = agent_id
+                                                break
+
+                                        if target_agent_id:
+                                            # Send special touch event to target
+                                            touch_event = {
+                                                'type': 'touch',
+                                                'source': self.agent_id,
+                                                'source_name': self.agent_name,
+                                                'location': action.get('location'),
+                                                'action_type': action['action_type'],
+                                                'text': action['emote_text'],
+                                                'metadata': action['metadata']
+                                            }
+                                            # Queue perception for target agent
+                                            target_agent = self.world.agents.get(target_agent_id)
+                                            if target_agent and hasattr(target_agent, 'perceive_event'):
+                                                await target_agent.perceive_event(touch_event)
+                                                logger.info(f"  👉 Touch event sent to {action['target']}")
+
+                    # NEW: Store latent symbolic memories from subconscious facet
+                    if 'subconscious_symbolic' in result.facet_outputs:
+                        subconscious_output = result.facet_outputs['subconscious_symbolic']
+                        if subconscious_output.get('_latent') and subconscious_output.get('symbolic_image'):
+                            # Add to latent memory pool
+                            self.latent_memories.append({
+                                'image': subconscious_output['symbolic_image'],
+                                'emotional_signature': subconscious_output['emotional_signature'],
+                                'timestamp': time.time()
+                            })
+                            # Keep only recent latent memories
+                            if len(self.latent_memories) > self.max_latent_memories:
+                                self.latent_memories.pop(0)
+                            logger.info(f"💭 Latent memory stored ({len(self.latent_memories)} total): {subconscious_output['symbolic_image'][:60]}...")
+                            print(f"[{self.agent_name.upper()}] 💭 Latent memory stored ({len(self.latent_memories)} total): {subconscious_output['symbolic_image'][:60]}...")  # For FACETS console
 
                 else:
                     # LEGACY: Register-based accumulator (transistor system)
@@ -2626,6 +2733,18 @@ Analyze and output ONLY valid JSON:
                 present_agents=[user_id]
             )
 
+            # 📊 Log CharmNetwork metrics if available
+            if 'timing_ms' in state and 'compute_metrics' in state:
+                timing = state['timing_ms']
+                compute = state['compute_metrics']
+                logger.info(
+                    f"⚡ CharmNetwork metrics for {self.agent_id}: "
+                    f"total={timing['total_ms']:.2f}ms "
+                    f"(base={timing['base_model_ms']:.2f}ms, quantum={timing.get('quantum_total_ms', 0):.2f}ms), "
+                    f"compute={compute['mflops']:.2f} MFLOPs (~{compute['token_equivalent']:.6f} GPT-3.5 tokens), "
+                    f"{compute['params_count']} params"
+                )
+
             # 2a. Check event metadata early (needed for context storage)
             event_metadata = event.get('metadata', {})
             is_cue = event_metadata.get('cue', False)
@@ -2684,20 +2803,28 @@ Analyze and output ONLY valid JSON:
 
             # 4. Track phenomenal states for consciousness metrics
             # Extract full 40-D phenomenal state (fast 16-D + medium 16-D + slow 8-D)
-            h_fast = state.get('fast_state') if state.get('fast_state') is not None else []
-            h_medium = state.get('medium_state') if state.get('medium_state') is not None else []
-            h_slow = state.get('slow_state') if state.get('slow_state') is not None else []
+            h_fast = state.get('fast_state')
+            h_medium = state.get('medium_state')
+            h_slow = state.get('slow_state')
 
-            # Convert to numpy arrays if needed
-            if hasattr(h_fast, 'tolist'):
+            # Convert to lists, handling None and numpy arrays
+            if h_fast is None:
+                h_fast = []
+            elif hasattr(h_fast, 'tolist'):
                 h_fast = h_fast.tolist()
-            if hasattr(h_medium, 'tolist'):
+
+            if h_medium is None:
+                h_medium = []
+            elif hasattr(h_medium, 'tolist'):
                 h_medium = h_medium.tolist()
-            if hasattr(h_slow, 'tolist'):
+
+            if h_slow is None:
+                h_slow = []
+            elif hasattr(h_slow, 'tolist'):
                 h_slow = h_slow.tolist()
 
-            # Combine into full 40-D phenomenal state
-            phenomenal_state_vector = np.array(h_fast + h_medium + h_slow)
+            # Combine into full 40-D phenomenal state (or 0-D if all empty)
+            phenomenal_state_vector = np.array(h_fast + h_medium + h_slow) if (h_fast or h_medium or h_slow) else np.array([])
 
             # Store in state dict for session profiler
             state['phenomenal_state'] = phenomenal_state_vector

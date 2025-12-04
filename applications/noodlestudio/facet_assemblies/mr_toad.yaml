@@ -30,6 +30,100 @@ facets:
     color: '#76AF6A'
     enabled: true
 
+  - id: context_intelligence
+    name: Context Intelligence
+    type: ContextIntelligenceFacet
+    prompt: 'THE GOD OF CONTEXT - Understanding WHO, WHAT, WHERE'
+    model: qwen/qwen3-4b-2507
+    temperature: 0.3
+    max_tokens: 512
+    inputs:
+      - name: incoming_data
+        type: input
+        description: Raw perception to analyze
+        required: true
+    outputs:
+      - name: speaker
+        type: output
+        description: Who is speaking
+        required: true
+      - name: addressee
+        type: output
+        description: Who they're addressing (you/name/everyone)
+        required: true
+      - name: speech_act
+        type: output
+        description: Type of communication (question/statement/command/emote)
+        required: true
+      - name: social_expectation
+        type: output
+        description: Response urgency (none/low/medium/high)
+        required: true
+      - name: enriched_perception
+        type: output
+        description: Text with explicit context added
+        required: true
+      - name: should_respond
+        type: output
+        description: Boolean - should this agent respond to this message?
+        required: true
+      - name: world_model_state
+        type: output
+        description: JSON of current world model
+        required: false
+    position:
+      x: 150
+      y: 350
+    color: '#9B59B6'
+    enabled: true
+    locked: true
+    metadata:
+      agent_name: Mr. Toad
+
+  - id: CHARM_NET
+    name: CharmNetwork
+    type: CharmNetworkFacet
+    prompt: Temporal affect prediction - the emotional core
+    model: checkpoints/phase4.npz
+    temperature: 0.0
+    max_tokens: 0
+    inputs:
+      - name: affect_in
+        type: input
+        description: 5-D continuous affect input
+        required: true
+    outputs:
+      - name: affect_valence
+        type: output
+        description: Continuous valence (-1 to 1)
+        required: true
+      - name: affect_arousal
+        type: output
+        description: Continuous arousal (0 to 1)
+        required: true
+      - name: affect_fear
+        type: output
+        description: Continuous fear (0 to 1)
+        required: true
+      - name: affect_sorrow
+        type: output
+        description: Continuous sorrow (0 to 1)
+        required: true
+      - name: affect_boredom
+        type: output
+        description: Continuous boredom (0 to 1)
+        required: true
+      - name: phenomenal_state
+        type: output
+        description: 40-D phenomenal state (h_fast + h_medium + h_slow)
+        required: true
+    position:
+      x: 200
+      y: 300
+    color: '#888888'
+    enabled: true
+    locked: true
+
   - id: novelty_detector
     name: Novelty Detector
     type: LLMFacet
@@ -59,9 +153,13 @@ facets:
     temperature: 0.7
     max_tokens: 100
     inputs:
+      - name: incoming_data
+        type: input
+        description: Enriched perception with context
+        required: true
       - name: context
         type: input
-        description: Raw perception
+        description: Phenomenal state
         required: true
     outputs:
       - name: novelty_assessment
@@ -298,7 +396,19 @@ facets:
     enabled: true
 
 connections:
+  # INCOMING → Context Intelligence (THE GOD)
   - from: INCOMING.out
+    to: context_intelligence.incoming_data
+
+  # Context Intelligence → CharmNetwork (enriched perception)
+  - from: context_intelligence.enriched_perception
+    to: CHARM_NET.affect_in
+
+  # Context Intelligence → novelty_detector (enriched perception!)
+  - from: context_intelligence.enriched_perception
+    to: novelty_detector.incoming_data
+
+  - from: CHARM_NET.phenomenal_state
     to: novelty_detector.context
   - from: novelty_detector.novelty_assessment
     to: enthusiasm_amplifier.novelty_assessment

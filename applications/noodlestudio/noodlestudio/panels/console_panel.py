@@ -98,7 +98,9 @@ class ConsolePanel(QWidget):
         self.log_buffer_raw = []  # Raw log data for filtering (MUSH)
         self.studio_log_buffer = []  # Formatted logs (STUDIO)
         self.studio_log_buffer_raw = []  # Raw logs (STUDIO)
-        self.console_mode = 'mush'  # 'mush' or 'studio'
+        self.facets_log_buffer = []  # Formatted logs (FACETS)
+        self.facets_log_buffer_raw = []  # Raw logs (FACETS)
+        self.console_mode = 'mush'  # 'mush', 'studio', or 'facets'
         self.last_message = None  # Track last message for collapsing
         self.repeat_count = 0
         self.font_size = 11  # Default font size for console
@@ -179,6 +181,27 @@ class ConsolePanel(QWidget):
             }
         """)
         toolbar.addWidget(self.studio_btn)
+
+        self.facets_btn = QPushButton("FACETS")
+        self.facets_btn.setCheckable(True)
+        self.facets_btn.setChecked(False)
+        self.facets_btn.setFixedWidth(70)
+        self.facets_btn.clicked.connect(lambda: self.set_console_mode('facets'))
+        self.facets_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2d5c8f;
+                color: #FFFFFF;
+                border: 1px solid #4a7cba;
+                padding: 4px;
+                font-weight: bold;
+            }
+            QPushButton:!checked {
+                background-color: #3a3a3a;
+                color: #888888;
+                border: 1px solid #555;
+            }
+        """)
+        toolbar.addWidget(self.facets_btn)
 
         toolbar.addWidget(QLabel("|"))  # Separator
 
@@ -499,6 +522,9 @@ class ConsolePanel(QWidget):
             if self.console_mode == 'studio':
                 raw_buffer = self.studio_log_buffer_raw
                 formatted_buffer = self.studio_log_buffer
+            elif self.console_mode == 'facets':
+                raw_buffer = self.facets_log_buffer_raw
+                formatted_buffer = self.facets_log_buffer
             else:
                 raw_buffer = self.log_buffer_raw
                 formatted_buffer = self.log_buffer
@@ -541,7 +567,12 @@ class ConsolePanel(QWidget):
     def refresh_display(self):
         """Refresh log display without filter."""
         self.log_text.clear()
-        buffer = self.studio_log_buffer if self.console_mode == 'studio' else self.log_buffer
+        if self.console_mode == 'studio':
+            buffer = self.studio_log_buffer
+        elif self.console_mode == 'facets':
+            buffer = self.facets_log_buffer
+        else:
+            buffer = self.log_buffer
         for log_entry in buffer:
             self.log_text.append(log_entry)
 
@@ -591,9 +622,15 @@ class ConsolePanel(QWidget):
             def write(self, text):
                 # Write to original stdout (terminal)
                 self.original_stdout.write(text)
-                # Also capture to STUDIO log buffer
+                # Also capture to appropriate log buffer
                 if text.strip():
-                    self.console_panel.add_studio_log(text.strip())
+                    # Route facet-related logs to FACETS buffer
+                    # Check for emoji markers (work regardless of agent name prefix)
+                    if any(marker in text for marker in ['[FacetExecutor]', '🎭', '💡', '💭', '✨', 'FACET ASSEMBLY', 'salience_script']):
+                        self.console_panel.add_facets_log(text.strip())
+                    else:
+                        # Regular logs go to STUDIO buffer
+                        self.console_panel.add_studio_log(text.strip())
 
             def flush(self):
                 self.original_stdout.flush()
@@ -605,6 +642,10 @@ class ConsolePanel(QWidget):
 
     def add_studio_log(self, message):
         """Add message to STUDIO log buffer."""
+        # Skip if this is a facet log (don't duplicate!)
+        if any(marker in message for marker in ['🎭', '💡', '💭', '✨', '[FacetExecutor]', 'FACET ASSEMBLY']):
+            return  # Already handled by add_facets_log
+
         # Store raw log
         self.studio_log_buffer_raw.append(message)
         if len(self.studio_log_buffer_raw) > 1000:
@@ -640,13 +681,65 @@ class ConsolePanel(QWidget):
                 # No filter - show all logs
                 self.log_text.append(formatted)
 
+    def _is_scrolled_to_bottom(self):
+        """Check if log view is scrolled to bottom."""
+        scrollbar = self.log_text.verticalScrollBar()
+        return scrollbar.value() >= scrollbar.maximum() - 10  # Within 10px of bottom
+
+    def add_facets_log(self, message):
+        """Add message to FACETS log buffer (for facet execution debugging)."""
+        # Store raw log
+        self.facets_log_buffer_raw.append(message)
+        if len(self.facets_log_buffer_raw) > 1000:
+            self.facets_log_buffer_raw.pop(0)
+
+        # Store formatted log (use cyan color for facets logs)
+        formatted = f'<span style="color: #7EC8E3;">{message}</span>'
+        self.facets_log_buffer.append(formatted)
+        if len(self.facets_log_buffer) > 1000:
+            self.facets_log_buffer.pop(0)
+
+        # If in FACETS mode, update display (respecting search filter)
+        if self.console_mode == 'facets':
+            # Check if user is scrolled to bottom BEFORE appending
+            was_at_bottom = self._is_scrolled_to_bottom()
+
+            # Only append if matches search filter
+            if self.search_text:
+                search_term = self.search_text if self.case_sensitive else self.search_text.lower()
+                search_haystack = message if self.case_sensitive else message.lower()
+
+                matches = False
+                if self.use_regex:
+                    import re
+                    try:
+                        flags = 0 if self.case_sensitive else re.IGNORECASE
+                        matches = bool(re.search(search_term, search_haystack, flags))
+                    except re.error:
+                        matches = True
+                else:
+                    matches = search_term in search_haystack
+
+                if matches:
+                    self.log_text.append(formatted)
+                    # Only auto-scroll if user was at bottom
+                    if was_at_bottom:
+                        self.log_text.moveCursor(QTextCursor.MoveOperation.End)
+            else:
+                # No filter - show all logs
+                self.log_text.append(formatted)
+                # Only auto-scroll if user was at bottom
+                if was_at_bottom:
+                    self.log_text.moveCursor(QTextCursor.MoveOperation.End)
+
     def set_console_mode(self, mode):
-        """Switch between MUSH and STUDIO console modes."""
+        """Switch between MUSH, STUDIO, and FACETS console modes."""
         self.console_mode = mode
 
         # Update button states
         self.mush_btn.setChecked(mode == 'mush')
         self.studio_btn.setChecked(mode == 'studio')
+        self.facets_btn.setChecked(mode == 'facets')
 
         # Clear and refresh display with search filter applied
         self.apply_search_filter()

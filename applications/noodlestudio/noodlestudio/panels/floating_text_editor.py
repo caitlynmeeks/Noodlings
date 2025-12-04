@@ -19,9 +19,43 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QPushButton,
     QLabel, QGraphicsProxyWidget, QMessageBox, QWidget
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPointF
-from PyQt6.QtGui import QFont, QColor, QPalette
+from PyQt6.QtCore import Qt, pyqtSignal, QPointF, QSettings
+from PyQt6.QtGui import QFont, QColor, QPalette, QMouseEvent
 from typing import Optional, Callable
+
+
+class DoubleClickHeader(QLabel):
+    """Header label that detects double-clicks for maximize/restore and supports dragging."""
+
+    doubleClicked = pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.drag_position = None
+
+    def mousePressEvent(self, event: QMouseEvent):
+        """Start dragging on left-click."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_position = event.globalPosition().toPoint() - self.window().frameGeometry().topLeft()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        """Handle window dragging."""
+        if event.buttons() == Qt.MouseButton.LeftButton and self.drag_position is not None:
+            self.window().move(event.globalPosition().toPoint() - self.drag_position)
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        """End dragging."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_position = None
+        super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent):
+        """Emit signal on double-click."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.doubleClicked.emit()
+        super().mouseDoubleClickEvent(event)
 
 
 class FloatingTextEditor(QDialog):
@@ -51,36 +85,78 @@ class FloatingTextEditor(QDialog):
         self.field_key = field_key
         self.initial_value = initial_value
         self.read_only = read_only
-        self.font_size = 12  # Base font size
+
+        # Load saved font size preference
+        settings = QSettings("NoodleStudio", "FloatingTextEditor")
+        self.font_size = settings.value("font_size", 12, type=int)
+
+        # Track maximized state
+        self.is_maximized = False
+        self.normal_geometry = None
 
         self.init_ui()
 
     def init_ui(self):
         """Initialize user interface."""
-        # Standard window with title bar
-        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowTitle(f"Edit: {self.field_name}")
+        # Frameless window so we can use our custom header for double-click
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
 
-        # Set size
-        self.setFixedSize(600, 500)
+        # Set initial size (resizable, not fixed!)
+        self.resize(600, 500)
+        self.setMinimumSize(400, 300)  # Prevent too small
+
+        # For dragging the window
+        self.drag_position = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Header bar (custom, matches theme)
-        header = QLabel(f"  ✎  {self.field_name}")
-        header.setStyleSheet("""
+        # Header bar widget (contains title + close button)
+        header_widget = QWidget()
+        header_widget.setStyleSheet("""
+            QWidget {
+                background-color: #2D2D2D;
+                border-bottom: 1px solid #444;
+            }
+        """)
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(0)
+
+        # Draggable title label (double-click to maximize)
+        self.header = DoubleClickHeader(f"  ✎  {self.field_name}")
+        self.header.setStyleSheet("""
             QLabel {
                 color: #CCCCCC;
                 font-size: 13px;
                 font-weight: bold;
-                background-color: #2D2D2D;
                 padding: 10px;
-                border-bottom: 1px solid #444;
             }
         """)
-        layout.addWidget(header)
+        self.header.doubleClicked.connect(self.toggle_maximize)
+        header_layout.addWidget(self.header, 1)  # Stretch to fill space
+
+        # Close button
+        close_btn = QPushButton("×")
+        close_btn.setFixedSize(40, 40)
+        close_btn.clicked.connect(self.close)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #999999;
+                border: none;
+                font-size: 24px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #C42B1C;
+                color: #FFFFFF;
+            }
+        """)
+        header_layout.addWidget(close_btn)
+
+        layout.addWidget(header_widget)
 
         # Text edit area
         self.text_edit = QTextEdit()
@@ -92,12 +168,16 @@ class FloatingTextEditor(QDialog):
                 color: #CCCCCC;
                 border: none;
                 font-family: Monaco, Consolas, monospace;
-                font-size: 12px;
                 padding: 10px;
                 selection-background-color: #4A4A4A;
             }
         """)
-        self.text_edit.setFont(QFont("Monaco", 12))
+        # Apply saved font size
+        self.text_edit.setFont(QFont("Monaco", self.font_size))
+
+        # Install event filter to catch Cmd+/- before text edit processes them
+        self.text_edit.installEventFilter(self)
+
         layout.addWidget(self.text_edit)
 
         # Button bar with proper background
@@ -155,10 +235,11 @@ class FloatingTextEditor(QDialog):
 
         layout.addWidget(button_bar)
 
-        # Set dialog background
+        # Set dialog background with border (frameless window needs visible border)
         self.setStyleSheet("""
             QDialog {
                 background-color: #2D2D2D;
+                border: 1px solid #555555;
             }
         """)
 
@@ -168,17 +249,23 @@ class FloatingTextEditor(QDialog):
     def setup_shortcuts(self):
         """Setup keyboard shortcuts for font scaling."""
         from PyQt6.QtGui import QShortcut, QKeySequence
+        import sys
 
-        # Cmd/Ctrl + Plus - Increase font size
-        zoom_in = QShortcut(QKeySequence.StandardKey.ZoomIn, self)
-        zoom_in.activated.connect(self.increase_font_size)
+        # Platform-aware shortcuts
+        cmd_or_ctrl = "Cmd" if sys.platform == "darwin" else "Ctrl"
+
+        # Cmd/Ctrl + Plus/Equal - Increase font size (both = and + work)
+        zoom_in1 = QShortcut(QKeySequence(f"{cmd_or_ctrl}++"), self)
+        zoom_in1.activated.connect(self.increase_font_size)
+        zoom_in2 = QShortcut(QKeySequence(f"{cmd_or_ctrl}+="), self)
+        zoom_in2.activated.connect(self.increase_font_size)
 
         # Cmd/Ctrl + Minus - Decrease font size
-        zoom_out = QShortcut(QKeySequence.StandardKey.ZoomOut, self)
+        zoom_out = QShortcut(QKeySequence(f"{cmd_or_ctrl}+-"), self)
         zoom_out.activated.connect(self.decrease_font_size)
 
         # Cmd/Ctrl + 0 - Reset to default
-        reset_zoom = QShortcut(QKeySequence("Ctrl+0"), self)
+        reset_zoom = QShortcut(QKeySequence(f"{cmd_or_ctrl}+0"), self)
         reset_zoom.activated.connect(self.reset_font_size)
 
     def increase_font_size(self):
@@ -197,9 +284,26 @@ class FloatingTextEditor(QDialog):
         self.update_font()
 
     def update_font(self):
-        """Update text editor font size."""
+        """Update text editor font size and save preference."""
         font = QFont("Monaco", self.font_size)
         self.text_edit.setFont(font)
+        # Save font size preference
+        settings = QSettings("NoodleStudio", "FloatingTextEditor")
+        settings.setValue("font_size", self.font_size)
+
+    def toggle_maximize(self):
+        """Toggle between maximized and normal window size (double-click header)."""
+        if self.is_maximized:
+            # Restore to normal size
+            if self.normal_geometry:
+                self.setGeometry(self.normal_geometry)
+            self.showNormal()
+            self.is_maximized = False
+        else:
+            # Save current geometry and maximize
+            self.normal_geometry = self.geometry()
+            self.showMaximized()
+            self.is_maximized = True
 
     def has_unsaved_changes(self) -> bool:
         """Check if text has been modified."""
@@ -233,8 +337,40 @@ class FloatingTextEditor(QDialog):
         else:
             event.accept()
 
+    def eventFilter(self, obj, event):
+        """
+        Event filter to catch Cmd+/- before QTextEdit processes them.
+
+        This is necessary because QTextEdit has its own key handling that
+        might consume these events before our keyPressEvent sees them.
+        """
+        from PyQt6.QtCore import QEvent, Qt
+
+        if event.type() == QEvent.Type.KeyPress:
+            # Check for Cmd/Ctrl modifier
+            is_cmd_ctrl = event.modifiers() & Qt.KeyboardModifier.ControlModifier or \
+                          event.modifiers() & Qt.KeyboardModifier.MetaModifier
+
+            if is_cmd_ctrl and event.key() in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
+                # Cmd/Ctrl + Plus or Equal
+                self.increase_font_size()
+                return True  # Event handled, don't propagate
+            elif is_cmd_ctrl and event.key() == Qt.Key.Key_Minus:
+                # Cmd/Ctrl + Minus
+                self.decrease_font_size()
+                return True  # Event handled
+            elif is_cmd_ctrl and event.key() == Qt.Key.Key_0:
+                # Cmd/Ctrl + 0
+                self.reset_font_size()
+                return True  # Event handled
+
+        # Let other events pass through
+        return super().eventFilter(obj, event)
+
     def keyPressEvent(self, event):
-        """Handle key events."""
+        """Handle key events at dialog level."""
+        from PyQt6.QtCore import Qt
+
         if event.key() == Qt.Key.Key_Escape:
             # ESC triggers closeEvent which checks for unsaved changes
             self.close()

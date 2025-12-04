@@ -214,7 +214,7 @@ class CMUSHServer:
             api_key=provider_config.get('api_key', 'not-needed'),
             model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
             timeout=provider_config.get('timeout', 30),
-            max_concurrent=5,  # Match number of LMStudio instances
+            max_concurrent=20,  # SCHLAG ZU! LMStudio has 0-19 loaded! 🚀⚡
             use_model_instances=False  # Disabled - LMStudio rejects model:N format with 400 errors
         )
         await self.llm.__aenter__()
@@ -669,8 +669,9 @@ class CMUSHServer:
                                 # Schedule shutdown in background
                                 asyncio.create_task(self.graceful_shutdown(delay))
 
-                            # Let agents perceive the event (including enter for spawns, exit for following, think for ruminations)
-                            if event['type'] in ['say', 'emote', 'enter', 'exit', 'think']:
+                            # Let agents perceive the event (say, emote, enter, exit)
+                            # NOTE: 'think' events are PRIVATE - not broadcast to agents!
+                            if event['type'] in ['say', 'emote', 'enter', 'exit']:
                                 agent_responses = await self.agent_manager.broadcast_event(event)
 
                                 # Broadcast agent responses
@@ -717,7 +718,7 @@ class CMUSHServer:
                                             await self.broadcast_event(enter_event)
                                             continue  # Don't broadcast as normal agent response
 
-                                    # Create event for agent response (say/emote)
+                                    # Create event for agent response (say/emote/think)
                                     agent_event = {
                                         'type': agent_response['command'],
                                         'user': agent_id,
@@ -726,11 +727,17 @@ class CMUSHServer:
                                         'text': agent_response['text']
                                     }
 
-                                    # Broadcast to websocket clients (humans)
+                                    # Broadcast to websocket clients (humans) - ALL types including 'think'
                                     await self.broadcast_event(agent_event)
 
-                                    # Let OTHER agents perceive this agent's response
-                                    other_agent_responses = await self.agent_manager.broadcast_event(agent_event)
+                                    # CRITICAL FIX: 'think' events are PRIVATE - don't broadcast to other agents!
+                                    # Only 'say' and 'emote' events should trigger other agents' cognition
+                                    if agent_response['command'] in ['say', 'emote']:
+                                        # Let OTHER agents perceive this agent's response
+                                        other_agent_responses = await self.agent_manager.broadcast_event(agent_event)
+                                    else:
+                                        # Skip agent perception for 'think' commands (private thoughts)
+                                        other_agent_responses = []
 
                                     # If other agents respond to this agent, broadcast those too
                                     for other_response in other_agent_responses:

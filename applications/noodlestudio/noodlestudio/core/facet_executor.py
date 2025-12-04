@@ -26,6 +26,9 @@ import logging
 from .facet_system import Facet, FacetAssembly, FacetConnection
 from .charm_network_facet import CharmNetworkFacet, CharmNetworkOutput
 from .scripted_facet import ScriptedFacet, ScriptContext
+from .subconscious_facet import SubconsciousFacet
+from .insight_emergence_facet import InsightEmergenceFacet
+from .context_intelligence_facet import ContextIntelligenceFacet
 from .flow_control_facets import (
     TickerGateFacet, ConditionalBranchFacet,
     RateLimiterFacet, CacheFacet, AccumulatorFacet
@@ -182,6 +185,33 @@ class FacetExecutor:
             self.facet_instances[facet.id] = instance
             return instance
 
+        elif facet.facet_type == "SubconsciousFacet":
+            # Continuous symbolic processing
+            instance = SubconsciousFacet(facet.id)
+            self.facet_instances[facet.id] = instance
+            return instance
+
+        elif facet.facet_type == "InsightEmergenceFacet":
+            # Safety-gated insight surfacing
+            instance = InsightEmergenceFacet(facet.id)
+            self.facet_instances[facet.id] = instance
+            return instance
+
+        elif facet.facet_type == "ContextIntelligenceFacet":
+            # Context reasoning - maintains world model
+            # Agent name will be provided in context at execution time
+            instance = ContextIntelligenceFacet(
+                facet_config={
+                    'model': facet.model,
+                    'max_tokens': facet.max_tokens,
+                    'temperature': facet.temperature
+                },
+                llm_client=self.llm_client,
+                agent_name='unknown'  # Will be updated from context
+            )
+            self.facet_instances[facet.id] = instance
+            return instance
+
         elif facet.facet_type == "TickerGateFacet":
             # Parse config from facet metadata
             interval = int(facet.max_tokens)  # Using max_tokens as interval storage (hack)
@@ -243,6 +273,7 @@ class FacetExecutor:
         start_time = time.time()
 
         # Emit facet_start event
+        print(f"[FacetExecutor] 🚀 EMITTING facet_start for {facet.name} (id={facet.id})")
         await self._emit_event({
             'type': 'facet_execution',
             'subtype': 'facet_start',
@@ -264,17 +295,28 @@ class FacetExecutor:
 
         elif facet.facet_type == "CharmNetworkFacet":
             # Neural computation
-            perception = inputs.get('perception', '')
-            affect_in = inputs.get('affect_input')
-            result = instance.process(perception, affect_in)
+            # CharmNetwork input mapping:
+            # - If 'affect_in' pad receives TEXT, use it as perception_text
+            # - If 'affect_input' pad receives ARRAY, use it as affect vector
+            # This allows flexible wiring: text → affect_in OR affect vector → affect_input
+
+            perception_text = inputs.get('affect_in', inputs.get('perception', ''))
+            affect_vector = inputs.get('affect_input', None)
+
+            # If perception is a list/array, swap (user wired it backwards)
+            if isinstance(perception_text, (list, tuple)):
+                affect_vector = perception_text
+                perception_text = ''
+
+            result = instance.process(perception_text, affect_vector)
 
             # Map CharmNetworkOutput to pad outputs
             outputs = {
-                'valence': result.valence,
-                'arousal': result.arousal,
-                'fear': result.fear,
-                'sorrow': result.sorrow,
-                'boredom': result.boredom,
+                'affect_valence': result.valence,
+                'affect_arousal': result.arousal,
+                'affect_fear': result.fear,
+                'affect_sorrow': result.sorrow,
+                'affect_boredom': result.boredom,
                 'surprise': result.surprise,
                 'phenomenal_state': result.phenomenal_state
             }
@@ -291,6 +333,23 @@ class FacetExecutor:
             )
             outputs = instance.process(inputs, script_context)
             token_count = 0
+
+        elif facet.facet_type == "SubconsciousFacet":
+            # Symbolic processing (uses LLM for metaphor generation)
+            outputs = await instance.process(inputs, context, self.llm_client)
+            token_count = 100  # Approximate token cost for symbolic generation
+
+        elif facet.facet_type == "InsightEmergenceFacet":
+            # Insight surfacing (needs latent memories from agent)
+            latent_memories = context.get('_latent_memories', [])
+            outputs = await instance.process(inputs, context, self.llm_client, latent_memories)
+            token_count = 150  # Approximate token cost for translation
+
+        elif facet.facet_type == "ContextIntelligenceFacet":
+            # Context reasoning - uses LLM for intelligent parsing
+            outputs = await instance.execute(inputs, context)
+            # Higher token cost since this uses smarter model (qwen3-14b)
+            token_count = 250
 
         elif facet.facet_type == "TickerGateFacet":
             outputs = instance.process(inputs, self.current_cycle)
@@ -338,20 +397,45 @@ class FacetExecutor:
 
                 if '_agent_state' in context:
                     agent_state = context['_agent_state']
-                    format_vars['affect'] = agent_state.get('affect', {})
-                    format_vars['valence'] = agent_state.get('affect', {}).get('valence', 0.0)
-                    format_vars['arousal'] = agent_state.get('affect', {}).get('arousal', 0.0)
-                    format_vars['dominance'] = agent_state.get('affect', {}).get('dominance', 0.0)
-                    format_vars['sorrow'] = agent_state.get('affect', {}).get('sorrow', 0.0)
-                    format_vars['boredom'] = agent_state.get('affect', {}).get('boredom', 0.0)
+                    affect = agent_state.get('affect', {})
+
+                    # Handle both list/array format [valence, arousal, fear, sorrow, boredom]
+                    # and dict format {'valence': 0.5, 'arousal': 0.5, ...}
+                    if isinstance(affect, (list, tuple)) or hasattr(affect, '__iter__'):
+                        # Convert list/array to dict
+                        affect_list = list(affect) if not isinstance(affect, list) else affect
+                        affect_dict = {
+                            'valence': affect_list[0] if len(affect_list) > 0 else 0.0,
+                            'arousal': affect_list[1] if len(affect_list) > 1 else 0.0,
+                            'fear': affect_list[2] if len(affect_list) > 2 else 0.0,
+                            'sorrow': affect_list[3] if len(affect_list) > 3 else 0.0,
+                            'boredom': affect_list[4] if len(affect_list) > 4 else 0.0
+                        }
+                        format_vars['affect'] = affect_dict
+                        format_vars['valence'] = affect_dict['valence']
+                        format_vars['arousal'] = affect_dict['arousal']
+                        format_vars['dominance'] = 0.0  # Not in 5D affect
+                        format_vars['sorrow'] = affect_dict['sorrow']
+                        format_vars['boredom'] = affect_dict['boredom']
+                    else:
+                        # Dict format
+                        format_vars['affect'] = affect
+                        format_vars['valence'] = affect.get('valence', 0.0)
+                        format_vars['arousal'] = affect.get('arousal', 0.0)
+                        format_vars['dominance'] = affect.get('dominance', 0.0)
+                        format_vars['sorrow'] = affect.get('sorrow', 0.0)
+                        format_vars['boredom'] = affect.get('boredom', 0.0)
 
                 try:
                     formatted_prompt = facet.prompt.format(**format_vars)
+                    print(f"[FacetExecutor] ✅ Prompt formatted successfully for {facet.name}")
                 except KeyError as e:
                     logger.warning(f"Prompt formatting missing variable {e} in facet {facet.name}, using unformatted")
+                    print(f"[FacetExecutor] ⚠️  Prompt formatting failed for {facet.name}: {e}")
                     formatted_prompt = facet.prompt
 
                 # Call LLM with facet parameters (use generate_with_tokens for tracking)
+                print(f"[FacetExecutor] 📞 Calling LLM for {facet.name} (model={facet.model}, temp={facet.temperature}, max_tokens={facet.max_tokens})")
                 response_text, token_count = await self.llm_client.generate_with_tokens(
                     prompt=formatted_prompt,
                     system_prompt="You are a cognitive facet in an AI consciousness architecture.",
@@ -361,8 +445,43 @@ class FacetExecutor:
                 )
 
                 # Map response to output pads
-                # Primary output goes to 'out' pad, can be customized per facet
-                outputs = {'out': response_text}
+                # Use first output pad name if defined, otherwise 'out'
+                if facet.outputs and len(facet.outputs) > 0:
+                    output_pad_name = facet.outputs[0]['name']
+                else:
+                    output_pad_name = 'out'
+                outputs = {output_pad_name: response_text}
+
+        # NEW: Parse physical actions from fire_body output
+        if facet.id == 'fire_body' and outputs:
+            # Import action parser
+            from .action_parser_facet import ActionParserFacet, DEFAULT_FIRE_IMP_PATTERNS
+
+            # Get the physical action text (use first output)
+            action_text = next(iter(outputs.values()), '')
+
+            if action_text:
+                parser = ActionParserFacet(DEFAULT_FIRE_IMP_PATTERNS)
+                parsed_actions = parser.parse(action_text)
+
+                # Store parsed actions in outputs for event emission
+                if parsed_actions:
+                    outputs['_parsed_actions'] = [
+                        {
+                            'action_type': action.action_type,
+                            'target': action.target,
+                            'location': action.location,
+                            'emote_text': action.emote_text,
+                            'metadata': action.metadata
+                        }
+                        for action in parsed_actions
+                    ]
+
+                    # Log parsed actions
+                    for action in parsed_actions:
+                        log_msg = f"  🎭 Parsed action: {action.action_type} (target={action.target}, contact={action.metadata.get('contact')})"
+                        logger.info(log_msg)
+                        print(log_msg)  # For FACETS console
 
         # Record execution stats
         elapsed = time.time() - start_time
@@ -383,6 +502,94 @@ class FacetExecutor:
         })
 
         return outputs
+
+    def _compute_continuous_salience(
+        self,
+        facet: Facet,
+        inputs: Dict[str, Any],
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Compute continuous salience using JavaScript function.
+
+        CONTINUOUS not discrete! Salience is a smooth 0-1 value, not binary.
+
+        Args:
+            facet: Facet with salience_script
+            inputs: Available inputs (affect, phenomenal_state, etc.)
+            context: Execution context
+
+        Returns:
+            {
+                'salience': float (0-1, continuous),
+                'shouldExecute': bool (true if salience > threshold),
+                'customData': dict (passed to prompt)
+            }
+        """
+        if not facet.salience_script:
+            # No script = always execute with medium salience
+            return {'salience': 0.5, 'shouldExecute': True, 'customData': {}}
+
+        try:
+            from py_mini_racer import MiniRacer
+
+            # Create V8 isolate
+            ctx = MiniRacer()
+
+            # Build script inputs
+            script_inputs = {
+                'affect_valence': float(inputs.get('affect_valence', 0)),
+                'affect_arousal': float(inputs.get('affect_arousal', 0)),
+                'affect_fear': float(inputs.get('affect_fear', 0)),
+                'affect_sorrow': float(inputs.get('affect_sorrow', 0)),
+                'affect_boredom': float(inputs.get('affect_boredom', 0)),
+                'phenomenal_state': inputs.get('phenomenal_state', []),
+            }
+
+            # Add any other inputs this facet receives
+            for pad in facet.input_pads:
+                if pad.name in inputs:
+                    script_inputs[pad.name] = inputs[pad.name]
+
+            script_context = {
+                'agent_name': context.get('agent_name', ''),
+                'cycle': context.get('cycle', 0),
+                'recent_messages': context.get('recent_messages', []),
+                'room_occupants': context.get('room_occupants', []),
+            }
+
+            # Execute JavaScript with continuous salience function
+            js_code = f"""
+            {facet.salience_script}
+
+            // Call the continuous salience function
+            const result = computeSalience({json.dumps(script_inputs)}, {json.dumps(script_context)});
+            result;
+            """
+
+            import json
+            result = ctx.eval(js_code)
+
+            # Extract results
+            salience = float(result.get('salience', 0.5))
+            should_execute = bool(result.get('shouldExecute', salience > 0.3))  # Default threshold
+            custom_data = dict(result.get('customData', {}))
+
+            logger.info(
+                f"  💡 Salience for {facet.name}: {salience:.3f} "
+                f"(execute={should_execute})"
+            )
+
+            return {
+                'salience': salience,
+                'shouldExecute': should_execute,
+                'customData': custom_data
+            }
+
+        except Exception as e:
+            logger.error(f"Salience script error in {facet.name}: {e}")
+            # Fallback: always execute with medium salience
+            return {'salience': 0.5, 'shouldExecute': True, 'customData': {}}
 
     async def execute(
         self,
@@ -408,6 +615,8 @@ class FacetExecutor:
             context = {}
 
         # Emit cycle_start event
+        print(f"[FacetExecutor] 🎯 EXECUTING ASSEMBLY: '{assembly.name}' with {len(assembly.facets)} facets")
+        print(f"[FacetExecutor]    Facet names: {[f.name for f in assembly.facets]}")
         await self._emit_event({
             'type': 'facet_execution',
             'subtype': 'cycle_start',
@@ -423,6 +632,7 @@ class FacetExecutor:
         completed: Dict[str, Dict[str, Any]] = {}  # facet_id -> outputs
         pending = set(f.id for f in assembly.facets)
         total_tokens = 0
+        global_salience_map = {}  # facet_id -> salience_info (for convergence weighting)
 
         # INCOMING node starts with input data
         incoming_id = None
@@ -473,8 +683,10 @@ class FacetExecutor:
             # Get facet objects
             ready_facets = [assembly.get_facet(fid) for fid in ready]
 
-            # Build inputs for each ready facet
-            facet_inputs = []
+            # Build inputs for each ready facet & compute salience
+            facets_to_execute = []
+            salience_map = {}
+
             for facet in ready_facets:
                 inputs = {}
 
@@ -486,19 +698,39 @@ class FacetExecutor:
                         if conn.from_pad in source_outputs:
                             inputs[conn.to_pad] = source_outputs[conn.from_pad]
 
-                facet_inputs.append(inputs)
+                # Compute continuous salience (if facet has salience_script)
+                salience_info = self._compute_continuous_salience(facet, inputs, context)
+                salience_map[facet.id] = salience_info
+                global_salience_map[facet.id] = salience_info  # Store for convergence
 
-            # Execute ready facets in parallel
-            tasks = [
-                self._execute_facet(facet, inputs, context)
-                for facet, inputs in zip(ready_facets, facet_inputs)
-            ]
-            results = await asyncio.gather(*tasks)
+                # Only execute if salience indicates we should
+                if salience_info['shouldExecute']:
+                    # Add customData to inputs for prompt formatting
+                    if salience_info['customData']:
+                        inputs['customData'] = salience_info['customData']
 
-            # Mark completed and accumulate tokens
-            for facet, outputs in zip(ready_facets, results):
-                completed[facet.id] = outputs
-                pending.remove(facet.id)
+                    # Add salience_map to inputs (for CONVERGENCE facets)
+                    inputs['facet_salience'] = global_salience_map
+
+                    facets_to_execute.append((facet, inputs))
+                else:
+                    # Skipped due to low salience - mark as completed with empty outputs
+                    logger.info(f"  ⏭️  Skipping {facet.name} (salience={salience_info['salience']:.3f} too low)")
+                    completed[facet.id] = {}  # Empty outputs
+                    pending.remove(facet.id)
+
+            # Execute filtered facets in parallel
+            if facets_to_execute:
+                tasks = [
+                    self._execute_facet(facet, inputs, context)
+                    for facet, inputs in facets_to_execute
+                ]
+                results = await asyncio.gather(*tasks)
+
+                # Mark completed and accumulate tokens
+                for (facet, _), outputs in zip(facets_to_execute, results):
+                    completed[facet.id] = outputs
+                    pending.remove(facet.id)
 
                 # Track tokens
                 token_usage = facet.get_token_usage()

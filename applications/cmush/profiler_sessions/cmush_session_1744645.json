@@ -1,0 +1,1801 @@
+{
+  "metadata": {
+    "session_id": "cmush_session_1744645",
+    "start_time": "2025-12-03 23:17:39",
+    "agents": [
+      "agent_red_fire_anklebiter",
+      "agent_mr._toad"
+    ]
+  },
+  "duration": 917.8554091453552,
+  "timelines": {
+    "agent_red_fire_anklebiter": [
+      {
+        "timestamp": 47.02810478210449,
+        "wall_time": "23:18:26",
+        "phenomenal_state": {
+          "fast": [
+            0.06304795295000076,
+            -0.11701882630586624,
+            -0.05733742564916611,
+            0.10272903740406036,
+            -0.08906484395265579,
+            0.052164748311042786,
+            0.0271918922662735,
+            -0.015933210030198097,
+            0.08609172701835632,
+            0.08922766149044037,
+            -0.02064698003232479,
+            -0.011125508695840836,
+            -0.006422488018870354,
+            -0.0273425355553627,
+            0.07981360703706741,
+            -0.013970251195132732
+          ],
+          "medium": [
+            -0.02557900734245777,
+            0.014506185427308083,
+            -0.053681716322898865,
+            -0.010933694429695606,
+            0.04992244020104408,
+            -0.03170054033398628,
+            0.029787706211209297,
+            0.04012100026011467,
+            0.0076309251599013805,
+            0.04168890789151192,
+            -0.03362512215971947,
+            0.04544129967689514,
+            -0.004290142096579075,
+            0.05362176150083542,
+            -0.0446651317179203,
+            -0.03652589023113251
+          ],
+          "slow": [
+            -0.02909955568611622,
+            0.2218073606491089,
+            -0.0025892979465425014,
+            -0.05139685049653053,
+            -0.11936429142951965,
+            0.11178340762853622,
+            -0.013568497262895107,
+            -0.0034859715960919857
+          ],
+          "full": [
+            0.06304795295000076,
+            -0.11701882630586624,
+            -0.05733742564916611,
+            0.10272903740406036,
+            -0.08906484395265579,
+            0.052164748311042786,
+            0.0271918922662735,
+            -0.015933210030198097,
+            0.08609172701835632,
+            0.08922766149044037,
+            -0.02064698003232479,
+            -0.011125508695840836,
+            -0.006422488018870354,
+            -0.0273425355553627,
+            0.07981360703706741,
+            -0.013970251195132732,
+            -0.02557900734245777,
+            0.014506185427308083,
+            -0.053681716322898865,
+            -0.010933694429695606,
+            0.04992244020104408,
+            -0.03170054033398628,
+            0.029787706211209297,
+            0.04012100026011467,
+            0.0076309251599013805,
+            0.04168890789151192,
+            -0.03362512215971947,
+            0.04544129967689514,
+            -0.004290142096579075,
+            0.05362176150083542,
+            -0.0446651317179203,
+            -0.03652589023113251,
+            -0.02909955568611622,
+            0.2218073606491089,
+            -0.0025892979465425014,
+            -0.05139685049653053,
+            -0.11936429142951965,
+            0.11178340762853622,
+            -0.013568497262895107,
+            -0.0034859715960919857
+          ]
+        },
+        "affect": {
+          "valence": 0.21538743985336292,
+          "arousal": 0.3948769730644987,
+          "fear": 0.5743665062756346,
+          "sorrow": -0.682060226202316,
+          "boredom": -0.5025706929911802
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "agent_mr._toad: Mr. Toad (toad) steps into the scene. An amphibian of considerable girth, dressed in an immaculate t",
+        "conversation_context": [
+          {
+            "user": "agent_mr._toad",
+            "text": "Mr. Toad (toad) steps into the scene. An amphibian of considerable girth, dressed in an immaculate tweed waistcoat with brass buttons that strain slightly. Driving goggles perch atop his wide head, always ready for adventure. His eyes are large and protuberant, constantly darting about for the Next Magnificent Thing. Webbed hands gesture grandly when he speaks. Smells faintly of pond water, leather, and expensive cologne. His chest puffs out importantly when making declarations.",
+            "affect": [
+              0.21538743376731873,
+              0.39487698674201965,
+              0.5743665099143982,
+              -0.6820602416992188,
+              -0.5025706887245178
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832705.996744,
+            "importance": 0.09153966307640075,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            1,
+            0.3143186211295229
+          ],
+          [
+            2,
+            0.3143186211295229
+          ],
+          [
+            5,
+            0.3143186211295229
+          ],
+          [
+            26,
+            0.3143186211295229
+          ],
+          [
+            9,
+            0.2020167651046198
+          ],
+          [
+            15,
+            0.2020167651046198
+          ]
+        ],
+        "body_codes": [
+          [
+            25,
+            0.23284098400051925
+          ],
+          [
+            12,
+            0.23284098400051925
+          ],
+          [
+            38,
+            0.23284098400051925
+          ]
+        ],
+        "expression_description": "expression: Inner Brow Raiser, Outer Brow Raiser, freeze, still (shock), arms raised (surprise/surrender), head snap toward (alert)",
+        "event_type": "enter",
+        "responding_to": "agent_mr._toad",
+        "metadata": {}
+      },
+      {
+        "timestamp": 52.59410285949707,
+        "wall_time": "23:18:31",
+        "phenomenal_state": {
+          "fast": [
+            0.06304795295000076,
+            -0.11701882630586624,
+            -0.05733742564916611,
+            0.10272903740406036,
+            -0.08906484395265579,
+            0.052164748311042786,
+            0.0271918922662735,
+            -0.015933210030198097,
+            0.08609172701835632,
+            0.08922766149044037,
+            -0.02064698003232479,
+            -0.011125508695840836,
+            -0.006422488018870354,
+            -0.0273425355553627,
+            0.07981360703706741,
+            -0.013970251195132732
+          ],
+          "medium": [
+            -0.02557900734245777,
+            0.014506185427308083,
+            -0.053681716322898865,
+            -0.010933694429695606,
+            0.04992244020104408,
+            -0.03170054033398628,
+            0.029787706211209297,
+            0.04012100026011467,
+            0.0076309251599013805,
+            0.04168890789151192,
+            -0.03362512215971947,
+            0.04544129967689514,
+            -0.004290142096579075,
+            0.05362176150083542,
+            -0.0446651317179203,
+            -0.03652589023113251
+          ],
+          "slow": [
+            -0.02909955568611622,
+            0.2218073606491089,
+            -0.0025892979465425014,
+            -0.05139685049653053,
+            -0.11936429142951965,
+            0.11178340762853622,
+            -0.013568497262895107,
+            -0.0034859715960919857
+          ],
+          "full": [
+            0.06304795295000076,
+            -0.11701882630586624,
+            -0.05733742564916611,
+            0.10272903740406036,
+            -0.08906484395265579,
+            0.052164748311042786,
+            0.0271918922662735,
+            -0.015933210030198097,
+            0.08609172701835632,
+            0.08922766149044037,
+            -0.02064698003232479,
+            -0.011125508695840836,
+            -0.006422488018870354,
+            -0.0273425355553627,
+            0.07981360703706741,
+            -0.013970251195132732,
+            -0.02557900734245777,
+            0.014506185427308083,
+            -0.053681716322898865,
+            -0.010933694429695606,
+            0.04992244020104408,
+            -0.03170054033398628,
+            0.029787706211209297,
+            0.04012100026011467,
+            0.0076309251599013805,
+            0.04168890789151192,
+            -0.03362512215971947,
+            0.04544129967689514,
+            -0.004290142096579075,
+            0.05362176150083542,
+            -0.0446651317179203,
+            -0.03652589023113251,
+            -0.02909955568611622,
+            0.2218073606491089,
+            -0.0025892979465425014,
+            -0.05139685049653053,
+            -0.11936429142951965,
+            0.11178340762853622,
+            -0.013568497262895107,
+            -0.0034859715960919857
+          ]
+        },
+        "affect": {
+          "valence": 0.06304795295000076,
+          "arousal": -0.11701882630586624,
+          "fear": -0.05733742564916611,
+          "sorrow": 0.10272903740406036,
+          "boredom": -0.08906484395265579
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": true,
+        "utterance": "*flames flicker excitedly as I bounce up and down, eyes darting between Mr._Toad\u2019s glistening goggles and his twitchy webbed fingers*\n\nOhhh, look at you \u2014 Mr. Toad in a tweed waistcoat and goggles! You\u2019ve got that *\u2018I\u2019m about to drive a steamboat up a waterfall\u2019* vibe, don\u2019t ya? *bites ankle playfully* MWAHAHA \u2014 wait, are those trousers made of actual pond scum? Because you *smell* like it. WHEEE! *jumps onto his shoulder and whispers loudly* Don\u2019t tell the others, but I\u2019ve got a *plan*. And it involves... a very loud horn. \ud83d\udd0a",
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "Response to agent_mr._toad",
+        "conversation_context": [
+          {
+            "user": "agent_mr._toad",
+            "text": "Mr. Toad (toad) steps into the scene. An amphibian of considerable girth, dressed in an immaculate tweed waistcoat with brass buttons that strain slightly. Driving goggles perch atop his wide head, always ready for adventure. His eyes are large and protuberant, constantly darting about for the Next Magnificent Thing. Webbed hands gesture grandly when he speaks. Smells faintly of pond water, leather, and expensive cologne. His chest puffs out importantly when making declarations.",
+            "affect": [
+              0.21538743376731873,
+              0.39487698674201965,
+              0.5743665099143982,
+              -0.6820602416992188,
+              -0.5025706887245178
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832705.996744,
+            "importance": 0.09153966307640075,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [],
+        "body_codes": [],
+        "expression_description": "",
+        "event_type": "unknown",
+        "responding_to": "",
+        "metadata": {}
+      },
+      {
+        "timestamp": 103.46260094642639,
+        "wall_time": "23:19:22",
+        "phenomenal_state": {
+          "fast": [
+            0.11373160034418106,
+            -0.16274569928646088,
+            -0.08475160598754883,
+            0.13384991884231567,
+            -0.11491148918867111,
+            0.046517983078956604,
+            0.021979065611958504,
+            -0.03276219591498375,
+            0.0879100114107132,
+            0.11949285119771957,
+            -0.1019115149974823,
+            -0.014745228923857212,
+            0.0032803427893668413,
+            -0.01983538828790188,
+            0.09914422780275345,
+            -0.02034812606871128
+          ],
+          "medium": [
+            -0.041585296392440796,
+            0.031229617074131966,
+            -0.0721534937620163,
+            -0.01753132976591587,
+            0.05973841995000839,
+            -0.03280308097600937,
+            0.033213481307029724,
+            0.053197216242551804,
+            0.012108600698411465,
+            0.06660466641187668,
+            -0.058195631951093674,
+            0.07585804909467697,
+            -0.014182588085532188,
+            0.0794403925538063,
+            -0.07190542668104172,
+            -0.05798930302262306
+          ],
+          "slow": [
+            -0.06432084739208221,
+            0.3628649115562439,
+            0.0150205222889781,
+            -0.09072379022836685,
+            -0.22081398963928223,
+            0.1513272374868393,
+            -0.03664068505167961,
+            -0.02102934755384922
+          ],
+          "full": [
+            0.11373160034418106,
+            -0.16274569928646088,
+            -0.08475160598754883,
+            0.13384991884231567,
+            -0.11491148918867111,
+            0.046517983078956604,
+            0.021979065611958504,
+            -0.03276219591498375,
+            0.0879100114107132,
+            0.11949285119771957,
+            -0.1019115149974823,
+            -0.014745228923857212,
+            0.0032803427893668413,
+            -0.01983538828790188,
+            0.09914422780275345,
+            -0.02034812606871128,
+            -0.041585296392440796,
+            0.031229617074131966,
+            -0.0721534937620163,
+            -0.01753132976591587,
+            0.05973841995000839,
+            -0.03280308097600937,
+            0.033213481307029724,
+            0.053197216242551804,
+            0.012108600698411465,
+            0.06660466641187668,
+            -0.058195631951093674,
+            0.07585804909467697,
+            -0.014182588085532188,
+            0.0794403925538063,
+            -0.07190542668104172,
+            -0.05798930302262306,
+            -0.06432084739208221,
+            0.3628649115562439,
+            0.0150205222889781,
+            -0.09072379022836685,
+            -0.22081398963928223,
+            0.1513272374868393,
+            -0.03664068505167961,
+            -0.02102934755384922
+          ]
+        },
+        "affect": {
+          "valence": 0.4648880512558965,
+          "arousal": 0.7341720901134657,
+          "fear": -0.044531634958182784,
+          "sorrow": -0.4064678049937088,
+          "boredom": 0.0
+        },
+        "surprise": 0.2377382218837738,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.12446411604442967,
+          "medium": 0.07306031327313425,
+          "slow": 0.1889188652592034
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: Hi Toad!!!!\" *noticed Red* \"Oh.. greaaaat. Toad, your monkey is on fire again\"",
+        "conversation_context": [
+          {
+            "user": "agent_mr._toad",
+            "text": "Mr. Toad (toad) steps into the scene. An amphibian of considerable girth, dressed in an immaculate tweed waistcoat with brass buttons that strain slightly. Driving goggles perch atop his wide head, always ready for adventure. His eyes are large and protuberant, constantly darting about for the Next Magnificent Thing. Webbed hands gesture grandly when he speaks. Smells faintly of pond water, leather, and expensive cologne. His chest puffs out importantly when making declarations.",
+            "affect": [
+              0.21538743376731873,
+              0.39487698674201965,
+              0.5743665099143982,
+              -0.6820602416992188,
+              -0.5025706887245178
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832705.996744,
+            "importance": 0.09153966307640075,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "*flames flicker excitedly as I bounce up and down, eyes darting between Mr._Toad\u2019s glistening goggles and his twitchy webbed fingers*\n\nOhhh, look at you \u2014 Mr. Toad in a tweed waistcoat and goggles! You\u2019ve got that *\u2018I\u2019m about to drive a steamboat up a waterfall\u2019* vibe, don\u2019t ya? *bites ankle playfully* MWAHAHA \u2014 wait, are those trousers made of actual pond scum? Because you *smell* like it. WHEEE! *jumps onto his shoulder and whispers loudly* Don\u2019t tell the others, but I\u2019ve got a *plan*. And it involves... a very loud horn. \ud83d\udd0a",
+            "affect": [
+              0.06304795295000076,
+              -0.11701882630586624,
+              -0.05733742564916611,
+              0.10272903740406036,
+              -0.08906484395265579
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832711.913635,
+            "importance": 0.1919043689966202,
+            "identity_salience": 0.1
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "Hi Toad!!!!\" *noticed Red* \"Oh.. greaaaat. Toad, your monkey is on fire again\"",
+            "affect": [
+              0.4648880660533905,
+              0.7341721057891846,
+              -0.04453163594007492,
+              -0.4064677953720093,
+              0.0
+            ],
+            "surprise": 0.2377382218837738,
+            "timestamp": 1764832762.2178319,
+            "importance": 0.2688691109418869,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.6390723488193499
+          ],
+          [
+            1,
+            0.39404218765794435
+          ],
+          [
+            2,
+            0.39404218765794435
+          ],
+          [
+            26,
+            0.39404218765794435
+          ],
+          [
+            6,
+            0.28995153375223576
+          ],
+          [
+            12,
+            0.28995153375223576
+          ],
+          [
+            4,
+            0.24503016116140558
+          ],
+          [
+            7,
+            0.24503016116140558
+          ],
+          [
+            23,
+            0.24503016116140558
+          ]
+        ],
+        "body_codes": [
+          [
+            25,
+            0.2808722517086275
+          ],
+          [
+            12,
+            0.2808722517086275
+          ],
+          [
+            38,
+            0.2808722517086275
+          ],
+          [
+            1,
+            0.2066767029576424
+          ],
+          [
+            10,
+            0.2066767029576424
+          ],
+          [
+            22,
+            0.2066767029576424
+          ],
+          [
+            26,
+            0.2066767029576424
+          ]
+        ],
+        "expression_description": "expression: Upper Lid Raiser, Inner Brow Raiser, freeze, still (shock), arms raised (surprise/surrender), head snap toward (alert)",
+        "event_type": "say",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      },
+      {
+        "timestamp": 298.1216239929199,
+        "wall_time": "23:22:37",
+        "phenomenal_state": {
+          "fast": [
+            0.08828358352184296,
+            -0.11299825459718704,
+            -0.03280170261859894,
+            0.19708144664764404,
+            -0.09753723442554474,
+            0.08330950140953064,
+            0.0741177350282669,
+            0.010781802237033844,
+            0.11148779839277267,
+            0.07508140057325363,
+            -0.0922604575753212,
+            -0.04633531719446182,
+            0.0026957562658935785,
+            -0.07176779955625534,
+            0.046518683433532715,
+            0.010460817255079746
+          ],
+          "medium": [
+            -0.04009564220905304,
+            0.02749806083738804,
+            -0.07263334840536118,
+            -0.029591919854283333,
+            0.05141468718647957,
+            -0.032608259469270706,
+            0.0468662828207016,
+            0.060828130692243576,
+            0.013162859715521336,
+            0.08032061904668808,
+            -0.06573707610368729,
+            0.10385918617248535,
+            -0.017694350332021713,
+            0.09547612816095352,
+            -0.09068011492490768,
+            -0.07024288922548294
+          ],
+          "slow": [
+            -0.09402073174715042,
+            0.4529481530189514,
+            0.0314168818295002,
+            -0.1204502135515213,
+            -0.2946438491344452,
+            0.1686195433139801,
+            -0.06358888000249863,
+            -0.03926623985171318
+          ],
+          "full": [
+            0.08828358352184296,
+            -0.11299825459718704,
+            -0.03280170261859894,
+            0.19708144664764404,
+            -0.09753723442554474,
+            0.08330950140953064,
+            0.0741177350282669,
+            0.010781802237033844,
+            0.11148779839277267,
+            0.07508140057325363,
+            -0.0922604575753212,
+            -0.04633531719446182,
+            0.0026957562658935785,
+            -0.07176779955625534,
+            0.046518683433532715,
+            0.010460817255079746,
+            -0.04009564220905304,
+            0.02749806083738804,
+            -0.07263334840536118,
+            -0.029591919854283333,
+            0.05141468718647957,
+            -0.032608259469270706,
+            0.0468662828207016,
+            0.060828130692243576,
+            0.013162859715521336,
+            0.08032061904668808,
+            -0.06573707610368729,
+            0.10385918617248535,
+            -0.017694350332021713,
+            0.09547612816095352,
+            -0.09068011492490768,
+            -0.07024288922548294,
+            -0.09402073174715042,
+            0.4529481530189514,
+            0.0314168818295002,
+            -0.1204502135515213,
+            -0.2946438491344452,
+            0.1686195433139801,
+            -0.06358888000249863,
+            -0.03926623985171318
+          ]
+        },
+        "affect": {
+          "valence": -0.4983270587812988,
+          "arousal": 0.4285851068908432,
+          "fear": 0.2682557441650726,
+          "sorrow": -0.1273957747002448,
+          "boredom": -0.10298872469884401
+        },
+        "surprise": 0.21298137307167053,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.16163152884705387,
+          "medium": 0.04772919926708102,
+          "slow": 0.13022379129248407
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: looks down at red and frowns. Puts her hands on her hips. \"Wait a minute..\" *peers more closely* \"yo",
+        "conversation_context": [
+          {
+            "user": "agent_mr._toad",
+            "text": "Mr. Toad (toad) steps into the scene. An amphibian of considerable girth, dressed in an immaculate tweed waistcoat with brass buttons that strain slightly. Driving goggles perch atop his wide head, always ready for adventure. His eyes are large and protuberant, constantly darting about for the Next Magnificent Thing. Webbed hands gesture grandly when he speaks. Smells faintly of pond water, leather, and expensive cologne. His chest puffs out importantly when making declarations.",
+            "affect": [
+              0.21538743376731873,
+              0.39487698674201965,
+              0.5743665099143982,
+              -0.6820602416992188,
+              -0.5025706887245178
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832705.996744,
+            "importance": 0.09153966307640075,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "*flames flicker excitedly as I bounce up and down, eyes darting between Mr._Toad\u2019s glistening goggles and his twitchy webbed fingers*\n\nOhhh, look at you \u2014 Mr. Toad in a tweed waistcoat and goggles! You\u2019ve got that *\u2018I\u2019m about to drive a steamboat up a waterfall\u2019* vibe, don\u2019t ya? *bites ankle playfully* MWAHAHA \u2014 wait, are those trousers made of actual pond scum? Because you *smell* like it. WHEEE! *jumps onto his shoulder and whispers loudly* Don\u2019t tell the others, but I\u2019ve got a *plan*. And it involves... a very loud horn. \ud83d\udd0a",
+            "affect": [
+              0.06304795295000076,
+              -0.11701882630586624,
+              -0.05733742564916611,
+              0.10272903740406036,
+              -0.08906484395265579
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832711.913635,
+            "importance": 0.1919043689966202,
+            "identity_salience": 0.1
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "Hi Toad!!!!\" *noticed Red* \"Oh.. greaaaat. Toad, your monkey is on fire again\"",
+            "affect": [
+              0.4648880660533905,
+              0.7341721057891846,
+              -0.04453163594007492,
+              -0.4064677953720093,
+              0.0
+            ],
+            "surprise": 0.2377382218837738,
+            "timestamp": 1764832762.2178319,
+            "importance": 0.2688691109418869,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "[thought] Oh HOHO, Toad\u2019s got a nervous twitch again\u2014that *face* when he sees me? Classic. MWAHAHA! Wait\u2014did someone just call me \u201cmonkey\u201d? *flames flicker angrily* Who even DOES that? I\u2019m a FIRE IMP, not a squirrel\u2019s sweaty cousin! *bites ankle* PUNK.",
+            "affect": [
+              0.11373160034418106,
+              -0.16274569928646088,
+              -0.08475160598754883,
+              0.13384991884231567,
+              -0.11491148918867111
+            ],
+            "surprise": 0.2377382218837738,
+            "timestamp": 1764832765.7460842,
+            "importance": 2.2491527118459347,
+            "identity_salience": 0.1,
+            "is_rumination": true
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "looks down at red and frowns. Puts her hands on her hips. \"Wait a minute..\" *peers more closely* \"you're not a monkey you're a like.. whatchamacall it. like a little devilled ham.\"",
+            "affect": [
+              -0.4983270466327667,
+              0.42858511209487915,
+              0.26825574040412903,
+              -0.12739577889442444,
+              -0.10298872739076614
+            ],
+            "surprise": 0.21298137307167053,
+            "timestamp": 1764832956.8049579,
+            "importance": 0.24552751034498213,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.5017618729909873
+          ],
+          [
+            4,
+            0.2825668909624651
+          ],
+          [
+            7,
+            0.2825668909624651
+          ],
+          [
+            23,
+            0.2825668909624651
+          ],
+          [
+            9,
+            0.2574224596144983
+          ],
+          [
+            15,
+            0.2574224596144983
+          ],
+          [
+            1,
+            0.21919498202852214
+          ],
+          [
+            2,
+            0.21919498202852214
+          ],
+          [
+            26,
+            0.21919498202852214
+          ]
+        ],
+        "body_codes": [
+          [
+            20,
+            0.2400213435748187
+          ],
+          [
+            18,
+            0.2400213435748187
+          ],
+          [
+            27,
+            0.2400213435748187
+          ],
+          [
+            7,
+            0.2400213435748187
+          ],
+          [
+            4,
+            0.21866286036750804
+          ],
+          [
+            35,
+            0.21866286036750804
+          ],
+          [
+            16,
+            0.21866286036750804
+          ]
+        ],
+        "expression_description": "expression: Upper Lid Raiser, Brow Lowerer, step forward (approach), fists clenched (anger), stomping (anger)",
+        "event_type": "emote",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      }
+    ],
+    "agent_mr._toad": [
+      {
+        "timestamp": 62.1830518245697,
+        "wall_time": "23:18:41",
+        "phenomenal_state": {
+          "fast": [
+            -0.03226839751005173,
+            0.023580053821206093,
+            0.024443097412586212,
+            -0.007385422475636005,
+            -0.010927719064056873,
+            -0.0047360192984342575,
+            -0.052921194583177567,
+            -0.021624863147735596,
+            -0.015161581337451935,
+            0.10590524971485138,
+            -0.05552348122000694,
+            0.04066404327750206,
+            0.0349210686981678,
+            0.011101387441158295,
+            -0.06411867588758469,
+            0.07643900066614151
+          ],
+          "medium": [
+            -0.027351977303624153,
+            -0.021906476467847824,
+            -0.039527494460344315,
+            -0.05263123661279678,
+            -0.044909048825502396,
+            0.036583077162504196,
+            -0.02039087563753128,
+            -0.0032427201513201,
+            -0.03142978996038437,
+            -0.001416557701304555,
+            0.045305319130420685,
+            -0.029325051233172417,
+            -0.04369959235191345,
+            0.0627298504114151,
+            0.028267472982406616,
+            0.046883419156074524
+          ],
+          "slow": [
+            0.04046475142240524,
+            -0.231412872672081,
+            -0.10717029869556427,
+            0.13139048218727112,
+            -0.026622334495186806,
+            0.1823282539844513,
+            0.08849238604307175,
+            -0.014965210109949112
+          ],
+          "full": [
+            -0.03226839751005173,
+            0.023580053821206093,
+            0.024443097412586212,
+            -0.007385422475636005,
+            -0.010927719064056873,
+            -0.0047360192984342575,
+            -0.052921194583177567,
+            -0.021624863147735596,
+            -0.015161581337451935,
+            0.10590524971485138,
+            -0.05552348122000694,
+            0.04066404327750206,
+            0.0349210686981678,
+            0.011101387441158295,
+            -0.06411867588758469,
+            0.07643900066614151,
+            -0.027351977303624153,
+            -0.021906476467847824,
+            -0.039527494460344315,
+            -0.05263123661279678,
+            -0.044909048825502396,
+            0.036583077162504196,
+            -0.02039087563753128,
+            -0.0032427201513201,
+            -0.03142978996038437,
+            -0.001416557701304555,
+            0.045305319130420685,
+            -0.029325051233172417,
+            -0.04369959235191345,
+            0.0627298504114151,
+            0.028267472982406616,
+            0.046883419156074524,
+            0.04046475142240524,
+            -0.231412872672081,
+            -0.10717029869556427,
+            0.13139048218727112,
+            -0.026622334495186806,
+            0.1823282539844513,
+            0.08849238604307175,
+            -0.014965210109949112
+          ]
+        },
+        "affect": {
+          "valence": -0.21538743985336303,
+          "arousal": 0.682060226202316,
+          "fear": 0.5025706929911801,
+          "sorrow": -0.5743665062756346,
+          "boredom": -0.39487697306449876
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "agent_red_fire_anklebiter: Red Fire Anklebiter (gremlin) appears round the bend. A two-foot-tall imp of crimson flame, cracklin",
+        "conversation_context": [
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "Red Fire Anklebiter (gremlin) appears round the bend. A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+            "affect": [
+              -0.21538743376731873,
+              0.6820602416992188,
+              0.5025706887245178,
+              -0.5743665099143982,
+              -0.39487698674201965
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832721.138436,
+            "importance": 0.13461715131998062,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.8222514406501825
+          ],
+          [
+            1,
+            0.5851548356812335
+          ],
+          [
+            2,
+            0.5851548356812335
+          ],
+          [
+            26,
+            0.5851548356812335
+          ],
+          [
+            4,
+            0.4554178881944363
+          ],
+          [
+            7,
+            0.237096604968949
+          ],
+          [
+            23,
+            0.237096604968949
+          ],
+          [
+            20,
+            0.21832128322548727
+          ]
+        ],
+        "body_codes": [
+          [
+            25,
+            0.27497655233683227
+          ],
+          [
+            12,
+            0.27497655233683227
+          ],
+          [
+            38,
+            0.27497655233683227
+          ]
+        ],
+        "expression_description": "eyes wide with surprise, jaw dropped, freeze, still (shock), arms raised (surprise/surrender), head snap toward (alert)",
+        "event_type": "enter",
+        "responding_to": "agent_red_fire_anklebiter",
+        "metadata": {}
+      },
+      {
+        "timestamp": 65.95173501968384,
+        "wall_time": "23:18:45",
+        "phenomenal_state": {
+          "fast": [
+            -0.03226839751005173,
+            0.023580053821206093,
+            0.024443097412586212,
+            -0.007385422475636005,
+            -0.010927719064056873,
+            -0.0047360192984342575,
+            -0.052921194583177567,
+            -0.021624863147735596,
+            -0.015161581337451935,
+            0.10590524971485138,
+            -0.05552348122000694,
+            0.04066404327750206,
+            0.0349210686981678,
+            0.011101387441158295,
+            -0.06411867588758469,
+            0.07643900066614151
+          ],
+          "medium": [
+            -0.027351977303624153,
+            -0.021906476467847824,
+            -0.039527494460344315,
+            -0.05263123661279678,
+            -0.044909048825502396,
+            0.036583077162504196,
+            -0.02039087563753128,
+            -0.0032427201513201,
+            -0.03142978996038437,
+            -0.001416557701304555,
+            0.045305319130420685,
+            -0.029325051233172417,
+            -0.04369959235191345,
+            0.0627298504114151,
+            0.028267472982406616,
+            0.046883419156074524
+          ],
+          "slow": [
+            0.04046475142240524,
+            -0.231412872672081,
+            -0.10717029869556427,
+            0.13139048218727112,
+            -0.026622334495186806,
+            0.1823282539844513,
+            0.08849238604307175,
+            -0.014965210109949112
+          ],
+          "full": [
+            -0.03226839751005173,
+            0.023580053821206093,
+            0.024443097412586212,
+            -0.007385422475636005,
+            -0.010927719064056873,
+            -0.0047360192984342575,
+            -0.052921194583177567,
+            -0.021624863147735596,
+            -0.015161581337451935,
+            0.10590524971485138,
+            -0.05552348122000694,
+            0.04066404327750206,
+            0.0349210686981678,
+            0.011101387441158295,
+            -0.06411867588758469,
+            0.07643900066614151,
+            -0.027351977303624153,
+            -0.021906476467847824,
+            -0.039527494460344315,
+            -0.05263123661279678,
+            -0.044909048825502396,
+            0.036583077162504196,
+            -0.02039087563753128,
+            -0.0032427201513201,
+            -0.03142978996038437,
+            -0.001416557701304555,
+            0.045305319130420685,
+            -0.029325051233172417,
+            -0.04369959235191345,
+            0.0627298504114151,
+            0.028267472982406616,
+            0.046883419156074524,
+            0.04046475142240524,
+            -0.231412872672081,
+            -0.10717029869556427,
+            0.13139048218727112,
+            -0.026622334495186806,
+            0.1823282539844513,
+            0.08849238604307175,
+            -0.014965210109949112
+          ]
+        },
+        "affect": {
+          "valence": -0.03226839751005173,
+          "arousal": 0.023580053821206093,
+          "fear": 0.024443097412586212,
+          "sorrow": -0.007385422475636005,
+          "boredom": -0.010927719064056873
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": true,
+        "utterance": ":adjusts driving goggles with a dramatic flourish  \nBy Jove! What in the name of steam-powered engines is that? A little fireball with teeth and a grudge\u2014how very... *unconventional*!  \n\n:leans forward, eyes wide with delight  \nTell me, little flame-demon\u2014do you have a motor? A proper V8 under that fiery exterior? Because if so, we must race! Poop-poop! Capital idea!",
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "Response to agent_red_fire_anklebiter",
+        "conversation_context": [
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "Red Fire Anklebiter (gremlin) appears round the bend. A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+            "affect": [
+              -0.21538743376731873,
+              0.6820602416992188,
+              0.5025706887245178,
+              -0.5743665099143982,
+              -0.39487698674201965
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832721.138436,
+            "importance": 0.13461715131998062,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [],
+        "body_codes": [],
+        "expression_description": "",
+        "event_type": "unknown",
+        "responding_to": "",
+        "metadata": {}
+      },
+      {
+        "timestamp": 89.68684005737305,
+        "wall_time": "23:19:09",
+        "phenomenal_state": {
+          "fast": [
+            -0.10482589900493622,
+            0.05359921231865883,
+            0.01486147940158844,
+            -0.046383339911699295,
+            0.015511533245444298,
+            0.005400726571679115,
+            -0.08989029377698898,
+            -0.05188433453440666,
+            -0.04229167476296425,
+            0.1424131542444229,
+            -0.052666060626506805,
+            0.04404418542981148,
+            0.05933758243918419,
+            0.02341591939330101,
+            -0.08777666091918945,
+            0.08060591667890549
+          ],
+          "medium": [
+            -0.03651634231209755,
+            -0.0269766878336668,
+            -0.049000900238752365,
+            -0.09161816537380219,
+            -0.07643754035234451,
+            0.05701940506696701,
+            -0.041095130145549774,
+            -0.005503685213625431,
+            -0.040404558181762695,
+            -0.005048047285526991,
+            0.08137690275907516,
+            -0.04945201799273491,
+            -0.06235101446509361,
+            0.09638233482837677,
+            0.043885327875614166,
+            0.06965651363134384
+          ],
+          "slow": [
+            0.05507151782512665,
+            -0.3523206114768982,
+            -0.14066778123378754,
+            0.18441960215568542,
+            -0.07319887727499008,
+            0.26788365840911865,
+            0.14553427696228027,
+            -0.060798365622758865
+          ],
+          "full": [
+            -0.10482589900493622,
+            0.05359921231865883,
+            0.01486147940158844,
+            -0.046383339911699295,
+            0.015511533245444298,
+            0.005400726571679115,
+            -0.08989029377698898,
+            -0.05188433453440666,
+            -0.04229167476296425,
+            0.1424131542444229,
+            -0.052666060626506805,
+            0.04404418542981148,
+            0.05933758243918419,
+            0.02341591939330101,
+            -0.08777666091918945,
+            0.08060591667890549,
+            -0.03651634231209755,
+            -0.0269766878336668,
+            -0.049000900238752365,
+            -0.09161816537380219,
+            -0.07643754035234451,
+            0.05701940506696701,
+            -0.041095130145549774,
+            -0.005503685213625431,
+            -0.040404558181762695,
+            -0.005048047285526991,
+            0.08137690275907516,
+            -0.04945201799273491,
+            -0.06235101446509361,
+            0.09638233482837677,
+            0.043885327875614166,
+            0.06965651363134384,
+            0.05507151782512665,
+            -0.3523206114768982,
+            -0.14066778123378754,
+            0.18441960215568542,
+            -0.07319887727499008,
+            0.26788365840911865,
+            0.14553427696228027,
+            -0.060798365622758865
+          ]
+        },
+        "affect": {
+          "valence": 0.34109068864433856,
+          "arousal": 0.659130570539306,
+          "fear": 0.28374681036892496,
+          "sorrow": -0.479657785084312,
+          "boredom": 0.0
+        },
+        "surprise": 0.23557035624980927,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.11948163043987707,
+          "medium": 0.08722253521798926,
+          "slow": 0.18332966169212264
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: Hi Toad!!!!\" *noticed Red* \"Oh.. greaaaat. Toad, your monkey is on fire again\"",
+        "conversation_context": [
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "Red Fire Anklebiter (gremlin) appears round the bend. A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+            "affect": [
+              -0.21538743376731873,
+              0.6820602416992188,
+              0.5025706887245178,
+              -0.5743665099143982,
+              -0.39487698674201965
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832721.138436,
+            "importance": 0.13461715131998062,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_mr._toad",
+            "text": ":adjusts driving goggles with a dramatic flourish  \nBy Jove! What in the name of steam-powered engines is that? A little fireball with teeth and a grudge\u2014how very... *unconventional*!  \n\n:leans forward, eyes wide with delight  \nTell me, little flame-demon\u2014do you have a motor? A proper V8 under that fiery exterior? Because if so, we must race! Poop-poop! Capital idea!",
+            "affect": [
+              -0.03226839751005173,
+              0.023580053821206093,
+              0.024443097412586212,
+              -0.007385422475636005,
+              -0.010927719064056873
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832725.271264,
+            "importance": 0.20837726769968867,
+            "identity_salience": 1.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "Hi Toad!!!!\" *noticed Red* \"Oh.. greaaaat. Toad, your monkey is on fire again\"",
+            "affect": [
+              0.34109067916870117,
+              0.6591305732727051,
+              0.2837468087673187,
+              -0.4796577990055084,
+              0.0
+            ],
+            "surprise": 0.23557035624980927,
+            "timestamp": 1764832748.477809,
+            "importance": 0.26778517812490465,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.6091990229754634
+          ],
+          [
+            1,
+            0.39928002804738305
+          ],
+          [
+            2,
+            0.39928002804738305
+          ],
+          [
+            26,
+            0.39928002804738305
+          ],
+          [
+            4,
+            0.20991899492808028
+          ],
+          [
+            7,
+            0.20991899492808028
+          ],
+          [
+            23,
+            0.20991899492808028
+          ]
+        ],
+        "body_codes": [
+          [
+            25,
+            0.2832452746762498
+          ],
+          [
+            12,
+            0.2832452746762498
+          ],
+          [
+            38,
+            0.2832452746762498
+          ]
+        ],
+        "expression_description": "expression: Upper Lid Raiser, Inner Brow Raiser, freeze, still (shock), arms raised (surprise/surrender), head snap toward (alert)",
+        "event_type": "say",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      },
+      {
+        "timestamp": 95.23586392402649,
+        "wall_time": "23:19:14",
+        "phenomenal_state": {
+          "fast": [
+            -0.10482589900493622,
+            0.05359921231865883,
+            0.01486147940158844,
+            -0.046383339911699295,
+            0.015511533245444298,
+            0.005400726571679115,
+            -0.08989029377698898,
+            -0.05188433453440666,
+            -0.04229167476296425,
+            0.1424131542444229,
+            -0.052666060626506805,
+            0.04404418542981148,
+            0.05933758243918419,
+            0.02341591939330101,
+            -0.08777666091918945,
+            0.08060591667890549
+          ],
+          "medium": [
+            -0.03651634231209755,
+            -0.0269766878336668,
+            -0.049000900238752365,
+            -0.09161816537380219,
+            -0.07643754035234451,
+            0.05701940506696701,
+            -0.041095130145549774,
+            -0.005503685213625431,
+            -0.040404558181762695,
+            -0.005048047285526991,
+            0.08137690275907516,
+            -0.04945201799273491,
+            -0.06235101446509361,
+            0.09638233482837677,
+            0.043885327875614166,
+            0.06965651363134384
+          ],
+          "slow": [
+            0.05507151782512665,
+            -0.3523206114768982,
+            -0.14066778123378754,
+            0.18441960215568542,
+            -0.07319887727499008,
+            0.26788365840911865,
+            0.14553427696228027,
+            -0.060798365622758865
+          ],
+          "full": [
+            -0.10482589900493622,
+            0.05359921231865883,
+            0.01486147940158844,
+            -0.046383339911699295,
+            0.015511533245444298,
+            0.005400726571679115,
+            -0.08989029377698898,
+            -0.05188433453440666,
+            -0.04229167476296425,
+            0.1424131542444229,
+            -0.052666060626506805,
+            0.04404418542981148,
+            0.05933758243918419,
+            0.02341591939330101,
+            -0.08777666091918945,
+            0.08060591667890549,
+            -0.03651634231209755,
+            -0.0269766878336668,
+            -0.049000900238752365,
+            -0.09161816537380219,
+            -0.07643754035234451,
+            0.05701940506696701,
+            -0.041095130145549774,
+            -0.005503685213625431,
+            -0.040404558181762695,
+            -0.005048047285526991,
+            0.08137690275907516,
+            -0.04945201799273491,
+            -0.06235101446509361,
+            0.09638233482837677,
+            0.043885327875614166,
+            0.06965651363134384,
+            0.05507151782512665,
+            -0.3523206114768982,
+            -0.14066778123378754,
+            0.18441960215568542,
+            -0.07319887727499008,
+            0.26788365840911865,
+            0.14553427696228027,
+            -0.060798365622758865
+          ]
+        },
+        "affect": {
+          "valence": -0.10482589900493622,
+          "arousal": 0.05359921231865883,
+          "fear": 0.01486147940158844,
+          "sorrow": -0.046383339911699295,
+          "boredom": 0.015511533245444298
+        },
+        "surprise": 0.23557035624980927,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": true,
+        "utterance": ":adjusts driving goggles with a dramatic flourish  \nOh, *you*! The one who brings me such delightful chaos\u2014how droll you are! Though I must say, that little fireball is positively *fascinating*\u2014does it have a name? A proper one, like \"Sir Sizzlepants\" or \"Lord Inferno\"?  \n\n:leans forward, eyes wide with delight  \nAnd why are you calling it my *monkey*? That\u2019s quite the imagination! I\u2019ve never been so fortunate as to have a flaming primate\u2014though if it\u2019s fast enough, I might just adopt it for the racetrack! Poop-poop! Capital idea!  \n\n:strikes a heroic pose  \nNow then\u2014let\u2019s see if it can keep up with my steam-powered dream! And don\u2019t worry, old chap\u2014no harm done. I\u2019m a gentleman of *style*, not destruction!",
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "Response to user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "conversation_context": [
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "Red Fire Anklebiter (gremlin) appears round the bend. A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+            "affect": [
+              -0.21538743376731873,
+              0.6820602416992188,
+              0.5025706887245178,
+              -0.5743665099143982,
+              -0.39487698674201965
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832721.138436,
+            "importance": 0.13461715131998062,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_mr._toad",
+            "text": ":adjusts driving goggles with a dramatic flourish  \nBy Jove! What in the name of steam-powered engines is that? A little fireball with teeth and a grudge\u2014how very... *unconventional*!  \n\n:leans forward, eyes wide with delight  \nTell me, little flame-demon\u2014do you have a motor? A proper V8 under that fiery exterior? Because if so, we must race! Poop-poop! Capital idea!",
+            "affect": [
+              -0.03226839751005173,
+              0.023580053821206093,
+              0.024443097412586212,
+              -0.007385422475636005,
+              -0.010927719064056873
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832725.271264,
+            "importance": 0.20837726769968867,
+            "identity_salience": 1.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "Hi Toad!!!!\" *noticed Red* \"Oh.. greaaaat. Toad, your monkey is on fire again\"",
+            "affect": [
+              0.34109067916870117,
+              0.6591305732727051,
+              0.2837468087673187,
+              -0.4796577990055084,
+              0.0
+            ],
+            "surprise": 0.23557035624980927,
+            "timestamp": 1764832748.477809,
+            "importance": 0.26778517812490465,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [],
+        "body_codes": [],
+        "expression_description": "",
+        "event_type": "unknown",
+        "responding_to": "",
+        "metadata": {}
+      },
+      {
+        "timestamp": 289.54518485069275,
+        "wall_time": "23:22:28",
+        "phenomenal_state": {
+          "fast": [
+            -0.02030586637556553,
+            0.05219978094100952,
+            -0.009350148029625416,
+            0.004519173875451088,
+            -0.007598537020385265,
+            -0.00311816344037652,
+            -0.08719250559806824,
+            0.012379893101751804,
+            -0.053040873259305954,
+            0.18867193162441254,
+            -0.0688866525888443,
+            0.05500686541199684,
+            0.02967185154557228,
+            -0.0067810057662427425,
+            -0.08001521974802017,
+            0.1261490136384964
+          ],
+          "medium": [
+            -0.04155567288398743,
+            -0.029052259400486946,
+            -0.05263873562216759,
+            -0.11305958032608032,
+            -0.09499028325080872,
+            0.06459253281354904,
+            -0.05659410357475281,
+            -0.0060457284562289715,
+            -0.05300063267350197,
+            -0.006266411393880844,
+            0.09750129282474518,
+            -0.05357978120446205,
+            -0.07023508101701736,
+            0.11867885291576385,
+            0.059061285108327866,
+            0.08332477509975433
+          ],
+          "slow": [
+            0.057500652968883514,
+            -0.41845911741256714,
+            -0.14481349289417267,
+            0.2081291675567627,
+            -0.11474242806434631,
+            0.3001658022403717,
+            0.17519396543502808,
+            -0.1020042821764946
+          ],
+          "full": [
+            -0.02030586637556553,
+            0.05219978094100952,
+            -0.009350148029625416,
+            0.004519173875451088,
+            -0.007598537020385265,
+            -0.00311816344037652,
+            -0.08719250559806824,
+            0.012379893101751804,
+            -0.053040873259305954,
+            0.18867193162441254,
+            -0.0688866525888443,
+            0.05500686541199684,
+            0.02967185154557228,
+            -0.0067810057662427425,
+            -0.08001521974802017,
+            0.1261490136384964,
+            -0.04155567288398743,
+            -0.029052259400486946,
+            -0.05263873562216759,
+            -0.11305958032608032,
+            -0.09499028325080872,
+            0.06459253281354904,
+            -0.05659410357475281,
+            -0.0060457284562289715,
+            -0.05300063267350197,
+            -0.006266411393880844,
+            0.09750129282474518,
+            -0.05357978120446205,
+            -0.07023508101701736,
+            0.11867885291576385,
+            0.059061285108327866,
+            0.08332477509975433,
+            0.057500652968883514,
+            -0.41845911741256714,
+            -0.14481349289417267,
+            0.2081291675567627,
+            -0.11474242806434631,
+            0.3001658022403717,
+            0.17519396543502808,
+            -0.1020042821764946
+          ]
+        },
+        "affect": {
+          "valence": -0.8583950489631635,
+          "arousal": 0.6744532527567713,
+          "fear": 0.21459876224079089,
+          "sorrow": 0.06131393206879744,
+          "boredom": -0.09197089810319603
+        },
+        "surprise": 0.18572887778282166,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.1470772253725985,
+          "medium": 0.050580071708838124,
+          "slow": 0.1015143397924233
+        },
+        "event": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c: looks down at red and frowns. Puts her hands on her hips. \"Wait a minute..\" *peers more closely* \"yo",
+        "conversation_context": [
+          {
+            "user": "agent_red_fire_anklebiter",
+            "text": "Red Fire Anklebiter (gremlin) appears round the bend. A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+            "affect": [
+              -0.21538743376731873,
+              0.6820602416992188,
+              0.5025706887245178,
+              -0.5743665099143982,
+              -0.39487698674201965
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832721.138436,
+            "importance": 0.13461715131998062,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_mr._toad",
+            "text": ":adjusts driving goggles with a dramatic flourish  \nBy Jove! What in the name of steam-powered engines is that? A little fireball with teeth and a grudge\u2014how very... *unconventional*!  \n\n:leans forward, eyes wide with delight  \nTell me, little flame-demon\u2014do you have a motor? A proper V8 under that fiery exterior? Because if so, we must race! Poop-poop! Capital idea!",
+            "affect": [
+              -0.03226839751005173,
+              0.023580053821206093,
+              0.024443097412586212,
+              -0.007385422475636005,
+              -0.010927719064056873
+            ],
+            "surprise": 0.0,
+            "timestamp": 1764832725.271264,
+            "importance": 0.20837726769968867,
+            "identity_salience": 1.0
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "Hi Toad!!!!\" *noticed Red* \"Oh.. greaaaat. Toad, your monkey is on fire again\"",
+            "affect": [
+              0.34109067916870117,
+              0.6591305732727051,
+              0.2837468087673187,
+              -0.4796577990055084,
+              0.0
+            ],
+            "surprise": 0.23557035624980927,
+            "timestamp": 1764832748.477809,
+            "importance": 0.26778517812490465,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_mr._toad",
+            "text": ":adjusts driving goggles with a dramatic flourish  \nOh, *you*! The one who brings me such delightful chaos\u2014how droll you are! Though I must say, that little fireball is positively *fascinating*\u2014does it have a name? A proper one, like \"Sir Sizzlepants\" or \"Lord Inferno\"?  \n\n:leans forward, eyes wide with delight  \nAnd why are you calling it my *monkey*? That\u2019s quite the imagination! I\u2019ve never been so fortunate as to have a flaming primate\u2014though if it\u2019s fast enough, I might just adopt it for the racetrack! Poop-poop! Capital idea!  \n\n:strikes a heroic pose  \nNow then\u2014let\u2019s see if it can keep up with my steam-powered dream! And don\u2019t worry, old chap\u2014no harm done. I\u2019m a gentleman of *style*, not destruction!",
+            "affect": [
+              -0.10482589900493622,
+              0.05359921231865883,
+              0.01486147940158844,
+              -0.046383339911699295,
+              0.015511533245444298
+            ],
+            "surprise": 0.23557035624980927,
+            "timestamp": 1764832754.555392,
+            "importance": 2.4659833816252648,
+            "identity_salience": 0.7999999999999999
+          },
+          {
+            "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+            "text": "looks down at red and frowns. Puts her hands on her hips. \"Wait a minute..\" *peers more closely* \"you're not a monkey you're a like.. whatchamacall it. like a little devilled ham.\"",
+            "affect": [
+              -0.8583950400352478,
+              0.6744532585144043,
+              0.21459876000881195,
+              0.0613139308989048,
+              -0.09197089821100235
+            ],
+            "surprise": 0.18572887778282166,
+            "timestamp": 1764832948.343133,
+            "importance": 0.24286443889141082,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            5,
+            0.6596263975155501
+          ],
+          [
+            4,
+            0.4372170293102326
+          ],
+          [
+            7,
+            0.4372170293102326
+          ],
+          [
+            23,
+            0.4372170293102326
+          ],
+          [
+            1,
+            0.22240936820531748
+          ],
+          [
+            2,
+            0.22240936820531748
+          ],
+          [
+            26,
+            0.22240936820531748
+          ]
+        ],
+        "body_codes": [
+          [
+            20,
+            0.3626453412523032
+          ],
+          [
+            18,
+            0.3626453412523032
+          ],
+          [
+            27,
+            0.3626453412523032
+          ],
+          [
+            7,
+            0.3626453412523032
+          ]
+        ],
+        "expression_description": "expression: Upper Lid Raiser, Brow Lowerer, step forward (approach), fists clenched (anger), stomping (anger)",
+        "event_type": "emote",
+        "responding_to": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+        "metadata": {}
+      }
+    ]
+  }
+}

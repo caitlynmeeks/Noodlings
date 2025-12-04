@@ -461,10 +461,11 @@ class SceneHierarchy(QWidget):
                         self.entitySelected.emit(entity_type, entity_data)
                         print(f"[HIERARCHY] emit returned successfully")
             else:
-                # Nothing selected - emit None to clear Inspector and Facets Editor
-                print("[HIERARCHY] No selection, emitting None")
-                self.entitySelected.emit(None, None)
-                print("[HIERARCHY] None emit returned successfully")
+                # Nothing selected - emit empty values to clear Inspector and Facets Editor
+                # Note: Signal requires (str, dict) types, can't pass None directly
+                print("[HIERARCHY] No selection, emitting empty values")
+                self.entitySelected.emit("", {})
+                print("[HIERARCHY] Empty emit returned successfully")
         except Exception as e:
             print(f"[HIERARCHY] EXCEPTION in on_selection_changed: {e}")
             import traceback

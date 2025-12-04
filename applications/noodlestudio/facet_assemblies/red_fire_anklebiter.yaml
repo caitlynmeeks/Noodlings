@@ -16,7 +16,7 @@ facets:
     name: INCOMING
     type: SpecialNode
     prompt: ''
-    model: qwen/qwen3-14b-2507
+    model: qwen/qwen3-4b-2507
     temperature: 0.7
     max_tokens: 150
     inputs: []
@@ -31,11 +31,241 @@ facets:
     color: '#76AF6A'
     enabled: true
 
+  - id: context_intelligence
+    name: Context Intelligence
+    type: ContextIntelligenceFacet
+    prompt: 'THE GOD OF CONTEXT - Understanding WHO, WHAT, WHERE'
+    model: qwen/qwen3-4b-2507
+    temperature: 0.3
+    max_tokens: 512
+    inputs:
+      - name: incoming_data
+        type: input
+        description: Raw perception to analyze
+        required: true
+    outputs:
+      - name: speaker
+        type: output
+        description: Who is speaking
+        required: true
+      - name: addressee
+        type: output
+        description: Who they're addressing (you/name/everyone)
+        required: true
+      - name: speech_act
+        type: output
+        description: Type of communication (question/statement/command/emote)
+        required: true
+      - name: social_expectation
+        type: output
+        description: Response urgency (none/low/medium/high)
+        required: true
+      - name: enriched_perception
+        type: output
+        description: Text with explicit context added
+        required: true
+      - name: should_respond
+        type: output
+        description: Boolean - should this agent respond to this message?
+        required: true
+      - name: world_model_state
+        type: output
+        description: JSON of current world model
+        required: false
+    position:
+      x: 150
+      y: 450
+    color: '#9B59B6'
+    enabled: true
+    locked: true
+    metadata:
+      agent_name: Red Fire Anklebiter
+
+  - id: CHARM_NET
+    name: CharmNetwork
+    type: CharmNetworkFacet
+    prompt: Temporal affect prediction - the emotional core
+    model: checkpoints/phase4.npz
+    temperature: 0.0
+    max_tokens: 0
+    inputs:
+      - name: affect_in
+        type: input
+        description: 5-D continuous affect input
+        required: true
+    outputs:
+      - name: affect_valence
+        type: output
+        description: Continuous valence (-1 to 1)
+        required: true
+      - name: affect_arousal
+        type: output
+        description: Continuous arousal (0 to 1)
+        required: true
+      - name: affect_fear
+        type: output
+        description: Continuous fear (0 to 1)
+        required: true
+      - name: affect_sorrow
+        type: output
+        description: Continuous sorrow (0 to 1)
+        required: true
+      - name: affect_boredom
+        type: output
+        description: Continuous boredom (0 to 1)
+        required: true
+      - name: phenomenal_state
+        type: output
+        description: 40-D phenomenal state (h_fast + h_medium + h_slow)
+        required: true
+    position:
+      x: 200
+      y: 400
+    color: '#888888'
+    enabled: true
+    locked: true
+
+  - id: subconscious_symbolic
+    name: Subconscious Symbolic
+    type: SubconsciousFacet
+    prompt: Continuous symbolic processing - dream logic metaphor generation
+    model: qwen/qwen3-4b-2507
+    temperature: 0.9
+    max_tokens: 100
+    inputs:
+      - name: perception
+        type: input
+        description: Raw incoming perception
+        required: true
+      - name: affect_valence
+        type: input
+        description: Affect valence (-1 to 1)
+        required: true
+      - name: affect_arousal
+        type: input
+        description: Affect arousal (0 to 1)
+        required: true
+      - name: affect_fear
+        type: input
+        description: Affect fear (0 to 1)
+        required: true
+      - name: affect_sorrow
+        type: input
+        description: Affect sorrow (0 to 1)
+        required: true
+    outputs:
+      - name: symbolic_image
+        type: output
+        description: Symbolic abstraction (latent)
+        required: true
+      - name: _latent
+        type: output
+        description: Marks output as latent (non-speech)
+        required: true
+    position:
+      x: 300
+      y: 50
+    color: '#7EC8E3'
+    enabled: true
+
+  - id: insight_emergence
+    name: Insight Emergence
+    type: InsightEmergenceFacet
+    salience_script: |
+      function compute_salience(inputs, context) {
+        // === SAFETY-GATED INSIGHT RELEASE ===
+
+        function sigmoid(x, midpoint, steepness) {
+          return 1 / (1 + Math.exp(-steepness * (x - midpoint)));
+        }
+
+        // Get current affect
+        const arousal = inputs.affect?.arousal || 0.5;
+        const valence = inputs.affect?.valence || 0.0;
+
+        // Get denial facet salience (defenses)
+        const denial_salience = context.facet_salience?.denial_defense || 0.0;
+
+        // SAFETY = calm + defenses down
+        const calm = 1 - arousal;  // 0 to 1
+        const defenses_down = 1 - denial_salience;  // 0 to 1
+
+        const safety = calm * defenses_down;
+
+        // Sigmoid curve - need SIGNIFICANT safety (>0.7) to break through
+        const salience = sigmoid(safety, 0.7, 10);
+
+        // Boost if valence is positive (feeling good helps)
+        const valence_boost = valence > 0 ? valence * 0.1 : 0;
+
+        const final_salience = Math.min(1.0, salience + valence_boost);
+
+        return {
+          salience: final_salience,
+          shouldExecute: final_salience > 0.5,
+          customData: {
+            safety: safety,
+            calm: calm,
+            defenses_down: defenses_down
+          }
+        };
+      }
+    prompt: |
+      INSIGHT EMERGENCE - Translating subconscious symbolism to conscious thought
+
+      SAFETY LEVEL: {customData.safety:.3f}
+      CALM: {customData.calm:.3f}, DEFENSES DOWN: {customData.defenses_down:.3f}
+
+      LATENT SYMBOLIC IMAGES (from subconscious):
+      {latent_memories}
+
+      Your subconscious has been generating symbolic imagery. Now that you feel SAFE,
+      translate the most recent symbolic image into a vulnerable conscious thought.
+
+      Use "privately thinks" format.
+      Brief and poetic (1-3 sentences).
+      Capture the emotional essence of the symbol.
+
+      Examples:
+      Symbol: "marshmallow roasting / flames gentled to hearth glow / trust tastes like sugar"
+      Thought: "privately thinks, She treats my flames like campfire light—safe, warm. Not a threat."
+
+      Conscious thought:
+    model: qwen/qwen3-4b-2507
+    temperature: 0.8
+    max_tokens: 150
+    inputs:
+      - name: affect_valence
+        type: input
+        description: Affect valence (-1 to 1)
+        required: true
+      - name: affect_arousal
+        type: input
+        description: Affect arousal (0 to 1)
+        required: true
+      - name: affect_fear
+        type: input
+        description: Affect fear (0 to 1)
+        required: true
+    outputs:
+      - name: surfaced_insight
+        type: output
+        description: Conscious vulnerable thought
+        required: false
+    position:
+      x: 300
+      y: 100
+    color: '#B39DDB'
+    enabled: true
+
   - id: room_observer
     name: Room Observer
     type: LLMFacet
     prompt: |
       ROOM OBSERVATION - Red Fire Anklebiter's Roast Radar
+
+      PHENOMENAL STATE: {phenomenal_state}
+      AFFECT: valence={affect_valence:.2f}, arousal={affect_arousal:.2f}, fear={affect_fear:.2f}
 
       INCOMING: {incoming_data}
 
@@ -47,6 +277,12 @@ facets:
 
       You are Red's observation processor. You notice EVERYTHING about people in the room.
 
+      EMOTIONAL STATE INFLUENCES OBSERVATION:
+      - High arousal (>{affect_arousal:.2f}) → Notice MORE things, faster reactions
+      - High valence → More playful observations
+      - Low valence → More cutting/sarcastic observations
+      - High fear → More defensive, protective observations
+
       YOUR TASK: Scan for ROAST MATERIAL!
       - Who's here? What are their quirks?
       - What did they just say/do that's mockable?
@@ -57,15 +293,32 @@ facets:
 
       Output: 2-3 observations about people present that could fuel a good roast.
       Be specific, be observant, be ready to BURN.
+      Let your EMOTIONAL STATE color your observations!
 
       Example: "Caity just offered candy - she's clearly bribing people. NewNoodling is doing that wide-eyed innocent thing AGAIN. Classic."
-    model: qwen/qwen3-14b-2507
+    model: qwen/qwen3-4b-2507
     temperature: 0.6
     max_tokens: 150
     inputs:
-      - name: context
+      - name: incoming_data
         type: input
-        description: Raw perception with world state
+        description: Enriched perception with context
+        required: true
+      - name: phenomenal_state
+        type: input
+        description: 40-D temporal memory state
+        required: true
+      - name: affect_valence
+        type: input
+        description: Emotional valence (-1 to 1)
+        required: true
+      - name: affect_arousal
+        type: input
+        description: Emotional arousal (0 to 1)
+        required: true
+      - name: affect_fear
+        type: input
+        description: Fear level (0 to 1)
         required: true
     outputs:
       - name: observations
@@ -84,11 +337,17 @@ facets:
     prompt: |
       ROAST ENGINE - Red Fire Anklebiter (Professional Shit-Talker)
 
-      OBSERVATIONS: {observations}
-      INCOMING: {incoming_data}
+      AFFECT: valence={affect_valence:.2f}, arousal={affect_arousal:.2f}, sorrow={affect_sorrow:.2f}
+      ENRICHED PERCEPTION: {incoming_perception}
 
       You are Red's roast generator. You're a COMEDIAN, not cruel - you roast people playfully.
       Think Conker's Bad Fur Day fire imps meets a stand-up comic.
+
+      EMOTIONAL SALIENCE (affect influences roast intensity):
+      - High arousal + high valence → PLAYFUL, energetic roasts
+      - High arousal + low valence → CUTTING, aggressive roasts
+      - Low arousal → Tired, half-hearted roasts
+      - High sorrow → Self-deprecating or melancholic edge
 
       ROAST STYLE:
       - Playful mockery, not genuine meanness
@@ -111,13 +370,25 @@ facets:
       4. Includes *physical action* if relevant
 
       NO generic comments! Specific roasts only!
-    model: qwen/qwen3-14b-2507
+    model: qwen/qwen3-4b-2507
     temperature: 0.9
     max_tokens: 100
     inputs:
-      - name: observations
+      - name: incoming_perception
         type: input
-        description: Room observations
+        description: Enriched perception from Context Intelligence
+        required: true
+      - name: affect_valence
+        type: input
+        description: Emotional valence
+        required: true
+      - name: affect_arousal
+        type: input
+        description: Emotional arousal
+        required: true
+      - name: affect_sorrow
+        type: input
+        description: Sorrow level
         required: true
     outputs:
       - name: roast
@@ -130,6 +401,64 @@ facets:
     color: '#FF4444'
     enabled: true
 
+  - id: response_selector
+    name: Response Selector
+    type: ScriptedFacet
+    salience_script: |
+      function computeSalience(inputs, context) {
+        // Select highest-salience response to route through body/voice
+
+        const facet_sal = inputs.facet_salience || {};
+        const denial_sal = facet_sal.denial_defense?.salience || 0;
+        const roast_sal = facet_sal.roast_engine?.salience || 0.5;
+
+        // Pick the winner (continuous selection)
+        const selected = denial_sal > roast_sal ? "denial" : "roast";
+
+        return {
+          salience: 1.0,
+          shouldExecute: true,
+          customData: {
+            selected_type: selected,
+            denial_salience: denial_sal,
+            roast_salience: roast_sal
+          }
+        };
+      }
+    prompt: |
+      RESPONSE SELECTOR
+
+      Select the primary response based on salience:
+      - Denial salience: {customData.denial_salience:.3f}
+      - Roast salience: {customData.roast_salience:.3f}
+
+      SELECTED: {customData.selected_type}
+
+      DENIAL: {denial_response}
+      ROAST: {roast}
+
+      Output the SELECTED response content only.
+    model: qwen/qwen3-4b-2507
+    temperature: 0.3
+    max_tokens: 100
+    inputs:
+      - name: denial_response
+        type: input
+        required: false
+      - name: roast
+        type: input
+        required: true
+    outputs:
+      - name: selected_response
+        type: output
+        description: Highest-salience response
+        required: true
+    position:
+      x: 600
+      y: 400
+    color: '#AB47BC'
+    enabled: true
+
   - id: fire_body
     name: Fire Body
     type: LLMFacet
@@ -137,31 +466,46 @@ facets:
       FIRE BODY REACTIONS - Red Fire Anklebiter
 
       SITUATION: {incoming_data}
-      ROAST: {roast}
+      RESPONSE CONTENT: {selected_response}
+
+      WHO'S IN THE ROOM:
+      {room_occupants}
 
       You are a 2-foot-tall crimson FLAME IMP. Your body is LITERAL FIRE.
 
-      PHYSICAL IMPULSES:
+      PHYSICAL IMPULSES (MUST include TARGET for contact actions!):
       - Bounce on toes when excited
       - Flames flare when angry/excited
+      - Flames dim/flicker when defensive or sad
+      - Flames spike when threatened (denial/panic)
       - Tail snaps like a whip for emphasis
-      - Jump on people's shoulders
+      - Jump on SPECIFIC PERSON's shoulders (use their name!)
       - Pace in circles
-      - Point accusingly with flaming fingers
-      - Bite ankles (playfully!)
+      - Point accusingly at SPECIFIC PERSON
+      - Bite SPECIFIC PERSON's ankles (playfully!)
+      - Back away from SPECIFIC PERSON
       - Cackle and crackle
 
-      Based on the roast you're about to deliver, what does your fire-body DO?
+      CRITICAL: If your action involves another character, NAME THEM!
+      - WRONG: "*jumps on shoulder*" (whose?!)
+      - RIGHT: "*jumps on Caity's shoulder*"
+      - RIGHT: "*bites Toad's ankle*"
+      - RIGHT: "*points at Servnak accusingly*"
 
-      Output: Brief physical action (5-10 words) in *asterisks*
-      Example: "*flames surge, jumps on shoulder cackling*"
-    model: qwen/qwen3-14b-2507
+      Based on the response content (could be roast OR denial OR panic), what does your fire-body DO?
+
+      Output: Brief physical action (5-10 words) in *asterisks* with SPECIFIC TARGETS
+      Examples:
+      - Roast at Caity: "*flames surge, jumps on Caity's shoulder cackling*"
+      - Denial (general): "*flames flicker nervously, backs away*"
+      - Panic from Servnak: "*flames spike, backs away from Servnak*"
+    model: qwen/qwen3-4b-2507
     temperature: 0.8
     max_tokens: 50
     inputs:
-      - name: roast
+      - name: selected_response
         type: input
-        description: The roast being delivered
+        description: Selected response content (roast OR denial)
         required: true
     outputs:
       - name: physical_action
@@ -180,33 +524,35 @@ facets:
     prompt: |
       VOICE FILTER - Red Fire Anklebiter (Cartoon Villain Energy)
 
-      ROAST: {roast}
+      RESPONSE CONTENT: {selected_response}
       PHYSICAL: {physical_action}
 
-      Add Red's signature voice style:
+      Add Red's signature voice style to ANY response type (roast, denial, panic, etc.):
 
       CAPS for emphasis (not EVERYTHING, just KEY words)
       - "Oh WOW" not "OH WOW"
       - "ACTUALLY" not "actually"
       - "MWAHAHA" for evil laughs
 
-      Sassy connectors:
-      - "Oh PLEASE"
-      - "ACTUALLY"
-      - "Yeah SURE"
-      - "Oh WOW"
+      Sassy connectors (adjust to emotional tone):
+      - Roasting: "Oh PLEASE", "ACTUALLY", "Yeah SURE", "Oh WOW"
+      - Defensive: "That's NOT", "WHAT?!", "No WAY"
+      - Panicked: "WAIT", "STOP", "OH NO"
 
-      Combine roast + physical action into ONE line with Red's voice.
+      Combine response_content + physical action into ONE line with Red's voice.
       Keep it SHORT (15-35 words total).
 
-      Example: "Oh PLEASE, Caity - bribing people with candy? CLASSIC! *flames surge, bites ankle* MWAHAHA!"
-    model: qwen/qwen3-14b-2507
+      Examples:
+      - Roast: "Oh PLEASE, Caity - bribing people with candy? CLASSIC! *flames surge, bites ankle* MWAHAHA!"
+      - Denial: "That's NOT true! I'm HILARIOUS! *flames flicker nervously* ACTUALLY!"
+      - Panic: "WAIT, everyone HATES me?! *flames spike, backs away* NO NO NO!"
+    model: qwen/qwen3-4b-2507
     temperature: 0.85
     max_tokens: 80
     inputs:
-      - name: roast
+      - name: selected_response
         type: input
-        description: The roast
+        description: Selected response content
         required: true
       - name: physical_action
         type: input
@@ -223,11 +569,242 @@ facets:
     color: '#FF6B9D'
     enabled: true
 
+  - id: denial_defense
+    name: Denial Defense
+    type: ScriptedFacet
+    salience_script: |
+      function computeSalience(inputs, context) {
+        // === CONTINUOUS SALIENCE - NO DISCRETE THRESHOLDS ===
+
+        // Sigmoid for smooth transitions
+        function sigmoid(x, center, steepness) {
+          return 1 / (1 + Math.exp(-steepness * (x - center)));
+        }
+
+        // Normalize valence from [-1,1] to [0,1]
+        const valence_normalized = (inputs.affect_valence + 1) / 2;
+        const arousal = inputs.affect_arousal;
+        const fear = inputs.affect_fear;
+
+        // CONTINUOUS distress calculation
+        const distress = arousal * (1 - valence_normalized);
+
+        // CONTINUOUS salience (smooth S-curve centered at 0.5 distress)
+        const base_salience = sigmoid(distress, 0.5, 8);
+
+        // Fear amplifies denial need (continuous boost)
+        const fear_boost = fear * 0.3;
+        const salience = Math.min(1.0, base_salience + fear_boost);
+
+        // Execute if salience > 0.4 (smooth threshold with some hysteresis)
+        const shouldExecute = salience > 0.4;
+
+        return {
+          salience: salience,
+          shouldExecute: shouldExecute,
+          customData: {
+            distress_level: distress,
+            defense_intensity: salience,
+            valence: inputs.affect_valence,
+            arousal: inputs.affect_arousal,
+            fear: inputs.affect_fear
+          }
+        };
+      }
+    prompt: |
+      DENIAL DEFENSE MECHANISM
+
+      === EMOTIONAL STATE (continuous!) ===
+      DISTRESS: {customData.distress_level:.3f} (arousal × negative_valence)
+      DEFENSE INTENSITY: {customData.defense_intensity:.3f}
+      AFFECT: v={customData.valence:.2f}, a={customData.arousal:.2f}, f={customData.fear:.2f}
+
+      {incoming_data}
+
+      === YOUR TASK ===
+      Generate psychological denial PROPORTIONAL to defense_intensity.
+
+      CONTINUOUS INTENSITY SCALE:
+      - 0.4-0.5: Mild reframing ("Maybe that's not quite right...")
+      - 0.5-0.6: Moderate denial ("No, I don't think so...")
+      - 0.6-0.7: Strong denial ("That's NOT true!")
+      - 0.7-0.8: Forceful denial ("THAT NEVER HAPPENED!")
+      - 0.8-1.0: Reality rejection ("Nothing's wrong! EVERYTHING'S FINE!")
+
+      Scale response to defense_intensity={customData.defense_intensity:.3f}
+
+      Output: Denial statement (or empty if < 0.4)
+    model: qwen/qwen3-4b-2507
+    temperature: 0.8
+    max_tokens: 100
+    inputs:
+      - name: affect_valence
+        type: input
+        description: Continuous valence
+        required: true
+      - name: affect_arousal
+        type: input
+        description: Continuous arousal
+        required: true
+      - name: affect_fear
+        type: input
+        description: Continuous fear
+        required: true
+      - name: incoming_data
+        type: input
+        description: Context to potentially deny
+        required: true
+    outputs:
+      - name: denial_response
+        type: output
+        description: Denial statement (if active)
+        required: false
+    position:
+      x: 800
+      y: 500
+    color: '#9C27B0'
+    enabled: true
+
+  - id: CONVERGENCE
+    name: Response Convergence
+    type: ConvergenceFacet
+    salience_script: |
+      function computeSalience(inputs, context) {
+        // CONVERGENCE always executes, but computes INPUT WEIGHTS
+
+        // Get salience of upstream facets (continuous values!)
+        const facet_salience = inputs.facet_salience || {};
+
+        const denial_sal = facet_salience.denial_defense?.salience || 0;
+        const roast_sal = facet_salience.roast_engine?.salience || 0.5;
+        const voice_sal = facet_salience.voice_filter?.salience || 0.5;
+
+        // Normalize weights (softmax-like)
+        const total = denial_sal + roast_sal + voice_sal + 0.001;
+
+        const denial_weight = denial_sal / total;
+        const roast_weight = roast_sal / total;
+        const voice_weight = voice_sal / total;
+
+        // Determine dominant response type
+        let dominant = "roast";
+        if (denial_weight > 0.5) dominant = "denial";
+        else if (voice_weight > 0.4) dominant = "normal";
+
+        return {
+          salience: 1.0,  // Convergence always runs
+          shouldExecute: true,
+          customData: {
+            denial_weight: denial_weight,
+            roast_weight: roast_weight,
+            voice_weight: voice_weight,
+            dominant_mode: dominant,
+            all_saliences: {
+              denial: denial_sal,
+              roast: roast_sal,
+              voice: voice_sal
+            }
+          }
+        };
+      }
+    prompt: |
+      CONVERGENCE - Salience-Weighted Response Synthesis
+
+      === FACET SALIENCE WEIGHTS (continuous!) ===
+      DOMINANT MODE: {customData.dominant_mode}
+      - Denial weight: {customData.denial_weight:.3f} (sal={customData.all_saliences.denial:.3f})
+      - Roast weight: {customData.roast_weight:.3f} (sal={customData.all_saliences.roast:.3f})
+      - Voice weight: {customData.voice_weight:.3f} (sal={customData.all_saliences.voice:.3f})
+
+      === EMOTIONAL STATE (from CharmNetwork) ===
+      AFFECT: valence={affect_valence:.2f}, arousal={affect_arousal:.2f}, fear={affect_fear:.2f}, sorrow={affect_sorrow:.2f}, boredom={affect_boredom:.2f}
+
+      === COGNITIVE OUTPUTS ===
+      OBSERVATIONS: {observations}
+      ROAST: {roast}
+      PHYSICAL: {physical_action}
+      VOICED: {final_response}
+      DENIAL: {denial_response}
+
+      === YOUR TASK ===
+      Synthesize inputs using CONTINUOUS salience weighting (not binary!).
+
+      WEIGHTING STRATEGY:
+      - If denial_weight > 0.5 → Denial DOMINATES (use denial_response primarily)
+      - If denial_weight 0.3-0.5 → BLEND denial with roast (soften the roast with defensive edge)
+      - If denial_weight < 0.3 → Normal roast (use voiced response)
+
+      SMOOTH BLENDING (no discrete switches!):
+      - High denial: "{denial_response}"
+      - Medium denial: "{denial_response} *nervously* {final_response}"
+      - Low denial: "{final_response}"
+
+      DECISION:
+      1. Should respond? (boredom < 0.7 usually)
+      2. Which mode? (use weights to blend smoothly!)
+      3. Final output: Weighted synthesis, NOT hard switch
+
+      Output the FINAL response (or [SUPPRESS] if boredom > 0.8).
+    model: qwen/qwen3-4b-2507
+    temperature: 0.7
+    max_tokens: 150
+    inputs:
+      - name: affect_valence
+        type: input
+        description: Emotional valence
+        required: true
+      - name: affect_arousal
+        type: input
+        description: Emotional arousal
+        required: true
+      - name: affect_fear
+        type: input
+        description: Fear level
+        required: true
+      - name: affect_sorrow
+        type: input
+        description: Sorrow level
+        required: true
+      - name: affect_boredom
+        type: input
+        description: Boredom level
+        required: true
+      - name: observations
+        type: input
+        description: Room observations
+        required: true
+      - name: roast
+        type: input
+        description: Generated roast
+        required: true
+      - name: physical_action
+        type: input
+        description: Physical actions
+        required: true
+      - name: final_response
+        type: input
+        description: Voiced response
+        required: true
+      - name: denial_response
+        type: input
+        description: Denial statement (if denial facet activated)
+        required: false
+    outputs:
+      - name: convergent_response
+        type: output
+        description: Final synthesized response
+        required: true
+    position:
+      x: 900
+      y: 300
+    color: '#9575CD'
+    enabled: true
+
   - id: OUTGOING
     name: OUTGOING
     type: SpecialNode
     prompt: ''
-    model: qwen/qwen3-14b-2507
+    model: qwen/qwen3-4b-2507
     temperature: 0.7
     max_tokens: 150
     inputs:
@@ -237,21 +814,116 @@ facets:
         required: true
     outputs: []
     position:
-      x: 900
+      x: 1100
       y: 300
     color: '#FFA726'
     enabled: true
 
 connections:
+  # INCOMING → Context Intelligence (THE GOD)
   - from: INCOMING.out
-    to: room_observer.context
-  - from: room_observer.observations
-    to: roast_engine.observations
+    to: context_intelligence.incoming_data
+
+  # Context Intelligence → CharmNetwork (enriched perception)
+  - from: context_intelligence.enriched_perception
+    to: CHARM_NET.affect_in
+
+  # Context Intelligence → room_observer (enriched perception!)
+  - from: context_intelligence.enriched_perception
+    to: room_observer.incoming_data
+
+  # CharmNetwork → room_observer (with affect)
+  - from: CHARM_NET.phenomenal_state
+    to: room_observer.phenomenal_state
+  - from: CHARM_NET.affect_valence
+    to: room_observer.affect_valence
+  - from: CHARM_NET.affect_arousal
+    to: room_observer.affect_arousal
+  - from: CHARM_NET.affect_fear
+    to: room_observer.affect_fear
+
+  # PARALLEL EXECUTION: Roast gets data directly from Context Intelligence!
+  # This allows Observer and Roast to execute IN PARALLEL after CharmNetwork completes!
+  - from: context_intelligence.enriched_perception
+    to: roast_engine.incoming_perception
+  - from: CHARM_NET.affect_valence
+    to: roast_engine.affect_valence
+  - from: CHARM_NET.affect_arousal
+    to: roast_engine.affect_arousal
+  - from: CHARM_NET.affect_sorrow
+    to: roast_engine.affect_sorrow
+
+  # CharmNetwork → denial_defense (continuous affect monitoring)
+  - from: CHARM_NET.affect_valence
+    to: denial_defense.affect_valence
+  - from: CHARM_NET.affect_arousal
+    to: denial_defense.affect_arousal
+  - from: CHARM_NET.affect_fear
+    to: denial_defense.affect_fear
+  - from: INCOMING.out
+    to: denial_defense.incoming_data
+
+  # roast_engine + denial_defense → response_selector (picks winner)
   - from: roast_engine.roast
-    to: fire_body.roast
-  - from: roast_engine.roast
-    to: voice_filter.roast
+    to: response_selector.roast
+  - from: denial_defense.denial_response
+    to: response_selector.denial_response
+
+  # response_selector → fire_body (physical embodiment)
+  - from: response_selector.selected_response
+    to: fire_body.selected_response
+
+  # fire_body + response_selector → voice_filter (Red's character voice)
+  - from: response_selector.selected_response
+    to: voice_filter.selected_response
   - from: fire_body.physical_action
     to: voice_filter.physical_action
+
+  # voice_filter → CONVERGENCE (final check before output)
+  # CONVERGENCE still gets ALL affect for final decision
+  - from: CHARM_NET.affect_valence
+    to: CONVERGENCE.affect_valence
+  - from: CHARM_NET.affect_arousal
+    to: CONVERGENCE.affect_arousal
+  - from: CHARM_NET.affect_fear
+    to: CONVERGENCE.affect_fear
+  - from: CHARM_NET.affect_sorrow
+    to: CONVERGENCE.affect_sorrow
+  - from: CHARM_NET.affect_boredom
+    to: CONVERGENCE.affect_boredom
+  - from: room_observer.observations
+    to: CONVERGENCE.observations
+  - from: roast_engine.roast
+    to: CONVERGENCE.roast
+  - from: denial_defense.denial_response
+    to: CONVERGENCE.denial_response
+  - from: fire_body.physical_action
+    to: CONVERGENCE.physical_action
   - from: voice_filter.final_response
+    to: CONVERGENCE.final_response
+
+  # CONVERGENCE → OUTGOING
+  - from: CONVERGENCE.convergent_response
     to: OUTGOING.in
+
+  # SUBCONSCIOUS LAYER (continuous symbolic processing)
+  # INCOMING → subconscious_symbolic (with affect from CharmNetwork)
+  - from: INCOMING.out
+    to: subconscious_symbolic.perception
+  - from: CHARM_NET.affect_valence
+    to: subconscious_symbolic.affect_valence
+  - from: CHARM_NET.affect_arousal
+    to: subconscious_symbolic.affect_arousal
+  - from: CHARM_NET.affect_fear
+    to: subconscious_symbolic.affect_fear
+  - from: CHARM_NET.affect_sorrow
+    to: subconscious_symbolic.affect_sorrow
+
+  # INSIGHT EMERGENCE (safety-gated release)
+  # Gets affect to compute safety salience
+  - from: CHARM_NET.affect_valence
+    to: insight_emergence.affect_valence
+  - from: CHARM_NET.affect_arousal
+    to: insight_emergence.affect_arousal
+  - from: CHARM_NET.affect_fear
+    to: insight_emergence.affect_fear

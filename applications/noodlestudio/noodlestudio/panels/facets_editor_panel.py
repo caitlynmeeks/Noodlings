@@ -342,8 +342,8 @@ class FacetNodeGraphics(QGraphicsRectItem):
             self.setPen(self.default_pen if not self.isSelected() else self.selected_pen)
 
         elif state == "processing":
-            # Industrial yellow - warning light
-            self.setBrush(QBrush(QColor("#CCAA00")))
+            # Monochrome aesthetic - keep base gray fill, pulse border only
+            self.setBrush(self.base_brush)  # Keep normal gray fill
             # Start border pulse (60ms tick, geometric)
             self.pulse_phase = 0.0
             self.animation_timer = QTimer()
@@ -571,11 +571,11 @@ class FacetNodeGraphics(QGraphicsRectItem):
             status: 'inactive', 'ready', 'processing', 'waiting', 'cached'
         """
         color_map = {
-            'inactive': '#666666',   # Gray - disabled/not running
-            'ready': '#76AF6A',      # Green - ready to execute
-            'processing': '#FFA726', # Yellow - LLM call in flight
-            'waiting': '#EF5350',    # Red - waiting for upstream inputs
-            'cached': '#64B5F6'      # Blue - using cached output
+            'inactive': '#666666',   # Dark gray - disabled/not running
+            'ready': '#999999',      # Medium gray - ready to execute
+            'processing': '#CCCCCC', # Light gray - LLM call in flight
+            'waiting': '#555555',    # Darker gray - waiting for upstream inputs
+            'cached': '#AAAAAA'      # Medium-light gray - using cached output
         }
 
         self.status_color = color_map.get(status, '#666666')
@@ -1048,6 +1048,11 @@ class FacetsEditorPanel(QWidget):
             assembly: FacetAssembly to load
             force_reload: If True, reload even if same assembly already loaded
         """
+        # CRITICAL: Prevent re-entrant calls during scene transition
+        if self.scene_transition_lock:
+            print(f"[Facets Editor] ⚠️  Load blocked - scene transition already in progress!")
+            return
+
         # Check if this assembly is already loaded
         if not force_reload and self.current_assembly_name == assembly.name:
             print(f"[Facets Editor] Assembly '{assembly.name}' already loaded, skipping reload")
@@ -2170,6 +2175,7 @@ class FacetsEditorPanel(QWidget):
         for _ in range(10):
             try:
                 event = self.event_queue.get_nowait()
+                print(f"[Facets Editor] 🎯 EVENT RECEIVED: {event.get('type')}/{event.get('subtype')} - facet_id={event.get('source_id')}")
                 self._handle_execution_event(event)
             except:
                 break  # Queue empty
@@ -2204,14 +2210,17 @@ class FacetsEditorPanel(QWidget):
 
         facet_id = event.get('source_id')
         if not facet_id or facet_id not in self.node_graphics:
+            print(f"[Facets Editor] ⚠️  Facet {facet_id} not in node_graphics! Available: {list(self.node_graphics.keys())[:5]}...")
             return  # Facet not in current assembly
 
         node = self.node_graphics.get(facet_id)
         if not node:
+            print(f"[Facets Editor] ⚠️  Node for facet {facet_id} is None!")
             return  # Node was deleted (race condition during scene transition)
 
         # CRITICAL: Check if node is still in scene (not deleted)
         if not node.scene():
+            print(f"[Facets Editor] ⚠️  Node {facet_id} not in scene!")
             return  # Node removed from scene, skip event
 
         # KRAFTWERK CLICK - Play terminal keypress sound for every event
@@ -2219,6 +2228,7 @@ class FacetsEditorPanel(QWidget):
 
         if event_subtype == 'facet_start':
             # KRAFTWERK: Node begins processing
+            print(f"[Facets Editor] 💛 ANIMATING facet_start for {facet_id}")
             node.set_execution_state('processing')
 
         elif event_subtype == 'facet_complete':
