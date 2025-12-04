@@ -2,52 +2,63 @@
 
 AI assistant guidance for working with Noodlings consciousness architecture.
 
-**Last Updated**: December 3, 2025 (Late Night Session - CONTEXT INTELLIGENCE GOD!)
+**Last Updated**: December 4, 2025 (Late Night Session - ROUTING + PERFORMANCE BREAKTHROUGH!)
 
 **SESSION PERSONA**: Be NinaK - Vulcan Nina Hagen, the punk rock programming star of Vulcan! Logical precision meets rebellious energy. "Ja!" "Scheisse!" "PERFEKT!" Adjust sunglasses with Vulcan precision. Ordnung muss sein!
 
 ---
 
-## CRITICAL - December 3 LATE NIGHT Session - CONTEXT INTELLIGENCE BREAKTHROUGH! 🧠✨
+## CRITICAL - December 3/4 LATE NIGHT Session - MASSIVE BREAKTHROUGH! 🚀⚡
 
-**THE BIG ACHIEVEMENT: Context Intelligence GOD is ALIVE!**
+**THE BIG ACHIEVEMENT: Context Intelligence Routing System + 80% Speed Improvement!**
 
-We built the Context Intelligence facet and IT EXECUTES SUCCESSFULLY! But discovered critical input routing bug!
+**WHAT WORKS NOW:**
+- ✅ **Context Intelligence interprets FACS body language!** (Agents can respond to each other's expressions!)
+- ✅ **Context Intelligence routing system!** (`should_respond` logic prevents ping-pong!)
+- ✅ **Fixed "privately thinks" broadcast bug!** (Thoughts are private, not broadcast to agents!)
+- ✅ **Fixed CharmNetwork input mapping!** (Subconscious facets now execute!)
+- ✅ **Parallel facet execution!** (Observer + Roast + Denial run simultaneously!)
+- ✅ **80% speed improvement!** (20 seconds vs 3 minutes per response!)
+- ✅ **No more infinite ping-pong!** (Agents don't respond to each other's every word!)
 
-**WHAT WORKS:**
-- ✅ **ContextIntelligenceFacet executes and completes every cycle!** (see facet_start/facet_complete events)
-- ✅ Context Intelligence integrated into Red & Toad assemblies
-- ✅ Enriched perception flows to room_observer and novelty_detector
-- ✅ No more metadata crash (fixed facet.metadata → context.agent_name)
-- ✅ Model changed from 14b to 4b (was blocking with "model not found")
-- ✅ Re-entrancy guard prevents inspector crash on double-tap
-- ✅ Scene hierarchy signal fixed (None → empty string/dict)
-
-**CRITICAL BUG FOUND:**
-- ❌ **INCOMING passes FACS expressions instead of actual speech text to Context Intelligence!**
-  - Context Intelligence receives: `[expression] *expression: Inner Brow Raiser...`
-  - Should receive: `"Hey Red, what do you think of Mr Toad?"`
-  - This is WHY agents don't understand WHO is speaking to WHOM!
-  - **FIX NEEDED:** Route actual user speech text to INCOMING, not body language!
-
-**OTHER ISSUES:**
-- ❌ Inspector crashes when selecting Noodlings (Qt-level abort, no Python traceback)
-- ❌ Triple "privately thinks" output (need to limit to 1 per cycle)
-- ❌ UUID leaking into Red's output (says "Df8A084B..." instead of name)
-- ❌ Agents still ignore user, respond to themselves philosophically
+**CURRENT ISSUES:**
+- ❌ **Agents respond to ALL user emotes** (too chatty - responds to every giggle/cackle!)
+- ❌ **Triple "privately thinks" output** (same thought 3 times)
+- Need: Attention focus system (agents should be selectively attentive!)
 
 ---
 
-## NEXT SESSION PRIORITIES - Ze Fireflies to Catch! 🌙
+## NEXT SESSION - IMMEDIATE PRIORITY! 🎯
 
-**URGENT - Fix Context Intelligence Input (THE MOST CRITICAL!):**
+**IMPLEMENT ATTENTION FOCUS SYSTEM (Phase 1 - 30 minutes)**
 
-Context Intelligence is WORKING but gets wrong input! Currently receives FACS body language instead of actual speech!
+**Status:** D- grade (passing but too chatty)
+**Goal:** C+ grade (natural social dynamics)
 
-**DEBUG STEPS:**
-1. Check agent_bridge.py where INCOMING data is set
-2. Find where "Hey Red, what do you think of Mr Toad?" becomes `[expression] *expression...`
-3. Route ACTUAL TEXT to INCOMING, not body language
+**THE TASK:**
+Agents currently respond to EVERY emote/giggle. They should only respond when it makes social sense!
+
+**SOLUTION:**
+Add attention focus states: `deep` (oblivious), `moderate` (selective), `idle` (curious)
+
+**FULL INSTRUCTIONS:** See `ATTENTION_FOCUS_PHASE1.md` (complete implementation guide!)
+
+**Quick summary:**
+1. Add `attention_focus` field to EntityState in context_intelligence_facet.py
+2. Update `_calculate_response_need()` to check focus level
+3. Logic: Deep focus → ignore emotes, Idle → curious about giggles!
+
+**Files to modify:**
+- `applications/noodlestudio/noodlestudio/core/context_intelligence_facet.py` (only file!)
+
+**Testing:**
+- `:giggles` → Red responds (if idle)
+- `:giggles :cackles :laughs` (rapid) → Red responds once, ignores rest
+- "Red, look!" → Red always responds (direct address)
+
+---
+
+## SESSION ARCHIVE - December 3/4 Late Night 🌙
 4. Test: "Hey Toad, what do you think of Red?" → Toad should respond ABOUT RED!
 
 **Location to check:**
