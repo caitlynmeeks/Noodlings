@@ -7,12 +7,20 @@ paths:
   logs_dir: logs
   checkpoint: null
 llm:
-  provider: local
+  provider: ollama
   local:
     api_base: http://localhost:1234/v1
     api_key: not-needed
     model: qwen3-vl-30b-a3b-instruct-mlx
     timeout: 60
+  ollama:
+    host: http://localhost:11434
+    models_directory: /Volumes/DOUBLETROUBLE/models
+    small_model: qwen2.5:3b
+    medium_model: qwen2.5:14b
+    large_model: qwen2.5:32b
+    default_timeout: 120
+    load_timeout: 300
   openrouter:
     api_base: https://openrouter.ai/api/v1
     api_key: ${OPENROUTER_API_KEY}

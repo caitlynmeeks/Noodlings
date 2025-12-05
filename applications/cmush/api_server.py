@@ -133,6 +133,9 @@ class NoodleScopeAPI:
         # Health check
         self.app.router.add_get('/api/health', self.health_check)
 
+        # Ollama status (if using Ollama provider)
+        self.app.router.add_get('/api/ollama/status', self.get_ollama_status)
+
         # Static file serving (noodlescope2.html)
         web_dir = Path(__file__).parent / 'web'
         self.app.router.add_static('/web/', path=web_dir, name='web')
@@ -1018,6 +1021,64 @@ class NoodleScopeAPI:
             'profiler_active': self.session_profiler is not None,
             'kimmie_active': self.kimmie is not None
         })
+
+    async def get_ollama_status(self, request: web.Request) -> web.Response:
+        """
+        Get Ollama manager status with per-model statistics.
+
+        Returns:
+            {
+                'available': bool,  # Whether Ollama is being used
+                'connected': bool,  # Whether Ollama is connected
+                'models': [
+                    {
+                        'name': str,
+                        'tier': str | None,
+                        'is_loaded': bool,
+                        'total_calls': int,
+                        'total_tokens': int,
+                        'avg_duration_seconds': float,
+                        'errors': int,
+                        'last_error': str | None,
+                        'last_call_time': str | None
+                    },
+                    ...
+                ],
+                'tiers': {
+                    'SMALL': str,
+                    'MEDIUM': str,
+                    'LARGE': str
+                }
+            }
+        """
+        try:
+            # Check if server is using Ollama
+            if not self.server or not hasattr(self.server, 'llm'):
+                return web.json_response({
+                    'available': False,
+                    'error': 'Server not initialized'
+                })
+
+            from ollama_manager import OllamaManager
+
+            if not isinstance(self.server.llm, OllamaManager):
+                return web.json_response({
+                    'available': False,
+                    'provider': 'Not using Ollama (using LM Studio or OpenRouter)'
+                })
+
+            # Get status from OllamaManager
+            status = await self.server.llm.get_status()
+            status['available'] = True
+
+            return web.json_response(status)
+
+        except Exception as e:
+            logger.error(f"Error getting Ollama status: {e}", exc_info=True)
+            return web.json_response({
+                'available': False,
+                'error': str(e)
+            }, status=500)
 
     async def shutdown_server(self, request: web.Request) -> web.Response:
         """

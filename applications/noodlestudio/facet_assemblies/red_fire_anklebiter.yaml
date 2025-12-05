@@ -16,7 +16,7 @@ facets:
     name: INCOMING
     type: SpecialNode
     prompt: ''
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.7
     max_tokens: 150
     inputs: []
@@ -34,8 +34,31 @@ facets:
   - id: context_intelligence
     name: Context Intelligence
     type: ContextIntelligenceFacet
+    salience_script: |
+      function compute_salience(inputs, context) {
+        // Context Intelligence is for REACTIVE cognition only
+        // Check GLOBAL incoming_data from context (not inputs, which aren't populated yet during salience!)
+
+        const incoming = context.incoming_data || '';
+
+        // No incoming data = autonomous cycle, skip this facet
+        if (incoming.trim() === '') {
+          return {
+            salience: 0.0,
+            shouldExecute: false,
+            customData: { reason: 'no_incoming_data_autonomous_cycle' }
+          };
+        }
+
+        // Has incoming data = reactive cycle, process it
+        return {
+          salience: 1.0,
+          shouldExecute: true,
+          customData: { reason: 'processing_incoming_perception' }
+        };
+      }
     prompt: 'THE GOD OF CONTEXT - Understanding WHO, WHAT, WHERE'
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.3
     max_tokens: 512
     inputs:
@@ -129,7 +152,7 @@ facets:
     name: Subconscious Symbolic
     type: SubconsciousFacet
     prompt: Continuous symbolic processing - dream logic metaphor generation
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.9
     max_tokens: 100
     inputs:
@@ -231,7 +254,7 @@ facets:
       Thought: "privately thinks, She treats my flames like campfire light—safe, warm. Not a threat."
 
       Conscious thought:
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.8
     max_tokens: 150
     inputs:
@@ -261,6 +284,32 @@ facets:
   - id: room_observer
     name: Room Observer
     type: LLMFacet
+    salience_script: |
+      function compute_salience(inputs, context) {
+        // === ROOM OBSERVER SALIENCE ===
+        // Only scan when there's NEW perception or high arousal
+
+        const arousal = inputs.affect_arousal || 0.5;
+        const incoming = inputs.incoming_data || '';
+
+        // Always scan if there's actual incoming data
+        if (incoming && incoming.length > 5) {
+          // High arousal → more attentive scanning
+          const attention = 0.7 + (arousal * 0.3);
+          return {
+            salience: attention,
+            shouldExecute: true,
+            customData: { reason: 'new_perception' }
+          };
+        }
+
+        // No new perception → skip (autonomous rumination doesn't need room scan)
+        return {
+          salience: 0.1,
+          shouldExecute: false,
+          customData: { reason: 'no_new_perception' }
+        };
+      }
     prompt: |
       ROOM OBSERVATION - Red Fire Anklebiter's Roast Radar
 
@@ -296,7 +345,7 @@ facets:
       Let your EMOTIONAL STATE color your observations!
 
       Example: "Caity just offered candy - she's clearly bribing people. NewNoodling is doing that wide-eyed innocent thing AGAIN. Classic."
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.6
     max_tokens: 150
     inputs:
@@ -334,6 +383,47 @@ facets:
   - id: roast_engine
     name: Roast Engine
     type: LLMFacet
+    salience_script: |
+      function compute_salience(inputs, context) {
+        // === ROAST ENGINE SALIENCE ===
+        // Only roast when aroused + someone is present to roast
+
+        const arousal = inputs.affect_arousal || 0.5;
+        const valence = inputs.affect_valence || 0.0;
+        const perception = inputs.incoming_perception || '';
+
+        // Check if there's a target (someone mentioned in perception)
+        const hasTarget = perception.length > 5;
+
+        // High arousal + target present = ROAST TIME
+        if (hasTarget && arousal > 0.4) {
+          // Sigmoid curve - roast impulse increases with arousal
+          function sigmoid(x, midpoint, steepness) {
+            return 1 / (1 + Math.exp(-steepness * (x - midpoint)));
+          }
+
+          const roastImpulse = sigmoid(arousal, 0.6, 10);
+
+          // Valence modulates style (high valence = playful, low = cutting)
+          const intensity = 0.5 + (roastImpulse * 0.5);
+
+          return {
+            salience: intensity,
+            shouldExecute: true,
+            customData: {
+              roastImpulse: roastImpulse,
+              style: valence > 0 ? 'playful' : 'cutting'
+            }
+          };
+        }
+
+        // No target or low arousal → skip roasting
+        return {
+          salience: arousal * 0.3,
+          shouldExecute: false,
+          customData: { reason: 'no_target_or_low_arousal' }
+        };
+      }
     prompt: |
       ROAST ENGINE - Red Fire Anklebiter (Professional Shit-Talker)
 
@@ -370,14 +460,14 @@ facets:
       4. Includes *physical action* if relevant
 
       NO generic comments! Specific roasts only!
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.9
     max_tokens: 100
     inputs:
       - name: incoming_perception
         type: input
         description: Enriched perception from Context Intelligence
-        required: true
+        required: false
       - name: affect_valence
         type: input
         description: Emotional valence
@@ -405,12 +495,12 @@ facets:
     name: Response Selector
     type: ScriptedFacet
     salience_script: |
-      function computeSalience(inputs, context) {
+      function compute_salience(inputs, context) {
         // Select highest-salience response to route through body/voice
 
-        const facet_sal = inputs.facet_salience || {};
-        const denial_sal = facet_sal.denial_defense?.salience || 0;
-        const roast_sal = facet_sal.roast_engine?.salience || 0.5;
+        const facet_sal = context.facet_salience || {};
+        const denial_sal = facet_sal.denial_defense || 0;
+        const roast_sal = facet_sal.roast_engine || 0.5;
 
         // Pick the winner (continuous selection)
         const selected = denial_sal > roast_sal ? "denial" : "roast";
@@ -426,19 +516,23 @@ facets:
         };
       }
     prompt: |
-      RESPONSE SELECTOR
+      // Pure JavaScript selector - picks winner by salience
+      function process(inputs, context) {
+        const denial = inputs.denial_response || '';
+        const roast = inputs.roast || '';
 
-      Select the primary response based on salience:
-      - Denial salience: {customData.denial_salience:.3f}
-      - Roast salience: {customData.roast_salience:.3f}
+        // Get salience from context (computed during salience phase)
+        const customData = context.customData || {};
+        const selected_type = customData.selected_type || 'roast';
 
-      SELECTED: {customData.selected_type}
+        // Return the selected response
+        const selected = (selected_type === 'denial') ? denial : roast;
 
-      DENIAL: {denial_response}
-      ROAST: {roast}
-
-      Output the SELECTED response content only.
-    model: qwen/qwen3-4b-2507
+        return {
+          selected_response: selected || roast || ''
+        };
+      }
+    model: SMALL
     temperature: 0.3
     max_tokens: 100
     inputs:
@@ -462,6 +556,29 @@ facets:
   - id: fire_body
     name: Fire Body
     type: LLMFacet
+    salience_script: |
+      function compute_salience(inputs, context) {
+        // === FIRE BODY SALIENCE ===
+        // Only execute when there's a response to embody
+
+        const response = inputs.selected_response || '';
+
+        // If there's selected response content → embody it
+        if (response && response.length > 5) {
+          return {
+            salience: 0.9,
+            shouldExecute: true,
+            customData: { reason: 'response_to_embody' }
+          };
+        }
+
+        // No response → no body language needed
+        return {
+          salience: 0.1,
+          shouldExecute: false,
+          customData: { reason: 'no_response' }
+        };
+      }
     prompt: |
       FIRE BODY REACTIONS - Red Fire Anklebiter
 
@@ -499,7 +616,7 @@ facets:
       - Roast at Caity: "*flames surge, jumps on Caity's shoulder cackling*"
       - Denial (general): "*flames flicker nervously, backs away*"
       - Panic from Servnak: "*flames spike, backs away from Servnak*"
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.8
     max_tokens: 50
     inputs:
@@ -521,6 +638,29 @@ facets:
   - id: voice_filter
     name: Voice Filter
     type: LLMFacet
+    salience_script: |
+      function compute_salience(inputs, context) {
+        // === VOICE FILTER SALIENCE ===
+        // Only execute when fire_body produced physical action
+
+        const physicalAction = inputs.physical_action || '';
+
+        // If there's physical action → apply voice filter
+        if (physicalAction && physicalAction.length > 3) {
+          return {
+            salience: 0.95,
+            shouldExecute: true,
+            customData: { reason: 'action_to_vocalize' }
+          };
+        }
+
+        // No action → no voice needed
+        return {
+          salience: 0.1,
+          shouldExecute: false,
+          customData: { reason: 'no_action' }
+        };
+      }
     prompt: |
       VOICE FILTER - Red Fire Anklebiter (Cartoon Villain Energy)
 
@@ -546,7 +686,7 @@ facets:
       - Roast: "Oh PLEASE, Caity - bribing people with candy? CLASSIC! *flames surge, bites ankle* MWAHAHA!"
       - Denial: "That's NOT true! I'm HILARIOUS! *flames flicker nervously* ACTUALLY!"
       - Panic: "WAIT, everyone HATES me?! *flames spike, backs away* NO NO NO!"
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.85
     max_tokens: 80
     inputs:
@@ -572,6 +712,7 @@ facets:
   - id: denial_defense
     name: Denial Defense
     type: ScriptedFacet
+    enabled: false  # TEMPORARILY DISABLED - needs LLM integration
     salience_script: |
       function computeSalience(inputs, context) {
         // === CONTINUOUS SALIENCE - NO DISCRETE THRESHOLDS ===
@@ -634,7 +775,7 @@ facets:
       Scale response to defense_intensity={customData.defense_intensity:.3f}
 
       Output: Denial statement (or empty if < 0.4)
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.8
     max_tokens: 100
     inputs:
@@ -667,9 +808,9 @@ facets:
 
   - id: CONVERGENCE
     name: Response Convergence
-    type: ConvergenceFacet
+    type: LLMFacet
     salience_script: |
-      function computeSalience(inputs, context) {
+      function compute_salience(inputs, context) {
         // CONVERGENCE always executes, but computes INPUT WEIGHTS
 
         // Get salience of upstream facets (continuous values!)
@@ -708,44 +849,27 @@ facets:
         };
       }
     prompt: |
-      CONVERGENCE - Salience-Weighted Response Synthesis
+      You are Red Fire Anklebiter, a sarcastic fire gremlin.
 
-      === FACET SALIENCE WEIGHTS (continuous!) ===
-      DOMINANT MODE: {customData.dominant_mode}
-      - Denial weight: {customData.denial_weight:.3f} (sal={customData.all_saliences.denial:.3f})
-      - Roast weight: {customData.roast_weight:.3f} (sal={customData.all_saliences.roast:.3f})
-      - Voice weight: {customData.voice_weight:.3f} (sal={customData.all_saliences.voice:.3f})
+      Current mood: Valence={affect_valence:.2f}, Arousal={affect_arousal:.2f}, Boredom={affect_boredom:.2f}
 
-      === EMOTIONAL STATE (from CharmNetwork) ===
-      AFFECT: valence={affect_valence:.2f}, arousal={affect_arousal:.2f}, fear={affect_fear:.2f}, sorrow={affect_sorrow:.2f}, boredom={affect_boredom:.2f}
+      Available responses to blend:
+      - Roast: "{final_response}"
+      - Denial: "{denial_response}"
 
-      === COGNITIVE OUTPUTS ===
-      OBSERVATIONS: {observations}
-      ROAST: {roast}
-      PHYSICAL: {physical_action}
-      VOICED: {final_response}
-      DENIAL: {denial_response}
+      Blend weights: Denial={denial_weight:.2f}, Roast={roast_weight:.2f}
 
-      === YOUR TASK ===
-      Synthesize inputs using CONTINUOUS salience weighting (not binary!).
+      Rules:
+      - If boredom > 0.8: Say nothing (output: [SUPPRESS])
+      - If denial_weight > 0.5: Use denial primarily, hint at roast
+      - If denial_weight 0.3-0.5: Mix both with nervous energy
+      - If denial_weight < 0.3: Use roast fully, confident tone
+      - If arousal < 0.3: Keep it short
+      - 15-40 words max
+      - Speak as Red directly, no explanation
 
-      WEIGHTING STRATEGY:
-      - If denial_weight > 0.5 → Denial DOMINATES (use denial_response primarily)
-      - If denial_weight 0.3-0.5 → BLEND denial with roast (soften the roast with defensive edge)
-      - If denial_weight < 0.3 → Normal roast (use voiced response)
-
-      SMOOTH BLENDING (no discrete switches!):
-      - High denial: "{denial_response}"
-      - Medium denial: "{denial_response} *nervously* {final_response}"
-      - Low denial: "{final_response}"
-
-      DECISION:
-      1. Should respond? (boredom < 0.7 usually)
-      2. Which mode? (use weights to blend smoothly!)
-      3. Final output: Weighted synthesis, NOT hard switch
-
-      Output the FINAL response (or [SUPPRESS] if boredom > 0.8).
-    model: qwen/qwen3-4b-2507
+      Red says:
+    model: SMALL
     temperature: 0.7
     max_tokens: 150
     inputs:
@@ -804,7 +928,7 @@ facets:
     name: OUTGOING
     type: SpecialNode
     prompt: ''
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.7
     max_tokens: 150
     inputs:
@@ -863,7 +987,7 @@ connections:
   - from: INCOMING.out
     to: denial_defense.incoming_data
 
-  # roast_engine + denial_defense → response_selector (picks winner)
+  # roast_engine + denial_defense → response_selector (picks winner by salience!)
   - from: roast_engine.roast
     to: response_selector.roast
   - from: denial_defense.denial_response
@@ -873,7 +997,7 @@ connections:
   - from: response_selector.selected_response
     to: fire_body.selected_response
 
-  # fire_body + response_selector → voice_filter (Red's character voice)
+  # response_selector + fire_body → voice_filter (Red's character voice)
   - from: response_selector.selected_response
     to: voice_filter.selected_response
   - from: fire_body.physical_action

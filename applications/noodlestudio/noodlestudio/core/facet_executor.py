@@ -29,6 +29,7 @@ from .scripted_facet import ScriptedFacet, ScriptContext
 from .subconscious_facet import SubconsciousFacet
 from .insight_emergence_facet import InsightEmergenceFacet
 from .context_intelligence_facet import ContextIntelligenceFacet
+from .speech_gate_facet import SpeechGateFacet
 from .flow_control_facets import (
     TickerGateFacet, ConditionalBranchFacet,
     RateLimiterFacet, CacheFacet, AccumulatorFacet
@@ -245,6 +246,13 @@ class FacetExecutor:
             self.facet_instances[facet.id] = instance
             return instance
 
+        elif facet.facet_type == "SpeechGateFacet":
+            # Speech cooldown gate
+            min_interval = float(facet.temperature)  # Using temperature as interval storage
+            instance = SpeechGateFacet(min_interval=min_interval)
+            self.facet_instances[facet.id] = instance
+            return instance
+
         elif facet.facet_type == "SpecialNode":
             # INCOMING/OUTGOING - no instance needed
             return None
@@ -371,6 +379,10 @@ class FacetExecutor:
             outputs = instance.process(inputs)
             token_count = 0
 
+        elif facet.facet_type == "SpeechGateFacet":
+            outputs = instance.process(inputs, context)
+            token_count = 0
+
         else:
             # Default: LLM facet
             if self.llm_client is None:
@@ -380,6 +392,12 @@ class FacetExecutor:
                 # Format prompt with input variables and context
                 # Flatten nested context for easier prompt variable access
                 format_vars = {**inputs, **context}
+
+                # Flatten customData dict to top level for prompt access
+                # This allows {customData[denial_weight]:.3f} to work as {denial_weight:.3f}
+                if 'customData' in format_vars and isinstance(format_vars['customData'], dict):
+                    for key, value in format_vars['customData'].items():
+                        format_vars[key] = value
 
                 # Add convenience alias: incoming_data = first input value (for legacy prompts)
                 if inputs and 'incoming_data' not in inputs:
@@ -391,9 +409,10 @@ class FacetExecutor:
                 # Extract commonly-needed nested values for convenience
                 if '_room_state' in context:
                     room_state = context['_room_state']
-                    format_vars['room_occupants'] = room_state.get('occupants', [])
-                    format_vars['recent_messages'] = room_state.get('recent_conversation', [])
-                    format_vars['room_objects'] = room_state.get('objects', [])
+                    if room_state is not None:
+                        format_vars['room_occupants'] = room_state.get('occupants', [])
+                        format_vars['recent_messages'] = room_state.get('recent_conversation', [])
+                        format_vars['room_objects'] = room_state.get('objects', [])
 
                 if '_agent_state' in context:
                     agent_state = context['_agent_state']
@@ -446,8 +465,8 @@ class FacetExecutor:
 
                 # Map response to output pads
                 # Use first output pad name if defined, otherwise 'out'
-                if facet.outputs and len(facet.outputs) > 0:
-                    output_pad_name = facet.outputs[0]['name']
+                if facet.output_pads and len(facet.output_pads) > 0:
+                    output_pad_name = facet.output_pads[0].name
                 else:
                     output_pad_name = 'out'
                 outputs = {output_pad_name: response_text}
@@ -486,6 +505,11 @@ class FacetExecutor:
         # Record execution stats
         elapsed = time.time() - start_time
         facet.record_execution(token_count, elapsed, outputs)
+
+        # TIMING INSTRUMENTATION - Log every facet execution time
+        timing_msg = f"⏱️  [{facet.name}] {elapsed:.3f}s ({elapsed*1000:.0f}ms)"
+        logger.info(timing_msg)
+        print(timing_msg)  # Goes to console
 
         # Emit facet_complete event
         await self._emit_event({
@@ -528,13 +552,23 @@ class FacetExecutor:
         """
         if not facet.salience_script:
             # No script = always execute with medium salience
+            no_script_msg = f"  ⚙️  {facet.name}: No salience script (always execute)"
+            print(no_script_msg)
             return {'salience': 0.5, 'shouldExecute': True, 'customData': {}}
 
-        try:
-            from py_mini_racer import MiniRacer
+        print(f"  🔧 {facet.name}: Computing salience...")
 
-            # Create V8 isolate
-            ctx = MiniRacer()
+        try:
+            import json  # MOVED TO TOP!
+
+            # Use QuickJS (works on Python 3.14!)
+            try:
+                from quickjs import Context as QuickJSContext
+                ctx = QuickJSContext()
+            except ImportError:
+                # Fallback to PyMiniRacer
+                from py_mini_racer import MiniRacer
+                ctx = MiniRacer()
 
             # Build script inputs
             script_inputs = {
@@ -556,29 +590,42 @@ class FacetExecutor:
                 'cycle': context.get('cycle', 0),
                 'recent_messages': context.get('recent_messages', []),
                 'room_occupants': context.get('room_occupants', []),
+                'incoming_data': context.get('incoming_data', ''),
             }
+
+            # DEBUG: Log what Context Intelligence salience script sees
+            if facet.name == "Context Intelligence":
+                logger.info(f"[SALIENCE DEBUG] Context Intelligence script_context.incoming_data = '{script_context['incoming_data']}'")
 
             # Execute JavaScript with continuous salience function
             js_code = f"""
             {facet.salience_script}
 
-            // Call the continuous salience function
-            const result = computeSalience({json.dumps(script_inputs)}, {json.dumps(script_context)});
+            // Call the continuous salience function (try both naming conventions)
+            const result = (typeof computeSalience !== 'undefined')
+                ? computeSalience({json.dumps(script_inputs)}, {json.dumps(script_context)})
+                : compute_salience({json.dumps(script_inputs)}, {json.dumps(script_context)});
             result;
             """
 
-            import json
+            # DEBUG: Log the generated JavaScript
+            logger.info(f"[SALIENCE DEBUG] {facet.name} JavaScript code:\n{js_code[:500]}")
+
             result = ctx.eval(js_code)
+
+            # Convert QuickJS object to Python dict
+            if hasattr(result, 'json'):  # QuickJS
+                result = json.loads(result.json())
+            # PyMiniRacer returns dict directly
 
             # Extract results
             salience = float(result.get('salience', 0.5))
             should_execute = bool(result.get('shouldExecute', salience > 0.3))  # Default threshold
             custom_data = dict(result.get('customData', {}))
 
-            logger.info(
-                f"  💡 Salience for {facet.name}: {salience:.3f} "
-                f"(execute={should_execute})"
-            )
+            log_msg = f"  💡 Salience for {facet.name}: {salience:.3f} (execute={should_execute})"
+            logger.info(log_msg)
+            print(log_msg)  # Also print for console visibility
 
             return {
                 'salience': salience,
@@ -646,6 +693,12 @@ class FacetExecutor:
         if incoming_id is None:
             raise ValueError("Assembly missing INCOMING node")
 
+        # Add incoming_data to context so salience scripts can access it
+        context['incoming_data'] = incoming_data
+
+        # DEBUG: Log incoming data
+        logger.info(f"[FacetExecutor] incoming_data added to context: '{incoming_data}'")
+
         # Execute until all nodes processed
         while pending:
             # Find ready facets (all dependencies satisfied)
@@ -697,6 +750,12 @@ class FacetExecutor:
                         source_outputs = completed.get(conn.from_facet, {})
                         if conn.from_pad in source_outputs:
                             inputs[conn.to_pad] = source_outputs[conn.from_pad]
+                        else:
+                            # DEBUG: Log missing inputs
+                            if facet.name == "OUTGOING":
+                                logger.warning(f"[OUTGOING] Missing input: {conn.from_facet}.{conn.from_pad}")
+                                logger.warning(f"[OUTGOING] Source outputs available: {list(source_outputs.keys())}")
+                                print(f"[FacetExecutor] OUTGOING missing: {conn.from_facet}.{conn.from_pad}, available: {list(source_outputs.keys())}")
 
                 # Compute continuous salience (if facet has salience_script)
                 salience_info = self._compute_continuous_salience(facet, inputs, context)
@@ -714,9 +773,17 @@ class FacetExecutor:
 
                     facets_to_execute.append((facet, inputs))
                 else:
-                    # Skipped due to low salience - mark as completed with empty outputs
-                    logger.info(f"  ⏭️  Skipping {facet.name} (salience={salience_info['salience']:.3f} too low)")
-                    completed[facet.id] = {}  # Empty outputs
+                    # Skipped due to low salience - mark as completed with default outputs
+                    skip_msg = f"  ⏭️  Skipping {facet.name} (salience={salience_info['salience']:.3f} too low)"
+                    logger.info(skip_msg)
+                    print(skip_msg)  # Also print for console visibility
+
+                    # Create default outputs for skipped facets so downstream facets can reference them
+                    default_outputs = {}
+                    for output_pad in facet.output_pads:
+                        default_outputs[output_pad.name] = ""  # Empty string for skipped facets
+
+                    completed[facet.id] = default_outputs
                     pending.remove(facet.id)
 
             # Execute filtered facets in parallel
@@ -731,6 +798,20 @@ class FacetExecutor:
                 for (facet, _), outputs in zip(facets_to_execute, results):
                     completed[facet.id] = outputs
                     pending.remove(facet.id)
+
+                    # DEBUG: Log facet outputs
+                    if outputs:
+                        logger.info(f"[{facet.name}] outputs: {list(outputs.keys())}")
+                        print(f"[FacetExecutor] [{facet.name}] produced outputs: {list(outputs.keys())}")
+
+                    # DEBUG: Log CONVERGENCE inputs to diagnose template variable issue
+                    if facet.name == "Response Convergence":
+                        logger.info(f"[CONVERGENCE DEBUG] Received inputs: {list(inputs.keys())}")
+                        for key, value in inputs.items():
+                            if isinstance(value, str) and len(value) < 200:
+                                logger.info(f"  {key}: {value}")
+                            else:
+                                logger.info(f"  {key}: <{type(value).__name__}>")
 
                 # Track tokens
                 token_usage = facet.get_token_usage()
@@ -760,7 +841,8 @@ class FacetExecutor:
                 outgoing_id = facet.id
                 break
 
-        final_output = completed.get(outgoing_id, {}).get('in', '[No output]')
+        # Get OUTGOING's output (not input)
+        final_output = completed.get(outgoing_id, {}).get('out', '[No output]')
 
         # Build execution result
         elapsed = time.time() - start_time
@@ -772,6 +854,25 @@ class FacetExecutor:
             facets_skipped=0,
             facet_outputs=completed
         )
+
+        # TIMING SUMMARY - Show slowest facets
+        facet_times = []
+        for facet in assembly.facets:
+            if facet.id in completed:
+                stats = facet.get_execution_stats()
+                if stats and stats.get('last_time'):
+                    facet_times.append((facet.name, stats['last_time']))
+
+        if facet_times:
+            # Sort by time descending
+            facet_times.sort(key=lambda x: x[1], reverse=True)
+            summary = f"\n{'='*60}\n⏱️  TIMING SUMMARY - Total: {elapsed:.3f}s\n"
+            summary += f"Slowest facets:\n"
+            for name, duration in facet_times[:5]:  # Top 5
+                summary += f"  {name}: {duration:.3f}s ({duration*1000:.0f}ms)\n"
+            summary += f"{'='*60}"
+            logger.info(summary)
+            print(summary)
 
         # Emit cycle_complete event
         await self._emit_event({

@@ -202,22 +202,78 @@ class CMUSHServer:
         logger.info(f"LLM provider: {provider}")
 
         # Get provider-specific config
-        if provider == 'openrouter':
+        provider_config = None  # Initialize for Kimmie later
+
+        if provider == 'ollama':
+            # Use Ollama with full observability
+            from ollama_manager import OllamaManager, OllamaConfig
+
+            # Load NoodleStudio preferences for Ollama settings
+            from pathlib import Path
+            import json
+            prefs_file = Path.home() / ".noodlestudio" / "settings.json"
+            ollama_prefs = {}
+            if prefs_file.exists():
+                try:
+                    with open(prefs_file, 'r') as f:
+                        settings = json.load(f)
+                        ollama_prefs = settings.get('ollama', {})
+                except:
+                    pass
+
+            # Merge config with preferences (prefs override config)
+            ollama_config_dict = llm_config.get('ollama', {})
+            merged_config = {
+                'small_model': ollama_prefs.get('small_model') or ollama_config_dict.get('small_model', 'qwen2.5:3b'),
+                'medium_model': ollama_prefs.get('medium_model') or ollama_config_dict.get('medium_model', 'qwen2.5:14b'),
+                'large_model': ollama_prefs.get('large_model') or ollama_config_dict.get('large_model', 'qwen3-vl-30b-a3b-instruct-mlx'),
+                'host': ollama_prefs.get('host') or ollama_config_dict.get('host', 'http://localhost:11434'),
+                'models_directory': ollama_prefs.get('models_directory') or ollama_config_dict.get('models_directory', '/Volumes/DOUBLETROUBLE/models'),
+            }
+
+            ollama_config = OllamaConfig(**merged_config)
+            self.llm = OllamaManager(config=ollama_config)
+            await self.llm.__aenter__()
+
+            logger.info(f"🦙 Using Ollama with models:")
+            logger.info(f"  SMALL:  {ollama_config.small_model}")
+            logger.info(f"  MEDIUM: {ollama_config.medium_model}")
+            logger.info(f"  LARGE:  {ollama_config.large_model}")
+            logger.info(f"  Host:   {ollama_config.host}")
+
+            # Set provider_config for Kimmie (use Ollama's host, but in OpenAI-compatible format)
+            provider_config = {
+                'api_base': ollama_config.host,
+                'model': ollama_config.medium_model  # Kimmie uses MEDIUM tier
+            }
+
+        elif provider == 'openrouter':
             provider_config = llm_config.get('openrouter', {})
             logger.info(f"🌐 Using OpenRouter with model: {provider_config.get('model')}")
+
+            self.llm = OpenAICompatibleLLM(
+                api_base=provider_config.get('api_base', 'http://localhost:1234/v1'),
+                api_key=provider_config.get('api_key', 'not-needed'),
+                model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
+                timeout=provider_config.get('timeout', 30),
+                max_concurrent=20,
+                use_model_instances=False
+            )
+            await self.llm.__aenter__()
+
         else:  # default to 'local'
             provider_config = llm_config.get('local', llm_config)  # Fallback to root llm config for backward compat
             logger.info(f"💻 Using local LMStudio with model: {provider_config.get('model')}")
 
-        self.llm = OpenAICompatibleLLM(
-            api_base=provider_config.get('api_base', 'http://localhost:1234/v1'),
-            api_key=provider_config.get('api_key', 'not-needed'),
-            model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
-            timeout=provider_config.get('timeout', 30),
-            max_concurrent=20,  # SCHLAG ZU! LMStudio has 0-19 loaded! 🚀⚡
-            use_model_instances=False  # Disabled - LMStudio rejects model:N format with 400 errors
-        )
-        await self.llm.__aenter__()
+            self.llm = OpenAICompatibleLLM(
+                api_base=provider_config.get('api_base', 'http://localhost:1234/v1'),
+                api_key=provider_config.get('api_key', 'not-needed'),
+                model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
+                timeout=provider_config.get('timeout', 30),
+                max_concurrent=20,  # SCHLAG ZU! LMStudio has 0-19 loaded! 🚀⚡
+                use_model_instances=False  # Disabled - LMStudio rejects model:N format with 400 errors
+            )
+            await self.llm.__aenter__()
 
         # Initialize agent manager (pass global config for personality traits)
         self.agent_manager = AgentManager(self.llm, self.world, global_config=self.config)
