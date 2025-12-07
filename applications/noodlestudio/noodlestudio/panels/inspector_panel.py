@@ -114,6 +114,12 @@ class InspectorPanel(QWidget):
         # Structure: {section_title: bool}
         self.collapsible_expanded_state = {}
 
+        # Initialize facet dropdown and container (set to None until agent loaded)
+        self.facet_dropdown = None
+        self.facet_properties_container = None
+        self.facet_properties_layout = None
+        self.current_assembly = None
+
         # Initialize UI directly on this widget
         self.init_ui(self)
 
@@ -152,6 +158,10 @@ class InspectorPanel(QWidget):
 
     def clear_inspector(self):
         """Clear inspector when nothing is selected."""
+        print("[Inspector] clear_inspector() called")
+        import traceback
+        print(''.join(traceback.format_stack()[-5:]))
+
         self.current_entity = None
         self.current_agent_id = None
         self.current_facet = None
@@ -169,23 +179,65 @@ class InspectorPanel(QWidget):
         """
         Load and display facet properties for editing.
 
+        NEW BEHAVIOR (Dropdown Model):
+        - If agent loaded → Sync dropdown to selected facet
+        - If facet is None → Reset dropdown to "(none)"
+        - Agent basics always stay visible
+        - NEVER rebuild inspector if agent already loaded
+
         Args:
-            facet: Facet object from facet_system.py
+            facet: Facet object from facet_system.py (None to deselect)
         """
         if facet is None:
-            # Facet deselected - restore last entity view if we have one
-            if self.last_entity_type and self.last_entity_data:
-                self.load_entity(self.last_entity_type, self.last_entity_data)
-            else:
-                self.clear_inspector()
+            # Facet deselected - reset dropdown
+            print("[Inspector] Facet deselected - resetting dropdown")
+            if hasattr(self, 'facet_dropdown'):
+                self.facet_dropdown.setCurrentIndex(0)  # (none)
+            self.current_facet = None
             return
 
         try:
-            self.clear_inspector()
-            self.current_facet = facet  # Mark as showing facet
-            self.entity_header.setText(f"Facet: {facet.name}")
+            self.current_facet = facet
+            print(f"[Inspector] Facet selected from graph: {facet.name} (ID: {facet.id})")
+
+            # Check if agent is already loaded (has dropdown)
+            if hasattr(self, 'facet_dropdown') and self.facet_dropdown:
+                print(f"[Inspector] Agent already loaded - syncing dropdown")
+                # Sync dropdown to match selected facet
+                for i in range(self.facet_dropdown.count()):
+                    if self.facet_dropdown.itemData(i) == facet.id:
+                        self.facet_dropdown.setCurrentIndex(i)
+                        print(f"[Inspector] Synced dropdown to: {facet.name}")
+                        return
+
+                # Facet not found in dropdown - might be from different agent
+                print(f"[Inspector] Warning: Facet '{facet.name}' not in current agent's dropdown")
+                return
+
+            # No agent loaded - show standalone facet view
+            print(f"[Inspector] No agent loaded - using standalone facet view")
+            self._load_facet_standalone(facet)
+
         except Exception as e:
             print(f"[Inspector] Error loading facet: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _load_facet_standalone(self, facet):
+        """
+        OLD BEHAVIOR: Load facet in standalone mode (rebuilds entire inspector).
+
+        Used as fallback when agent is not loaded or facet section not found.
+
+        Args:
+            facet: Facet object from facet_system.py
+        """
+        try:
+            self.clear_inspector()
+            self.current_facet = facet
+            self.entity_header.setText(f"Facet: {facet.name}")
+        except Exception as e:
+            print(f"[Inspector] Error in standalone facet load: {e}")
             import traceback
             traceback.print_exc()
             return
@@ -231,41 +283,64 @@ class InspectorPanel(QWidget):
 
                 # Model (dropdown for tier selection)
                 model_combo = QComboBox()
-                model_combo.addItems(["SMALL", "MEDIUM", "LARGE"])
+                model_combo.addItems(["Small", "Medium", "Large"])
                 model_combo.setStyleSheet("""
                     QComboBox {
                         background: #3e3e3e;
                         color: #D2D2D2;
                         border: 1px solid #555555;
-                        padding: 4px;
+                        padding: 4px 8px;
+                        padding-right: 25px;
                         border-radius: 3px;
+                        min-width: 100px;
                     }
                     QComboBox:hover {
                         border: 1px solid #666666;
                     }
                     QComboBox::drop-down {
-                        border: none;
+                        subcontrol-origin: padding;
+                        subcontrol-position: top right;
+                        width: 20px;
+                        border-left: 1px solid #555555;
+                    }
+                    QComboBox::down-arrow {
+                        image: none;
+                        border-left: 4px solid transparent;
+                        border-right: 4px solid transparent;
+                        border-top: 6px solid #D2D2D2;
+                        width: 0px;
+                        height: 0px;
+                        margin-right: 5px;
                     }
                     QComboBox QAbstractItemView {
                         background: #3e3e3e;
                         color: #D2D2D2;
                         selection-background-color: #555555;
+                        border: 1px solid #555555;
                     }
                 """)
 
-                # Set current value
-                current_model = facet.model or "MEDIUM"
-                index = model_combo.findText(current_model)
+                # Set current value (handle both UPPERCASE and Titlecase)
+                current_model = facet.model or "Medium"
+                # Try titlecase first (Small, Medium, Large)
+                index = model_combo.findText(current_model.title() if isinstance(current_model, str) else current_model, Qt.MatchFlag.MatchFixedString)
+                if index < 0:
+                    # Try uppercase (SMALL, MEDIUM, LARGE)
+                    index = model_combo.findText(current_model.upper() if isinstance(current_model, str) else current_model, Qt.MatchFlag.MatchFixedString)
+                if index < 0:
+                    # Try exact match
+                    index = model_combo.findText(current_model, Qt.MatchFlag.MatchFixedString)
+
                 if index >= 0:
                     model_combo.setCurrentIndex(index)
                 else:
-                    # If it's a specific model name, add it as custom option
+                    # Custom model name - add it
                     model_combo.addItem(current_model)
                     model_combo.setCurrentText(current_model)
 
                 def on_model_changed(text):
-                    setattr(facet, 'model', text)
-                    # Auto-save when model changes
+                    # Store as uppercase for backwards compat
+                    setattr(facet, 'model', text.upper())
                     self._auto_save_facet_assembly()
 
                 model_combo.currentTextChanged.connect(on_model_changed)
@@ -381,6 +456,530 @@ class InspectorPanel(QWidget):
         except Exception as e:
             print(f"[Inspector] Error auto-saving facet assembly: {e}")
 
+    def _get_agent_assembly(self, agent_id: str, agent_data: dict):
+        """
+        Load agent's facet assembly from YAML file.
+
+        Args:
+            agent_id: Agent ID (UUID like "agent_a56e0ac2...")
+            agent_data: Agent data dict (or full entity_data with 'data' nested)
+
+        Returns:
+            FacetAssembly or None if not found
+        """
+        try:
+            from ..core.facet_system import FacetAssembly
+
+            # Get the actual agent dict (might be nested in 'data')
+            agent = agent_data.get('data', agent_data)
+
+            # Get facet_assembly reference from config (like Facets Editor does)
+            config = agent.get('config', {})
+            facet_assembly_ref = config.get('facet_assembly')
+
+            # Handle both string and dict formats
+            if isinstance(facet_assembly_ref, dict):
+                facet_assembly_ref = facet_assembly_ref.get('ref')
+
+            if not facet_assembly_ref:
+                print(f"[Inspector] No facet_assembly in agent config for: {agent_id}")
+                return None
+
+            print(f"[Inspector] _get_agent_assembly: facet_assembly_ref='{facet_assembly_ref}' from config")
+
+            # Use __file__ based path resolution (CWD-independent)
+            import os
+            # Try facet_assemblies directory first (new location)
+            assembly_path = os.path.join(
+                os.path.dirname(__file__),
+                '../../facet_assemblies',
+                f'{facet_assembly_ref}.yaml'
+            )
+            print(f"[Inspector] PRIMARY path: {assembly_path}")
+            print(f"[Inspector] PRIMARY exists? {os.path.exists(assembly_path)}")
+
+            if not os.path.exists(assembly_path):
+                # Fallback: check cmush/recipes for embedded assemblies
+                assembly_path = os.path.join(
+                    os.path.dirname(__file__),
+                    '../../../cmush/recipes',
+                    f'{facet_assembly_ref}.yaml'
+                )
+                print(f"[Inspector] FALLBACK path: {assembly_path}")
+                print(f"[Inspector] FALLBACK exists? {os.path.exists(assembly_path)}")
+
+            if not os.path.exists(assembly_path):
+                print(f"[Inspector] ❌ RETURNING NONE - No facet assembly found for '{facet_assembly_ref}'")
+                return None
+
+            print(f"[Inspector] ✅ Loading assembly from: {assembly_path}")
+            assembly = FacetAssembly.load_yaml(str(assembly_path))
+            print(f"[Inspector] ✅ SUCCESS - Loaded assembly '{assembly.name}' with {len(assembly.facets)} facets")
+            return assembly
+
+        except Exception as e:
+            print(f"[Inspector] Error loading agent assembly: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def _add_facet_dropdown_selector(self, agent_id: str, agent_data: dict):
+        """
+        Add facet dropdown selector + properties editor.
+
+        Replaces collapsible sections with a single dropdown to select which facet to edit.
+        When facet selected in graph, dropdown syncs to show that facet.
+
+        Args:
+            agent_id: Agent UUID
+            agent_data: Agent data dict
+        """
+        from PyQt6.QtWidgets import QFrame, QComboBox
+
+        print(f"[Inspector] _add_facet_dropdown_selector called for agent: {agent_id}")
+        print(f"[Inspector] agent_data keys: {agent_data.keys() if isinstance(agent_data, dict) else 'NOT A DICT'}")
+
+        # Load agent's facet assembly
+        assembly = self._get_agent_assembly(agent_id, agent_data)
+        if not assembly:
+            print(f"[Inspector] ERROR: No assembly loaded, cannot create facet dropdown")
+            print(f"[Inspector] Returning early - facet dropdown will NOT be created")
+            return
+
+        print(f"[Inspector] ✅ Assembly loaded: {assembly.name} with {len(assembly.facets)} facets")
+        print(f"[Inspector] About to add separator and dropdown widgets...")
+
+        # Store assembly reference for dropdown updates
+        self.current_assembly = assembly
+
+        # Add separator
+        print(f"[Inspector] Creating separator...")
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setStyleSheet("background-color: #555555; max-height: 2px;")
+        self.properties_layout.addWidget(separator)
+        print(f"[Inspector] ✅ Separator added to layout")
+
+        # Facet selector section
+        print(f"[Inspector] Creating facet selector group...")
+        facet_selector_group = self.create_property_group("Facet")
+        print(f"[Inspector] ✅ Facet selector group created")
+
+        # Dropdown with facet names
+        print(f"[Inspector] Creating dropdown with {len(assembly.facets)} facets...")
+        self.facet_dropdown = QComboBox()
+        self.facet_dropdown.addItem("(none)", None)  # Default empty selection
+
+        for facet in assembly.facets:
+            self.facet_dropdown.addItem(facet.name, facet.id)
+            print(f"[Inspector]   - Added facet: {facet.name}")
+
+        print(f"[Inspector] ✅ Dropdown created with {self.facet_dropdown.count()} items")
+
+        self.facet_dropdown.setStyleSheet("""
+            QComboBox {
+                background: #3e3e3e;
+                color: #D2D2D2;
+                border: 1px solid #555555;
+                padding: 4px 8px;
+                padding-right: 25px;
+                border-radius: 3px;
+                min-width: 150px;
+            }
+            QComboBox:hover {
+                border: 1px solid #666666;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left: 1px solid #555555;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 6px solid #D2D2D2;
+                width: 0px;
+                height: 0px;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background: #3e3e3e;
+                color: #D2D2D2;
+                selection-background-color: #555555;
+                border: 1px solid #555555;
+            }
+        """)
+
+        def on_facet_dropdown_changed(index):
+            facet_id = self.facet_dropdown.itemData(index)
+            if facet_id:
+                # Find facet object
+                facet = next((f for f in assembly.facets if f.id == facet_id), None)
+                if facet:
+                    self._load_facet_properties_inline(facet)
+            else:
+                # Clear facet properties
+                self._clear_facet_properties_inline()
+
+        print(f"[Inspector] Connecting dropdown signal...")
+        self.facet_dropdown.currentIndexChanged.connect(on_facet_dropdown_changed)
+        print(f"[Inspector] Adding dropdown to facet_selector_group...")
+        facet_selector_group.content.layout().addRow("Select:", self.facet_dropdown)
+        print(f"[Inspector] ✅ Dropdown added to group")
+
+        print(f"[Inspector] Adding facet_selector_group to properties_layout...")
+        self.properties_layout.addWidget(facet_selector_group)
+        print(f"[Inspector] ✅ facet_selector_group added to layout")
+
+        # Container for facet properties (populated when dropdown changes)
+        print(f"[Inspector] Creating facet_properties_container...")
+        self.facet_properties_container = QWidget()
+        self.facet_properties_layout = QVBoxLayout(self.facet_properties_container)
+        self.facet_properties_layout.setContentsMargins(0, 0, 0, 0)
+        print(f"[Inspector] Adding facet_properties_container to layout...")
+        self.properties_layout.addWidget(self.facet_properties_container)
+        print(f"[Inspector] ✅ facet_properties_container added to layout")
+
+        print(f"[Inspector] ✅✅✅ FACET DROPDOWN SETUP COMPLETE ✅✅✅")
+        print(f"[Inspector] Total items in dropdown: {self.facet_dropdown.count()}")
+        print(f"[Inspector] facet_dropdown exists: {hasattr(self, 'facet_dropdown')}")
+        print(f"[Inspector] Properties layout widget count: {self.properties_layout.count()}")
+
+    def _load_facet_properties_inline(self, facet):
+        """Load facet properties into the inline container (below dropdown)."""
+        from PyQt6.QtWidgets import QComboBox, QCheckBox
+
+        # Clear existing properties
+        self._clear_facet_properties_inline()
+
+        print(f"[Inspector] Loading facet properties inline for: {facet.name}")
+
+        # Create properties widget directly (no CollapsibleSection wrapper)
+        props_widget = QWidget()
+        props_layout = QFormLayout(props_widget)
+        props_layout.setContentsMargins(8, 8, 8, 8)
+
+        # LLM Configuration (for LLMFacet types)
+        if facet.facet_type == "LLMFacet":
+            # Model dropdown
+            model_combo = QComboBox()
+            model_combo.addItems(["Small", "Medium", "Large"])
+            model_combo.setStyleSheet("""
+                QComboBox {
+                    background: #3e3e3e;
+                    color: #D2D2D2;
+                    border: 1px solid #555555;
+                    padding: 4px 8px;
+                    padding-right: 25px;
+                    border-radius: 3px;
+                    min-width: 100px;
+                }
+                QComboBox:hover {
+                    border: 1px solid #666666;
+                }
+                QComboBox::drop-down {
+                    subcontrol-origin: padding;
+                    subcontrol-position: top right;
+                    width: 20px;
+                    border-left: 1px solid #555555;
+                }
+                QComboBox::down-arrow {
+                    image: none;
+                    border-left: 4px solid transparent;
+                    border-right: 4px solid transparent;
+                    border-top: 6px solid #D2D2D2;
+                    width: 0px;
+                    height: 0px;
+                    margin-right: 5px;
+                }
+                QComboBox QAbstractItemView {
+                    background: #3e3e3e;
+                    color: #D2D2D2;
+                    selection-background-color: #555555;
+                    border: 1px solid #555555;
+                }
+            """)
+
+            # Set current value
+            current_model = facet.model or "Medium"
+            index = model_combo.findText(current_model.title() if isinstance(current_model, str) else current_model, Qt.MatchFlag.MatchFixedString)
+            if index < 0:
+                index = model_combo.findText(current_model.upper() if isinstance(current_model, str) else current_model, Qt.MatchFlag.MatchFixedString)
+            if index >= 0:
+                model_combo.setCurrentIndex(index)
+
+            def on_model_changed(text):
+                setattr(facet, 'model', text.upper())
+                self._auto_save_facet_assembly()
+
+            model_combo.currentTextChanged.connect(on_model_changed)
+            props_layout.addRow("Model:", model_combo)
+
+            # Temperature
+            temp_spin = QDoubleSpinBox()
+            temp_spin.setRange(0.0, 2.0)
+            temp_spin.setSingleStep(0.1)
+            temp_spin.setValue(facet.temperature or 0.7)
+            temp_spin.valueChanged.connect(lambda val: setattr(facet, 'temperature', val))
+            temp_spin.valueChanged.connect(lambda: self._auto_save_facet_assembly())
+            props_layout.addRow("Temperature:", temp_spin)
+
+            # Max tokens
+            tokens_spin = QSpinBox()
+            tokens_spin.setRange(1, 4096)
+            tokens_spin.setValue(facet.max_tokens or 150)
+            tokens_spin.valueChanged.connect(lambda val: setattr(facet, 'max_tokens', val))
+            tokens_spin.valueChanged.connect(lambda: self._auto_save_facet_assembly())
+            props_layout.addRow("Max Tokens:", tokens_spin)
+
+            # Prompt
+            prompt_edit = ClickableTextEdit(
+                field_name=f"{facet.name} - Prompt",
+                on_apply_callback=lambda text: (setattr(facet, 'prompt', text), self._auto_save_facet_assembly())
+            )
+            prompt_edit.setPlainText(facet.prompt or "")
+            prompt_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+            prompt_edit.setMaximumHeight(150)
+            prompt_edit.textChanged.connect(lambda: setattr(facet, 'prompt', prompt_edit.toPlainText()))
+            prompt_edit.textChanged.connect(lambda: self._auto_save_facet_assembly())
+            props_layout.addRow("Prompt:", prompt_edit)
+
+        # CharmNetworkFacet
+        elif facet.facet_type == "CharmNetworkFacet":
+            info_label = QLabel("Neural affect model (PAD + boredom + sorrow)")
+            info_label.setStyleSheet("color: #888888; font-style: italic;")
+            props_layout.addRow(info_label)
+
+        # ScriptedFacet
+        elif facet.facet_type == "ScriptedFacet":
+            script_edit = ClickableTextEdit(
+                field_name=f"{facet.name} - Salience Script",
+                on_apply_callback=lambda text: (setattr(facet, 'salience_script', text), self._auto_save_facet_assembly())
+            )
+            script_edit.setPlainText(facet.salience_script or "")
+            script_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px; font-family: 'Courier New';")
+            script_edit.setMaximumHeight(150)
+            script_edit.textChanged.connect(lambda: setattr(facet, 'salience_script', script_edit.toPlainText()))
+            script_edit.textChanged.connect(lambda: self._auto_save_facet_assembly())
+            props_layout.addRow("Salience Script:", script_edit)
+
+        # Generic
+        else:
+            type_label = QLabel(f"Type: {facet.facet_type}")
+            type_label.setStyleSheet("color: #888888;")
+            props_layout.addRow(type_label)
+
+        self.facet_properties_layout.addWidget(props_widget)
+        print(f"[Inspector] Facet properties loaded for: {facet.name}")
+
+    def _clear_facet_properties_inline(self):
+        """Clear facet properties from the inline container."""
+        while self.facet_properties_layout.count():
+            item = self.facet_properties_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    def _add_facets_section(self, agent_id: str, agent_data: dict):
+        """
+        Add FACETS section showing all facets as collapsible sections.
+
+        This creates the Unity component-style list where each facet
+        is a collapsible section that can be expanded to edit properties.
+
+        Args:
+            agent_id: Agent ID (UUID)
+            agent_data: Agent data dict with 'name' field
+        """
+        from PyQt6.QtWidgets import QFrame
+
+        # Load the agent's facet assembly
+        assembly = self._get_agent_assembly(agent_id, agent_data)
+        if not assembly:
+            return
+
+        # Add horizontal separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setStyleSheet("background-color: #555555; max-height: 2px;")
+        self.properties_layout.addWidget(separator)
+
+        # Add "FACETS" header label
+        facets_header = QLabel("FACETS")
+        facets_header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        facets_header.setStyleSheet("color: #888888; padding: 8px 4px 4px 4px;")
+        self.properties_layout.addWidget(facets_header)
+
+        # Create collapsible section for each facet
+        for facet in assembly.facets:
+            facet_section = self._create_facet_section(facet, agent_id)
+            self.properties_layout.addWidget(facet_section)
+
+    def _create_facet_section(self, facet, agent_id: str):
+        """
+        Create a CollapsibleSection for a single facet.
+
+        Shows facet properties in the same format as load_facet(),
+        but within a collapsible section in the main inspector.
+
+        Args:
+            facet: Facet object from facet_system
+            agent_id: Agent ID for saving changes
+
+        Returns:
+            CollapsibleSection widget
+        """
+        from PyQt6.QtWidgets import QComboBox, QCheckBox
+
+        # Create collapsible section with facet name
+        section = CollapsibleSection(facet.name)
+        section_form = QFormLayout()
+
+        # Store facet reference for later expansion
+        section.setProperty("facet_id", facet.id)
+
+        # LLM Configuration (for LLMFacet types)
+        if facet.facet_type == "LLMFacet":
+            # Model dropdown
+            model_combo = QComboBox()
+            model_combo.addItems(["Small", "Medium", "Large"])
+            model_combo.setStyleSheet("""
+                QComboBox {
+                    background: #3e3e3e;
+                    color: #D2D2D2;
+                    border: 1px solid #555555;
+                    padding: 4px 8px;
+                    padding-right: 25px;
+                    border-radius: 3px;
+                    min-width: 100px;
+                }
+                QComboBox:hover {
+                    border: 1px solid #666666;
+                }
+                QComboBox::drop-down {
+                    subcontrol-origin: padding;
+                    subcontrol-position: top right;
+                    width: 20px;
+                    border-left: 1px solid #555555;
+                }
+                QComboBox::down-arrow {
+                    image: none;
+                    border-left: 4px solid transparent;
+                    border-right: 4px solid transparent;
+                    border-top: 6px solid #D2D2D2;
+                    width: 0px;
+                    height: 0px;
+                    margin-right: 5px;
+                }
+                QComboBox QAbstractItemView {
+                    background: #3e3e3e;
+                    color: #D2D2D2;
+                    selection-background-color: #555555;
+                    border: 1px solid #555555;
+                }
+            """)
+
+            # Set current value (handle both UPPERCASE and Titlecase)
+            current_model = facet.model or "Medium"
+            # Try exact match first
+            index = model_combo.findText(current_model, Qt.MatchFlag.MatchFixedString)
+            if index < 0:
+                # Try case-insensitive match
+                index = model_combo.findText(current_model, Qt.MatchFlag.MatchFixedString | Qt.MatchFlag.MatchCaseSensitive)
+            if index < 0:
+                # Try uppercase version (SMALL, MEDIUM, LARGE)
+                index = model_combo.findText(current_model.upper(), Qt.MatchFlag.MatchFixedString)
+            if index < 0:
+                # Try titlecase version (Small, Medium, Large)
+                index = model_combo.findText(current_model.title(), Qt.MatchFlag.MatchFixedString)
+
+            if index >= 0:
+                model_combo.setCurrentIndex(index)
+            else:
+                # Custom model name - add it
+                model_combo.addItem(current_model)
+                model_combo.setCurrentText(current_model)
+
+            def on_model_changed(text):
+                # Store as uppercase for backwards compat with YAML files
+                setattr(facet, 'model', text.upper())
+                self._auto_save_facet_assembly()
+
+            model_combo.currentTextChanged.connect(on_model_changed)
+            section_form.addRow("Model:", model_combo)
+
+            # Temperature
+            temp_spin = QDoubleSpinBox()
+            temp_spin.setRange(0.0, 2.0)
+            temp_spin.setSingleStep(0.1)
+            temp_spin.setValue(facet.temperature or 0.7)
+            temp_spin.valueChanged.connect(lambda val: setattr(facet, 'temperature', val))
+            temp_spin.valueChanged.connect(lambda: self._auto_save_facet_assembly())
+            section_form.addRow("Temperature:", temp_spin)
+
+            # Max tokens
+            tokens_spin = QSpinBox()
+            tokens_spin.setRange(1, 4096)
+            tokens_spin.setValue(facet.max_tokens or 150)
+            tokens_spin.valueChanged.connect(lambda val: setattr(facet, 'max_tokens', val))
+            tokens_spin.valueChanged.connect(lambda: self._auto_save_facet_assembly())
+            section_form.addRow("Max Tokens:", tokens_spin)
+
+            # Prompt with Cmd+Click support
+            prompt_edit = ClickableTextEdit(
+                field_name=f"{facet.name} - Prompt",
+                on_apply_callback=lambda text: (setattr(facet, 'prompt', text), self._auto_save_facet_assembly())
+            )
+            prompt_edit.setPlainText(facet.prompt or "")
+            prompt_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+            prompt_edit.setMaximumHeight(80)
+            prompt_edit.textChanged.connect(lambda: setattr(facet, 'prompt', prompt_edit.toPlainText()))
+            prompt_edit.textChanged.connect(lambda: self._auto_save_facet_assembly())
+            section_form.addRow("Prompt:", prompt_edit)
+
+            # Template variables helper (read-only)
+            if facet.prompt and '{' in facet.prompt:
+                vars_label = QLabel("Variables: {incoming_data}, {observations}, {affect_valence:.2f}, {affect_arousal:.2f}, {affect_dominance:.2f}")
+                vars_label.setStyleSheet("color: #666666; font-size: 9px; padding: 2px;")
+                vars_label.setWordWrap(True)
+                section_form.addRow("", vars_label)
+
+        # CharmNetworkFacet configuration
+        elif facet.facet_type == "CharmNetworkFacet":
+            info_label = QLabel("Neural affect model (PAD + boredom + sorrow)")
+            info_label.setStyleSheet("color: #888888; font-style: italic;")
+            section_form.addRow(info_label)
+
+        # ScriptedFacet configuration
+        elif facet.facet_type == "ScriptedFacet":
+            # Salience script with Cmd+Click support
+            script_edit = ClickableTextEdit(
+                field_name=f"{facet.name} - Salience Script",
+                on_apply_callback=lambda text: (setattr(facet, 'salience_script', text), self._auto_save_facet_assembly())
+            )
+            script_edit.setPlainText(facet.salience_script or "")
+            script_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px; font-family: 'Courier New';")
+            script_edit.setMaximumHeight(80)
+            script_edit.textChanged.connect(lambda: setattr(facet, 'salience_script', script_edit.toPlainText()))
+            script_edit.textChanged.connect(lambda: self._auto_save_facet_assembly())
+            section_form.addRow("Salience Script:", script_edit)
+
+        # Generic facet info for other types
+        else:
+            type_label = QLabel(f"Type: {facet.facet_type}")
+            type_label.setStyleSheet("color: #888888;")
+            section_form.addRow(type_label)
+
+        section.set_content_layout(section_form)
+
+        # Restore collapsed state (all start collapsed by default)
+        self._restore_collapsible_state(section)
+
+        return section
+
     @pyqtSlot(str, dict)
     def load_entity(self, entity_type: str, entity_data: dict):
         """Load entity properties into inspector."""
@@ -389,10 +988,10 @@ class InspectorPanel(QWidget):
             self.last_entity_type = entity_type
             self.last_entity_data = entity_data
 
-        # Don't clear facet inspector when hierarchy deselects
-        if self.current_facet and not entity_data:
-            print("[Inspector] Ignoring hierarchy deselection - facet is selected")
-            return
+        # NEW BEHAVIOR (Unity Component Model):
+        # Always honor hierarchy selections - load agent with facets
+        # Facet selection just expands/collapses sections, doesn't block hierarchy
+        # (Old behavior blocked hierarchy when facet was selected)
 
         # CRITICAL: Prevent re-entrant loading (e.g., double-tap events)
         if self.is_loading:
@@ -437,15 +1036,6 @@ class InspectorPanel(QWidget):
         # CRITICAL: Don't reload if save is in progress
         if self.is_saving:
             print(f"[DIAGNOSTIC] SKIPPING load_entity - save in progress")
-            return
-
-        # Check if this is the SAME entity we already have loaded
-        same_entity_id = (
-            self.current_entity and
-            entity_data.get('id') == self.current_entity.get('id')
-        )
-        if same_entity_id:
-            print(f"[DIAGNOSTIC] SKIPPING load_entity - same entity already loaded: {entity_data.get('id')}")
             return
 
         print(f"[DIAGNOSTIC] PROCEEDING with load_entity - will destroy all widgets")
@@ -635,7 +1225,7 @@ class InspectorPanel(QWidget):
             print(f"Error saving stage description: {e}")
 
     def load_noodling_properties(self, entity_data):
-        """Show Noodling properties (FULL CONTROL!)."""
+        """Show Noodling properties - unified inspector view."""
         if not entity_data:
             print("[Inspector] ERROR: entity_data is None or empty")
             return
@@ -647,63 +1237,97 @@ class InspectorPanel(QWidget):
             print(f"[Inspector] ERROR: No agent_id in entity_data: {entity_data}")
             return
 
-        # Store field references for saving
+        # Store for facet dropdown updates
+        self.current_agent_id = agent_id
         self.property_fields = {}
 
         # Load full recipe data from YAML file
         recipe_data = {}
         try:
-            recipe_name = agent_id.replace('agent_', '')
-            recipe_path = Path(f"../cmush/recipes/{recipe_name}.yaml")
-            if recipe_path.exists():
+            import os
+            recipe_name = agent.get('name', agent_id.replace('agent_', ''))
+            recipe_path = os.path.join(
+                os.path.dirname(__file__),
+                '../../../cmush/recipes',
+                f'{recipe_name}.yaml'
+            )
+            if os.path.exists(recipe_path):
                 with open(recipe_path, 'r') as f:
                     recipe_data = yaml.safe_load(f)
+                    print(f"[Inspector] Loaded recipe from: {recipe_path}")
+            else:
+                print(f"[Inspector] Recipe not found: {recipe_path}")
         except Exception as e:
-            print(f"Error loading recipe: {e}")
-
-        # Identity group
-        identity_group = self.create_property_group("Identity")
-        self.property_fields['name'] = self.add_text_field(identity_group, "Name",
-                                                           recipe_data.get('name', agent.get('name', '')))
-        self.property_fields['species'] = self.add_text_field(identity_group, "Species",
-                                                               recipe_data.get('species', agent.get('species', '')))
-
-        # Description from agent (instance), fallback to recipe (template)
-        description = agent.get('description', recipe_data.get('description', 'An empty noodling...'))
-        self.property_fields['description'] = self.add_text_area(identity_group, "Description", description)
-
-        self.properties_layout.addWidget(identity_group)
-
-        # LLM Configuration group
-        llm_group = self.create_property_group("LLM Configuration")
-        self.property_fields['llm_provider'] = self.add_text_field(llm_group, "Provider", agent.get('llm_provider') or 'local')
-        self.property_fields['llm_model'] = self.add_text_field(llm_group, "Model", agent.get('llm_model') or 'qwen/qwen3-4b-2507')
-        self.properties_layout.addWidget(llm_group)
-
-        # ===== COGNITIVE COMPONENTS SECTION =====
-        components_section = self.create_components_section(agent_id)
-        if components_section:
-            self.properties_layout.addWidget(components_section)
-
-        # ===== NOODLE COMPONENT (charm component!) =====
-        try:
-            noodle_component = self.create_noodle_component(agent_id)
-            self.properties_layout.addWidget(noodle_component)
-        except Exception as e:
-            print(f"[Inspector] ERROR creating Noodle Component: {e}")
+            print(f"[Inspector] Error loading recipe: {e}")
             import traceback
             traceback.print_exc()
 
-        # ===== MMCR COMPONENT (Multimodal Context Reference) =====
+        # ===== AGENT BASICS (always visible) =====
+        basics_group = self.create_property_group("Noodling")
+
+        # Name (editable)
+        self.property_fields['name'] = self.add_text_field(
+            basics_group, "Name",
+            recipe_data.get('name', agent.get('name', ''))
+        )
+
+        # UUID (read-only) with copy button
+        uuid_container = QWidget()
+        uuid_layout = QHBoxLayout(uuid_container)
+        uuid_layout.setContentsMargins(0, 0, 0, 0)
+        uuid_layout.setSpacing(4)
+
+        uuid_field = QLineEdit(agent_id)
+        uuid_field.setReadOnly(True)
+        uuid_field.setStyleSheet("color: #888888; background: #2a2a2a;")
+        uuid_layout.addWidget(uuid_field)
+
+        copy_btn = QPushButton("Copy")
+        copy_btn.setMaximumWidth(50)
+        copy_btn.setStyleSheet("""
+            QPushButton {
+                background: #3e3e3e;
+                color: #D2D2D2;
+                border: 1px solid #555555;
+                padding: 2px 8px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background: #4e4e4e;
+            }
+        """)
+        copy_btn.clicked.connect(lambda: QApplication.clipboard().setText(agent_id))
+        uuid_layout.addWidget(copy_btn)
+
+        basics_group.content.layout().addRow("UUID:", uuid_container)
+
+        # Description (editable text area)
+        description = recipe_data.get('description', agent.get('description', 'An empty noodling...'))
+        print(f"[Inspector] Description loaded: {description[:50]}..." if description else "[Inspector] No description found")
+        self.property_fields['description'] = self.add_text_area(basics_group, "Description", description)
+
+        self.properties_layout.addWidget(basics_group)
+
+        # ===== FACET DROPDOWN SELECTOR =====
+        print(f"[Inspector] load_noodling_properties: About to call _add_facet_dropdown_selector...")
         try:
-            mmcr_component = self.create_mmcr_component(agent_id)
-            self.properties_layout.addWidget(mmcr_component)
+            # Pass entity_data which has 'name' at top level (from hierarchy)
+            # NOT agent which is entity_data['data']
+            self._add_facet_dropdown_selector(agent_id, entity_data)
+            print(f"[Inspector] load_noodling_properties: _add_facet_dropdown_selector returned successfully")
         except Exception as e:
-            print(f"[Inspector] ERROR creating MMCR Component: {e}")
+            print(f"[Inspector] ERROR creating facet dropdown: {e}")
             import traceback
             traceback.print_exc()
 
+        print(f"[Inspector] load_noodling_properties: Adding stretch...")
         self.properties_layout.addStretch()
+
+        print(f"[Inspector] ========================================")
+        print(f"[Inspector] load_noodling_properties COMPLETE")
+        print(f"[Inspector] Final layout widget count: {self.properties_layout.count()}")
+        print(f"[Inspector] facet_dropdown exists: {hasattr(self, 'facet_dropdown')}")
+        print(f"[Inspector] ========================================")
 
     def load_user_properties(self, entity_data):
         """Show user properties."""
