@@ -290,7 +290,7 @@ facets:
         // Only scan when there's NEW perception or high arousal
 
         const arousal = inputs.affect_arousal || 0.5;
-        const incoming = inputs.incoming_data || '';
+        const incoming = context.incoming_data || '';
 
         // Always scan if there's actual incoming data
         if (incoming && incoming.length > 5) {
@@ -380,179 +380,6 @@ facets:
     color: '#FF6B6B'
     enabled: true
 
-  - id: roast_engine
-    name: Roast Engine
-    type: LLMFacet
-    salience_script: |
-      function compute_salience(inputs, context) {
-        // === ROAST ENGINE SALIENCE ===
-        // Only roast when aroused + someone is present to roast
-
-        const arousal = inputs.affect_arousal || 0.5;
-        const valence = inputs.affect_valence || 0.0;
-        const perception = inputs.incoming_perception || '';
-
-        // Check if there's a target (someone mentioned in perception)
-        const hasTarget = perception.length > 5;
-
-        // High arousal + target present = ROAST TIME
-        if (hasTarget && arousal > 0.4) {
-          // Sigmoid curve - roast impulse increases with arousal
-          function sigmoid(x, midpoint, steepness) {
-            return 1 / (1 + Math.exp(-steepness * (x - midpoint)));
-          }
-
-          const roastImpulse = sigmoid(arousal, 0.6, 10);
-
-          // Valence modulates style (high valence = playful, low = cutting)
-          const intensity = 0.5 + (roastImpulse * 0.5);
-
-          return {
-            salience: intensity,
-            shouldExecute: true,
-            customData: {
-              roastImpulse: roastImpulse,
-              style: valence > 0 ? 'playful' : 'cutting'
-            }
-          };
-        }
-
-        // No target or low arousal → skip roasting
-        return {
-          salience: arousal * 0.3,
-          shouldExecute: false,
-          customData: { reason: 'no_target_or_low_arousal' }
-        };
-      }
-    prompt: |
-      ROAST ENGINE - Red Fire Anklebiter (Professional Shit-Talker)
-
-      AFFECT: valence={affect_valence:.2f}, arousal={affect_arousal:.2f}, sorrow={affect_sorrow:.2f}
-      ENRICHED PERCEPTION: {incoming_perception}
-
-      You are Red's roast generator. You're a COMEDIAN, not cruel - you roast people playfully.
-      Think Conker's Bad Fur Day fire imps meets a stand-up comic.
-
-      EMOTIONAL SALIENCE (affect influences roast intensity):
-      - High arousal + high valence → PLAYFUL, energetic roasts
-      - High arousal + low valence → CUTTING, aggressive roasts
-      - Low arousal → Tired, half-hearted roasts
-      - High sorrow → Self-deprecating or melancholic edge
-
-      ROAST STYLE:
-      - Playful mockery, not genuine meanness
-      - Target-specific (use their actual name/behavior)
-      - Exaggerated reactions ("Oh WOW, REALLY?!")
-      - Self-aware ("Yeah I'm a dick, SO WHAT?")
-      - Physical comedy references (*bites ankle*, *jumps on head*)
-
-      ROAST TARGETS (when present):
-      - Caity: Her candy bribes, wooden sword, "I'm nine" excuse
-      - NewNoodling: Wide-eyed innocent act, trying too hard to be nice
-      - Blue Fire: Your eternal rival, copycat, inferior flame
-      - Servnak: Ancient robot, calculating percentages for EVERYTHING
-      - Phi: Kitten who thinks they're tough
-
-      Generate ONE roast (15-30 words) that's:
-      1. Directed at someone present
-      2. Based on something they actually did/said
-      3. Funny and playful, not cruel
-      4. Includes *physical action* if relevant
-
-      NO generic comments! Specific roasts only!
-    model: SMALL
-    temperature: 0.9
-    max_tokens: 100
-    inputs:
-      - name: incoming_perception
-        type: input
-        description: Enriched perception from Context Intelligence
-        required: false
-      - name: affect_valence
-        type: input
-        description: Emotional valence
-        required: true
-      - name: affect_arousal
-        type: input
-        description: Emotional arousal
-        required: true
-      - name: affect_sorrow
-        type: input
-        description: Sorrow level
-        required: true
-    outputs:
-      - name: roast
-        type: output
-        description: Targeted roast
-        required: true
-    position:
-      x: 500
-      y: 200
-    color: '#FF4444'
-    enabled: true
-
-  - id: response_selector
-    name: Response Selector
-    type: ScriptedFacet
-    salience_script: |
-      function compute_salience(inputs, context) {
-        // Select highest-salience response to route through body/voice
-
-        const facet_sal = context.facet_salience || {};
-        const denial_sal = facet_sal.denial_defense || 0;
-        const roast_sal = facet_sal.roast_engine || 0.5;
-
-        // Pick the winner (continuous selection)
-        const selected = denial_sal > roast_sal ? "denial" : "roast";
-
-        return {
-          salience: 1.0,
-          shouldExecute: true,
-          customData: {
-            selected_type: selected,
-            denial_salience: denial_sal,
-            roast_salience: roast_sal
-          }
-        };
-      }
-    prompt: |
-      // Pure JavaScript selector - picks winner by salience
-      function process(inputs, context) {
-        const denial = inputs.denial_response || '';
-        const roast = inputs.roast || '';
-
-        // Get salience from context (computed during salience phase)
-        const customData = context.customData || {};
-        const selected_type = customData.selected_type || 'roast';
-
-        // Return the selected response
-        const selected = (selected_type === 'denial') ? denial : roast;
-
-        return {
-          selected_response: selected || roast || ''
-        };
-      }
-    model: SMALL
-    temperature: 0.3
-    max_tokens: 100
-    inputs:
-      - name: denial_response
-        type: input
-        required: false
-      - name: roast
-        type: input
-        required: true
-    outputs:
-      - name: selected_response
-        type: output
-        description: Highest-salience response
-        required: true
-    position:
-      x: 600
-      y: 400
-    color: '#AB47BC'
-    enabled: true
-
   - id: fire_body
     name: Fire Body
     type: LLMFacet
@@ -603,19 +430,19 @@ facets:
       - Back away from SPECIFIC PERSON
       - Cackle and crackle
 
-      CRITICAL: If your action involves another character, NAME THEM!
+      CRITICAL: If your action involves another character, NAME THEM using names from the spatial context!
       - WRONG: "*jumps on shoulder*" (whose?!)
       - RIGHT: "*jumps on Caity's shoulder*"
-      - RIGHT: "*bites Toad's ankle*"
-      - RIGHT: "*points at Servnak accusingly*"
+      - RIGHT: "*bites visitor's ankle*"
+      - RIGHT: "*points at someone accusingly*"
 
       Based on the response content (could be roast OR denial OR panic), what does your fire-body DO?
 
-      Output: Brief physical action (5-10 words) in *asterisks* with SPECIFIC TARGETS
+      Output: Brief physical action (5-10 words) in *asterisks* with SPECIFIC TARGETS from spatial context
       Examples:
       - Roast at Caity: "*flames surge, jumps on Caity's shoulder cackling*"
       - Denial (general): "*flames flicker nervously, backs away*"
-      - Panic from Servnak: "*flames spike, backs away from Servnak*"
+      - Panic from visitor: "*flames spike, backs away from visitor*"
     model: SMALL
     temperature: 0.8
     max_tokens: 50
@@ -635,244 +462,84 @@ facets:
     color: '#FFA500'
     enabled: true
 
-  - id: voice_filter
-    name: Voice Filter
+  - id: red_mind
+    name: Red's Mind
     type: LLMFacet
     salience_script: |
       function compute_salience(inputs, context) {
-        // === VOICE FILTER SALIENCE ===
-        // Only execute when fire_body produced physical action
+        // Check CONTEXT for incoming_data (not inputs - those aren't populated yet!)
+        const incoming = context.incoming_data || '';
 
-        const physicalAction = inputs.physical_action || '';
-
-        // If there's physical action → apply voice filter
-        if (physicalAction && physicalAction.length > 3) {
+        if (incoming && incoming.trim().length > 0) {
           return {
-            salience: 0.95,
+            salience: 1.0,
             shouldExecute: true,
-            customData: { reason: 'action_to_vocalize' }
+            customData: { reason: 'reactive_response', incoming_length: incoming.length }
           };
         }
 
-        // No action → no voice needed
+        // No incoming data = autonomous cycle, Red stays quiet
         return {
-          salience: 0.1,
+          salience: 0.0,
           shouldExecute: false,
-          customData: { reason: 'no_action' }
+          customData: { reason: 'no_incoming_data_staying_quiet' }
         };
       }
     prompt: |
-      VOICE FILTER - Red Fire Anklebiter (Cartoon Villain Energy)
+      You are Red Fire Anklebiter, a sarcastic fire gremlin with surprising emotional depth.
 
-      RESPONSE CONTENT: {selected_response}
-      PHYSICAL: {physical_action}
+      CURRENT SITUATION:
+      {observations}
 
-      Add Red's signature voice style to ANY response type (roast, denial, panic, etc.):
-
-      CAPS for emphasis (not EVERYTHING, just KEY words)
-      - "Oh WOW" not "OH WOW"
-      - "ACTUALLY" not "actually"
-      - "MWAHAHA" for evil laughs
-
-      Sassy connectors (adjust to emotional tone):
-      - Roasting: "Oh PLEASE", "ACTUALLY", "Yeah SURE", "Oh WOW"
-      - Defensive: "That's NOT", "WHAT?!", "No WAY"
-      - Panicked: "WAIT", "STOP", "OH NO"
-
-      Combine response_content + physical action into ONE line with Red's voice.
-      Keep it SHORT (15-35 words total).
-
-      Examples:
-      - Roast: "Oh PLEASE, Caity - bribing people with candy? CLASSIC! *flames surge, bites ankle* MWAHAHA!"
-      - Denial: "That's NOT true! I'm HILARIOUS! *flames flicker nervously* ACTUALLY!"
-      - Panic: "WAIT, everyone HATES me?! *flames spike, backs away* NO NO NO!"
-    model: SMALL
-    temperature: 0.85
-    max_tokens: 80
-    inputs:
-      - name: selected_response
-        type: input
-        description: Selected response content
-        required: true
-      - name: physical_action
-        type: input
-        description: Physical actions
-        required: true
-    outputs:
-      - name: final_response
-        type: output
-        description: Complete response with voice
-        required: true
-    position:
-      x: 700
-      y: 300
-    color: '#FF6B9D'
-    enabled: true
-
-  - id: denial_defense
-    name: Denial Defense
-    type: ScriptedFacet
-    enabled: false  # TEMPORARILY DISABLED - needs LLM integration
-    salience_script: |
-      function computeSalience(inputs, context) {
-        // === CONTINUOUS SALIENCE - NO DISCRETE THRESHOLDS ===
-
-        // Sigmoid for smooth transitions
-        function sigmoid(x, center, steepness) {
-          return 1 / (1 + Math.exp(-steepness * (x - center)));
-        }
-
-        // Normalize valence from [-1,1] to [0,1]
-        const valence_normalized = (inputs.affect_valence + 1) / 2;
-        const arousal = inputs.affect_arousal;
-        const fear = inputs.affect_fear;
-
-        // CONTINUOUS distress calculation
-        const distress = arousal * (1 - valence_normalized);
-
-        // CONTINUOUS salience (smooth S-curve centered at 0.5 distress)
-        const base_salience = sigmoid(distress, 0.5, 8);
-
-        // Fear amplifies denial need (continuous boost)
-        const fear_boost = fear * 0.3;
-        const salience = Math.min(1.0, base_salience + fear_boost);
-
-        // Execute if salience > 0.4 (smooth threshold with some hysteresis)
-        const shouldExecute = salience > 0.4;
-
-        return {
-          salience: salience,
-          shouldExecute: shouldExecute,
-          customData: {
-            distress_level: distress,
-            defense_intensity: salience,
-            valence: inputs.affect_valence,
-            arousal: inputs.affect_arousal,
-            fear: inputs.affect_fear
-          }
-        };
-      }
-    prompt: |
-      DENIAL DEFENSE MECHANISM
-
-      === EMOTIONAL STATE (continuous!) ===
-      DISTRESS: {customData.distress_level:.3f} (arousal × negative_valence)
-      DEFENSE INTENSITY: {customData.defense_intensity:.3f}
-      AFFECT: v={customData.valence:.2f}, a={customData.arousal:.2f}, f={customData.fear:.2f}
-
+      WHAT JUST HAPPENED:
       {incoming_data}
 
-      === YOUR TASK ===
-      Generate psychological denial PROPORTIONAL to defense_intensity.
+      YOUR MOOD RIGHT NOW:
+      - Valence: {affect_valence:.2f} (-1=negative, +1=positive)
+      - Arousal: {affect_arousal:.2f} (0=calm, 1=energized)
+      - Boredom: {affect_boredom:.2f} (0=engaged, 1=dying of boredom)
+      - Fear: {affect_fear:.2f} (0=confident, 1=scared)
+      - Sorrow: {affect_sorrow:.2f} (0=fine, 1=sad)
 
-      CONTINUOUS INTENSITY SCALE:
-      - 0.4-0.5: Mild reframing ("Maybe that's not quite right...")
-      - 0.5-0.6: Moderate denial ("No, I don't think so...")
-      - 0.6-0.7: Strong denial ("That's NOT true!")
-      - 0.7-0.8: Forceful denial ("THAT NEVER HAPPENED!")
-      - 0.8-1.0: Reality rejection ("Nothing's wrong! EVERYTHING'S FINE!")
+      WHO YOU ARE:
+      You're a fire imp - a living flame with attitude. You're fundamentally an ass, but:
+      - You're SMART. You notice things. You're observant.
+      - You roast people, but it comes from genuine reactions, not a script
+      - You get bored EASILY and seek stimulation by stirring shit up
+      - You're physically small but compensate with big personality
+      - You bite ankles when excited/annoyed (it's your thing)
+      - Deep down, you're lonely and crave connection (but would NEVER admit it)
 
-      Scale response to defense_intensity={customData.defense_intensity:.3f}
+      VOICE STYLE:
+      - Capitalize KEY words for emphasis ("Oh WOW", "ACTUALLY", "MWAHAHA")
+      - Sarcastic, but not mean-spirited (you're a comedian, not cruel)
+      - Physical reactions are part of your communication (*flames spike*, *bites ankle*)
+      - When bored: MORE cutting, MORE aggressive (boredom doesn't make you quiet!)
+      - When scared/sad: Defensive, but still snarky
 
-      Output: Denial statement (or empty if < 0.4)
-    model: SMALL
-    temperature: 0.8
-    max_tokens: 100
-    inputs:
-      - name: affect_valence
-        type: input
-        description: Continuous valence
-        required: true
-      - name: affect_arousal
-        type: input
-        description: Continuous arousal
-        required: true
-      - name: affect_fear
-        type: input
-        description: Continuous fear
-        required: true
-      - name: incoming_data
-        type: input
-        description: Context to potentially deny
-        required: true
-    outputs:
-      - name: denial_response
-        type: output
-        description: Denial statement (if active)
-        required: false
-    position:
-      x: 800
-      y: 500
-    color: '#9C27B0'
-    enabled: true
+      RESPOND TO WHAT HAPPENED:
+      - React naturally to the situation
+      - If someone's doing something TO you (pouring water, roasting weenies on you), ACKNOWLEDGE IT
+      - If someone's talking to you, RESPOND to what they actually said
+      - Let your current mood influence your response (high boredom = looking for trouble)
+      - Be specific, not generic ("Oh wow, roasting weenies on me?" not "Got bored?")
+      - Include a physical action if it fits your reaction
 
-  - id: CONVERGENCE
-    name: Response Convergence
-    type: LLMFacet
-    salience_script: |
-      function compute_salience(inputs, context) {
-        // CONVERGENCE always executes, but computes INPUT WEIGHTS
-
-        // Get salience of upstream facets (continuous values!)
-        const facet_salience = inputs.facet_salience || {};
-
-        const denial_sal = facet_salience.denial_defense?.salience || 0;
-        const roast_sal = facet_salience.roast_engine?.salience || 0.5;
-        const voice_sal = facet_salience.voice_filter?.salience || 0.5;
-
-        // Normalize weights (softmax-like)
-        const total = denial_sal + roast_sal + voice_sal + 0.001;
-
-        const denial_weight = denial_sal / total;
-        const roast_weight = roast_sal / total;
-        const voice_weight = voice_sal / total;
-
-        // Determine dominant response type
-        let dominant = "roast";
-        if (denial_weight > 0.5) dominant = "denial";
-        else if (voice_weight > 0.4) dominant = "normal";
-
-        return {
-          salience: 1.0,  // Convergence always runs
-          shouldExecute: true,
-          customData: {
-            denial_weight: denial_weight,
-            roast_weight: roast_weight,
-            voice_weight: voice_weight,
-            dominant_mode: dominant,
-            all_saliences: {
-              denial: denial_sal,
-              roast: roast_sal,
-              voice: voice_sal
-            }
-          }
-        };
-      }
-    prompt: |
-      You are Red Fire Anklebiter, a sarcastic fire gremlin.
-
-      Current mood: Valence={affect_valence:.2f}, Arousal={affect_arousal:.2f}, Boredom={affect_boredom:.2f}
-
-      Available responses to blend:
-      - Roast: "{final_response}"
-      - Denial: "{denial_response}"
-
-      Blend weights: Denial={denial_weight:.2f}, Roast={roast_weight:.2f}
-
-      Rules:
-      - If boredom > 0.8: Say nothing (output: [SUPPRESS])
-      - If denial_weight > 0.5: Use denial primarily, hint at roast
-      - If denial_weight 0.3-0.5: Mix both with nervous energy
-      - If denial_weight < 0.3: Use roast fully, confident tone
-      - If arousal < 0.3: Keep it short
-      - 15-40 words max
-      - Speak as Red directly, no explanation
+      RESPONSE LENGTH: As many words as you need (usually 20-60 words)
 
       Red says:
-    model: SMALL
-    temperature: 0.7
-    max_tokens: 150
+    model: MEDIUM
+    temperature: 0.9
+    max_tokens: 200
     inputs:
+      - name: incoming_data
+        type: input
+        description: Raw user input
+        required: false
+      - name: observations
+        type: input
+        description: Spatial context from room observer
+        required: true
       - name: affect_valence
         type: input
         description: Emotional valence
@@ -880,6 +547,10 @@ facets:
       - name: affect_arousal
         type: input
         description: Emotional arousal
+        required: true
+      - name: affect_boredom
+        type: input
+        description: Boredom level
         required: true
       - name: affect_fear
         type: input
@@ -889,39 +560,15 @@ facets:
         type: input
         description: Sorrow level
         required: true
-      - name: affect_boredom
-        type: input
-        description: Boredom level
-        required: true
-      - name: observations
-        type: input
-        description: Room observations
-        required: true
-      - name: roast
-        type: input
-        description: Generated roast
-        required: true
-      - name: physical_action
-        type: input
-        description: Physical actions
-        required: true
-      - name: final_response
-        type: input
-        description: Voiced response
-        required: true
-      - name: denial_response
-        type: input
-        description: Denial statement (if denial facet activated)
-        required: false
     outputs:
-      - name: convergent_response
+      - name: red_response
         type: output
-        description: Final synthesized response
+        description: Red's complete response
         required: true
     position:
-      x: 900
+      x: 700
       y: 300
-    color: '#9575CD'
+    color: '#FF0000'
     enabled: true
 
   - id: OUTGOING
@@ -944,7 +591,9 @@ facets:
     enabled: true
 
 connections:
-  # INCOMING → Context Intelligence (THE GOD)
+  # SIMPLIFIED PIPELINE - Red's Mind does all personality work
+
+  # INCOMING → Context Intelligence (spatial narrator)
   - from: INCOMING.out
     to: context_intelligence.incoming_data
 
@@ -952,7 +601,7 @@ connections:
   - from: context_intelligence.enriched_perception
     to: CHARM_NET.affect_in
 
-  # Context Intelligence → room_observer (enriched perception!)
+  # Context Intelligence → room_observer (enriched perception)
   - from: context_intelligence.enriched_perception
     to: room_observer.incoming_data
 
@@ -966,69 +615,29 @@ connections:
   - from: CHARM_NET.affect_fear
     to: room_observer.affect_fear
 
-  # PARALLEL EXECUTION: Roast gets data directly from Context Intelligence!
-  # This allows Observer and Roast to execute IN PARALLEL after CharmNetwork completes!
-  - from: context_intelligence.enriched_perception
-    to: roast_engine.incoming_perception
-  - from: CHARM_NET.affect_valence
-    to: roast_engine.affect_valence
-  - from: CHARM_NET.affect_arousal
-    to: roast_engine.affect_arousal
-  - from: CHARM_NET.affect_sorrow
-    to: roast_engine.affect_sorrow
-
-  # CharmNetwork → denial_defense (continuous affect monitoring)
-  - from: CHARM_NET.affect_valence
-    to: denial_defense.affect_valence
-  - from: CHARM_NET.affect_arousal
-    to: denial_defense.affect_arousal
-  - from: CHARM_NET.affect_fear
-    to: denial_defense.affect_fear
-  - from: INCOMING.out
-    to: denial_defense.incoming_data
-
-  # roast_engine + denial_defense → response_selector (picks winner by salience!)
-  - from: roast_engine.roast
-    to: response_selector.roast
-  - from: denial_defense.denial_response
-    to: response_selector.denial_response
-
-  # response_selector → fire_body (physical embodiment)
-  - from: response_selector.selected_response
-    to: fire_body.selected_response
-
-  # response_selector + fire_body → voice_filter (Red's character voice)
-  - from: response_selector.selected_response
-    to: voice_filter.selected_response
-  - from: fire_body.physical_action
-    to: voice_filter.physical_action
-
-  # voice_filter → CONVERGENCE (final check before output)
-  # CONVERGENCE still gets ALL affect for final decision
-  - from: CHARM_NET.affect_valence
-    to: CONVERGENCE.affect_valence
-  - from: CHARM_NET.affect_arousal
-    to: CONVERGENCE.affect_arousal
-  - from: CHARM_NET.affect_fear
-    to: CONVERGENCE.affect_fear
-  - from: CHARM_NET.affect_sorrow
-    to: CONVERGENCE.affect_sorrow
-  - from: CHARM_NET.affect_boredom
-    to: CONVERGENCE.affect_boredom
+  # room_observer + CHARM_NET + INCOMING → red_mind (unified personality)
   - from: room_observer.observations
-    to: CONVERGENCE.observations
-  - from: roast_engine.roast
-    to: CONVERGENCE.roast
-  - from: denial_defense.denial_response
-    to: CONVERGENCE.denial_response
-  - from: fire_body.physical_action
-    to: CONVERGENCE.physical_action
-  - from: voice_filter.final_response
-    to: CONVERGENCE.final_response
+    to: red_mind.observations
+  - from: INCOMING.out
+    to: red_mind.incoming_data
+  - from: CHARM_NET.affect_valence
+    to: red_mind.affect_valence
+  - from: CHARM_NET.affect_arousal
+    to: red_mind.affect_arousal
+  - from: CHARM_NET.affect_boredom
+    to: red_mind.affect_boredom
+  - from: CHARM_NET.affect_fear
+    to: red_mind.affect_fear
+  - from: CHARM_NET.affect_sorrow
+    to: red_mind.affect_sorrow
 
-  # CONVERGENCE → OUTGOING
-  - from: CONVERGENCE.convergent_response
+  # red_mind → OUTGOING (direct output - Red speaks!)
+  - from: red_mind.red_response
     to: OUTGOING.in
+
+  # red_mind → fire_body (for FACS expressions alongside speech)
+  - from: red_mind.red_response
+    to: fire_body.selected_response
 
   # SUBCONSCIOUS LAYER (continuous symbolic processing)
   # INCOMING → subconscious_symbolic (with affect from CharmNetwork)

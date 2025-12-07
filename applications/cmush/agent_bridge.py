@@ -24,6 +24,7 @@ from typing import Dict, List, Optional, Any
 import time
 import json
 import logging
+import asyncio
 import numpy as np
 import aiohttp
 
@@ -36,7 +37,8 @@ from llm_interface import OpenAICompatibleLLM
 from training_data_collector import TrainingDataCollector
 from agent_filesystem import AgentFilesystem
 from agent_messaging import AgentMessaging
-from autonomous_cognition import AutonomousCognitionEngine
+# REMOVED: from autonomous_cognition import AutonomousCognitionEngine
+# Replacing with continuous affect-driven cognition loop
 from session_profiler import SessionProfiler
 from performance_tracker import get_tracker
 from affective_reinforcement import create_reinforcement
@@ -866,7 +868,12 @@ class CMUSHConsilienceAgent:
                     )
 
                     self.facet_assembly = FacetAssembly.load_yaml(assembly_path)
-                    self.facet_executor = FacetExecutor(llm_client=self.llm, use_event_bus=True)
+                    # HYBRID STRATEGY: Use 'serial' for debug, 'hybrid' for production
+                    self.facet_executor = FacetExecutor(
+                        llm_client=self.llm,
+                        use_event_bus=True,
+                        concurrency_mode='hybrid'  # 'serial' for debug, 'hybrid' for production
+                    )
 
                     logger.info(f"[{agent_id}] ⚡ Loaded facet assembly: {facet_assembly_name} ({len(self.facet_assembly.facets)} facets)")
 
@@ -1043,21 +1050,19 @@ class CMUSHConsilienceAgent:
             config=messaging_config
         )
 
-        # Autonomous cognition engine
-        cognition_config = config.get('autonomous_cognition', {}).copy()
+        # CONTINUOUS COGNITION SYSTEM (affect-driven, not timer-based)
+        self.cognition_enabled = config.get('continuous_cognition', {}).get('enabled', True)
+        self.cognition_task = None
+        self.cognition_paused = False
 
-        # Use personality traits already loaded above
-        cognition_config['personality'] = self.personality
+        # Timing for speech cooldown (prevent spam)
+        self.last_speech_time = 0.0
+        self.min_speech_interval = config.get('min_speech_interval', 15.0)  # seconds
 
-        self.cognition_enabled = cognition_config.get('enabled', True)
-        if self.cognition_enabled:
-            self.cognition_engine = AutonomousCognitionEngine(
-                agent=self,
-                config=cognition_config
-            )
-            logger.info(f"Cognition engine personality: {self.personality}")
-        else:
-            self.cognition_engine = None
+        # Continuous cognition check interval (polling frequency, not thinking frequency)
+        self.cognition_check_interval = 0.5  # Check every 500ms if we should think
+
+        logger.info(f"Continuous affect-driven cognition: {'enabled' if self.cognition_enabled else 'disabled'}")
 
         # COMPONENT SYSTEM: Initialize cognitive component registry (LEGACY - only for non-facet agents)
         from noodling_components import (
@@ -1671,6 +1676,11 @@ Generate factual awareness:"""
                     max_tokens=150
                 )
 
+                # Handle dict responses (some LLM clients return {text: ...})
+                if isinstance(intuition, dict):
+                    intuition = intuition.get('text', intuition.get('content', ''))
+                intuition = str(intuition)
+
                 logger.info(f"[{self.agent_id}] Intuition generated: {intuition[:100]}...")
                 return intuition.strip()
 
@@ -1788,6 +1798,11 @@ Analyze and output ONLY valid JSON:
                     temperature=0.2,  # Very low for consistent analysis
                     max_tokens=100
                 )
+
+                # Handle dict responses (some LLM clients return {text: ...})
+                if isinstance(result_text, dict):
+                    result_text = result_text.get('text', result_text.get('content', ''))
+                result_text = str(result_text)
 
                 # Parse JSON result
                 import json
@@ -2450,6 +2465,13 @@ Analyze and output ONLY valid JSON:
                     else:
                         exec_context._world_state = {}
 
+                    # Inject stage context (zone-based spatial model)
+                    if hasattr(self, 'world') and self.world:
+                        stage = self.world.get_stage_for_room(current_room_id)
+                        if stage:
+                            exec_context._stage = stage
+                            logger.debug(f"[{self.agent_id}] Stage injected: {stage.name} ({len(stage.entities)} entities)")
+
                     # Execute facet assembly
                     result = await self.facet_executor.execute(
                         self.facet_assembly,
@@ -2468,13 +2490,48 @@ Analyze and output ONLY valid JSON:
                         logger.info(f"[{self.agent_id}]   Input: {text[:50]}...")
                         logger.info(f"[{self.agent_id}]   Output: {colored_perception[:100]}...")
 
-                    # CLEAN GATE: Context Intelligence routing decision
+                    # SOCIAL ROUTING: Simple heuristic-based decision
                     # Should this agent respond, or just observe?
-                    context_output = result.facet_outputs.get('context_intelligence', {})
-                    should_respond = context_output.get('should_respond', True)  # Default True for safety
+                    from social_router import SocialRouter
+
+                    # Get current stage
+                    stage = None
+                    if hasattr(self, 'world') and self.world:
+                        stage = self.world.get_stage_for_room(current_room_id)
+
+                    # Get current affect
+                    # affect_raw is a list: [valence, arousal, fear, sorrow, boredom]
+                    affect_state = {
+                        'valence': affect_raw[0] if isinstance(affect_raw, list) else affect_raw.get('valence', 0.0),
+                        'arousal': affect_raw[1] if isinstance(affect_raw, list) else affect_raw.get('arousal', 0.5),
+                        'boredom': affect_raw[4] if isinstance(affect_raw, list) else affect_raw.get('boredom', 0.0),
+                        'fear': affect_raw[2] if isinstance(affect_raw, list) else affect_raw.get('fear', 0.0),
+                        'sorrow': affect_raw[3] if isinstance(affect_raw, list) else affect_raw.get('sorrow', 0.0)
+                    }
+
+                    # Get conversation history (recent messages for thread detection)
+                    conversation_history = []
+                    if hasattr(self, 'conversation_context'):
+                        conversation_history = list(self.conversation_context)[-10:]
+
+                    # Social routing decision
+                    should_respond, confidence, reason = SocialRouter.should_respond(
+                        message=text,
+                        speaker_id=user_id,
+                        agent_name=self.agent_name,
+                        stage=stage,
+                        agent_affect=affect_state,
+                        conversation_history=conversation_history,
+                        agent_id=self.agent_id
+                    )
+
+                    logger.info(f"[{self.agent_id}] 🎯 Social Router: should_respond={should_respond}, confidence={confidence:.2f}, reason={reason}")
+
+                    # Store Social Router decision for later use in is_being_addressed calculation
+                    social_router_says_respond = should_respond
 
                     if not should_respond:
-                        logger.info(f"[{self.agent_id}] 👂 Heard but not responding (Context Intelligence: not addressed)")
+                        logger.info(f"[{self.agent_id}] 👂 Heard but not responding (SocialRouter: {reason})")
                         # Agent heard and updated state, but doesn't generate response
                         # This enables natural ensemble dynamics without ping-pong!
                         return None
@@ -2503,7 +2560,9 @@ Analyze and output ONLY valid JSON:
                                         'metadata': action['metadata']
                                     }
                                     # Emit to world (prims can react!)
-                                    await self.world.broadcast_event(prim_event, room_id=self.current_room)
+                                    # NOTE: World is data-only, doesn't have broadcast_event. That's on server.
+                                    # Physical actions are currently logged but not broadcast.
+                                    # TODO: Add server reference or callback to enable physical action broadcast
                                     logger.info(f"🎭 {self.agent_name} performed prim action: {action['emote_text']} (target={action['target']})")
 
                                 else:
@@ -2523,7 +2582,9 @@ Analyze and output ONLY valid JSON:
                                     }
 
                                     # Emit to room (all agents perceive)
-                                    await self.world.broadcast_event(emote_event, room_id=self.current_room)
+                                    # NOTE: World is data-only, doesn't have broadcast_event. That's on server.
+                                    # Physical actions are currently logged but not broadcast.
+                                    # TODO: Add server reference or callback to enable physical action broadcast
                                     logger.info(f"🎭 {self.agent_name} performed action: {action['emote_text']}")
 
                                     # Special handling for contact actions
@@ -2567,6 +2628,15 @@ Analyze and output ONLY valid JSON:
                                 self.latent_memories.pop(0)
                             logger.info(f"💭 Latent memory stored ({len(self.latent_memories)} total): {subconscious_output['symbolic_image'][:60]}...")
                             print(f"[{self.agent_name.upper()}] 💭 Latent memory stored ({len(self.latent_memories)} total): {subconscious_output['symbolic_image'][:60]}...")  # For FACETS console
+
+                    # FACET SYSTEM: Facet execution complete, colored_perception is set
+                    # Continue to shared consciousness.perceive() and response generation
+                    if colored_perception and colored_perception not in ['[No output]', '[SUPPRESS]', '']:
+                        logger.info(f"[{self.agent_id}] 🎭 FACET EXECUTION COMPLETE: {len(colored_perception)} chars, {result.total_tokens} tokens, {result.total_time:.2f}s")
+                    else:
+                        # No response generated by facets
+                        logger.info(f"[{self.agent_id}] No speech output from facets (response={colored_perception})")
+                        colored_perception = text  # Fallback to original perception
 
                 else:
                     # LEGACY: Register-based accumulator (transistor system)
@@ -3178,6 +3248,12 @@ Analyze and output ONLY valid JSON:
             # Being addressed means: directly addressed OR name mentioned BUT NOT third-party discussion
             is_being_addressed = is_directly_addressed or (event_mentions_name and not is_third_party_discussion)
 
+            # FACET SYSTEM OVERRIDE: If using facet system with Social Router, use its decision
+            # Social Router provides sophisticated social context detection that supersedes simple name matching
+            if self.using_facet_system and 'social_router_says_respond' in locals():
+                is_being_addressed = social_router_says_respond
+                logger.info(f"[{self.agent_id}] 🎯 Social Router override: is_being_addressed={is_being_addressed}")
+
             # ONE-ON-ONE CONTEXT: If only this agent and speaker in room, treat all speech as addressed
             # (Prevents agents ignoring direct conversation when name isn't mentioned)
             if event_type == 'say' and self.world and not is_being_addressed:
@@ -3259,6 +3335,7 @@ Analyze and output ONLY valid JSON:
             speech_propensity = base_chattiness * event_significance
 
             # NEW ARCHITECTURE: Use ResponseTypeDecider if available
+            logger.info(f"[{self.agent_id}] 📊 Speech decision inputs: is_being_addressed={is_being_addressed}, cooldown_ok={cooldown_ok}, speech_propensity={speech_propensity:.3f}, response_decision={response_decision is not None}")
             if response_decision:
                 response_type = response_decision.get('response_type', 'think').lower()
                 logger.info(f"[{self.agent_id}] 🎯 Using ResponseTypeDecider: type={response_type}")
@@ -3283,13 +3360,25 @@ Analyze and output ONLY valid JSON:
                 # FALLBACK: Old propensity system if ResponseTypeDecider failed
                 logger.info(f"[{self.agent_id}] ⚠️  No response_decision - using fallback propensity logic")
                 # Cooldown override: when addressed, always speak (deterministic)
-                if is_being_addressed and cooldown_ok:
-                    should_speak = True
+                # For facet-based agents: Social Router already decided, ignore cooldown
+                if is_being_addressed:
+                    if self.using_facet_system:
+                        # Facet system: Social Router already vetted the response, always speak
+                        should_speak = True
+                        logger.info(f"[{self.agent_id}] ✅ FACET SYSTEM: ADDRESSED → should_speak=True (ignoring cooldown)")
+                    elif cooldown_ok:
+                        # Legacy system: need cooldown check
+                        should_speak = True
+                        logger.info(f"[{self.agent_id}] ✅ ADDRESSED + COOLDOWN OK → should_speak=True")
+                    else:
+                        should_speak = False
+                        logger.info(f"[{self.agent_id}] ❌ ADDRESSED but cooldown not ready")
                 else:
                     # Speak if propensity > 0.1 (very low threshold for chatty Noodlings!)
                     # Old threshold was 0.5, but speech_propensity ranges 0.03-0.15
                     # Setting to 0.1 means they'll speak when even slightly stimulated
                     should_speak = cooldown_ok and (speech_propensity > 0.1)
+                    logger.info(f"[{self.agent_id}] Propensity-based: should_speak={should_speak} (propensity={speech_propensity:.3f}, cooldown_ok={cooldown_ok})")
 
                 # Ruminate if not speaking (mutually exclusive)
                 should_ruminate = not should_speak
@@ -3382,6 +3471,7 @@ Analyze and output ONLY valid JSON:
                 logger.info(f"Agent {self.agent_id} ruminating (addressed={is_being_addressed})")
                 rumination_result = await self._generate_rumination(
                     state,
+                    target_user=user_id,
                     is_being_addressed=is_being_addressed,
                     is_question=is_question
                 )
@@ -3456,8 +3546,9 @@ Analyze and output ONLY valid JSON:
             toxicity_result = await self.llm.detect_toxicity(text)
 
             toxicity_score = toxicity_result['score']
+            category = toxicity_result.get('category', 'unknown')
             logger.debug(f"[{self.agent_id}] Conscience check: toxicity={toxicity_score:.3f}, "
-                        f"category={toxicity_result['category']}")
+                        f"category={category}")
 
             # If below threshold, approve speech
             if toxicity_score < toxicity_threshold:
@@ -3865,7 +3956,7 @@ Analyze and output ONLY valid JSON:
                 if self.cognitive_manifold:
                     self.cognitive_manifold.clear_all_registers()
 
-    async def _generate_rumination(self, state: Dict, is_being_addressed: bool = False,
+    async def _generate_rumination(self, state: Dict, target_user: str = None, is_being_addressed: bool = False,
                                    is_question: bool = False) -> Dict:
         """
         Generate internal rumination (thought) when agent observes.
@@ -4121,11 +4212,9 @@ Analyze and output ONLY valid JSON:
                 # Generate external response based on the internal thought
                 # This creates the think → act pipeline
                 response = await self._generate_response(
+                    target_user=target_user,
                     state=state,
-                    is_being_addressed=is_being_addressed,
-                    is_question=is_question,
-                    target_user=None,
-                    thought_seed=thought_text  # Use the thought as seed for response
+                    facet_output=thought_text  # Use the thought as seed for response
                 )
 
                 # Return BOTH the thought AND the action
@@ -4392,6 +4481,11 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
                 max_tokens=10,
                 temperature=0.1
             )
+
+            # Handle dict responses (some LLM clients return {text: ...})
+            if isinstance(response, dict):
+                response = response.get('text', response.get('content', ''))
+            response = str(response)
 
             # Parse numeric response
             try:
@@ -4828,16 +4922,184 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
         logger.info(f"Agent reset: {self.agent_id}")
 
     async def start_cognition(self):
-        """Start autonomous cognition loop."""
-        if self.cognition_engine:
-            await self.cognition_engine.start()
-            logger.info(f"Started autonomous cognition for {self.agent_id}")
+        """Start continuous affect-driven cognition loop."""
+        if not self.cognition_enabled:
+            return
+
+        if self.cognition_task and not self.cognition_task.done():
+            logger.warning(f"Cognition already running for {self.agent_id}")
+            return
+
+        self.cognition_task = asyncio.create_task(self._continuous_cognition_loop())
+        logger.info(f"Started continuous cognition for {self.agent_id}")
 
     async def stop_cognition(self):
-        """Stop autonomous cognition loop."""
-        if self.cognition_engine:
-            await self.cognition_engine.stop()
-            logger.info(f"Stopped autonomous cognition for {self.agent_id}")
+        """Stop continuous cognition loop."""
+        if self.cognition_task:
+            self.cognition_task.cancel()
+            try:
+                await self.cognition_task
+            except asyncio.CancelledError:
+                pass
+            logger.info(f"Stopped continuous cognition for {self.agent_id}")
+
+    async def _continuous_cognition_loop(self):
+        """
+        Continuous affect-driven cognition loop.
+
+        NO TIMERS. Pure dynamics.
+        Facets decide when they execute based on salience.
+        Speech emerges when affect crosses thresholds.
+        """
+        logger.info(f"[{self.agent_name}] Continuous cognition loop started")
+
+        while True:
+            try:
+                # Check if cognition is paused
+                if self.cognition_paused:
+                    await asyncio.sleep(self.cognition_check_interval)
+                    continue
+
+                # Only run if using facet system
+                if not self.using_facet_system or not self.facet_executor:
+                    await asyncio.sleep(self.cognition_check_interval)
+                    continue
+
+                # CHECK CYCLE LOCK: Skip if reactive cycle in progress
+                if getattr(self, 'cycle_in_progress', False):
+                    # Reactive cycle is running - wait for it to complete
+                    await asyncio.sleep(self.cognition_check_interval)
+                    continue
+
+                # LOCK: Start autonomous cycle
+                self.cycle_in_progress = True
+                self.cycle_type = 'autonomous'
+
+                # Execute facets with NO external input (pure rumination)
+                # INCOMING receives empty string - this is autonomous thought
+
+                # Build execution context (same as reactive path)
+                from noodlestudio.core.scripted_facet import ScriptContext
+
+                exec_context = ScriptContext(
+                    cycle=self.current_cycle_uuid,
+                    timestamp=time.time(),
+                    agent_id=self.agent_id,
+                    agent_name=self.agent_name,
+                    agent_species=self.species
+                )
+
+                # Get current affect
+                affect_raw = self.get_current_affect()
+
+                # Inject agent state
+                exec_context._agent_state = {
+                    'affect': affect_raw,
+                    'identity': self.identity_prompt,
+                    'species': self.species,
+                    'personality_traits': getattr(self, 'personality_traits', {})
+                }
+
+                # Inject latent memories for insight emergence
+                exec_context._latent_memories = self.latent_memories
+
+                # Execute facets
+                result = await self.facet_executor.execute(
+                    assembly=self.facet_assembly,
+                    incoming_data="",  # No external stimulus
+                    context=vars(exec_context)
+                )
+
+                # Check if facets produced speech output
+                response = result.response
+
+                # DEBUG: Log what response we got
+                logger.info(f"[{self.agent_name}] 🔍 Autonomous cycle response: '{response[:100] if response else 'None'}'")
+
+                # AFFECT-DRIVEN SPEECH COOLDOWN
+                # Get current affect state
+                phenomenal = affect_raw.get('phenomenal_state', [0.0] * 5)
+                valence = float(phenomenal[0]) if len(phenomenal) > 0 else 0.0
+                arousal = float(phenomenal[1]) if len(phenomenal) > 1 else 0.5
+                dominance = float(phenomenal[2]) if len(phenomenal) > 2 else 0.5
+                fear = float(phenomenal[3]) if len(phenomenal) > 3 else 0.0
+                sorrow = float(phenomenal[4]) if len(phenomenal) > 4 else 0.0
+                boredom = 1.0 - arousal  # Inverse of arousal
+
+                # Modulation factors (same logic as reactive path):
+                # - High arousal (>0.7) = 0.3x cooldown (GOTTA SPEAK NOW!)
+                # - Low arousal (<0.3) = 2.0x cooldown (meh... whatever)
+                # - High dominance (>0.7) = 0.5x cooldown (I'M IN CHARGE!)
+                # - High boredom (>0.7) = 3.0x cooldown (zzz not worth it)
+                arousal_factor = 0.3 if arousal > 0.7 else (2.0 if arousal < 0.3 else 1.0)
+                dominance_factor = 0.5 if dominance > 0.7 else 1.0
+                boredom_factor = 3.0 if boredom > 0.7 else 1.0
+
+                # Combine factors (multiply for compounding effects)
+                cooldown_multiplier = arousal_factor * dominance_factor * boredom_factor
+                effective_cooldown = self.min_speech_interval * cooldown_multiplier
+
+                logger.info(f"[{self.agent_name}] 🎚️ AUTONOMOUS COOLDOWN: base={self.min_speech_interval:.1f}s, "
+                           f"arousal={arousal:.2f}(x{arousal_factor:.1f}), "
+                           f"dominance={dominance:.2f}(x{dominance_factor:.1f}), "
+                           f"boredom={boredom:.2f}(x{boredom_factor:.1f}), "
+                           f"effective={effective_cooldown:.1f}s")
+
+                # Check speech cooldown (affect-modulated!)
+                time_since_speech = time.time() - self.last_speech_time
+                can_speak = time_since_speech >= effective_cooldown
+
+                if response and response != "[No output]" and response != "[SUPPRESS]" and can_speak:
+                    # Broadcast autonomous speech to room
+                    await self._broadcast_autonomous_speech(response)
+                    self.last_speech_time = time.time()
+                    logger.info(f"[{self.agent_name}] Autonomous speech: {response[:60]}...")
+
+                # UNLOCK: Autonomous cycle complete
+                self.cycle_in_progress = False
+                self.cycle_type = None
+
+                # Process queued perceptions (if any) - same as reactive cycles!
+                # This ensures messages queued during autonomous cycles get handled
+                self._complete_cognition_cycle()
+
+                # Sleep briefly before next check
+                # This is just polling frequency, NOT thinking frequency
+                # Actual thinking driven by affect dynamics
+                await asyncio.sleep(self.cognition_check_interval)
+
+            except asyncio.CancelledError:
+                logger.info(f"[{self.agent_name}] Continuous cognition loop cancelled")
+                break
+            except Exception as e:
+                logger.error(f"[{self.agent_name}] Error in continuous cognition: {e}", exc_info=True)
+                await asyncio.sleep(5)  # Wait before retrying after error
+
+    async def _broadcast_autonomous_speech(self, text: str):
+        """
+        Broadcast autonomous speech to the room.
+
+        Args:
+            text: Speech text to broadcast
+        """
+        try:
+            # Create speech event
+            event = {
+                'type': 'say',
+                'user': self.agent_id,
+                'username': self.agent_name,
+                'room': self.current_room,
+                'text': text,
+                'autonomous': True  # Flag as autonomous
+            }
+
+            # This will be picked up by get_autonomous_events()
+            if not hasattr(self, '_pending_autonomous_events'):
+                self._pending_autonomous_events = []
+            self._pending_autonomous_events.append(event)
+
+        except Exception as e:
+            logger.error(f"Error broadcasting autonomous speech: {e}", exc_info=True)
 
     async def get_autonomous_events(self) -> List[Dict]:
         """
@@ -4847,11 +5109,15 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
             List of event dicts for broadcasting
         """
         # Don't generate autonomous events when cognition is paused
-        if getattr(self, 'cognition_paused', False):
+        if self.cognition_paused:
             return []
 
-        if self.cognition_engine:
-            return self.cognition_engine.get_pending_events()
+        # Return and clear pending events
+        if hasattr(self, '_pending_autonomous_events'):
+            events = self._pending_autonomous_events
+            self._pending_autonomous_events = []
+            return events
+
         return []
 
     def shutdown(self):
