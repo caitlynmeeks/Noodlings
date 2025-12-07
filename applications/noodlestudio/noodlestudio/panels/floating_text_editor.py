@@ -191,6 +191,29 @@ class FloatingTextEditor(QDialog):
         button_layout = QHBoxLayout(button_bar)
         button_layout.setContentsMargins(10, 10, 10, 10)
 
+        # Font size controls (left side)
+        font_label = QLabel("Font:")
+        font_label.setStyleSheet("color: #888888; font-size: 9pt;")
+        button_layout.addWidget(font_label)
+
+        decrease_btn = QPushButton("A-")
+        decrease_btn.setMaximumWidth(40)
+        decrease_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
+        decrease_btn.clicked.connect(self.decrease_font_size)
+        button_layout.addWidget(decrease_btn)
+
+        self.font_size_label = QLabel(f"{self.font_size}pt")
+        self.font_size_label.setStyleSheet("color: #CCCCCC; font-size: 9pt; min-width: 30px;")
+        button_layout.addWidget(self.font_size_label)
+
+        increase_btn = QPushButton("A+")
+        increase_btn.setMaximumWidth(40)
+        increase_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
+        increase_btn.clicked.connect(self.increase_font_size)
+        button_layout.addWidget(increase_btn)
+
+        button_layout.addSpacing(20)
+
         # Show read-only indicator or edit buttons
         if self.read_only:
             readonly_label = QLabel("Read-only (selectable for copying)")
@@ -287,6 +310,9 @@ class FloatingTextEditor(QDialog):
         """Update text editor font size and save preference."""
         font = QFont("Monaco", self.font_size)
         self.text_edit.setFont(font)
+        # Update label
+        if hasattr(self, 'font_size_label'):
+            self.font_size_label.setText(f"{self.font_size}pt")
         # Save font size preference
         settings = QSettings("NoodleStudio", "FloatingTextEditor")
         settings.setValue("font_size", self.font_size)

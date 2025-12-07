@@ -23,6 +23,7 @@ from ..panels.inspector_panel import InspectorPanel
 from ..panels.console_panel import ConsolePanel
 from ..panels.assets_panel import AssetsPanel
 from ..panels.noodle_tuner_panel import NoodleTunerPanel
+from ..panels.model_manager_panel import ModelManagerPanel
 from .theme import DARK_THEME
 from .unity_theme import UNITY_DARK_THEME
 from .layout_manager import LayoutManager
@@ -392,10 +393,14 @@ class MainWindow(QMainWindow):
         left_tabs.addTab(self.hierarchy, "Stage")
         left_tabs.addTab(self.assets, "Assets")
 
-        # CENTER: Tabbed widget for World View + Facets Editor
+        # CENTER: Tabbed widget for World View + Facets Editor + Model Manager
         center_tabs = QTabWidget()
         center_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        center_tabs.setDocumentMode(True)  # Remove extra margins/backgrounds
         center_tabs.setStyleSheet("""
+            QTabWidget {
+                background-color: #383838;
+            }
             QTabWidget::pane {
                 border: none;
                 background: #383838;
@@ -442,6 +447,10 @@ class MainWindow(QMainWindow):
         from ..panels.facets_editor_panel import FacetsEditorPanel
         self.facets_editor = FacetsEditorPanel()
         center_tabs.addTab(self.facets_editor, "Facets Editor")
+
+        # Model Manager tab
+        self.model_manager = ModelManagerPanel()
+        center_tabs.addTab(self.model_manager, "Model Manager")
 
         # Store reference to center tabs for access
         self.center_tabs = center_tabs
@@ -623,17 +632,22 @@ class MainWindow(QMainWindow):
         main_splitter.setChildrenCollapsible(False)  # Prevent panels from disappearing!
 
         # Style the splitter handles for visibility
-        main_splitter.setStyleSheet("""
+        splitter_style = """
             QSplitter::handle {
-                background-color: #383838;
+                background-color: #2a2a2a;
+            }
+            QSplitter::handle:hover {
+                background-color: #555555;
             }
             QSplitter::handle:horizontal {
-                width: 3px;
+                width: 6px;
             }
             QSplitter::handle:vertical {
-                height: 3px;
+                height: 6px;
             }
-        """)
+        """
+        main_splitter.setStyleSheet(splitter_style)
+        top_splitter.setStyleSheet(splitter_style)
 
         # Set as central widget
         self.setCentralWidget(main_splitter)
@@ -680,6 +694,9 @@ class MainWindow(QMainWindow):
                 traceback.print_exc()
 
         self.hierarchy.entitySelected.connect(safe_inspector_load)
+
+        # Connect Facets Editor selection to Inspector
+        self.facets_editor.facetSelected.connect(lambda facet: self.inspector.load_facet(facet) if facet else self.inspector.clear_inspector())
         self.hierarchy.entitySelected.connect(safe_console_select)
         self.hierarchy.entitySelected.connect(safe_tuner_select)
         self.hierarchy.entitySelected.connect(safe_facets_select)

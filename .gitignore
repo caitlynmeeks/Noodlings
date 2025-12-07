@@ -64,7 +64,19 @@ server_debug.log
 CLAUDE.md
 HANDOFF_*.md
 NEXT_SESSION_*.md
+SESSION_HANDOFF_*.md
 applications/cmush/NEXT_SESSION_PROMPT.md
+
+# Debug and investigation notes (development only)
+BUG_*.md
+CONVERSATION_TRACE.md
+IMPLEMENTATION_COMPLETE_*.md
+AUTONOMOUS_CYCLE_FLOW.md
+REACTIVE_CYCLE_FLOW.md
+RED_SILENT_RESPONSE_BUG_FORENSICS.md
+SPATIAL_ARCHITECTURE.md
+CONTEXT_INTELLIGENCE_EXAMPLE.md
+CLAUDE_OLD.md
 
 # User's Noodlings Stage (personal data, not in repo)
 # This is created in ~/Noodlings/ on user's machine

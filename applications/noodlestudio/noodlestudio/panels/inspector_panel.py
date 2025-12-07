@@ -26,6 +26,55 @@ import sys
 sys.path.append('..')
 
 from noodlestudio.widgets.collapsible_section import CollapsibleSection
+from ..panels.floating_text_editor import FloatingTextEditor
+
+
+class ClickableTextEdit(QTextEdit):
+    """QTextEdit that opens floating editor on Cmd+Click."""
+
+    def __init__(self, field_name: str, on_apply_callback, parent=None):
+        super().__init__(parent)
+        self.field_name = field_name
+        self.on_apply_callback = on_apply_callback
+        self.floating_editor = None
+
+    def mousePressEvent(self, event):
+        """Detect Cmd+Click to open floating editor."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            # Check for Cmd (macOS) or Ctrl (other platforms)
+            modifiers = event.modifiers()
+            if modifiers & Qt.KeyboardModifier.MetaModifier or modifiers & Qt.KeyboardModifier.ControlModifier:
+                # Cmd/Ctrl + Click - open floating editor
+                self.open_floating_editor()
+                return
+
+        # Normal click behavior
+        super().mousePressEvent(event)
+
+    def open_floating_editor(self):
+        """Open floating text editor for this field."""
+        if self.floating_editor and self.floating_editor.isVisible():
+            self.floating_editor.raise_()
+            self.floating_editor.activateWindow()
+            return
+
+        # Create floating editor
+        self.floating_editor = FloatingTextEditor(
+            field_name=self.field_name,
+            field_key=self.field_name,
+            initial_value=self.toPlainText(),
+            read_only=self.isReadOnly(),
+            parent=self.window()
+        )
+
+        # Connect apply signal
+        def on_text_applied(key, value):
+            self.setPlainText(value)
+            if self.on_apply_callback:
+                self.on_apply_callback(value)
+
+        self.floating_editor.textApplied.connect(on_text_applied)
+        self.floating_editor.show()
 
 
 class InspectorPanel(QWidget):
@@ -40,6 +89,9 @@ class InspectorPanel(QWidget):
         super().__init__(parent)
         self.current_entity = None
         self.current_agent_id = None  # Initialize to None explicitly
+        self.current_facet = None  # Track if currently showing a facet
+        self.last_entity_type = None  # Remember last entity for restore
+        self.last_entity_data = None
         self.api_base = "http://localhost:8081/api"
 
         # Allow panel to shrink to very small sizes for tight panel layouts
@@ -102,6 +154,7 @@ class InspectorPanel(QWidget):
         """Clear inspector when nothing is selected."""
         self.current_entity = None
         self.current_agent_id = None
+        self.current_facet = None
         self.entity_header.setText("Select a noodling or prim")
 
         # Clear existing properties
@@ -112,9 +165,235 @@ class InspectorPanel(QWidget):
 
         self.component_widgets.clear()
 
+    def load_facet(self, facet):
+        """
+        Load and display facet properties for editing.
+
+        Args:
+            facet: Facet object from facet_system.py
+        """
+        if facet is None:
+            # Facet deselected - restore last entity view if we have one
+            if self.last_entity_type and self.last_entity_data:
+                self.load_entity(self.last_entity_type, self.last_entity_data)
+            else:
+                self.clear_inspector()
+            return
+
+        try:
+            self.clear_inspector()
+            self.current_facet = facet  # Mark as showing facet
+            self.entity_header.setText(f"Facet: {facet.name}")
+        except Exception as e:
+            print(f"[Inspector] Error loading facet: {e}")
+            import traceback
+            traceback.print_exc()
+            return
+
+        # Create property sections
+        try:
+            from PyQt6.QtWidgets import QComboBox, QCheckBox
+
+            # Basic Properties section
+            basic_section = CollapsibleSection("Basic Properties")
+            basic_form = QFormLayout()
+
+            # ID (read-only)
+            id_field = QLineEdit(facet.id)
+            id_field.setReadOnly(True)
+            id_field.setStyleSheet("color: #888;")
+            basic_form.addRow("ID:", id_field)
+
+            # Name (editable)
+            name_field = QLineEdit(facet.name)
+            name_field.textChanged.connect(lambda text: setattr(facet, 'name', text))
+            basic_form.addRow("Name:", name_field)
+
+            # Type (read-only)
+            type_field = QLineEdit(facet.facet_type)
+            type_field.setReadOnly(True)
+            type_field.setStyleSheet("color: #888;")
+            basic_form.addRow("Type:", type_field)
+
+            # Enabled toggle
+            enabled_checkbox = QCheckBox()
+            enabled_checkbox.setChecked(facet.enabled)
+            enabled_checkbox.toggled.connect(lambda checked: setattr(facet, 'enabled', checked))
+            basic_form.addRow("Enabled:", enabled_checkbox)
+
+            basic_section.set_content_layout(basic_form)
+            self.properties_layout.addWidget(basic_section)
+
+            # LLM Configuration (for LLMFacet types)
+            if facet.facet_type == "LLMFacet":
+                llm_section = CollapsibleSection("LLM Configuration")
+                llm_form = QFormLayout()
+
+                # Model (dropdown for tier selection)
+                model_combo = QComboBox()
+                model_combo.addItems(["SMALL", "MEDIUM", "LARGE"])
+                model_combo.setStyleSheet("""
+                    QComboBox {
+                        background: #3e3e3e;
+                        color: #D2D2D2;
+                        border: 1px solid #555555;
+                        padding: 4px;
+                        border-radius: 3px;
+                    }
+                    QComboBox:hover {
+                        border: 1px solid #666666;
+                    }
+                    QComboBox::drop-down {
+                        border: none;
+                    }
+                    QComboBox QAbstractItemView {
+                        background: #3e3e3e;
+                        color: #D2D2D2;
+                        selection-background-color: #555555;
+                    }
+                """)
+
+                # Set current value
+                current_model = facet.model or "MEDIUM"
+                index = model_combo.findText(current_model)
+                if index >= 0:
+                    model_combo.setCurrentIndex(index)
+                else:
+                    # If it's a specific model name, add it as custom option
+                    model_combo.addItem(current_model)
+                    model_combo.setCurrentText(current_model)
+
+                def on_model_changed(text):
+                    setattr(facet, 'model', text)
+                    # Auto-save when model changes
+                    self._auto_save_facet_assembly()
+
+                model_combo.currentTextChanged.connect(on_model_changed)
+                llm_form.addRow("Model:", model_combo)
+
+                # Temperature
+                temp_spin = QDoubleSpinBox()
+                temp_spin.setRange(0.0, 2.0)
+                temp_spin.setSingleStep(0.1)
+                temp_spin.setValue(facet.temperature or 0.7)
+                temp_spin.valueChanged.connect(lambda val: setattr(facet, 'temperature', val))
+                llm_form.addRow("Temperature:", temp_spin)
+
+                # Max tokens
+                tokens_spin = QSpinBox()
+                tokens_spin.setRange(1, 4096)
+                tokens_spin.setValue(facet.max_tokens or 150)
+                tokens_spin.valueChanged.connect(lambda val: setattr(facet, 'max_tokens', val))
+                llm_form.addRow("Max Tokens:", tokens_spin)
+
+                # Prompt (large text area with Cmd+Click support)
+                prompt_label = QLabel("Prompt (Cmd+Click for floating editor):")
+                prompt_label.setStyleSheet("color: #888888; font-size: 10px;")
+                llm_form.addRow(prompt_label)
+
+                def on_prompt_changed(value):
+                    setattr(facet, 'prompt', value)
+                    self._auto_save_facet_assembly()
+
+                prompt_edit = ClickableTextEdit("Prompt", on_prompt_changed)
+                prompt_edit.setPlainText(facet.prompt or "")
+                prompt_edit.setMinimumHeight(200)
+                prompt_edit.setStyleSheet("font-family: monospace; font-size: 11pt;")
+                prompt_edit.textChanged.connect(lambda: on_prompt_changed(prompt_edit.toPlainText()))
+                llm_form.addRow(prompt_edit)
+
+                # Available template variables helper
+                variables_hint = QLabel(
+                    "Available variables: {incoming_data}, {observations}, "
+                    "{affect_valence:.2f}, {affect_arousal:.2f}, {affect_dominance:.2f}, "
+                    "{affect_boredom:.2f}, {affect_sorrow:.2f}"
+                )
+                variables_hint.setStyleSheet("color: #666666; font-size: 9px; font-style: italic;")
+                variables_hint.setWordWrap(True)
+                llm_form.addRow(variables_hint)
+
+                llm_section.set_content_layout(llm_form)
+                self.properties_layout.addWidget(llm_section)
+
+            # Salience Script (if present)
+            if hasattr(facet, 'salience_script') and facet.salience_script:
+                salience_section = CollapsibleSection("Salience Script")
+                salience_form = QFormLayout()
+
+                # Add hint label
+                hint_label = QLabel("Cmd+Click for floating editor")
+                hint_label.setStyleSheet("color: #888888; font-size: 10px;")
+                salience_form.addRow(hint_label)
+
+                def on_salience_changed(value):
+                    setattr(facet, 'salience_script', value)
+                    self._auto_save_facet_assembly()
+
+                script_edit = ClickableTextEdit("Salience Script", on_salience_changed)
+                script_edit.setPlainText(facet.salience_script)
+                script_edit.setMinimumHeight(150)
+                script_edit.setStyleSheet("font-family: monospace; font-size: 10pt;")
+                script_edit.textChanged.connect(lambda: on_salience_changed(script_edit.toPlainText()))
+                salience_form.addRow(script_edit)
+
+                salience_section.set_content_layout(salience_form)
+                self.properties_layout.addWidget(salience_section)
+
+            # Inputs/Outputs (informational)
+            io_section = CollapsibleSection("Inputs & Outputs")
+            io_form = QFormLayout()
+
+            inputs_list = "\n".join(f"• {inp.name} ({'required' if inp.required else 'optional'})"
+                                    for inp in (facet.input_pads or []))
+            outputs_list = "\n".join(f"• {out.name}" for out in (facet.output_pads or []))
+
+            io_label = QLabel(f"Inputs:\n{inputs_list or 'None'}\n\nOutputs:\n{outputs_list or 'None'}")
+            io_label.setStyleSheet("color: #AAA; font-size: 10pt;")
+            io_label.setWordWrap(True)
+            io_form.addRow(io_label)
+
+            io_section.set_content_layout(io_form)
+            self.properties_layout.addWidget(io_section)
+
+            self.properties_layout.addStretch()
+
+        except Exception as e:
+            print(f"[Inspector] Error building facet properties UI: {e}")
+            import traceback
+            traceback.print_exc()
+
+            # Show error in inspector
+            error_label = QLabel(f"Error loading facet properties:\n{str(e)}")
+            error_label.setStyleSheet("color: #FF6B6B;")
+            error_label.setWordWrap(True)
+            self.properties_layout.addWidget(error_label)
+
+    def _auto_save_facet_assembly(self):
+        """Auto-save the current facet assembly to its YAML file."""
+        try:
+            # Get the facets editor panel to access current assembly
+            main_window = self.window()
+            if hasattr(main_window, 'facets_editor'):
+                assembly = main_window.facets_editor.current_assembly
+                if assembly and hasattr(assembly, 'filepath') and assembly.filepath:
+                    assembly.save_yaml(assembly.filepath)
+                    print(f"[Inspector] Auto-saved facet assembly to {assembly.filepath}")
+        except Exception as e:
+            print(f"[Inspector] Error auto-saving facet assembly: {e}")
+
     @pyqtSlot(str, dict)
     def load_entity(self, entity_type: str, entity_data: dict):
         """Load entity properties into inspector."""
+        # Save for later restore when facet is deselected
+        if entity_type and entity_data:
+            self.last_entity_type = entity_type
+            self.last_entity_data = entity_data
+
+        # Don't clear facet inspector when hierarchy deselects
+        if self.current_facet and not entity_data:
+            print("[Inspector] Ignoring hierarchy deselection - facet is selected")
+            return
+
         # CRITICAL: Prevent re-entrant loading (e.g., double-tap events)
         if self.is_loading:
             print(f"[DIAGNOSTIC] BLOCKING re-entrant load_entity call (is_loading=True)")

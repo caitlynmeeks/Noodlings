@@ -2,250 +2,146 @@
 
 AI assistant guidance for working with Noodlings consciousness architecture.
 
-**Last Updated**: December 4, 2025 - Late Evening Session (NinaK)
+**Last Updated**: December 7, 2025 - Morning Session
 
 **FOR NEXT CLAUDE: START HERE!** 👇
 
 ---
 
-## 🔥 CURRENT PRIORITY - Context Intelligence Not Activating on User Input
+## 🎯 CURRENT PRIORITY - Inspector Redesign (Unity Component Model)
 
-**STATUS:** Ollama integration COMPLETE. Debugging why Red ignores user messages.
+**STATUS:** Planned for next session
 
-**COMPLETED THIS SESSION:**
-- ✅ Full Ollama integration with auto-start
-- ✅ Model tier system (SMALL/MEDIUM/LARGE)
-- ✅ Preferences UI in NoodleStudio
-- ✅ Fixed OUTGOING node bug (was reading 'in' instead of 'out')
-- ✅ Fixed skipped facets providing empty outputs
-- ✅ Models downloading automatically (qwen2.5:3b, qwen2.5:14b)
+**GOAL:** Unified inspector that shows agent properties + facets together in one view.
 
-**CURRENT BUG:** Red responds but ignores user input
+**Current Issue:**
+- Selecting agent in hierarchy → Inspector broken (shows "Select a noodling or prim")
+- Selecting facet in graph → Inspector works (shows facet properties)
+- Need unified view like Unity's component inspector
 
-**THE PROBLEM:**
-- User says "douses red with water"
-- Message reaches perceive_event() ✓
-- incoming_data added to context: 'douses red with water' ✓
-- Context Intelligence salience script checks context.incoming_data
-- JavaScript sees EMPTY STRING despite it being set in Python
-- Context Intelligence skips (salience=0.0)
-- Red generates autonomous responses (boring self-talk)
-
-**PROGRESS SO FAR:**
-1. Added `incoming_data` to script_context at facet_executor.py:593 ✓
-2. Added debug logging to see what JS receives (line 598)
-3. NEXT: Check if script_context.incoming_data reaches JavaScript runtime
-
-**ROOT CAUSE HYPOTHESIS:**
-The `script_context` dict built in Python isn't reaching the JavaScript eval properly. The JSON serialization at line 605 might be dropping the incoming_data field, OR there's a timing issue where context is read before incoming_data is set.
-
-**FILES MODIFIED THIS SESSION:**
-- `applications/cmush/ollama_manager.py` - NEW (815 lines)
-- `applications/cmush/server.py` - Ollama provider initialization
-- `applications/cmush/api_server.py` - /api/ollama/status endpoint
-- `applications/cmush/config.yaml` - Ollama config, provider=ollama
-- `applications/noodlestudio/noodlestudio/core/main_window.py` - Preferences dialog
-- `applications/noodlestudio/noodlestudio/core/facet_executor.py` - Fixed OUTGOING bug, added incoming_data to script_context
-- `applications/noodlestudio/facet_assemblies/red_fire_anklebiter.yaml` - Changed models to tier names
-
-## 🦙 OLLAMA INTEGRATION - COMPLETE
-
-**STATUS:** Production-ready, auto-starts, downloads models on demand
-
-**THE PROBLEM:**
-- Context Intelligence facet uses 30b model (`qwen3-vl-30b-a3b-instruct-mlx`)
-- LM Studio disconnects mysteriously during calls
-- No visibility into model status, loading, or failures
-- Can't debug what's happening inside the black box
-
-**THE SOLUTION:**
-Embed Ollama directly into noodleMUSH with full observability!
-
-### Architecture Overview
-
+**Design Spec:**
 ```
-noodleMUSH
-    ↓
-OllamaManager (new!)
-    ├→ Spawns/manages Ollama server
-    ├→ Loads/unloads models programmatically
-    ├→ Tracks usage statistics (calls, tokens, timing)
-    ├→ Provides real-time status dashboard
-    └→ Graceful error handling + reconnection
-    ↓
-Ollama Server (embedded)
-    └→ qwen3-vl-30b, qwen3-4b, etc.
+╔═══════════════════════════════════╗
+║ Red Fire Anklebiter              ║  ← Agent header
+╟───────────────────────────────────╢
+║ Basic Properties                 ║
+║ • Name: Red Fire Anklebiter      ║
+║ • ID: agent_xxx                   ║
+║ • Species: gremlin                ║
+║ • Room: The Nexus                 ║
+║ • Pronouns: they/them             ║
+╟───────────────────────────────────╢  ← Horizontal separator
+║ FACETS                            ║
+║ ▼ Red's Mind                      ║  ← Expandable (CollapsibleSection)
+║   ├ Model: LARGE                  ║
+║   ├ Temperature: 0.9              ║
+║   ├ Max Tokens: 200               ║
+║   └ Prompt: [text editor]         ║
+║ ▶ Fire Body                       ║  ← Collapsed
+║ ▶ CharmNetwork                    ║
+║ ▶ Context Intelligence            ║
+║ ▶ Room Observer                   ║
+║ ▶ Subconscious Symbolic           ║
+║ ▶ Insight Emergence               ║
+╚═══════════════════════════════════╝
 ```
 
-### Implementation Plan
+**Behavior:**
+- Selecting agent in hierarchy → Shows agent basics + all facets (collapsed)
+- Selecting facet in graph → Expands that facet's section in the list
+- Deselecting facet → Collapses it, agent basics stay visible
+- Editing any property → Auto-saves to YAML
 
-**File:** `applications/cmush/ollama_manager.py` (NEW)
-
-Key Features:
-- `OllamaManager` class wraps `ollama.AsyncClient`
-- `ensure_model_loaded()` - Auto-pull if not present
-- `generate()` - Full logging: prompt length, response time, tokens, errors
-- `get_status()` - Real-time model stats for all loaded models
-- `ModelStatus` dataclass tracks per-model metrics
-
-**Integration Points:**
-1. Replace `LLMClient` in `agent_bridge.py` with `OllamaManager`
-2. Add `/api/ollama/status` endpoint to `api_server.py`
-3. Create NoodleStudio panel showing live model usage
-4. Config file for model paths
-
-**Benefits:**
-- ✅ Know EXACTLY when Context Intelligence calls LLM
-- ✅ See if model is loaded or needs pulling
-- ✅ Track response times (is 30b too slow?)
-- ✅ Catch disconnects immediately with full stack traces
-- ✅ No mystery LM Studio crashes!
-
-### Implementation Steps
-
-1. **Install Ollama Python SDK**
-   ```bash
-   pip install ollama
-   ```
-
-2. **Create `ollama_manager.py`** (see OLLAMA_INTEGRATION.md for full code)
-
-3. **Replace LLMClient in agent_bridge.py**
-   ```python
-   # OLD:
-   from llm_interface import LLMClient
-   self.llm = LLMClient(...)
-
-   # NEW:
-   from ollama_manager import OllamaManager
-   self.llm = OllamaManager(model_paths=[...], host="http://localhost:11434")
-   await self.llm.initialize()
-   ```
-
-4. **Update facet_executor.py** - Use OllamaManager for LLM facets
-
-5. **Add status endpoint** to api_server.py:
-   ```python
-   @app.get("/api/ollama/status")
-   async def get_ollama_status():
-       return await ollama_manager.get_status()
-   ```
-
-6. **Test with Context Intelligence 30b model!**
-
-**References:**
-- [Ollama Python SDK](https://github.com/ollama/ollama-python)
-- [Ollama API Docs](https://github.com/ollama/ollama/blob/main/docs/api.md)
-- Full implementation guide: `OLLAMA_INTEGRATION.md`
+**Implementation Location:**
+See SESSION_HANDOFF_DEC7.md lines 285-365 for detailed implementation plan.
 
 ---
 
-## 🎯 CRITICAL BLOCKERS - Red Speech Pipeline
+## ✅ COMPLETED THIS SESSION (December 7, 2025)
 
-**CURRENT STATUS:** Red executes facets but doesn't broadcast speech!
+### 1. DeepSeek R1 Integration - COMPLETE
 
-### Recent Fixes (December 4 Evening)
+**Downloaded Models:**
+- ✅ deepseek-r1:7b (4.7 GB)
+- ✅ deepseek-r1:14b (9.0 GB)
+- ✅ deepseek-r1:70b (42 GB)
 
-1. ✅ **Facet branch early return removed** (agent_bridge.py:2571-2578)
-   - Was returning early, skipping shared consciousness.perceive() and response generation
-   - Now just sets `colored_perception` and continues to shared code
+**Config Updated:** `applications/cmush/ollama_manager.py:56-60`
+- SMALL → deepseek-r1:7b
+- MEDIUM → deepseek-r1:14b
+- LARGE → deepseek-r1:70b
 
-2. ✅ **Data flow events fixed** (facets_editor_panel.py:2213-2230)
-   - Was looking for `source_id` on data_flow events (doesn't exist!)
-   - Now correctly reads `from_facet` and `to_facet` from top level
+**Red's Configuration:**
+- Red's Mind facet: model=LARGE (using 70B for maximum reasoning!)
+- Benefits: Chain-of-thought reasoning, better context grounding, richer personality
 
-3. ✅ **Context Intelligence model** (red_fire_anklebiter.yaml:61)
-   - Changed from 4b → 30b for smarter reasoning
-   - BUT: 30b model disconnects! (Hence Ollama integration above)
+### 2. Model Manager Panel - NEW
 
-### What Should Happen
+**Location:** NoodleStudio → Model Manager tab (center panel)
 
-```
-perceive_event()
-    ↓
-1. Facet execution → sets colored_perception
-    ↓
-2. consciousness.perceive(affect) → updates CharmNetwork state
-    ↓
-3. Memory storage → stores colored_perception in context
-    ↓
-4. Should speak check → passes colored_perception to _generate_response()
-    ↓
-5. _generate_response(facet_output=colored_perception) → uses facet output directly
-    ↓
-6. Return response dict → {'command': 'say', 'text': ...}
-```
+**Features:**
+- Lists all downloaded Ollama models with sizes
+- Delete button for each model (with confirmation)
+- Free disk space indicator for DOUBLETROUBLE volume
+- Auto-refreshes every 1 second
+- Support for download progress tracking (infrastructure in place)
+- Retry button for failed downloads
+- Cancel button for active downloads
+- Monochrome gray styling
 
-### Debug Checklist
+**File:** `applications/noodlestudio/noodlestudio/panels/model_manager_panel.py`
 
-- [ ] Does facet execution complete? (Check for "🎭 FACET EXECUTION COMPLETE" log)
-- [ ] Does `colored_perception` have content? (Log at line 2574)
-- [ ] Does `_generate_response()` get called? (Line 3409)
-- [ ] Does it receive `facet_output` parameter? (Line 3408)
-- [ ] Does response get returned from `perceive_event()`? (Line 3430)
+### 3. Inspector Improvements
 
-**Log Location:** `applications/cmush/logs/server_*.log`
+**Model Field Dropdown:**
+- Was: Plain text field showing "MEDIUM"
+- Now: Dropdown with SMALL/MEDIUM/LARGE options
+- Auto-saves to YAML when changed
+- Handles custom model names gracefully
 
----
+**Cmd+Click Floating Editor:**
+- Prompt field: Cmd+Click opens large floating editor
+- Salience Script field: Cmd+Click opens large floating editor
+- Floating editor features:
+  - A+/- buttons for font size (matches console/chat)
+  - Cmd+/- keyboard shortcuts still work
+  - Double-click header to maximize
+  - ESC to close with unsaved changes prompt
+  - Auto-saves to YAML on Apply
 
-## 📋 Quick Start for New Claude
+**Template Variable Helper:**
+- Shows available variables below prompt field
+- Lists: {incoming_data}, {observations}, {affect_valence:.2f}, etc.
+- Corrected to use **dominance** not fear (PAD model + boredom + sorrow)
 
-1. **Read this section first!** (You're doing it!)
-2. **Check current priority above** (Ollama integration or Red debugging?)
-3. **Review recent session notes** (See SESSION_NOTES.md for full history)
-4. **Check firefly ideas** (See FIREFLY_IDEAS.md for future features)
-5. **Run server:** Toggle in NoodleStudio status bar (bottom-right)
-6. **Tail logs:** `tail -f applications/cmush/logs/server_*.log`
+### 4. UI Polish
+
+**Panel Separators:**
+- Increased width: 3px → 6px
+- Darker color: #2a2a2a (visible against #383838 background)
+- Hover effect: #555555 (lights up when moused over)
+- Much easier to grab and resize panels!
+
+**Tab Bar Styling:**
+- Center tabs (World/Facets/Model Manager) now match left/right gray theme
+- Added `setDocumentMode(True)` and `QTabWidget` background styling
+- Consistent monochrome aesthetic throughout
 
 ---
 
 ## 🏗️ Core Architecture (Simplified)
 
-### Event Perception & Data Flow - THE FUNDAMENTALS
+### Affect Model: PAD + Boredom + Sorrow
 
-**User Input → Agent Response Pipeline:**
+**NOT**: Fear-based model
+**IS**: PAD (Pleasure-Arousal-Dominance) extended model
 
-```
-1. User types in web UI (localhost:8080)
-   ↓
-2. WebSocket → server.py → commands.py
-   ↓
-3. commands.py parses command (say/emote/etc)
-   ↓
-4. Calls agent.perceive_event(event_type, user_id, text)
-   ↓
-5. Agent decides: Reactive cycle (has text) or Autonomous cycle (empty)
-   ↓
-6. FACET BRANCH: agent_bridge.py calls facet_executor.execute()
-   ├→ incoming_data parameter = text from user
-   ├→ context parameter = execution context dict
-   └→ facet_executor.py line 692: context['incoming_data'] = incoming_data
-   ↓
-7. Facet execution loop:
-   ├→ For each facet, compute salience via JavaScript
-   ├→ CRITICAL: script_context MUST include incoming_data (line 593)
-   ├→ Context Intelligence checks: if incoming_data empty → skip (autonomous)
-   ├→ Context Intelligence checks: if incoming_data present → execute (reactive)
-   └→ Facets execute in dependency order
-   ↓
-8. OUTGOING node receives final response
-   ├→ SpecialNode: outputs = {'out': inputs.get('in')}
-   ├→ CRITICAL: Return value uses outputs['out'] NOT outputs['in'] (line 816)
-   └→ Returns ExecutionResult with response text
-   ↓
-9. agent_bridge.py gets response, broadcasts to chat
-```
-
-**CRITICAL BUGS FIXED (December 4, 2025):**
-- ❌ Line 815 was `completed[OUTGOING]['in']` → ✅ Changed to `['out']`
-- ❌ script_context missing `incoming_data` → ✅ Added at line 593
-- ❌ Facets with hardcoded model names → ✅ Use tier names (SMALL/MEDIUM/LARGE)
-
-**Key Files for Event Flow:**
-- `applications/cmush/server.py` - WebSocket handler
-- `applications/cmush/commands.py` - Command parsing
-- `applications/cmush/agent_bridge.py` - perceive_event() at line ~2300
-- `noodlestudio/core/facet_executor.py` - execute() at line 630
+CharmNetwork outputs:
+- `affect_valence` (-1 to +1) - Pleasure dimension
+- `affect_arousal` (0 to 1) - Arousal/energy dimension
+- `affect_dominance` (0 to 1) - Dominance/control dimension
+- `affect_boredom` (0 to 1) - Boredom level
+- `affect_sorrow` (0 to 1) - Sorrow level
 
 ### Facet System
 
@@ -257,17 +153,15 @@ INCOMING (raw perception)
 CHARM_NET (CharmNetworkFacet - mandatory, locked)
     ├→ affect_valence (-1 to 1)
     ├→ affect_arousal (0 to 1)
-    ├→ affect_fear (0 to 1)
-    ├→ affect_sorrow (0 to 1)
-    └→ affect_boredom (0 to 1)
+    ├→ affect_dominance (0 to 1)
+    ├→ affect_boredom (0 to 1)
+    └→ affect_sorrow (0 to 1)
     ↓
 CONTEXT_INTELLIGENCE (enriches WHO/WHAT/WHERE)
     ↓
-Cognitive facets (room_observer, roast_engine, etc.)
+Cognitive facets (room_observer, etc.)
     ↓
-Character layers (fire_body, voice_filter)
-    ↓
-CONVERGENCE (weighted synthesis)
+Character layers (Red's Mind, Fire Body)
     ↓
 OUTGOING (final output)
 ```
@@ -276,6 +170,7 @@ OUTGOING (final output)
 - `noodlestudio/core/facet_system.py` - Data model
 - `noodlestudio/core/facet_executor.py` - Execution engine
 - `noodlestudio/panels/facets_editor_panel.py` - Visual editor
+- `noodlestudio/panels/inspector_panel.py` - Property editor
 - `facet_assemblies/*.yaml` - Shared cognitive topologies
 
 **Facet Types:**
@@ -295,7 +190,7 @@ MLX-based recurrent neural network:
 - **Total:** ~54K parameters, ~2-3ms inference
 
 **Affect Head:**
-- 40-D phenomenal state → 5-D continuous affect
+- 40-D phenomenal state → 5-D continuous affect (PAD + boredom + sorrow)
 - 99% valence accuracy, 95% arousal
 - NO discrete emotion labels
 - ~2.6K parameters
@@ -312,9 +207,13 @@ cd applications/cmush
 ```
 
 **Ports:**
-- 8080: HTTP (web interface)
+- 8080: HTTP (web interface) - bound to 0.0.0.0 for network access
 - 8765: WebSocket (game logic)
 - 8081: NoodleScope API (NoodleStudio telemetry)
+- 11434: Ollama server
+
+**Network Access:**
+- noodleMUSH accessible at: http://100.85.191.79:8080 (Tailscale)
 
 ### Debugging
 
@@ -332,13 +231,15 @@ tail -f applications/cmush/logs/server_*.log
 **Common Issues:**
 - **No pachinko animation?** Check WebSocket connection in logs
 - **Agent not responding?** Check for "🔒 Cycle already in progress"
-- **LLM calls fail?** Check Ollama/LM Studio running
+- **LLM calls fail?** Check Ollama running
 - **Facets stuck?** Check dependency graph (missing inputs?)
 
 ### UI/UX Notes
 
 - **Server toggle:** Bottom-right status bar (don't tell user to run ./start.sh!)
+- **Model Manager:** Center panel - shows all Ollama models, disk space
 - **Stage panel:** Left panel = Unity's Scene Hierarchy
+- **Inspector:** Right panel - shows selected entity/facet properties
 - **Multi-word names:** "Red Fire Anklebiter" requires regex handling
 - **Log files:** Use timestamped `logs/server_*.log`, NOT `server_output.log`
 
@@ -352,7 +253,8 @@ tail -f applications/cmush/logs/server_*.log
 - **NO "exciting" language** - Professional, terminal aesthetic
 - **NO WORKAROUNDS** - This is production-grade software for public consumption, a work of art inside and out
 - **NO SHORTCUTS** - Fix the root cause, don't patch around it
-- **NO discrete emotion labels** - Continuous affect space
+- **NO discrete emotion labels** - Continuous affect space (PAD + boredom + sorrow)
+- **MONOCHROMATIC UI** - Grays only, no arbitrary colors
 - **GOLDEN RULE:** If it doesn't work properly, FIX IT properly. No hacks, no temporary solutions.
 
 This is not a toy project. This is Caitlyn's legacy work, funded with real gold. Every solution must be production-quality.
@@ -386,20 +288,25 @@ This is not a toy project. This is Caitlyn's legacy work, funded with real gold.
 
 ## 📚 Additional Documentation
 
-- **SESSION_NOTES.md** - Full chronological session history (Dec 1-4)
+- **SESSION_HANDOFF_DEC7.md** - Previous session notes, inspector redesign plan
 - **FIREFLY_IDEAS.md** - Future feature ideas captured during sessions
-- **OLLAMA_INTEGRATION.md** - Complete Ollama implementation guide
-- **ARCHITECTURE.md** - Deep dive into CharmNetwork, facets, affect dynamics
-- **CLAUDE_ARCHIVE.md** - Historical session notes (pre-Dec 4)
+- **README.md** - Public-facing project overview
+- **RELEASE_NOTES_*.md** - Version history
 
 ---
 
 ## 🎯 For Fresh Claude
 
 **Your mission:**
-1. Check current priority (top of this file)
-2. Review recent fixes and known issues
-3. Tail server logs to see what's happening
-4. If stuck, ask Caitlyn - she knows what she's doing!
+1. **Check current priority** (Inspector redesign - see top of this file)
+2. **Review SESSION_HANDOFF_DEC7.md** for detailed implementation plan
+3. **Run server:** Toggle in NoodleStudio status bar (bottom-right)
+4. **Tail logs:** `tail -f applications/cmush/logs/server_*.log`
+5. **Test Red:** Should be using DeepSeek R1 70B for deep reasoning!
 
-**Ordnung muss sein!** 🎯
+**Quick Wins Available:**
+- Inspector redesign is well-specified in SESSION_HANDOFF_DEC7.md
+- All DeepSeek R1 models downloaded and ready
+- Model Manager shows real-time Ollama status
+
+**Ordnung muss sein!**

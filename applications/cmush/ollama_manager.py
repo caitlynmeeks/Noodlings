@@ -53,18 +53,18 @@ class ModelStats:
 class OllamaConfig:
     """Configuration for Ollama models and preferences."""
 
-    # Model tiers - can be configured in advanced settings
-    small_model: str = "qwen2.5:3b"
-    medium_model: str = "qwen2.5:14b"
-    large_model: str = "qwen2.5:32b"
+    # Model tiers - DeepSeek R1 with chain-of-thought reasoning
+    small_model: str = "deepseek-r1:7b"    # Fast reasoning for simple facets (4.7GB)
+    medium_model: str = "deepseek-r1:14b"  # Balanced reasoning for main facets (9GB)
+    large_model: str = "deepseek-r1:70b"   # Deep reasoning for complex facets (42GB)
 
     # Ollama server settings
     host: str = "http://localhost:11434"
     models_directory: str = "/Volumes/DOUBLETROUBLE/models"
 
     # Timeouts
-    default_timeout: int = 120  # 2 minutes for large models
-    load_timeout: int = 300  # 5 minutes to load/pull
+    default_timeout: int = 180  # 3 minutes for 70B model inference
+    load_timeout: int = 600  # 10 minutes to load/pull large models
 
     def get_model_for_tier(self, tier: str) -> str:
         """Get model name for a tier (SMALL, MEDIUM, LARGE)."""

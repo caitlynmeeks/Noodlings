@@ -528,7 +528,7 @@ facets:
       RESPONSE LENGTH: As many words as you need (usually 20-60 words)
 
       Red says:
-    model: MEDIUM
+    model: LARGE
     temperature: 0.9
     max_tokens: 200
     inputs:
