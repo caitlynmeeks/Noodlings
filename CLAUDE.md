@@ -8,58 +8,73 @@ AI assistant guidance for working with Noodlings consciousness architecture.
 
 ---
 
-## 🎯 CURRENT PRIORITY - Inspector Redesign (Unity Component Model)
+## 🎯 CURRENT PRIORITY - Neural Canvas Complete, Next: Scriptability API
 
-**STATUS:** READY - All prerequisites complete, ready to implement
+**STATUS:** Neural Canvas MVP complete (Dec 8), ready for next exploration
 
-**GOAL:** Unified inspector that shows agent properties + facets together in one view.
+**EXPLORATION QUEUE** (pick when friction demands it):
+- **Scriptability API:** UUID-based references for all entities (nodes, ports, facets, agents)
+  - Unity-like: Scripts can modify anything by UUID
+  - Every component addressable, properties gettable/settable
+  - Event system for live updates
 
-**Current Issue:**
-- Selecting agent in hierarchy → Inspector broken (shows "Select a noodling or prim")
-- Selecting facet in graph → Inspector works (shows facet properties)
-- Need unified view like Unity's component inspector
+- **Inspector Redesign:** Unified agent + facets view (see SESSION_HANDOFF_DEC7.md)
+  - Currently works, just not elegant
+  - Will polish when actually using it becomes painful
 
-**Design Spec:**
-```
-╔═══════════════════════════════════╗
-║ Red Fire Anklebiter              ║  ← Agent header
-╟───────────────────────────────────╢
-║ Basic Properties                 ║
-║ • Name: Red Fire Anklebiter      ║
-║ • ID: agent_xxx                   ║
-║ • Species: gremlin                ║
-║ • Room: The Nexus                 ║
-║ • Pronouns: they/them             ║
-╟───────────────────────────────────╢  ← Horizontal separator
-║ FACETS                            ║
-║ ▼ Red's Mind                      ║  ← Expandable (CollapsibleSection)
-║   ├ Model: LARGE                  ║
-║   ├ Temperature: 0.9              ║
-║   ├ Max Tokens: 200               ║
-║   └ Prompt: [text editor]         ║
-║ ▶ Fire Body                       ║  ← Collapsed
-║ ▶ CharmNetwork                    ║
-║ ▶ Context Intelligence            ║
-║ ▶ Room Observer                   ║
-║ ▶ Subconscious Symbolic           ║
-║ ▶ Insight Emergence               ║
-╚═══════════════════════════════════╝
-```
+- **Quantum Integration:** Add IBM Quantum support (see IBM_QUANTUM_INTEGRATION_STRATEGY.md)
+  - Infrastructure ready (TrueRNG, QuantumMicrotubuleLayer, strategy doc)
+  - Waiting for: "I want to run a binding experiment NOW"
 
-**Behavior:**
-- Selecting agent in hierarchy → Shows agent basics + all facets (collapsed)
-- Selecting facet in graph → Expands that facet's section in the list
-- Deselecting facet → Collapses it, agent basics stay visible
-- Editing any property → Auto-saves to YAML
-
-**Implementation Location:**
-See SESSION_HANDOFF_DEC7.md lines 285-365 for detailed implementation plan.
+- **Neural Canvas Polish:** Training UI, interactive sliders, live gradient viz
+  - Current state: Export code works, sufficient for now
+  - Future: When actually training models becomes frequent
 
 ---
 
 ## ✅ COMPLETED THIS SESSION (December 8, 2025)
 
-### 1. Floating Text Editor - Polish & Font Controls
+### 1. Neural Canvas - Complete Visual Neural Network Editor (NEW!)
+
+**The Big One:** Blender-style node editor for CharmNetwork internals.
+
+**What it does:**
+- Visual editor for LSTM/GRU topology (double-click CharmNetwork facet → edit internals)
+- 26 node types: Recurrent (LSTM, GRU), Feedforward (Linear), Quantum (Microtubule, IBM), Assets (Checkpoint)
+- Bezier curve wiring with data-type color coding
+- Human-readable port labels (double-click to rename, persists)
+- MLX code generation: Visual graph → executable Python
+- .nncanvas JSON format (Unity prefab model for networks)
+
+**Interaction:**
+- F: Focus selected, A: Frame all, Space: Pan
+- Context menu: Add nodes, Auto-Arrange (horizontal topological), Align H/V
+- Rectangle drag multi-select
+- Inline parameters on nodes (hidden_dim: 16, params: 1,472)
+
+**Aesthetic:**
+- Coffee shop palette: Deep plum (recurrent), forest green (I/O), tobacco brown (affect), burgundy (quantum)
+- Near-black background (#141414)
+- Warm white text (#e8e8e0) - uniform brightness
+- Sharp header edges, rounded node shells
+- Colored headers only (bodies uniform gray)
+
+**Default Topology:**
+CharmNetwork hierarchy: Fast LSTM → Medium LSTM → Slow GRU → State Concat → Affect Head
+Horizontal flow (300px spacing), 5,045 parameters
+
+**Key Files:**
+- `neural_canvas/neural_graph.py` - Graph model with validation
+- `neural_canvas/neural_node.py` - 26 node types
+- `neural_canvas/node_definitions.py` - Templates with labels
+- `neural_canvas/mlx_codegen.py` - Code generation
+- `panels/neural_canvas/neural_canvas_panel.py` - Main UI
+- `panels/neural_canvas/neural_canvas_view.py` - QGraphicsView rendering
+- `facet_assemblies/charm_networks/default.nncanvas` - Default topology
+
+**Bonus:** Fixed Facets Editor crash (asyncio.QueueEmpty handling)
+
+### 2. Floating Text Editor - Polish & Font Controls
 
 **Cmd+Click Floating Editor:**
 - Font size controls: A+/A- buttons (±4pt increments)
@@ -360,18 +375,46 @@ tail -f applications/cmush/logs/server_*.log
 - **NO WORKAROUNDS** - This is production-grade software for public consumption, a work of art inside and out
 - **NO SHORTCUTS** - Fix the root cause, don't patch around it
 - **NO discrete emotion labels** - Continuous affect space (PAD + boredom + sorrow)
-- **MONOCHROMATIC UI** - Grays only, no arbitrary colors
+- **MONOCHROMATIC UI** - Grays only, no arbitrary colors (except taxonomic node headers in Neural Canvas)
 - **GOLDEN RULE:** If it doesn't work properly, FIX IT properly. No hacks, no temporary solutions.
 
 This is not a toy project. This is Caitlyn's legacy work, funded with real gold. Every solution must be production-quality.
 
+### Development Philosophy - Christopher Alexander's "Timeless Way"
+
+**THIS IS CRITICAL TO UNDERSTAND:**
+
+Caitlyn follows Christopher Alexander's organic development methodology (The Timeless Way of Building, A Pattern Language). This is NOT traditional Agile/Scrum development.
+
+**The Process:**
+1. **Probe:** "I wish I could do X" → Crude implementation (sketch the idea)
+2. **Iterate:** Use it, see what feels wrong, refine
+3. **Organic growth:** Features emerge from genuine need, not roadmaps
+4. **Discard freely:** Implementing then replacing is exploration, not waste
+5. **Polish when friction hurts:** Unfinished areas aren't tech debt - they're decision points
+
+**Key Insight:** Like unplanned ancient cities (Venice, medieval towns), the charm comes from use-driven evolution, not imposed order. Features that "want to exist" survive. Features that don't fit the growing whole get pruned.
+
+**What this means for Claude:**
+- Support exploration: "Yes, let's try that" over "but what about X"
+- Build crude-but-working: Get it visible, iterate based on actual use
+- Don't optimize for shipping deadlines: Caity will know when it coheres
+- Trust aesthetic instinct: The Kraftwerk/coffee shop sensibility is a design filter
+- Implement boldly, refine organically: Speed of prototyping > perfect planning
+
+**Not a startup. Not a research paper. This is experimental architecture.**
+
+Think: Dr. Bronner's soap (eccentric manifesto, works brilliantly, one person's vision). Or Craigslist (deliberately simple, resists "improvement," serves users not investors). All-One or None.
+
 ### Design Philosophy
 
-- **Monochromatic UI:** Grays #2A2A2A to #FFFFFF (Kraftwerk, not Disney)
+- **Coffee shop/tobacconist palette:** Deep plums, forest greens, tobacco browns, burgundy - rich, saturated, earthy (Neural Canvas node headers)
+- **Monochromatic UI:** Grays #2A2A2A to #FFFFFF everywhere else (Kraftwerk, not Disney)
 - **Avoid static labels:** No personality sliders, no rigid categories
 - **Emergent behavior:** Personality flows from affect patterns over time
 - **Unity prefab model:** Cognitive topologies as shareable YAML files
 - **Visual topology:** Node graphs over linear pipelines
+- **Blender-style aesthetics:** Colored headers for taxonomy, uniform dark bodies, labeled ports
 
 ---
 
