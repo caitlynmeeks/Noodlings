@@ -1,0 +1,60 @@
+{
+  "room_000": {
+    "stage_id": "room_000",
+    "name": "The Nexus",
+    "description": "A cozy campfire with crackling logs, little sparks drifting up into the sky, soft moss underfoot. In the distance, an owl hoots. A WANTED POSTER is nailed to a nearby tree. An old RADIO sits on a wooden shelf, occasionally crackling with news broadcasts. There is a sign that says if you can read this, you are cute and awesome.",
+    "entities": {
+      "user_bcb255e2-294c-4183-a163-6b2663752e03": {
+        "entity_id": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+        "entity_type": "user",
+        "name": "caity",
+        "zone": "main",
+        "parent": null,
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "tags": [],
+        "state": {},
+        "contains": [],
+        "occupied_by": null
+      },
+      "agent_a56e0ac2-9425-4f56-9309-ec9badc85110": {
+        "entity_id": "agent_a56e0ac2-9425-4f56-9309-ec9badc85110",
+        "entity_type": "agent",
+        "name": "red_fire_anklebiter",
+        "zone": "main",
+        "parent": null,
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "tags": [],
+        "state": {},
+        "contains": [],
+        "occupied_by": null
+      }
+    },
+    "zones": {
+      "main": [
+        "user_bcb255e2-294c-4183-a163-6b2663752e03",
+        "agent_a56e0ac2-9425-4f56-9309-ec9badc85110"
+      ]
+    },
+    "zone_graph": {
+      "main": []
+    }
+  }
+}

@@ -1454,29 +1454,66 @@ class CommandParser:
 
             # PHASE 7: on_rezzed() - Dynamic arrival reaction
             # Trigger agent to perceive their own materialization
-            # Response colored by cognitive manifold (their MO)
             try:
                 agent = self.agent_manager.get_agent(agent_id)
-                if agent and hasattr(agent, 'cognitive_manifold') and agent.cognitive_manifold:
-                    # Create self-perception event
-                    arrival_event = {
-                        'type': 'say',
-                        'user': 'system',
-                        'text': f"You have just materialized in {room.get('name', 'this place')}. What is your first impression?",
-                        'room': room['uid']
-                    }
+                if agent:
+                    # Build room perception for new arrivals
+                    occupants = []
+                    for occ_id in room.get('occupants', []):
+                        if occ_id == agent_id:
+                            continue  # Don't include self
+                        if occ_id.startswith('agent_'):
+                            occ_agent = self.agent_manager.get_agent(occ_id)
+                            if occ_agent:
+                                occupants.append(f"{occ_agent['name']} ({occ_agent.get('config', {}).get('species', 'being')})")
+                        elif occ_id.startswith('user_'):
+                            user = self.world.get_user(occ_id)
+                            if user:
+                                occupants.append(f"{user.get('name', occ_id)} (person)")
 
-                    # Let agent perceive and respond (filtered through manifold!)
-                    arrival_response = await agent.perceive_event(arrival_event)
+                    room_desc = room.get('description', 'a mysterious clearing')
 
-                    if arrival_response and arrival_response.get('text'):
-                        # Add as second event (dynamic arrival colored by CM)
-                        all_events.append({
+                    # Build perception text
+                    if occupants:
+                        occupant_list = ", ".join(occupants)
+                        perception = f"You find yourself in {room_desc}. Present: {occupant_list}."
+                    else:
+                        perception = f"You find yourself alone in {room_desc}."
+
+                    # For FACET agents: Send room perception as initial event
+                    if hasattr(agent, 'using_facet_system') and agent.using_facet_system:
+                        # Create room perception event
+                        spawn_perception = {
+                            'type': 'perception',
+                            'user': 'world',
+                            'text': perception,
+                            'room': room['uid']
+                        }
+
+                        # Agent perceives the room (non-blocking, just perceive)
+                        await agent.perceive_event(spawn_perception)
+
+                    # For LEGACY agents with cognitive_manifold: Old dynamic response system
+                    elif hasattr(agent, 'cognitive_manifold') and agent.cognitive_manifold:
+                        # Create self-perception event
+                        arrival_event = {
                             'type': 'say',
-                            'user': agent_id,
-                            'room': room['uid'],
-                            'text': arrival_response['text'],
-                            'metadata': {'on_rezzed': True}
+                            'user': 'system',
+                            'text': f"You have just materialized in {room.get('name', 'this place')}. What is your first impression?",
+                            'room': room['uid']
+                        }
+
+                        # Let agent perceive and respond (filtered through manifold!)
+                        arrival_response = await agent.perceive_event(arrival_event)
+
+                        if arrival_response and arrival_response.get('text'):
+                            # Add as second event (dynamic arrival colored by CM)
+                            all_events.append({
+                                'type': 'say',
+                                'user': agent_id,
+                                'room': room['uid'],
+                                'text': arrival_response['text'],
+                                'metadata': {'on_rezzed': True}
                         })
                         logger.info(f"[ON_REZZED] {agent_id} arrival reaction: {arrival_response['text'][:100]}...")
             except Exception as e:

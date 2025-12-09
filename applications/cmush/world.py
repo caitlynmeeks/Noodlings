@@ -21,6 +21,7 @@ from typing import Dict, List, Optional
 import logging
 from physics_object_descriptor import PhysicsObjectDescriptor
 from permissions import EntityMetadata, PermissionSet, Permission
+from stage_model import Stage, Entity as StageEntity, StageQuery
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +52,12 @@ class World:
         self.users = self._load_json("users.json", {})
         self.agents = self._load_json("agents.json", {})
 
+        # Stage model (new spatial system)
+        self.stages: Dict[str, Stage] = {}
+        self._load_stages()
+
         logger.info(f"World loaded: {len(self.rooms)} rooms, {len(self.objects)} objects, "
-                   f"{len(self.users)} users, {len(self.agents)} agents")
+                   f"{len(self.users)} users, {len(self.agents)} agents, {len(self.stages)} stages")
 
     def _load_json(self, filename: str, default: dict) -> dict:
         """
@@ -96,7 +101,19 @@ class World:
         self._save_json("objects.json", self.objects)
         self._save_json("users.json", self.users)
         self._save_json("agents.json", self.agents)
+        self._save_stages()
         logger.debug("World state saved")
+
+    def _load_stages(self):
+        """Load stages from JSON."""
+        stages_data = self._load_json("stages.json", {})
+        for stage_id, stage_dict in stages_data.items():
+            self.stages[stage_id] = Stage.from_dict(stage_dict)
+
+    def _save_stages(self):
+        """Save stages to JSON."""
+        stages_data = {sid: stage.to_dict() for sid, stage in self.stages.items()}
+        self._save_json("stages.json", stages_data)
 
     # ===== Room Methods =====
 
@@ -790,3 +807,123 @@ class World:
 
         metadata.permissions = permissions
         return self.update_entity_metadata(entity_id, metadata)
+
+    # ===== Stage Methods =====
+
+    def get_stage_for_room(self, room_id: str) -> Optional[Stage]:
+        """
+        Get or create stage for a room.
+        This syncs room occupants into stage entities.
+
+        Args:
+            room_id: Room ID
+
+        Returns:
+            Stage instance or None
+        """
+        # Check if stage already exists
+        if room_id in self.stages:
+            stage = self.stages[room_id]
+            self._sync_room_to_stage(room_id, stage)
+            return stage
+
+        # Create stage from room data
+        room = self.get_room(room_id)
+        if not room:
+            return None
+
+        stage = Stage(room_id, room['name'])
+        stage.description = room.get('description', '')
+
+        # For now, treat entire room as single zone
+        # Later we can add multi-zone support
+        zone_name = 'main'
+        stage.zones[zone_name] = []
+        stage.zone_graph[zone_name] = []
+
+        self.stages[room_id] = stage
+        self._sync_room_to_stage(room_id, stage)
+
+        return stage
+
+    def _sync_room_to_stage(self, room_id: str, stage: Stage):
+        """
+        Sync room occupants to stage entities.
+        Updates stage with current users/agents in the room.
+
+        Args:
+            room_id: Room to sync
+            stage: Stage to update
+        """
+        room = self.get_room(room_id)
+        if not room:
+            return
+
+        zone_name = 'main'  # Default zone
+
+        # Get current occupants
+        occupants = room.get('occupants', [])
+
+        # Track which entities should be in stage
+        current_entity_ids = set()
+
+        # Add/update users
+        for user_id in occupants:
+            if user_id.startswith('user_'):
+                user = self.get_user(user_id)
+                if user:
+                    if user_id not in stage.entities:
+                        entity = StageEntity(
+                            entity_id=user_id,
+                            entity_type='user',
+                            name=user.get('username', 'unknown')
+                        )
+                        entity.zone = zone_name
+                        stage.add_entity(entity)
+                    current_entity_ids.add(user_id)
+
+        # Add/update agents
+        for agent_id in occupants:
+            if agent_id.startswith('agent_'):
+                agent = self.agents.get(agent_id)
+                if agent:
+                    if agent_id not in stage.entities:
+                        entity = StageEntity(
+                            entity_id=agent_id,
+                            entity_type='agent',
+                            name=agent.get('name', 'unknown')
+                        )
+                        entity.zone = zone_name
+                        stage.add_entity(entity)
+                    current_entity_ids.add(agent_id)
+
+        # Remove entities that are no longer in room
+        for entity_id in list(stage.entities.keys()):
+            if entity_id not in current_entity_ids:
+                entity = stage.entities[entity_id]
+                # Only remove users/agents (keep objects)
+                if entity.entity_type in ['user', 'agent']:
+                    stage.remove_entity(entity_id)
+
+    def get_stage(self, stage_id: str) -> Optional[Stage]:
+        """Get stage by ID."""
+        return self.stages.get(stage_id)
+
+    def create_stage(self, stage_id: str, name: str, description: str = "") -> Stage:
+        """
+        Create a new stage.
+
+        Args:
+            stage_id: Unique stage identifier
+            name: Stage name
+            description: Stage description
+
+        Returns:
+            Created stage
+        """
+        stage = Stage(stage_id, name)
+        stage.description = description
+        self.stages[stage_id] = stage
+        self.save_all()
+        logger.info(f"Stage created: {stage_id} '{name}'")
+        return stage

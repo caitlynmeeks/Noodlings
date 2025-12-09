@@ -92,7 +92,7 @@ def create_splash_screen():
     painter.setFont(font)
     painter.drawText(pixmap.rect().adjusted(40, 290, -40, -320),  # Moved lower: 275 → 290
                      Qt.AlignmentFlag.AlignCenter,
-                     "NoodleSTUDIO")
+                     "STUDIO")
 
     # Random acronym
     acronym = get_random_acronym("all")

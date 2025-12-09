@@ -1,13 +1,12 @@
 {
-  "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c": {
-    "uid": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
+  "user_bcb255e2-294c-4183-a163-6b2663752e03": {
+    "uid": "user_bcb255e2-294c-4183-a163-6b2663752e03",
     "username": "caity",
-    "password_hash": "706539603a9f149cc618b00e63bad92d58b0805e3b3846561ea8588f3d204e40:3a4c2f02b99ee3cd385cd00eb6c9e54c",
+    "password_hash": "f9803a96beff9ebc2332c1b9a15429be5a9b98ac143eb67e2be2a61f219505f0:9ba2b9e1a1f201b7dd2f6b0d71b39656",
     "current_room": "room_000",
     "inventory": [],
-    "created": "2025-12-01T16:17:13.271528",
-    "last_seen": "2025-12-01T16:17:13.271537",
-    "invisible": false,
-    "description": "A nine-year-old girl in worn overalls with a shock of wild, curly brown hair and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops and she's sucking a glowing, heart-shaped red hot atomic fireball candy. She might share one with you if you ask nicely. (Try using 'look caity' to examine her more closely!)"
+    "created": "2025-12-04T15:10:31.084839",
+    "last_seen": "2025-12-04T15:10:31.084843",
+    "invisible": false
   }
 }

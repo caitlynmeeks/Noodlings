@@ -10,7 +10,7 @@ Date: November 17, 2025
 
 from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
                              QTextEdit, QLineEdit, QPushButton, QLabel, QComboBox, QCheckBox)
-from PyQt6.QtCore import Qt, QTimer, pyqtSlot, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSlot, QThread, pyqtSignal, QSettings
 from PyQt6.QtGui import QFont, QTextCursor, QFontMetrics
 import json
 import asyncio
@@ -100,10 +100,15 @@ class ConsolePanel(QWidget):
         self.studio_log_buffer_raw = []  # Raw logs (STUDIO)
         self.facets_log_buffer = []  # Formatted logs (FACETS)
         self.facets_log_buffer_raw = []  # Raw logs (FACETS)
-        self.console_mode = 'mush'  # 'mush', 'studio', or 'facets'
+        self.debug_log_buffer = []  # Formatted logs (DEBUG - from context.log())
+        self.debug_log_buffer_raw = []  # Raw logs (DEBUG)
+        self.console_mode = 'mush'  # 'mush', 'studio', 'facets', or 'debug'
         self.last_message = None  # Track last message for collapsing
         self.repeat_count = 0
-        self.font_size = 11  # Default font size for console
+
+        # Load saved font size preference (default 11pt)
+        settings = QSettings("NoodleStudio", "ConsolePanel")
+        self.font_size = settings.value("font_size", 11, type=int)
 
         # Allow panel to shrink to small sizes (height only, full width)
         self.setMinimumHeight(50)
@@ -202,6 +207,27 @@ class ConsolePanel(QWidget):
             }
         """)
         toolbar.addWidget(self.facets_btn)
+
+        self.debug_btn = QPushButton("DEBUG")
+        self.debug_btn.setCheckable(True)
+        self.debug_btn.setChecked(False)
+        self.debug_btn.setFixedWidth(65)
+        self.debug_btn.clicked.connect(lambda: self.set_console_mode('debug'))
+        self.debug_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2d5c8f;
+                color: #FFFFFF;
+                border: 1px solid #4a7cba;
+                padding: 4px;
+                font-weight: bold;
+            }
+            QPushButton:!checked {
+                background-color: #3a3a3a;
+                color: #888888;
+                border: 1px solid #555;
+            }
+        """)
+        toolbar.addWidget(self.debug_btn)
 
         toolbar.addWidget(QLabel("|"))  # Separator
 
@@ -357,6 +383,9 @@ class ConsolePanel(QWidget):
 
     def add_log(self, level: str, module: str, message: str):
         """Add log entry to console with Unity-style collapsing."""
+        # Check if user is scrolled to bottom BEFORE appending
+        was_at_bottom = self._is_scrolled_to_bottom()
+
         # Store raw log data for filtering
         raw_entry = f"[{level}] [{module}] {message}"
         self.log_buffer_raw.append(raw_entry)
@@ -464,8 +493,9 @@ class ConsolePanel(QWidget):
                 # No filter active - show all logs
                 self.log_text.append(formatted)
 
-        # Auto-scroll to bottom
-        self.log_text.moveCursor(QTextCursor.MoveOperation.End)
+        # Only auto-scroll if user was already at bottom (don't disrupt reading)
+        if was_at_bottom:
+            self.log_text.moveCursor(QTextCursor.MoveOperation.End)
 
     def set_selected_entities(self, entity_ids: list):
         """
@@ -525,6 +555,9 @@ class ConsolePanel(QWidget):
             elif self.console_mode == 'facets':
                 raw_buffer = self.facets_log_buffer_raw
                 formatted_buffer = self.facets_log_buffer
+            elif self.console_mode == 'debug':
+                raw_buffer = self.debug_log_buffer_raw
+                formatted_buffer = self.debug_log_buffer
             else:
                 raw_buffer = self.log_buffer_raw
                 formatted_buffer = self.log_buffer
@@ -571,6 +604,8 @@ class ConsolePanel(QWidget):
             buffer = self.studio_log_buffer
         elif self.console_mode == 'facets':
             buffer = self.facets_log_buffer
+        elif self.console_mode == 'debug':
+            buffer = self.debug_log_buffer
         else:
             buffer = self.log_buffer
         for log_entry in buffer:
@@ -594,6 +629,9 @@ class ConsolePanel(QWidget):
                 font-size: {self.font_size}pt;
             }}
         """)
+        # Save font size preference
+        settings = QSettings("NoodleStudio", "ConsolePanel")
+        settings.setValue("font_size", self.font_size)
 
     def decrease_font_size(self):
         """Decrease console font size."""
@@ -608,6 +646,9 @@ class ConsolePanel(QWidget):
                 font-size: {self.font_size}pt;
             }}
         """)
+        # Save font size preference
+        settings = QSettings("NoodleStudio", "ConsolePanel")
+        settings.setValue("font_size", self.font_size)
 
     def _setup_stdout_capture(self):
         """Capture Python stdout/stderr for STUDIO mode."""
@@ -732,14 +773,70 @@ class ConsolePanel(QWidget):
                 if was_at_bottom:
                     self.log_text.moveCursor(QTextCursor.MoveOperation.End)
 
+    def add_debug_log(self, facet_name: str, message: str):
+        """
+        Add message to DEBUG log buffer (from context.log() in ScriptedFacets).
+
+        Args:
+            facet_name: Name of facet that logged the message
+            message: The log message
+        """
+        # Format as "[FacetName] message"
+        formatted_message = f"[{facet_name}] {message}"
+
+        # Store raw log
+        self.debug_log_buffer_raw.append(formatted_message)
+        if len(self.debug_log_buffer_raw) > 1000:
+            self.debug_log_buffer_raw.pop(0)
+
+        # Store formatted log (use green color for debug logs)
+        formatted = f'<span style="color: #76AF6A;">{formatted_message}</span>'
+        self.debug_log_buffer.append(formatted)
+        if len(self.debug_log_buffer) > 1000:
+            self.debug_log_buffer.pop(0)
+
+        # If in DEBUG mode, update display (respecting search filter)
+        if self.console_mode == 'debug':
+            # Check if user is scrolled to bottom BEFORE appending
+            was_at_bottom = self._is_scrolled_to_bottom()
+
+            # Only append if matches search filter
+            if self.search_text:
+                search_term = self.search_text if self.case_sensitive else self.search_text.lower()
+                search_haystack = formatted_message if self.case_sensitive else formatted_message.lower()
+
+                matches = False
+                if self.use_regex:
+                    import re
+                    try:
+                        flags = 0 if self.case_sensitive else re.IGNORECASE
+                        matches = bool(re.search(search_term, search_haystack, flags))
+                    except re.error:
+                        matches = True
+                else:
+                    matches = search_term in search_haystack
+
+                if matches:
+                    self.log_text.append(formatted)
+                    # Only auto-scroll if user was at bottom
+                    if was_at_bottom:
+                        self.log_text.moveCursor(QTextCursor.MoveOperation.End)
+            else:
+                # No filter - show all logs
+                self.log_text.append(formatted)
+                # Only auto-scroll if user was at bottom
+                if was_at_bottom:
+                    self.log_text.moveCursor(QTextCursor.MoveOperation.End)
+
     def set_console_mode(self, mode):
-        """Switch between MUSH, STUDIO, and FACETS console modes."""
+        """Switch between MUSH, STUDIO, FACETS, and DEBUG console modes."""
         self.console_mode = mode
 
         # Update button states
         self.mush_btn.setChecked(mode == 'mush')
         self.studio_btn.setChecked(mode == 'studio')
         self.facets_btn.setChecked(mode == 'facets')
+        self.debug_btn.setChecked(mode == 'debug')
 
         # Clear and refresh display with search filter applied
         self.apply_search_filter()

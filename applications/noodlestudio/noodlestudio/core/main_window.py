@@ -448,6 +448,11 @@ class MainWindow(QMainWindow):
         self.facets_editor = FacetsEditorPanel()
         center_tabs.addTab(self.facets_editor, "Facets Editor")
 
+        # Neural Canvas tab (NEW)
+        from ..panels.neural_canvas import NeuralCanvasPanel
+        self.neural_canvas = NeuralCanvasPanel()
+        center_tabs.addTab(self.neural_canvas, "Neural Canvas")
+
         # Model Manager tab
         self.model_manager = ModelManagerPanel()
         center_tabs.addTab(self.model_manager, "Model Manager")
@@ -696,7 +701,11 @@ class MainWindow(QMainWindow):
         self.hierarchy.entitySelected.connect(safe_inspector_load)
 
         # Connect Facets Editor selection to Inspector
-        self.facets_editor.facetSelected.connect(lambda facet: self.inspector.load_facet(facet) if facet else self.inspector.clear_inspector())
+        # NEW: Always call load_facet (even with None) to collapse sections
+        self.facets_editor.facetSelected.connect(lambda facet: self.inspector.load_facet(facet))
+
+        # Connect Neural Canvas node selection to Inspector
+        self.neural_canvas.node_selected.connect(self._on_neural_canvas_node_selected)
         self.hierarchy.entitySelected.connect(safe_console_select)
         self.hierarchy.entitySelected.connect(safe_tuner_select)
         self.hierarchy.entitySelected.connect(safe_facets_select)
@@ -1936,6 +1945,38 @@ class MainWindow(QMainWindow):
                         traceback.print_exc()
                 else:
                     print(f"[Facets Editor] Assembly file not found: {assembly_path}")
+
+    def _on_neural_canvas_node_selected(self, node_id: str):
+        """Handle node selection in Neural Canvas - show in Inspector."""
+        # Get the node from the graph
+        node = self.neural_canvas.graph.get_node_by_id(node_id)
+        if not node:
+            return
+
+        # Create entity data for Inspector
+        entity_data = {
+            'id': node.id,
+            'name': node.name,
+            'type': node.type.value,
+            'params': node.params,
+            'weights': {
+                name: {
+                    'shape': list(weight.shape),
+                    'path': weight.path,
+                    'trainable': weight.trainable,
+                    'num_params': weight.num_parameters()
+                }
+                for name, weight in node.weights.items()
+            },
+            'inputs': {name: str(port) for name, port in node.inputs.items()},
+            'outputs': {name: str(port) for name, port in node.outputs.items()},
+            'position': node.position,
+            'description': node.description,
+            'tags': node.tags
+        }
+
+        # Load into Inspector as a "neural_node" entity type
+        self.inspector.load_entity('neural_node', entity_data)
 
     def show_credits(self):
         """Show demo scene style credits with music."""

@@ -31,6 +31,10 @@ class EntityState:
     on_entity: Optional[str] = None  # Physical contact (e.g., "perched on Caity")
     physical_contact: List[str] = field(default_factory=list)  # Who's touching them
 
+    # Attention focus tracking (Phase 1 - Natural Social Dynamics)
+    attention_focus: str = "idle"  # "deep" | "moderate" | "idle"
+    attention_target: Optional[str] = None  # What they're focused on
+
 
 @dataclass
 class ConversationThread:
@@ -142,12 +146,11 @@ class ContextIntelligenceFacet:
         """
         Process incoming perception through context intelligence.
 
+        NOW: Spatial narrator only (no social routing).
+        Social routing moved to SocialRouter in agent_bridge.py.
+
         Returns:
-            - speaker: Who spoke
-            - addressee: Who they're talking to (you/name/everyone)
-            - speech_act: Type of communication
-            - social_expectation: Urgency level (none/low/medium/high)
-            - enriched_perception: Text with context made explicit
+            - enriched_perception: Narrative scene description with spatial context
             - world_model_state: JSON of current world model
         """
 
@@ -156,34 +159,40 @@ class ContextIntelligenceFacet:
 
         # Get agent name from context (more reliable than init-time)
         agent_name = context.get('agent_name', self.agent_name)
+        self.agent_name = agent_name
 
         logger.info(f"[ContextIntelligence] 🧠 EXECUTE CALLED for {agent_name}")
         logger.info(f"[ContextIntelligence]   inputs={list(inputs.keys())}")
         logger.info(f"[ContextIntelligence]   context={list(context.keys())}")
-        print(f"[ContextIntelligence] 🧠 EXECUTE CALLED for {agent_name}")
-        print(f"[ContextIntelligence]   inputs={list(inputs.keys())}")
-        print(f"[ContextIntelligence]   context={list(context.keys())}")
 
         # Extract raw perception
         raw_perception = inputs.get('incoming_data', '')
-        room_occupants = context.get('room_occupants', [])
-        recent_messages = context.get('recent_messages', [])
 
-        print(f"[ContextIntelligence]   raw_perception={raw_perception[:100] if raw_perception else 'NONE'}")
+        # Get stage for spatial context (if available)
+        stage = context.get('_stage')
 
-        # Build prompt for context analysis
-        print(f"[ContextIntelligence] 🔨 Building prompt...")
-        prompt = self._build_context_prompt(
+        logger.info(f"[ContextIntelligence]   raw_perception={raw_perception[:100] if raw_perception else 'NONE'}")
+        logger.info(f"[ContextIntelligence]   stage={'present' if stage else 'absent'}")
+
+        # Build spatial scene description
+        spatial_context = ""
+        if stage:
+            from stage_model import StageQuery
+            spatial_context = StageQuery.describe_scene(stage, agent_name)
+            logger.info(f"[ContextIntelligence]   spatial_context: {spatial_context[:200]}")
+
+        # Build prompt for spatial narration
+        logger.info(f"[ContextIntelligence] 🔨 Building narrator prompt...")
+        prompt = self._build_narrator_prompt(
             raw_perception=raw_perception,
-            room_occupants=room_occupants,
-            recent_messages=recent_messages,
+            spatial_context=spatial_context,
             world_model_summary=self.world_model.get_context_summary(agent_name),
             agent_name=agent_name
         )
-        print(f"[ContextIntelligence] 📝 Prompt built ({len(prompt)} chars)")
+        logger.info(f"[ContextIntelligence] 📝 Prompt built ({len(prompt)} chars)")
 
-        # Call LLM for context reasoning
-        print(f"[ContextIntelligence] 📞 Calling LLM ({self.model})...")
+        # Call LLM for spatial narration
+        logger.info(f"[ContextIntelligence] 📞 Calling LLM ({self.model})...")
         try:
             response = await self.llm_client.generate(
                 prompt=prompt,
@@ -191,27 +200,67 @@ class ContextIntelligenceFacet:
                 max_tokens=self.max_tokens,
                 temperature=self.temperature
             )
-            print(f"[ContextIntelligence] ✅ LLM responded ({len(response)} chars)")
+
+            # Handle dict responses (some LLM clients return {text: ...})
+            if isinstance(response, dict):
+                response = response.get('text', response.get('content', ''))
+            response = str(response)
+
+            logger.info(f"[ContextIntelligence] ✅ LLM responded ({len(response)} chars)")
         except Exception as e:
-            print(f"[ContextIntelligence] ❌ LLM ERROR: {e}")
+            logger.error(f"[ContextIntelligence] ❌ LLM ERROR: {e}")
             import traceback
             traceback.print_exc()
             raise
 
-        # Parse structured output
-        parsed = self._parse_context_response(response)
+        # Output includes BOTH original perception AND spatial context
+        # This preserves what the user said while adding spatial awareness
+        enriched = raw_perception
+        if response.strip():
+            enriched = f"{raw_perception}\n[SPATIAL CONTEXT: {response.strip()}]"
 
-        # Update world model based on perception
-        self._update_world_model(parsed, raw_perception, room_occupants)
+        result = {
+            'enriched_perception': enriched,
+            'world_model_state': self._serialize_world_model()
+        }
 
-        # Add world model state to output
-        parsed['world_model_state'] = self._serialize_world_model()
+        logger.info(f"[ContextIntelligence] 🎯 RETURNING: {len(result['enriched_perception'])} chars")
 
-        return parsed
+        return result
+
+    def _build_narrator_prompt(self, raw_perception: str, spatial_context: str,
+                               world_model_summary: str, agent_name: str) -> str:
+        """Build LLM prompt for spatial narration (narrator-only mode)."""
+
+        prompt = f"""SPATIAL NARRATOR - Describe the scene from {agent_name}'s perspective
+
+You are a spatial narrator describing what {agent_name} perceives. Focus on:
+- WHO is present and WHERE they are
+- WHAT objects/features are nearby
+- Physical relationships (proximity, containment, touch)
+- Movement and actions
+
+DO NOT:
+- Decide if {agent_name} should respond (that's handled elsewhere)
+- Parse addressee or social dynamics
+- Make assumptions about internal states
+
+CURRENT SCENE:
+{spatial_context}
+
+WORLD MODEL MEMORY:
+{world_model_summary}
+
+NEW PERCEPTION:
+{raw_perception}
+
+Narrate what {agent_name} observes in 1-2 sentences. Focus on concrete, spatial details."""
+
+        return prompt
 
     def _build_context_prompt(self, raw_perception: str, room_occupants: List[str],
                               recent_messages: List[str], world_model_summary: str, agent_name: str) -> str:
-        """Build LLM prompt for context analysis."""
+        """Build LLM prompt for context analysis (LEGACY - replaced by narrator mode)."""
 
         occupants_str = "\n".join([f"  - {occ}" for occ in room_occupants]) if room_occupants else "  (none)"
         messages_str = "\n".join([f"  {msg}" for msg in recent_messages[-5:]]) if recent_messages else "  (none)"
@@ -233,6 +282,23 @@ CURRENT WORLD MODEL:
 {world_model_summary}
 
 YOUR TASK: Extract social context and clarify ambiguity.
+
+CRITICAL - DISTINGUISH SPEECH FROM BODY LANGUAGE:
+- SPEECH contains words/greetings/questions (examples: "Hello Red", "Hi everyone", "What's up?")
+  → speech_act is "statement", "question", "command", "emote", or "action"
+  → addressee determined by WHO is named or implied by room context
+- BODY LANGUAGE is ONLY when perception starts with "[expression]" FACS codes
+  → speech_act is "body_language"
+  → addressee is "observable_to_all"
+
+ADDRESSEE REASONING (CRITICAL):
+1. If agent name explicitly mentioned → addressee is "{agent_name}"
+2. If specific other name mentioned → addressee is that name
+3. If "everyone" or similar → addressee is "everyone"
+4. If ONLY 2 entities in room + greeting/statement with no explicit addressee → BY ELIMINATION addressee is the OTHER entity
+   Example: Room has [Caity, {agent_name}], message "Hello" → addressee is "{agent_name}"
+5. If 3+ entities in room + no explicit addressee → addressee is "everyone" (ambiguous)
+6. If unclear who is addressed → addressee is "unclear"
 
 SPECIAL CASE - BODY LANGUAGE EVENTS:
 If the perception starts with "[expression]", this is FACS body language (facial/body movements).
@@ -278,7 +344,7 @@ Output ONLY valid JSON in this exact format:
 
         return prompt
 
-    def _parse_context_response(self, response: str) -> Dict[str, Any]:
+    def _parse_context_response(self, response: str, raw_perception: str = '') -> Dict[str, Any]:
         """Parse LLM response into structured output."""
 
         # Try to extract JSON from response
@@ -295,7 +361,7 @@ Output ONLY valid JSON in this exact format:
                     'enriched_perception': parsed.get('enriched_perception', response)
                 }
                 # Calculate response decision
-                result['should_respond'] = self._calculate_response_need(result)
+                result['should_respond'] = self._calculate_response_need(result, raw_perception)
                 return result
         except json.JSONDecodeError:
             pass
@@ -308,32 +374,108 @@ Output ONLY valid JSON in this exact format:
             'social_expectation': 'none',
             'enriched_perception': response
         }
-        fallback['should_respond'] = self._calculate_response_need(fallback)
+        fallback['should_respond'] = self._calculate_response_need(fallback, raw_perception)
         return fallback
 
-    def _calculate_response_need(self, parsed: Dict[str, Any]) -> bool:
+    def _calculate_response_need(self, parsed: Dict[str, Any], raw_perception: str = '') -> bool:
         """
         Clean routing logic: Should THIS agent respond to this message?
 
+        Considers:
+        - Direct address (always respond if urgent)
+        - Attention focus (deep focus = oblivious, idle = curious)
+        - Speech act type (emotes need idle attention)
+        - FALLBACK: If addressee unclear but agent name mentioned, assume direct address
+
         Returns True if agent should generate a response, False if just observe.
         """
+        import logging
+        logger = logging.getLogger(__name__)
+
         addressee = parsed.get('addressee', 'unclear').lower()
         social_expectation = parsed.get('social_expectation', 'none')
+        speech_act = parsed.get('speech_act', 'statement')
         agent_name_lower = self.agent_name.lower()
 
-        # Direct address → ALWAYS respond
-        if addressee == agent_name_lower:
+        logger.info(f"[ContextIntelligence] 🎯 _calculate_response_need START")
+        logger.info(f"[ContextIntelligence]   raw_perception: {raw_perception[:100]}")
+        logger.info(f"[ContextIntelligence]   addressee: '{addressee}'")
+        logger.info(f"[ContextIntelligence]   agent_name_lower: '{agent_name_lower}'")
+        logger.info(f"[ContextIntelligence]   social_expectation: '{social_expectation}'")
+        logger.info(f"[ContextIntelligence]   speech_act: '{speech_act}'")
+
+        # Get agent's current attention state
+        my_state = self.world_model.entities.get(agent_name_lower, None)
+        focus_level = my_state.attention_focus if my_state else 'idle'  # Default idle
+
+        # FALLBACK: If LLM failed to parse addressee but agent name is in the text, assume direct address
+        logger.info(f"[ContextIntelligence] 🔍 Checking fallback name detection...")
+        if addressee == 'unclear' and raw_perception:
+            # Check for various forms of agent name
+            perception_lower = raw_perception.lower()
+            # Generate name variants for matching
+            # Names can use spaces OR underscores, so handle both
+            name_variants = [
+                agent_name_lower,  # Full name as-is
+                agent_name_lower.replace('_', ' '),  # Convert underscores to spaces
+                agent_name_lower.replace(' ', '_'),  # Convert spaces to underscores
+            ]
+            # Add first-word variants (e.g., "red" from "red fire anklebiter")
+            if '_' in agent_name_lower:
+                name_variants.append(agent_name_lower.split('_')[0])
+            if ' ' in agent_name_lower:
+                name_variants.append(agent_name_lower.split(' ')[0])
+
+            # Remove duplicates while preserving order
+            seen = set()
+            name_variants = [x for x in name_variants if not (x in seen or seen.add(x))]
+            logger.info(f"[ContextIntelligence]   name_variants: {name_variants}")
+            logger.info(f"[ContextIntelligence]   perception_lower: '{perception_lower}'")
+            if any(variant in perception_lower for variant in name_variants):
+                logger.info(f"[ContextIntelligence] ✅ FALLBACK TRIGGERED! Name detected in text")
+                addressee = agent_name_lower  # Override to direct address
+                social_expectation = 'medium'  # Assume medium urgency
+            else:
+                logger.info(f"[ContextIntelligence] ❌ FALLBACK FAILED - no name match")
+        else:
+            logger.info(f"[ContextIntelligence]   Fallback skipped (addressee={addressee})")
+
+        # Direct address with high urgency → ALWAYS respond (breaks focus)
+        if addressee == agent_name_lower and social_expectation == "high":
+            logger.info(f"[ContextIntelligence] 🎯 _calculate_response_need RESULT: True (direct + urgent)")
             return True
 
-        # Everyone addressed + high urgency → respond
+        # Deep focus → ignore everything except urgent direct address
+        if focus_level == "deep":
+            logger.info(f"[ContextIntelligence] 🎯 _calculate_response_need RESULT: False (deep focus)")
+            return False
+
+        # Direct address (not urgent) → respond if moderate or idle focus
+        if addressee == agent_name_lower:
+            result = focus_level in ["moderate", "idle"]
+            logger.info(f"[ContextIntelligence] 🎯 _calculate_response_need RESULT: {result} (direct address, focus={focus_level})")
+            return result
+
+        # Everyone addressed + high urgency → respond if not deep focus
         if addressee == "everyone" and social_expectation in ["medium", "high"]:
-            return True
+            result = focus_level != "deep"
+            logger.info(f"[ContextIntelligence] 🎯 _calculate_response_need RESULT: {result} (everyone + urgent)")
+            return result
 
         # Observable body language → don't respond (just observe)
         if addressee == "observable_to_all":
+            logger.info(f"[ContextIntelligence] 🎯 _calculate_response_need RESULT: False (body language)")
             return False
 
+        # Emotes/giggles → only respond if IDLE (curiosity!)
+        if speech_act in ['emote', 'action']:
+            # Idle + observable social event → brief curiosity
+            result = focus_level == 'idle' and social_expectation != 'none'
+            logger.info(f"[ContextIntelligence] 🎯 _calculate_response_need RESULT: {result} (emote/action)")
+            return result
+
         # Everything else → don't respond (heard but not our conversation)
+        logger.info(f"[ContextIntelligence] 🎯 _calculate_response_need RESULT: False (no match)")
         return False
 
     def _update_world_model(self, parsed: Dict[str, Any],

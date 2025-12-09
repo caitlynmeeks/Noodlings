@@ -3,149 +3,9 @@
   "agent_name": "Red Fire Anklebiter",
   "agent_description": "A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
   "current_room": "room_000",
-  "conversation_context": [
-    {
-      "user": "agent_red_fire_anklebiter",
-      "text": "[thought] Ohhhh, a fresh newbie just waltzed in? How CUTE. *flames flicker with boredom* MWAHAHA \u2014 time to turn that \"hi\" into a FIREWORKS show. *jumps on shoulder*",
-      "affect": [
-        0.08747325837612152,
-        0.012652325443923473,
-        0.03640924394130707,
-        0.0761546790599823,
-        0.030452758073806763
-      ],
-      "surprise": 0.2703723609447479,
-      "timestamp": 1764836269.34944,
-      "importance": 0.27098196718035905,
-      "identity_salience": 0.0,
-      "is_rumination": true
-    },
-    {
-      "user": "agent_mr._toad",
-      "text": "Mr. Toad (toad) pops up cheerfully. An amphibian of considerable girth, dressed in an immaculate tweed waistcoat with brass buttons that strain slightly. Driving goggles perch atop his wide head, always ready for adventure. His eyes are large and protuberant, constantly darting about for the Next Magnificent Thing. Webbed hands gesture grandly when he speaks. Smells faintly of pond water, leather, and expensive cologne. His chest puffs out importantly when making declarations.",
-      "affect": [
-        0.39487698674201965,
-        0.21538743376731873,
-        0.5743665099143982,
-        -0.6820602416992188,
-        -0.5025706887245178
-      ],
-      "surprise": 0.0,
-      "timestamp": 1764836182.6895921,
-      "importance": 0.09153966307640075,
-      "identity_salience": 0.0
-    },
-    {
-      "user": "agent_red_fire_anklebiter",
-      "text": ":flames flicker nervously, eyes widening as Mr. Toad pops up like a grumpy toad in a top hat  \nOh-ho-ho, look who\u2019s bloated and blustering\u2014Mr. Toad! Did you finally crawl out of the pond or just come to gloat about your *impressive* waistcoat?  \n:grins sharp-toothed, jumping onto the armrest to peek at his goggles  \nThat thing looks like a hat made of dead moths\u2014careful, don\u2019t trip and get your tail caught in the gears! MWAHAHA!",
-      "affect": [
-        0.01801249198615551,
-        0.044057562947273254,
-        0.0051346723921597,
-        0.0279699619859457,
-        0.05713746324181557
-      ],
-      "surprise": 0.0,
-      "timestamp": 1764836187.333745,
-      "importance": 0.20931050824001432,
-      "identity_salience": 0.30000000000000004
-    },
-    {
-      "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
-      "text": "hi",
-      "affect": [
-        -0.09712858498096466,
-        0.8741572499275208,
-        0.1456928700208664,
-        -0.5827714800834656,
-        -0.3399500250816345
-      ],
-      "surprise": 0.2703723609447479,
-      "timestamp": 1764836265.616521,
-      "importance": 0.2808790557086468,
-      "identity_salience": 0.0
-    },
-    {
-      "user": "agent_red_fire_anklebiter",
-      "text": "[thought] Ohhhh, a fresh newbie just waltzed in? How CUTE. *flames flicker with boredom* MWAHAHA \u2014 time to turn that \"hi\" into a FIREWORKS show. *jumps on shoulder*",
-      "affect": [
-        0.08747325837612152,
-        0.012652325443923473,
-        0.03640924394130707,
-        0.0761546790599823,
-        0.030452758073806763
-      ],
-      "surprise": 0.2703723609447479,
-      "timestamp": 1764836269.34944,
-      "importance": 0.27098196718035905,
-      "identity_salience": 0.0,
-      "is_rumination": true
-    },
-    {
-      "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
-      "text": "pops a balloon. BANG!!!!",
-      "affect": [
-        0.3648451268672943,
-        0.9093804359436035,
-        0.32969021797180176,
-        -0.6593804359436035,
-        0.0
-      ],
-      "surprise": 0.15433992445468903,
-      "timestamp": 1764836323.1934888,
-      "importance": 0.2271699622273445,
-      "identity_salience": 0.0
-    },
-    {
-      "user": "agent_red_fire_anklebiter",
-      "text": "[thought] Ohhhh, *pop*! Someone\u2019s gotta pay for that noise \u2014 did you hear that? It was LOUD enough to wake a *squirrel*! MWAHAHA \u2014 wait, why am I judging a balloon? I\u2019m literally a FIRE IMP. *flames flicker* Sigh \u2014 whatever. At least it wasn\u2019t MY butt that went BOOM. *jumps on shoulder*",
-      "affect": [
-        0.08164769411087036,
-        -0.016499709337949753,
-        0.03762399032711983,
-        0.07925669103860855,
-        0.062065158039331436
-      ],
-      "surprise": 0.15433992445468903,
-      "timestamp": 1764836327.464175,
-      "importance": 0.28694215994328265,
-      "identity_salience": 0.1,
-      "is_rumination": true
-    },
-    {
-      "user": "user_1ff2f12c-3053-40e2-95fb-9e4af9921c4c",
-      "text": "toad look at me!!!!!!!\" flashes pink and orange",
-      "affect": [
-        0.3400280177593231,
-        0.915132999420166,
-        0.3150629997253418,
-        -0.7351469993591309,
-        0.0
-      ],
-      "surprise": 0.09348777681589127,
-      "timestamp": 1764836359.790018,
-      "importance": 0.19674388840794563,
-      "identity_salience": 0.0
-    },
-    {
-      "user": "agent_red_fire_anklebiter",
-      "text": "[thought] Oh HELL no, Pink-Flash-Toad is flashing like a neon migraine\u2014do they even know the word \"subtlety\"? *flames flare* MWAHAHA! Someone\u2019s gonna trip over their own ego next.",
-      "affect": [
-        0.08248928189277649,
-        -0.027969613671302795,
-        0.03933311253786087,
-        0.08567028492689133,
-        0.07008461654186249
-      ],
-      "surprise": 0.09348777681589127,
-      "timestamp": 1764836363.286392,
-      "importance": 0.2549218386411667,
-      "identity_salience": 0.1,
-      "is_rumination": true
-    }
-  ],
-  "last_response_time": 1764836187.333739,
-  "response_count": 1,
+  "conversation_context": [],
+  "last_response_time": 0.0,
+  "response_count": 0,
   "config": {
     "response_cooldown": 9.0,
     "surprise_threshold": 0.0001,
@@ -218,12 +78,21 @@
     "question_speech_chance": 0.3,
     "unaddressed_speech_chance": 0.1,
     "llm": {
-      "provider": "local",
+      "provider": "ollama",
       "local": {
         "api_base": "http://localhost:1234/v1",
         "api_key": "not-needed",
         "model": "qwen3-vl-30b-a3b-instruct-mlx",
         "timeout": 60
+      },
+      "ollama": {
+        "host": "http://localhost:11434",
+        "models_directory": "/Volumes/DOUBLETROUBLE/models",
+        "small_model": "qwen2.5:3b",
+        "medium_model": "qwen2.5:14b",
+        "large_model": "qwen2.5:32b",
+        "default_timeout": 120,
+        "load_timeout": 300
       },
       "openrouter": {
         "api_base": "https://openrouter.ai/api/v1",
@@ -272,5 +141,5 @@
     "cognitive_components": {}
   },
   "phenomenal_state": [],
-  "timestamp": "2025-12-04T00:25:12.751633"
+  "timestamp": "2025-12-07T00:48:59.389967"
 }

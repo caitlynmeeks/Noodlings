@@ -163,6 +163,9 @@ class SceneHierarchy(QWidget):
 
     def restore_expanded_state(self):
         """Restore expanded state and selection for items that match saved paths."""
+        # NOTE: Signals should already be blocked by caller (refresh_scene)
+        # This prevents the 2-second refresh from overwriting Inspector when facet is selected
+
         def restore_item(item, path=""):
             """Recursively restore expanded state and selection."""
             current_path = path + "/" + item.text(0) if path else item.text(0)
@@ -257,6 +260,9 @@ class SceneHierarchy(QWidget):
         try:
             # Save expanded state before clearing
             self.save_expanded_state()
+
+            # CRITICAL: Block signals BEFORE clearing to prevent empty selection event
+            self.tree.blockSignals(True)
 
             # TODO: Create proper world API endpoint
             # For now, use agents API and build structure
@@ -432,11 +438,17 @@ class SceneHierarchy(QWidget):
             except Exception as e:
                 print(f"Error loading exits: {e}")
 
-            # Restore expanded state after rebuilding tree
+            # Restore expanded state after rebuilding tree (signals still blocked)
             self.restore_expanded_state()
+
+            # CRITICAL: Re-enable signals AFTER everything is restored
+            # This prevents tree.clear() and restore from triggering selection events
+            self.tree.blockSignals(False)
 
         except Exception as e:
             print(f"Error refreshing scene: {e}")
+            # Make sure signals are unblocked even on error
+            self.tree.blockSignals(False)
 
     def on_selection_changed(self):
         """Handle entity selection (doesn't interfere with expand/collapse)."""
@@ -458,8 +470,15 @@ class SceneHierarchy(QWidget):
                         entity_type = entity_data.get('type', 'unknown')
                         entity_id = entity_data.get('id', 'unknown')
                         print(f"[HIERARCHY] About to emit entitySelected: type={entity_type}, id={entity_id}")
-                        self.entitySelected.emit(entity_type, entity_data)
-                        print(f"[HIERARCHY] emit returned successfully")
+                        try:
+                            self.entitySelected.emit(entity_type, entity_data)
+                            print(f"[HIERARCHY] emit returned successfully")
+                        except Exception as emit_error:
+                            print(f"[HIERARCHY] CRASH during emit: {emit_error}")
+                            import traceback
+                            traceback.print_exc()
+                            # Re-raise to show full error
+                            raise
             else:
                 # Nothing selected - emit empty values to clear Inspector and Facets Editor
                 # Note: Signal requires (str, dict) types, can't pass None directly

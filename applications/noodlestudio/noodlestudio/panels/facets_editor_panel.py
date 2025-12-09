@@ -302,6 +302,10 @@ class FacetNodeGraphics(QGraphicsRectItem):
                     for wire in pad_graphics.connections:
                         wire.update_path()
 
+            # Auto-save position changes to YAML
+            if self.editor_panel and not self.editor_panel.scene_transition_lock:
+                self.editor_panel.save_current_assembly_positions()
+
         elif change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
             # Update border on selection
             if self.isSelected():
@@ -642,27 +646,32 @@ class ConnectionWire(QGraphicsItem):
         return QRectF(start, end).normalized().adjusted(-50, -50, 50, 50)
 
     def paint(self, painter: QPainter, option, widget=None):
-        """Draw the connection wire as a bezier curve."""
+        """Draw the connection wire as orthogonal lines (circuit schematic style)."""
         start = self.from_pad.get_scene_position()
         end = self.to_pad.get_scene_position()
 
-        # Create bezier curve path with vertical tangents
+        # Create orthogonal path (Manhattan routing - strictly 90° angles)
         path = QPainterPath()
         path.moveTo(start)
 
-        # Control points for vertical flow (tangents exit/enter vertically)
-        dy = end.y() - start.y()
-        tangent_length = abs(dy) * 0.4  # 40% of vertical distance
+        # ORTHOGONAL ROUTING - 3-segment path with right angles ONLY
+        # No curves, no diagonal lines - circuit board aesthetic
+        # Exit pad vertically DOWN, route horizontally, enter pad vertically UP
 
-        # First control point - extends DOWN from output pad
-        ctrl1 = QPointF(start.x(), start.y() + tangent_length)
+        vertical_exit = 40  # Distance to exit output pad downward
+        vertical_enter = 40  # Distance to approach input pad from above
 
-        # Second control point - extends UP to input pad
-        ctrl2 = QPointF(end.x(), end.y() - tangent_length)
+        # Calculate intermediate waypoints for Manhattan routing
+        exit_point = QPointF(start.x(), start.y() + vertical_exit)
+        entry_point = QPointF(end.x(), end.y() - vertical_enter)
 
-        path.cubicTo(ctrl1, ctrl2, end)
+        # Draw 3-segment orthogonal path (vertical → horizontal → vertical)
+        path.lineTo(exit_point)      # Segment 1: Exit DOWN from output pad (vertical)
+        path.lineTo(entry_point)     # Segment 2: Horizontal routing (90° turn)
+        path.lineTo(end)              # Segment 3: Enter UP to input pad (90° turn)
 
-        # Draw wire (brighter if packet animating)
+        # Draw wire with NO antialiasing for sharp orthogonal lines
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
         if self.packet_animating:
             painter.setPen(self.active_pen)
         else:
@@ -671,7 +680,7 @@ class ConnectionWire(QGraphicsItem):
 
         # Draw data packet (geometric square - no organic circles)
         if self.packet_animating and 0.0 <= self.packet_progress <= 1.0:
-            # Calculate position along bezier curve
+            # Calculate position along orthogonal path
             t = self.packet_progress
             packet_pos = path.pointAtPercent(t)
 
@@ -735,6 +744,9 @@ class FacetsEditorPanel(QWidget):
 
     # Signal emitted when assembly is modified
     assemblyModified = pyqtSignal()
+
+    # Signal emitted when a facet is selected (for Inspector)
+    facetSelected = pyqtSignal(object)  # Emits Facet object
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -888,6 +900,9 @@ class FacetsEditorPanel(QWidget):
         # Draw grid background
         self.scene.setBackgroundBrush(QBrush(QColor("#2A2A2A")))
         self._draw_grid_background()
+
+        # Connect selection changes to inspector
+        self.scene.selectionChanged.connect(self.on_selection_changed)
 
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -1058,6 +1073,9 @@ class FacetsEditorPanel(QWidget):
             print(f"[Facets Editor] Assembly '{assembly.name}' already loaded, skipping reload")
             return
 
+        # CRITICAL: Lock BEFORE auto-save to prevent re-entrancy during YAML loading
+        self.scene_transition_lock = True
+
         # Auto-save previous assembly before switching (if positions changed)
         if self.current_assembly and self.current_assembly_name:
             try:
@@ -1088,8 +1106,7 @@ class FacetsEditorPanel(QWidget):
 
         print(f"[Facets Editor] Loading assembly: {assembly.name}")
 
-        # CRITICAL: Lock scene during transition to prevent event processing
-        self.scene_transition_lock = True
+        # Lock was already set above before auto-save
 
         # Hide empty state message if showing
         self.hide_empty_state()
@@ -1140,7 +1157,7 @@ class FacetsEditorPanel(QWidget):
         """Show right-click context menu for adding facets."""
         menu = QMenu(self)
 
-        # Add facet submenu
+        # Add facet submenu (excluding INCOMING/OUTGOING - those are auto-created)
         add_menu = menu.addMenu("Add Facet")
 
         facet_types = [
@@ -1150,6 +1167,7 @@ class FacetsEditorPanel(QWidget):
             ("Memory Recall Facet", "MemoryFacet"),
             ("Response Planning Facet", "PlanningFacet"),
             ("Convergence Facet", "ConvergenceFacet"),
+            # NOTE: INCOMING/OUTGOING (SpecialNode) not shown - they're special
         ]
 
         for display_name, facet_type in facet_types:
@@ -1163,6 +1181,45 @@ class FacetsEditorPanel(QWidget):
         # Custom/Empty facet at bottom
         custom_action = add_menu.addAction("Create empty facet")
         custom_action.triggered.connect(lambda: self.add_facet("CustomFacet", "Custom Facet", position))
+
+        # Layout menu
+        menu.addSeparator()
+        layout_menu = menu.addMenu("Layout")
+
+        auto_arrange_action = layout_menu.addAction("Auto-Arrange (Topological)")
+        auto_arrange_action.triggered.connect(self.auto_arrange_facets)
+
+        layout_menu.addSeparator()
+
+        # Alignment (requires selection)
+        selected_nodes = self.scene.selectedItems()
+        selected_facets = [item for item in selected_nodes if isinstance(item, FacetNodeGraphics)]
+
+        align_h_action = layout_menu.addAction(f"Align Horizontally ({len(selected_facets)} selected)")
+        align_h_action.setEnabled(len(selected_facets) > 1)
+        align_h_action.triggered.connect(self.align_selected_horizontally)
+
+        align_v_action = layout_menu.addAction(f"Align Vertically ({len(selected_facets)} selected)")
+        align_v_action.setEnabled(len(selected_facets) > 1)
+        align_v_action.triggered.connect(self.align_selected_vertically)
+
+        layout_menu.addSeparator()
+
+        # Zoom
+        zoom_in_action = layout_menu.addAction("Zoom In (+)")
+        zoom_in_action.triggered.connect(lambda: self.view.scale(1.2, 1.2))
+
+        zoom_out_action = layout_menu.addAction("Zoom Out (-)")
+        zoom_out_action.triggered.connect(lambda: self.view.scale(1/1.2, 1/1.2))
+
+        reset_zoom_action = layout_menu.addAction("Reset View")
+        reset_zoom_action.triggered.connect(lambda: self.view.resetTransform())
+
+        # Delete (requires selection)
+        if selected_facets:
+            menu.addSeparator()
+            delete_action = menu.addAction(f"Delete {len(selected_facets)} facet(s)")
+            delete_action.triggered.connect(self.delete_selected_facets)
 
         menu.exec(self.view.mapToGlobal(position))
 
@@ -1279,8 +1336,18 @@ class FacetsEditorPanel(QWidget):
         zoom_in_shortcut = QShortcut(QKeySequence.StandardKey.ZoomIn, self)
         zoom_in_shortcut.activated.connect(lambda: self.zoom_view(1.2))
 
+        # Additional zoom shortcuts (+/- keys)
+        zoom_in_plus = QShortcut(QKeySequence("+"), self)
+        zoom_in_plus.activated.connect(lambda: self.zoom_view(1.2))
+
+        zoom_in_equals = QShortcut(QKeySequence("="), self)
+        zoom_in_equals.activated.connect(lambda: self.zoom_view(1.2))
+
         zoom_out_shortcut = QShortcut(QKeySequence.StandardKey.ZoomOut, self)
         zoom_out_shortcut.activated.connect(lambda: self.zoom_view(1/1.2))
+
+        zoom_out_minus = QShortcut(QKeySequence("-"), self)
+        zoom_out_minus.activated.connect(lambda: self.zoom_view(1/1.2))
 
         # Home - Reset zoom and center
         home_shortcut = QShortcut(QKeySequence("Home"), self)
@@ -1416,6 +1483,8 @@ class FacetsEditorPanel(QWidget):
 
         First press: Zooms to selected node, saves view state
         Second press: Restores exact pre-focus view state
+
+        NOTE: No longer shows inline field editors - use Inspector panel instead
         """
         selected_items = self.scene.selectedItems()
         selected_nodes = [
@@ -1445,12 +1514,8 @@ class FacetsEditorPanel(QWidget):
             self.focused_node_id = selected_node_id
             self.is_focused = True
 
-            # Frame selected with minimal padding
+            # Frame selected with minimal padding (no field display)
             self.frame_nodes(selected_nodes, padding_factor=0.05)
-
-            # Force field display on selected nodes
-            for node in selected_nodes:
-                node.show_fields(force=True)
 
             print(f"[Facets Editor] Focused on {selected_node.facet.name} (press F again to restore)")
 
@@ -2004,6 +2069,207 @@ class FacetsEditorPanel(QWidget):
             # Silent fail - don't break visualization if sound fails
             pass
 
+    def auto_arrange_facets(self):
+        """
+        Auto-arrange facets using topological layering (circuit schematic style).
+
+        Algorithm:
+        1. Build dependency graph from connections
+        2. Compute layers using topological sort (execution order)
+        3. Position INCOMING at top, OUTGOING at bottom
+        4. Distribute intermediate facets in layers
+        5. Minimize wire crossings within each layer
+        """
+        if not self.current_assembly:
+            return
+
+        print("[Auto-Arrange] Starting topological layout...")
+
+        # Build adjacency lists (who depends on whom)
+        dependencies = {}  # facet_id -> list of facets it depends on (inputs from)
+        dependents = {}    # facet_id -> list of facets that depend on it (outputs to)
+
+        for facet in self.current_assembly.facets:
+            dependencies[facet.id] = []
+            dependents[facet.id] = []
+
+        # Parse connections to build graph
+        for conn in self.current_assembly.connections:
+            from_id = conn.from_facet  # Source facet ID
+            to_id = conn.to_facet      # Destination facet ID
+
+            if from_id in dependencies and to_id in dependencies:
+                if from_id not in dependencies[to_id]:  # Avoid duplicates
+                    dependencies[to_id].append(from_id)
+                if to_id not in dependents[from_id]:
+                    dependents[from_id].append(to_id)
+
+        # Topological sort to determine layers (Kahn's algorithm)
+        layers = []
+        in_degree = {fid: len(deps) for fid, deps in dependencies.items()}
+
+        # Layer 0: Nodes with no dependencies (usually INCOMING)
+        current_layer = [fid for fid, deg in in_degree.items() if deg == 0]
+
+        while current_layer:
+            layers.append(current_layer[:])
+            next_layer = []
+
+            for node_id in current_layer:
+                # Remove this node from dependents' in-degree
+                for dependent in dependents.get(node_id, []):
+                    in_degree[dependent] -= 1
+                    if in_degree[dependent] == 0:
+                        next_layer.append(dependent)
+
+            current_layer = next_layer
+
+        # Handle cycles (shouldn't happen in well-formed assemblies)
+        remaining = [fid for fid, deg in in_degree.items() if deg > 0]
+        if remaining:
+            layers.append(remaining)
+            print(f"[Auto-Arrange] Warning: Circular dependencies detected: {remaining}")
+
+        print(f"[Auto-Arrange] Computed {len(layers)} layers: {[len(l) for l in layers]} facets")
+
+        # Layout parameters
+        layer_height = 200  # Vertical spacing between layers
+        node_spacing = 280  # Horizontal spacing within layer
+        start_y = 100       # Top margin
+
+        # Position facets layer by layer
+        for layer_idx, layer_facets in enumerate(layers):
+            y = start_y + (layer_idx * layer_height)
+
+            # Calculate horizontal centering
+            layer_width = len(layer_facets) * node_spacing
+            start_x = 100  # Left margin
+
+            for facet_idx, facet_id in enumerate(sorted(layer_facets)):
+                x = start_x + (facet_idx * node_spacing)
+
+                # Find graphics node and move it
+                if facet_id in self.node_graphics:
+                    node_gfx = self.node_graphics[facet_id]
+                    node_gfx.setPos(x, y)
+                    print(f"[Auto-Arrange] {facet_id}: ({x}, {y}) [Layer {layer_idx}]")
+
+        # Update all wire paths
+        try:
+            for wire in self.wires:
+                wire.update_path()
+        except Exception as e:
+            print(f"[Auto-Arrange] Warning: Could not update wires: {e}")
+
+        # Save new positions
+        try:
+            self.save_current_assembly_positions()
+        except Exception as e:
+            print(f"[Auto-Arrange] Warning: Could not save positions: {e}")
+
+        print("[Auto-Arrange] Layout complete!")
+
+    def align_selected_horizontally(self):
+        """Align selected facets to same Y coordinate (horizontal line)."""
+        selected = [item for item in self.scene.selectedItems() if isinstance(item, FacetNodeGraphics)]
+        if len(selected) < 2:
+            return
+
+        # Use average Y position
+        avg_y = sum(node.pos().y() for node in selected) / len(selected)
+
+        for node in selected:
+            node.setPos(node.pos().x(), avg_y)
+
+        # Update wires
+        for wire in self.wires:
+            wire.update_path()
+
+        self.save_current_assembly_positions()
+        print(f"[Align] Aligned {len(selected)} facets horizontally at y={avg_y:.0f}")
+
+    def align_selected_vertically(self):
+        """Align selected facets to same X coordinate (vertical line)."""
+        selected = [item for item in self.scene.selectedItems() if isinstance(item, FacetNodeGraphics)]
+        if len(selected) < 2:
+            return
+
+        # Use average X position
+        avg_x = sum(node.pos().x() for node in selected) / len(selected)
+
+        for node in selected:
+            node.setPos(avg_x, node.pos().y())
+
+        # Update wires
+        for wire in self.wires:
+            wire.update_path()
+
+        self.save_current_assembly_positions()
+        print(f"[Align] Aligned {len(selected)} facets vertically at x={avg_x:.0f}")
+
+    def delete_selected_facets(self):
+        """Delete selected facets from the assembly."""
+        selected = [item for item in self.scene.selectedItems() if isinstance(item, FacetNodeGraphics)]
+        if not selected:
+            return
+
+        # Confirm deletion
+        from PyQt6.QtWidgets import QMessageBox
+        facet_names = [node.facet.name for node in selected]
+        reply = QMessageBox.question(
+            self,
+            "Delete Facets",
+            f"Delete {len(selected)} facet(s)?\n\n" + "\n".join(f"- {name}" for name in facet_names),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # Remove from assembly and scene
+        for node in selected:
+            facet_id = node.facet.id
+
+            # Remove connected wires
+            wires_to_remove = [w for w in self.wires if w.from_pad.parent_node == node or w.to_pad.parent_node == node]
+            for wire in wires_to_remove:
+                self.scene.removeItem(wire)
+                self.wires.remove(wire)
+
+            # Remove connections from assembly
+            self.current_assembly.connections = [
+                conn for conn in self.current_assembly.connections
+                if conn.from_facet != facet_id and conn.to_facet != facet_id
+            ]
+
+            # Remove facet from assembly
+            self.current_assembly.facets = [f for f in self.current_assembly.facets if f.id != facet_id]
+
+            # Remove from graphics
+            self.scene.removeItem(node)
+            if facet_id in self.node_graphics:
+                del self.node_graphics[facet_id]
+
+        self.save_current_assembly_positions()
+        print(f"[Delete] Removed {len(selected)} facet(s)")
+
+    def on_selection_changed(self):
+        """Handle facet selection changes - emit signal for Inspector."""
+        selected = [item for item in self.scene.selectedItems() if isinstance(item, FacetNodeGraphics)]
+
+        if len(selected) == 1:
+            # Single facet selected - send to Inspector
+            facet = selected[0].facet
+            self.facetSelected.emit(facet)
+            print(f"[Facets Editor] Selected: {facet.name} (id={facet.id})")
+        elif len(selected) == 0:
+            # No selection - clear Inspector
+            self.facetSelected.emit(None)
+        else:
+            # Multiple selection - Inspector shows count
+            self.facetSelected.emit(None)
+            print(f"[Facets Editor] Multiple selection: {len(selected)} facets")
+
     def save_current_assembly_positions(self):
         """Save current assembly node positions to disk."""
         if not self.current_assembly or not self.current_assembly_name:
@@ -2172,13 +2438,21 @@ class FacetsEditorPanel(QWidget):
             return
 
         # Process up to 10 events per frame (prevent UI blocking)
+        import asyncio
         for _ in range(10):
             try:
                 event = self.event_queue.get_nowait()
                 print(f"[Facets Editor] 🎯 EVENT RECEIVED: {event.get('type')}/{event.get('subtype')} - facet_id={event.get('source_id')}")
                 self._handle_execution_event(event)
-            except:
-                break  # Queue empty
+            except asyncio.QueueEmpty:
+                # Queue empty - expected, exit silently
+                break
+            except Exception as e:
+                # Actual error in event handling
+                print(f"[Facets Editor] ⚠️  Event processing error: {e}")
+                import traceback
+                traceback.print_exc()
+                break
 
     def _handle_execution_event(self, event: dict):
         """
@@ -2208,6 +2482,34 @@ class FacetsEditorPanel(QWidget):
             self.play_sound('cycle_complete')
             return
 
+        # Handle data_flow events separately (they have from_facet/to_facet, not source_id)
+        if event_subtype == 'data_flow':
+            from_facet = event.get('from_facet')
+            to_facet = event.get('to_facet')
+
+            if from_facet and to_facet:
+                # Play data flow sound
+                self.play_sound('data_flow')
+
+                # Find connection wire between these facets
+                try:
+                    for wire in list(self.wire_graphics):
+                        if not wire or not wire.scene():
+                            continue  # Wire was deleted, skip
+                        if not hasattr(wire, 'from_pad') or not hasattr(wire, 'to_pad'):
+                            continue  # Invalid wire state
+                        if not wire.from_pad or not wire.to_pad:
+                            continue
+                        if not hasattr(wire.from_pad, 'facet_node') or not hasattr(wire.to_pad, 'facet_node'):
+                            continue
+                        if (wire.from_pad.facet_node.facet.id == from_facet and
+                            wire.to_pad.facet_node.facet.id == to_facet):
+                            wire.animate_data_flow()
+                            break
+                except Exception as e:
+                    print(f"[Facets Editor] ⚠️  Data flow animation error: {e}")
+            return  # data_flow handled, exit
+
         facet_id = event.get('source_id')
         if not facet_id or facet_id not in self.node_graphics:
             print(f"[Facets Editor] ⚠️  Facet {facet_id} not in node_graphics! Available: {list(self.node_graphics.keys())[:5]}...")
@@ -2226,39 +2528,26 @@ class FacetsEditorPanel(QWidget):
         # KRAFTWERK CLICK - Play terminal keypress sound for every event
         self._play_pachinko_sound()
 
-        if event_subtype == 'facet_start':
-            # KRAFTWERK: Node begins processing
-            print(f"[Facets Editor] 💛 ANIMATING facet_start for {facet_id}")
-            node.set_execution_state('processing')
+        try:
+            if event_subtype == 'facet_start':
+                # KRAFTWERK: Node begins processing
+                print(f"[Facets Editor] 💛 ANIMATING facet_start for {facet_id}")
+                node.set_execution_state('processing')
 
-        elif event_subtype == 'facet_complete':
-            # KRAFTWERK: Node completes (brief satisfaction, then idle)
-            node.set_execution_state('complete')
+            elif event_subtype == 'facet_complete':
+                # KRAFTWERK: Node completes (brief satisfaction, then idle)
+                node.set_execution_state('complete')
 
-        elif event_subtype == 'data_flow':
-            # AUTOBAHN: Animate data packet along wire
-            from_facet = event.get('data', {}).get('from_facet')
-            to_facet = event.get('data', {}).get('to_facet')
+            elif event_subtype == 'quantum_collapse':
+                # QUANTUM: Orchestrated objective reduction event
+                # Purple/blue flash + higher pitch sound
+                node.set_execution_state('quantum_collapse')
+                self._play_quantum_collapse_sound()
 
-            if from_facet and to_facet:
-                # Play data flow sound
-                self.play_sound('data_flow')
-
-                # Find connection wire between these facets
-                # CRITICAL: Check if wire still in scene (race condition protection)
-                for wire in list(self.wire_graphics):  # Copy list to avoid modification issues
-                    if not wire.scene():
-                        continue  # Wire was deleted, skip
-                    if (wire.from_pad.facet_node.facet.id == from_facet and
-                        wire.to_pad.facet_node.facet.id == to_facet):
-                        wire.animate_data_flow()
-                        break
-
-        elif event_subtype == 'quantum_collapse':
-            # QUANTUM: Orchestrated objective reduction event
-            # Purple/blue flash + higher pitch sound
-            node.set_execution_state('quantum_collapse')
-            self._play_quantum_collapse_sound()
+        except Exception as e:
+            print(f"[Facets Editor] ⚠️  Animation error for {facet_id}: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _play_pachinko_sound(self):
         """Play termkeypress.ogg sound (Kraftwerk pachinko click)."""

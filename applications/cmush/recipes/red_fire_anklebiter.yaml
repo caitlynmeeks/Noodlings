@@ -77,7 +77,7 @@ constraints:
 
 llm:
   provider: "local"
-  model: "qwen/qwen3-14b-2507"
+  model: "qwen/qwen3-4b-2507"
 
 # Facet Assembly - VISUAL COGNITIVE TOPOLOGY
 # Red is now the GOLD STANDARD for facet-based noodlings!

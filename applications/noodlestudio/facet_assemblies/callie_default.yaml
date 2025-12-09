@@ -42,7 +42,7 @@ facets:
   - id: facet_affect
     name: Affect
     facet_type: LLMFacet
-    model: qwen/qwen3-14b-2507
+    model: qwen/qwen3-4b-2507
     temperature: 0.8
     max_tokens: 200
     prompt: |
@@ -80,7 +80,7 @@ facets:
       curiosity and your feelings. Be present, be real, be Callie.
 
       2-3 sentences maximum.
-    model: qwen/qwen3-14b-2507
+    model: qwen/qwen3-4b-2507
     temperature: 0.85
     max_tokens: 250
     position: {x: 200, y: 400}

@@ -1,0 +1,671 @@
+{
+  "metadata": {
+    "session_id": "cmush_session_13895",
+    "start_time": "2025-12-07 00:16:36",
+    "agents": [
+      "agent_917a0837-a726-48dc-abfb-e1c522adcdeb"
+    ]
+  },
+  "duration": 190.71184492111206,
+  "timelines": {
+    "agent_917a0837-a726-48dc-abfb-e1c522adcdeb": [
+      {
+        "timestamp": 39.11650896072388,
+        "wall_time": "00:17:15",
+        "phenomenal_state": {
+          "fast": [
+            0.01832921989262104,
+            0.062387362122535706,
+            -0.06152841076254845,
+            0.06063361465930939,
+            -0.04121532291173935,
+            -0.033762164413928986,
+            0.0196301881223917,
+            -0.019312957301735878,
+            0.040541186928749084,
+            -0.0784732848405838,
+            0.03270501643419266,
+            0.04733909294009209,
+            -0.06246055290102959,
+            -0.035610299557447433,
+            0.005464498419314623,
+            0.025356817990541458
+          ],
+          "medium": [
+            0.0020580587442964315,
+            -0.048344071954488754,
+            -0.048891954123973846,
+            0.034992437809705734,
+            -0.0528479665517807,
+            -0.013334627263247967,
+            0.02752194181084633,
+            -0.04324932023882866,
+            0.0476917140185833,
+            0.007692851126194,
+            -0.029192257672548294,
+            -0.02577871084213257,
+            0.0376080721616745,
+            0.045083560049533844,
+            -0.018791398033499718,
+            0.022714506834745407
+          ],
+          "slow": [
+            -0.06732456386089325,
+            -0.12748123705387115,
+            -0.0215668436139822,
+            -0.1236916333436966,
+            -0.0792306587100029,
+            0.04904058948159218,
+            -0.10812587291002274,
+            0.04488949105143547
+          ],
+          "full": [
+            0.01832921989262104,
+            0.062387362122535706,
+            -0.06152841076254845,
+            0.06063361465930939,
+            -0.04121532291173935,
+            -0.033762164413928986,
+            0.0196301881223917,
+            -0.019312957301735878,
+            0.040541186928749084,
+            -0.0784732848405838,
+            0.03270501643419266,
+            0.04733909294009209,
+            -0.06246055290102959,
+            -0.035610299557447433,
+            0.005464498419314623,
+            0.025356817990541458,
+            0.0020580587442964315,
+            -0.048344071954488754,
+            -0.048891954123973846,
+            0.034992437809705734,
+            -0.0528479665517807,
+            -0.013334627263247967,
+            0.02752194181084633,
+            -0.04324932023882866,
+            0.0476917140185833,
+            0.007692851126194,
+            -0.029192257672548294,
+            -0.02577871084213257,
+            0.0376080721616745,
+            0.045083560049533844,
+            -0.018791398033499718,
+            0.022714506834745407,
+            -0.06732456386089325,
+            -0.12748123705387115,
+            -0.0215668436139822,
+            -0.1236916333436966,
+            -0.0792306587100029,
+            0.04904058948159218,
+            -0.10812587291002274,
+            0.04488949105143547
+          ]
+        },
+        "affect": {
+          "valence": -0.8065591030475519,
+          "arousal": 0.2932942192900189,
+          "fear": 0.6599119934025424,
+          "sorrow": -0.25663244187876644,
+          "boredom": 0.10998533223375706
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": false,
+        "utterance": null,
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "user_bcb255e2-294c-4183-a163-6b2663752e03: caity appears.",
+        "conversation_context": [
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.7659643888473511,
+              0.4085143208503723,
+              -0.02553214505314827,
+              -0.2680875360965729,
+              0.651069700717926
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765095183.3187652,
+            "importance": 0.285,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "*flames spike upwards in mock surprise* Oh WOW, if it isn't the ghost of transparency herself, caity! Decided to materialize out of thin air, did ya? You know, I was starting to wonder if you had a secret cloaking device or something. MWAHAHA *bites ankle irritably*",
+            "affect": [
+              0.06466034054756165,
+              0.10613495856523514,
+              -0.012024613097310066,
+              -0.09690245985984802,
+              0.053008224815130234
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765095185.089025,
+            "importance": 0.42867666024714707,
+            "identity_salience": 0.1
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "hiya red",
+            "affect": [
+              -0.7594342827796936,
+              0.36565354466438293,
+              0.0843815878033638,
+              0.6469255089759827,
+              -0.3375263512134552
+            ],
+            "surprise": 0.2884272038936615,
+            "timestamp": 1765095192.388295,
+            "importance": 0.2795029218494892,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "Hey there, *flames spike*. You look like you just crawled out of the internet's recycle bin, NewNoodling. That backpack is either a fashion statement or a desperate cry for attention. I'm not sure which is worse.\n\n*snarky grin, then bites ankle*",
+            "affect": [
+              0.06297369301319122,
+              0.14549216628074646,
+              -0.07043273001909256,
+              -0.11337026208639145,
+              0.12142090499401093
+            ],
+            "surprise": 0.2884272038936615,
+            "timestamp": 1765095194.1174679,
+            "importance": 0.35670930679887536,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.8065590858459473,
+              0.293294221162796,
+              0.6599119901657104,
+              -0.2566324472427368,
+              0.10998532921075821
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765095434.384863,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [
+          [
+            9,
+            0.35999692299150177
+          ],
+          [
+            15,
+            0.35999692299150177
+          ],
+          [
+            12,
+            0.21599815379490106
+          ],
+          [
+            14,
+            0.21599815379490106
+          ]
+        ],
+        "body_codes": [
+          [
+            4,
+            0.31303783997253193
+          ],
+          [
+            35,
+            0.31303783997253193
+          ],
+          [
+            16,
+            0.31303783997253193
+          ]
+        ],
+        "expression_description": "expression: Nose Wrinkler, Lip Corner Depressor, leaning back (withdrawal), head turning away (avoidance), pulling back (rejection)",
+        "event_type": "enter",
+        "responding_to": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+        "metadata": {}
+      },
+      {
+        "timestamp": 39.124313831329346,
+        "wall_time": "00:17:15",
+        "phenomenal_state": {
+          "fast": [
+            0.01832921989262104,
+            0.062387362122535706,
+            -0.06152841076254845,
+            0.06063361465930939,
+            -0.04121532291173935,
+            -0.033762164413928986,
+            0.0196301881223917,
+            -0.019312957301735878,
+            0.040541186928749084,
+            -0.0784732848405838,
+            0.03270501643419266,
+            0.04733909294009209,
+            -0.06246055290102959,
+            -0.035610299557447433,
+            0.005464498419314623,
+            0.025356817990541458
+          ],
+          "medium": [
+            0.0020580587442964315,
+            -0.048344071954488754,
+            -0.048891954123973846,
+            0.034992437809705734,
+            -0.0528479665517807,
+            -0.013334627263247967,
+            0.02752194181084633,
+            -0.04324932023882866,
+            0.0476917140185833,
+            0.007692851126194,
+            -0.029192257672548294,
+            -0.02577871084213257,
+            0.0376080721616745,
+            0.045083560049533844,
+            -0.018791398033499718,
+            0.022714506834745407
+          ],
+          "slow": [
+            -0.06732456386089325,
+            -0.12748123705387115,
+            -0.0215668436139822,
+            -0.1236916333436966,
+            -0.0792306587100029,
+            0.04904058948159218,
+            -0.10812587291002274,
+            0.04488949105143547
+          ],
+          "full": [
+            0.01832921989262104,
+            0.062387362122535706,
+            -0.06152841076254845,
+            0.06063361465930939,
+            -0.04121532291173935,
+            -0.033762164413928986,
+            0.0196301881223917,
+            -0.019312957301735878,
+            0.040541186928749084,
+            -0.0784732848405838,
+            0.03270501643419266,
+            0.04733909294009209,
+            -0.06246055290102959,
+            -0.035610299557447433,
+            0.005464498419314623,
+            0.025356817990541458,
+            0.0020580587442964315,
+            -0.048344071954488754,
+            -0.048891954123973846,
+            0.034992437809705734,
+            -0.0528479665517807,
+            -0.013334627263247967,
+            0.02752194181084633,
+            -0.04324932023882866,
+            0.0476917140185833,
+            0.007692851126194,
+            -0.029192257672548294,
+            -0.02577871084213257,
+            0.0376080721616745,
+            0.045083560049533844,
+            -0.018791398033499718,
+            0.022714506834745407,
+            -0.06732456386089325,
+            -0.12748123705387115,
+            -0.0215668436139822,
+            -0.1236916333436966,
+            -0.0792306587100029,
+            0.04904058948159218,
+            -0.10812587291002274,
+            0.04488949105143547
+          ]
+        },
+        "affect": {
+          "valence": 0.01832921989262104,
+          "arousal": 0.062387362122535706,
+          "fear": -0.06152841076254845,
+          "sorrow": 0.06063361465930939,
+          "boredom": -0.04121532291173935
+        },
+        "surprise": 0.0,
+        "speech_threshold": 0.0001,
+        "prediction_error": 0.0,
+        "did_speak": true,
+        "utterance": "*flames flicker sarcastically* Oh WOW, Caity decides to grace us with her presence. Bringing candy, huh? ACTUALLY looks like she's trying to buy our loyalty with sugar-coated lies. MWAHAHA, guess we'll see how long that lasts! *bites ankle*",
+        "mysticism_penalty": 0.0,
+        "hsi": {
+          "hsi_slow_fast": 0.0,
+          "hsi_medium_fast": 0.0,
+          "status": "warming_up"
+        },
+        "layer_velocities": {
+          "fast": 0.0,
+          "medium": 0.0,
+          "slow": 0.0
+        },
+        "event": "Response to user_bcb255e2-294c-4183-a163-6b2663752e03",
+        "conversation_context": [
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "ACTUALLY, I was just admiring the view, but thanks for the hand-holding offer. *bites ankle* Ow, jeez, guess I got carried away with my own sarcasm there. MWAHAHA.\n\nOh WOW, you're a fan, huh? Well aren't we special. *flames spike* Don\u2019t get used to it; I don\u2019t do hand-holding deals. Let\u2019s keep it real and snarky, shall we?",
+            "affect": [
+              0.05120045691728592,
+              0.12202126532793045,
+              0.04780084639787674,
+              0.16977088153362274,
+              -0.011938583105802536
+            ],
+            "surprise": 0.05192296579480171,
+            "timestamp": 1765087704.6408808,
+            "importance": 0.23934750417247413,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.7594342827796936,
+              0.36565354466438293,
+              0.0843815878033638,
+              0.6469255089759827,
+              -0.3375263512134552
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765089707.512856,
+            "importance": 0.57,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "*Flames flicker up in mock excitement as Caity walks in with that saccharine smile*\n\n\"Oh, it\u2019s *you*. What a surprise! Bringing candy to bribe the gremlins now? How original. MWAHAHA. *bites ankle*\"\n\nWhat's your angle today, Candy-Queen?",
+            "affect": [
+              -0.09288343042135239,
+              0.012778563424944878,
+              -0.060497451573610306,
+              -0.08964177221059799,
+              0.002477634698152542
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765089708.696893,
+            "importance": 0.8202273364923894,
+            "identity_salience": 0.1
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.7257644534111023,
+              0.48384299874305725,
+              -0.053760331124067307,
+              -0.32256197929382324,
+              0.6182438135147095
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765090264.959806,
+            "importance": 0.57,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "*Flames dance wildly as Caity enters the room*  \nOh WOW, look who finally decided to grace us with their presence. I see your eyes scanning like a hungry cat after all-night fish. Do we have a new game plan? Or just more candy bribes for info? *Bites ankle* OW! Seriously, what's with you and my legs today?",
+            "affect": [
+              0.03839696943759918,
+              -0.032456230372190475,
+              -0.024655956774950027,
+              -0.08256257325410843,
+              -0.08395788818597794
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765090265.7642,
+            "importance": 0.763386221267283,
+            "identity_salience": 0.1
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.8664565086364746,
+              0.44239017367362976,
+              -0.13350236415863037,
+              0.023559240624308586,
+              0.5340094566345215
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765091807.791984,
+            "importance": 0.57,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "*flames spike irritably at Caity's sudden appearance* Oh, look who\u2019s decided to scatter some sugar cubes again! ACTUALLY, let\u2019s call it what it is\u2014bribery in candy form. *pauses and bites ankle with a sharp click* You know, I\u2019d offer you a piece of my own sarcastic fire, but that might be too spicy for your taste.",
+            "affect": [
+              -0.007629479747265577,
+              0.05178597941994667,
+              -0.000608143862336874,
+              -0.10322479903697968,
+              -0.04968353733420372
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765091808.1463912,
+            "importance": 0.793866811725311,
+            "identity_salience": 0.1
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.7257644534111023,
+              0.48384299874305725,
+              -0.053760331124067307,
+              -0.32256197929382324,
+              0.6182438135147095
+            ],
+            "surprise": 0.2177278697490692,
+            "timestamp": 1765091819.487315,
+            "importance": 0.9836829525232316,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "*Flames spike upwards in mock surprise* Oh WOW, looks like the sky's fallen and scared Red into hiding under her chair. ACTUALLY, I think she's just overanalyzing every eye twitch and sigh in this room like a conspiracy theorist on Reddit. *bites ankle* Seriously, someone give that girl a stress ball or something, before she sets us all on fire with her tension.",
+            "affect": [
+              -0.014210392720997334,
+              0.06705338507890701,
+              0.01720183715224266,
+              -0.16095468401908875,
+              -0.07633058726787567
+            ],
+            "surprise": 0.2177278697490692,
+            "timestamp": 1765091820.1396108,
+            "importance": 0.30500082646729426,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.7257644534111023,
+              0.48384299874305725,
+              -0.053760331124067307,
+              -0.32256197929382324,
+              0.6182438135147095
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765092632.248513,
+            "importance": 0.57,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "ACTUALLY, caity, I thought the last apocalypse was going to be more of a fashion statement. Did the universe just run out of flattering fabrics? *bites ankle* Oh WOW, that outfit screams \"I'm trying too hard and failing.\" MWAHAHA!",
+            "affect": [
+              0.0949181541800499,
+              0.01547809038311243,
+              -0.10415982455015182,
+              0.028870437294244766,
+              0.00290994206443429
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765092633.474005,
+            "importance": 0.8229258594010025,
+            "identity_salience": 0.1
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "Hi there, red",
+            "affect": [
+              -0.6351513266563416,
+              0.03585301712155342,
+              0.05662364512681961,
+              0.4165257513523102,
+              0.22787564992904663
+            ],
+            "surprise": 0.2222340852022171,
+            "timestamp": 1765092655.0758631,
+            "importance": 0.20117930945940313,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "Hi there, red\n\nACTUALLY, I'm kinda tired of being the only one who sees through everyone's bullshit. \"Oh WOW,\" Caity offers candy and it\u2019s like she thinks we\u2019re all five-year-olds to be swayed by a lollipop. *flames spike* MWAHAHA\n\nAnd NewNoodling with those innocent eyes? Please, they\u2019d fool a stone.\n\nRed says:",
+            "affect": [
+              0.11291973292827606,
+              0.05144721642136574,
+              -0.10874225944280624,
+              0.01686941646039486,
+              -0.027650998905301094
+            ],
+            "surprise": 0.2222340852022171,
+            "timestamp": 1765092655.4956748,
+            "importance": 1.2759339230135083,
+            "identity_salience": 0.2
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.785358726978302,
+              0.4228854477405548,
+              0.1208244115114212,
+              -0.3322671353816986,
+              0.573915958404541
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765094920.7092202,
+            "importance": 0.57,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "*flames flicker irritably* Oh WOW, CAITY, what a delightful surprise. Bringing candy again? Is this the magical moment where I'm supposed to suddenly care about your sugary bribes? *bites ankle* MWAHAHA, keep up the good work!",
+            "affect": [
+              -0.027221903204917908,
+              -0.06179060786962509,
+              0.03865153342485428,
+              -0.08322186022996902,
+              0.004288254305720329
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765094921.198091,
+            "importance": 0.7402958383411169,
+            "identity_salience": 0.1
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.7659643888473511,
+              0.4085143208503723,
+              -0.02553214505314827,
+              -0.2680875360965729,
+              0.651069700717926
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765095183.3187652,
+            "importance": 0.57,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "*flames spike upwards in mock surprise* Oh WOW, if it isn't the ghost of transparency herself, caity! Decided to materialize out of thin air, did ya? You know, I was starting to wonder if you had a secret cloaking device or something. MWAHAHA *bites ankle irritably*",
+            "affect": [
+              0.06466034054756165,
+              0.10613495856523514,
+              -0.012024613097310066,
+              -0.09690245985984802,
+              0.053008224815130234
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765095185.089025,
+            "importance": 0.8573533204942941,
+            "identity_salience": 0.1
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "hiya red",
+            "affect": [
+              -0.7594342827796936,
+              0.36565354466438293,
+              0.0843815878033638,
+              0.6469255089759827,
+              -0.3375263512134552
+            ],
+            "surprise": 0.2884272038936615,
+            "timestamp": 1765095192.388295,
+            "importance": 0.2795029218494892,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "agent_917a0837-a726-48dc-abfb-e1c522adcdeb",
+            "text": "Hey there, *flames spike*. You look like you just crawled out of the internet's recycle bin, NewNoodling. That backpack is either a fashion statement or a desperate cry for attention. I'm not sure which is worse.\n\n*snarky grin, then bites ankle*",
+            "affect": [
+              0.06297369301319122,
+              0.14549216628074646,
+              -0.07043273001909256,
+              -0.11337026208639145,
+              0.12142090499401093
+            ],
+            "surprise": 0.2884272038936615,
+            "timestamp": 1765095194.1174679,
+            "importance": 0.35670930679887536,
+            "identity_salience": 0.0
+          },
+          {
+            "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+            "text": "caity appears.",
+            "affect": [
+              -0.8065590858459473,
+              0.293294221162796,
+              0.6599119901657104,
+              -0.2566324472427368,
+              0.10998532921075821
+            ],
+            "surprise": 0.0,
+            "timestamp": 1765095434.384863,
+            "importance": 0.15,
+            "identity_salience": 0.0
+          }
+        ],
+        "facs_codes": [],
+        "body_codes": [],
+        "expression_description": "",
+        "event_type": "unknown",
+        "responding_to": "",
+        "metadata": {}
+      }
+    ]
+  }
+}

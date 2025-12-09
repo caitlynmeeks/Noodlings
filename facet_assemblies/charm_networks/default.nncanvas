@@ -1,0 +1,497 @@
+{
+  "version": "1.0",
+  "name": "CharmNetwork Default",
+  "description": "Hierarchical temporal affect processor",
+  "metadata": {
+    "created": "2025-12-09T13:48:23.517342",
+    "modified": "2025-12-09T13:48:23.517443",
+    "author": "Caity",
+    "total_parameters": 5045
+  },
+  "nodes": [
+    {
+      "id": "43004eae-1d89-4289-adcf-a715a762e435",
+      "type": "INPUT",
+      "name": "Affect Input",
+      "position": [
+        100,
+        200
+      ],
+      "params": {
+        "output_dim": 5
+      },
+      "inputs": {},
+      "outputs": {
+        "affect": {
+          "data_type": "AFFECT",
+          "shape": [
+            5
+          ],
+          "label": "Affect (5-D)"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A5A3A",
+      "tags": [],
+      "description": "Network entry point (5-D affect vector)"
+    },
+    {
+      "id": "4b049dc9-84cc-48db-9d69-63679c8bf78c",
+      "type": "LSTM",
+      "name": "Fast LSTM",
+      "position": [
+        400,
+        200
+      ],
+      "params": {
+        "input_dim": 5,
+        "hidden_dim": 16,
+        "dropout": 0.0,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        },
+        "h": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Hidden"
+        },
+        "c": {
+          "data_type": "CELL_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Cell"
+        }
+      },
+      "outputs": {
+        "h_out": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "label": "Hidden"
+        },
+        "c_out": {
+          "data_type": "CELL_STATE",
+          "shape": null,
+          "label": "Cell"
+        }
+      },
+      "weights": {
+        "weight_ih": {
+          "shape": [
+            64,
+            5
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "weight_hh": {
+          "shape": [
+            64,
+            16
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "bias_ih": {
+          "shape": [
+            64
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "bias_hh": {
+          "shape": [
+            64
+          ],
+          "path": null,
+          "trainable": true
+        }
+      },
+      "collapsed": false,
+      "color": "#5A3A5A",
+      "tags": [],
+      "description": "Long Short-Term Memory recurrent layer"
+    },
+    {
+      "id": "f60d7ec4-e5c7-4da1-a28d-dd121702352f",
+      "type": "LSTM",
+      "name": "Medium LSTM",
+      "position": [
+        713,
+        -206
+      ],
+      "params": {
+        "input_dim": 5,
+        "hidden_dim": 16,
+        "dropout": 0.0,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        },
+        "h": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Hidden"
+        },
+        "c": {
+          "data_type": "CELL_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Cell"
+        }
+      },
+      "outputs": {
+        "h_out": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "label": "Hidden"
+        },
+        "c_out": {
+          "data_type": "CELL_STATE",
+          "shape": null,
+          "label": "Cell"
+        }
+      },
+      "weights": {
+        "weight_ih": {
+          "shape": [
+            64,
+            5
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "weight_hh": {
+          "shape": [
+            64,
+            16
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "bias_ih": {
+          "shape": [
+            64
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "bias_hh": {
+          "shape": [
+            64
+          ],
+          "path": null,
+          "trainable": true
+        }
+      },
+      "collapsed": false,
+      "color": "#5A3A5A",
+      "tags": [],
+      "description": "Long Short-Term Memory recurrent layer"
+    },
+    {
+      "id": "a928a0dc-baf4-40ed-9ce2-cb1a314f4a15",
+      "type": "GRU",
+      "name": "Slow GRU",
+      "position": [
+        988,
+        533
+      ],
+      "params": {
+        "input_dim": 16,
+        "hidden_dim": 8,
+        "dropout": 0.0,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        },
+        "h": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Hidden"
+        }
+      },
+      "outputs": {
+        "h_out": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "label": "Hidden"
+        }
+      },
+      "weights": {
+        "weight_ih": {
+          "shape": [
+            24,
+            16
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "weight_hh": {
+          "shape": [
+            24,
+            8
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "bias_ih": {
+          "shape": [
+            24
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "bias_hh": {
+          "shape": [
+            24
+          ],
+          "path": null,
+          "trainable": true
+        }
+      },
+      "collapsed": false,
+      "color": "#5A3A5A",
+      "tags": [],
+      "description": "Gated Recurrent Unit layer"
+    },
+    {
+      "id": "4837ff60-cc06-416c-ad78-fa294173d545",
+      "type": "STATE_CONCAT",
+      "name": "Phenomenal State",
+      "position": [
+        1300,
+        200
+      ],
+      "params": {},
+      "inputs": {
+        "fast": {
+          "data_type": "HIDDEN_STATE",
+          "shape": [
+            16
+          ],
+          "required": true,
+          "label": "Fast (16-D)"
+        },
+        "medium": {
+          "data_type": "HIDDEN_STATE",
+          "shape": [
+            16
+          ],
+          "required": true,
+          "label": "Medium (16-D)"
+        },
+        "slow": {
+          "data_type": "HIDDEN_STATE",
+          "shape": [
+            8
+          ],
+          "required": true,
+          "label": "Slow (8-D)"
+        }
+      },
+      "outputs": {
+        "state": {
+          "data_type": "PHENOMENAL_STATE",
+          "shape": [
+            40
+          ],
+          "label": "Phenomenal State"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A5A5A",
+      "tags": [],
+      "description": "Concatenate multiple hidden states into phenomenal state"
+    },
+    {
+      "id": "686e2e4d-6fda-4b78-b79c-fbc95ffafa83",
+      "type": "AFFECT_HEAD",
+      "name": "Affect Predictor",
+      "position": [
+        1600,
+        200
+      ],
+      "params": {
+        "state_dim": 40,
+        "affect_dim": 5,
+        "hidden_dim": 32
+      },
+      "inputs": {
+        "state": {
+          "data_type": "PHENOMENAL_STATE",
+          "shape": [
+            40
+          ],
+          "required": true,
+          "label": "State (40-D)"
+        }
+      },
+      "outputs": {
+        "valence": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "label": "Valence"
+        },
+        "arousal": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "label": "Arousal"
+        },
+        "fear": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "label": "Fear"
+        },
+        "sorrow": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "label": "Sorrow"
+        },
+        "boredom": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "label": "Boredom"
+        }
+      },
+      "weights": {
+        "fc1_weight": {
+          "shape": [
+            32,
+            40
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "fc1_bias": {
+          "shape": [
+            32
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "fc2_weight": {
+          "shape": [
+            5,
+            32
+          ],
+          "path": null,
+          "trainable": true
+        },
+        "fc2_bias": {
+          "shape": [
+            5
+          ],
+          "path": null,
+          "trainable": true
+        }
+      },
+      "collapsed": false,
+      "color": "#5A4A3A",
+      "tags": [],
+      "description": "Maps phenomenal state to 5-D continuous affect"
+    },
+    {
+      "id": "09aa96d9-fcf6-486c-ac43-553e22cdd64b",
+      "type": "OUTPUT",
+      "name": "Network Output",
+      "position": [
+        1900,
+        200
+      ],
+      "params": {},
+      "inputs": {
+        "state": {
+          "data_type": "PHENOMENAL_STATE",
+          "shape": [
+            40
+          ],
+          "required": true,
+          "label": "State (40-D)"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A5A3A",
+      "tags": [],
+      "description": "Network exit point"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "43004eae-1d89-4289-adcf-a715a762e435",
+      "from_port": "affect",
+      "to_node": "4b049dc9-84cc-48db-9d69-63679c8bf78c",
+      "to_port": "x"
+    },
+    {
+      "from_node": "4b049dc9-84cc-48db-9d69-63679c8bf78c",
+      "from_port": "h_out",
+      "to_node": "f60d7ec4-e5c7-4da1-a28d-dd121702352f",
+      "to_port": "x"
+    },
+    {
+      "from_node": "f60d7ec4-e5c7-4da1-a28d-dd121702352f",
+      "from_port": "h_out",
+      "to_node": "a928a0dc-baf4-40ed-9ce2-cb1a314f4a15",
+      "to_port": "x"
+    },
+    {
+      "from_node": "4b049dc9-84cc-48db-9d69-63679c8bf78c",
+      "from_port": "h_out",
+      "to_node": "4837ff60-cc06-416c-ad78-fa294173d545",
+      "to_port": "fast"
+    },
+    {
+      "from_node": "f60d7ec4-e5c7-4da1-a28d-dd121702352f",
+      "from_port": "h_out",
+      "to_node": "4837ff60-cc06-416c-ad78-fa294173d545",
+      "to_port": "medium"
+    },
+    {
+      "from_node": "a928a0dc-baf4-40ed-9ce2-cb1a314f4a15",
+      "from_port": "h_out",
+      "to_node": "4837ff60-cc06-416c-ad78-fa294173d545",
+      "to_port": "slow"
+    },
+    {
+      "from_node": "4837ff60-cc06-416c-ad78-fa294173d545",
+      "from_port": "state",
+      "to_node": "686e2e4d-6fda-4b78-b79c-fbc95ffafa83",
+      "to_port": "state"
+    },
+    {
+      "from_node": "4837ff60-cc06-416c-ad78-fa294173d545",
+      "from_port": "state",
+      "to_node": "09aa96d9-fcf6-486c-ac43-553e22cdd64b",
+      "to_port": "state"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": false,
+    "onnx": false
+  }
+}

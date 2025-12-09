@@ -114,7 +114,10 @@ Symbolic image:"""
                 max_tokens=100
             )
 
-            symbolic_image = symbolic_image.strip()
+            # Handle dict responses (some LLM clients return {text: ...})
+            if isinstance(symbolic_image, dict):
+                symbolic_image = symbolic_image.get('text', symbolic_image.get('content', ''))
+            symbolic_image = str(symbolic_image).strip()
 
             logger.info(f"💭 Subconscious: {symbolic_image[:80]}...")
             print(f"[{agent_name.upper()}] 💭 Subconscious: {symbolic_image[:80]}...")  # For FACETS console

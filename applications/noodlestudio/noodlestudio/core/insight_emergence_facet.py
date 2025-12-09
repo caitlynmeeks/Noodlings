@@ -118,7 +118,10 @@ Conscious thought (privately thinks format):"""
                 max_tokens=150
             )
 
-            conscious_thought = conscious_thought.strip()
+            # Handle dict responses (some LLM clients return {text: ...})
+            if isinstance(conscious_thought, dict):
+                conscious_thought = conscious_thought.get('text', conscious_thought.get('content', ''))
+            conscious_thought = str(conscious_thought).strip()
 
             # Ensure "privately thinks" format
             if not conscious_thought.startswith('privately thinks'):

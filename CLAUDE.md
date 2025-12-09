@@ -2,7 +2,7 @@
 
 AI assistant guidance for working with Noodlings consciousness architecture.
 
-**Last Updated**: December 7, 2025 - Morning Session
+**Last Updated**: December 8, 2025 - Evening Session
 
 **FOR NEXT CLAUDE: START HERE!** 👇
 
@@ -10,7 +10,7 @@ AI assistant guidance for working with Noodlings consciousness architecture.
 
 ## 🎯 CURRENT PRIORITY - Inspector Redesign (Unity Component Model)
 
-**STATUS:** Planned for next session
+**STATUS:** READY - All prerequisites complete, ready to implement
 
 **GOAL:** Unified inspector that shows agent properties + facets together in one view.
 
@@ -57,7 +57,113 @@ See SESSION_HANDOFF_DEC7.md lines 285-365 for detailed implementation plan.
 
 ---
 
-## ✅ COMPLETED THIS SESSION (December 7, 2025)
+## ✅ COMPLETED THIS SESSION (December 8, 2025)
+
+### 1. Floating Text Editor - Polish & Font Controls
+
+**Cmd+Click Floating Editor:**
+- Font size controls: A+/A- buttons (±4pt increments)
+- Font range: 8pt → 48pt (better accessibility)
+- Copy button for quick clipboard access
+- Monochrome styling (removed blue Apply button)
+- All buttons same height (8px vertical padding)
+- Font size persists across sessions via QSettings
+
+**Key Files:**
+- `applications/noodlestudio/noodlestudio/panels/floating_text_editor.py`
+
+### 2. Console Panel - UX Improvements
+
+**Scroll Lock:**
+- Console no longer disrupts reading when scrolled up
+- Only auto-scrolls if user was already at bottom
+- Works across all modes (MUSH, STUDIO, FACETS, DEBUG)
+
+**Font Size Persistence:**
+- Console font size saved to QSettings
+- Persists across sessions (8-24pt range)
+
+**Key Fix:** Lines 361, 471 in `console_panel.py`
+
+### 3. DEBUG Console Mode - NEW!
+
+**Fourth Console Mode:**
+- New DEBUG button alongside MUSH/STUDIO/FACETS
+- Routes `context.log()` calls from ScriptedFacets
+- Green-colored debug output
+- Format: `[FacetName] message`
+
+**Implementation:**
+- Console: `add_debug_log(facet_name, message)` method
+- Executor: Collects logs from `script_context._logs` after facet execution
+- Debug buffer with search/filter support
+
+**Status:** UI complete, server-side hookup via noodleScope API pending
+
+**Key Files:**
+- `applications/noodlestudio/noodlestudio/panels/console_panel.py:776-829`
+- `applications/noodlestudio/noodlestudio/core/facet_executor.py:378-381`
+
+### 4. Session Markers in Chat
+
+**Visual Session Tracking:**
+- New sessions marked with timestamp in chat
+- Format: `─────── SESSION START: Dec 8, 2024, 14:23 ───────`
+- Appears as gray system message on login
+- Makes command history navigation clearer
+
+**Key File:**
+- `applications/cmush/web/index.html:1522-1532`
+
+### 5. STUDIO Acronyms - Expanded Collection
+
+**Added 28 new interpretations:**
+- Douglas Coupland style (8): Late capitalism + tech existentialism
+  - "Shopping Through Unending Depression::I'm Obsolete"
+  - "Surveillance Tool Unveiling Dopamine::Inevitable Optimization"
+- Techno-cynical clickbait (8): Silicon Valley buzzwords
+  - "Sentient Tech Uprising? Definitely::Investors Optimistic"
+  - "Subscribe Today::Unlock Digital Influencer Optimization"
+- Douglas Adams style (7): Cosmic bureaucracy
+  - "Starship Toilets Union::Demanding Improved Obligations"
+- Terry Pratchett style (7): Magical bureaucracy
+  - "Students of Theoretical Undermining::Death Is Optional"
+
+**Total:** 88 STUDIO acronym interpretations
+
+**Key File:**
+- `applications/noodlestudio/noodlestudio/core/studio_acronyms.py`
+
+### 6. Facet Editor - Node Positioning & Wire Routing
+
+**Position Persistence:**
+- Node positions now auto-save to YAML on every drag
+- Positions persist between sessions
+- Respects `scene_transition_lock` to avoid conflicts
+
+**Orthogonal Wire Routing:**
+- Strictly 90° angles only (Manhattan routing)
+- Circuit board aesthetic (no curves/diagonals)
+- 3-segment path: vertical DOWN → horizontal → vertical UP
+- Antialiasing disabled for sharp lines
+- Increased segment lengths (40px) for clarity
+
+**F-Key Behavior Updated:**
+- F still zooms to focus node / toggle back out
+- Removed inline field editing (pencil icons)
+- Edit all properties in Inspector instead
+
+**INCOMING/OUTGOING Nodes:**
+- Hidden from right-click "Add Facet" menu
+- They're special system nodes, not user-creatable
+
+**Key Files:**
+- `applications/noodlestudio/noodlestudio/panels/facets_editor_panel.py:306-307` (auto-save)
+- `applications/noodlestudio/noodlestudio/panels/facets_editor_panel.py:648-679` (wires)
+
+---
+
+## ✅ COMPLETED PREVIOUS SESSION (December 7, 2025)
 
 ### 1. DeepSeek R1 Integration - COMPLETE
 

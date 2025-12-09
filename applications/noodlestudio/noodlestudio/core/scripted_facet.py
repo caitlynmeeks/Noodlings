@@ -27,13 +27,22 @@ from typing import Dict, Any, Optional, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 
-# JavaScript execution via PyMiniRacer (V8 isolate)
+# JavaScript execution via QuickJS (FIXED for Python 3.14!)
 try:
-    from py_mini_racer import MiniRacer
+    from quickjs import Context as QuickJSContext
     JS_AVAILABLE = True
+    JS_ENGINE = "quickjs"
 except ImportError:
-    JS_AVAILABLE = False
-    MiniRacer = None
+    # Fallback to PyMiniRacer (broken on Python 3.14 Mac)
+    try:
+        from py_mini_racer import MiniRacer
+        JS_AVAILABLE = True
+        JS_ENGINE = "pyminirace"
+    except ImportError:
+        JS_AVAILABLE = False
+        QuickJSContext = None
+        MiniRacer = None
+        JS_ENGINE = None
 
 # Event bus integration
 try:
@@ -202,9 +211,12 @@ class ScriptedFacet:
         if script_language == "javascript":
             if not JS_AVAILABLE:
                 raise ImportError(
-                    "PyMiniRacer not installed. Install with: pip install py-mini-racer"
+                    "No JavaScript engine available. Install with: pip install quickjs"
                 )
-            self.js_context = MiniRacer()
+            if JS_ENGINE == "quickjs":
+                self.js_context = QuickJSContext()
+            else:  # pyminirace
+                self.js_context = MiniRacer()
             self._setup_javascript_context()
         else:
             raise NotImplementedError(f"Language '{script_language}' not yet supported")
@@ -372,6 +384,8 @@ class ScriptedFacet:
         """
         start_time = time.time()
 
+        import json  # MOVED TO TOP!
+
         try:
             # Inject context storage into JavaScript
             self.js_context.eval(
@@ -404,13 +418,22 @@ class ScriptedFacet:
             # Build context object
             context_js = context.to_dict()
 
-            # Call user's process function
-            result_json = self.js_context.call(
-                "process",
-                inputs,
-                context_js,
-                timeout=int(self.timeout * 1000)  # milliseconds
-            )
+            # Call user's process function (API differs between engines)
+            if hasattr(self.js_context, 'call'):  # PyMiniRacer
+                result_json = self.js_context.call(
+                    "process",
+                    inputs,
+                    context_js,
+                    timeout=int(self.timeout * 1000)  # milliseconds
+                )
+            else:  # QuickJS - use eval with JSON serialization
+                call_code = f"process({json.dumps(inputs)}, {json.dumps(context_js)})"
+                result_obj = self.js_context.eval(call_code)
+                # Convert QuickJS object to Python dict
+                if hasattr(result_obj, 'json'):
+                    result_json = json.loads(result_obj.json())
+                else:
+                    result_json = result_obj
 
             # Extract outputs
             if not isinstance(result_json, dict):

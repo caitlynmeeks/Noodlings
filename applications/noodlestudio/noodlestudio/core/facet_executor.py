@@ -18,6 +18,7 @@ Date: November 28, 2025
 
 import asyncio
 import time
+import uuid
 from typing import Dict, Any, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict, deque
@@ -62,6 +63,9 @@ class ExecutionResult:
     branches_taken: Dict[str, str] = field(default_factory=dict)  # facet_id -> "true"/"false"
     cache_hits: List[str] = field(default_factory=list)
 
+    # Execution tracking (for race condition prevention)
+    execution_id: str = ""
+
 
 class FacetExecutor:
     """
@@ -81,7 +85,7 @@ class FacetExecutor:
     - LLM facets (via provided LLM client)
     """
 
-    def __init__(self, llm_client=None, event_callback=None, use_event_bus=True):
+    def __init__(self, llm_client=None, event_callback=None, use_event_bus=True, concurrency_mode='hybrid'):
         """
         Initialize executor.
 
@@ -90,17 +94,39 @@ class FacetExecutor:
             event_callback: Async callback for execution events (optional, deprecated)
                           Use event bus instead for better decoupling
             use_event_bus: Use global event bus for event distribution (recommended)
+            concurrency_mode: Concurrency strategy - 'serial', 'hybrid', or 'full'
+                            - serial: Lock entire execution (debug mode)
+                            - hybrid: Singleton stateful facets, isolated stateless (production)
+                            - full: No locks, fresh instances (NOT RECOMMENDED)
         """
         self.llm_client = llm_client
         self.event_callback = event_callback  # Legacy support
         self.use_event_bus = use_event_bus
+        self.concurrency_mode = concurrency_mode
         self.current_cycle = 0
 
-        # Facet instances (cached)
+        # Debug log callback (for routing context.log() to DEBUG console)
+        self.debug_log_callback = None
+
+        # HYBRID STRATEGY: Separate singleton and stateless facets
+        # Singleton facets - shared across executions (protected by internal locks)
+        self.singleton_facets: Dict[str, Any] = {}
+
+        # Legacy cached instances (will be phased out)
         self.facet_instances: Dict[str, Any] = {}
+
+        # Per-execution results storage (for race condition prevention)
+        self.execution_results: Dict[str, Dict[str, Any]] = {}
 
         # Execution history
         self.execution_history: List[ExecutionResult] = []
+
+        # Serial mode lock (debug only)
+        if concurrency_mode == 'serial':
+            self.execution_lock = asyncio.Semaphore(1)
+            logger.info("[FacetExecutor] Serial mode enabled - one execution at a time")
+        else:
+            self.execution_lock = None
 
         # Get event bus reference
         if use_event_bus:
@@ -135,6 +161,29 @@ class FacetExecutor:
             except Exception as e:
                 logger.error(f"Legacy event callback failed: {e}")
 
+    def set_debug_log_callback(self, callback):
+        """
+        Set callback for debug logs from ScriptedFacet context.log() calls.
+
+        Args:
+            callback: Function(facet_name: str, message: str) -> None
+        """
+        self.debug_log_callback = callback
+
+    def _emit_debug_log(self, facet_name: str, message: str):
+        """
+        Emit a debug log message to the DEBUG console.
+
+        Args:
+            facet_name: Name of facet that logged the message
+            message: The log message from context.log()
+        """
+        if self.debug_log_callback:
+            try:
+                self.debug_log_callback(facet_name, message)
+            except Exception as e:
+                logger.error(f"Debug log callback failed: {e}")
+
     def _build_dependency_graph(
         self,
         assembly: FacetAssembly
@@ -163,95 +212,105 @@ class FacetExecutor:
 
         return dict(dependencies), dict(dependents)
 
-    def _get_facet_instance(self, facet: Facet) -> Any:
+    def _get_facet_instance(self, facet: Facet, context: Dict[str, Any]) -> Any:
         """
-        Get or create facet instance.
+        Get or create facet instance using HYBRID STRATEGY.
 
-        Caches instances for stateful facets (CharmNetwork, ScriptedFacet, etc.)
+        STATEFUL facets (singleton): CharmNetwork, RateLimiter, Cache, Accumulator, SpeechGate
+        - Shared across all executions (temporal memory)
+        - Protected by internal locks
+
+        STATELESS facets (isolated): ContextIntelligence, Subconscious, InsightEmergence
+        - Fresh instance per execution (no contamination)
+        - No persistent state
+
+        Args:
+            facet: Facet to instantiate
+            context: Execution context (contains execution_id for tracking)
+
+        Returns:
+            Facet instance (singleton or fresh)
         """
-        if facet.id in self.facet_instances:
-            return self.facet_instances[facet.id]
-
-        # Create instance based on type
+        # STATEFUL FACETS - Use singleton (shared across executions)
         if facet.facet_type == "CharmNetworkFacet":
-            # Extract checkpoint path from metadata or facet config
-            checkpoint_path = facet.model  # Stored in model field for special facets
-            instance = CharmNetworkFacet(checkpoint_path)
-            self.facet_instances[facet.id] = instance
-            return instance
+            # Singleton: Temporal hidden states (h_fast, h_medium, h_slow)
+            if 'charm_network' not in self.singleton_facets:
+                checkpoint_path = facet.model
+                self.singleton_facets['charm_network'] = CharmNetworkFacet(checkpoint_path)
+                logger.info("[FacetExecutor] Created singleton CharmNetworkFacet")
+            return self.singleton_facets['charm_network']
+
+        elif facet.facet_type == "RateLimiterFacet":
+            # Singleton: Tracks last execution timestamp
+            if facet.id not in self.singleton_facets:
+                interval = float(facet.temperature)
+                self.singleton_facets[facet.id] = RateLimiterFacet(facet.id, min_interval=interval)
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "CacheFacet":
+            # Singleton: Stores cached values with TTL
+            if facet.id not in self.singleton_facets:
+                ttl = int(facet.max_tokens)
+                self.singleton_facets[facet.id] = CacheFacet(facet.id, ttl=ttl)
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "AccumulatorFacet":
+            # Singleton: Maintains rolling window
+            if facet.id not in self.singleton_facets:
+                window_size = int(facet.max_tokens)
+                self.singleton_facets[facet.id] = AccumulatorFacet(facet.id, window_size=window_size)
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "SpeechGateFacet":
+            # Singleton: Tracks speech cooldown state
+            if facet.id not in self.singleton_facets:
+                min_interval = float(facet.temperature)
+                self.singleton_facets[facet.id] = SpeechGateFacet(min_interval=min_interval)
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "TickerGateFacet":
+            # Singleton: Tracks tick count
+            if facet.id not in self.singleton_facets:
+                interval = int(facet.max_tokens)
+                self.singleton_facets[facet.id] = TickerGateFacet(facet.id, interval=interval)
+            return self.singleton_facets[facet.id]
 
         elif facet.facet_type == "ScriptedFacet":
-            # Extract script from prompt field
-            instance = ScriptedFacet(facet.id, facet.prompt, script_language="javascript")
-            self.facet_instances[facet.id] = instance
-            return instance
+            # Singleton: Script compilation caching
+            if facet.id not in self.singleton_facets:
+                self.singleton_facets[facet.id] = ScriptedFacet(facet.id, facet.prompt, script_language="javascript")
+            return self.singleton_facets[facet.id]
 
-        elif facet.facet_type == "SubconsciousFacet":
-            # Continuous symbolic processing
-            instance = SubconsciousFacet(facet.id)
-            self.facet_instances[facet.id] = instance
-            return instance
+        elif facet.facet_type == "ConditionalBranchFacet":
+            # Singleton: Stateless but cache for performance
+            if facet.id not in self.singleton_facets:
+                condition = facet.prompt
+                variables = [p.name for p in facet.input_pads if p.name != 'in']
+                self.singleton_facets[facet.id] = ConditionalBranchFacet(facet.id, condition, variables)
+            return self.singleton_facets[facet.id]
 
-        elif facet.facet_type == "InsightEmergenceFacet":
-            # Safety-gated insight surfacing
-            instance = InsightEmergenceFacet(facet.id)
-            self.facet_instances[facet.id] = instance
-            return instance
-
+        # STATELESS FACETS - Create fresh instance per execution
         elif facet.facet_type == "ContextIntelligenceFacet":
-            # Context reasoning - maintains world model
-            # Agent name will be provided in context at execution time
-            instance = ContextIntelligenceFacet(
+            # ISOLATED: Fresh instance prevents contamination between cycles
+            agent_name = context.get('agent_name', 'unknown')
+            logger.info(f"[FacetExecutor] Creating ISOLATED ContextIntelligence for execution {context.get('execution_id', '?')[:8]}")
+            return ContextIntelligenceFacet(
                 facet_config={
                     'model': facet.model,
                     'max_tokens': facet.max_tokens,
                     'temperature': facet.temperature
                 },
                 llm_client=self.llm_client,
-                agent_name='unknown'  # Will be updated from context
+                agent_name=agent_name  # Set from context immediately!
             )
-            self.facet_instances[facet.id] = instance
-            return instance
 
-        elif facet.facet_type == "TickerGateFacet":
-            # Parse config from facet metadata
-            interval = int(facet.max_tokens)  # Using max_tokens as interval storage (hack)
-            instance = TickerGateFacet(facet.id, interval=interval)
-            self.facet_instances[facet.id] = instance
-            return instance
+        elif facet.facet_type == "SubconsciousFacet":
+            # ISOLATED: Generates metaphors from inputs (no state)
+            return SubconsciousFacet(facet.id)
 
-        elif facet.facet_type == "ConditionalBranchFacet":
-            # Parse condition from prompt
-            condition = facet.prompt
-            variables = [p.name for p in facet.input_pads if p.name != 'in']
-            instance = ConditionalBranchFacet(facet.id, condition, variables)
-            self.facet_instances[facet.id] = instance
-            return instance
-
-        elif facet.facet_type == "RateLimiterFacet":
-            interval = float(facet.temperature)  # Using temperature as interval (hack)
-            instance = RateLimiterFacet(facet.id, min_interval=interval)
-            self.facet_instances[facet.id] = instance
-            return instance
-
-        elif facet.facet_type == "CacheFacet":
-            ttl = int(facet.max_tokens)  # Using max_tokens as TTL
-            instance = CacheFacet(facet.id, ttl=ttl)
-            self.facet_instances[facet.id] = instance
-            return instance
-
-        elif facet.facet_type == "AccumulatorFacet":
-            window_size = int(facet.max_tokens)
-            instance = AccumulatorFacet(facet.id, window_size=window_size)
-            self.facet_instances[facet.id] = instance
-            return instance
-
-        elif facet.facet_type == "SpeechGateFacet":
-            # Speech cooldown gate
-            min_interval = float(facet.temperature)  # Using temperature as interval storage
-            instance = SpeechGateFacet(min_interval=min_interval)
-            self.facet_instances[facet.id] = instance
-            return instance
+        elif facet.facet_type == "InsightEmergenceFacet":
+            # ISOLATED: Surfaces insights from context (no state)
+            return InsightEmergenceFacet(facet.id)
 
         elif facet.facet_type == "SpecialNode":
             # INCOMING/OUTGOING - no instance needed
@@ -292,8 +351,8 @@ class FacetExecutor:
             'cycle': self.current_cycle
         })
 
-        # Get or create instance
-        instance = self._get_facet_instance(facet)
+        # Get or create instance (hybrid strategy: singleton or isolated)
+        instance = self._get_facet_instance(facet, context)
 
         # Execute based on type
         if facet.facet_type == "SpecialNode":
@@ -316,7 +375,7 @@ class FacetExecutor:
                 affect_vector = perception_text
                 perception_text = ''
 
-            result = instance.process(perception_text, affect_vector)
+            result = await instance.process(perception_text, affect_vector)
 
             # Map CharmNetworkOutput to pad outputs
             outputs = {
@@ -341,6 +400,11 @@ class FacetExecutor:
             )
             outputs = instance.process(inputs, script_context)
             token_count = 0
+
+            # Emit any debug logs from context.log() calls to DEBUG console
+            if script_context._logs:
+                for log_message in script_context._logs:
+                    self._emit_debug_log(facet.name, log_message)
 
         elif facet.facet_type == "SubconsciousFacet":
             # Symbolic processing (uses LLM for metaphor generation)
@@ -613,10 +677,16 @@ class FacetExecutor:
 
             result = ctx.eval(js_code)
 
+            # DEBUG: Log raw result before conversion
+            logger.info(f"[SALIENCE DEBUG] {facet.name} raw result type: {type(result)}, value: {result}")
+
             # Convert QuickJS object to Python dict
             if hasattr(result, 'json'):  # QuickJS
                 result = json.loads(result.json())
             # PyMiniRacer returns dict directly
+
+            # DEBUG: Log result after conversion
+            logger.info(f"[SALIENCE DEBUG] {facet.name} parsed result: {result}")
 
             # Extract results
             salience = float(result.get('salience', 0.5))
@@ -655,11 +725,33 @@ class FacetExecutor:
         Returns:
             ExecutionResult with final output and metadata
         """
+        # Serial mode lock (debug only)
+        if self.execution_lock:
+            async with self.execution_lock:
+                return await self._execute_internal(assembly, incoming_data, context)
+        else:
+            return await self._execute_internal(assembly, incoming_data, context)
+
+    async def _execute_internal(
+        self,
+        assembly: FacetAssembly,
+        incoming_data: Any,
+        context: Optional[Dict[str, Any]] = None
+    ) -> ExecutionResult:
+        """
+        Internal execution implementation (wrapped by execute() for serial lock).
+        """
         start_time = time.time()
         self.current_cycle += 1
 
         if context is None:
             context = {}
+
+        # Create unique execution ID
+        execution_id = str(uuid.uuid4())
+        context['execution_id'] = execution_id
+
+        logger.info(f"[FacetExecutor] 🆔 Execution ID: {execution_id[:8]} (mode={self.concurrency_mode})")
 
         # Emit cycle_start event
         print(f"[FacetExecutor] 🎯 EXECUTING ASSEMBLY: '{assembly.name}' with {len(assembly.facets)} facets")
@@ -700,7 +792,19 @@ class FacetExecutor:
         logger.info(f"[FacetExecutor] incoming_data added to context: '{incoming_data}'")
 
         # Execute until all nodes processed
+        iteration = 0
+        max_iterations = 20  # Safety limit to prevent infinite loops
         while pending:
+            iteration += 1
+            logger.info(f"[LOOP DEBUG] 🔄 Iteration {iteration}/{max_iterations}")
+            logger.info(f"[LOOP DEBUG]    pending: {list(pending)}")
+            logger.info(f"[LOOP DEBUG]    completed: {list(completed.keys())}")
+
+            if iteration > max_iterations:
+                logger.error(f"[LOOP DEBUG] ❌ INFINITE LOOP DETECTED! Breaking after {max_iterations} iterations!")
+                logger.error(f"[LOOP DEBUG]    Stuck facets: {list(pending)}")
+                break
+
             # Find ready facets (all dependencies satisfied)
             ready = []
             waiting = []
@@ -785,6 +889,7 @@ class FacetExecutor:
 
                     completed[facet.id] = default_outputs
                     pending.remove(facet.id)
+                    logger.info(f"[LOOP DEBUG] ⏭️  Skipped {facet.id}, removed from pending")
 
             # Execute filtered facets in parallel
             if facets_to_execute:
@@ -798,6 +903,7 @@ class FacetExecutor:
                 for (facet, _), outputs in zip(facets_to_execute, results):
                     completed[facet.id] = outputs
                     pending.remove(facet.id)
+                    logger.info(f"[LOOP DEBUG] ✅ Executed {facet.id}, removed from pending")
 
                     # DEBUG: Log facet outputs
                     if outputs:
@@ -812,6 +918,14 @@ class FacetExecutor:
                                 logger.info(f"  {key}: {value}")
                             else:
                                 logger.info(f"  {key}: <{type(value).__name__}>")
+                        # Log OUTPUT too!
+                        conv_out = outputs.get('convergent_response', '')
+                        logger.info(f"[CONVERGENCE DEBUG] OUTPUT: '{conv_out}' (len={len(conv_out) if isinstance(conv_out, str) else 'N/A'})")
+
+                    # DEBUG: Log OUTGOING output!
+                    if facet.name == "OUTGOING":
+                        out_val = outputs.get('out', '')
+                        logger.info(f"[OUTGOING DEBUG] OUTPUT: '{out_val}' (len={len(out_val) if isinstance(out_val, str) else 'N/A'})")
 
                 # Track tokens
                 token_usage = facet.get_token_usage()
@@ -852,7 +966,8 @@ class FacetExecutor:
             total_tokens=total_tokens,
             facets_executed=len(completed),
             facets_skipped=0,
-            facet_outputs=completed
+            facet_outputs=completed,
+            execution_id=execution_id
         )
 
         # TIMING SUMMARY - Show slowest facets

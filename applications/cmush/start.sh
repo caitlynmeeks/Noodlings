@@ -18,10 +18,10 @@ if [ ! -f "world/rooms.json" ]; then
     $PYTHON init_world.py
 fi
 
-# Start HTTP server for web client in background
-echo "Starting HTTP server on port 8080..."
+# Start HTTP server for web client in background (bind to all interfaces for network access)
+echo "Starting HTTP server on port 8080 (accessible via network)..."
 cd web
-$PYTHON -m http.server 8080 &
+$PYTHON -m http.server 8080 --bind 0.0.0.0 &
 HTTP_PID=$!
 cd ..
 

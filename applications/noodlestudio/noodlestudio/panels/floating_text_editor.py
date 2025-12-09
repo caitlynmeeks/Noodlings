@@ -191,26 +191,61 @@ class FloatingTextEditor(QDialog):
         button_layout = QHBoxLayout(button_bar)
         button_layout.setContentsMargins(10, 10, 10, 10)
 
-        # Font size controls (left side)
-        font_label = QLabel("Font:")
-        font_label.setStyleSheet("color: #888888; font-size: 9pt;")
-        button_layout.addWidget(font_label)
-
+        # Font size controls (left side) - no label, just buttons
         decrease_btn = QPushButton("A-")
         decrease_btn.setMaximumWidth(40)
-        decrease_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
+        decrease_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555;
+                padding: 8px 4px;
+            }
+            QPushButton:hover {
+                background-color: #4A4A4A;
+            }
+        """)
         decrease_btn.clicked.connect(self.decrease_font_size)
         button_layout.addWidget(decrease_btn)
 
         self.font_size_label = QLabel(f"{self.font_size}pt")
-        self.font_size_label.setStyleSheet("color: #CCCCCC; font-size: 9pt; min-width: 30px;")
+        self.font_size_label.setStyleSheet("color: #CCCCCC; font-size: 10pt; min-width: 35px;")
         button_layout.addWidget(self.font_size_label)
 
         increase_btn = QPushButton("A+")
         increase_btn.setMaximumWidth(40)
-        increase_btn.setStyleSheet("background-color: #3E3E3E; color: #CCCCCC; border: 1px solid #555; padding: 2px;")
+        increase_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555;
+                padding: 8px 4px;
+            }
+            QPushButton:hover {
+                background-color: #4A4A4A;
+            }
+        """)
         increase_btn.clicked.connect(self.increase_font_size)
         button_layout.addWidget(increase_btn)
+
+        button_layout.addSpacing(20)
+
+        # Copy button (always available) - same height as other buttons
+        copy_btn = QPushButton("Copy")
+        copy_btn.setMaximumWidth(60)
+        copy_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #4A4A4A;
+            }
+        """)
+        copy_btn.clicked.connect(self.copy_to_clipboard)
+        button_layout.addWidget(copy_btn)
 
         button_layout.addSpacing(20)
 
@@ -238,20 +273,20 @@ class FloatingTextEditor(QDialog):
 
         button_layout.addStretch()
 
-        # Apply button (always rightmost)
+        # Apply button (always rightmost) - monochrome gray, not blue
         apply_btn = QPushButton("Close" if self.read_only else "Apply")
         apply_btn.setDefault(True)
         apply_btn.clicked.connect(self.apply_and_close)
         apply_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2d5c8f;
-                color: #FFFFFF;
-                border: 1px solid #4a7cba;
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555;
                 padding: 8px 24px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #3d6c9f;
+                background-color: #4A4A4A;
             }
         """)
         button_layout.addWidget(apply_btn)
@@ -292,13 +327,17 @@ class FloatingTextEditor(QDialog):
         reset_zoom.activated.connect(self.reset_font_size)
 
     def increase_font_size(self):
-        """Increase editor font size (Cmd/Ctrl +)."""
-        self.font_size = min(self.font_size + 2, 32)  # Max 32pt
+        """Increase editor font size (Cmd/Ctrl + or A+ button)."""
+        # Use stored font_size (source of truth), not reading back from widget
+        # (pointSize() can return -1 if font uses pixel size instead)
+        self.font_size = min(self.font_size + 4, 48)  # Max 48pt, +4pt per click
         self.update_font()
 
     def decrease_font_size(self):
-        """Decrease editor font size (Cmd/Ctrl -)."""
-        self.font_size = max(self.font_size - 2, 8)  # Min 8pt
+        """Decrease editor font size (Cmd/Ctrl - or A- button)."""
+        # Use stored font_size (source of truth), not reading back from widget
+        # (pointSize() can return -1 if font uses pixel size instead)
+        self.font_size = max(self.font_size - 4, 8)  # Min 8pt, -4pt per click
         self.update_font()
 
     def reset_font_size(self):
@@ -308,14 +347,31 @@ class FloatingTextEditor(QDialog):
 
     def update_font(self):
         """Update text editor font size and save preference."""
-        font = QFont("Monaco", self.font_size)
-        self.text_edit.setFont(font)
+        # Update both QFont AND stylesheet (like console does)
+        self.text_edit.setFont(QFont("Monaco", self.font_size))
+        self.text_edit.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: #2A2A2A;
+                color: #CCCCCC;
+                border: none;
+                font-family: Monaco, Consolas, monospace;
+                font-size: {self.font_size}pt;
+                padding: 10px;
+                selection-background-color: #4A4A4A;
+            }}
+        """)
         # Update label
         if hasattr(self, 'font_size_label'):
             self.font_size_label.setText(f"{self.font_size}pt")
         # Save font size preference
         settings = QSettings("NoodleStudio", "FloatingTextEditor")
         settings.setValue("font_size", self.font_size)
+
+    def copy_to_clipboard(self):
+        """Copy current text content to clipboard."""
+        from PyQt6.QtWidgets import QApplication
+        text = self.text_edit.toPlainText()
+        QApplication.clipboard().setText(text)
 
     def toggle_maximize(self):
         """Toggle between maximized and normal window size (double-click header)."""

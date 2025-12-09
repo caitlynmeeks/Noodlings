@@ -21,6 +21,7 @@ Date: November 28, 2025
 
 import sys
 import os
+import asyncio
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
@@ -147,9 +148,12 @@ class CharmNetworkFacet:
         self.total_execution_time = 0.0
         self.last_execution_time = 0.0
 
+        # Execution lock - protects temporal hidden states from concurrent corruption
+        self.execution_lock = asyncio.Lock()
+
         print("[Charm Network] Initialized successfully")
 
-    def process(self, perception_text: str, affect_input: Optional[List[float]] = None) -> CharmNetworkOutput:
+    async def process(self, perception_text: str, affect_input: Optional[List[float]] = None) -> CharmNetworkOutput:
         """
         Process raw perception through Charm Network.
 
@@ -161,79 +165,74 @@ class CharmNetworkFacet:
             CharmNetworkOutput with continuous affect and phenomenal state
         """
         import time
-        start_time = time.time()
 
-        # If no affect input provided, use neutral affect
-        # (In production, this would come from text_to_affect LLM call)
-        if affect_input is None:
-            affect_input = [0.0, 0.5, 0.0, 0.0, 0.0]  # Neutral: valence=0, arousal=0.5
+        # Acquire lock to protect temporal hidden states from concurrent corruption
+        async with self.execution_lock:
+            start_time = time.time()
 
-        # Convert to MLX array
-        affect_mx = mx.array(affect_input, dtype=mx.float32).reshape(1, 5)
+            # If no affect input provided, use neutral affect
+            # (In production, this would come from text_to_affect LLM call)
+            if affect_input is None:
+                affect_input = [0.0, 0.5, 0.0, 0.0, 0.0]  # Neutral: valence=0, arousal=0.5
 
-        # Forward pass through hierarchical model
-        output_dict = self.model(
-            affect_mx,
-            self.h_fast,
-            self.c_fast,
-            self.h_medium,
-            self.c_medium,
-            self.h_slow,
-            # Social cognition params (not used in simple case)
-            linguistic_features=None,
-            context_features=None,
-            other_agent_ids=None
-        )
+            # Convert to MLX array
+            affect_mx = mx.array(affect_input, dtype=mx.float32).reshape(1, 5)
 
-        # Extract outputs
-        predicted_state = output_dict['predicted_state']  # (1, 40)
-        actual_state = output_dict['actual_state']        # (1, 40)
-        surprise = output_dict['surprise']                # scalar
+            # Forward pass through hierarchical model
+            # Phase4 model manages its own hidden states internally
+            self_state, predicted_state, social_info = self.model.forward_with_social_context(
+                affect=affect_mx,
+                linguistic_features=None,
+                context_features=None,
+                present_agents=None,
+                social_context=None,
+                user_text=perception_text or ""
+            )
 
-        # Update hidden states
-        self.h_fast = output_dict['h_fast']
-        self.c_fast = output_dict['c_fast']
-        self.h_medium = output_dict['h_medium']
-        self.c_medium = output_dict['c_medium']
-        self.h_slow = output_dict['h_slow']
+            # Compute surprise as L2 distance between prediction and actual
+            # Phase4 doesn't have explicit prediction error, so use simple metric
+            surprise = float(mx.sum((predicted_state - self_state) ** 2) ** 0.5)
 
-        # Get phenomenal state components
-        fast_state = actual_state[0, :16].tolist()
-        medium_state = actual_state[0, 16:32].tolist()
-        slow_state = actual_state[0, 32:40].tolist()
-        phenomenal_state = actual_state[0, :].tolist()
+            # Hidden states are managed by model internally (self.model.h_fast, etc.)
+            # We don't need to track them in the facet
 
-        # Predict continuous affect from phenomenal state
-        if self.affect_head:
-            affect_predicted = self.affect_head(actual_state)  # (1, 5)
-            valence = float(affect_predicted[0, 0])
-            arousal = float(affect_predicted[0, 1])
-            fear = float(affect_predicted[0, 2])
-            sorrow = float(affect_predicted[0, 3])
-            boredom = float(affect_predicted[0, 4])
-        else:
-            # Fallback: use input affect
-            valence, arousal, fear, sorrow, boredom = affect_input
+            # Get phenomenal state components (Phase4 returns 40-D state)
+            fast_state = self_state[0, :16].tolist()
+            medium_state = self_state[0, 16:32].tolist()
+            slow_state = self_state[0, 32:40].tolist()
+            phenomenal_state = self_state[0, :].tolist()
 
-        # Record execution stats
-        elapsed = time.time() - start_time
-        self.execution_count += 1
-        self.total_execution_time += elapsed
-        self.last_execution_time = elapsed
+            # Predict continuous affect from phenomenal state
+            if self.affect_head:
+                affect_predicted = self.affect_head(self_state)  # (1, 5)
+                valence = float(affect_predicted[0, 0])
+                arousal = float(affect_predicted[0, 1])
+                fear = float(affect_predicted[0, 2])
+                sorrow = float(affect_predicted[0, 3])
+                boredom = float(affect_predicted[0, 4])
+            else:
+                # Fallback: use input affect
+                valence, arousal, fear, sorrow, boredom = affect_input
 
-        # Return structured output
-        return CharmNetworkOutput(
-            valence=valence,
-            arousal=arousal,
-            fear=fear,
-            sorrow=sorrow,
-            boredom=boredom,
-            surprise=float(surprise),
-            phenomenal_state=phenomenal_state,
-            fast_state=fast_state,
-            medium_state=medium_state,
-            slow_state=slow_state
-        )
+            # Record execution stats
+            elapsed = time.time() - start_time
+            self.execution_count += 1
+            self.total_execution_time += elapsed
+            self.last_execution_time = elapsed
+
+            # Return structured output
+            return CharmNetworkOutput(
+                valence=valence,
+                arousal=arousal,
+                fear=fear,
+                sorrow=sorrow,
+                boredom=boredom,
+                surprise=float(surprise),
+                phenomenal_state=phenomenal_state,
+                fast_state=fast_state,
+                medium_state=medium_state,
+                slow_state=slow_state
+            )
 
     def reset_state(self):
         """Reset hidden states (e.g., between conversations)."""
