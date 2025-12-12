@@ -1,0 +1,9 @@
+# Development environment variables (EXAMPLE - DO NOT COMMIT REAL VALUES!)
+#
+# Copy this file to .dev.vars and fill in real values:
+#   cp .dev.vars.example .dev.vars
+#
+# .dev.vars is gitignored and safe for local development
+
+# Resend API key (get from https://resend.com/api-keys)
+RESEND_API_KEY=re_YOUR_API_KEY_HERE

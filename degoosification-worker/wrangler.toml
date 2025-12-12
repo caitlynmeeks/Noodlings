@@ -1,0 +1,16 @@
+name = "degoosification-worker"
+main = "src/index.js"
+compatibility_date = "2025-12-10"
+
+# KV namespace for user storage
+# After creating with: wrangler kv:namespace create "GOOSE_USERS"
+# Replace 'preview_id' with your actual KV namespace ID
+[[kv_namespaces]]
+binding = "GOOSE_USERS"
+id = "3b98c1d859b84b3085d8ddb7df29d835"
+preview_id = "1f9b9ef9f7944f99aec1c81979a28b88"
+
+# Environment variables
+# Set RESEND_API_KEY via: wrangler secret put RESEND_API_KEY
+[vars]
+# Public variables can go here (none needed currently)

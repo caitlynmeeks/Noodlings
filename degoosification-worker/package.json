@@ -1,0 +1,17 @@
+{
+  "name": "degoosification-worker",
+  "version": "1.0.0",
+  "description": "Serverless degoosification backend for Noodlings - HonkCrypt™ powered email collection service",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "wrangler dev --local"
+  },
+  "keywords": ["cloudflare", "workers", "goose", "honkcrypt", "noodlings"],
+  "author": "Caitlyn (NinaK)",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
