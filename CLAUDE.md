@@ -2,35 +2,96 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: December 13, 2025 - Model Manager Metadata Display Complete!
+**Last Updated**: December 13, 2025 - Scripting API Documentation Complete!
 
 **FOR NEXT CLAUDE: START HERE!** 👇
 
 ---
 
-## 🎯 CURRENT STATUS - Model Manager Polish & Agent Testing
+## 🚨 URGENT ISSUES
 
-**AGENTS ARE TALKING!** 🎉
+### 1. noodlings.ai Homepage Broken
+**Problem:** Website at noodlings.ai loads forever (beachballing in Chrome)
 
-Red Fire Anklebiter is responding properly via noodleMUSH web interface. DeepSeek R1 reasoning works with `<think>` tag parsing.
+**What happened:** During docs deployment today, homepage got corrupted/overwritten
 
-**NEXT TASKS:**
+**What should show:**
+- Black background
+- Noodlings mascot logo at top
+- "Multi-Timescale Affective Agents with Theatrical Control" tagline
+- "Documentation" button
+- "Read Whitepaper" button
 
-### 1. Continue Model Manager UI Polish
-**Status:** Core features working, minor refinements needed
+**Current state:**
+- gh-pages branch has correct index.html locally
+- But noodlings.ai serves broken/loading page
+- Might be GitHub Pages config issue or CDN problem
+
+**Fix needed:** Debug why gh-pages isn't serving the homepage correctly
+
+### 2. Clean Up NoodleStudio Help Menu
+**Remove these menu items** (we don't have content for them yet):
+- Help → "Credits (Demo Scene Style)"
+- Help → "NoodleStudio Documentation"
+- Help → "Noodlings Architecture Guide"
+
+**Keep these:**
+- Help → "Scripting API Reference" (F1) - WORKS! Opens to http://127.0.0.1:8000/api/overview/
+- Help → "Report Issue..."
+- Help → "About NoodleStudio"
+
+**File:** applications/noodlestudio/noodlestudio/core/main_window.py:247-255
+
+---
+
+## ✅ COMPLETED THIS SESSION (December 13, 2025)
+
+### 1. Scripting API Documentation Site - COMPLETE! 🎉
 
 **What works:**
-- ✅ Rich metadata display (descriptions, context, pricing, capabilities)
-- ✅ Horizontal layout (saves vertical space)
-- ✅ Draggable splitter between models and labels
-- ✅ All labels show (including unassigned)
-- ✅ 8 providers: Ollama, Anthropic, OpenAI, OpenRouter, LM Studio, Groq, Together AI, Mistral AI
-- ✅ Search with clear button
+- ✅ MkDocs documentation site with dark mode
+- ✅ Complete API reference with all 40+ methods
+- ✅ Organized by MUSH API and Studio API categories
+- ✅ Left sidebar navigation with expandable classes
+- ✅ Each class page shows all methods in tables
+- ✅ F1 in NoodleStudio opens local docs automatically
+- ✅ Dark coffee shop aesthetic (#0a0a0a backgrounds)
+- ✅ No Unity or Christopher Alexander mentions
+- ✅ Private .md files hidden via .gitignore
 
-**To refine:**
-- Test label creation workflow end-to-end
-- Verify all provider configurations work
-- Test model assignment to custom labels
+**Structure:**
+```
+docs/
+├─ index.md (home)
+├─ quick-start.md
+├─ api-reference.md (complete single-page reference)
+├─ api/
+│   ├─ models-api.md (ModelsAPI class)
+│   ├─ agents-api.md (AgentsAPI class)
+│   ├─ facet-assembly-proxy.md
+│   ├─ facet-proxy.md
+│   ├─ neural-api.md
+│   └─ neural-network-proxy.md
+├─ methods/ (38 individual method pages)
+├─ examples.md
+├─ node-types.md
+└─ troubleshooting.md
+```
+
+**Navigation:**
+- MUSH API: ModelsAPI, AgentsAPI, FacetAssemblyProxy, FacetProxy
+- Studio API: NeuralAPI, NeuralNetworkProxy
+- Reference: Examples, Node Types, Troubleshooting
+
+**Access:**
+- Local: http://127.0.0.1:8000/ (run `mkdocs serve`)
+- Web: https://noodlings.ai/scripting-api/ (when homepage is fixed)
+- NoodleStudio: Press F1 → auto-starts server, opens browser
+
+**Key Files:**
+- mkdocs.yml - Configuration
+- docs/stylesheets/extra.css - Dark theme
+- main_window.py:2047-2075 - Help menu integration
 
 ---
 
