@@ -33,13 +33,14 @@ nav:
   - Home: index.md
   - Quick Start: quick-start.md
   - API Reference: api-reference.md
-  - Detailed API Docs:
-      - Overview: api/overview.md
-      - NoodleAPI: api/noodle-api.md
-      - ModelsAPI: api/models-api.md
-      - NeuralAPI: api/neural-api.md
-      - AgentsAPI: api/agents-api.md
-  - Complete Examples: examples.md
+  - Scripting API:
+      - api/overview.md
+      - Core Classes:
+          - NoodleAPI: api/noodle-api.md
+          - ModelsAPI: api/models-api.md
+          - NeuralAPI: api/neural-api.md
+          - AgentsAPI: api/agents-api.md
+  - Examples: examples.md
   - Node Types: node-types.md
   - Troubleshooting: troubleshooting.md
 
