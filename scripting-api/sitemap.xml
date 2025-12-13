@@ -1,55 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://noodlings.ai/</loc>
+         <loc>https://noodlings.ai/scripting-api/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/MICROTUBULE_SIMULATION/</loc>
+         <loc>https://noodlings.ai/scripting-api/MICROTUBULE_SIMULATION/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/TERMINOLOGY/</loc>
+         <loc>https://noodlings.ai/scripting-api/TERMINOLOGY/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/api-reference/</loc>
+         <loc>https://noodlings.ai/scripting-api/api-reference/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/examples/</loc>
+         <loc>https://noodlings.ai/scripting-api/examples/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/node-types/</loc>
+         <loc>https://noodlings.ai/scripting-api/node-types/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/quick-start/</loc>
+         <loc>https://noodlings.ai/scripting-api/quick-start/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/troubleshooting/</loc>
+         <loc>https://noodlings.ai/scripting-api/troubleshooting/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/api/agents-api/</loc>
+         <loc>https://noodlings.ai/scripting-api/api/agents-api/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/api/models-api/</loc>
+         <loc>https://noodlings.ai/scripting-api/api/models-api/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/api/neural-api/</loc>
+         <loc>https://noodlings.ai/scripting-api/api/neural-api/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/api/noodle-api/</loc>
+         <loc>https://noodlings.ai/scripting-api/api/noodle-api/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
-         <loc>https://noodlings.ai/api/overview/</loc>
+         <loc>https://noodlings.ai/scripting-api/api/overview/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
 </urlset>
