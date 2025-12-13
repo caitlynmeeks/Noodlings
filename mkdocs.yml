@@ -1,6 +1,6 @@
 site_name: Noodlings Scripting API
-site_description: Unity-like scripting API for Noodlings Multi-Timescale Affective Agents
-site_author: Caitlyn Kuhlman
+site_description: Scripting API for Noodlings Multi-Timescale Affective Agents
+site_author: Caitlyn Meeks
 site_url: https://noodlings.ai/scripting-api/
 repo_url: https://github.com/caitlynmeeks/Noodlings
 repo_name: caitlynmeeks/Noodlings
@@ -24,7 +24,6 @@ theme:
     - search.suggest
     - search.highlight
     - content.code.copy
-    - toc.integrate
 
 extra_css:
   - stylesheets/extra.css
@@ -32,17 +31,19 @@ extra_css:
 nav:
   - Home: index.md
   - Quick Start: quick-start.md
-  - API Reference: api-reference.md
-  - Scripting API:
-      - api/overview.md
-      - Core Classes:
-          - NoodleAPI: api/noodle-api.md
-          - ModelsAPI: api/models-api.md
-          - NeuralAPI: api/neural-api.md
-          - AgentsAPI: api/agents-api.md
-  - Examples: examples.md
-  - Node Types: node-types.md
-  - Troubleshooting: troubleshooting.md
+  - MUSH API:
+      - ModelsAPI: api/models-api.md
+      - AgentsAPI: api/agents-api.md
+      - FacetAssemblyProxy: api/facet-assembly-proxy.md
+      - FacetProxy: api/facet-proxy.md
+  - Studio API:
+      - NeuralAPI: api/neural-api.md
+      - NeuralNetworkProxy: api/neural-network-proxy.md
+  - Reference:
+      - Complete API: api-reference.md
+      - Examples: examples.md
+      - Node Types: node-types.md
+      - Troubleshooting: troubleshooting.md
 
 markdown_extensions:
   - pymdownx.highlight:
