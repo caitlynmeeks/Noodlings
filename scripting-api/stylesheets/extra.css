@@ -94,3 +94,55 @@ td {
 .md-footer {
   background-color: #000000 !important;
 }
+
+/* Divider between sidebar and content */
+.md-sidebar--primary {
+  border-right: 2px solid #2a2a2a !important;
+}
+
+/* Make active nav items stand out */
+.md-nav__item--active > .md-nav__link {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* Nav links */
+.md-nav__link {
+  color: #d2d2d2 !important;
+}
+
+.md-nav__link:hover {
+  color: #ffffff !important;
+  background-color: #1a1a1a !important;
+}
+
+/* Nested nav sections */
+.md-nav__item .md-nav {
+  border-left: 1px solid #2a2a2a !important;
+  margin-left: 0.5rem !important;
+  padding-left: 0.5rem !important;
+}
+
+/* FORCE left sidebar to be visible and wide */
+.md-sidebar--primary {
+  display: block !important;
+  visibility: visible !important;
+  width: 320px !important;
+  position: sticky !important;
+}
+
+/* Hide the right-side TOC completely */
+.md-sidebar--secondary {
+  display: none !important;
+}
+
+/* Ensure navigation is expanded by default */
+.md-nav__item--nested > .md-nav {
+  display: block !important;
+  max-height: none !important;
+}
+
+/* Make navigation items more visible */
+.md-nav__item {
+  font-size: 0.9rem !important;
+}

@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Unity-like scripting API for Noodlings Multi-Timescale Affective Agents">
+        <meta name="description" content="Scripting API for Noodlings Multi-Timescale Affective Agents">
       
       
-        <meta name="author" content="Caitlyn Kuhlman">
+        <meta name="author" content="Caitlyn Meeks">
       
       
         <link rel="canonical" href="https://noodlings.ai/scripting-api/">
@@ -238,35 +238,16 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="api-reference/" class="md-tabs__link">
-        
-  
-  
-    
-  
-  API Reference
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
     
     
       <li class="md-tabs__item">
-        <a href="api/overview/" class="md-tabs__link">
+        <a href="api/models-api/" class="md-tabs__link">
           
   
   
     
   
-  Scripting API
+  MUSH API
 
         </a>
       </li>
@@ -279,17 +260,20 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="examples/" class="md-tabs__link">
-        
+    
+    
+      <li class="md-tabs__item">
+        <a href="api/neural-api/" class="md-tabs__link">
+          
   
   
     
   
-  Examples
+  Studio API
 
-      </a>
-    </li>
+        </a>
+      </li>
+    
   
 
       
@@ -298,36 +282,20 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="node-types/" class="md-tabs__link">
-        
+    
+    
+      <li class="md-tabs__item">
+        <a href="api-reference/" class="md-tabs__link">
+          
   
   
     
   
-  Node Types
+  Reference
 
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="troubleshooting/" class="md-tabs__link">
-        
-  
-  
+        </a>
+      </li>
     
-  
-  Troubleshooting
-
-      </a>
-    </li>
   
 
       
@@ -351,9 +319,7 @@
   
 
 
-  
-
-<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="." title="Noodlings Scripting API" class="md-nav__button md-logo" aria-label="Noodlings Scripting API" data-md-component="logo">
       
@@ -445,6 +411,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#quick-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Access
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-is-contextnoodle" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -467,93 +444,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-is-it-available" class="md-nav__link">
+  <a href="#browse-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Where is it available?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-capabilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Capabilities
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Capabilities">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#dynamic-model-configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dynamic Model Configuration
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#procedural-neural-topologies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Procedural Neural Topologies
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#self-modifying-agents" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Self-Modifying Agents
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#implementation-stats" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Implementation Stats
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#philosophy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Philosophy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
+        Browse Methods
       
     </span>
   </a>
@@ -601,15 +495,79 @@
   
   
   
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MUSH API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    MUSH API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="api-reference/" class="md-nav__link">
+      <a href="api/models-api/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    API Reference
+    ModelsAPI
   
 
     
@@ -618,6 +576,98 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="api/agents-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AgentsAPI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="api/facet-assembly-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FacetAssemblyProxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="api/facet-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FacetProxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -660,7 +710,7 @@
   <span class="md-ellipsis">
     
   
-    Scripting API
+    Studio API
   
 
     
@@ -676,159 +726,11 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Scripting API
+    Studio API
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="api/overview/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    API Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Core Classes
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Core Classes
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="api/noodle-api/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    NoodleAPI
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="api/models-api/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ModelsAPI
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -865,14 +767,14 @@
   
   
     <li class="md-nav__item">
-      <a href="api/agents-api/" class="md-nav__link">
+      <a href="api/neural-network-proxy/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    AgentsAPI
+    NeuralNetworkProxy
   
 
     
@@ -892,17 +794,101 @@
     </li>
   
 
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
     
       
       
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Complete API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
   
   
   
@@ -927,9 +913,10 @@
     </li>
   
 
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -954,9 +941,10 @@
     </li>
   
 
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -981,6 +969,14 @@
     </li>
   
 
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
   </ul>
 </nav>
@@ -988,6 +984,76 @@
                 </div>
               </div>
             
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Access
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-contextnoodle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is context.noodle?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browse-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browse Methods
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
             
           
           
@@ -1003,9 +1069,15 @@
 
 
 <h1 id="noodlings-scripting-api">Noodlings Scripting API<a class="headerlink" href="#noodlings-scripting-api" title="Permanent link">&para;</a></h1>
-<p>Unity-like programmatic access to all Noodlings systems.</p>
+<p>Programmatic access to all Noodlings systems from ScriptedFacets.</p>
+<h2 id="quick-access">Quick Access<a class="headerlink" href="#quick-access" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><a href="quick-start/">Quick Start</a></strong> - Get started in 5 minutes</li>
+<li><strong><a href="api-reference/">Complete API Reference</a></strong> - All methods on one page</li>
+<li><strong>Browse the sidebar</strong> → Click "MUSH API" or "Studio API" to see all methods</li>
+</ul>
 <h2 id="what-is-contextnoodle">What is <code>context.noodle</code>?<a class="headerlink" href="#what-is-contextnoodle" title="Permanent link">&para;</a></h2>
-<p>The Noodlings Scripting API provides JavaScript-accessible methods for configuring the entire Noodlings system from within ScriptedFacets. Every entity is addressable, all properties are gettable/settable.</p>
+<p>The Noodlings Scripting API provides JavaScript-accessible methods for configuring the Noodlings system from within ScriptedFacets.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">function</span><span class="w"> </span><span class="nx">process</span><span class="p">(</span><span class="nx">inputs</span><span class="p">,</span><span class="w"> </span><span class="nx">context</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="c1">// Change which model a label uses</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nx">context</span><span class="p">.</span><span class="nx">noodle</span><span class="p">.</span><span class="nx">models</span><span class="p">.</span><span class="nx">set_label</span><span class="p">(</span><span class="s2">&quot;LARGE&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;anthropic&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;claude-opus-4.5&quot;</span><span class="p">);</span>
@@ -1016,54 +1088,19 @@
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="c1">// Reconfigure facet assemblies</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">assembly</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">noodle</span><span class="p">.</span><span class="nx">agents</span><span class="p">.</span><span class="nx">get_assembly</span><span class="p">(</span><span class="s2">&quot;red-fire-anklebiter&quot;</span><span class="p">);</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">facet</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">assembly</span><span class="p">.</span><span class="nx">get_facet</span><span class="p">(</span><span class="s2">&quot;CHARM_NET&quot;</span><span class="p">);</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="nx">facet</span><span class="p">.</span><span class="nx">set_property</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;LARGE&quot;</span><span class="p">);</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="nx">modified</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">};</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">}</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nx">facet</span><span class="p">.</span><span class="nx">set_property</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;LARGE&quot;</span><span class="p">);</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="nx">modified</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">};</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">}</span>
 </code></pre></div>
 <h2 id="api-structure">API Structure<a class="headerlink" href="#api-structure" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>context.noodle
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  ├─ .models      // Model/provider configuration
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  ├─ .neural      // Neural Canvas manipulation
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  ├─ .agents      // Facet assembly access
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  └─ .get_by_uuid // Universal entity lookup (future)
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  └─ .agents      // Facet assembly access
 </code></pre></div>
-<h2 id="where-is-it-available">Where is it available?<a class="headerlink" href="#where-is-it-available" title="Permanent link">&para;</a></h2>
-<p>The API is injected into <strong>ScriptedFacet</strong> contexts automatically:</p>
-<ul>
-<li><strong>Python ScriptedFacets</strong>: <code>context._noodle_api</code> (Python object)</li>
-<li><strong>JavaScript ScriptedFacets</strong>: <code>context.noodle</code> (JavaScript bridge)</li>
-</ul>
-<h2 id="key-capabilities">Key Capabilities<a class="headerlink" href="#key-capabilities" title="Permanent link">&para;</a></h2>
-<h3 id="dynamic-model-configuration">Dynamic Model Configuration<a class="headerlink" href="#dynamic-model-configuration" title="Permanent link">&para;</a></h3>
-<p>Switch between LLM providers and models at runtime based on task complexity, time of day, or any other criteria.</p>
-<h3 id="procedural-neural-topologies">Procedural Neural Topologies<a class="headerlink" href="#procedural-neural-topologies" title="Permanent link">&para;</a></h3>
-<p>Generate LSTM/GRU networks programmatically, modify existing topologies, and export MLX code.</p>
-<h3 id="self-modifying-agents">Self-Modifying Agents<a class="headerlink" href="#self-modifying-agents" title="Permanent link">&para;</a></h3>
-<p>Facets can reconfigure their own assemblies, creating truly adaptive cognitive architectures.</p>
-<h2 id="implementation-stats">Implementation Stats<a class="headerlink" href="#implementation-stats" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Total Lines</strong>: 1,789 across 8 files</li>
-<li><strong>Main APIs</strong>: NoodleAPI, ModelsAPI, NeuralAPI, AgentsAPI</li>
-<li><strong>Proxy Classes</strong>: NeuralNetworkProxy, FacetAssemblyProxy, FacetProxy</li>
-<li><strong>Methods</strong>: 40+ across all APIs</li>
-<li><strong>Test Coverage</strong>: 3 comprehensive test suites</li>
-</ul>
-<h2 id="philosophy">Philosophy<a class="headerlink" href="#philosophy" title="Permanent link">&para;</a></h2>
-<p>This API follows Noodlings' Christopher Alexander-inspired design philosophy:</p>
-<ul>
-<li><strong>Emergent complexity</strong>: Simple primitives combine into sophisticated behaviors</li>
-<li><strong>Self-modification</strong>: Systems can reconfigure themselves based on experience</li>
-<li><strong>No artificial limits</strong>: If it exists in Noodlings, scripts can access it</li>
-<li><strong>Graceful failure</strong>: Methods return <code>None</code>/<code>false</code> on error, never crash</li>
-</ul>
-<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="quick-start/">Quick Start Guide</a> - Get started in 5 minutes</li>
-<li><a href="api/overview/">API Reference</a> - Complete method documentation</li>
-<li><a href="examples/">Complete Examples</a> - Real-world usage patterns</li>
-</ul>
+<h2 id="browse-methods">Browse Methods<a class="headerlink" href="#browse-methods" title="Permanent link">&para;</a></h2>
+<p><strong>Look at the LEFT SIDEBAR</strong> - expand "MUSH API" or "Studio API" to see all available methods!</p>
 
 
 
@@ -1135,7 +1172,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "toc.integrate"], "search": "assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="assets/javascripts/bundle.e71a0d61.min.js"></script>

@@ -37,6 +37,14 @@
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
+         <loc>https://noodlings.ai/scripting-api/api/facet-assembly-proxy/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/api/facet-proxy/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
          <loc>https://noodlings.ai/scripting-api/api/models-api/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
@@ -45,11 +53,167 @@
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
+         <loc>https://noodlings.ai/scripting-api/api/neural-network-proxy/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
          <loc>https://noodlings.ai/scripting-api/api/noodle-api/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
     <url>
          <loc>https://noodlings.ai/scripting-api/api/overview/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/agents/get/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/agents/get_assembly/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/agents/list_all/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/agents/load_assembly/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/assembly/add_facet/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/assembly/connect/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/assembly/disconnect/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/assembly/get_facet/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/assembly/get_facet_by_name/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/assembly/list_facets/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/assembly/remove_facet/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/assembly/save/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/facet/get_all_properties/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/facet/get_id/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/facet/get_name/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/facet/get_property/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/facet/get_type/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/facet/set_property/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/models/configure_provider/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/models/get_all_labels/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/models/get_label/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/models/list_available/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/models/list_providers/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/models/set_label/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/connect/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/create_node/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/disconnect/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/generate_mlx_code/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/get_node/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/get_node_by_name/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/get_parameter_count/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/remove_node/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/save/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/set_node_position/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/network/set_node_property/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/neural/create_network/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/neural/get_network/</loc>
+         <lastmod>2025-12-13</lastmod>
+    </url>
+    <url>
+         <loc>https://noodlings.ai/scripting-api/methods/neural/load/</loc>
          <lastmod>2025-12-13</lastmod>
     </url>
 </urlset>
