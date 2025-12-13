@@ -8,20 +8,23 @@ repo_name: caitlynmeeks/Noodlings
 theme:
   name: material
   palette:
-    # Coffee shop monochrome palette
+    # Dark coffee shop palette - MUCH darker
     scheme: slate
-    primary: custom
-    accent: custom
+    primary: black
+    accent: grey
   font:
     text: Roboto
     code: Roboto Mono
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.expand
+    - navigation.indexes
     - navigation.top
     - search.suggest
     - search.highlight
     - content.code.copy
+    - toc.integrate
 
 extra_css:
   - stylesheets/extra.css
@@ -29,7 +32,8 @@ extra_css:
 nav:
   - Home: index.md
   - Quick Start: quick-start.md
-  - API Reference:
+  - API Reference: api-reference.md
+  - Detailed API Docs:
       - Overview: api/overview.md
       - NoodleAPI: api/noodle-api.md
       - ModelsAPI: api/models-api.md

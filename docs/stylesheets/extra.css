@@ -1,27 +1,96 @@
-/* Noodlings documentation custom styles - Coffee shop monochrome */
+/* Noodlings documentation - DARK coffee shop monochrome */
 
-:root {
-  --md-primary-fg-color: #2a2a2a;
-  --md-primary-fg-color--light: #383838;
-  --md-primary-fg-color--dark: #1a1a1a;
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #0a0a0a;
+  --md-default-fg-color: #e8e8e0;
+  --md-default-bg-color--light: #141414;
+  --md-code-bg-color: #000000;
+  --md-code-fg-color: #e8e8e0;
+  --md-primary-fg-color: #000000;
+  --md-primary-bg-color: #e8e8e0;
+  --md-accent-fg-color: #808080;
 }
 
-/* Code blocks - warmer monochrome */
-.highlight {
-  background-color: #1a1a1a !important;
+/* Main background - near black */
+.md-main {
+  background-color: #0a0a0a !important;
 }
 
-/* Inline code */
+/* Content area - near black */
+.md-content {
+  background-color: #0a0a0a !important;
+}
+
+/* Sidebar - slightly lighter black */
+.md-sidebar {
+  background-color: #0a0a0a !important;
+}
+
+/* Navigation - dark */
+.md-nav {
+  background-color: #0a0a0a !important;
+}
+
+/* Code blocks - true black */
+.highlight, pre {
+  background-color: #000000 !important;
+  border: 1px solid #1a1a1a !important;
+}
+
+/* Inline code - dark gray */
 code {
-  background-color: #2a2a2a !important;
+  background-color: #1a1a1a !important;
   color: #e8e8e0 !important;
+  border: none !important;
 }
 
-/* Links - subtle gray highlight */
+/* Links - warm white */
 a {
   color: #d2d2d2 !important;
 }
 
 a:hover {
   color: #ffffff !important;
+}
+
+/* Headers - warm white */
+h1, h2, h3, h4, h5, h6 {
+  color: #e8e8e0 !important;
+}
+
+/* Tables - dark */
+table {
+  background-color: #0a0a0a !important;
+}
+
+th {
+  background-color: #1a1a1a !important;
+  border: 1px solid #2a2a2a !important;
+}
+
+td {
+  border: 1px solid #2a2a2a !important;
+}
+
+/* Admonitions/callouts - dark */
+.admonition {
+  background-color: #141414 !important;
+  border-left: 4px solid #383838 !important;
+}
+
+/* Search box - dark */
+.md-search__input {
+  background-color: #1a1a1a !important;
+  color: #e8e8e0 !important;
+  border: 1px solid #2a2a2a !important;
+}
+
+/* Top navigation bar - true black */
+.md-header {
+  background-color: #000000 !important;
+}
+
+/* Footer - dark */
+.md-footer {
+  background-color: #000000 !important;
 }
