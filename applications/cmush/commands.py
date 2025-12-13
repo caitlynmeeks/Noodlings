@@ -666,7 +666,9 @@ class CommandParser:
 
         username = user.get('username', user.get('name', user_id))
 
-        output = f'You say, "{args}"'
+        # Format username in all caps for consistency with other messages
+        display_name = username.upper()
+        output = f'{display_name} say, "{args}"'
 
         event = {
             'type': 'say',

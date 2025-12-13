@@ -18,6 +18,7 @@ import websockets
 from threading import Thread
 import sys
 import re
+from datetime import datetime
 sys.path.append('..')
 
 
@@ -692,7 +693,7 @@ class ConsolePanel(QWidget):
         if len(self.studio_log_buffer_raw) > 1000:
             self.studio_log_buffer_raw.pop(0)
 
-        # Store formatted log
+        # Format log
         formatted = f'<span style="color: #D2D2D2;">{message}</span>'
         self.studio_log_buffer.append(formatted)
         if len(self.studio_log_buffer) > 1000:
@@ -734,7 +735,7 @@ class ConsolePanel(QWidget):
         if len(self.facets_log_buffer_raw) > 1000:
             self.facets_log_buffer_raw.pop(0)
 
-        # Store formatted log (use cyan color for facets logs)
+        # Format log (use cyan color for facets logs)
         formatted = f'<span style="color: #7EC8E3;">{message}</span>'
         self.facets_log_buffer.append(formatted)
         if len(self.facets_log_buffer) > 1000:
@@ -789,7 +790,7 @@ class ConsolePanel(QWidget):
         if len(self.debug_log_buffer_raw) > 1000:
             self.debug_log_buffer_raw.pop(0)
 
-        # Store formatted log (use green color for debug logs)
+        # Format log (use green color for debug logs)
         formatted = f'<span style="color: #76AF6A;">{formatted_message}</span>'
         self.debug_log_buffer.append(formatted)
         if len(self.debug_log_buffer) > 1000:

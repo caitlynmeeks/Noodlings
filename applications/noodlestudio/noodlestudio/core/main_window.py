@@ -23,7 +23,7 @@ from ..panels.inspector_panel import InspectorPanel
 from ..panels.console_panel import ConsolePanel
 from ..panels.assets_panel import AssetsPanel
 from ..panels.noodle_tuner_panel import NoodleTunerPanel
-from ..panels.model_manager_panel import ModelManagerPanel
+from ..panels.settings_panel import SettingsPanel
 from .theme import DARK_THEME
 from .unity_theme import UNITY_DARK_THEME
 from .layout_manager import LayoutManager
@@ -65,6 +65,12 @@ class MainWindow(QMainWindow):
         self.project_manager = ProjectManager()
         self.project_manager.projectOpened.connect(self.on_project_opened)
         self.project_manager.projectClosed.connect(self.on_project_closed)
+
+        # Goose system (The Origin)
+        from ..widgets.goose_widget import KonamiCodeDetector
+        self.konami_detector = KonamiCodeDetector()
+        self.konami_detector.goose_summoned.connect(self._summon_goose)
+        self.goose_active = False  # Prevent multiple geese
 
         self._setup_ui()
         self._setup_menu_bar()
@@ -234,10 +240,9 @@ class MainWindow(QMainWindow):
 
         # ===== SETTINGS MENU =====
         settings_menu = menu_bar.addMenu("&Settings")
-        settings_menu.addAction(self._create_action("Preferences...", "Cmd+,", slot=self._show_preferences))
+        settings_menu.addAction(self._create_action("Open Settings...", "Cmd+,", slot=self._open_settings_tab))
         settings_menu.addSeparator()
         settings_menu.addAction(self._create_action("Entropy Service...", slot=self.show_rng_settings))
-        settings_menu.addAction(self._create_action("External Applications...", slot=self.show_external_apps_settings))
 
         # ===== HELP MENU =====
         help_menu = menu_bar.addMenu("&Help")
@@ -453,9 +458,12 @@ class MainWindow(QMainWindow):
         self.neural_canvas = NeuralCanvasPanel()
         center_tabs.addTab(self.neural_canvas, "Neural Canvas")
 
-        # Model Manager tab
-        self.model_manager = ModelManagerPanel()
-        center_tabs.addTab(self.model_manager, "Model Manager")
+        # Settings tab (contains Models, External Apps, etc.)
+        self.settings_panel = SettingsPanel()
+        center_tabs.addTab(self.settings_panel, "Settings")
+
+        # Keep reference to model manager for backward compatibility
+        self.model_manager = self.settings_panel.get_model_manager_panel()
 
         # Store reference to center tabs for access
         self.center_tabs = center_tabs
@@ -728,6 +736,41 @@ class MainWindow(QMainWindow):
         # Cmd/Ctrl+M - Maximize/restore World View
         maximize_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
         maximize_shortcut.activated.connect(self.toggle_world_view_maximize)
+
+        # Cmd/Ctrl+Shift+G - SUMMON THE GOOSE (secret debug trigger)
+        goose_shortcut = QShortcut(QKeySequence("Ctrl+Shift+G"), self)
+        goose_shortcut.activated.connect(self._summon_goose)
+
+    def keyPressEvent(self, event):
+        """Forward key events to Konami detector."""
+        self.konami_detector.key_pressed(event.key())
+        super().keyPressEvent(event)
+
+    def _summon_goose(self):
+        """Summon the legendary goose to walk across the screen."""
+        # Check degoosification status
+        from PyQt6.QtCore import QSettings
+        settings = QSettings("Noodlings", "NoodleStudio")
+        degoose_code = settings.value("degoosification_code", "")
+
+        if degoose_code:
+            # User has paid for degoosification - no goose for them!
+            self.statusBar().showMessage("Goose has been degoosified. Nice try!", 3000)
+            return
+
+        # Don't spawn multiple geese
+        if self.goose_active:
+            return
+
+        # RELEASE THE GOOSE
+        from ..widgets.goose_widget import GooseWidget
+        self.goose_active = True
+
+        goose = GooseWidget(self)
+        goose.show()
+
+        # Reset flag when goose is deleted
+        goose.destroyed.connect(lambda: setattr(self, 'goose_active', False))
 
     def reload_world_view(self):
         """Reload World View with autologin (Ctrl+R)."""
@@ -2141,379 +2184,13 @@ class MainWindow(QMainWindow):
 
         self.statusBar().showMessage(message, 8000)
 
-    def show_external_apps_settings(self):
-        """Show External Applications settings dialog."""
-        from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QLineEdit,
-                                    QPushButton, QHBoxLayout, QGroupBox, QFormLayout)
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("External Applications")
-        dialog.resize(600, 400)
-
-        layout = QVBoxLayout(dialog)
-
-        # Header
-        header = QLabel("Configure external applications for opening files:")
-        header.setStyleSheet("font-weight: bold; font-size: 13px; margin-bottom: 10px;")
-        layout.addWidget(header)
-
-        # Load current settings
-        settings = self._load_external_apps_settings()
-
-        # Store field references
-        self.app_fields = {}
-
-        # Text Editor
-        text_group = QGroupBox("Text Editor")
-        text_layout = QHBoxLayout()
-        text_field = QLineEdit(settings.get('text_editor', ''))
-        text_field.setPlaceholderText("/Applications/Visual Studio Code.app")
-        text_layout.addWidget(text_field)
-        text_btn = QPushButton("Browse...")
-        text_btn.clicked.connect(lambda: self._browse_application(text_field))
-        text_layout.addWidget(text_btn)
-        text_group.setLayout(text_layout)
-        layout.addWidget(text_group)
-        self.app_fields['text_editor'] = text_field
-
-        # Image Editor
-        image_group = QGroupBox("Image Editor")
-        image_layout = QHBoxLayout()
-        image_field = QLineEdit(settings.get('image_editor', ''))
-        image_field.setPlaceholderText("/Applications/Photoshop.app")
-        image_layout.addWidget(image_field)
-        image_btn = QPushButton("Browse...")
-        image_btn.clicked.connect(lambda: self._browse_application(image_field))
-        image_layout.addWidget(image_btn)
-        image_group.setLayout(image_layout)
-        layout.addWidget(image_group)
-        self.app_fields['image_editor'] = image_field
-
-        # Audio Editor
-        audio_group = QGroupBox("Audio Editor")
-        audio_layout = QHBoxLayout()
-        audio_field = QLineEdit(settings.get('audio_editor', ''))
-        audio_field.setPlaceholderText("/Applications/Audacity.app")
-        audio_layout.addWidget(audio_field)
-        audio_btn = QPushButton("Browse...")
-        audio_btn.clicked.connect(lambda: self._browse_application(audio_field))
-        audio_layout.addWidget(audio_btn)
-        audio_group.setLayout(audio_layout)
-        layout.addWidget(audio_group)
-        self.app_fields['audio_editor'] = audio_field
-
-        # 3D Tool
-        threed_group = QGroupBox("3D Tool")
-        threed_layout = QHBoxLayout()
-        threed_field = QLineEdit(settings.get('threed_tool', ''))
-        threed_field.setPlaceholderText("/Applications/Blender.app")
-        threed_layout.addWidget(threed_field)
-        threed_btn = QPushButton("Browse...")
-        threed_btn.clicked.connect(lambda: self._browse_application(threed_field))
-        threed_layout.addWidget(threed_btn)
-        threed_group.setLayout(threed_layout)
-        layout.addWidget(threed_group)
-        self.app_fields['threed_tool'] = threed_field
-
-        layout.addStretch()
-
-        # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(dialog.reject)
-        button_layout.addWidget(cancel_btn)
-
-        save_btn = QPushButton("Save")
-        save_btn.setDefault(True)
-        save_btn.clicked.connect(lambda: self._save_external_apps_settings(dialog))
-        button_layout.addWidget(save_btn)
-
-        layout.addLayout(button_layout)
-
-        dialog.exec()
-
-    def _browse_application(self, line_edit):
-        """Browse for application file."""
-        from PyQt6.QtWidgets import QFileDialog
-
-        # Start in Applications folder on macOS
-        start_dir = "/Applications" if os.path.exists("/Applications") else str(Path.home())
-
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Application",
-            start_dir,
-            "Applications (*.app);;All Files (*)"
-        )
-
-        if file_path:
-            line_edit.setText(file_path)
-
-    def _browse_directory(self, line_edit):
-        """Browse for directory."""
-        from PyQt6.QtWidgets import QFileDialog
-
-        # Start at current directory in field, or user home
-        start_dir = line_edit.text() if line_edit.text() else str(Path.home())
-        if not os.path.exists(start_dir):
-            start_dir = str(Path.home())
-
-        dir_path = QFileDialog.getExistingDirectory(
-            self,
-            "Select Directory",
-            start_dir
-        )
-
-        if dir_path:
-            line_edit.setText(dir_path)
-
-    def _load_preferences(self):
-        """Load all preferences from config."""
-        config_file = Path.home() / ".noodlestudio" / "settings.json"
-        if config_file.exists():
-            try:
-                with open(config_file, 'r') as f:
-                    return json.load(f)
-            except:
-                pass
-        return {}
-
-    def _load_external_apps_settings(self):
-        """Load external apps settings from config."""
-        settings = self._load_preferences()
-        return settings.get('external_apps', {})
-
-    def _save_preferences(self, dialog):
-        """Save all preferences to config."""
-        config_dir = Path.home() / ".noodlestudio"
-        config_dir.mkdir(parents=True, exist_ok=True)
-        config_file = config_dir / "settings.json"
-
-        # Load existing settings
-        settings = self._load_preferences()
-
-        # Save Ollama settings
-        ollama_settings = {}
-        for key, field in self.ollama_fields.items():
-            value = field.text().strip()
-            if value:
-                ollama_settings[key] = value
-
-        if ollama_settings:
-            settings['ollama'] = ollama_settings
-
-        # Save external apps settings
-        external_apps = {}
-        for key, field in self.app_fields.items():
-            if field.text().strip():
-                external_apps[key] = field.text().strip()
-
-        if external_apps:
-            settings['external_apps'] = external_apps
-
-        # Write to disk
-        with open(config_file, 'w') as f:
-            json.dump(settings, f, indent=2)
-
-        self.statusBar().showMessage("Preferences saved", 3000)
-        dialog.accept()
-
-    def _save_external_apps_settings(self, dialog):
-        """Save external apps settings to config."""
-        config_dir = Path.home() / ".noodlestudio"
-        config_dir.mkdir(parents=True, exist_ok=True)
-        config_file = config_dir / "settings.json"
-
-        settings = {}
-        if config_file.exists():
-            try:
-                with open(config_file, 'r') as f:
-                    settings = json.load(f)
-            except:
-                pass
-
-        external_apps = {}
-        for key, field in self.app_fields.items():
-            if field.text().strip():
-                external_apps[key] = field.text().strip()
-
-        settings['external_apps'] = external_apps
-
-        with open(config_file, 'w') as f:
-            json.dump(settings, f, indent=2)
-
-        self.statusBar().showMessage("External applications saved", 3000)
-        dialog.accept()
-
-    def _show_preferences(self):
-        """Show preferences dialog with Ollama model configuration."""
-        from PyQt6.QtWidgets import (
-            QDialog, QVBoxLayout, QHBoxLayout, QGroupBox,
-            QLineEdit, QPushButton, QLabel, QTabWidget, QWidget,
-            QFileDialog
-        )
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Preferences")
-        dialog.setMinimumWidth(600)
-
-        main_layout = QVBoxLayout(dialog)
-
-        # Create tab widget
-        tabs = QTabWidget()
-
-        # ===== OLLAMA SETTINGS TAB =====
-        ollama_tab = QWidget()
-        ollama_layout = QVBoxLayout(ollama_tab)
-
-        # Models directory
-        models_group = QGroupBox("Models Directory")
-        models_layout = QHBoxLayout()
-
-        settings = self._load_preferences()
-        ollama_settings = settings.get('ollama', {})
-
-        models_dir_field = QLineEdit(ollama_settings.get('models_directory', '/Volumes/DOUBLETROUBLE/models'))
-        models_dir_field.setPlaceholderText("Path to Ollama models directory")
-        models_layout.addWidget(models_dir_field)
-
-        models_browse_btn = QPushButton("Browse...")
-        models_browse_btn.clicked.connect(lambda: self._browse_directory(models_dir_field))
-        models_layout.addWidget(models_browse_btn)
-
-        models_group.setLayout(models_layout)
-        ollama_layout.addWidget(models_group)
-
-        # Model tiers
-        tiers_group = QGroupBox("Model Tiers")
-        tiers_layout = QVBoxLayout()
-
-        # Small model
-        small_layout = QHBoxLayout()
-        small_layout.addWidget(QLabel("Small Model:"))
-        small_model_field = QLineEdit(ollama_settings.get('small_model', 'qwen2.5:3b'))
-        small_model_field.setPlaceholderText("e.g., qwen2.5:3b")
-        small_layout.addWidget(small_model_field)
-        tiers_layout.addLayout(small_layout)
-
-        # Medium model
-        medium_layout = QHBoxLayout()
-        medium_layout.addWidget(QLabel("Medium Model:"))
-        medium_model_field = QLineEdit(ollama_settings.get('medium_model', 'qwen2.5:14b'))
-        medium_model_field.setPlaceholderText("e.g., qwen2.5:14b")
-        medium_layout.addWidget(medium_model_field)
-        tiers_layout.addLayout(medium_layout)
-
-        # Large model
-        large_layout = QHBoxLayout()
-        large_layout.addWidget(QLabel("Large Model:"))
-        large_model_field = QLineEdit(ollama_settings.get('large_model', 'qwen2.5:32b'))
-        large_model_field.setPlaceholderText("e.g., qwen2.5:32b")
-        large_layout.addWidget(large_model_field)
-        tiers_layout.addLayout(large_layout)
-
-        tiers_group.setLayout(tiers_layout)
-        ollama_layout.addWidget(tiers_group)
-
-        # Ollama server settings
-        server_group = QGroupBox("Server Settings")
-        server_layout = QVBoxLayout()
-
-        host_layout = QHBoxLayout()
-        host_layout.addWidget(QLabel("Ollama Host:"))
-        host_field = QLineEdit(ollama_settings.get('host', 'http://localhost:11434'))
-        host_field.setPlaceholderText("http://localhost:11434")
-        host_layout.addWidget(host_field)
-        server_layout.addLayout(host_layout)
-
-        server_group.setLayout(server_layout)
-        ollama_layout.addWidget(server_group)
-
-        ollama_layout.addStretch()
-        tabs.addTab(ollama_tab, "Ollama Models")
-
-        # Store field references for saving
-        self.ollama_fields = {
-            'models_directory': models_dir_field,
-            'small_model': small_model_field,
-            'medium_model': medium_model_field,
-            'large_model': large_model_field,
-            'host': host_field,
-        }
-
-        # ===== EXTERNAL APPS TAB =====
-        apps_tab = QWidget()
-        apps_layout = QVBoxLayout(apps_tab)
-
-        self.app_fields = {}
-        external_apps = settings.get('external_apps', {})
-
-        # Code Editor
-        code_group = QGroupBox("Code Editor")
-        code_layout = QHBoxLayout()
-        code_field = QLineEdit(external_apps.get('code_editor', ''))
-        code_field.setPlaceholderText("/Applications/Visual Studio Code.app")
-        code_layout.addWidget(code_field)
-        code_btn = QPushButton("Browse...")
-        code_btn.clicked.connect(lambda: self._browse_application(code_field))
-        code_layout.addWidget(code_btn)
-        code_group.setLayout(code_layout)
-        apps_layout.addWidget(code_group)
-        self.app_fields['code_editor'] = code_field
-
-        # Image Editor
-        image_group = QGroupBox("Image Editor")
-        image_layout = QHBoxLayout()
-        image_field = QLineEdit(external_apps.get('image_editor', ''))
-        image_field.setPlaceholderText("/Applications/Pixelmator Pro.app")
-        image_layout.addWidget(image_field)
-        image_btn = QPushButton("Browse...")
-        image_btn.clicked.connect(lambda: self._browse_application(image_field))
-        image_layout.addWidget(image_btn)
-        image_group.setLayout(image_layout)
-        apps_layout.addWidget(image_group)
-        self.app_fields['image_editor'] = image_field
-
-        # Audio Editor
-        audio_group = QGroupBox("Audio Editor")
-        audio_layout = QHBoxLayout()
-        audio_field = QLineEdit(external_apps.get('audio_editor', ''))
-        audio_field.setPlaceholderText("/Applications/Audacity.app")
-        audio_layout.addWidget(audio_field)
-        audio_btn = QPushButton("Browse...")
-        audio_btn.clicked.connect(lambda: self._browse_application(audio_field))
-        audio_layout.addWidget(audio_btn)
-        audio_group.setLayout(audio_layout)
-        apps_layout.addWidget(audio_group)
-        self.app_fields['audio_editor'] = audio_field
-
-        # 3D Tool
-        threed_group = QGroupBox("3D Tool")
-        threed_layout = QHBoxLayout()
-        threed_field = QLineEdit(external_apps.get('threed_tool', ''))
-        threed_field.setPlaceholderText("/Applications/Blender.app")
-        threed_layout.addWidget(threed_field)
-        threed_btn = QPushButton("Browse...")
-        threed_btn.clicked.connect(lambda: self._browse_application(threed_field))
-        threed_layout.addWidget(threed_btn)
-        threed_group.setLayout(threed_layout)
-        apps_layout.addWidget(threed_group)
-        self.app_fields['threed_tool'] = threed_field
-
-        apps_layout.addStretch()
-        tabs.addTab(apps_tab, "External Apps")
-
-        main_layout.addWidget(tabs)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(dialog.reject)
-        button_layout.addWidget(cancel_btn)
+    def _open_settings_tab(self):
+        """Open the Settings tab (Cmd+, shortcut)."""
+        # Find and switch to Settings tab
+        for i in range(self.center_tabs.count()):
+            if self.center_tabs.tabText(i) == "Settings":
+                self.center_tabs.setCurrentIndex(i)
+                break
 
         save_btn = QPushButton("Save")
         save_btn.setDefault(True)

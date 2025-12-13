@@ -15,7 +15,14 @@ Date: November 18, 2025
 """
 
 from typing import Optional, List
-import requests
+
+# Optional HTTP client (for API calls)
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+    requests = None
 
 
 class Debug:
@@ -164,6 +171,9 @@ class Noodlings:
         Returns:
             Prim instance or None
         """
+        if not REQUESTS_AVAILABLE:
+            return None
+
         try:
             resp = requests.get(f"{Noodlings.API_BASE}/prims/{prim_id}", timeout=1)
             if resp.status_code == 200:

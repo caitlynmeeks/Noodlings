@@ -17,6 +17,7 @@ from ...core.neural_canvas.neural_graph import NeuralGraph, ValidationResult
 from ...core.neural_canvas.mlx_codegen import generate_mlx_code
 from .neural_canvas_view import NeuralCanvasView
 from .node_palette_panel import NodePalettePanel
+from ...dialogs.neural_export_dialog import NeuralExportDialog
 
 
 class NeuralCanvasPanel(QWidget):
@@ -123,10 +124,10 @@ class NeuralCanvasPanel(QWidget):
 
         toolbar.addSeparator()
 
-        # Export buttons
-        btn_export_mlx = QPushButton("Export MLX...")
-        btn_export_mlx.clicked.connect(self._on_export_mlx)
-        toolbar.addWidget(btn_export_mlx)
+        # Export button
+        btn_export = QPushButton("EXPORT")
+        btn_export.clicked.connect(self._on_export)
+        toolbar.addWidget(btn_export)
 
         toolbar.addSeparator()
 
@@ -350,8 +351,8 @@ class NeuralCanvasPanel(QWidget):
 
         self._update_status_bar()
 
-    def _on_export_mlx(self):
-        """Export to MLX Python code."""
+    def _on_export(self):
+        """Export neural network to various formats."""
         # Validate first
         result = self.graph.validate()
         if not result.valid:
@@ -361,19 +362,77 @@ class NeuralCanvasPanel(QWidget):
             )
             return
 
-        # Choose save location
+        # Show export format dialog
+        dialog = NeuralExportDialog(self)
+        if dialog.exec() != NeuralExportDialog.DialogCode.Accepted:
+            return
+
+        fmt = dialog.get_selected_format()
+        if not fmt:
+            return
+
+        # Dispatch to appropriate export handler
+        handlers = {
+            'nncanvas': self._export_nncanvas,
+            'mlx': self._export_mlx,
+            'onnx': self._export_onnx,
+            'pytorch': self._export_pytorch,
+            'coreml': self._export_coreml
+        }
+
+        handler = handlers.get(fmt['id'])
+        if handler:
+            handler(fmt)
+        else:
+            QMessageBox.critical(
+                self, "Export Error",
+                f"No handler found for format: {fmt['name']}"
+            )
+
+    def _export_nncanvas(self, fmt):
+        """Export to .nncanvas format."""
         filepath, _ = QFileDialog.getSaveFileName(
             self,
-            "Export MLX Code",
+            "Export Neural Canvas",
             "",
-            "Python Files (*.py);;All Files (*)"
+            fmt['filter']
         )
 
         if not filepath:
             return
 
-        if not filepath.endswith('.py'):
-            filepath += '.py'
+        if not filepath.endswith(fmt['ext']):
+            filepath += fmt['ext']
+
+        try:
+            # Save graph as JSON
+            self.graph.save(filepath)
+
+            QMessageBox.information(
+                self, "Export Successful",
+                f"Neural Canvas saved to:\n{filepath}\n\n"
+                f"Nodes: {len(self.graph.nodes)}\n"
+                f"Connections: {len(self.graph.connections)}\n"
+                f"Parameters: {self.graph.compute_total_parameters():,}"
+            )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Export Error", f"Failed to export:\n{e}")
+
+    def _export_mlx(self, fmt):
+        """Export to MLX Python code."""
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export MLX Code",
+            "",
+            fmt['filter']
+        )
+
+        if not filepath:
+            return
+
+        if not filepath.endswith(fmt['ext']):
+            filepath += fmt['ext']
 
         try:
             # Generate code
@@ -386,11 +445,51 @@ class NeuralCanvasPanel(QWidget):
             QMessageBox.information(
                 self, "Export Successful",
                 f"MLX code exported to:\n{filepath}\n\n"
-                f"Parameters: {self.graph.compute_total_parameters():,}"
+                f"Parameters: {self.graph.compute_total_parameters():,}\n\n"
+                f"Next steps:\n"
+                f"1. Install MLX: pip install mlx\n"
+                f"2. Import generated code in your training script\n"
+                f"3. Instantiate model and train!"
             )
 
         except Exception as e:
             QMessageBox.critical(self, "Export Error", f"Failed to export:\n{e}")
+
+    def _export_onnx(self, fmt):
+        """Export to ONNX format (planned)."""
+        QMessageBox.information(
+            self, "Coming Soon",
+            "ONNX export is planned for a future update.\n\n"
+            "ONNX (Open Neural Network Exchange) is the universal ML interchange format.\n\n"
+            "For now, you can:\n"
+            "1. Export to MLX Python\n"
+            "2. Train the model\n"
+            "3. Use mlx-to-onnx converter (community tools)"
+        )
+
+    def _export_pytorch(self, fmt):
+        """Export to PyTorch format (planned)."""
+        QMessageBox.information(
+            self, "Coming Soon",
+            "PyTorch export is planned for a future update.\n\n"
+            "Will generate torch.nn.Module definition compatible with PyTorch training pipelines.\n\n"
+            "For now, you can:\n"
+            "1. Export to MLX Python\n"
+            "2. Manually port to PyTorch (similar API)\n"
+            "3. Or export to ONNX → convert to PyTorch"
+        )
+
+    def _export_coreml(self, fmt):
+        """Export to CoreML format (planned)."""
+        QMessageBox.information(
+            self, "Coming Soon",
+            "CoreML export is planned for a future update.\n\n"
+            "CoreML is Apple's native format for iOS/macOS ML deployment.\n\n"
+            "For now, you can:\n"
+            "1. Export to MLX Python\n"
+            "2. Train the model in MLX\n"
+            "3. Use coremltools to convert MLX → CoreML"
+        )
 
 
     def _on_node_selected(self, node_id: str):

@@ -2,43 +2,225 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: December 11, 2025 - Scriptability API Documentation Complete!
+**Last Updated**: December 13, 2025 - Model Manager Metadata Display Complete!
 
 **FOR NEXT CLAUDE: START HERE!** 👇
 
 ---
 
-## 🎯 CURRENT PRIORITY - Multi-Provider Integration
+## 🎯 CURRENT STATUS - Model Manager Polish & Agent Testing
 
-**STATUS:** Provider clients complete! Need integration into facet execution system.
+**AGENTS ARE TALKING!** 🎉
+
+Red Fire Anklebiter is responding properly via noodleMUSH web interface. DeepSeek R1 reasoning works with `<think>` tag parsing.
 
 **NEXT TASKS:**
 
-### 1. Fix Settings A+/- Font Scaling (ACCESSIBILITY BUG!)
-- A+/- buttons in Settings panel don't scale UI text
-- Only scale Settings tab font, not Model Manager content
-- Need global font size application
+### 1. Continue Model Manager UI Polish
+**Status:** Core features working, minor refinements needed
 
-### 2. Complete Multi-Provider LLM Integration (~4-6 hours)
-- Update cognitive_components.py to use LLMClientRouter
-- Add provider config sync (NoodleStudio → cmush via noodleScope)
-- Test Red using Claude Opus via OpenRouter/Anthropic
-- Add model parameter UI (temperature, max_tokens, top_p)
+**What works:**
+- ✅ Rich metadata display (descriptions, context, pricing, capabilities)
+- ✅ Horizontal layout (saves vertical space)
+- ✅ Draggable splitter between models and labels
+- ✅ All labels show (including unassigned)
+- ✅ 8 providers: Ollama, Anthropic, OpenAI, OpenRouter, LM Studio, Groq, Together AI, Mistral AI
+- ✅ Search with clear button
 
-### 3. Model Parameters Question
-**Design decision needed:** Should users configure per-facet?
-- Temperature (0.0-2.0)
-- Max tokens (100-4000)
-- Top-p / Top-k
-- OR: Keep programmatic (different per facet type)?
+**To refine:**
+- Test label creation workflow end-to-end
+- Verify all provider configurations work
+- Test model assignment to custom labels
 
-**Note:** Scriptability API is COMPLETE! (see "Completed This Session" below)
+---
+
+## ✅ COMPLETED THIS SESSION (December 13, 2025)
+
+### 1. Agent Communication - DeepSeek R1 Think Tag Parsing
+
+**The Fix:** DeepSeek R1 outputs chain-of-thought in `<think>` tags, was showing as speech.
+
+**What changed:**
+- Added `_parse_think_tags()` method (agent_bridge.py:5091-5114)
+- Parses `<think>...</think>` content from LLM output
+- Routes thoughts → "Red thinks..." (type: 'think')
+- Routes speech → "Red says..." (type: 'say')
+- Server already had handlers for both event types
+
+**Key Files:**
+- `applications/cmush/agent_bridge.py:5091-5114` - Tag parser
+- `applications/cmush/agent_bridge.py:3678-3689` - Reactive response parsing
+- `applications/cmush/agent_bridge.py:5103-5144` - Autonomous speech parsing
+- `applications/cmush/server.py:1031-1032` - Think event formatting
+
+### 2. Red Fire Anklebiter - Personality & Prompt Refinement
+
+**Removed:**
+- Ankle biting behavior (was repetitive)
+- Meta-commentary ("Red Fire Anklebiter's response to...")
+- Observation list regurgitation
+
+**Added:**
+- Explicit `<think>` tag instructions for reasoning
+- Clearer "CRITICAL INSTRUCTIONS" section
+- Bad examples showing what NOT to do
+- Max tokens: 200 → 1000 (room for reasoning + speech)
+
+**Key File:**
+- `applications/noodlestudio/facet_assemblies/red_fire_anklebiter.yaml:520-536`
+
+### 3. noodleMUSH Web Interface - User Display Fix
+
+**The Fix:** User messages showed "You say" instead of username
+
+**Changed:**
+- `'You say, "{args}"'` → `'{USERNAME} say, "{args}"'`
+- Now shows: "CAITY say, "hi red u dorkus""
+
+**Key File:**
+- `applications/cmush/commands.py:669-671`
+
+### 4. Model Manager - Rich Metadata Display System
+
+**The Big One:** Complete overhaul to show all available model information.
+
+**Architecture:**
+- Changed `ProviderConfig.available_models` from `List[str]` → `List[Dict[str, Any]]`
+- Updated all fetch methods to return model dictionaries with metadata
+- OpenRouter returns FULL API metadata (descriptions, pricing, context, etc.)
+- Other providers return structured dicts with known specs
+
+**Metadata Displayed Per Model:**
+- **Full Name**: "Claude Opus 4.5" or "OpenAI: GPT-5.2 Chat"
+- **Context Length**: "128k ctx", "200k ctx"
+- **Size**: "42 GB" (Ollama only)
+- **Capabilities**: "tools think" (auto-detects reasoning models)
+- **Description**: Full text from API, truncated to ~80 chars
+- **Pricing**: "$1.75/$14.00/1M" (OpenRouter only, green text)
+
+**Layout:**
+- Horizontal single-line display (saves vertical space)
+- Font sizes: 13px model names, 11px metadata
+- All info on one row: `[Name] • [metadata] • [description] • [pricing] [dropdown] [delete]`
+
+**Key Files:**
+- `noodlestudio/core/provider_manager.py:39,176-411` - Dict-based model system
+- `noodlestudio/panels/model_manager_panel_v2.py:173-337` - ModelRow horizontal layout
+- `noodlestudio/panels/model_manager_panel_v2.py:789-790` - Hashable set fix (critical!)
+
+**Critical Bug Fixed:**
+- Line 789: `set(models)` where models = list of dicts → **CRASH** (dicts aren't hashable!)
+- Fixed: Extract IDs before creating set
+
+### 5. Model Manager - Draggable Splitter & Layout
+
+**Added:**
+- QSplitter between models section and label assignments section
+- 6px handle, matches main panel separators (#2a2a2a / #555555)
+- 4px margins above/below handle for clear separation
+- Prevents collapse (setCollapsible(False) on both sections)
+- Initial split: 60% models / 40% labels
+
+**Label Assignments:**
+- Now shows ALL labels (including unassigned)
+- Unassigned labels show "(unassigned)"
+- Scrollable (like models section)
+- Rows don't stretch vertically (max height: 40px)
+- Rows stack at top (AlignTop), empty space below
+
+**Styling Consistency:**
+- "Label Assignments:" matches "Provider:" (#D2D2D2 bold)
+- "+ Add Label" button matches "Configure"/"Refresh" buttons
+- Label names (Large, Medium, etc.) match model names (13px bold)
+
+**Key File:**
+- `noodlestudio/panels/model_manager_panel_v2.py:666-763` - Splitter implementation
+
+### 6. Provider Expansion - 8 Providers Total
+
+**Added:**
+- **LM Studio** - Local OpenAI-compatible server (localhost:1234)
+- **Groq** - Super fast LPU inference (NOT Elon's Grok!)
+- **Together AI** - Open source models, good pricing
+- **Mistral AI** - Direct Mistral/Mixtral access
+
+**All use OpenAI-compatible APIs** - same fetch logic as OpenAI
+
+**Key File:**
+- `noodlestudio/core/provider_manager.py:95-118` - New defaults
+
+### 7. UI Polish & Bug Fixes
+
+**Removed Popups:**
+- "Provider Configured" confirmation
+- "Models Refreshed" confirmation
+- "Label Added" confirmation
+
+**Kept Important Popups:**
+- "Apply to All Labels?" confirmation (destructive)
+- "Confirm Label Change" with affected facets
+- All validation errors and safety checks
+
+**Scene Hierarchy Crash Fix:**
+- `self.entitySelected.emit(None, None)` → `emit("", {})`
+- PyQt6 strict type checking requires proper types
+- Fixed at lines 486 and 1194
+
+**Key Files:**
+- `noodlestudio/panels/scene_hierarchy.py:486,1194`
+- `noodlestudio/panels/model_manager_panel_v2.py` - Popup removals
+
+**Testing needed:**
+- Create custom labels and assign models
+- Test all 8 providers with API keys
+- Verify metadata displays correctly for each provider
+- Test splitter drag behavior
+- Confirm label assignment workflow
 
 ---
 
 ## ✅ COMPLETED THIS SESSION (December 11, 2025)
 
-### 1. Degoosification Backend - LIVE! 🦆
+### 1. Settings Panel UX Polish + Label System Improvements
+
+**Model Label Dropdown Enhancements:**
+- Title case labels: Small/Medium/Large (was SMALL/MEDIUM/LARGE)
+- Changed "none" to "(None)" for clarity
+- Added triangle indicators to all dropdowns
+- Removed checkmark icons (cleaner look)
+- Block selection hover style (highlighted background)
+- Custom labels with spaces: "Multimodal Model", "GPT 4 Turbo" work!
+
+**Label Management Features:**
+- + Add Label button: Create custom labels on the fly
+- Click to rename: Interactive label renaming in Label Assignments
+- Delete button: Remove custom labels (× appears next to label)
+- (Apply to All Labels): Batch assign same model to all labels with confirmation
+
+**Safety Features:**
+- Impact analysis: Shows which facets will be affected before changes
+- Mandatory LLM: Can't delete/clear last assigned label
+- Protected defaults: Can't delete/rename Small/Medium/Large
+- Confirmation dialogs: All destructive operations require confirmation
+
+**Font Scaling Fixed:**
+- A+/A- buttons now scale ALL settings content (not just Settings tab)
+- Recursive font application to all tabs and children
+
+**Performance:**
+- Smart refresh: Only recreates widgets when model list actually changes
+- 2-second background refresh doesn't disrupt user interaction
+- Delayed updates prevent dropdown from closing prematurely
+
+**Critical Bug Fixes:**
+- Fixed JSON parsing order in get_model_for_label (was treating JSON as legacy data)
+- Fixed label persistence (store empty strings for unassigned)
+- Fixed create_label missing third argument crash
+- Fixed dropdown visual state retention
+
+---
+
+### 2. Degoosification Backend - LIVE! 🦆
 
 **The Big One:** Henri Bergamot, Product Specialist, Degoosification Services!
 

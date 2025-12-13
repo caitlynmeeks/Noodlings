@@ -53,11 +53,6 @@ class ModelStats:
 class OllamaConfig:
     """Configuration for Ollama models and preferences."""
 
-    # Model tiers - DeepSeek R1 with chain-of-thought reasoning
-    small_model: str = "deepseek-r1:7b"    # Fast reasoning for simple facets (4.7GB)
-    medium_model: str = "deepseek-r1:14b"  # Balanced reasoning for main facets (9GB)
-    large_model: str = "deepseek-r1:70b"   # Deep reasoning for complex facets (42GB)
-
     # Ollama server settings
     host: str = "http://localhost:11434"
     models_directory: str = "/Volumes/DOUBLETROUBLE/models"
@@ -67,14 +62,55 @@ class OllamaConfig:
     load_timeout: int = 600  # 10 minutes to load/pull large models
 
     def get_model_for_tier(self, tier: str) -> str:
-        """Get model name for a tier (SMALL, MEDIUM, LARGE)."""
-        tier_map = {
-            "SMALL": self.small_model,
-            "MEDIUM": self.medium_model,
-            "LARGE": self.large_model,
-            "$$": self.large_model,  # Alias for LARGE
-        }
-        return tier_map.get(tier.upper(), self.medium_model)
+        """
+        Get model name for a tier/label using ModelLabelManager.
+
+        NOTE: This now queries multi-provider system. Only returns models
+        from Ollama provider (ignores Anthropic, OpenAI, etc.).
+
+        Args:
+            tier: Label name (SMALL, MEDIUM, LARGE, or custom label)
+
+        Returns:
+            Model name or default to deepseek-r1:14b if label not found
+        """
+        # Import here to avoid circular dependency
+        try:
+            import sys
+            from pathlib import Path
+            # Add noodlestudio to path if not already there
+            noodlestudio_path = Path(__file__).parent.parent / "noodlestudio"
+            if str(noodlestudio_path) not in sys.path:
+                sys.path.insert(0, str(noodlestudio_path))
+
+            from noodlestudio.core.model_label_manager import get_model_label_manager
+            manager = get_model_label_manager()
+
+            # Handle $$ alias for LARGE
+            if tier == "$$":
+                tier = "LARGE"
+
+            # Get (provider, model) tuple
+            provider, model = manager.get_model_for_label(tier.upper())
+
+            # Only use if it's an Ollama model (ignore external providers)
+            if provider == "ollama" and model:
+                return model
+
+            # Fallback to MEDIUM default
+            logger.warning(f"Label {tier} assigned to non-Ollama provider ({provider}), using default")
+            return "deepseek-r1:14b"
+
+        except Exception as e:
+            logger.warning(f"Failed to load model label manager, using default: {e}")
+            # Fallback mapping if manager unavailable
+            tier_map = {
+                "SMALL": "deepseek-r1:7b",
+                "MEDIUM": "deepseek-r1:14b",
+                "LARGE": "deepseek-r1:70b",
+                "$$": "deepseek-r1:70b",
+            }
+            return tier_map.get(tier.upper(), "deepseek-r1:14b")
 
 
 class OllamaManager:
@@ -406,27 +442,47 @@ class OllamaManager:
                 }
             }
         """
+        # Get dynamic tiers from ModelLabelManager (only Ollama models)
+        tiers = {}
+        try:
+            import sys
+            from pathlib import Path
+            noodlestudio_path = Path(__file__).parent.parent / "noodlestudio"
+            if str(noodlestudio_path) not in sys.path:
+                sys.path.insert(0, str(noodlestudio_path))
+
+            from noodlestudio.core.model_label_manager import get_model_label_manager
+            manager = get_model_label_manager()
+
+            # Get all mappings and filter for Ollama only
+            all_mappings = manager.get_all_mappings()
+            for label, (provider, model) in all_mappings.items():
+                if provider == "ollama":
+                    tiers[label] = model
+
+        except Exception as e:
+            logger.warning(f"Failed to load tiers from manager: {e}")
+            # Fallback
+            tiers = {
+                'SMALL': 'deepseek-r1:7b',
+                'MEDIUM': 'deepseek-r1:14b',
+                'LARGE': 'deepseek-r1:70b',
+            }
+
         status = {
             'connected': self._initialized,
             'host': self.config.host,
             'models': [],
-            'tiers': {
-                'SMALL': self.config.small_model,
-                'MEDIUM': self.config.medium_model,
-                'LARGE': self.config.large_model,
-            }
+            'tiers': tiers
         }
+
+        # Create reverse mapping for tier lookup
+        model_to_tier = {model: label for label, model in tiers.items()}
 
         # Add per-model statistics
         for model_name, stats in self.stats.items():
             # Determine tier if this model is configured
-            tier = None
-            if model_name == self.config.small_model:
-                tier = 'SMALL'
-            elif model_name == self.config.medium_model:
-                tier = 'MEDIUM'
-            elif model_name == self.config.large_model:
-                tier = 'LARGE'
+            tier = model_to_tier.get(model_name)
 
             avg_duration = (
                 stats.total_duration_seconds / stats.total_calls

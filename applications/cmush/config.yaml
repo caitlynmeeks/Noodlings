@@ -16,9 +16,6 @@ llm:
   ollama:
     host: http://localhost:11434
     models_directory: /Volumes/DOUBLETROUBLE/models
-    small_model: qwen2.5:3b
-    medium_model: qwen2.5:14b
-    large_model: qwen2.5:32b
     default_timeout: 120
     load_timeout: 300
   openrouter:

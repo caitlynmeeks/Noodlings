@@ -18,7 +18,7 @@ from typing import Optional, Dict, List
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QProgressBar, QScrollArea, QFrame, QMessageBox, QComboBox,
-    QLineEdit, QDialog, QFormLayout, QSpinBox
+    QLineEdit, QDialog, QFormLayout, QSpinBox, QSplitter
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -56,7 +56,7 @@ class ProviderConfigDialog(QDialog):
 
         # Provider type (read-only)
         type_label = QLabel(self.provider_config.type)
-        type_label.setStyleSheet("color: #888888;")
+        type_label.setStyleSheet("color: #B8B8B8;")
         form.addRow("Type:", type_label)
 
         # API Key (if needed)
@@ -170,10 +170,11 @@ class ModelRow(QFrame):
     labelChanged = pyqtSignal(str, str, str)  # provider_id, model_name, label
     deleteRequested = pyqtSignal(str)  # model_name
 
-    def __init__(self, provider_id: str, model_name: str, parent=None):
+    def __init__(self, provider_id: str, model_data: dict, parent=None):
         super().__init__(parent)
         self.provider_id = provider_id
-        self.model_name = model_name
+        self.model_data = model_data if isinstance(model_data, dict) else {'id': model_data, 'name': model_data}
+        self.model_name = self.model_data.get('id', '')
 
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setStyleSheet("""
@@ -181,7 +182,7 @@ class ModelRow(QFrame):
                 background: #2d2d2d;
                 border: 1px solid #3e3e3e;
                 border-radius: 3px;
-                padding: 6px;
+                padding: 8px;
             }
             ModelRow:hover {
                 border: 1px solid #555555;
@@ -191,15 +192,65 @@ class ModelRow(QFrame):
         self._setup_ui()
 
     def _setup_ui(self):
-        """Build row UI."""
+        """Build row UI with metadata display (horizontal layout)."""
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 4, 8, 4)
-        layout.setSpacing(8)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(12)
 
-        # Model name
-        name_label = QLabel(self.model_name)
-        name_label.setStyleSheet("color: #D2D2D2; font-size: 11px;")
+        # Model name (use full name if available, otherwise ID)
+        display_name = self.model_data.get('name', self.model_name)
+        name_label = QLabel(display_name)
+        name_label.setStyleSheet("color: #D2D2D2; font-size: 13px; font-weight: bold;")
+        name_label.setMinimumWidth(200)
         layout.addWidget(name_label)
+
+        # Metadata: context, size, capabilities (horizontal, compact)
+        metadata_parts = []
+
+        # Context length
+        ctx_len = self.model_data.get('context_length', 0)
+        if ctx_len > 0:
+            if ctx_len >= 1000:
+                metadata_parts.append(f"{ctx_len//1000}k ctx")
+            else:
+                metadata_parts.append(f"{ctx_len} ctx")
+
+        # Model size (Ollama only)
+        size = self.model_data.get('size')
+        if size and size != 'Unknown':
+            metadata_parts.append(size)
+
+        # Capabilities
+        params = self.model_data.get('supported_parameters', [])
+        caps = []
+        if 'tools' in params:
+            caps.append('tools')
+        if 'thinking' in params or 'o1' in self.model_name or 'o3' in self.model_name or 'deepseek-r1' in self.model_name:
+            caps.append('think')
+        if caps:
+            metadata_parts.append(' '.join(caps))
+
+        # Pricing (OpenRouter only)
+        pricing = self.model_data.get('pricing', {})
+        if pricing and pricing.get('prompt'):
+            prompt_price = float(pricing.get('prompt', 0)) * 1000000  # Convert to per-million
+            completion_price = float(pricing.get('completion', 0)) * 1000000
+            metadata_parts.append(f"${prompt_price:.2f}/${completion_price:.2f}/1M")
+
+        if metadata_parts:
+            metadata_label = QLabel(' • '.join(metadata_parts))
+            metadata_label.setStyleSheet("color: #B8B8B8; font-size: 13px;")
+            layout.addWidget(metadata_label)
+
+        # Description (truncated, on same line)
+        desc = self.model_data.get('description', '')
+        if desc:
+            # Truncate to ~80 chars for horizontal display
+            if len(desc) > 80:
+                desc = desc[:77] + "..."
+            desc_label = QLabel(desc)
+            desc_label.setStyleSheet("color: #B8B8B8; font-size: 13px; font-style: italic;")
+            layout.addWidget(desc_label)
 
         layout.addStretch()
 
@@ -262,6 +313,7 @@ class ModelRow(QFrame):
             }
         """)
         self.label_combo.currentTextChanged.connect(self._on_label_changed)
+        self.label_combo.setFixedWidth(120)
         layout.addWidget(self.label_combo)
 
         # Delete button (only for ollama)
@@ -274,13 +326,14 @@ class ModelRow(QFrame):
                     border: 1px solid #555555;
                     padding: 4px 8px;
                     border-radius: 3px;
-                    font-size: 10px;
+                    font-size: 11px;
                 }
                 QPushButton:hover {
                     background: #4e4e4e;
                 }
             """)
             delete_btn.clicked.connect(lambda: self.deleteRequested.emit(self.model_name))
+            delete_btn.setFixedWidth(70)
             layout.addWidget(delete_btn)
 
     def update_labels(self, all_labels: List[str], current_label: Optional[str]):
@@ -372,7 +425,7 @@ class DownloadProgressRow(QFrame):
         top_row = QHBoxLayout()
 
         name_label = QLabel(self.model_name)
-        name_label.setStyleSheet("color: #D2D2D2; font-size: 11px; font-weight: bold;")
+        name_label.setStyleSheet("color: #D2D2D2; font-size: 13px; font-weight: bold;")
         top_row.addWidget(name_label)
 
         top_row.addStretch()
@@ -552,7 +605,7 @@ class ModelManagerPanel(QWidget):
 
         # Disk space (for Ollama)
         self.disk_space_label = QLabel()
-        self.disk_space_label.setStyleSheet("color: #888888; font-size: 11px;")
+        self.disk_space_label.setStyleSheet("color: #B8B8B8; font-size: 13px;")
         provider_row.addWidget(self.disk_space_label)
 
         layout.addLayout(provider_row)
@@ -561,7 +614,7 @@ class ModelManagerPanel(QWidget):
         search_row = QHBoxLayout()
 
         search_label = QLabel("Search:")
-        search_label.setStyleSheet("color: #888888;")
+        search_label.setStyleSheet("color: #D2D2D2; font-weight: bold;")
         search_row.addWidget(search_label)
 
         self.search_input = QLineEdit()
@@ -577,6 +630,26 @@ class ModelManagerPanel(QWidget):
         """)
         self.search_input.textChanged.connect(self._filter_models)
         search_row.addWidget(self.search_input)
+
+        # Clear search button
+        clear_btn = QPushButton("×")
+        clear_btn.setFixedSize(28, 28)
+        clear_btn.setStyleSheet("""
+            QPushButton {
+                background: #3e3e3e;
+                color: #888888;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: #4e4e4e;
+                color: #aaaaaa;
+            }
+        """)
+        clear_btn.clicked.connect(lambda: self.search_input.clear())
+        search_row.addWidget(clear_btn)
 
         refresh_btn = QPushButton("Refresh Models")
         refresh_btn.setStyleSheet("""
@@ -600,59 +673,114 @@ class ModelManagerPanel(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
 
         self.models_container = QWidget()
+        self.models_container.setStyleSheet("QWidget { background: #383838; }")
         self.models_layout = QVBoxLayout(self.models_container)
         self.models_layout.setContentsMargins(0, 0, 0, 0)
         self.models_layout.setSpacing(4)
         self.models_layout.addStretch()
 
         scroll.setWidget(self.models_container)
-        layout.addWidget(scroll, stretch=1)
+        # Add bottom margin to scroll area for spacing above splitter
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: #383838;
+                margin-bottom: 4px;
+            }
+        """)
 
-        # === Separator ===
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setStyleSheet("QFrame { color: #555555; background-color: #555555; height: 2px; }")
-        layout.addWidget(separator)
+        # === Create splitter between models and labels ===
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        splitter.setHandleWidth(6)
+        splitter.setStyleSheet("""
+            QSplitter {
+                background: #3e3e3e;
+            }
+            QSplitter::handle {
+                background-color: #2a2a2a;
+                margin-top: 4px;
+                margin-bottom: 4px;
+            }
+            QSplitter::handle:hover {
+                background-color: #555555;
+            }
+            QSplitter::handle:vertical {
+                height: 6px;
+            }
+        """)
 
-        # === Label assignments section ===
+        # Add models scroll area to top half of splitter
+        splitter.addWidget(scroll)
+
+        # === Label assignments section (bottom half of splitter) ===
+        assignments_outer = QWidget()
+        assignments_outer.setStyleSheet("QWidget { background: #383838; }")
+        assignments_outer_layout = QVBoxLayout(assignments_outer)
+        assignments_outer_layout.setContentsMargins(0, 8, 0, 0)
+        assignments_outer_layout.setSpacing(8)
+
         assignments_header = QHBoxLayout()
 
-        assignments_label = QLabel("Label Assignments (All Providers)")
-        assignments_label.setStyleSheet("color: #888888; font-size: 12px; font-weight: bold;")
+        assignments_label = QLabel("Label Assignments:")
+        assignments_label.setStyleSheet("color: #D2D2D2; font-weight: bold;")
         assignments_header.addWidget(assignments_label)
 
         assignments_header.addStretch()
 
-        # Add custom label button
+        # Add custom label button (matches Configure/Refresh buttons)
         add_label_btn = QPushButton("+ Add Label")
         add_label_btn.setStyleSheet("""
             QPushButton {
                 background: #3e3e3e;
-                color: #888888;
+                color: #D2D2D2;
                 border: 1px solid #555555;
-                padding: 4px 12px;
+                padding: 6px 12px;
                 border-radius: 3px;
-                font-size: 11px;
             }
             QPushButton:hover {
                 background: #4e4e4e;
-                color: #aaaaaa;
-                border: 1px solid #666666;
             }
         """)
         add_label_btn.clicked.connect(self._add_custom_label)
         assignments_header.addWidget(add_label_btn)
 
-        layout.addLayout(assignments_header)
+        assignments_outer_layout.addLayout(assignments_header)
+
+        # Scrollable assignments list (prevents stretching, shows empty space)
+        assignments_scroll = QScrollArea()
+        assignments_scroll.setWidgetResizable(True)
+        assignments_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        assignments_scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: #383838;
+            }
+        """)
 
         self.assignments_container = QWidget()
+        self.assignments_container.setStyleSheet("QWidget { background: #383838; }")
         self.assignments_layout = QVBoxLayout(self.assignments_container)
         self.assignments_layout.setContentsMargins(0, 0, 0, 0)
         self.assignments_layout.setSpacing(4)
-        layout.addWidget(self.assignments_container)
+        self.assignments_layout.setAlignment(Qt.AlignmentFlag.AlignTop)  # Stack rows at top
+
+        assignments_scroll.setWidget(self.assignments_container)
+        assignments_outer_layout.addWidget(assignments_scroll)
+
+        # Add assignments widget to bottom half of splitter
+        splitter.addWidget(assignments_outer)
+
+        # Prevent complete collapse of either section
+        splitter.setCollapsible(0, False)  # Models section
+        splitter.setCollapsible(1, False)  # Labels section
+
+        # Set initial splitter sizes (60% models, 40% labels)
+        splitter.setSizes([600, 400])
+
+        # Add splitter to main layout
+        layout.addWidget(splitter, stretch=1)
 
         # Populate provider dropdown
         self._refresh_provider_dropdown()
@@ -696,8 +824,6 @@ class ModelManagerPanel(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             # Save updated config
             self.provider_manager.update_provider(provider)
-            QMessageBox.information(self, "Provider Configured",
-                                    f"{provider.name} configuration saved.")
 
     def _refresh_models(self):
         """Refresh model list for current provider."""
@@ -723,7 +849,8 @@ class ModelManagerPanel(QWidget):
 
         # Check if model list has actually changed
         existing_models = set(self.model_rows.keys())
-        new_models = set(models)
+        # Extract model IDs from model dicts (handle both dict and string formats)
+        new_models = set(m.get('id', m) if isinstance(m, dict) else m for m in models)
 
         # Only recreate widgets if the model list changed
         if existing_models != new_models:
@@ -739,17 +866,24 @@ class ModelManagerPanel(QWidget):
             self.download_rows.clear()
 
             # Add model rows
-            for model_name in models:
-                row = ModelRow(provider_id, model_name)
+            for model_data in models:
+                # Handle both dict and string formats (backward compatibility)
+                if isinstance(model_data, dict):
+                    model_id = model_data.get('id', '')
+                else:
+                    model_id = model_data
+                    model_data = {'id': model_data, 'name': model_data}
+
+                row = ModelRow(provider_id, model_data)
                 row.labelChanged.connect(self._on_label_changed)
                 row.deleteRequested.connect(self._delete_model)
 
                 # Find current label assignment
-                current_label = self.label_manager.get_label_for_model(provider_id, model_name)
+                current_label = self.label_manager.get_label_for_model(provider_id, model_id)
                 row.update_labels(all_labels, current_label)
 
                 self.models_layout.insertWidget(self.models_layout.count() - 1, row)
-                self.model_rows[model_name] = row
+                self.model_rows[model_id] = row
         else:
             # Model list hasn't changed - just update existing dropdowns
             # BUT only if their label assignment has actually changed
@@ -817,15 +951,19 @@ class ModelManagerPanel(QWidget):
         # Refresh display
         self._refresh_models()
 
-        QMessageBox.information(self, "Models Refreshed",
-                                f"Found {len(models)} models from {provider_id}")
-
     def _filter_models(self):
-        """Filter model rows based on search text."""
+        """Filter model rows based on search text (searches ID, name, and description)."""
         search_text = self.search_input.text().lower()
 
-        for model_name, row in self.model_rows.items():
-            visible = search_text in model_name.lower()
+        for model_id, row in self.model_rows.items():
+            # Search across multiple fields
+            searchable_text = ' '.join([
+                model_id,
+                row.model_data.get('name', ''),
+                row.model_data.get('description', ''),
+            ]).lower()
+
+            visible = search_text in searchable_text
             row.setVisible(visible)
 
     def _on_label_changed(self, provider_id: str, model_name: str, label: str):
@@ -1032,36 +1170,38 @@ class ModelManagerPanel(QWidget):
             # Add the label (unassigned initially)
             self.label_manager.create_label(label_name)
 
-            # Refresh models to update dropdowns
+            # Refresh models to update dropdowns AND label assignments
             self._refresh_models()
-
-            QMessageBox.information(
-                self,
-                "Label Added",
-                f"Label '{label_name}' has been added.\n\nYou can now assign models to it using the dropdown menus."
-            )
+            self._refresh_label_assignments()  # Show in assignments list even if unassigned
 
     def _refresh_label_assignments(self):
-        """Refresh label assignments overview."""
+        """Refresh label assignments overview (shows ALL labels, assigned or not)."""
         # Clear existing
         while self.assignments_layout.count():
             item = self.assignments_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
 
-        # Get all mappings
-        mappings = self.label_manager.get_all_mappings()
+        # Get all labels (not just mapped ones)
+        all_labels = self.label_manager.get_all_labels()
 
-        if not mappings:
-            no_label = QLabel("No label assignments yet")
-            no_label.setStyleSheet("color: #666666; font-style: italic; font-size: 11px;")
+        if not all_labels:
+            no_label = QLabel("No labels yet")
+            no_label.setStyleSheet("color: #B8B8B8; font-style: italic; font-size: 13px;")
             self.assignments_layout.addWidget(no_label)
             return
 
-        # Add assignment rows
-        for label, (provider_id, model_name) in sorted(mappings.items()):
-            provider = self.provider_manager.get_provider(provider_id)
-            provider_name = provider.name if provider else provider_id
+        # Add assignment rows for ALL labels
+        for label in sorted(all_labels):
+            # Get current assignment (may be None for unassigned labels)
+            provider_id, model_name = self.label_manager.get_model_for_label(label)
+
+            if provider_id and model_name:
+                provider = self.provider_manager.get_provider(provider_id)
+                provider_name = provider.name if provider else provider_id
+                assignment_text = f"{provider_name} / {model_name}"
+            else:
+                assignment_text = "(unassigned)"
 
             row = QFrame()
             row.setStyleSheet("""
@@ -1069,21 +1209,21 @@ class ModelManagerPanel(QWidget):
                     background: #2d2d2d;
                     border: 1px solid #3e3e3e;
                     border-radius: 3px;
-                    padding: 6px;
+                    padding: 8px;
                 }
             """)
 
             row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(8, 4, 8, 4)
+            row_layout.setContentsMargins(10, 6, 10, 6)
 
-            # Make label clickable for renaming
+            # Make label clickable for renaming (matches model name styling)
             label_widget = QPushButton(f"{label}")
             label_widget.setFlat(True)
             label_widget.setCursor(Qt.CursorShape.PointingHandCursor)
             label_widget.setStyleSheet("""
                 QPushButton {
                     color: #D2D2D2;
-                    font-size: 11px;
+                    font-size: 13px;
                     font-weight: bold;
                     background: transparent;
                     border: none;
@@ -1097,14 +1237,15 @@ class ModelManagerPanel(QWidget):
             """)
             label_widget.setToolTip("Double-click to rename")
             label_widget.clicked.connect(lambda checked, lbl=label: self._rename_label(lbl))
+            label_widget.setMinimumWidth(200)
             row_layout.addWidget(label_widget)
 
             arrow = QLabel("→")
-            arrow.setStyleSheet("color: #666666;")
+            arrow.setStyleSheet("color: #B8B8B8; font-size: 13px;")
             row_layout.addWidget(arrow)
 
-            info = QLabel(f"{provider_name} / {model_name}")
-            info.setStyleSheet("color: #888888; font-size: 11px;")
+            info = QLabel(assignment_text)
+            info.setStyleSheet("color: #B8B8B8; font-size: 13px;")
             row_layout.addWidget(info)
 
             row_layout.addStretch()

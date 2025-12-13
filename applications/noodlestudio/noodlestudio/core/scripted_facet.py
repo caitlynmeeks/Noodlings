@@ -97,10 +97,27 @@ class ScriptContext:
     # Event bus reference
     _event_bus: Optional[Any] = None
 
+    # Noodle API (system configuration access)
+    _noodle_api: Optional[Any] = None
+
     def __post_init__(self):
-        """Initialize event bus connection."""
+        """Initialize event bus and noodle API."""
         if EVENT_BUS_AVAILABLE and self._event_bus is None:
-            self._event_bus = get_event_bus()
+            try:
+                self._event_bus = get_event_bus()
+            except RuntimeError:
+                # No event loop available (e.g., in tests)
+                pass
+
+        # Initialize Noodle API if not provided
+        if self._noodle_api is None:
+            try:
+                from noodlestudio.scripting.noodle_api import get_noodle_api
+                self._noodle_api = get_noodle_api()
+            except Exception as e:
+                # API not available or error during init
+                # This is OK - scripts just won't have system config access
+                pass
 
     def register_event_bus_listeners(self):
         """
@@ -165,7 +182,9 @@ class ScriptContext:
             'think': '__think__',
             # Tier 1 API - Timers
             'nextCycle': '__next_cycle__',
-            'setTimeout': '__set_timeout__'
+            'setTimeout': '__set_timeout__',
+            # Noodle API - System configuration
+            'noodle': self._noodle_api.to_dict() if self._noodle_api else {}
         }
 
 

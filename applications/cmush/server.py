@@ -222,29 +222,29 @@ class CMUSHServer:
                     pass
 
             # Merge config with preferences (prefs override config)
+            # NOTE: Model assignments now managed by ModelLabelManager, not config
             ollama_config_dict = llm_config.get('ollama', {})
             merged_config = {
-                'small_model': ollama_prefs.get('small_model') or ollama_config_dict.get('small_model', 'qwen2.5:3b'),
-                'medium_model': ollama_prefs.get('medium_model') or ollama_config_dict.get('medium_model', 'qwen2.5:14b'),
-                'large_model': ollama_prefs.get('large_model') or ollama_config_dict.get('large_model', 'qwen3-vl-30b-a3b-instruct-mlx'),
                 'host': ollama_prefs.get('host') or ollama_config_dict.get('host', 'http://localhost:11434'),
                 'models_directory': ollama_prefs.get('models_directory') or ollama_config_dict.get('models_directory', '/Volumes/DOUBLETROUBLE/models'),
+                'default_timeout': ollama_config_dict.get('default_timeout', 120),
+                'load_timeout': ollama_config_dict.get('load_timeout', 300),
             }
 
             ollama_config = OllamaConfig(**merged_config)
             self.llm = OllamaManager(config=ollama_config)
             await self.llm.__aenter__()
 
-            logger.info(f"🦙 Using Ollama with models:")
-            logger.info(f"  SMALL:  {ollama_config.small_model}")
-            logger.info(f"  MEDIUM: {ollama_config.medium_model}")
-            logger.info(f"  LARGE:  {ollama_config.large_model}")
+            logger.info(f"🦙 Using Ollama:")
+            logger.info(f"  SMALL:  {ollama_config.get_model_for_tier('SMALL')}")
+            logger.info(f"  MEDIUM: {ollama_config.get_model_for_tier('MEDIUM')}")
+            logger.info(f"  LARGE:  {ollama_config.get_model_for_tier('LARGE')}")
             logger.info(f"  Host:   {ollama_config.host}")
 
             # Set provider_config for Kimmie (use Ollama's host, but in OpenAI-compatible format)
             provider_config = {
                 'api_base': ollama_config.host,
-                'model': ollama_config.medium_model  # Kimmie uses MEDIUM tier
+                'model': ollama_config.get_model_for_tier('MEDIUM')  # Kimmie uses MEDIUM tier
             }
 
         elif provider == 'openrouter':

@@ -1191,7 +1191,7 @@ class SceneHierarchy(QWidget):
             # If the derezzed entity was selected, clear Inspector and Facets Editor
             if was_selected:
                 print(f"Derezzed entity was selected, clearing Inspector/Facets Editor")
-                self.entitySelected.emit(None, None)
+                self.entitySelected.emit("", {})
 
         except Exception as e:
             print(f"Error derezzing {prim_id}: {e}")

@@ -3675,6 +3675,19 @@ Analyze and output ONLY valid JSON:
                     mysticism_penalty = 0.0
                     model_used = 'unknown'
 
+            # Parse <think> tags from response_text (DeepSeek R1 chain-of-thought)
+            # Extract thoughts and clean speech
+            thoughts_from_tags, clean_response = self._parse_think_tags(response_text)
+
+            # If we found thoughts in <think> tags, use them as thinking_content
+            # (overrides any existing thinking_content from LLM)
+            if thoughts_from_tags:
+                thinking_content = thoughts_from_tags
+                logger.info(f"[{self.agent_id}] Parsed <think> tags: {len(thoughts_from_tags)} chars of reasoning")
+
+            # Use the cleaned response text (without <think> tags) going forward
+            response_text = clean_response
+
             # Apply mysticism surprise penalty (Kimi K2's Fix E: Alan Watts self-troll)
             # High surprise → agent goes silent next time → naturally exits philosophy
             if mysticism_penalty > 0:
@@ -5075,28 +5088,70 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
                 logger.error(f"[{self.agent_name}] Error in continuous cognition: {e}", exc_info=True)
                 await asyncio.sleep(5)  # Wait before retrying after error
 
+    def _parse_think_tags(self, text: str):
+        """
+        Parse text to separate <think> content from speech.
+
+        Args:
+            text: Raw LLM output potentially containing <think> tags
+
+        Returns:
+            Tuple of (thoughts, speech) where either can be empty string
+        """
+        import re
+
+        # Extract all <think>...</think> content
+        think_pattern = r'<think>(.*?)</think>'
+        thoughts = re.findall(think_pattern, text, re.DOTALL)
+
+        # Remove <think> tags and their content from text to get speech
+        speech = re.sub(think_pattern, '', text, flags=re.DOTALL)
+
+        # Clean up whitespace
+        thoughts_text = ' '.join(thoughts).strip()
+        speech_text = speech.strip()
+
+        return thoughts_text, speech_text
+
     async def _broadcast_autonomous_speech(self, text: str):
         """
         Broadcast autonomous speech to the room.
+        Parses <think> tags and sends thoughts separately from speech.
 
         Args:
-            text: Speech text to broadcast
+            text: Speech text to broadcast (may contain <think> tags)
         """
         try:
-            # Create speech event
-            event = {
-                'type': 'say',
-                'user': self.agent_id,
-                'username': self.agent_name,
-                'room': self.current_room,
-                'text': text,
-                'autonomous': True  # Flag as autonomous
-            }
+            # Parse think tags
+            thoughts, speech = self._parse_think_tags(text)
 
             # This will be picked up by get_autonomous_events()
             if not hasattr(self, '_pending_autonomous_events'):
                 self._pending_autonomous_events = []
-            self._pending_autonomous_events.append(event)
+
+            # Broadcast thoughts first (if any)
+            if thoughts:
+                think_event = {
+                    'type': 'think',
+                    'user': self.agent_id,
+                    'username': self.agent_name,
+                    'room': self.current_room,
+                    'text': thoughts,
+                    'autonomous': True
+                }
+                self._pending_autonomous_events.append(think_event)
+
+            # Then broadcast speech (if any)
+            if speech:
+                speech_event = {
+                    'type': 'say',
+                    'user': self.agent_id,
+                    'username': self.agent_name,
+                    'room': self.current_room,
+                    'text': speech,
+                    'autonomous': True
+                }
+                self._pending_autonomous_events.append(speech_event)
 
         except Exception as e:
             logger.error(f"Error broadcasting autonomous speech: {e}", exc_info=True)
