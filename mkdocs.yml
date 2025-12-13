@@ -1,7 +1,7 @@
 site_name: Noodlings Scripting API
 site_description: Unity-like scripting API for Noodlings Multi-Timescale Affective Agents
 site_author: Caitlyn Kuhlman
-site_url: https://noodlings.ai/
+site_url: https://noodlings.ai/scripting-api/
 repo_url: https://github.com/caitlynmeeks/Noodlings
 repo_name: caitlynmeeks/Noodlings
 
