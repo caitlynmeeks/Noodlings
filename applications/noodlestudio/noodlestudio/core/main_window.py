@@ -246,7 +246,8 @@ class MainWindow(QMainWindow):
 
         # ===== HELP MENU =====
         help_menu = menu_bar.addMenu("&Help")
-        help_menu.addAction(self._create_action("NoodleStudio Documentation", "F1"))
+        help_menu.addAction(self._create_action("Scripting API Reference", "F1", slot=self.open_scripting_api))
+        help_menu.addAction(self._create_action("NoodleStudio Documentation", slot=self.open_documentation))
         help_menu.addAction(self._create_action("Noodlings Architecture Guide"))
         help_menu.addAction(self._create_action("Report Issue..."))
         help_menu.addSeparator()
@@ -2042,6 +2043,36 @@ class MainWindow(QMainWindow):
             "About NoodleSTUDIO",
             about_text
         )
+
+    def open_scripting_api(self):
+        """Open Scripting API documentation in browser."""
+        import subprocess
+        import webbrowser
+        import os
+
+        # Start mkdocs server if not running
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        mkdocs_path = os.path.join(repo_root, "..", "..", "mkdocs.yml")
+
+        if os.path.exists(mkdocs_path):
+            # Start server in background
+            try:
+                subprocess.Popen(
+                    ["mkdocs", "serve", "--dev-addr=127.0.0.1:8000"],
+                    cwd=os.path.dirname(mkdocs_path),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            except:
+                pass
+
+        # Open in browser
+        webbrowser.open("http://127.0.0.1:8000/")
+
+    def open_documentation(self):
+        """Open main documentation in browser."""
+        import webbrowser
+        webbrowser.open("https://noodlings.ai/")
 
     def show_rng_settings(self):
         """Show Random Number Generator settings dialog."""
