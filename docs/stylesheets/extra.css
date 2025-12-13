@@ -1,0 +1,27 @@
+/* Noodlings documentation custom styles - Coffee shop monochrome */
+
+:root {
+  --md-primary-fg-color: #2a2a2a;
+  --md-primary-fg-color--light: #383838;
+  --md-primary-fg-color--dark: #1a1a1a;
+}
+
+/* Code blocks - warmer monochrome */
+.highlight {
+  background-color: #1a1a1a !important;
+}
+
+/* Inline code */
+code {
+  background-color: #2a2a2a !important;
+  color: #e8e8e0 !important;
+}
+
+/* Links - subtle gray highlight */
+a {
+  color: #d2d2d2 !important;
+}
+
+a:hover {
+  color: #ffffff !important;
+}

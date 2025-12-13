@@ -1,0 +1,63 @@
+site_name: Noodlings Scripting API
+site_description: Unity-like scripting API for Noodlings Multi-Timescale Affective Agents
+site_author: Caitlyn Kuhlman
+site_url: https://noodlings.ai/
+repo_url: https://github.com/caitlynmeeks/Noodlings
+repo_name: caitlynmeeks/Noodlings
+
+theme:
+  name: material
+  palette:
+    # Coffee shop monochrome palette
+    scheme: slate
+    primary: custom
+    accent: custom
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+  - Quick Start: quick-start.md
+  - API Reference:
+      - Overview: api/overview.md
+      - NoodleAPI: api/noodle-api.md
+      - ModelsAPI: api/models-api.md
+      - NeuralAPI: api/neural-api.md
+      - AgentsAPI: api/agents-api.md
+  - Complete Examples: examples.md
+  - Node Types: node-types.md
+  - Troubleshooting: troubleshooting.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/caitlynmeeks/Noodlings
