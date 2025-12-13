@@ -2066,8 +2066,8 @@ class MainWindow(QMainWindow):
             except:
                 pass
 
-        # Open directly to API reference (immediately browsable)
-        webbrowser.open("http://127.0.0.1:8000/api-reference/")
+        # Open directly to API overview (immediately browsable)
+        webbrowser.open("http://127.0.0.1:8000/api/overview/")
 
     def open_documentation(self):
         """Open main documentation in browser."""
