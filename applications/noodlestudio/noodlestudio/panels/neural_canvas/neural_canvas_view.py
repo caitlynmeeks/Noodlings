@@ -240,11 +240,11 @@ class NodeGraphicsItem(QGraphicsItem):
         painter.setBrush(QBrush(header_color))
         painter.drawRect(header_rect)  # Sharp rectangle, not rounded
 
-        # Selection highlight (thin white outline with padding, drawn LAST on top)
+        # Selection highlight (white outline with padding, drawn LAST on top)
         if self.isSelected():
             padding = 3  # Pixels between node and selection box
             selection_rect = rect.adjusted(-padding, -padding, padding, padding)
-            painter.setPen(QPen(QColor("#FFFFFF"), 1))  # Thin white line
+            painter.setPen(QPen(QColor("#FFFFFF"), 3))  # 3px border (matches Facets)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRoundedRect(selection_rect, 4, 4)
 
@@ -507,10 +507,10 @@ class NeuralCanvasView(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        # Style (very dark background, nearly black)
+        # Style (lighter background for better visibility)
         self.setStyleSheet("""
             QGraphicsView {
-                background: #141414;
+                background: #2a2a2a;
                 border: none;
             }
         """)

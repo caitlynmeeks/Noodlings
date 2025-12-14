@@ -2037,7 +2037,7 @@ class InspectorPanel(QWidget):
                 affect_color = '#BBBBBB'  # Light gray - more visible
 
                 for dim, widget in self.live_affect_labels.items():
-                    if dim in affect:
+                    if dim in affect and widget and widget.bar and widget.value_label:
                         value = affect[dim]
                         # Update bar and label atomically to prevent flash
                         widget.bar.setStyleSheet(f"""
@@ -2054,9 +2054,10 @@ class InspectorPanel(QWidget):
                         widget.bar.setValue(int(value * 100))
                         widget.value_label.setText(f"{value:.2f}")
 
-                # Update Surprise
-                surprise = state.get('surprise', 0.0)
-                self.live_surprise_label.setText(f"{surprise:.3f}")
+                # Update Surprise (only if widget exists)
+                if hasattr(self, 'live_surprise_label') and self.live_surprise_label:
+                    surprise = state.get('surprise', 0.0)
+                    self.live_surprise_label.setText(f"{surprise:.3f}")
 
         except requests.exceptions.RequestException:
             # API not available, silently fail

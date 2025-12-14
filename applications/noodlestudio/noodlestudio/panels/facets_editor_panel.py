@@ -38,6 +38,37 @@ from ..core.facet_system import (
 from .floating_text_editor import FloatingTextEditor
 
 
+def get_facet_header_color(facet: Facet) -> str:
+    """
+    Get coffee shop palette color for facet type header.
+
+    Colors match Neural Canvas wire palette (saturated, easy on eyes).
+    """
+    # Check for custom color override first
+    if hasattr(facet, 'custom_color') and facet.custom_color:
+        return facet.custom_color
+
+    # Special I/O nodes
+    if facet.name in ["INCOMING", "OUTGOING"]:
+        return "#5A7A5A"  # Forest green (lighter, like Neural Canvas wires)
+
+    # Facet type taxonomy (lighter palette matching Neural Canvas wires)
+    facet_type = facet.facet_type
+
+    if "LLMFacet" in facet_type or "LLM" in facet_type:
+        return "#6A4A6A"  # Deep mauve (reasoning - matches PHENOMENAL_STATE)
+    elif "ScriptedFacet" in facet_type or "Scripted" in facet_type:
+        return "#8A7A4A"  # Muted gold (custom logic - matches AFFECT)
+    elif "ContextIntelligence" in facet_type:
+        return "#4A5A6A"  # Slate blue (utility - matches HIDDEN_STATE)
+    elif "Convergence" in facet_type:
+        return "#5A6A7A"  # Steel blue (synthesis - matches CELL_STATE)
+    elif "CharmNetwork" in facet_type:
+        return "#6A4A6A"  # Deep mauve (neural processing)
+    else:
+        return "#5A5A5A"  # Medium gray (default - matches TENSOR)
+
+
 class ClickableTextItem(QGraphicsTextItem):
     """Clickable text item (for pencil icons)."""
 
@@ -70,9 +101,9 @@ class ClickableTextItem(QGraphicsTextItem):
 
 
 class FacetPadGraphics(QGraphicsEllipseItem):
-    """Visual representation of a facet pad (connection point)."""
+    """Visual representation of a facet pad (connection point) - Neural Canvas style."""
 
-    PAD_RADIUS = 8
+    PAD_RADIUS = 5  # Match Neural Canvas
 
     def __init__(self, pad: FacetPad, facet_node: 'FacetNodeGraphics', parent=None):
         super().__init__(-self.PAD_RADIUS, -self.PAD_RADIUS,
@@ -80,16 +111,18 @@ class FacetPadGraphics(QGraphicsEllipseItem):
         self.pad = pad
         self.facet_node = facet_node
 
-        # Monochromatic styling
-        self.default_brush = QBrush(QColor("#888888"))  # Gray for all pads
-        self.hover_brush = QBrush(QColor("#FFFFFF"))    # White on hover
+        # Pad color matches parent facet's header color (coffee shop flow!)
+        pad_color = get_facet_header_color(facet_node.facet)
+        self.default_brush = QBrush(QColor(pad_color))
+        self.hover_brush = QBrush(QColor(pad_color).lighter(130))  # Brighter on hover
         self.setBrush(self.default_brush)
-        self.setPen(QPen(QColor("#AAAAAA"), 2))
+        self.setPen(QPen(QColor("#333"), 1.5))
         self.setAcceptHoverEvents(True)
 
         # Make pad independently clickable (don't propagate to parent)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
         self.setAcceptedMouseButtons(Qt.MouseButton.LeftButton)
+        self.setZValue(10)  # Draw on top like Neural Canvas
 
         # Connection tracking
         self.connections: List['ConnectionWire'] = []
@@ -135,34 +168,28 @@ class FacetNodeGraphics(QGraphicsRectItem):
     def __init__(self, facet: Facet, editor_panel=None, parent=None):
         # Check if this is a special node (INCOMING/OUTGOING) for compact size
         is_special = facet.name in ["INCOMING", "OUTGOING"]
-        initial_height = self.NODE_HEIGHT_COMPACT if is_special else self.NODE_HEIGHT
+
+        # Calculate height based on number of pads (horizontal flow needs vertical space)
+        header_height = 24
+        port_start_y = header_height + 15
+        port_spacing = 20
+        max_pads = max(len(facet.input_pads), len(facet.output_pads), 1)
+        min_height = self.NODE_HEIGHT_COMPACT if is_special else self.NODE_HEIGHT
+        calculated_height = port_start_y + (max_pads * port_spacing) + 15  # +15 for bottom padding
+        initial_height = max(min_height, calculated_height)
 
         super().__init__(0, 0, self.NODE_WIDTH, initial_height, parent)
         self.facet = facet
         self.is_special_node = is_special
         self.editor_panel = editor_panel  # Reference to FacetsEditorPanel for pause state
 
-        # Monochromatic styling (scriptable color overrides possible)
-        # Check if facet has custom color override
-        custom_color = getattr(facet, 'custom_color', None)
-        if custom_color:
-            # Scriptable color override
-            self.setBrush(QBrush(QColor(custom_color)))
-        else:
-            # Default monochromatic based on type
-            if facet.name == "INCOMING":
-                self.setBrush(QBrush(QColor("#2A2A2A")))  # Darker - distinct from facets
-            elif facet.name == "OUTGOING":
-                self.setBrush(QBrush(QColor("#2A2A2A")))  # Darker - distinct from facets
-            elif "Convergence" in facet.facet_type:
-                self.setBrush(QBrush(QColor("#4A4A4A")))  # Darker gray
-            else:
-                self.setBrush(QBrush(QColor("#3E3E3E")))  # Default dark gray
+        # Set initial brush/pen (will be overridden in paint())
+        self.setBrush(QBrush(QColor("#3a3a3a")))
+        self.setPen(QPen(QColor("#555555"), 2))
 
-        # Default border (will change on selection)
-        self.default_pen = QPen(QColor("#666666"), 2)
-        self.selected_pen = QPen(QColor("#FFFFFF"), 3)  # White border when selected
-        self.setPen(self.default_pen)
+        # Store pens for animation system
+        self.default_pen = QPen(QColor("#555555"), 2)
+        self.selected_pen = QPen(QColor("#FFFFFF"), 3)
 
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
@@ -171,37 +198,8 @@ class FacetNodeGraphics(QGraphicsRectItem):
         # Accept both Shift and Cmd for multi-selection
         self.setAcceptedMouseButtons(Qt.MouseButton.LeftButton)
 
-        # Title text (brighter/bolder for special nodes)
-        self.title = QGraphicsTextItem(facet.name, self)
-        font = QFont("Arial", 11, QFont.Weight.Bold)
-
-        if is_special:
-            # Special nodes: larger, bold, center-aligned, symmetric padding
-            font = QFont("Arial", 14, QFont.Weight.Bold)
-            self.title.setFont(font)
-            self.title.setDefaultTextColor(QColor("#FFFFFF"))
-
-            # Calculate center position for text
-            text_width = self.title.boundingRect().width()
-            text_height = self.title.boundingRect().height()
-            x_center = (self.NODE_WIDTH - text_width) / 2
-            y_center = (self.NODE_HEIGHT_COMPACT - text_height) / 2
-            self.title.setPos(x_center, y_center)
-        else:
-            # Regular nodes: left-aligned
-            self.title.setFont(font)
-            self.title.setDefaultTextColor(QColor("#FFFFFF"))
-            self.title.setPos(10, 5)
-
-        # Type label (hidden for special nodes)
-        if not is_special:
-            self.type_label = QGraphicsTextItem(facet.facet_type, self)
-            self.type_label.setPos(10, 25)
-            self.type_label.setDefaultTextColor(QColor("#AAAAAA"))
-            type_font = QFont("Arial", 9)
-            self.type_label.setFont(type_font)
-        else:
-            self.type_label = None  # No type label for special nodes
+        # Text now painted directly in paint() method (Neural Canvas style)
+        # No QGraphicsTextItem children needed for title/type
 
         # Field display widgets (created when zoomed in enough)
         self.field_widgets: List[QGraphicsItem] = []
@@ -240,41 +238,87 @@ class FacetNodeGraphics(QGraphicsRectItem):
         self.setPos(facet.position['x'], facet.position['y'])
 
     def _create_pads(self):
-        """Create visual representations of input/output pads (vertical layout)."""
-        # Determine height based on node type
-        node_height = self.NODE_HEIGHT_COMPACT if self.is_special_node else self.NODE_HEIGHT
+        """Create visual representations of input/output pads (horizontal layout)."""
+        # Calculate port start Y (after header + some padding)
+        header_height = 24
+        port_start_y = header_height + 15  # Start below header with padding
+        port_spacing = 20  # Vertical spacing between ports
 
-        # Input pads on top
-        num_inputs = len(self.facet.input_pads)
-        if num_inputs > 0:
-            spacing = self.NODE_WIDTH / (num_inputs + 1)
-            for i, pad in enumerate(self.facet.input_pads):
-                pad_graphics = FacetPadGraphics(pad, self, self)
-                x_pos = spacing * (i + 1)
-                pad_graphics.setPos(x_pos, 0)
-                self.input_pads[pad.name] = pad_graphics
+        # Input pads on LEFT edge (horizontal flow like Neural Canvas)
+        for i, pad in enumerate(self.facet.input_pads):
+            pad_graphics = FacetPadGraphics(pad, self, self)
+            y_pos = port_start_y + (i * port_spacing)
+            pad_graphics.setPos(0, y_pos)  # x=0 (left edge), y varies vertically
+            self.input_pads[pad.name] = pad_graphics
+            print(f"[Facets] Created INPUT pad '{pad.name}' at x=0, y={y_pos}")
 
-                # Pad label (above pad)
-                label = QGraphicsTextItem(pad.name, self)
-                label.setPos(x_pos - 20, -20)
-                label.setDefaultTextColor(QColor("#AAAAAA"))
-                label.setFont(QFont("Arial", 8))
+            # Pad label (to the right of pad)
+            label = QGraphicsTextItem(pad.name, self)
+            label.setPos(15, y_pos - 8)
+            label.setDefaultTextColor(QColor("#AAAAAA"))
+            label.setFont(QFont("Arial", 8))
 
-        # Output pads on bottom
-        num_outputs = len(self.facet.output_pads)
-        if num_outputs > 0:
-            spacing = self.NODE_WIDTH / (num_outputs + 1)
-            for i, pad in enumerate(self.facet.output_pads):
-                pad_graphics = FacetPadGraphics(pad, self, self)
-                x_pos = spacing * (i + 1)
-                pad_graphics.setPos(x_pos, node_height)
-                self.output_pads[pad.name] = pad_graphics
+        # Output pads on RIGHT edge (horizontal flow like Neural Canvas)
+        for i, pad in enumerate(self.facet.output_pads):
+            pad_graphics = FacetPadGraphics(pad, self, self)
+            y_pos = port_start_y + (i * port_spacing)
+            pad_graphics.setPos(self.NODE_WIDTH, y_pos)  # x=NODE_WIDTH (right edge), y varies
+            self.output_pads[pad.name] = pad_graphics
+            print(f"[Facets] Created OUTPUT pad '{pad.name}' at x={self.NODE_WIDTH}, y={y_pos}")
 
-                # Pad label (below pad)
-                label = QGraphicsTextItem(pad.name, self)
-                label.setPos(x_pos - 20, node_height + 5)
-                label.setDefaultTextColor(QColor("#AAAAAA"))
-                label.setFont(QFont("Arial", 8))
+            # Pad label (to the left of pad)
+            label = QGraphicsTextItem(pad.name, self)
+            label.setPos(self.NODE_WIDTH - 70, y_pos - 8)  # Right-aligned
+            label.setDefaultTextColor(QColor("#AAAAAA"))
+            label.setFont(QFont("Arial", 8))
+
+    def paint(self, painter: QPainter, option, widget=None):
+        """Render the node (Blender-style: colored header, uniform gray body)."""
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        rect = self.rect()
+
+        # Main body background (uniform dark gray) - rounded corners
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor("#3a3a3a")))
+        painter.drawRoundedRect(rect, 4, 4)
+
+        # Header bar with taxonomic color (sharp edges, clipped by node outline)
+        header_height = 24
+        header_rect = QRectF(0, 0, rect.width(), header_height)
+
+        # Get facet type color (coffee shop palette)
+        header_color = QColor(get_facet_header_color(self.facet))
+        painter.setBrush(QBrush(header_color))
+        painter.drawRect(header_rect)  # Sharp rectangle, not rounded
+
+        # Selection highlight (white outline with padding - Neural Canvas style)
+        if self.isSelected():
+            padding = 3  # Pixels between node and selection box
+            selection_rect = rect.adjusted(-padding, -padding, padding, padding)
+            painter.setPen(QPen(QColor("#FFFFFF"), 3))  # 3px border
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(selection_rect, 4, 4)
+
+        # Node name in header (warm white, uniform brightness - Neural Canvas style)
+        painter.setPen(QColor("#e8e8e0"))  # Warm white
+        font = QFont("Arial", 9, QFont.Weight.Bold)
+        painter.setFont(font)
+        painter.drawText(
+            header_rect.adjusted(8, 0, -8, 0),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            self.facet.name
+        )
+
+        # Facet type (same warm white, smaller - Neural Canvas style)
+        painter.setPen(QColor("#e8e8e0"))  # Same brightness
+        font = QFont("Arial", 7)
+        painter.setFont(font)
+        painter.drawText(
+            header_rect.adjusted(8, 0, -8, 0),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+            self.facet.facet_type
+        )
 
     def itemChange(self, change, value):
         """Handle item changes (e.g., position updates, selection)."""
@@ -307,11 +351,8 @@ class FacetNodeGraphics(QGraphicsRectItem):
                 self.editor_panel.save_current_assembly_positions()
 
         elif change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
-            # Update border on selection
-            if self.isSelected():
-                self.setPen(self.selected_pen)
-            else:
-                self.setPen(self.default_pen)
+            # Trigger repaint to update selection highlight
+            self.update()
 
         return super().itemChange(change, value)
 
@@ -483,13 +524,7 @@ class FacetNodeGraphics(QGraphicsRectItem):
         # Expand node if needed to fit fields
         if required_height > current_height:
             self.setRect(0, 0, self.NODE_WIDTH, required_height)
-            # Reposition output pads to new bottom
-            num_outputs = len(self.output_pads)
-            if num_outputs > 0:
-                spacing = self.NODE_WIDTH / (num_outputs + 1)
-                for i, (name, pad) in enumerate(self.output_pads.items()):
-                    x_pos = spacing * (i + 1)
-                    pad.setPos(x_pos, required_height)
+            # Pads stay on left/right edges (no repositioning needed)
 
         y_offset = 45  # Start below title/type
         for field in fields:
@@ -529,39 +564,28 @@ class FacetNodeGraphics(QGraphicsRectItem):
                     self.scene().removeItem(widget)
             self.field_widgets.clear()
 
-            # Restore normal size (compact for special nodes, regular for others)
-            target_height = self.NODE_HEIGHT_COMPACT if self.is_special_node else self.NODE_HEIGHT
+            # Restore normal size (calculated based on pads)
+            header_height = 24
+            port_start_y = header_height + 15
+            port_spacing = 20
+            max_pads = max(len(self.facet.input_pads), len(self.facet.output_pads), 1)
+            min_height = self.NODE_HEIGHT_COMPACT if self.is_special_node else self.NODE_HEIGHT
+            calculated_height = port_start_y + (max_pads * port_spacing) + 15
+            target_height = max(min_height, calculated_height)
             self.setRect(0, 0, self.NODE_WIDTH, target_height)
 
-            # Restore output pad positions
-            num_outputs = len(self.output_pads)
-            if num_outputs > 0:
-                spacing = self.NODE_WIDTH / (num_outputs + 1)
-                for i, (name, pad) in enumerate(self.output_pads.items()):
-                    x_pos = spacing * (i + 1)
-                    pad.setPos(x_pos, target_height)
+            # Pads stay on left/right edges (no repositioning needed)
         except Exception as e:
             print(f"[Node] Error hiding fields: {e}")
             self.field_widgets.clear()
 
     def _reposition_pads_expanded(self):
-        """Reposition pads for expanded state (at new bottom)."""
-        num_outputs = len(self.output_pads)
-        if num_outputs > 0:
-            spacing = self.NODE_WIDTH / (num_outputs + 1)
-            for i, (name, pad) in enumerate(self.output_pads.items()):
-                x_pos = spacing * (i + 1)
-                pad.setPos(x_pos, self.NODE_HEIGHT_EXPANDED)
+        """No-op: Pads stay on left/right edges in horizontal flow."""
+        pass
 
     def _reposition_pads_normal(self):
-        """Reposition pads for normal state (respects special node size)."""
-        target_height = self.NODE_HEIGHT_COMPACT if self.is_special_node else self.NODE_HEIGHT
-        num_outputs = len(self.output_pads)
-        if num_outputs > 0:
-            spacing = self.NODE_WIDTH / (num_outputs + 1)
-            for i, (name, pad) in enumerate(self.output_pads.items()):
-                x_pos = spacing * (i + 1)
-                pad.setPos(x_pos, target_height)
+        """No-op: Pads stay on left/right edges in horizontal flow."""
+        pass
 
     def update_prompt(self, new_prompt: str):
         """Update facet prompt from embedded editor."""
@@ -627,9 +651,9 @@ class ConnectionWire(QGraphicsItem):
         self.from_pad.connections.append(self)
         self.to_pad.connections.append(self)
 
-        # Visual styling
-        self.pen = QPen(QColor("#888888"), 3)
-        self.active_pen = QPen(QColor("#CCAA00"), 4)  # Bright when data flows
+        # Visual styling (match Neural Canvas)
+        self.pen = QPen(QColor("#888888"), 2.5)  # 2.5px like Neural Canvas
+        self.active_pen = QPen(QColor("#CCAA00"), 2.5)  # Same width when animating
         self.setZValue(-1)  # Draw behind nodes
 
         # Data packet animation (Kraftwerk style)
@@ -646,41 +670,49 @@ class ConnectionWire(QGraphicsItem):
         return QRectF(start, end).normalized().adjusted(-50, -50, 50, 50)
 
     def paint(self, painter: QPainter, option, widget=None):
-        """Draw the connection wire as orthogonal lines (circuit schematic style)."""
+        """Draw the connection wire with Bezier curves (Blender-style)."""
         start = self.from_pad.get_scene_position()
         end = self.to_pad.get_scene_position()
 
-        # Create orthogonal path (Manhattan routing - strictly 90° angles)
+        # Bezier curve routing (Blender-style)
+        # Control points extend horizontally from pads
+        distance = abs(end.x() - start.x())
+        handle_distance = min(distance * 0.5, 100)  # Adaptive handle length
+
+        control1 = QPointF(start.x() + handle_distance, start.y())  # Horizontal right
+        control2 = QPointF(end.x() - handle_distance, end.y())      # Horizontal left
+
         path = QPainterPath()
         path.moveTo(start)
+        path.cubicTo(control1, control2, end)  # Smooth Bezier curve
 
-        # ORTHOGONAL ROUTING - 3-segment path with right angles ONLY
-        # No curves, no diagonal lines - circuit board aesthetic
-        # Exit pad vertically DOWN, route horizontally, enter pad vertically UP
+        # Wire color matches source facet's header color (coffee shop flow!)
+        source_facet = self.from_pad.facet_node.facet
+        wire_color = get_facet_header_color(source_facet)
 
-        vertical_exit = 40  # Distance to exit output pad downward
-        vertical_enter = 40  # Distance to approach input pad from above
-
-        # Calculate intermediate waypoints for Manhattan routing
-        exit_point = QPointF(start.x(), start.y() + vertical_exit)
-        entry_point = QPointF(end.x(), end.y() - vertical_enter)
-
-        # Draw 3-segment orthogonal path (vertical → horizontal → vertical)
-        path.lineTo(exit_point)      # Segment 1: Exit DOWN from output pad (vertical)
-        path.lineTo(entry_point)     # Segment 2: Horizontal routing (90° turn)
-        path.lineTo(end)              # Segment 3: Enter UP to input pad (90° turn)
-
-        # Draw wire with NO antialiasing for sharp orthogonal lines
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        # Draw wire with antialiasing for smooth curves
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         if self.packet_animating:
-            painter.setPen(self.active_pen)
+            # Brighten color when animating
+            painter.setPen(QPen(QColor(wire_color).lighter(150), 2.5))
         else:
-            painter.setPen(self.pen)
+            painter.setPen(QPen(QColor(wire_color), 2.5))
         painter.drawPath(path)
 
-        # Draw data packet (geometric square - no organic circles)
+        # Arrowhead at target (matches wire color)
+        arrow_size = 6
+        arrow_color = wire_color if not self.packet_animating else QColor(wire_color).lighter(150)
+        painter.setBrush(QBrush(QColor(arrow_color)))
+        arrow = QPainterPath()
+        arrow.moveTo(end)
+        arrow.lineTo(end.x() - arrow_size, end.y() - arrow_size / 2)
+        arrow.lineTo(end.x() - arrow_size, end.y() + arrow_size / 2)
+        arrow.closeSubpath()
+        painter.drawPath(arrow)
+
+        # Draw data packet (geometric square)
         if self.packet_animating and 0.0 <= self.packet_progress <= 1.0:
-            # Calculate position along orthogonal path
+            # Calculate position along Bezier curve
             t = self.packet_progress
             packet_pos = path.pointAtPercent(t)
 
@@ -1146,9 +1178,15 @@ class FacetsEditorPanel(QWidget):
                     self.scene.addItem(wire)
                     self.wire_graphics.append(wire)
 
+        # Force scene update and ensure all items are visible
+        self.scene.update()
+        for node in self.node_graphics.values():
+            node.update()
+
         # Center view on content
         self.view.centerOn(500, 350)
         print(f"[Facets Editor] Assembly loaded successfully with {len(assembly.facets)} facets")
+        print(f"[Facets Editor] Node positions: {[(n.facet.name, n.pos().x(), n.pos().y()) for n in list(self.node_graphics.values())[:3]]}")
 
         # Unlock scene - safe to process events now
         self.scene_transition_lock = False
@@ -1475,7 +1513,7 @@ class FacetsEditorPanel(QWidget):
             item for item in self.scene.items()
             if isinstance(item, FacetNodeGraphics)
         ]
-        self.frame_nodes(all_nodes)
+        self.frame_nodes(all_nodes, padding_factor=0.05)  # Tight framing like F key
 
     def focus_selection_tight(self):
         """
@@ -2132,21 +2170,18 @@ class FacetsEditorPanel(QWidget):
 
         print(f"[Auto-Arrange] Computed {len(layers)} layers: {[len(l) for l in layers]} facets")
 
-        # Layout parameters
-        layer_height = 200  # Vertical spacing between layers
-        node_spacing = 280  # Horizontal spacing within layer
-        start_y = 100       # Top margin
+        # Layout parameters (HORIZONTAL FLOW - left to right like Neural Canvas)
+        layer_spacing = 300  # Horizontal spacing between layers
+        node_spacing = 180   # Vertical spacing within layer
+        start_x = 100        # Left margin
+        start_y = 100        # Top margin
 
-        # Position facets layer by layer
+        # Position facets layer by layer (HORIZONTAL FLOW)
         for layer_idx, layer_facets in enumerate(layers):
-            y = start_y + (layer_idx * layer_height)
-
-            # Calculate horizontal centering
-            layer_width = len(layer_facets) * node_spacing
-            start_x = 100  # Left margin
+            x = start_x + (layer_idx * layer_spacing)  # Horizontal progression
 
             for facet_idx, facet_id in enumerate(sorted(layer_facets)):
-                x = start_x + (facet_idx * node_spacing)
+                y = start_y + (facet_idx * node_spacing)  # Vertical stacking within layer
 
                 # Find graphics node and move it
                 if facet_id in self.node_graphics:
