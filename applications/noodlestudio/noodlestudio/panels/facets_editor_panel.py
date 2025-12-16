@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene,
     QGraphicsItem, QGraphicsRectItem, QGraphicsTextItem, QGraphicsEllipseItem,
     QGraphicsLineItem, QPushButton, QLabel, QMenu, QMessageBox, QFileDialog,
-    QGraphicsProxyWidget, QTextEdit
+    QGraphicsProxyWidget, QTextEdit, QSpinBox
 )
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QLineF, QTimer, QPropertyAnimation, QEasingCurve, QVariantAnimation
 from PyQt6.QtGui import (
@@ -111,8 +111,14 @@ class FacetPadGraphics(QGraphicsEllipseItem):
         self.pad = pad
         self.facet_node = facet_node
 
-        # Pad color matches parent facet's header color (coffee shop flow!)
-        pad_color = get_facet_header_color(facet_node.facet)
+        # Pad color logic:
+        # - OUTPUT pads: Always use parent facet's header color (they're the source)
+        # - INPUT pads: Start neutral gray, adopt wire color when connected
+        if pad.pad_type == PadType.OUTPUT:
+            pad_color = get_facet_header_color(facet_node.facet)
+        else:  # INPUT pad
+            pad_color = "#666666"  # Neutral gray until connected
+
         self.default_brush = QBrush(QColor(pad_color))
         self.hover_brush = QBrush(QColor(pad_color).lighter(130))  # Brighter on hover
         self.setBrush(self.default_brush)
@@ -136,6 +142,33 @@ class FacetPadGraphics(QGraphicsEllipseItem):
         """Restore pad color on hover exit."""
         self.setBrush(self.default_brush)
         super().hoverLeaveEvent(event)
+
+    def update_color_from_connection(self):
+        """
+        Update input pad color to match incoming wire.
+
+        Called when connections are added/removed.
+        Output pads always keep their parent node's color.
+        Input pads adopt the color of the wire feeding them.
+        """
+        if self.pad.pad_type == PadType.OUTPUT:
+            # Output pads never change - always match parent node
+            return
+
+        # Input pad: adopt color from first connection, or neutral gray if none
+        if self.connections:
+            # Get color from source facet (the facet feeding this input)
+            wire = self.connections[0]  # Use first connection
+            source_facet = wire.from_pad.facet_node.facet
+            pad_color = get_facet_header_color(source_facet)
+        else:
+            # No connections - neutral gray
+            pad_color = "#666666"
+
+        # Update brushes
+        self.default_brush = QBrush(QColor(pad_color))
+        self.hover_brush = QBrush(QColor(pad_color).lighter(130))
+        self.setBrush(self.default_brush)
 
     def get_scene_position(self) -> QPointF:
         """Get pad position in scene coordinates."""
@@ -232,6 +265,10 @@ class FacetNodeGraphics(QGraphicsRectItem):
         self.base_brush = self.brush()  # Store original brush for restoration
         self.collapse_flash_alpha = 0.0  # For quantum collapse flash effect
 
+        # Drag tracking for undo
+        self.drag_start_pos: Optional[tuple] = None  # Position when drag started
+        self.is_being_dragged = False
+
         self._create_pads()
 
         # Set initial position from facet metadata
@@ -320,6 +357,9 @@ class FacetNodeGraphics(QGraphicsRectItem):
             self.facet.facet_type
         )
 
+    # Note: Move undo is handled via eventFilter in FacetsEditorPanel
+    # The mouse press/release handlers on items don't reliably fire during Qt drag operations
+
     def itemChange(self, change, value):
         """Handle item changes (e.g., position updates, selection)."""
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
@@ -335,20 +375,14 @@ class FacetNodeGraphics(QGraphicsRectItem):
             return new_pos
 
         elif change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
-            # Update facet metadata
-            pos = self.pos()
-            self.facet.position['x'] = pos.x()
-            self.facet.position['y'] = pos.y()
-
-            # Update connected wires
+            # Update connected wires during drag
             for pad_dict in [self.input_pads, self.output_pads]:
                 for pad_graphics in pad_dict.values():
                     for wire in pad_graphics.connections:
                         wire.update_path()
 
-            # Auto-save position changes to YAML
-            if self.editor_panel and not self.editor_panel.scene_transition_lock:
-                self.editor_panel.save_current_assembly_positions()
+            # Note: Don't save to disk here - that happens in mouseReleaseEvent
+            # when the move command is pushed
 
         elif change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
             # Trigger repaint to update selection highlight
@@ -651,6 +685,9 @@ class ConnectionWire(QGraphicsItem):
         self.from_pad.connections.append(self)
         self.to_pad.connections.append(self)
 
+        # Update input pad color to match this wire
+        self.to_pad.update_color_from_connection()
+
         # Visual styling (match Neural Canvas)
         self.pen = QPen(QColor("#888888"), 2.5)  # 2.5px like Neural Canvas
         self.active_pen = QPen(QColor("#CCAA00"), 2.5)  # Same width when animating
@@ -784,6 +821,7 @@ class FacetsEditorPanel(QWidget):
         super().__init__(parent)
         self.current_assembly: Optional[FacetAssembly] = None
         self.current_assembly_name: Optional[str] = None  # Track loaded assembly
+        self.current_assembly_path: Optional[str] = None  # Track loaded assembly filepath
         self.node_graphics: Dict[str, FacetNodeGraphics] = {}
         self.wire_graphics: List[ConnectionWire] = []
 
@@ -793,9 +831,8 @@ class FacetsEditorPanel(QWidget):
         # Clipboard for copy/paste
         self.clipboard: List[Facet] = []
 
-        # Undo/redo stacks (simplified - store assembly snapshots)
-        self.undo_stack: List[str] = []  # YAML snapshots
-        self.redo_stack: List[str] = []
+        # Track drag start positions for undo (facet_id -> (x, y))
+        self.drag_start_positions: Dict[str, tuple] = {}
 
         # Space-drag navigation
         self.space_pressed = False
@@ -804,9 +841,13 @@ class FacetsEditorPanel(QWidget):
         self.wire_being_drawn: Optional[QGraphicsLineItem] = None
         self.wire_start_pad: Optional[FacetPadGraphics] = None
 
-        # Grid snapping settings
-        self.snap_to_grid = True
-        self.grid_size = 20  # Snap to 20px grid
+        # Grid snapping settings (load from persistent settings)
+        from PyQt6.QtCore import QSettings
+        settings = QSettings('Noodlings', 'FacetsEditor')
+        self.snap_to_grid = settings.value('grid/snap_enabled', False, type=bool)
+        self.grid_size = settings.value('grid/size', 20, type=int)
+        self.grid_visible = self.snap_to_grid  # Grid visible when snapping enabled
+        self.grid_lines: List[QGraphicsLineItem] = []  # Track grid lines for removal
 
         # Cognition pause state
         self.current_agent_id: Optional[str] = None
@@ -906,6 +947,57 @@ class FacetsEditorPanel(QWidget):
             }
         """)
         toolbar.addWidget(self.sound_button)
+
+        # Grid snap toggle button
+        self.grid_button = QPushButton("⊞")  # Grid icon
+        self.grid_button.setFixedWidth(40)
+        self.grid_button.setCheckable(True)
+        self.grid_button.setChecked(self.snap_to_grid)  # Load from settings
+        self.grid_button.setToolTip("Toggle grid snapping")
+        self.grid_button.clicked.connect(self.toggle_grid_snap_button)
+        self.grid_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                padding: 4px;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                background-color: #4A4A4A;
+                border: 1px solid #777777;
+            }
+            QPushButton:checked {
+                background-color: #555555;
+                color: #FFFFFF;
+                border: 1px solid #888888;
+            }
+        """)
+        toolbar.addWidget(self.grid_button)
+
+        # Grid size input
+        self.grid_size_input = QSpinBox()
+        self.grid_size_input.setRange(5, 100)  # 5px to 100px
+        self.grid_size_input.setValue(self.grid_size)  # Load from settings
+        self.grid_size_input.setSuffix("px")
+        self.grid_size_input.setFixedWidth(70)
+        self.grid_size_input.setToolTip("Grid size in pixels")
+        self.grid_size_input.valueChanged.connect(self.on_grid_size_changed)
+        self.grid_size_input.setStyleSheet("""
+            QSpinBox {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                padding: 2px;
+            }
+            QSpinBox:hover {
+                background-color: #4A4A4A;
+                border: 1px solid #777777;
+            }
+        """)
+        toolbar.addWidget(self.grid_size_input)
 
         # Save/Load buttons
         save_btn = QPushButton("Save")
@@ -1018,6 +1110,10 @@ class FacetsEditorPanel(QWidget):
         # Keyboard shortcuts
         self.setup_shortcuts()
 
+        # Restore grid if it was enabled
+        if self.grid_visible:
+            self._draw_grid_background()
+
         # Show empty state initially
         self.show_empty_state()
 
@@ -1087,13 +1183,14 @@ class FacetsEditorPanel(QWidget):
         if hasattr(self, 'control_panel'):
             self.position_control_panel()
 
-    def load_assembly_from_data(self, assembly: FacetAssembly, force_reload: bool = False):
+    def load_assembly_from_data(self, assembly: FacetAssembly, force_reload: bool = False, source_path: Optional[str] = None):
         """
         Load a facet assembly into the editor.
 
         Args:
             assembly: FacetAssembly to load
             force_reload: If True, reload even if same assembly already loaded
+            source_path: Optional path to source YAML file (for direct saves)
         """
         # CRITICAL: Prevent re-entrant calls during scene transition
         if self.scene_transition_lock:
@@ -1145,7 +1242,9 @@ class FacetsEditorPanel(QWidget):
 
         self.current_assembly = assembly
         self.current_assembly_name = assembly.name
+        self.current_assembly_path = source_path  # Track source file for direct saves
         self.assembly_label.setText(f"{assembly.name} [REF]")
+        print(f"[Facets Editor] Tracking assembly path: {source_path}")
 
         # CRITICAL: Stop all animations before clearing scene to prevent segfault
         for node_gfx in self.node_graphics.values():
@@ -1157,12 +1256,16 @@ class FacetsEditorPanel(QWidget):
         self.scene.clear()
         self.node_graphics.clear()
         self.wire_graphics.clear()
+        self.grid_lines.clear()  # Grid lines are also cleared by scene.clear()
 
         # Create node graphics for each facet
+        print(f"[Facets Editor] Creating {len(assembly.facets)} nodes from assembly...")
         for facet in assembly.facets:
+            print(f"[Facets Editor]   {facet.name}: position from YAML = ({facet.position['x']}, {facet.position['y']})")
             node = FacetNodeGraphics(facet, editor_panel=self)
             self.scene.addItem(node)
             self.node_graphics[facet.id] = node
+            print(f"[Facets Editor]   {facet.name}: actual node pos = ({node.pos().x()}, {node.pos().y()})")
 
         # Create connection wires
         for conn in assembly.connections:
@@ -1182,6 +1285,10 @@ class FacetsEditorPanel(QWidget):
         self.scene.update()
         for node in self.node_graphics.values():
             node.update()
+
+        # Restore grid if it was enabled
+        if self.grid_visible:
+            self._draw_grid_background()
 
         # Center view on content
         self.view.centerOn(500, 350)
@@ -1243,15 +1350,15 @@ class FacetsEditorPanel(QWidget):
 
         layout_menu.addSeparator()
 
-        # Zoom
+        # Zoom (use zoom_view to respect limits)
         zoom_in_action = layout_menu.addAction("Zoom In (+)")
-        zoom_in_action.triggered.connect(lambda: self.view.scale(1.2, 1.2))
+        zoom_in_action.triggered.connect(lambda: self.zoom_view(1.2))
 
         zoom_out_action = layout_menu.addAction("Zoom Out (-)")
-        zoom_out_action.triggered.connect(lambda: self.view.scale(1/1.2, 1/1.2))
+        zoom_out_action.triggered.connect(lambda: self.zoom_view(1/1.2))
 
         reset_zoom_action = layout_menu.addAction("Reset View")
-        reset_zoom_action.triggered.connect(lambda: self.view.resetTransform())
+        reset_zoom_action.triggered.connect(self.reset_view)
 
         # Delete (requires selection)
         if selected_facets:
@@ -1262,7 +1369,7 @@ class FacetsEditorPanel(QWidget):
         menu.exec(self.view.mapToGlobal(position))
 
     def add_facet(self, facet_type: str, display_name: str, position):
-        """Add a new facet to the assembly."""
+        """Add a new facet to the assembly (with undo support)."""
         print(f"[Facets Editor] add_facet called: type={facet_type}, name={display_name}")
         print(f"[Facets Editor] current_assembly exists: {self.current_assembly is not None}")
 
@@ -1274,7 +1381,7 @@ class FacetsEditorPanel(QWidget):
         scene_pos = self.view.mapToScene(position)
         print(f"[Facets Editor] Position - view: {position}, scene: ({scene_pos.x()}, {scene_pos.y()})")
 
-        # Create new facet with UUID
+        # Create new facet data (not added to assembly yet - command will do that)
         facet_id = Facet.generate_uuid()
         facet = Facet(
             id=facet_id,
@@ -1283,7 +1390,7 @@ class FacetsEditorPanel(QWidget):
             prompt=f"TODO: Define prompt for {display_name}",
             position={'x': scene_pos.x(), 'y': scene_pos.y()}
         )
-        print(f"[Facets Editor] Created facet: {facet_id}")
+        print(f"[Facets Editor] Created facet data: {facet_id}")
 
         # Add default pads based on type
         if facet_type == "ConvergenceFacet":
@@ -1295,17 +1402,18 @@ class FacetsEditorPanel(QWidget):
             facet.add_output_pad("out", "Output")
         print(f"[Facets Editor] Added {len(facet.input_pads)} inputs, {len(facet.output_pads)} outputs")
 
-        # Add to assembly
-        self.current_assembly.facets.append(facet)
-        print(f"[Facets Editor] Assembly now has {len(self.current_assembly.facets)} facets")
+        # Push create command via UndoManager (command will create the facet)
+        from ..core.undo_manager import undo_manager
+        from ..core.commands import CreateFacetCommand
 
-        # Create graphics
-        node = FacetNodeGraphics(facet, editor_panel=self)
-        self.scene.addItem(node)
-        self.node_graphics[facet.id] = node
-        print(f"[Facets Editor] Added node graphics to scene at ({node.pos().x()}, {node.pos().y()})")
+        cmd = CreateFacetCommand(
+            editor=self,
+            facet_data=facet.to_dict(),
+            facet_name=display_name
+        )
+        undo_manager.push(cmd)
 
-        self.assemblyModified.emit()
+        print(f"[Facets Editor] Created facet (undoable): {display_name}")
 
     def save_assembly(self):
         """Save current assembly to YAML file."""
@@ -1687,7 +1795,7 @@ class FacetsEditorPanel(QWidget):
             self.paste_selection()
 
     def delete_selection(self):
-        """Delete selected facets."""
+        """Delete selected facets (with undo support)."""
         if not self.current_assembly:
             print("[Facets Editor] No assembly loaded")
             return
@@ -1714,36 +1822,313 @@ class FacetsEditorPanel(QWidget):
             print("[Facets Editor] No deletable facets in selection")
             return
 
-        # Remove from assembly and scene
+        # Push delete commands via UndoManager
+        from ..core.undo_manager import undo_manager
+        from ..core.commands import DeleteFacetCommand
+
+        # Use macro for multiple deletions (single undo)
+        if len(deletable_nodes) > 1:
+            undo_manager.begin_group(f"Delete {len(deletable_nodes)} Facets")
+
         for node in deletable_nodes:
-            # Remove facet from assembly
-            self.current_assembly.facets = [
-                f for f in self.current_assembly.facets
-                if f.id != node.facet.id
+            # Collect connections involving this facet (for restoration on undo)
+            connections_data = [
+                c.to_dict() for c in self.current_assembly.connections
+                if c.from_facet == node.facet.id or c.to_facet == node.facet.id
             ]
 
-            # Remove connections involving this facet
-            self.current_assembly.connections = [
-                c for c in self.current_assembly.connections
-                if c.from_facet != node.facet.id and c.to_facet != node.facet.id
-            ]
+            # Push delete command
+            cmd = DeleteFacetCommand(
+                editor=self,
+                facet_data=node.facet.to_dict(),
+                connections_data=connections_data,
+                facet_name=node.facet.name
+            )
+            undo_manager.push(cmd)
 
-            # Remove from scene
-            self.scene.removeItem(node)
-            del self.node_graphics[node.facet.id]
+        if len(deletable_nodes) > 1:
+            undo_manager.end_group()
 
-        print(f"[Facets Editor] Deleted {len(deletable_nodes)} facets")
-        self.assemblyModified.emit()
+        print(f"[Facets Editor] Deleted {len(deletable_nodes)} facets (undoable)")
 
     def undo(self):
-        """Undo last operation."""
-        # TODO: Implement undo from snapshot stack
-        print("[Facets Editor] Undo not yet implemented")
+        """Undo last operation via UndoManager."""
+        from ..core.undo_manager import undo_manager
+        undo_manager.undo()
 
     def redo(self):
-        """Redo last undone operation."""
-        # TODO: Implement redo from snapshot stack
-        print("[Facets Editor] Redo not yet implemented")
+        """Redo last undone operation via UndoManager."""
+        from ..core.undo_manager import undo_manager
+        undo_manager.redo()
+
+    # ========== INTERNAL METHODS FOR UNDO COMMANDS ==========
+    # These methods perform direct state changes without pushing commands.
+    # They are called by command classes in undo/redo operations.
+
+    def _set_facet_position_internal(self, facet_id: str, position: tuple):
+        """
+        Set facet position without pushing undo command.
+
+        Called by MoveFacetCommand during undo/redo.
+        """
+        # Update data model
+        facet = self.current_assembly.get_facet(facet_id) if self.current_assembly else None
+        if facet:
+            facet.position = {'x': position[0], 'y': position[1]}
+
+        # Update graphics
+        node_gfx = self.node_graphics.get(facet_id)
+        if node_gfx:
+            # Block signals to prevent recursive position saving
+            node_gfx.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, False)
+            node_gfx.setPos(position[0], position[1])
+            node_gfx.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
+
+            # Update connected wires
+            for pad_dict in [node_gfx.input_pads, node_gfx.output_pads]:
+                for pad_graphics in pad_dict.values():
+                    for wire in pad_graphics.connections:
+                        wire.update_path()
+
+        # Save to disk
+        self._save_assembly_to_disk()
+
+    def _create_facet_internal(self, facet_data: dict):
+        """
+        Create facet from serialized data without pushing undo command.
+
+        Called by CreateFacetCommand.redo() and DeleteFacetCommand.undo().
+        """
+        if not self.current_assembly:
+            return
+
+        # Deserialize facet
+        facet = Facet.from_dict(facet_data)
+
+        # Add to assembly
+        self.current_assembly.facets.append(facet)
+
+        # Create graphics
+        node = FacetNodeGraphics(facet, editor_panel=self)
+        self.scene.addItem(node)
+        self.node_graphics[facet.id] = node
+
+        # Save to disk
+        self._save_assembly_to_disk()
+        self.assemblyModified.emit()
+
+    def _delete_facet_internal(self, facet_id: str):
+        """
+        Delete facet by ID without pushing undo command.
+
+        Called by DeleteFacetCommand.redo() and CreateFacetCommand.undo().
+        """
+        if not self.current_assembly:
+            return
+
+        # Remove from assembly
+        self.current_assembly.facets = [
+            f for f in self.current_assembly.facets if f.id != facet_id
+        ]
+
+        # Remove connections involving this facet
+        self.current_assembly.connections = [
+            c for c in self.current_assembly.connections
+            if c.from_facet != facet_id and c.to_facet != facet_id
+        ]
+
+        # Remove wire graphics involving this facet
+        wires_to_remove = []
+        for wire in self.wire_graphics:
+            if wire.from_pad.facet_node.facet.id == facet_id or \
+               wire.to_pad.facet_node.facet.id == facet_id:
+                wires_to_remove.append(wire)
+
+        for wire in wires_to_remove:
+            self.scene.removeItem(wire)
+            self.wire_graphics.remove(wire)
+
+        # Remove from scene
+        node_gfx = self.node_graphics.get(facet_id)
+        if node_gfx:
+            self.scene.removeItem(node_gfx)
+            del self.node_graphics[facet_id]
+
+        # Save to disk
+        self._save_assembly_to_disk()
+        self.assemblyModified.emit()
+
+    def _set_facet_property_internal(self, facet_id: str, prop_name: str, value):
+        """
+        Set facet property without pushing undo command.
+
+        Called by EditFacetPropertyCommand and ToggleLockCommand.
+        """
+        facet = self.current_assembly.get_facet(facet_id) if self.current_assembly else None
+        if not facet:
+            return
+
+        setattr(facet, prop_name, value)
+
+        # Update graphics if needed (e.g., lock icon)
+        node_gfx = self.node_graphics.get(facet_id)
+        if node_gfx and prop_name == 'locked':
+            node_gfx.lock_icon.setPlainText("[L]" if value else "")
+            node_gfx.lock_icon.setDefaultTextColor(
+                QColor("#CCAA00" if value else "#888888")
+            )
+
+        # Save to disk
+        self._save_assembly_to_disk()
+        self.assemblyModified.emit()
+
+    def _create_connection_internal(self, conn_data: dict):
+        """
+        Create connection from serialized data without pushing undo command.
+
+        Called by CreateConnectionCommand.redo() and DeleteConnectionCommand.undo().
+        """
+        if not self.current_assembly:
+            return
+
+        # Parse connection data
+        from_parts = conn_data['from'].split('.')
+        to_parts = conn_data['to'].split('.')
+        from_facet = from_parts[0]
+        from_pad = '.'.join(from_parts[1:])
+        to_facet = to_parts[0]
+        to_pad = '.'.join(to_parts[1:])
+
+        # Create connection object
+        conn = FacetConnection(from_facet, from_pad, to_facet, to_pad)
+
+        # Add to assembly
+        self.current_assembly.connections.append(conn)
+
+        # Create wire graphics
+        from_node = self.node_graphics.get(from_facet)
+        to_node = self.node_graphics.get(to_facet)
+
+        if from_node and to_node:
+            from_pad_gfx = from_node.output_pads.get(from_pad)
+            to_pad_gfx = to_node.input_pads.get(to_pad)
+
+            if from_pad_gfx and to_pad_gfx:
+                wire = ConnectionWire(from_pad_gfx, to_pad_gfx)
+                self.scene.addItem(wire)
+                self.wire_graphics.append(wire)
+
+                # Register connections on pads
+                from_pad_gfx.connections.append(wire)
+                to_pad_gfx.connections.append(wire)
+                to_pad_gfx.update_color_from_connection()
+
+        # Save to disk
+        self._save_assembly_to_disk()
+        self.assemblyModified.emit()
+
+    def _delete_connection_internal(self, from_facet: str, from_pad: str,
+                                    to_facet: str, to_pad: str):
+        """
+        Delete connection without pushing undo command.
+
+        Called by DeleteConnectionCommand.redo() and CreateConnectionCommand.undo().
+        """
+        if not self.current_assembly:
+            return
+
+        # Remove from assembly
+        self.current_assembly.connections = [
+            c for c in self.current_assembly.connections
+            if not (c.from_facet == from_facet and c.from_pad == from_pad and
+                    c.to_facet == to_facet and c.to_pad == to_pad)
+        ]
+
+        # Remove wire graphics
+        wire_to_remove = None
+        for wire in self.wire_graphics:
+            if (wire.from_pad.facet_node.facet.id == from_facet and
+                wire.from_pad.pad.name == from_pad and
+                wire.to_pad.facet_node.facet.id == to_facet and
+                wire.to_pad.pad.name == to_pad):
+                wire_to_remove = wire
+                break
+
+        if wire_to_remove:
+            # Unregister from pads
+            if wire_to_remove in wire_to_remove.from_pad.connections:
+                wire_to_remove.from_pad.connections.remove(wire_to_remove)
+            if wire_to_remove in wire_to_remove.to_pad.connections:
+                wire_to_remove.to_pad.connections.remove(wire_to_remove)
+                wire_to_remove.to_pad.update_color_from_connection()
+
+            self.scene.removeItem(wire_to_remove)
+            self.wire_graphics.remove(wire_to_remove)
+
+        # Save to disk
+        self._save_assembly_to_disk()
+        self.assemblyModified.emit()
+
+    def _save_assembly_to_disk(self):
+        """Save current assembly to disk (called by internal methods)."""
+        if not self.current_assembly or not self.current_assembly_path:
+            return
+
+        try:
+            import os
+            if os.path.exists(self.current_assembly_path):
+                self.current_assembly.save_yaml(self.current_assembly_path)
+        except Exception as e:
+            print(f"[Facets Editor] Error saving assembly: {e}")
+
+    def _push_move_commands_if_needed(self):
+        """
+        Push move commands for nodes that have moved since drag started.
+
+        Called from eventFilter on mouse release.
+        """
+        if not self.drag_start_positions:
+            return
+
+        from ..core.undo_manager import undo_manager
+        from ..core.commands import MoveFacetCommand
+
+        moved_nodes = []
+
+        # Check which nodes actually moved
+        for facet_id, old_pos in self.drag_start_positions.items():
+            node_gfx = self.node_graphics.get(facet_id)
+            if node_gfx:
+                new_pos = (node_gfx.pos().x(), node_gfx.pos().y())
+
+                # Only count as moved if position changed significantly
+                if abs(new_pos[0] - old_pos[0]) > 1 or abs(new_pos[1] - old_pos[1]) > 1:
+                    moved_nodes.append((facet_id, old_pos, new_pos, node_gfx.facet.name))
+
+                    # Update facet data model
+                    node_gfx.facet.position = {'x': new_pos[0], 'y': new_pos[1]}
+
+        if not moved_nodes:
+            return
+
+        # Use macro for multiple moves
+        if len(moved_nodes) > 1:
+            undo_manager.begin_group(f"Move {len(moved_nodes)} Facets")
+
+        for facet_id, old_pos, new_pos, facet_name in moved_nodes:
+            cmd = MoveFacetCommand(
+                editor=self,
+                facet_id=facet_id,
+                old_pos=old_pos,
+                new_pos=new_pos,
+                facet_name=facet_name
+            )
+            undo_manager.push(cmd)
+
+        if len(moved_nodes) > 1:
+            undo_manager.end_group()
+
+        print(f"[Facets Undo] Pushed {len(moved_nodes)} move command(s)")
 
     def keyPressEvent(self, event):
         """Handle key press events."""
@@ -1780,9 +2165,9 @@ class FacetsEditorPanel(QWidget):
         self.scene.addItem(self.wire_being_drawn)
 
     def eventFilter(self, obj, event):
-        """Handle viewport events for wire drawing and selection."""
+        """Handle viewport events for wire drawing, selection, and undo tracking."""
         if obj == self.view.viewport():
-            # Handle clicks on background
+            # Handle clicks on background or nodes
             if event.type() == event.Type.MouseButtonPress:
                 scene_pos = self.view.mapToScene(event.pos())
                 items = self.scene.items(scene_pos)
@@ -1793,7 +2178,22 @@ class FacetsEditorPanel(QWidget):
                     if isinstance(item, FacetNodeGraphics)
                 ]
 
-                if not clicked_nodes:
+                if clicked_nodes:
+                    # Clicked on a node - record start positions for undo
+                    # Record positions of all selected nodes (they may all move together)
+                    self.drag_start_positions = {}
+                    for item in self.scene.selectedItems():
+                        if isinstance(item, FacetNodeGraphics):
+                            self.drag_start_positions[item.facet.id] = (
+                                item.pos().x(), item.pos().y()
+                            )
+                    # Also record clicked node if not already selected
+                    for node in clicked_nodes:
+                        if node.facet.id not in self.drag_start_positions:
+                            self.drag_start_positions[node.facet.id] = (
+                                node.pos().x(), node.pos().y()
+                            )
+                else:
                     # Clicked empty background
                     if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
                         # Cmd-click - invert selection
@@ -1803,6 +2203,12 @@ class FacetsEditorPanel(QWidget):
                         # Regular click - collapse any expanded nodes
                         self.collapse_all_nodes()
                         return False  # Allow default behavior (clear selection)
+
+            # Handle mouse release to push move commands
+            elif event.type() == event.Type.MouseButtonRelease and not self.wire_being_drawn:
+                if self.drag_start_positions:
+                    self._push_move_commands_if_needed()
+                    self.drag_start_positions = {}
 
             if event.type() == event.Type.MouseMove and self.wire_being_drawn:
                 # Update wire endpoint to follow mouse
@@ -1863,26 +2269,24 @@ class FacetsEditorPanel(QWidget):
         return True
 
     def create_connection(self, from_pad: FacetPadGraphics, to_pad: FacetPadGraphics):
-        """Create a connection between two pads."""
+        """Create a connection between two pads (with undo support)."""
         if not self.current_assembly:
             return
 
-        # Create connection data
-        connection = FacetConnection(
+        # Push create connection command
+        from ..core.undo_manager import undo_manager
+        from ..core.commands import CreateConnectionCommand
+
+        cmd = CreateConnectionCommand(
+            editor=self,
             from_facet=from_pad.facet_node.facet.id,
             from_pad=from_pad.pad.name,
             to_facet=to_pad.facet_node.facet.id,
             to_pad=to_pad.pad.name
         )
-        self.current_assembly.connections.append(connection)
+        undo_manager.push(cmd)
 
-        # Create visual wire
-        wire = ConnectionWire(from_pad, to_pad)
-        self.scene.addItem(wire)
-        self.wire_graphics.append(wire)
-
-        print(f"[Facets Editor] Connected {from_pad.facet_node.facet.name}.{from_pad.pad.name} -> {to_pad.facet_node.facet.name}.{to_pad.pad.name}")
-        self.assemblyModified.emit()
+        print(f"[Facets Editor] Connected (undoable): {from_pad.facet_node.facet.name}.{from_pad.pad.name} -> {to_pad.facet_node.facet.name}.{to_pad.pad.name}")
 
     def invert_selection(self):
         """Invert current selection (ZBrush-style mask inverter)."""
@@ -1899,6 +2303,13 @@ class FacetsEditorPanel(QWidget):
 
     def _draw_grid_background(self):
         """Draw subtle grid lines on background."""
+        if not self.scene:
+            print("[Facets Editor] Cannot draw grid - no scene")
+            return
+
+        # Clear any existing grid first
+        self._clear_grid_background()
+
         grid_size = self.grid_size
         scene_rect = self.scene.sceneRect()
 
@@ -1909,30 +2320,97 @@ class FacetsEditorPanel(QWidget):
         x = scene_rect.left()
         while x <= scene_rect.right():
             if x % grid_size == 0:
-                line = self.scene.addLine(
-                    x, scene_rect.top(),
-                    x, scene_rect.bottom(),
-                    grid_pen
-                )
-                line.setZValue(-100)  # Behind everything
+                try:
+                    line = self.scene.addLine(
+                        x, scene_rect.top(),
+                        x, scene_rect.bottom(),
+                        grid_pen
+                    )
+                    line.setZValue(-100)  # Behind everything
+                    self.grid_lines.append(line)
+                except Exception as e:
+                    print(f"[Facets Editor] Error adding vertical grid line: {e}")
+                    break
             x += grid_size
 
         # Draw horizontal lines
         y = scene_rect.top()
         while y <= scene_rect.bottom():
             if y % grid_size == 0:
-                line = self.scene.addLine(
-                    scene_rect.left(), y,
-                    scene_rect.right(), y,
-                    grid_pen
-                )
-                line.setZValue(-100)  # Behind everything
+                try:
+                    line = self.scene.addLine(
+                        scene_rect.left(), y,
+                        scene_rect.right(), y,
+                        grid_pen
+                    )
+                    line.setZValue(-100)  # Behind everything
+                    self.grid_lines.append(line)
+                except Exception as e:
+                    print(f"[Facets Editor] Error adding horizontal grid line: {e}")
+                    break
             y += grid_size
 
-    def toggle_grid_snap(self, enabled: bool):
-        """Toggle grid snapping on/off."""
+        print(f"[Facets Editor] Drew {len(self.grid_lines)} grid lines")
+
+    def _clear_grid_background(self):
+        """Remove grid lines from scene."""
+        if not self.scene:
+            self.grid_lines.clear()
+            return
+
+        # Safely remove each line
+        for line in list(self.grid_lines):  # Copy list to avoid modification during iteration
+            try:
+                if line.scene() == self.scene:  # Verify item is still in scene
+                    self.scene.removeItem(line)
+            except Exception as e:
+                print(f"[Facets Editor] Error removing grid line: {e}")
+
+        self.grid_lines.clear()
+        print("[Facets Editor] Cleared grid lines")
+
+    def toggle_grid_snap_button(self):
+        """Toggle grid snapping from toolbar button."""
+        enabled = self.grid_button.isChecked()
         self.snap_to_grid = enabled
+        self.grid_visible = enabled
+
+        # Save to settings
+        from PyQt6.QtCore import QSettings
+        settings = QSettings('Noodlings', 'FacetsEditor')
+        settings.setValue('grid/snap_enabled', enabled)
+
+        # Redraw grid
+        if enabled:
+            self._draw_grid_background()
+        else:
+            self._clear_grid_background()
+
         print(f"[Facets Editor] Grid snapping: {'ON' if enabled else 'OFF'}")
+
+    def toggle_grid_snap(self, enabled: bool):
+        """Toggle grid snapping on/off (programmatic API)."""
+        self.snap_to_grid = enabled
+        self.grid_visible = enabled
+        if hasattr(self, 'grid_button'):
+            self.grid_button.setChecked(enabled)
+        print(f"[Facets Editor] Grid snapping: {'ON' if enabled else 'OFF'}")
+
+    def on_grid_size_changed(self, value: int):
+        """Handle grid size spinbox change."""
+        self.grid_size = value
+
+        # Save to settings
+        from PyQt6.QtCore import QSettings
+        settings = QSettings('Noodlings', 'FacetsEditor')
+        settings.setValue('grid/size', value)
+
+        # Redraw grid if visible
+        if self.grid_visible:
+            self._clear_grid_background()
+            self._draw_grid_background()
+
+        print(f"[Facets Editor] Grid size: {value}px")
 
     def set_grid_size(self, size: int):
         """Set grid snap size in pixels."""
@@ -2191,7 +2669,7 @@ class FacetsEditorPanel(QWidget):
 
         # Update all wire paths
         try:
-            for wire in self.wires:
+            for wire in self.wire_graphics:
                 wire.update_path()
         except Exception as e:
             print(f"[Auto-Arrange] Warning: Could not update wires: {e}")
@@ -2203,6 +2681,9 @@ class FacetsEditorPanel(QWidget):
             print(f"[Auto-Arrange] Warning: Could not save positions: {e}")
 
         print("[Auto-Arrange] Layout complete!")
+
+        # Frame all nodes to show the result
+        self.frame_all()
 
     def align_selected_horizontally(self):
         """Align selected facets to same Y coordinate (horizontal line)."""
@@ -2217,7 +2698,7 @@ class FacetsEditorPanel(QWidget):
             node.setPos(node.pos().x(), avg_y)
 
         # Update wires
-        for wire in self.wires:
+        for wire in self.wire_graphics:
             wire.update_path()
 
         self.save_current_assembly_positions()
@@ -2236,7 +2717,7 @@ class FacetsEditorPanel(QWidget):
             node.setPos(avg_x, node.pos().y())
 
         # Update wires
-        for wire in self.wires:
+        for wire in self.wire_graphics:
             wire.update_path()
 
         self.save_current_assembly_positions()
@@ -2266,10 +2747,20 @@ class FacetsEditorPanel(QWidget):
             facet_id = node.facet.id
 
             # Remove connected wires
-            wires_to_remove = [w for w in self.wires if w.from_pad.parent_node == node or w.to_pad.parent_node == node]
+            wires_to_remove = [w for w in self.wire_graphics if w.from_pad.facet_node == node or w.to_pad.facet_node == node]
             for wire in wires_to_remove:
+                # Remove wire from pad connection lists
+                if wire in wire.from_pad.connections:
+                    wire.from_pad.connections.remove(wire)
+                if wire in wire.to_pad.connections:
+                    wire.to_pad.connections.remove(wire)
+
+                # Update input pad color (will revert to neutral or another connection's color)
+                wire.to_pad.update_color_from_connection()
+
+                # Remove from scene and list
                 self.scene.removeItem(wire)
-                self.wires.remove(wire)
+                self.wire_graphics.remove(wire)
 
             # Remove connections from assembly
             self.current_assembly.connections = [
@@ -2308,19 +2799,45 @@ class FacetsEditorPanel(QWidget):
     def save_current_assembly_positions(self):
         """Save current assembly node positions to disk."""
         if not self.current_assembly or not self.current_assembly_name:
+            print(f"[Facets Editor] Cannot save positions - assembly={self.current_assembly is not None}, name={self.current_assembly_name}")
             return
 
         try:
             import os
             # Update facet positions from graphics
+            updated_count = 0
             for facet_id, node_gfx in self.node_graphics.items():
                 pos = node_gfx.pos()
                 facet = next((f for f in self.current_assembly.facets if f.id == facet_id), None)
                 if facet:
+                    old_pos = facet.position
                     facet.position = {'x': pos.x(), 'y': pos.y()}
+                    if old_pos != facet.position:
+                        updated_count += 1
+                        print(f"[Facets Editor]   {facet.name}: ({old_pos['x']:.0f}, {old_pos['y']:.0f}) → ({pos.x():.0f}, {pos.y():.0f})")
 
-            # Find assembly file by matching name
+            if updated_count == 0:
+                print(f"[Facets Editor] No position changes to save")
+                return
+
+            # Try direct path first (fastest, most reliable)
+            if self.current_assembly_path and os.path.exists(self.current_assembly_path):
+                print(f"[Facets Editor] Saving directly to: {self.current_assembly_path}")
+                # Get file mtime before save for verification
+                import time
+                mtime_before = os.path.getmtime(self.current_assembly_path)
+                self.current_assembly.save_yaml(self.current_assembly_path)
+                mtime_after = os.path.getmtime(self.current_assembly_path)
+                if mtime_after > mtime_before:
+                    print(f"[Facets Editor] ✅ Saved {updated_count} position changes to: {os.path.basename(self.current_assembly_path)} (mtime verified)")
+                else:
+                    print(f"[Facets Editor] ⚠️ File mtime unchanged - save may have failed!")
+                return
+
+            # Fallback: Search by assembly name
             assembly_dir = os.path.join(os.path.dirname(__file__), '../facet_assemblies')
+            print(f"[Facets Editor] Searching for assembly '{self.current_assembly_name}' in {assembly_dir}")
+
             for filename in os.listdir(assembly_dir):
                 if filename.endswith('.yaml'):
                     try:
@@ -2330,11 +2847,14 @@ class FacetsEditorPanel(QWidget):
                         if test_assembly.name == self.current_assembly_name:
                             # Found it! Save positions
                             self.current_assembly.save_yaml(test_path)
-                            print(f"[Facets Editor] Saved positions to: {filename}")
+                            print(f"[Facets Editor] ✅ Saved {updated_count} position changes to: {filename}")
                             return
-                    except:
+                        else:
+                            print(f"[Facets Editor]   Checked {filename}: name='{test_assembly.name}' (no match)")
+                    except Exception as e:
+                        print(f"[Facets Editor]   Error checking {filename}: {e}")
                         pass
-            print(f"[Facets Editor] Warning: Could not find file for assembly '{self.current_assembly_name}'")
+            print(f"[Facets Editor] ❌ Could not find YAML file for assembly '{self.current_assembly_name}'")
         except Exception as e:
             print(f"[Facets Editor] Error saving positions: {e}")
 

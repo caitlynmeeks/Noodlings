@@ -137,6 +137,27 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(self._create_action("&Quit", "Ctrl+Q", self.close))
 
+        # ===== EDIT MENU (undo/redo) =====
+        edit_menu = menu_bar.addMenu("&Edit")
+
+        # Undo/Redo - created by UndoManager for auto-updating text
+        from .undo_manager import undo_manager
+        self.undo_action = undo_manager.create_undo_action(self, "Undo")
+        self.undo_action.setShortcut("Ctrl+Z")
+        edit_menu.addAction(self.undo_action)
+
+        self.redo_action = undo_manager.create_redo_action(self, "Redo")
+        self.redo_action.setShortcut("Ctrl+Shift+Z")
+        edit_menu.addAction(self.redo_action)
+
+        edit_menu.addSeparator()
+
+        # Standard edit operations (for future use)
+        edit_menu.addAction(self._create_action("Cu&t", "Ctrl+X"))
+        edit_menu.addAction(self._create_action("&Copy", "Ctrl+C"))
+        edit_menu.addAction(self._create_action("&Paste", "Ctrl+V"))
+        edit_menu.addAction(self._create_action("&Delete", "Delete"))
+
         # ===== REZ MENU (instantiate entities) =====
         create_menu = menu_bar.addMenu("&Rez")
 
@@ -746,6 +767,17 @@ class MainWindow(QMainWindow):
         """Forward key events to Konami detector."""
         self.konami_detector.key_pressed(event.key())
         super().keyPressEvent(event)
+
+    def closeEvent(self, event):
+        """Auto-save layout on shutdown."""
+        try:
+            # Auto-save current layout as "Default"
+            self.layout_manager.save_layout(self, "Default")
+            self.layout_manager.set_last_used_layout("Default")
+            print("[MainWindow] Auto-saved layout on shutdown")
+        except Exception as e:
+            print(f"[MainWindow] Error auto-saving layout: {e}")
+        super().closeEvent(event)
 
     def _summon_goose(self):
         """Summon the legendary goose to walk across the screen."""
@@ -1969,20 +2001,16 @@ class MainWindow(QMainWindow):
                     try:
                         assembly = FacetAssembly.load_yaml(assembly_path)
 
-                        # Always reload when switching agents (even if same assembly name)
-                        # This ensures we're viewing the correct agent's instance
-                        was_loaded = (self.facets_editor.current_assembly_name == assembly.name and
-                                     self.facets_editor.current_agent_id == agent_id)
+                        # ALWAYS reload to ensure positions are current from disk
+                        # (Previously skipped reload if same assembly name + agent, but this
+                        # prevented position updates from being loaded after restarts)
+                        print(f"[Facets Editor] Loading assembly with {len(assembly.facets)} facets from: {assembly_path}")
 
-                        self.facets_editor.load_assembly_from_data(assembly, force_reload=not was_loaded)
+                        self.facets_editor.load_assembly_from_data(assembly, force_reload=True, source_path=assembly_path)
 
                         # Set current agent (enables pause button, tracks agent for API calls)
                         self.facets_editor.set_current_agent(agent_id)
-
-                        # Don't auto-switch tabs - let user control tab selection
-                        # Just load assembly in background
-                        if not was_loaded:
-                            print(f"[Facets Editor] Loaded assembly '{assembly.name}' for agent {agent_id}")
+                        print(f"[Facets Editor] Loaded assembly '{assembly.name}' for agent {agent_id}")
                     except Exception as e:
                         print(f"[Facets Editor] Error loading facet assembly: {e}")
                         import traceback

@@ -27,6 +27,7 @@ sys.path.append('..')
 
 from noodlestudio.widgets.collapsible_section import CollapsibleSection
 from ..panels.floating_text_editor import FloatingTextEditor
+from ..core.property_binding import PropertyBindingManager, PropertyMeta, property_registry
 
 
 class ClickableTextEdit(QTextEdit):
@@ -120,6 +121,9 @@ class InspectorPanel(QWidget):
         self.facet_properties_layout = None
         self.current_assembly = None
 
+        # Property binding manager for automatic undo support
+        self._binding_manager = PropertyBindingManager(self)
+
         # Initialize UI directly on this widget
         self.init_ui(self)
 
@@ -166,6 +170,9 @@ class InspectorPanel(QWidget):
         self.current_agent_id = None
         self.current_facet = None
         self.entity_header.setText("Select a noodling or prim")
+
+        # Clear property bindings (important for undo system)
+        self._binding_manager.clear_bindings()
 
         # Clear existing properties
         while self.properties_layout.count():
@@ -225,9 +232,9 @@ class InspectorPanel(QWidget):
 
     def _load_facet_standalone(self, facet):
         """
-        OLD BEHAVIOR: Load facet in standalone mode (rebuilds entire inspector).
+        Load facet in standalone mode using PropertyBinding system.
 
-        Used as fallback when agent is not loaded or facet section not found.
+        Uses the PropertyRegistry to auto-generate UI with undo support.
 
         Args:
             facet: Facet object from facet_system.py
@@ -242,11 +249,8 @@ class InspectorPanel(QWidget):
             traceback.print_exc()
             return
 
-        # Create property sections
         try:
-            from PyQt6.QtWidgets import QComboBox, QCheckBox
-
-            # Basic Properties section
+            # Basic Properties section (read-only info + basic editable)
             basic_section = CollapsibleSection("Basic Properties")
             basic_form = QFormLayout()
 
@@ -256,9 +260,8 @@ class InspectorPanel(QWidget):
             id_field.setStyleSheet("color: #888;")
             basic_form.addRow("ID:", id_field)
 
-            # Name (editable)
-            name_field = QLineEdit(facet.name)
-            name_field.textChanged.connect(lambda text: setattr(facet, 'name', text))
+            # Name (with undo)
+            name_field = self.create_bound_lineedit(facet, 'name', display_name='Name')
             basic_form.addRow("Name:", name_field)
 
             # Type (read-only)
@@ -267,162 +270,47 @@ class InspectorPanel(QWidget):
             type_field.setStyleSheet("color: #888;")
             basic_form.addRow("Type:", type_field)
 
-            # Enabled toggle
-            enabled_checkbox = QCheckBox()
-            enabled_checkbox.setChecked(facet.enabled)
-            enabled_checkbox.toggled.connect(lambda checked: setattr(facet, 'enabled', checked))
+            # Enabled (with undo)
+            enabled_checkbox = self.create_bound_checkbox(facet, 'enabled', display_name='Enabled')
             basic_form.addRow("Enabled:", enabled_checkbox)
 
             basic_section.set_content_layout(basic_form)
             self.properties_layout.addWidget(basic_section)
 
-            # LLM Configuration (for LLMFacet types)
-            if facet.facet_type == "LLMFacet":
-                llm_section = CollapsibleSection("LLM Configuration")
-                llm_form = QFormLayout()
+            # Type-specific Configuration section
+            # Uses PropertyRegistry to auto-generate widgets with undo
+            props = property_registry.get_properties(facet.facet_type, include_base=False)
+            if props:
+                config_section = CollapsibleSection(f"{facet.facet_type} Configuration")
+                config_form = QFormLayout()
 
-                # Model (dropdown for tier selection)
-                model_combo = QComboBox()
-                model_combo.addItems(["Small", "Medium", "Large"])
-                model_combo.setStyleSheet("""
-                    QComboBox {
-                        background: #3e3e3e;
-                        color: #D2D2D2;
-                        border: 1px solid #555555;
-                        padding: 4px 8px;
-                        padding-right: 25px;
-                        border-radius: 3px;
-                        min-width: 100px;
-                    }
-                    QComboBox:hover {
-                        border: 1px solid #666666;
-                    }
-                    QComboBox::drop-down {
-                        subcontrol-origin: padding;
-                        subcontrol-position: top right;
-                        width: 20px;
-                        border-left: 1px solid #555555;
-                    }
-                    QComboBox::down-arrow {
-                        image: none;
-                        border-left: 4px solid transparent;
-                        border-right: 4px solid transparent;
-                        border-top: 6px solid #D2D2D2;
-                        width: 0px;
-                        height: 0px;
-                        margin-right: 5px;
-                    }
-                    QComboBox QAbstractItemView {
-                        background: #3e3e3e;
-                        color: #D2D2D2;
-                        selection-background-color: #555555;
-                        border: 1px solid #555555;
-                    }
-                """)
+                for prop_name, meta in props.items():
+                    widget = self.create_widget_for_property(facet, meta)
+                    config_form.addRow(f"{meta.display_name}:", widget)
 
-                # Set current value (handle both UPPERCASE and Titlecase)
-                current_model = facet.model or "Medium"
-                # Try titlecase first (Small, Medium, Large)
-                index = model_combo.findText(current_model.title() if isinstance(current_model, str) else current_model, Qt.MatchFlag.MatchFixedString)
-                if index < 0:
-                    # Try uppercase (SMALL, MEDIUM, LARGE)
-                    index = model_combo.findText(current_model.upper() if isinstance(current_model, str) else current_model, Qt.MatchFlag.MatchFixedString)
-                if index < 0:
-                    # Try exact match
-                    index = model_combo.findText(current_model, Qt.MatchFlag.MatchFixedString)
+                # Add template variables hint for prompt fields
+                if 'prompt' in props:
+                    variables_hint = QLabel(
+                        "Variables: {incoming_data}, {observations}, "
+                        "{affect_valence:.2f}, {affect_arousal:.2f}, {affect_dominance:.2f}, "
+                        "{affect_boredom:.2f}, {affect_sorrow:.2f}"
+                    )
+                    variables_hint.setStyleSheet("color: #666666; font-size: 9px; font-style: italic;")
+                    variables_hint.setWordWrap(True)
+                    config_form.addRow(variables_hint)
 
-                if index >= 0:
-                    model_combo.setCurrentIndex(index)
-                else:
-                    # Custom model name - add it
-                    model_combo.addItem(current_model)
-                    model_combo.setCurrentText(current_model)
+                config_section.set_content_layout(config_form)
+                self.properties_layout.addWidget(config_section)
 
-                def on_model_changed(text):
-                    # Store as uppercase for backwards compat
-                    setattr(facet, 'model', text.upper())
-                    self._auto_save_facet_assembly()
-
-                model_combo.currentTextChanged.connect(on_model_changed)
-                llm_form.addRow("Model:", model_combo)
-
-                # Temperature
-                temp_spin = QDoubleSpinBox()
-                temp_spin.setRange(0.0, 2.0)
-                temp_spin.setSingleStep(0.1)
-                temp_spin.setValue(facet.temperature or 0.7)
-                temp_spin.valueChanged.connect(lambda val: setattr(facet, 'temperature', val))
-                llm_form.addRow("Temperature:", temp_spin)
-
-                # Max tokens
-                tokens_spin = QSpinBox()
-                tokens_spin.setRange(1, 4096)
-                tokens_spin.setValue(facet.max_tokens or 150)
-                tokens_spin.valueChanged.connect(lambda val: setattr(facet, 'max_tokens', val))
-                llm_form.addRow("Max Tokens:", tokens_spin)
-
-                # Prompt (large text area with Cmd+Click support)
-                prompt_label = QLabel("Prompt (Cmd+Click for floating editor):")
-                prompt_label.setStyleSheet("color: #888888; font-size: 10px;")
-                llm_form.addRow(prompt_label)
-
-                def on_prompt_changed(value):
-                    setattr(facet, 'prompt', value)
-                    self._auto_save_facet_assembly()
-
-                prompt_edit = ClickableTextEdit("Prompt", on_prompt_changed)
-                prompt_edit.setPlainText(facet.prompt or "")
-                prompt_edit.setMinimumHeight(200)
-                prompt_edit.setStyleSheet("font-family: monospace; font-size: 11pt;")
-                prompt_edit.textChanged.connect(lambda: on_prompt_changed(prompt_edit.toPlainText()))
-                llm_form.addRow(prompt_edit)
-
-                # Available template variables helper
-                variables_hint = QLabel(
-                    "Available variables: {incoming_data}, {observations}, "
-                    "{affect_valence:.2f}, {affect_arousal:.2f}, {affect_dominance:.2f}, "
-                    "{affect_boredom:.2f}, {affect_sorrow:.2f}"
-                )
-                variables_hint.setStyleSheet("color: #666666; font-size: 9px; font-style: italic;")
-                variables_hint.setWordWrap(True)
-                llm_form.addRow(variables_hint)
-
-                llm_section.set_content_layout(llm_form)
-                self.properties_layout.addWidget(llm_section)
-
-            # Salience Script (if present)
-            if hasattr(facet, 'salience_script') and facet.salience_script:
-                salience_section = CollapsibleSection("Salience Script")
-                salience_form = QFormLayout()
-
-                # Add hint label
-                hint_label = QLabel("Cmd+Click for floating editor")
-                hint_label.setStyleSheet("color: #888888; font-size: 10px;")
-                salience_form.addRow(hint_label)
-
-                def on_salience_changed(value):
-                    setattr(facet, 'salience_script', value)
-                    self._auto_save_facet_assembly()
-
-                script_edit = ClickableTextEdit("Salience Script", on_salience_changed)
-                script_edit.setPlainText(facet.salience_script)
-                script_edit.setMinimumHeight(150)
-                script_edit.setStyleSheet("font-family: monospace; font-size: 10pt;")
-                script_edit.textChanged.connect(lambda: on_salience_changed(script_edit.toPlainText()))
-                salience_form.addRow(script_edit)
-
-                salience_section.set_content_layout(salience_form)
-                self.properties_layout.addWidget(salience_section)
-
-            # Inputs/Outputs (informational)
+            # Inputs/Outputs (informational, read-only)
             io_section = CollapsibleSection("Inputs & Outputs")
             io_form = QFormLayout()
 
-            inputs_list = "\n".join(f"• {inp.name} ({'required' if inp.required else 'optional'})"
+            inputs_list = "\n".join(f"  {inp.name} ({'required' if inp.required else 'optional'})"
                                     for inp in (facet.input_pads or []))
-            outputs_list = "\n".join(f"• {out.name}" for out in (facet.output_pads or []))
+            outputs_list = "\n".join(f"  {out.name}" for out in (facet.output_pads or []))
 
-            io_label = QLabel(f"Inputs:\n{inputs_list or 'None'}\n\nOutputs:\n{outputs_list or 'None'}")
+            io_label = QLabel(f"Inputs:\n{inputs_list or '  None'}\n\nOutputs:\n{outputs_list or '  None'}")
             io_label.setStyleSheet("color: #AAA; font-size: 10pt;")
             io_label.setWordWrap(True)
             io_form.addRow(io_label)
@@ -437,7 +325,6 @@ class InspectorPanel(QWidget):
             import traceback
             traceback.print_exc()
 
-            # Show error in inspector
             error_label = QLabel(f"Error loading facet properties:\n{str(e)}")
             error_label.setStyleSheet("color: #FF6B6B;")
             error_label.setWordWrap(True)
@@ -455,6 +342,492 @@ class InspectorPanel(QWidget):
                     print(f"[Inspector] Auto-saved facet assembly to {assembly.filepath}")
         except Exception as e:
             print(f"[Inspector] Error auto-saving facet assembly: {e}")
+
+    # ========== UNDO SYSTEM INTERNAL METHODS ==========
+
+    def _set_facet_property_internal(self, facet_id: str, property_name: str, value):
+        """
+        Set facet property without pushing undo command.
+
+        Called by InspectorPropertyCommand during undo/redo.
+        Updates both the data model and any visible widgets.
+        """
+        # Get the facet from the current assembly
+        main_window = self.window()
+        if not hasattr(main_window, 'facets_editor'):
+            return
+
+        assembly = main_window.facets_editor.current_assembly
+        if not assembly:
+            return
+
+        facet = assembly.get_facet(facet_id)
+        if not facet:
+            return
+
+        # Set the property
+        setattr(facet, property_name, value)
+
+        # Update widget if visible (find widget by facet_id and property_name)
+        # This is tricky because widgets are created dynamically
+        # For now, just trigger a refresh if the facet is currently displayed
+        if self.current_facet and self.current_facet.id == facet_id:
+            # Refresh the facet display to show new value
+            self._refresh_facet_widget(facet_id, property_name, value)
+
+        # Save to disk
+        self._save_facet_property_to_disk()
+
+    def _save_facet_property_to_disk(self):
+        """Save facet assembly to disk (called by undo commands)."""
+        self._auto_save_facet_assembly()
+
+    def _refresh_facet_widget(self, facet_id: str, property_name: str, value):
+        """
+        Update widget display after undo/redo changes property.
+
+        This finds and updates the specific widget showing this property.
+        """
+        # For now, we don't have widget tracking - the widget will show
+        # stale data until user re-selects the facet. This is acceptable
+        # for initial implementation.
+        #
+        # TODO: Track widgets by (facet_id, property_name) for live updates
+        pass
+
+    def _push_facet_property_command(self, facet, property_name: str, old_value, new_value):
+        """
+        Push an undo command for a facet property change.
+
+        Call this AFTER setting the property on the facet.
+
+        Args:
+            facet: The Facet object being modified
+            property_name: Name of the property (e.g., 'prompt', 'temperature')
+            old_value: Value before change
+            new_value: Value after change
+        """
+        if old_value == new_value:
+            return  # No change
+
+        from ..core.undo_manager import undo_manager
+        from ..core.commands import InspectorPropertyCommand
+
+        cmd = InspectorPropertyCommand(
+            inspector=self,
+            facet_id=facet.id,
+            property_name=property_name,
+            old_value=old_value,
+            new_value=new_value,
+            facet_name=facet.name
+        )
+        undo_manager.push(cmd)
+
+    def _push_generic_property_command(
+        self,
+        obj,
+        property_name: str,
+        old_value,
+        new_value,
+        display_name: str = "",
+        obj_name: str = ""
+    ):
+        """
+        Push a generic undo command for any property change.
+
+        This is called by PropertyBinding to create undo commands.
+        Works with any object type, not just facets.
+
+        Args:
+            obj: Object containing the property
+            property_name: Name of property being changed
+            old_value: Value before change
+            new_value: Value after change
+            display_name: Human-readable property name
+            obj_name: Name of object for undo text
+        """
+        if old_value == new_value:
+            return
+
+        from ..core.undo_manager import undo_manager
+        from ..core.commands import GenericPropertyCommand
+
+        cmd = GenericPropertyCommand(
+            inspector=self,
+            obj=obj,
+            property_name=property_name,
+            old_value=old_value,
+            new_value=new_value,
+            display_name=display_name,
+            obj_name=obj_name
+        )
+        undo_manager.push(cmd)
+
+    # === Widget Factory Methods ===
+
+    def create_bound_spinbox(
+        self,
+        obj,
+        property_name: str,
+        minimum: int = 0,
+        maximum: int = 100,
+        display_name: str = None,
+        **kwargs
+    ) -> QSpinBox:
+        """
+        Create a QSpinBox bound to a property with automatic undo.
+
+        Args:
+            obj: Object containing the property
+            property_name: Name of property to bind
+            minimum: Minimum value
+            maximum: Maximum value
+            display_name: Label for undo text
+            **kwargs: Additional spinbox config
+
+        Returns:
+            Bound QSpinBox widget
+        """
+        widget = QSpinBox()
+        widget.setRange(minimum, maximum)
+        for key, val in kwargs.items():
+            if hasattr(widget, f'set{key.title()}'):
+                getattr(widget, f'set{key.title()}')(val)
+
+        # Set initial value
+        value = getattr(obj, property_name, 0) or 0
+        widget.setValue(value)
+
+        # Create binding
+        self._binding_manager.create_binding(
+            widget, obj, property_name,
+            display_name=display_name
+        )
+
+        return widget
+
+    def create_bound_double_spinbox(
+        self,
+        obj,
+        property_name: str,
+        minimum: float = 0.0,
+        maximum: float = 1.0,
+        step: float = 0.1,
+        decimals: int = 2,
+        display_name: str = None,
+        **kwargs
+    ) -> QDoubleSpinBox:
+        """
+        Create a QDoubleSpinBox bound to a property with automatic undo.
+
+        Args:
+            obj: Object containing the property
+            property_name: Name of property to bind
+            minimum: Minimum value
+            maximum: Maximum value
+            step: Single step value
+            decimals: Number of decimal places
+            display_name: Label for undo text
+
+        Returns:
+            Bound QDoubleSpinBox widget
+        """
+        widget = QDoubleSpinBox()
+        widget.setRange(minimum, maximum)
+        widget.setSingleStep(step)
+        widget.setDecimals(decimals)
+
+        # Set initial value
+        value = getattr(obj, property_name, 0.0) or 0.0
+        widget.setValue(value)
+
+        # Create binding
+        self._binding_manager.create_binding(
+            widget, obj, property_name,
+            display_name=display_name
+        )
+
+        return widget
+
+    def create_bound_combobox(
+        self,
+        obj,
+        property_name: str,
+        choices: list,
+        display_name: str = None,
+        transform_to_model=None,
+        transform_from_model=None,
+        **kwargs
+    ):
+        """
+        Create a QComboBox bound to a property with automatic undo.
+
+        Args:
+            obj: Object containing the property
+            property_name: Name of property to bind
+            choices: List of valid choices
+            display_name: Label for undo text
+            transform_to_model: Transform combo text to model value
+            transform_from_model: Transform model value to combo text
+
+        Returns:
+            Bound QComboBox widget
+        """
+        from PyQt6.QtWidgets import QComboBox
+
+        widget = QComboBox()
+        widget.addItems(choices)
+
+        # Set initial value
+        value = getattr(obj, property_name, None)
+        if value:
+            if transform_from_model:
+                value = transform_from_model(value)
+            index = widget.findText(str(value))
+            if index >= 0:
+                widget.setCurrentIndex(index)
+
+        # Create binding
+        self._binding_manager.create_binding(
+            widget, obj, property_name,
+            display_name=display_name,
+            transform_to_model=transform_to_model,
+            transform_from_model=transform_from_model
+        )
+
+        return widget
+
+    def create_bound_textedit(
+        self,
+        obj,
+        property_name: str,
+        max_height: int = 150,
+        display_name: str = None,
+        code_language: str = None,
+        **kwargs
+    ):
+        """
+        Create a text editor bound to a property with automatic undo.
+
+        Supports Cmd+Click floating editor for prompts and code.
+
+        Args:
+            obj: Object containing the property
+            property_name: Name of property to bind
+            max_height: Maximum widget height
+            display_name: Label for undo text
+            code_language: If set, style as code editor
+
+        Returns:
+            Bound ClickableTextEdit widget
+        """
+        obj_name = getattr(obj, 'name', '') or ''
+        field_name = f"{obj_name} - {display_name or property_name}"
+
+        # Create with floating editor callback that uses binding
+        widget = ClickableTextEdit(
+            field_name=field_name,
+            on_apply_callback=None  # Will be set after binding
+        )
+
+        # Set initial value
+        value = getattr(obj, property_name, '') or ''
+        widget.setPlainText(value)
+        widget.setMaximumHeight(max_height)
+
+        # Style based on code language
+        if code_language:
+            widget.setStyleSheet(
+                "background-color: #1E1E1E; color: #D2D2D2; "
+                "padding: 4px; font-family: 'Courier New';"
+            )
+        else:
+            widget.setStyleSheet(
+                "background-color: #1E1E1E; color: #D2D2D2; padding: 4px;"
+            )
+
+        # Create binding
+        binding = self._binding_manager.create_binding(
+            widget, obj, property_name,
+            display_name=display_name
+        )
+
+        # Connect floating editor to binding (applies through widget → binding)
+        widget.on_apply_callback = lambda text: widget.setPlainText(text)
+
+        return widget
+
+    def create_bound_checkbox(
+        self,
+        obj,
+        property_name: str,
+        display_name: str = None,
+        **kwargs
+    ):
+        """
+        Create a QCheckBox bound to a property with automatic undo.
+
+        Args:
+            obj: Object containing the property
+            property_name: Name of property to bind
+            display_name: Label for undo text
+
+        Returns:
+            Bound QCheckBox widget
+        """
+        from PyQt6.QtWidgets import QCheckBox
+
+        widget = QCheckBox()
+
+        # Set initial value
+        value = getattr(obj, property_name, False)
+        widget.setChecked(bool(value))
+
+        # Create binding
+        self._binding_manager.create_binding(
+            widget, obj, property_name,
+            display_name=display_name
+        )
+
+        return widget
+
+    def create_bound_lineedit(
+        self,
+        obj,
+        property_name: str,
+        display_name: str = None,
+        placeholder: str = "",
+        **kwargs
+    ):
+        """
+        Create a QLineEdit bound to a property with automatic undo.
+
+        Args:
+            obj: Object containing the property
+            property_name: Name of property to bind
+            display_name: Label for undo text
+            placeholder: Placeholder text
+
+        Returns:
+            Bound QLineEdit widget
+        """
+        widget = QLineEdit()
+        if placeholder:
+            widget.setPlaceholderText(placeholder)
+
+        # Set initial value
+        value = getattr(obj, property_name, '') or ''
+        widget.setText(str(value))
+
+        # Create binding
+        self._binding_manager.create_binding(
+            widget, obj, property_name,
+            display_name=display_name
+        )
+
+        return widget
+
+    def create_widget_for_property(self, obj, meta: PropertyMeta):
+        """
+        Create appropriate widget for a property based on its metadata.
+
+        This is the main factory method for auto-generating Inspector UI
+        from property metadata. Scripted components can use this to get
+        automatic undo support.
+
+        Args:
+            obj: Object containing the property
+            meta: PropertyMeta describing the property
+
+        Returns:
+            Bound widget appropriate for the property type
+        """
+        if meta.choices:
+            return self.create_bound_combobox(
+                obj, meta.name,
+                choices=meta.choices,
+                display_name=meta.display_name
+            )
+        elif meta.prop_type == bool:
+            return self.create_bound_checkbox(
+                obj, meta.name,
+                display_name=meta.display_name
+            )
+        elif meta.prop_type == int:
+            return self.create_bound_spinbox(
+                obj, meta.name,
+                minimum=int(meta.minimum or 0),
+                maximum=int(meta.maximum or 9999),
+                display_name=meta.display_name
+            )
+        elif meta.prop_type == float:
+            return self.create_bound_double_spinbox(
+                obj, meta.name,
+                minimum=meta.minimum or 0.0,
+                maximum=meta.maximum or 1.0,
+                step=meta.step or 0.1,
+                display_name=meta.display_name
+            )
+        elif meta.prop_type == str:
+            if meta.multiline or meta.code_language:
+                return self.create_bound_textedit(
+                    obj, meta.name,
+                    display_name=meta.display_name,
+                    code_language=meta.code_language
+                )
+            else:
+                return self.create_bound_lineedit(
+                    obj, meta.name,
+                    display_name=meta.display_name
+                )
+        else:
+            # Default to line edit for unknown types
+            return self.create_bound_lineedit(
+                obj, meta.name,
+                display_name=meta.display_name
+            )
+
+    def build_inspector_for_object(self, obj, layout, include_base: bool = False):
+        """
+        Auto-generate Inspector widgets for an object with editable properties.
+
+        Uses the PropertyRegistry to look up editable properties for the object's
+        type. Works with:
+        - Built-in facet types (LLMFacet, ScriptedFacet, etc.)
+        - Dynamically registered types from scripts
+        - Any class with _editable_properties attribute
+
+        Args:
+            obj: Object to inspect
+            layout: QFormLayout to add widgets to
+            include_base: If True, include base properties (name, enabled, locked)
+
+        Returns:
+            True if properties were added, False if none found
+        """
+        # First try the PropertyRegistry
+        editable = property_registry.get_properties_for(obj)
+
+        # Fall back to class attribute if registry has nothing
+        if not editable:
+            editable = getattr(obj.__class__, '_editable_properties', None)
+
+        if not editable:
+            return False
+
+        # Filter out base properties unless requested
+        if not include_base:
+            base_props = {'name', 'enabled', 'locked'}
+            editable = {k: v for k, v in editable.items() if k not in base_props}
+
+        if not editable:
+            return False
+
+        for prop_name, meta in editable.items():
+            widget = self.create_widget_for_property(obj, meta)
+            layout.addRow(f"{meta.display_name}:", widget)
+
+        return True
 
     def _get_agent_assembly(self, agent_id: str, agent_data: dict):
         """
@@ -711,40 +1084,72 @@ class InspectorPanel(QWidget):
             if index >= 0:
                 model_combo.setCurrentIndex(index)
 
-            def on_model_changed(text):
-                setattr(facet, 'model', text.upper())
-                self._auto_save_facet_assembly()
+            model_combo._last_value = facet.model or "Medium"  # Track for undo
+
+            def on_model_changed(text, f=facet, combo=model_combo):
+                old_val = getattr(combo, '_last_value', f.model)
+                new_val = text.upper()
+                setattr(f, 'model', new_val)
+                self._push_facet_property_command(f, 'model', old_val, new_val)
+                combo._last_value = new_val
 
             model_combo.currentTextChanged.connect(on_model_changed)
             props_layout.addRow("Model:", model_combo)
 
-            # Temperature
+            # Temperature (with undo support)
             temp_spin = QDoubleSpinBox()
             temp_spin.setRange(0.0, 2.0)
             temp_spin.setSingleStep(0.1)
-            temp_spin.setValue(facet.temperature or 0.7)
-            temp_spin.valueChanged.connect(lambda val: setattr(facet, 'temperature', val))
-            temp_spin.valueChanged.connect(lambda: self._auto_save_facet_assembly())
+            initial_temp = facet.temperature or 0.7
+            temp_spin.setValue(initial_temp)
+            temp_spin._last_value = initial_temp  # Track for undo
+
+            def on_temp_changed(val, f=facet, spin=temp_spin):
+                old_val = getattr(spin, '_last_value', f.temperature)
+                setattr(f, 'temperature', val)
+                self._push_facet_property_command(f, 'temperature', old_val, val)
+                spin._last_value = val
+
+            temp_spin.valueChanged.connect(on_temp_changed)
             props_layout.addRow("Temperature:", temp_spin)
 
-            # Max tokens
+            # Max tokens (with undo support)
             tokens_spin = QSpinBox()
             tokens_spin.setRange(1, 4096)
-            tokens_spin.setValue(facet.max_tokens or 150)
-            tokens_spin.valueChanged.connect(lambda val: setattr(facet, 'max_tokens', val))
-            tokens_spin.valueChanged.connect(lambda: self._auto_save_facet_assembly())
+            initial_tokens = facet.max_tokens or 150
+            tokens_spin.setValue(initial_tokens)
+            tokens_spin._last_value = initial_tokens  # Track for undo
+
+            def on_tokens_changed(val, f=facet, spin=tokens_spin):
+                old_val = getattr(spin, '_last_value', f.max_tokens)
+                setattr(f, 'max_tokens', val)
+                self._push_facet_property_command(f, 'max_tokens', old_val, val)
+                spin._last_value = val
+
+            tokens_spin.valueChanged.connect(on_tokens_changed)
             props_layout.addRow("Max Tokens:", tokens_spin)
 
-            # Prompt
+            # Prompt (with undo support - uses command merging for typing)
             prompt_edit = ClickableTextEdit(
                 field_name=f"{facet.name} - Prompt",
-                on_apply_callback=lambda text: (setattr(facet, 'prompt', text), self._auto_save_facet_assembly())
+                on_apply_callback=lambda text, f=facet: (
+                    setattr(f, 'prompt', text),
+                    self._push_facet_property_command(f, 'prompt', f.prompt, text)
+                )
             )
             prompt_edit.setPlainText(facet.prompt or "")
             prompt_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
             prompt_edit.setMaximumHeight(150)
-            prompt_edit.textChanged.connect(lambda: setattr(facet, 'prompt', prompt_edit.toPlainText()))
-            prompt_edit.textChanged.connect(lambda: self._auto_save_facet_assembly())
+            prompt_edit._baseline_value = facet.prompt or ""  # Track baseline for undo
+
+            def on_prompt_changed(edit=prompt_edit, f=facet):
+                new_text = edit.toPlainText()
+                old_text = getattr(edit, '_baseline_value', '')
+                setattr(f, 'prompt', new_text)
+                self._push_facet_property_command(f, 'prompt', old_text, new_text)
+                # Don't update baseline - let commands merge until focus lost
+
+            prompt_edit.textChanged.connect(on_prompt_changed)
             props_layout.addRow("Prompt:", prompt_edit)
 
         # CharmNetworkFacet
@@ -753,17 +1158,27 @@ class InspectorPanel(QWidget):
             info_label.setStyleSheet("color: #888888; font-style: italic;")
             props_layout.addRow(info_label)
 
-        # ScriptedFacet
+        # ScriptedFacet (with undo support)
         elif facet.facet_type == "ScriptedFacet":
             script_edit = ClickableTextEdit(
                 field_name=f"{facet.name} - Salience Script",
-                on_apply_callback=lambda text: (setattr(facet, 'salience_script', text), self._auto_save_facet_assembly())
+                on_apply_callback=lambda text, f=facet: (
+                    setattr(f, 'salience_script', text),
+                    self._push_facet_property_command(f, 'salience_script', f.salience_script, text)
+                )
             )
             script_edit.setPlainText(facet.salience_script or "")
             script_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px; font-family: 'Courier New';")
             script_edit.setMaximumHeight(150)
-            script_edit.textChanged.connect(lambda: setattr(facet, 'salience_script', script_edit.toPlainText()))
-            script_edit.textChanged.connect(lambda: self._auto_save_facet_assembly())
+            script_edit._baseline_value = facet.salience_script or ""  # Track baseline for undo
+
+            def on_script_changed(edit=script_edit, f=facet):
+                new_text = edit.toPlainText()
+                old_text = getattr(edit, '_baseline_value', '')
+                setattr(f, 'salience_script', new_text)
+                self._push_facet_property_command(f, 'salience_script', old_text, new_text)
+
+            script_edit.textChanged.connect(on_script_changed)
             props_layout.addRow("Salience Script:", script_edit)
 
         # Generic
@@ -820,10 +1235,10 @@ class InspectorPanel(QWidget):
 
     def _create_facet_section(self, facet, agent_id: str):
         """
-        Create a CollapsibleSection for a single facet.
+        Create a CollapsibleSection for a single facet using PropertyBinding.
 
-        Shows facet properties in the same format as load_facet(),
-        but within a collapsible section in the main inspector.
+        Uses the PropertyRegistry to auto-generate widgets with undo support.
+        Works with any facet type, including dynamically registered ones.
 
         Args:
             facet: Facet object from facet_system
@@ -832,8 +1247,6 @@ class InspectorPanel(QWidget):
         Returns:
             CollapsibleSection widget
         """
-        from PyQt6.QtWidgets import QComboBox, QCheckBox
-
         # Create collapsible section with facet name
         section = CollapsibleSection(facet.name)
         section_form = QFormLayout()
@@ -841,134 +1254,26 @@ class InspectorPanel(QWidget):
         # Store facet reference for later expansion
         section.setProperty("facet_id", facet.id)
 
-        # LLM Configuration (for LLMFacet types)
-        if facet.facet_type == "LLMFacet":
-            # Model dropdown
-            model_combo = QComboBox()
-            model_combo.addItems(["Small", "Medium", "Large"])
-            model_combo.setStyleSheet("""
-                QComboBox {
-                    background: #3e3e3e;
-                    color: #D2D2D2;
-                    border: 1px solid #555555;
-                    padding: 4px 8px;
-                    padding-right: 25px;
-                    border-radius: 3px;
-                    min-width: 100px;
-                }
-                QComboBox:hover {
-                    border: 1px solid #666666;
-                }
-                QComboBox::drop-down {
-                    subcontrol-origin: padding;
-                    subcontrol-position: top right;
-                    width: 20px;
-                    border-left: 1px solid #555555;
-                }
-                QComboBox::down-arrow {
-                    image: none;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-top: 6px solid #D2D2D2;
-                    width: 0px;
-                    height: 0px;
-                    margin-right: 5px;
-                }
-                QComboBox QAbstractItemView {
-                    background: #3e3e3e;
-                    color: #D2D2D2;
-                    selection-background-color: #555555;
-                    border: 1px solid #555555;
-                }
-            """)
+        # Get properties for this facet type from registry
+        props = property_registry.get_properties(facet.facet_type, include_base=False)
 
-            # Set current value (handle both UPPERCASE and Titlecase)
-            current_model = facet.model or "Medium"
-            # Try exact match first
-            index = model_combo.findText(current_model, Qt.MatchFlag.MatchFixedString)
-            if index < 0:
-                # Try case-insensitive match
-                index = model_combo.findText(current_model, Qt.MatchFlag.MatchFixedString | Qt.MatchFlag.MatchCaseSensitive)
-            if index < 0:
-                # Try uppercase version (SMALL, MEDIUM, LARGE)
-                index = model_combo.findText(current_model.upper(), Qt.MatchFlag.MatchFixedString)
-            if index < 0:
-                # Try titlecase version (Small, Medium, Large)
-                index = model_combo.findText(current_model.title(), Qt.MatchFlag.MatchFixedString)
+        if props:
+            # Auto-generate widgets with undo support
+            for prop_name, meta in props.items():
+                widget = self.create_widget_for_property(facet, meta)
+                section_form.addRow(f"{meta.display_name}:", widget)
 
-            if index >= 0:
-                model_combo.setCurrentIndex(index)
-            else:
-                # Custom model name - add it
-                model_combo.addItem(current_model)
-                model_combo.setCurrentText(current_model)
-
-            def on_model_changed(text):
-                # Store as uppercase for backwards compat with YAML files
-                setattr(facet, 'model', text.upper())
-                self._auto_save_facet_assembly()
-
-            model_combo.currentTextChanged.connect(on_model_changed)
-            section_form.addRow("Model:", model_combo)
-
-            # Temperature
-            temp_spin = QDoubleSpinBox()
-            temp_spin.setRange(0.0, 2.0)
-            temp_spin.setSingleStep(0.1)
-            temp_spin.setValue(facet.temperature or 0.7)
-            temp_spin.valueChanged.connect(lambda val: setattr(facet, 'temperature', val))
-            temp_spin.valueChanged.connect(lambda: self._auto_save_facet_assembly())
-            section_form.addRow("Temperature:", temp_spin)
-
-            # Max tokens
-            tokens_spin = QSpinBox()
-            tokens_spin.setRange(1, 4096)
-            tokens_spin.setValue(facet.max_tokens or 150)
-            tokens_spin.valueChanged.connect(lambda val: setattr(facet, 'max_tokens', val))
-            tokens_spin.valueChanged.connect(lambda: self._auto_save_facet_assembly())
-            section_form.addRow("Max Tokens:", tokens_spin)
-
-            # Prompt with Cmd+Click support
-            prompt_edit = ClickableTextEdit(
-                field_name=f"{facet.name} - Prompt",
-                on_apply_callback=lambda text: (setattr(facet, 'prompt', text), self._auto_save_facet_assembly())
-            )
-            prompt_edit.setPlainText(facet.prompt or "")
-            prompt_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-            prompt_edit.setMaximumHeight(80)
-            prompt_edit.textChanged.connect(lambda: setattr(facet, 'prompt', prompt_edit.toPlainText()))
-            prompt_edit.textChanged.connect(lambda: self._auto_save_facet_assembly())
-            section_form.addRow("Prompt:", prompt_edit)
-
-            # Template variables helper (read-only)
-            if facet.prompt and '{' in facet.prompt:
-                vars_label = QLabel("Variables: {incoming_data}, {observations}, {affect_valence:.2f}, {affect_arousal:.2f}, {affect_dominance:.2f}")
+            # Add template variables hint for prompt fields
+            if 'prompt' in props:
+                vars_label = QLabel(
+                    "Variables: {incoming_data}, {observations}, "
+                    "{affect_valence:.2f}, {affect_arousal:.2f}, {affect_dominance:.2f}"
+                )
                 vars_label.setStyleSheet("color: #666666; font-size: 9px; padding: 2px;")
                 vars_label.setWordWrap(True)
                 section_form.addRow("", vars_label)
-
-        # CharmNetworkFacet configuration
-        elif facet.facet_type == "CharmNetworkFacet":
-            info_label = QLabel("Neural affect model (PAD + boredom + sorrow)")
-            info_label.setStyleSheet("color: #888888; font-style: italic;")
-            section_form.addRow(info_label)
-
-        # ScriptedFacet configuration
-        elif facet.facet_type == "ScriptedFacet":
-            # Salience script with Cmd+Click support
-            script_edit = ClickableTextEdit(
-                field_name=f"{facet.name} - Salience Script",
-                on_apply_callback=lambda text: (setattr(facet, 'salience_script', text), self._auto_save_facet_assembly())
-            )
-            script_edit.setPlainText(facet.salience_script or "")
-            script_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px; font-family: 'Courier New';")
-            script_edit.setMaximumHeight(80)
-            script_edit.textChanged.connect(lambda: setattr(facet, 'salience_script', script_edit.toPlainText()))
-            script_edit.textChanged.connect(lambda: self._auto_save_facet_assembly())
-            section_form.addRow("Salience Script:", script_edit)
-
-        # Generic facet info for other types
         else:
+            # No properties registered - show type info
             type_label = QLabel(f"Type: {facet.facet_type}")
             type_label.setStyleSheet("color: #888888;")
             section_form.addRow(type_label)

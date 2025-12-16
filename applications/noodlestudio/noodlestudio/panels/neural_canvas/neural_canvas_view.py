@@ -176,6 +176,51 @@ class NodeGraphicsItem(QGraphicsItem):
             port_item.setPos(self.width, self.port_start_y + i * 20)
             self.output_ports[port_name] = port_item
 
+        # Drag tracking for undo
+        self.drag_start_pos = None
+        self.is_being_dragged = False
+
+    def mousePressEvent(self, event):
+        """Record position when drag starts (for undo)."""
+        from PyQt6.QtCore import Qt
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_start_pos = (int(self.pos().x()), int(self.pos().y()))
+            self.is_being_dragged = True
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """Push move command when drag ends (if position changed)."""
+        from PyQt6.QtCore import Qt
+        if event.button() == Qt.MouseButton.LeftButton and self.is_being_dragged:
+            self.is_being_dragged = False
+
+            if self.drag_start_pos:
+                new_pos = (int(self.pos().x()), int(self.pos().y()))
+                old_pos = self.drag_start_pos
+
+                # Only push command if position changed significantly
+                if abs(new_pos[0] - old_pos[0]) > 1 or abs(new_pos[1] - old_pos[1]) > 1:
+                    # Push move command via UndoManager
+                    if self.scene():
+                        for view in self.scene().views():
+                            if isinstance(view, NeuralCanvasView):
+                                from ...core.undo_manager import undo_manager
+                                from ...core.commands import MoveNeuralNodeCommand
+
+                                cmd = MoveNeuralNodeCommand(
+                                    view=view,
+                                    node_id=self.node.id,
+                                    old_pos=old_pos,
+                                    new_pos=new_pos,
+                                    node_name=self.node.name
+                                )
+                                undo_manager.push(cmd)
+                                break
+
+            self.drag_start_pos = None
+
+        super().mouseReleaseEvent(event)
+
     def _get_display_params(self) -> dict:
         """Get key parameters to display inline on the node (moved up for init access)."""
         display = {}
@@ -315,7 +360,19 @@ class NodeGraphicsItem(QGraphicsItem):
 
     def itemChange(self, change, value):
         """Handle item changes (e.g., position)."""
-        if change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
+        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
+            # Apply grid snapping if enabled
+            new_pos = value
+            if self.scene() and hasattr(self.scene().views()[0], 'snap_to_grid'):
+                view = self.scene().views()[0]
+                if view.snap_to_grid:
+                    grid = view.grid_size
+                    snapped_x = round(new_pos.x() / grid) * grid
+                    snapped_y = round(new_pos.y() / grid) * grid
+                    return QPointF(snapped_x, snapped_y)
+            return new_pos
+
+        elif change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
             # Update node position
             new_pos = self.pos()
             self.node.position = (int(new_pos.x()), int(new_pos.y()))
@@ -334,30 +391,37 @@ class NodeGraphicsItem(QGraphicsItem):
             return self.input_ports.get(port_name)
 
     def mouseDoubleClickEvent(self, event):
-        """Handle double-click to rename node."""
+        """Handle double-click to rename node (with undo support)."""
         # Check if double-clicking on header
         header_height = 24
         local_pos = event.pos()
 
         if local_pos.y() <= header_height:
             # Double-clicked header - rename node
+            old_name = self.node.name
             new_name, ok = QInputDialog.getText(
                 None,
                 "Rename Node",
                 "Enter new name:",
-                text=self.node.name
+                text=old_name
             )
 
-            if ok and new_name and new_name != self.node.name:
-                self.node.name = new_name
-                self.update()  # Redraw
-                print(f"[Neural Canvas] Renamed node to: {new_name}")
-
-                # Emit modification signal (need to get parent view)
+            if ok and new_name and new_name != old_name:
+                # Push rename command via UndoManager
                 if self.scene():
                     for view in self.scene().views():
                         if isinstance(view, NeuralCanvasView):
-                            view.graph_modified.emit()
+                            from ...core.undo_manager import undo_manager
+                            from ...core.commands import RenameNeuralNodeCommand
+
+                            cmd = RenameNeuralNodeCommand(
+                                view=view,
+                                node_id=self.node.id,
+                                old_name=old_name,
+                                new_name=new_name
+                            )
+                            undo_manager.push(cmd)
+                            print(f"[Neural Canvas] Renamed node (undoable): {old_name} -> {new_name}")
                             break
 
         super().mouseDoubleClickEvent(event)
@@ -539,8 +603,20 @@ class NeuralCanvasView(QGraphicsView):
         self.node_items: dict[str, NodeGraphicsItem] = {}
         self.connection_items: list[ConnectionGraphicsItem] = []
 
+        # Grid snapping (load from persistent settings)
+        from PyQt6.QtCore import QSettings
+        settings = QSettings('Noodlings', 'NeuralCanvas')
+        self.snap_to_grid = settings.value('grid/snap_enabled', False, type=bool)
+        self.grid_size = settings.value('grid/size', 20, type=int)
+        self.grid_visible = self.snap_to_grid
+        self.grid_lines: list = []
+
         # Initial render
         self._render_graph()
+
+        # Restore grid if it was enabled
+        if self.grid_visible:
+            self._draw_grid()
 
     def set_graph(self, graph: NeuralGraph):
         """Set a new graph to display."""
@@ -576,12 +652,45 @@ class NeuralCanvasView(QGraphicsView):
         self.setCursor(Qt.CursorShape.CrossCursor)
 
     def wheelEvent(self, event: QWheelEvent):
-        """Handle zoom with mouse wheel."""
+        """Handle zoom with mouse wheel (with limits)."""
         zoom_factor = 1.15
         if event.angleDelta().y() > 0:
-            self.scale(zoom_factor, zoom_factor)
+            self._zoom_view(zoom_factor)
         else:
-            self.scale(1 / zoom_factor, 1 / zoom_factor)
+            self._zoom_view(1 / zoom_factor)
+
+    def _zoom_view(self, factor: float):
+        """
+        Zoom the view by given factor with limits.
+
+        Args:
+            factor: Zoom multiplier (>1 = zoom in, <1 = zoom out)
+        """
+        current_scale = self.transform().m11()
+        new_scale = current_scale * factor
+
+        # Calculate max zoom based on content
+        max_zoom = 3.0  # Default max
+        min_zoom = 0.1  # Reasonable minimum to see everything
+
+        all_nodes = list(self.node_items.values())
+        if all_nodes:
+            # Calculate bounding rect of all nodes
+            bounding_rect = all_nodes[0].sceneBoundingRect()
+            for node in all_nodes[1:]:
+                bounding_rect = bounding_rect.united(node.sceneBoundingRect())
+
+            # Calculate what zoom would frame all nodes
+            view_rect = self.viewport().rect()
+            if bounding_rect.width() > 0 and view_rect.width() > 0:
+                frame_all_scale = view_rect.width() / bounding_rect.width()
+                max_zoom = max(frame_all_scale * 3.0, 3.0)  # 3x the frame-all zoom or 3.0
+
+        # Clamp to limits
+        if new_scale < min_zoom or new_scale > max_zoom:
+            return
+
+        self.scale(factor, factor)
 
     def keyPressEvent(self, event):
         """Handle key press events."""
@@ -839,38 +948,65 @@ class NeuralCanvasView(QGraphicsView):
         self._add_node_at_position(scene_pos)
 
     def _delete_selected_nodes(self):
-        """Delete selected nodes (called from context menu)."""
+        """Delete selected nodes with undo support."""
         selected = [item for item in self.scene.selectedItems() if isinstance(item, NodeGraphicsItem)]
         if not selected:
             return
 
-        # Delete from graph
-        for node_item in selected:
-            self.graph.remove_node(node_item.node.id)
+        from ...core.undo_manager import undo_manager
+        from ...core.commands import DeleteNeuralNodeCommand
 
-        # Re-render
-        self._render_graph()
-        self.graph_modified.emit()
-        print(f"[Neural Canvas] Deleted {len(selected)} node(s)")
+        # Use macro for multiple deletions
+        if len(selected) > 1:
+            undo_manager.begin_group(f"Delete {len(selected)} Nodes")
+
+        for node_item in selected:
+            # Collect connections involving this node
+            connections_data = []
+            for conn in self.graph.connections:
+                if conn.from_node == node_item.node.id or conn.to_node == node_item.node.id:
+                    connections_data.append({
+                        'from_node': conn.from_node,
+                        'from_port': conn.from_port,
+                        'to_node': conn.to_node,
+                        'to_port': conn.to_port
+                    })
+
+            # Push delete command
+            cmd = DeleteNeuralNodeCommand(
+                view=self,
+                node_data=node_item.node.to_dict(),
+                connections_data=connections_data,
+                node_name=node_item.node.name
+            )
+            undo_manager.push(cmd)
+
+        if len(selected) > 1:
+            undo_manager.end_group()
+
+        print(f"[Neural Canvas] Deleted {len(selected)} node(s) (undoable)")
 
     def _add_node_at_position(self, scene_pos: QPointF):
-        """Add a new node at the given position."""
+        """Add a new node at the given position with undo support."""
         if not self.add_node_type:
             return
 
-        # Create node from template
+        # Create node data (command will add it to graph)
         node = create_node_from_type(self.add_node_type)
         node.position = (int(scene_pos.x()), int(scene_pos.y()))
 
-        # Add to graph
-        self.graph.add_node(node)
+        # Push create command
+        from ...core.undo_manager import undo_manager
+        from ...core.commands import CreateNeuralNodeCommand
 
-        # Create graphics item
-        item = NodeGraphicsItem(node)
-        self.scene.addItem(item)
-        self.node_items[node.id] = item
+        cmd = CreateNeuralNodeCommand(
+            view=self,
+            node_data=node.to_dict(),
+            node_name=node.name
+        )
+        undo_manager.push(cmd)
 
-        self.graph_modified.emit()
+        print(f"[Neural Canvas] Created node (undoable): {node.name}")
 
     def focus_selection(self):
         """
@@ -1057,3 +1193,249 @@ class NeuralCanvasView(QGraphicsView):
         self.scene.update()
         self.graph_modified.emit()
         print(f"[Neural Canvas] Aligned {len(selected)} nodes vertically at x={avg_x:.0f}")
+
+    def toggle_grid_snap(self, enabled: bool):
+        """Toggle grid snapping and grid visibility."""
+        self.snap_to_grid = enabled
+        self.grid_visible = enabled
+
+        # Save to settings
+        from PyQt6.QtCore import QSettings
+        settings = QSettings('Noodlings', 'NeuralCanvas')
+        settings.setValue('grid/snap_enabled', enabled)
+
+        if enabled:
+            self._draw_grid()
+        else:
+            self._clear_grid()
+
+        print(f"[Neural Canvas] Grid snapping: {'ON' if enabled else 'OFF'}")
+
+    def set_grid_size(self, size: int):
+        """Set grid size in pixels."""
+        self.grid_size = size
+
+        # Save to settings
+        from PyQt6.QtCore import QSettings
+        settings = QSettings('Noodlings', 'NeuralCanvas')
+        settings.setValue('grid/size', size)
+
+        # Redraw grid if visible
+        if self.grid_visible:
+            self._clear_grid()
+            self._draw_grid()
+
+        print(f"[Neural Canvas] Grid size: {size}px")
+
+    def _draw_grid(self):
+        """Draw grid lines on scene."""
+        if not self.scene:
+            print("[Neural Canvas] Cannot draw grid - no scene")
+            return
+
+        # Clear any existing grid first
+        self._clear_grid()
+
+        from PyQt6.QtWidgets import QGraphicsLineItem
+        scene_rect = self.scene.sceneRect()
+        grid_size = self.grid_size
+
+        # Faint gray for grid lines (matches Facets Editor)
+        grid_pen = QPen(QColor("#333333"), 1, Qt.PenStyle.DotLine)
+
+        # Draw vertical lines
+        x = scene_rect.left()
+        while x <= scene_rect.right():
+            if x % grid_size == 0:
+                try:
+                    line = self.scene.addLine(
+                        x, scene_rect.top(),
+                        x, scene_rect.bottom(),
+                        grid_pen
+                    )
+                    line.setZValue(-100)  # Behind everything
+                    self.grid_lines.append(line)
+                except Exception as e:
+                    print(f"[Neural Canvas] Error adding vertical grid line: {e}")
+                    break
+            x += grid_size
+
+        # Draw horizontal lines
+        y = scene_rect.top()
+        while y <= scene_rect.bottom():
+            if y % grid_size == 0:
+                try:
+                    line = self.scene.addLine(
+                        scene_rect.left(), y,
+                        scene_rect.right(), y,
+                        grid_pen
+                    )
+                    line.setZValue(-100)  # Behind everything
+                    self.grid_lines.append(line)
+                except Exception as e:
+                    print(f"[Neural Canvas] Error adding horizontal grid line: {e}")
+                    break
+            y += grid_size
+
+        print(f"[Neural Canvas] Drew {len(self.grid_lines)} grid lines")
+
+    def _clear_grid(self):
+        """Remove grid lines from scene."""
+        if not self.scene:
+            self.grid_lines.clear()
+            return
+
+        # Safely remove each line
+        for line in list(self.grid_lines):  # Copy list to avoid modification during iteration
+            try:
+                if line.scene() == self.scene:  # Verify item is still in scene
+                    self.scene.removeItem(line)
+            except Exception as e:
+                print(f"[Neural Canvas] Error removing grid line: {e}")
+
+        self.grid_lines.clear()
+        print("[Neural Canvas] Cleared grid lines")
+
+    # ========== INTERNAL METHODS FOR UNDO COMMANDS ==========
+    # These methods perform direct state changes without pushing commands.
+    # They are called by command classes in undo/redo operations.
+
+    def _set_node_position_internal(self, node_id: str, position: tuple):
+        """
+        Set node position without pushing undo command.
+
+        Called by MoveNeuralNodeCommand during undo/redo.
+        """
+        # Update data model
+        node = self.graph.nodes.get(node_id)
+        if node:
+            node.position = position
+
+        # Update graphics
+        node_item = self.node_items.get(node_id)
+        if node_item:
+            # Block geometry change signals to prevent recursion
+            node_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, False)
+            node_item.setPos(position[0], position[1])
+            node_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
+
+            # Force redraw of wires
+            self.scene.update()
+
+        self.graph_modified.emit()
+
+    def _create_node_internal(self, node_data: dict):
+        """
+        Create node from serialized data without pushing undo command.
+
+        Called by CreateNeuralNodeCommand.redo() and DeleteNeuralNodeCommand.undo().
+        """
+        # Deserialize node
+        node = NeuralNode.from_dict(node_data)
+
+        # Add to graph
+        self.graph.add_node(node)
+
+        # Create graphics item
+        item = NodeGraphicsItem(node)
+        self.scene.addItem(item)
+        self.node_items[node.id] = item
+
+        # Re-render connections (in case restoring deleted node with connections)
+        self._render_connections()
+        self.graph_modified.emit()
+
+    def _delete_node_internal(self, node_id: str):
+        """
+        Delete node by ID without pushing undo command.
+
+        Called by DeleteNeuralNodeCommand.redo() and CreateNeuralNodeCommand.undo().
+        """
+        # Remove from graph (this also removes connections)
+        self.graph.remove_node(node_id)
+
+        # Remove graphics item
+        node_item = self.node_items.get(node_id)
+        if node_item:
+            self.scene.removeItem(node_item)
+            del self.node_items[node_id]
+
+        # Re-render to update connections
+        self._render_connections()
+        self.graph_modified.emit()
+
+    def _create_connection_internal(self, conn_data: dict):
+        """
+        Create connection from data without pushing undo command.
+
+        Called by CreateNeuralConnectionCommand.redo() and DeleteNeuralConnectionCommand.undo().
+        """
+        from ...core.neural_canvas.neural_node import Connection
+
+        # Create connection
+        conn = Connection(
+            from_node=conn_data['from_node'],
+            from_port=conn_data['from_port'],
+            to_node=conn_data['to_node'],
+            to_port=conn_data['to_port']
+        )
+
+        # Add to graph
+        self.graph.connections.append(conn)
+
+        # Re-render connections
+        self._render_connections()
+        self.graph_modified.emit()
+
+    def _delete_connection_internal(self, from_node: str, from_port: str,
+                                    to_node: str, to_port: str):
+        """
+        Delete connection without pushing undo command.
+
+        Called by DeleteNeuralConnectionCommand.redo() and CreateNeuralConnectionCommand.undo().
+        """
+        # Remove from graph
+        self.graph.connections = [
+            c for c in self.graph.connections
+            if not (c.from_node == from_node and c.from_port == from_port and
+                    c.to_node == to_node and c.to_port == to_port)
+        ]
+
+        # Re-render connections
+        self._render_connections()
+        self.graph_modified.emit()
+
+    def _render_connections(self):
+        """Re-render all connection graphics."""
+        # Remove existing connection items
+        for item in list(self.scene.items()):
+            if isinstance(item, ConnectionGraphicsItem):
+                self.scene.removeItem(item)
+
+        # Create new connection items
+        for conn in self.graph.connections:
+            from_item = self.node_items.get(conn.from_node)
+            to_item = self.node_items.get(conn.to_node)
+
+            if from_item and to_item:
+                conn_item = ConnectionGraphicsItem(conn, from_item, to_item)
+                self.scene.addItem(conn_item)
+
+    def _rename_node_internal(self, node_id: str, new_name: str):
+        """
+        Rename node without pushing undo command.
+
+        Called by RenameNeuralNodeCommand during undo/redo.
+        """
+        # Update data model
+        node = self.graph.nodes.get(node_id)
+        if node:
+            node.name = new_name
+
+        # Update graphics
+        node_item = self.node_items.get(node_id)
+        if node_item:
+            node_item.node.name = new_name
+            node_item.update()  # Trigger repaint
+
+        self.graph_modified.emit()
