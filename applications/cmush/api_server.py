@@ -136,6 +136,12 @@ class NoodleScopeAPI:
         # Ollama status (if using Ollama provider)
         self.app.router.add_get('/api/ollama/status', self.get_ollama_status)
 
+        # LLM activity tracking (for NoodleStudio visualization)
+        self.app.router.add_get('/api/activity', self.get_llm_activity)
+
+        # Cognitive cycle phases (for NoodleStudio Cognitive Cycles panel)
+        self.app.router.add_get('/api/cycle_phases', self.get_all_cycle_phases)
+
         # Static file serving (noodlescope2.html)
         web_dir = Path(__file__).parent / 'web'
         self.app.router.add_static('/web/', path=web_dir, name='web')
@@ -347,16 +353,19 @@ class NoodleScopeAPI:
             # Get location from agent's current_room attribute
             location = getattr(agent, 'current_room', None)
 
-            # Get description, personality, and config from world.agents if available
+            # Get description, personality, config, and facet_assembly from world.agents if available
             description = None
             personality_traits = None
             config = None
+            facet_assembly = None
             if hasattr(self.agent_manager, 'world') and self.agent_manager.world:
                 if agent_id in self.agent_manager.world.agents:
                     world_agent = self.agent_manager.world.agents[agent_id]
                     description = world_agent.get('description')
                     personality_traits = world_agent.get('personality_traits')
                     config = world_agent.get('config', {})
+                    # facet_assembly is at top level, not inside config
+                    facet_assembly = world_agent.get('facet_assembly')
 
             agents_data.append({
                 'id': agent_id,
@@ -368,7 +377,8 @@ class NoodleScopeAPI:
                 'llm_model': agent.llm_model,
                 'current_room': location,
                 'location': location,  # Alias for compatibility
-                'config': config  # Include full config (contains facet_assembly)
+                'config': config,
+                'facet_assembly': facet_assembly  # Include facet_assembly reference for Facets Editor
             })
 
         return web.json_response({'agents': agents_data})
@@ -552,13 +562,17 @@ class NoodleScopeAPI:
             import os
             from pathlib import Path
 
+            from noodling_names import generate_noodling_id, name_to_display
+
             data = await request.json()
-            agent_name = data.get('name', 'NewNoodling')
             species = data.get('species', 'noodling')
             pronouns = data.get('pronouns', 'they/them')
 
-            # Generate agent ID
-            agent_id = f"agent_{agent_name.lower().replace(' ', '_')}"
+            # Generate unique noodling name (37-bit information space, ~17 billion combinations)
+            agent_id = generate_noodling_id()
+
+            # Use the poetic name as display name, or user-provided name
+            agent_name = data.get('name') or name_to_display(agent_id)
 
             # Load empty_noodling recipe as template
             recipe_path = Path('recipes/empty_noodling.yaml')
@@ -1080,6 +1094,103 @@ class NoodleScopeAPI:
                 'error': str(e)
             }, status=500)
 
+    async def get_llm_activity(self, request: web.Request) -> web.Response:
+        """
+        Get real-time LLM activity for NoodleStudio visualization.
+
+        GET /api/activity
+
+        Returns:
+            {
+                'activity': {
+                    'MODEL_NAME': {
+                        'active_requests': int,
+                        'total_requests': int,
+                        'last_activity_time': float,
+                        'seconds_since_activity': float,
+                        'total_tokens': int
+                    },
+                    ...
+                }
+            }
+        """
+        try:
+            from llm_interface import get_llm_activity_tracker
+
+            tracker = get_llm_activity_tracker()
+            activity = tracker.get_activity_snapshot()
+
+            return web.json_response({
+                'activity': activity
+            })
+
+        except Exception as e:
+            logger.error(f"Error getting LLM activity: {e}", exc_info=True)
+            return web.json_response({
+                'activity': {},
+                'error': str(e)
+            }, status=500)
+
+    async def get_all_cycle_phases(self, request: web.Request) -> web.Response:
+        """
+        Get cognitive cycle phase status for all agents.
+
+        GET /api/cycle_phases
+
+        Returns:
+            {
+                'agents': {
+                    'agent_id': {
+                        'name': str,
+                        'phase': str,  # 'IDLE', 'PRECOG', 'FACET', 'NEURAL', 'POSTCOG', 'OUTPUT'
+                        'current_facet': str,
+                        'cycle_in_progress': bool,
+                        'pending_llm_calls': int
+                    },
+                    ...
+                }
+            }
+        """
+        try:
+            if not self.agent_manager:
+                return web.json_response({'agents': {}})
+
+            agents_data = {}
+            for agent_id, agent in self.agent_manager.agents.items():
+                # Read phase and facet directly from agent (set by FacetExecutor)
+                current_phase = getattr(agent, 'current_phase', 'IDLE')
+                current_facet = getattr(agent, 'current_facet', '')
+                current_assembly = getattr(agent, 'current_assembly', '')
+                current_model_label = getattr(agent, 'current_model_label', '')
+                current_model_name = getattr(agent, 'current_model_name', '')
+                current_llm_status = getattr(agent, 'current_llm_status', '')
+                cycle_in_progress = getattr(agent, 'cycle_in_progress', False)
+                pending_llm = getattr(agent, 'pending_llm_calls', 0)
+
+                # Use reported phase, or IDLE if not set
+                phase = current_phase if current_phase else 'IDLE'
+
+                agents_data[agent_id] = {
+                    'name': getattr(agent, 'name', agent_id),
+                    'phase': phase,
+                    'current_facet': current_facet,
+                    'current_assembly': current_assembly,
+                    'current_model_label': current_model_label,
+                    'current_model_name': current_model_name,
+                    'current_llm_status': current_llm_status,
+                    'cycle_in_progress': cycle_in_progress,
+                    'pending_llm_calls': pending_llm
+                }
+
+            return web.json_response({'agents': agents_data})
+
+        except Exception as e:
+            logger.error(f"Error getting cycle phases: {e}", exc_info=True)
+            return web.json_response({
+                'agents': {},
+                'error': str(e)
+            }, status=500)
+
     async def shutdown_server(self, request: web.Request) -> web.Response:
         """
         Gracefully shutdown the server.
@@ -1584,7 +1695,7 @@ class NoodleScopeAPI:
                 'memory_system': agent.conversation_context,
                 'surprise': float(state.get('surprise', 0.0)),
                 'llm_client': agent.llm,
-                'model': data.get('model', 'qwen/qwen3-4b-2507')
+                'model': data.get('model', 'SMALL')
             }
 
             # Recalculate
@@ -1608,7 +1719,15 @@ class NoodleScopeAPI:
         Pause or resume cognitive processing for all agents or a specific agent.
 
         POST /api/cognition/pause
-        Body: {"paused": true/false, "agent_id": "optional_agent_id"}
+        Body: {
+            "paused": true/false,
+            "agent_id": "optional_agent_id",
+            "freeze_mode": "immediate" | "wait" (default: "immediate")
+        }
+
+        Freeze modes:
+        - "immediate": Freeze mid-cycle, facets stay in processing state (for debugging)
+        - "wait": Wait for current cycle to complete before pausing
 
         When paused, agents will not process new events or generate responses.
         Allows inspection of cognitive state without it changing.
@@ -1620,6 +1739,7 @@ class NoodleScopeAPI:
             data = await request.json()
             paused = data.get('paused', True)
             target_agent_id = data.get('agent_id', None)
+            freeze_mode = data.get('freeze_mode', 'immediate')  # Default to immediate freeze
 
             if not self.agent_manager:
                 return web.json_response({'error': 'Agent manager not available'}, status=500)
@@ -1637,22 +1757,28 @@ class NoodleScopeAPI:
 
             # Set pause flag on selected agents
             queued_count = 0
+            pending_calls_count = 0
             for agent in agents_to_pause:
                 if paused:
-                    # When pausing, wait for current cycle to complete
+                    # Set pause flag immediately
                     agent.cognition_paused = True
 
-                    # Wait for pending LLM calls to finish (max 30 seconds)
-                    max_wait = 30
-                    start = asyncio.get_event_loop().time()
-                    while getattr(agent, 'pending_llm_calls', 0) > 0:
-                        elapsed = asyncio.get_event_loop().time() - start
-                        if elapsed > max_wait:
-                            logger.warning(f"[{agent.agent_id}] Pause timeout - {agent.pending_llm_calls} LLM calls still pending")
-                            break
-                        await asyncio.sleep(0.1)
-
-                    logger.info(f"[{agent.agent_id}] Cycle complete, paused (pending={getattr(agent, 'pending_llm_calls', 0)})")
+                    if freeze_mode == 'wait':
+                        # Wait for pending LLM calls to finish (max 30 seconds)
+                        max_wait = 30
+                        start = asyncio.get_event_loop().time()
+                        while getattr(agent, 'pending_llm_calls', 0) > 0:
+                            elapsed = asyncio.get_event_loop().time() - start
+                            if elapsed > max_wait:
+                                logger.warning(f"[{agent.agent_id}] Pause timeout - {agent.pending_llm_calls} LLM calls still pending")
+                                break
+                            await asyncio.sleep(0.1)
+                        logger.info(f"[{agent.agent_id}] Cycle complete, paused (pending={getattr(agent, 'pending_llm_calls', 0)})")
+                    else:
+                        # Immediate freeze - don't wait, just record state
+                        pending = getattr(agent, 'pending_llm_calls', 0)
+                        pending_calls_count += pending
+                        logger.info(f"[{agent.agent_id}] FROZEN mid-cycle (pending={pending})")
                 else:
                     # Resume cognition
                     agent.cognition_paused = False
@@ -1677,17 +1803,20 @@ class NoodleScopeAPI:
                             agent.pending_responses.clear()
 
             # Log appropriate message
+            mode_str = f" ({freeze_mode} freeze)" if paused else ""
             if target_agent_id:
-                logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for {target_agent_id} (queued: {queued_count})")
+                logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for {target_agent_id}{mode_str} (queued: {queued_count}, pending: {pending_calls_count})")
             else:
-                logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for all agents (queued: {queued_count})")
+                logger.info(f"{'⏸ PAUSED' if paused else '▶ RESUMED'} cognitive processing for all agents{mode_str} (queued: {queued_count}, pending: {pending_calls_count})")
 
             return web.json_response({
                 'success': True,
                 'paused': paused,
                 'agent_id': target_agent_id,
+                'freeze_mode': freeze_mode if paused else None,
+                'pending_calls': pending_calls_count,
                 'queued_events': queued_count,
-                'message': f"Cognition {'paused' if paused else 'resumed'} for {'agent ' + target_agent_id if target_agent_id else 'all agents'}"
+                'message': f"Cognition {'frozen' if paused and freeze_mode == 'immediate' else 'paused' if paused else 'resumed'} for {'agent ' + target_agent_id if target_agent_id else 'all agents'}"
             })
 
         except Exception as e:

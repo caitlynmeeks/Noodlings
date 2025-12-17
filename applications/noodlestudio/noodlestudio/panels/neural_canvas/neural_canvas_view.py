@@ -180,6 +180,9 @@ class NodeGraphicsItem(QGraphicsItem):
         self.drag_start_pos = None
         self.is_being_dragged = False
 
+        # Test mode values (displayed during test inference)
+        self.test_values: dict = {}  # port_name -> value
+
     def mousePressEvent(self, event):
         """Record position when drag starts (for undo)."""
         from PyQt6.QtCore import Qt
@@ -315,6 +318,76 @@ class NodeGraphicsItem(QGraphicsItem):
 
         # Draw inline parameters (between header and ports)
         self._paint_parameters(painter, header_height)
+
+        # Draw test values if present
+        if self.test_values:
+            self._paint_test_values(painter)
+
+    def _paint_test_values(self, painter: QPainter):
+        """
+        Paint test inference values on the node.
+
+        Shows output values from test mode as a floating badge.
+        """
+        if not self.test_values:
+            return
+
+        # Draw a semi-transparent overlay at bottom of node
+        font = QFont("Monospace", 7)
+        painter.setFont(font)
+
+        # Format values
+        lines = []
+        for port_name, value in self.test_values.items():
+            if isinstance(value, list):
+                if len(value) <= 3:
+                    formatted = [f"{v:.2f}" if isinstance(v, float) else str(v) for v in value]
+                    lines.append(f"{port_name}: [{', '.join(formatted)}]")
+                elif len(value) <= 5:
+                    # Format as affect-like output
+                    formatted = [f"{v:.2f}" if isinstance(v, float) else str(v) for v in value]
+                    lines.append(f"[{', '.join(formatted)}]")
+                else:
+                    lines.append(f"{port_name}: [{len(value)} vals]")
+            elif isinstance(value, float):
+                lines.append(f"{port_name}: {value:.3f}")
+            else:
+                lines.append(f"{port_name}: {value}")
+
+        if not lines:
+            return
+
+        # Draw badge background (green tinted for active values)
+        badge_height = len(lines) * 12 + 8
+        badge_rect = QRectF(4, self.height - badge_height - 4, self.width - 8, badge_height)
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor(60, 90, 60, 200)))  # Dark green, semi-transparent
+        painter.drawRoundedRect(badge_rect, 3, 3)
+
+        # Draw border
+        painter.setPen(QPen(QColor(80, 140, 80), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(badge_rect, 3, 3)
+
+        # Draw text
+        painter.setPen(QColor("#aaffaa"))  # Light green text
+        y = self.height - badge_height
+        for line in lines:
+            painter.drawText(QRectF(8, y, self.width - 16, 12),
+                           Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                           line)
+            y += 12
+
+    def set_test_values(self, values: dict):
+        """Set test inference values and trigger repaint."""
+        self.test_values = values
+        self.update()
+
+    def clear_test_values(self):
+        """Clear test values and trigger repaint."""
+        self.test_values = {}
+        self.update()
 
     def _paint_parameters(self, painter: QPainter, y_offset: float):
         """
@@ -588,6 +661,9 @@ class NeuralCanvasView(QGraphicsView):
         self.add_node_mode = False
         self.add_node_type = None
 
+        # Right-click timestamp guard (prevents trackpad zoom quirk)
+        self._last_right_click_time: float = 0.0
+
         # Wire dragging mode
         self.wire_drag_mode = False
         self.wire_drag_start_port: PortGraphicsItem = None
@@ -653,6 +729,13 @@ class NeuralCanvasView(QGraphicsView):
 
     def wheelEvent(self, event: QWheelEvent):
         """Handle zoom with mouse wheel (with limits)."""
+        import time
+
+        # Guard: Ignore wheel events within 200ms of right-click (trackpad quirk)
+        if time.time() - self._last_right_click_time < 0.2:
+            event.ignore()
+            return
+
         zoom_factor = 1.15
         if event.angleDelta().y() > 0:
             self._zoom_view(zoom_factor)
@@ -770,6 +853,8 @@ class NeuralCanvasView(QGraphicsView):
                         self.node_selected.emit(selected_items[0].node.id)
         elif event.button() == Qt.MouseButton.RightButton:
             # Right-click should NOT change selection (context menu preserves selection)
+            import time
+            self._last_right_click_time = time.time()  # Record for wheel guard
             event.accept()
         else:
             super().mousePressEvent(event)
@@ -1439,3 +1524,27 @@ class NeuralCanvasView(QGraphicsView):
             node_item.update()  # Trigger repaint
 
         self.graph_modified.emit()
+
+    # ========== TEST MODE DISPLAY ==========
+
+    def display_test_values(self, node_outputs: dict):
+        """
+        Display test inference values on canvas nodes.
+
+        Args:
+            node_outputs: Dict mapping node_id -> {port_name: value}
+        """
+        for node_id, outputs in node_outputs.items():
+            node_item = self.node_items.get(node_id)
+            if node_item:
+                node_item.set_test_values(outputs)
+
+        # Force scene update
+        self.scene.update()
+
+    def clear_test_values(self):
+        """Clear all test values from canvas nodes."""
+        for node_item in self.node_items.values():
+            node_item.clear_test_values()
+
+        self.scene.update()

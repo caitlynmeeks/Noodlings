@@ -22,6 +22,9 @@ env/
 applications/cmush/logs/
 research/logs/
 
+# Profiler sessions
+applications/cmush/profiler_sessions/
+
 # OS
 .DS_Store
 Thumbs.db

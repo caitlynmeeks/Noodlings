@@ -15,7 +15,7 @@
       "name": "Affect Input",
       "position": [
         100,
-        200
+        100
       ],
       "params": {
         "output_dim": 5
@@ -42,7 +42,7 @@
       "name": "Fast LSTM",
       "position": [
         400,
-        200
+        100
       ],
       "params": {
         "input_dim": 5,
@@ -124,11 +124,11 @@
       "type": "LSTM",
       "name": "Medium LSTM",
       "position": [
-        713,
-        -206
+        700,
+        100
       ],
       "params": {
-        "input_dim": 5,
+        "input_dim": 16,
         "hidden_dim": 16,
         "dropout": 0.0,
         "bias": true
@@ -169,7 +169,7 @@
         "weight_ih": {
           "shape": [
             64,
-            5
+            16
           ],
           "path": null,
           "trainable": true
@@ -205,10 +205,10 @@
     {
       "id": "a928a0dc-baf4-40ed-9ce2-cb1a314f4a15",
       "type": "GRU",
-      "name": "Slow GRU",
+      "name": "GRU",
       "position": [
-        988,
-        533
+        973,
+        141
       ],
       "params": {
         "input_dim": 16,
@@ -280,7 +280,7 @@
       "name": "Phenomenal State",
       "position": [
         1300,
-        200
+        100
       ],
       "params": {},
       "inputs": {
@@ -330,7 +330,7 @@
       "name": "Affect Predictor",
       "position": [
         1600,
-        200
+        280
       ],
       "params": {
         "state_dim": 40,
@@ -416,8 +416,8 @@
       "type": "OUTPUT",
       "name": "Network Output",
       "position": [
-        1900,
-        200
+        1600,
+        100
       ],
       "params": {},
       "inputs": {

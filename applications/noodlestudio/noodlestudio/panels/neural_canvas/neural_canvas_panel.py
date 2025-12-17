@@ -8,13 +8,15 @@ Date: December 8, 2025
 import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QFileDialog, QMessageBox, QToolBar, QSplitter
+    QFileDialog, QMessageBox, QToolBar, QSplitter, QSpinBox,
+    QLineEdit, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut
 
 from ...core.neural_canvas.neural_graph import NeuralGraph, ValidationResult
 from ...core.neural_canvas.mlx_codegen import generate_mlx_code
+from ...core.neural_canvas.test_executor import CanvasTestExecutor, text_to_affect
 from .neural_canvas_view import NeuralCanvasView
 from .node_palette_panel import NodePalettePanel
 from ...dialogs.neural_export_dialog import NeuralExportDialog
@@ -43,6 +45,10 @@ class NeuralCanvasPanel(QWidget):
         # Data
         self.graph = NeuralGraph()
         self.current_filepath: str = None
+
+        # Test executor
+        self.test_executor: CanvasTestExecutor = None
+        self._test_initialized = False
 
         # UI setup
         self._init_ui()
@@ -135,6 +141,98 @@ class NeuralCanvasPanel(QWidget):
         btn_auto_arrange = QPushButton("Auto-Arrange")
         btn_auto_arrange.clicked.connect(self._on_auto_arrange)
         toolbar.addWidget(btn_auto_arrange)
+
+        toolbar.addSeparator()
+
+        # Grid snap toggle button (load settings)
+        from PyQt6.QtCore import QSettings
+        settings = QSettings('Noodlings', 'NeuralCanvas')
+        grid_enabled = settings.value('grid/snap_enabled', False, type=bool)
+        grid_size = settings.value('grid/size', 20, type=int)
+
+        self.grid_button = QPushButton("⊞")  # Grid icon
+        self.grid_button.setFixedWidth(40)
+        self.grid_button.setCheckable(True)
+        self.grid_button.setChecked(grid_enabled)  # Load from settings
+        self.grid_button.setToolTip("Toggle grid snapping")
+        self.grid_button.clicked.connect(self._on_toggle_grid)
+        toolbar.addWidget(self.grid_button)
+
+        # Grid size input
+        self.grid_size_input = QSpinBox()
+        self.grid_size_input.setRange(5, 100)
+        self.grid_size_input.setValue(grid_size)  # Load from settings
+        self.grid_size_input.setSuffix("px")
+        self.grid_size_input.setFixedWidth(70)
+        self.grid_size_input.setToolTip("Grid size in pixels")
+        self.grid_size_input.valueChanged.connect(self._on_grid_size_changed)
+        toolbar.addWidget(self.grid_size_input)
+
+        # ===== TEST MODE SECTION =====
+        toolbar.addSeparator()
+
+        # Test input field
+        test_label = QLabel("Test:")
+        test_label.setStyleSheet("color: #aaa; padding: 0 4px;")
+        toolbar.addWidget(test_label)
+
+        self.test_input = QLineEdit()
+        self.test_input.setPlaceholderText("Enter text or affect values...")
+        self.test_input.setFixedWidth(200)
+        self.test_input.setStyleSheet("""
+            QLineEdit {
+                background: #333;
+                color: #ddd;
+                border: 1px solid #555;
+                padding: 4px 8px;
+                border-radius: 3px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #666;
+            }
+        """)
+        self.test_input.returnPressed.connect(self._on_test_run)
+        toolbar.addWidget(self.test_input)
+
+        # Test Run button
+        self.test_button = QPushButton("Run")
+        self.test_button.setStyleSheet("""
+            QPushButton {
+                background: #3a5a3a;
+                color: #cfc;
+                border: 1px solid #4a6a4a;
+                padding: 6px 16px;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: #4a6a4a;
+            }
+            QPushButton:pressed {
+                background: #2a4a2a;
+            }
+        """)
+        self.test_button.clicked.connect(self._on_test_run)
+        self.test_button.setToolTip("Run test inference (Enter)")
+        toolbar.addWidget(self.test_button)
+
+        # Reset states button
+        self.reset_button = QPushButton("Reset")
+        self.reset_button.setStyleSheet("""
+            QPushButton {
+                background: #4a3a3a;
+                color: #fcc;
+                border: 1px solid #5a4a4a;
+                padding: 6px 12px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background: #5a4a4a;
+            }
+        """)
+        self.reset_button.clicked.connect(self._on_reset_states)
+        self.reset_button.setToolTip("Reset hidden states to zero")
+        toolbar.addWidget(self.reset_button)
 
         return toolbar
 
@@ -497,9 +595,20 @@ class NeuralCanvasPanel(QWidget):
         self.node_selected.emit(node_id)
 
     def _on_graph_modified(self):
-        """Handle graph modification."""
+        """Handle graph modification - auto-save if we have a file path."""
         self._update_status_bar()
         self.graph_modified.emit()
+
+        # Invalidate test executor (needs re-init on next test)
+        self._test_initialized = False
+
+        # Auto-save to current file (like Facets Editor)
+        if self.current_filepath:
+            try:
+                self.graph.to_json(self.current_filepath)
+                print(f"[Neural Canvas] Auto-saved to: {os.path.basename(self.current_filepath)}")
+            except Exception as e:
+                print(f"[Neural Canvas] Auto-save failed: {e}")
 
     def _on_auto_arrange(self):
         """Auto-arrange nodes using topological layering."""
@@ -586,3 +695,115 @@ class NeuralCanvasPanel(QWidget):
                 self, "Auto-Arrange Error",
                 f"Unexpected error:\n{e}"
             )
+
+    def _on_toggle_grid(self):
+        """Toggle grid snapping from toolbar button."""
+        enabled = self.grid_button.isChecked()
+        self.canvas_view.toggle_grid_snap(enabled)
+        print(f"[Neural Canvas] Grid snapping: {'ON' if enabled else 'OFF'}")
+
+    def _on_grid_size_changed(self, value: int):
+        """Handle grid size spinbox change."""
+        self.canvas_view.set_grid_size(value)
+        print(f"[Neural Canvas] Grid size: {value}px")
+
+    # ========== TEST MODE ==========
+
+    def _init_test_executor(self):
+        """Initialize or re-initialize the test executor."""
+        self.test_executor = CanvasTestExecutor(self.graph)
+        success, error = self.test_executor.initialize()
+        if not success:
+            self._test_initialized = False
+            return False, error
+        self._test_initialized = True
+        return True, ""
+
+    def _on_test_run(self):
+        """Run test inference with current input."""
+        # Initialize executor if needed
+        if not self._test_initialized or self.test_executor is None:
+            success, error = self._init_test_executor()
+            if not success:
+                QMessageBox.warning(
+                    self, "Test Failed",
+                    f"Failed to initialize test executor:\n{error}"
+                )
+                return
+
+        # Parse input
+        input_text = self.test_input.text().strip()
+
+        # Check if input is numeric (direct affect values)
+        affect_values = None
+        if input_text:
+            try:
+                # Try parsing as comma-separated numbers
+                parts = [p.strip() for p in input_text.replace(' ', ',').split(',') if p.strip()]
+                if all(self._is_number(p) for p in parts):
+                    affect_values = [float(p) for p in parts[:5]]
+            except:
+                pass
+
+        # If not numeric, convert text to affect
+        if affect_values is None:
+            if input_text:
+                affect_values = text_to_affect(input_text)
+            else:
+                # Default neutral
+                affect_values = [0.0, 0.5, 0.5, 0.0, 0.0]
+
+        # Run inference
+        result = self.test_executor.execute(affect_values)
+
+        if not result.success:
+            QMessageBox.warning(
+                self, "Test Failed",
+                f"Test execution failed:\n{result.error}"
+            )
+            return
+
+        # Update visual feedback on canvas
+        self._display_test_results(result)
+
+        # Update status bar with timing
+        self.status_validation_label.setText(
+            f"Test: {result.execution_time_ms:.1f}ms"
+        )
+        self.status_validation_label.setStyleSheet("color: #4CAF50;")
+
+    def _is_number(self, s: str) -> bool:
+        """Check if string is a valid number."""
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+    def _on_reset_states(self):
+        """Reset hidden states to zero."""
+        if self.test_executor:
+            self.test_executor.reset_states()
+            # Clear visual feedback
+            self.canvas_view.clear_test_values()
+            self.status_validation_label.setText("States reset")
+            self.status_validation_label.setStyleSheet("color: #aaa;")
+
+    def _display_test_results(self, result):
+        """Display test results on the canvas nodes."""
+        # Pass results to canvas view for visualization
+        self.canvas_view.display_test_values(result.node_outputs)
+
+        # Also print summary to console for debugging
+        if result.outputs:
+            summary = []
+            for key, value in result.outputs.items():
+                if isinstance(value, list):
+                    if len(value) <= 5:
+                        formatted = [f"{v:.3f}" if isinstance(v, float) else str(v) for v in value]
+                        summary.append(f"{key}: [{', '.join(formatted)}]")
+                    else:
+                        summary.append(f"{key}: [{len(value)} values]")
+                else:
+                    summary.append(f"{key}: {value}")
+            print(f"[Neural Canvas] Test output: {', '.join(summary)}")

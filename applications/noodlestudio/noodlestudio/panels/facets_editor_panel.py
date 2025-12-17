@@ -18,7 +18,7 @@ from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QLineF, QTimer, QPrope
 from PyQt6.QtGui import (
     QPen, QBrush, QColor, QPainter, QFont, QPainterPath, QCursor, QKeySequence, QShortcut
 )
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Any
 import sys
 import os
 import requests
@@ -98,6 +98,13 @@ class ClickableTextItem(QGraphicsTextItem):
             event.accept()
         else:
             super().mousePressEvent(event)
+
+    def contextMenuEvent(self, event):
+        """Pass context menu to parent node."""
+        if self.parent_node:
+            self.parent_node.contextMenuEvent(event)
+        else:
+            event.accept()  # Prevent default behavior
 
 
 class FacetPadGraphics(QGraphicsEllipseItem):
@@ -188,6 +195,14 @@ class FacetPadGraphics(QGraphicsEllipseItem):
                     return
         super().mousePressEvent(event)
 
+    def contextMenuEvent(self, event):
+        """Pass context menu to parent node."""
+        # Let the parent node handle it
+        if self.facet_node:
+            self.facet_node.contextMenuEvent(event)
+        else:
+            event.accept()  # Prevent default behavior
+
 
 class FacetNodeGraphics(QGraphicsRectItem):
     """Visual representation of a facet node."""
@@ -264,6 +279,18 @@ class FacetNodeGraphics(QGraphicsRectItem):
         self.pulse_phase = 0.0  # 0.0 to 1.0 for border pulse
         self.base_brush = self.brush()  # Store original brush for restoration
         self.collapse_flash_alpha = 0.0  # For quantum collapse flash effect
+        self.error_flash_count = 0  # Counter for error flash animation
+
+        # Cycle tracking (for async cycle visualization - supports MULTIPLE active cycles)
+        # List of (cycle_id, cycle_color, inputs) tuples for stacked display
+        self.active_cycles: List[Tuple[str, QColor, Optional[Dict]]] = []
+
+        # Input inspection (for debugging when paused) - keep most recent for quick access
+        self.last_inputs: Optional[Dict[str, Any]] = None  # Last inputs received during execution
+        self.last_outputs: Optional[Dict[str, Any]] = None  # Last outputs produced
+
+        # Per-cycle input/output storage for inspection
+        self.cycle_data: Dict[str, Dict[str, Any]] = {}  # cycle_id -> {'inputs': ..., 'outputs': ...}
 
         # Drag tracking for undo
         self.drag_start_pos: Optional[tuple] = None  # Position when drag started
@@ -287,7 +314,6 @@ class FacetNodeGraphics(QGraphicsRectItem):
             y_pos = port_start_y + (i * port_spacing)
             pad_graphics.setPos(0, y_pos)  # x=0 (left edge), y varies vertically
             self.input_pads[pad.name] = pad_graphics
-            print(f"[Facets] Created INPUT pad '{pad.name}' at x=0, y={y_pos}")
 
             # Pad label (to the right of pad)
             label = QGraphicsTextItem(pad.name, self)
@@ -301,13 +327,23 @@ class FacetNodeGraphics(QGraphicsRectItem):
             y_pos = port_start_y + (i * port_spacing)
             pad_graphics.setPos(self.NODE_WIDTH, y_pos)  # x=NODE_WIDTH (right edge), y varies
             self.output_pads[pad.name] = pad_graphics
-            print(f"[Facets] Created OUTPUT pad '{pad.name}' at x={self.NODE_WIDTH}, y={y_pos}")
 
             # Pad label (to the left of pad)
             label = QGraphicsTextItem(pad.name, self)
             label.setPos(self.NODE_WIDTH - 70, y_pos - 8)  # Right-aligned
             label.setDefaultTextColor(QColor("#AAAAAA"))
             label.setFont(QFont("Arial", 8))
+
+    def boundingRect(self) -> QRectF:
+        """
+        Return bounding rect that includes selection highlight area.
+
+        The selection highlight extends 3px padding + 1.5px (half of 3px pen width)
+        beyond the node rect. We use 6px margin to be safe and prevent artifacts.
+        """
+        rect = self.rect()
+        margin = 6  # Account for selection highlight (3px padding + 3px/2 pen width + safety)
+        return rect.adjusted(-margin, -margin, margin, margin)
 
     def paint(self, painter: QPainter, option, widget=None):
         """Render the node (Blender-style: colored header, uniform gray body)."""
@@ -357,6 +393,46 @@ class FacetNodeGraphics(QGraphicsRectItem):
             self.facet.facet_type
         )
 
+        # Cycle ID badges (bottom-right) - stacked for multiple active cycles
+        try:
+            if self.active_cycles and self.execution_state in ("processing", "complete"):
+                badge_font = QFont("Monospace", 7)
+                badge_font.setBold(True)
+                painter.setFont(badge_font)
+
+                # Stack badges vertically (newest at bottom, oldest at top)
+                badge_height = 14
+                badge_spacing = 2
+                # Copy list to avoid modification during iteration
+                cycles_copy = list(self.active_cycles)
+                for i, cycle_data in enumerate(cycles_copy):
+                    if not cycle_data or len(cycle_data) < 2:
+                        continue
+                    cycle_id, cycle_color = cycle_data[0], cycle_data[1]
+                    if not cycle_id:
+                        continue
+                    badge_text = str(cycle_id)[:8]  # First 8 chars of UUID
+
+                    # Calculate Y position (stack upward from bottom)
+                    stack_offset = (len(cycles_copy) - 1 - i) * (badge_height + badge_spacing)
+                    badge_y = rect.height() - 16 - stack_offset
+
+                    # Badge background (cycle color or default cyan)
+                    badge_rect = QRectF(rect.width() - 60, badge_y, 56, badge_height)
+                    painter.setBrush(QBrush(cycle_color or QColor("#00BFFF")))
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.drawRoundedRect(badge_rect, 3, 3)
+
+                    # Badge text (black for contrast)
+                    painter.setPen(QColor("#000000"))
+                    painter.drawText(
+                        badge_rect,
+                        Qt.AlignmentFlag.AlignCenter,
+                        badge_text
+                    )
+        except Exception as e:
+            pass  # Don't crash paint on badge errors
+
     # Note: Move undo is handled via eventFilter in FacetsEditorPanel
     # The mouse press/release handlers on items don't reliably fire during Qt drag operations
 
@@ -381,11 +457,17 @@ class FacetNodeGraphics(QGraphicsRectItem):
                     for wire in pad_graphics.connections:
                         wire.update_path()
 
+            # Force scene repaint to prevent drag residue artifacts
+            if self.scene():
+                self.scene().update()
+
             # Note: Don't save to disk here - that happens in mouseReleaseEvent
             # when the move command is pushed
 
         elif change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
             # Trigger repaint to update selection highlight
+            # Use prepareGeometryChange to ensure old selection area is invalidated
+            self.prepareGeometryChange()
             self.update()
 
         return super().itemChange(change, value)
@@ -436,10 +518,11 @@ class FacetNodeGraphics(QGraphicsRectItem):
             QTimer.singleShot(200, lambda: self.set_execution_state("idle"))
 
         elif state == "error":
-            # Dark red (emergency indicator)
-            self.setBrush(QBrush(QColor("#8B0000")))
-            # Hold for 500ms, then return to idle
-            QTimer.singleShot(500, lambda: self.set_execution_state("idle"))
+            # FLASHING red (emergency indicator) - industrial alarm style
+            self.error_flash_count = 0
+            self.animation_timer = QTimer()
+            self.animation_timer.timeout.connect(self._flash_error_border)
+            self.animation_timer.start(100)  # 10Hz flash rate
 
         elif state == "quantum_collapse":
             # QUANTUM COLLAPSE - Purple/blue flash
@@ -472,6 +555,34 @@ class FacetNodeGraphics(QGraphicsRectItem):
             pen = QPen(QColor(brightness, brightness, brightness), 2)
 
         self.setPen(pen)
+
+    def _flash_error_border(self):
+        """
+        Flashing red border for error state.
+
+        Industrial alarm style - 5 flashes then return to idle.
+        """
+        self.error_flash_count += 1
+
+        # Alternate between dark red and bright red
+        if self.error_flash_count % 2 == 0:
+            # Bright flash
+            self.setBrush(QBrush(QColor("#FF4444")))
+            self.setPen(QPen(QColor("#FF0000"), 3))
+        else:
+            # Dark
+            self.setBrush(QBrush(QColor("#8B0000")))
+            self.setPen(QPen(QColor("#660000"), 2))
+
+        # After 10 flashes (5 cycles), return to idle
+        if self.error_flash_count >= 10:
+            if self.animation_timer:
+                self.animation_timer.stop()
+                self.animation_timer = None
+            self.error_flash_count = 0
+            self.setBrush(self.base_brush)
+            self.setPen(self.default_pen if not self.isSelected() else self.selected_pen)
+            self.execution_state = "idle"
 
     def _quantum_flash(self):
         """
@@ -513,6 +624,11 @@ class FacetNodeGraphics(QGraphicsRectItem):
 
     def mousePressEvent(self, event):
         """Handle mouse press - support Shift for additive selection."""
+        # Right-click: don't handle here, let view's context menu handle it
+        if event.button() == Qt.MouseButton.RightButton:
+            event.ignore()  # Pass to parent/view for context menu
+            return
+
         # On macOS, Qt uses Cmd for multi-select by default
         # Make Shift also work for additive selection
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
@@ -522,6 +638,25 @@ class FacetNodeGraphics(QGraphicsRectItem):
         else:
             # Normal click
             super().mousePressEvent(event)
+
+    def contextMenuEvent(self, event):
+        """
+        Handle context menu events on the node itself.
+
+        Accept the event to prevent Qt default behavior (which can cause deselection),
+        then trigger the parent view's context menu.
+        """
+        # Accept to prevent Qt default handling that causes deselection
+        event.accept()
+
+        # Trigger the view's context menu at this position
+        if self.scene() and self.scene().views():
+            view = self.scene().views()[0]
+            parent = view.parent()
+            if hasattr(parent, 'show_context_menu'):
+                # Convert scene position to view position
+                view_pos = view.mapFromScene(event.scenePos())
+                parent.show_context_menu(view_pos.toPoint())
 
     def show_fields(self, force: bool = False):
         """
@@ -803,6 +938,25 @@ class ConnectionWire(QGraphicsItem):
         self.update()  # Trigger repaint
 
 
+def _log_facet(facet_name: str, event_type: str, cycle_id: str = "", details: str = ""):
+    """
+    Log a facet execution event to the FACETS console.
+
+    Uses [FACET] marker for routing. Includes timestamp and cycle ID.
+
+    Args:
+        facet_name: Name of the facet
+        event_type: Type of event (START, COMPLETE, ERROR, etc.)
+        cycle_id: Cognitive cycle UUID (first 8 chars shown)
+        details: Optional additional details
+    """
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+    cycle_str = f"[{cycle_id[:8]}]" if cycle_id else ""
+    detail_str = f" - {details}" if details else ""
+    print(f"[FACET] {timestamp} {cycle_str} {facet_name}: {event_type}{detail_str}")
+
+
 class FacetsEditorPanel(QWidget):
     """
     Main facets editor panel with node graph.
@@ -852,6 +1006,11 @@ class FacetsEditorPanel(QWidget):
         # Cognition pause state
         self.current_agent_id: Optional[str] = None
         self.cognition_paused: bool = False
+
+        # Right-click timestamp guard (prevents trackpad zoom quirk)
+        self._last_right_click_time: float = 0.0
+        self._in_right_click: bool = False  # Prevents selection changes during right-click
+        self._selection_signal_connected: bool = True  # Track signal connection state
         self.api_base = "http://localhost:8081/api"
 
         # Focus state tracking (for F key toggle)
@@ -867,6 +1026,21 @@ class FacetsEditorPanel(QWidget):
         self.ws_task = None
         self.ws_connected = False
         self.event_queue = asyncio.Queue() if WEBSOCKETS_AVAILABLE else None
+
+        # Cycle color tracking (for async cycle visualization)
+        # Maps execution_id -> QColor for consistent coloring
+        self.cycle_colors: Dict[str, QColor] = {}
+        self.cycle_color_palette = [
+            QColor("#00BFFF"),  # Deep sky blue
+            QColor("#32CD32"),  # Lime green
+            QColor("#FFD700"),  # Gold
+            QColor("#FF69B4"),  # Hot pink
+            QColor("#00CED1"),  # Dark turquoise
+            QColor("#FFA500"),  # Orange
+            QColor("#9370DB"),  # Medium purple
+            QColor("#20B2AA"),  # Light sea green
+        ]
+        self.next_cycle_color_index = 0
 
         self.init_ui()
 
@@ -1194,12 +1368,10 @@ class FacetsEditorPanel(QWidget):
         """
         # CRITICAL: Prevent re-entrant calls during scene transition
         if self.scene_transition_lock:
-            print(f"[Facets Editor] ⚠️  Load blocked - scene transition already in progress!")
             return
 
         # Check if this assembly is already loaded
         if not force_reload and self.current_assembly_name == assembly.name:
-            print(f"[Facets Editor] Assembly '{assembly.name}' already loaded, skipping reload")
             return
 
         # CRITICAL: Lock BEFORE auto-save to prevent re-entrancy during YAML loading
@@ -1209,42 +1381,28 @@ class FacetsEditorPanel(QWidget):
         if self.current_assembly and self.current_assembly_name:
             try:
                 import os
-                assembly_path = os.path.join(
-                    os.path.dirname(__file__),
-                    '../facet_assemblies',
-                    f"{self.current_assembly_name}.yaml".replace(' ', '_').lower()
-                )
-                # Find actual filename (might have different casing/spacing)
                 assembly_dir = os.path.join(os.path.dirname(__file__), '../facet_assemblies')
                 for filename in os.listdir(assembly_dir):
                     if filename.endswith('.yaml'):
-                        test_assembly = None
                         try:
                             from ..core.facet_system import FacetAssembly
                             test_path = os.path.join(assembly_dir, filename)
                             test_assembly = FacetAssembly.load_yaml(test_path)
                             if test_assembly.name == self.current_assembly_name:
-                                # Found the file! Save positions
                                 self.current_assembly.save_yaml(test_path)
-                                print(f"[Facets Editor] Auto-saved positions to: {filename}")
                                 break
                         except:
                             pass
-            except Exception as e:
-                print(f"[Facets Editor] Auto-save failed: {e}")
-
-        print(f"[Facets Editor] Loading assembly: {assembly.name}")
-
-        # Lock was already set above before auto-save
+            except:
+                pass  # Silent auto-save failure
 
         # Hide empty state message if showing
         self.hide_empty_state()
 
         self.current_assembly = assembly
         self.current_assembly_name = assembly.name
-        self.current_assembly_path = source_path  # Track source file for direct saves
+        self.current_assembly_path = source_path
         self.assembly_label.setText(f"{assembly.name} [REF]")
-        print(f"[Facets Editor] Tracking assembly path: {source_path}")
 
         # CRITICAL: Stop all animations before clearing scene to prevent segfault
         for node_gfx in self.node_graphics.values():
@@ -1259,13 +1417,10 @@ class FacetsEditorPanel(QWidget):
         self.grid_lines.clear()  # Grid lines are also cleared by scene.clear()
 
         # Create node graphics for each facet
-        print(f"[Facets Editor] Creating {len(assembly.facets)} nodes from assembly...")
         for facet in assembly.facets:
-            print(f"[Facets Editor]   {facet.name}: position from YAML = ({facet.position['x']}, {facet.position['y']})")
             node = FacetNodeGraphics(facet, editor_panel=self)
             self.scene.addItem(node)
             self.node_graphics[facet.id] = node
-            print(f"[Facets Editor]   {facet.name}: actual node pos = ({node.pos().x()}, {node.pos().y()})")
 
         # Create connection wires
         for conn in assembly.connections:
@@ -1292,94 +1447,112 @@ class FacetsEditorPanel(QWidget):
 
         # Center view on content
         self.view.centerOn(500, 350)
-        print(f"[Facets Editor] Assembly loaded successfully with {len(assembly.facets)} facets")
-        print(f"[Facets Editor] Node positions: {[(n.facet.name, n.pos().x(), n.pos().y()) for n in list(self.node_graphics.values())[:3]]}")
 
         # Unlock scene - safe to process events now
         self.scene_transition_lock = False
 
     def show_context_menu(self, position):
         """Show right-click context menu for adding facets."""
-        menu = QMenu(self)
+        # Set flag to prevent selection changes during context menu
+        self._in_right_click = True
 
-        # Add facet submenu (excluding INCOMING/OUTGOING - those are auto-created)
-        add_menu = menu.addMenu("Add Facet")
+        # Temporarily disconnect selection changed to prevent crashes
+        if self._selection_signal_connected:
+            try:
+                self.scene.selectionChanged.disconnect(self.on_selection_changed)
+                self._selection_signal_connected = False
+            except:
+                pass  # Already disconnected
 
-        facet_types = [
-            ("Intuition Facet", "IntuitionFacet"),
-            ("Emotion Facet", "EmotionFacet"),
-            ("Social Context Facet", "SocialFacet"),
-            ("Memory Recall Facet", "MemoryFacet"),
-            ("Response Planning Facet", "PlanningFacet"),
-            ("Convergence Facet", "ConvergenceFacet"),
-            # NOTE: INCOMING/OUTGOING (SpecialNode) not shown - they're special
-        ]
+        try:
+            menu = QMenu(self)
 
-        for display_name, facet_type in facet_types:
-            action = add_menu.addAction(display_name)
-            action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
-                                    self.add_facet(ft, dn, position))
+            # Add facet submenu (excluding INCOMING/OUTGOING - those are auto-created)
+            add_menu = menu.addMenu("Add Facet")
 
-        # Separator
-        add_menu.addSeparator()
+            facet_types = [
+                ("Intuition Facet", "IntuitionFacet"),
+                ("Emotion Facet", "EmotionFacet"),
+                ("Social Context Facet", "SocialFacet"),
+                ("Memory Recall Facet", "MemoryFacet"),
+                ("Response Planning Facet", "PlanningFacet"),
+                ("Convergence Facet", "ConvergenceFacet"),
+                # NOTE: INCOMING/OUTGOING (SpecialNode) not shown - they're special
+            ]
 
-        # Custom/Empty facet at bottom
-        custom_action = add_menu.addAction("Create empty facet")
-        custom_action.triggered.connect(lambda: self.add_facet("CustomFacet", "Custom Facet", position))
+            for display_name, facet_type in facet_types:
+                action = add_menu.addAction(display_name)
+                action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
+                                        self.add_facet(ft, dn, position))
 
-        # Layout menu
-        menu.addSeparator()
-        layout_menu = menu.addMenu("Layout")
+            # Separator
+            add_menu.addSeparator()
 
-        auto_arrange_action = layout_menu.addAction("Auto-Arrange (Topological)")
-        auto_arrange_action.triggered.connect(self.auto_arrange_facets)
+            # Custom/Empty facet at bottom
+            custom_action = add_menu.addAction("Create empty facet")
+            custom_action.triggered.connect(lambda: self.add_facet("CustomFacet", "Custom Facet", position))
 
-        layout_menu.addSeparator()
-
-        # Alignment (requires selection)
-        selected_nodes = self.scene.selectedItems()
-        selected_facets = [item for item in selected_nodes if isinstance(item, FacetNodeGraphics)]
-
-        align_h_action = layout_menu.addAction(f"Align Horizontally ({len(selected_facets)} selected)")
-        align_h_action.setEnabled(len(selected_facets) > 1)
-        align_h_action.triggered.connect(self.align_selected_horizontally)
-
-        align_v_action = layout_menu.addAction(f"Align Vertically ({len(selected_facets)} selected)")
-        align_v_action.setEnabled(len(selected_facets) > 1)
-        align_v_action.triggered.connect(self.align_selected_vertically)
-
-        layout_menu.addSeparator()
-
-        # Zoom (use zoom_view to respect limits)
-        zoom_in_action = layout_menu.addAction("Zoom In (+)")
-        zoom_in_action.triggered.connect(lambda: self.zoom_view(1.2))
-
-        zoom_out_action = layout_menu.addAction("Zoom Out (-)")
-        zoom_out_action.triggered.connect(lambda: self.zoom_view(1/1.2))
-
-        reset_zoom_action = layout_menu.addAction("Reset View")
-        reset_zoom_action.triggered.connect(self.reset_view)
-
-        # Delete (requires selection)
-        if selected_facets:
+            # Layout menu
             menu.addSeparator()
-            delete_action = menu.addAction(f"Delete {len(selected_facets)} facet(s)")
-            delete_action.triggered.connect(self.delete_selected_facets)
+            layout_menu = menu.addMenu("Layout")
 
-        menu.exec(self.view.mapToGlobal(position))
+            auto_arrange_action = layout_menu.addAction("Auto-Arrange (Topological)")
+            auto_arrange_action.triggered.connect(self.auto_arrange_facets)
+
+            layout_menu.addSeparator()
+
+            # Alignment (requires selection)
+            selected_nodes = self.scene.selectedItems()
+            selected_facets = [item for item in selected_nodes if isinstance(item, FacetNodeGraphics)]
+
+            align_h_action = layout_menu.addAction(f"Align Horizontally ({len(selected_facets)} selected)")
+            align_h_action.setEnabled(len(selected_facets) > 1)
+            align_h_action.triggered.connect(self.align_selected_horizontally)
+
+            align_v_action = layout_menu.addAction(f"Align Vertically ({len(selected_facets)} selected)")
+            align_v_action.setEnabled(len(selected_facets) > 1)
+            align_v_action.triggered.connect(self.align_selected_vertically)
+
+            layout_menu.addSeparator()
+
+            # Zoom (use zoom_view to respect limits)
+            zoom_in_action = layout_menu.addAction("Zoom In (+)")
+            zoom_in_action.triggered.connect(lambda: self.zoom_view(1.2))
+
+            zoom_out_action = layout_menu.addAction("Zoom Out (-)")
+            zoom_out_action.triggered.connect(lambda: self.zoom_view(1/1.2))
+
+            reset_zoom_action = layout_menu.addAction("Reset View")
+            reset_zoom_action.triggered.connect(self.reset_view)
+
+            # Delete (requires selection)
+            if selected_facets:
+                menu.addSeparator()
+                delete_action = menu.addAction(f"Delete {len(selected_facets)} facet(s)")
+                delete_action.triggered.connect(self.delete_selected_facets)
+
+            menu.exec(self.view.mapToGlobal(position))
+
+        except Exception as e:
+            pass  # Silent context menu errors
+        finally:
+            # Always clear the flag when menu closes
+            self._in_right_click = False
+            # Reconnect selection changed signal
+            if not self._selection_signal_connected:
+                try:
+                    self.scene.selectionChanged.connect(self.on_selection_changed)
+                    self._selection_signal_connected = True
+                except:
+                    pass
 
     def add_facet(self, facet_type: str, display_name: str, position):
         """Add a new facet to the assembly (with undo support)."""
-        print(f"[Facets Editor] add_facet called: type={facet_type}, name={display_name}")
-        print(f"[Facets Editor] current_assembly exists: {self.current_assembly is not None}")
-
         if not self.current_assembly:
-            print("[Facets Editor] ERROR: No assembly loaded - cannot add facet")
             return
 
         # Convert view position to scene position
         scene_pos = self.view.mapToScene(position)
-        print(f"[Facets Editor] Position - view: {position}, scene: ({scene_pos.x()}, {scene_pos.y()})")
 
         # Create new facet data (not added to assembly yet - command will do that)
         facet_id = Facet.generate_uuid()
@@ -1390,7 +1563,6 @@ class FacetsEditorPanel(QWidget):
             prompt=f"TODO: Define prompt for {display_name}",
             position={'x': scene_pos.x(), 'y': scene_pos.y()}
         )
-        print(f"[Facets Editor] Created facet data: {facet_id}")
 
         # Add default pads based on type
         if facet_type == "ConvergenceFacet":
@@ -1400,7 +1572,6 @@ class FacetsEditorPanel(QWidget):
         else:
             facet.add_input_pad("in", "Input")
             facet.add_output_pad("out", "Output")
-        print(f"[Facets Editor] Added {len(facet.input_pads)} inputs, {len(facet.output_pads)} outputs")
 
         # Push create command via UndoManager (command will create the facet)
         from ..core.undo_manager import undo_manager
@@ -1412,8 +1583,6 @@ class FacetsEditorPanel(QWidget):
             facet_name=display_name
         )
         undo_manager.push(cmd)
-
-        print(f"[Facets Editor] Created facet (undoable): {display_name}")
 
     def save_assembly(self):
         """Save current assembly to YAML file."""
@@ -1522,6 +1691,19 @@ class FacetsEditorPanel(QWidget):
 
     def zoom_wheel_event(self, event):
         """Handle mouse wheel for zooming."""
+        import time
+
+        # Guard: Ignore wheel events within 500ms of right-click (trackpad quirk)
+        # On macOS, two-finger tap can trigger both right-click AND scroll simultaneously
+        if time.time() - self._last_right_click_time < 0.5:
+            event.ignore()
+            return
+
+        # Also ignore if we're in right-click mode
+        if self._in_right_click:
+            event.ignore()
+            return
+
         # Get zoom factor based on wheel delta
         delta = event.angleDelta().y()
         zoom_factor = 1.15 if delta > 0 else 1/1.15
@@ -1639,7 +1821,7 @@ class FacetsEditorPanel(QWidget):
         ]
 
         if not selected_nodes:
-            print("[Facets Editor] No facet selected to focus")
+            pass  # No facet selected
             return
 
         selected_node = selected_nodes[0]
@@ -1650,7 +1832,7 @@ class FacetsEditorPanel(QWidget):
             # RESTORE: Pop back to pre-focus view
             if self.pre_focus_transform:
                 self.view.setTransform(self.pre_focus_transform)
-                print(f"[Facets Editor] Restored pre-focus view for {selected_node.facet.name}")
+                pass  # Restored pre-focus view
             self.is_focused = False
             self.focused_node_id = None
             self.pre_focus_transform = None
@@ -1663,7 +1845,7 @@ class FacetsEditorPanel(QWidget):
             # Frame selected with minimal padding (no field display)
             self.frame_nodes(selected_nodes, padding_factor=0.05)
 
-            print(f"[Facets Editor] Focused on {selected_node.facet.name} (press F again to restore)")
+            pass  # Focused on node
 
     def toggle_node_expansion(self):
         """Open field editor for selected node (E key - edits Processing Prompt)."""
@@ -1680,12 +1862,6 @@ class FacetsEditorPanel(QWidget):
             prompt_field = next((f for f in fields if f['key'] == 'prompt'), None)
             if prompt_field:
                 self.show_floating_editor(node.facet, prompt_field)
-            else:
-                print("[Facets Editor] No prompt field available for this facet type")
-        elif len(selected_nodes) == 0:
-            print("[Facets Editor] No facet selected")
-        else:
-            print("[Facets Editor] Select only one facet to edit")
 
     def copy_selection(self):
         """Copy selected facets to clipboard."""
@@ -1696,7 +1872,6 @@ class FacetsEditorPanel(QWidget):
         ]
 
         if not selected_nodes:
-            print("[Facets Editor] No facets selected to copy")
             return
 
         # Copy facet data (deep copy)
@@ -1711,12 +1886,10 @@ class FacetsEditorPanel(QWidget):
             facet_copy = copy.deepcopy(node.facet)
             self.clipboard.append(facet_copy)
 
-        print(f"[Facets Editor] Copied {len(self.clipboard)} facets")
-
     def paste_selection(self):
         """Paste facets from clipboard with internal connections preserved."""
         if not self.clipboard or not self.current_assembly:
-            print("[Facets Editor] Nothing to paste or no assembly loaded")
+            pass  # Nothing to paste
             return
 
         # Get current mouse position in scene coords
@@ -1783,7 +1956,7 @@ class FacetsEditorPanel(QWidget):
                         self.scene.addItem(wire)
                         self.wire_graphics.append(wire)
 
-        print(f"[Facets Editor] Pasted {len(self.clipboard)} facets with internal connections")
+        pass  # Paste complete
         self.assemblyModified.emit()
 
     def duplicate_selection(self):
@@ -1797,7 +1970,6 @@ class FacetsEditorPanel(QWidget):
     def delete_selection(self):
         """Delete selected facets (with undo support)."""
         if not self.current_assembly:
-            print("[Facets Editor] No assembly loaded")
             return
 
         selected_items = self.scene.selectedItems()
@@ -1807,19 +1979,15 @@ class FacetsEditorPanel(QWidget):
         ]
 
         if not selected_nodes:
-            print("[Facets Editor] No facets selected to delete")
             return
 
         # Filter out special nodes (can't delete)
-        deletable_nodes = []
-        for node in selected_nodes:
-            if node.is_special_node or node.facet.name in ["INCOMING", "OUTGOING"]:
-                print(f"[Facets Editor] Cannot delete special node: {node.facet.name}")
-            else:
-                deletable_nodes.append(node)
+        deletable_nodes = [
+            node for node in selected_nodes
+            if not node.is_special_node and node.facet.name not in ["INCOMING", "OUTGOING"]
+        ]
 
         if not deletable_nodes:
-            print("[Facets Editor] No deletable facets in selection")
             return
 
         # Push delete commands via UndoManager
@@ -1848,8 +2016,6 @@ class FacetsEditorPanel(QWidget):
 
         if len(deletable_nodes) > 1:
             undo_manager.end_group()
-
-        print(f"[Facets Editor] Deleted {len(deletable_nodes)} facets (undoable)")
 
     def undo(self):
         """Undo last operation via UndoManager."""
@@ -2078,8 +2244,8 @@ class FacetsEditorPanel(QWidget):
             import os
             if os.path.exists(self.current_assembly_path):
                 self.current_assembly.save_yaml(self.current_assembly_path)
-        except Exception as e:
-            print(f"[Facets Editor] Error saving assembly: {e}")
+        except Exception:
+            pass  # Silent save errors
 
     def _push_move_commands_if_needed(self):
         """
@@ -2128,8 +2294,6 @@ class FacetsEditorPanel(QWidget):
         if len(moved_nodes) > 1:
             undo_manager.end_group()
 
-        print(f"[Facets Undo] Pushed {len(moved_nodes)} move command(s)")
-
     def keyPressEvent(self, event):
         """Handle key press events."""
         if event.key() == Qt.Key.Key_Space and not self.space_pressed:
@@ -2152,7 +2316,6 @@ class FacetsEditorPanel(QWidget):
 
     def start_wire_drawing(self, start_pad: FacetPadGraphics):
         """Start drawing a connection wire from a pad."""
-        print(f"[Facets Editor] Starting wire from {start_pad.facet_node.facet.name}.{start_pad.pad.name}")
         self.wire_start_pad = start_pad
 
         # Create temporary line for visual feedback
@@ -2167,8 +2330,33 @@ class FacetsEditorPanel(QWidget):
     def eventFilter(self, obj, event):
         """Handle viewport events for wire drawing, selection, and undo tracking."""
         if obj == self.view.viewport():
-            # Handle clicks on background or nodes
+            # Handle LEFT BUTTON clicks only for drag/selection
             if event.type() == event.Type.MouseButtonPress:
+                # Skip right-click - let context menu handle it
+                if event.button() == Qt.MouseButton.RightButton:
+                    try:
+                        import time
+                        self._last_right_click_time = time.time()  # Record for wheel guard
+                        # Set flag to prevent selection changes during right-click
+                        self._in_right_click = True
+                        # CRITICAL: Disconnect selection signal BEFORE Qt processes right-click
+                        # This prevents crashes from selection changes during context menu
+                        if self._selection_signal_connected:
+                            try:
+                                self.scene.selectionChanged.disconnect(self.on_selection_changed)
+                                self._selection_signal_connected = False
+                            except:
+                                pass
+                        # Reconnect after a delay (context menu uses exec which blocks)
+                        QTimer.singleShot(500, self._reconnect_selection_signal)
+                    except Exception as e:
+                        pass  # Silent right-click errors
+                    return False  # Pass through to context menu system
+
+                # Only handle left button for dragging/selection
+                if event.button() != Qt.MouseButton.LeftButton:
+                    return False
+
                 scene_pos = self.view.mapToScene(event.pos())
                 items = self.scene.items(scene_pos)
 
@@ -2195,14 +2383,17 @@ class FacetsEditorPanel(QWidget):
                             )
                 else:
                     # Clicked empty background
-                    if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-                        # Cmd-click - invert selection
-                        self.invert_selection()
-                        return True
-                    else:
-                        # Regular click - collapse any expanded nodes
-                        self.collapse_all_nodes()
-                        return False  # Allow default behavior (clear selection)
+                    try:
+                        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+                            # Cmd-click - invert selection
+                            self.invert_selection()
+                            return True
+                        else:
+                            # Regular click - collapse any expanded nodes
+                            self.collapse_all_nodes()
+                            return False  # Allow default behavior (clear selection)
+                    except Exception:
+                        return False
 
             # Handle mouse release to push move commands
             elif event.type() == event.Type.MouseButtonRelease and not self.wire_being_drawn:
@@ -2236,7 +2427,7 @@ class FacetsEditorPanel(QWidget):
                     if self.can_connect(self.wire_start_pad, end_pad):
                         self.create_connection(self.wire_start_pad, end_pad)
                     else:
-                        print("[Facets Editor] Invalid connection")
+                        pass  # Invalid connection
 
                 # Clean up temporary wire
                 self.scene.removeItem(self.wire_being_drawn)
@@ -2245,6 +2436,20 @@ class FacetsEditorPanel(QWidget):
                 return True
 
         return super().eventFilter(obj, event)
+
+    def _clear_right_click_flag(self):
+        """Clear the right-click flag after context menu closes."""
+        self._in_right_click = False
+
+    def _reconnect_selection_signal(self):
+        """Reconnect selection changed signal after right-click handling."""
+        self._in_right_click = False
+        if not self._selection_signal_connected:
+            try:
+                self.scene.selectionChanged.connect(self.on_selection_changed)
+                self._selection_signal_connected = True
+            except Exception as e:
+                pass  # Silent reconnection errors
 
     def can_connect(self, from_pad: FacetPadGraphics, to_pad: FacetPadGraphics) -> bool:
         """Check if connection is valid."""
@@ -2286,7 +2491,7 @@ class FacetsEditorPanel(QWidget):
         )
         undo_manager.push(cmd)
 
-        print(f"[Facets Editor] Connected (undoable): {from_pad.facet_node.facet.name}.{from_pad.pad.name} -> {to_pad.facet_node.facet.name}.{to_pad.pad.name}")
+        pass  # Connection created
 
     def invert_selection(self):
         """Invert current selection (ZBrush-style mask inverter)."""
@@ -2299,12 +2504,11 @@ class FacetsEditorPanel(QWidget):
             node.setSelected(not node.isSelected())
 
         selected_count = sum(1 for n in all_nodes if n.isSelected())
-        print(f"[Facets Editor] Inverted selection - {selected_count} facets now selected")
+        pass  # Selection inverted
 
     def _draw_grid_background(self):
         """Draw subtle grid lines on background."""
         if not self.scene:
-            print("[Facets Editor] Cannot draw grid - no scene")
             return
 
         # Clear any existing grid first
@@ -2328,8 +2532,7 @@ class FacetsEditorPanel(QWidget):
                     )
                     line.setZValue(-100)  # Behind everything
                     self.grid_lines.append(line)
-                except Exception as e:
-                    print(f"[Facets Editor] Error adding vertical grid line: {e}")
+                except Exception:
                     break
             x += grid_size
 
@@ -2345,12 +2548,9 @@ class FacetsEditorPanel(QWidget):
                     )
                     line.setZValue(-100)  # Behind everything
                     self.grid_lines.append(line)
-                except Exception as e:
-                    print(f"[Facets Editor] Error adding horizontal grid line: {e}")
+                except Exception:
                     break
             y += grid_size
-
-        print(f"[Facets Editor] Drew {len(self.grid_lines)} grid lines")
 
     def _clear_grid_background(self):
         """Remove grid lines from scene."""
@@ -2359,15 +2559,14 @@ class FacetsEditorPanel(QWidget):
             return
 
         # Safely remove each line
-        for line in list(self.grid_lines):  # Copy list to avoid modification during iteration
+        for line in list(self.grid_lines):
             try:
-                if line.scene() == self.scene:  # Verify item is still in scene
+                if line.scene() == self.scene:
                     self.scene.removeItem(line)
-            except Exception as e:
-                print(f"[Facets Editor] Error removing grid line: {e}")
+            except Exception:
+                pass
 
         self.grid_lines.clear()
-        print("[Facets Editor] Cleared grid lines")
 
     def toggle_grid_snap_button(self):
         """Toggle grid snapping from toolbar button."""
@@ -2386,15 +2585,12 @@ class FacetsEditorPanel(QWidget):
         else:
             self._clear_grid_background()
 
-        print(f"[Facets Editor] Grid snapping: {'ON' if enabled else 'OFF'}")
-
     def toggle_grid_snap(self, enabled: bool):
         """Toggle grid snapping on/off (programmatic API)."""
         self.snap_to_grid = enabled
         self.grid_visible = enabled
         if hasattr(self, 'grid_button'):
             self.grid_button.setChecked(enabled)
-        print(f"[Facets Editor] Grid snapping: {'ON' if enabled else 'OFF'}")
 
     def on_grid_size_changed(self, value: int):
         """Handle grid size spinbox change."""
@@ -2410,18 +2606,25 @@ class FacetsEditorPanel(QWidget):
             self._clear_grid_background()
             self._draw_grid_background()
 
-        print(f"[Facets Editor] Grid size: {value}px")
-
     def set_grid_size(self, size: int):
         """Set grid snap size in pixels."""
         self.grid_size = size
-        print(f"[Facets Editor] Grid size: {size}px")
 
     def collapse_all_nodes(self):
         """Collapse all expanded nodes (hide fields on all nodes)."""
-        for item in self.scene.items():
-            if isinstance(item, FacetNodeGraphics):
-                item.hide_fields()
+        try:
+            if not self.scene:
+                return
+            # Copy items list to avoid iteration issues
+            items = list(self.scene.items())
+            for item in items:
+                if isinstance(item, FacetNodeGraphics):
+                    try:
+                        item.hide_fields()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
     def show_floating_editor(self, facet: Facet, field_data: dict):
         """
@@ -2444,7 +2647,6 @@ class FacetsEditorPanel(QWidget):
             # Update facet field
             if key == 'prompt':
                 facet.prompt = value
-                print(f"[Facets Editor] Updated {facet.name}.prompt")
             # Refresh field display if node currently showing fields
             for item in self.scene.items():
                 if isinstance(item, FacetNodeGraphics) and item.facet.id == facet.id:
@@ -2471,9 +2673,13 @@ class FacetsEditorPanel(QWidget):
 
         try:
             if checked:
-                # PAUSING: Request pause and wait for cycle completion
+                # PAUSING: Request immediate freeze (mid-cycle pause for debugging)
                 url = f"{self.api_base}/cognition/pause"
-                response = requests.post(url, json={'paused': True, 'agent_id': self.current_agent_id}, timeout=35)
+                response = requests.post(url, json={
+                    'paused': True,
+                    'agent_id': self.current_agent_id,
+                    'freeze_mode': 'immediate'  # Freeze mid-cycle for inspection
+                }, timeout=5)
 
                 if response.status_code == 200:
                     self.cognition_paused = True
@@ -2525,10 +2731,8 @@ class FacetsEditorPanel(QWidget):
         self.sound_enabled = checked
         if checked:
             self.sound_button.setText("🔊")
-            print("[Facets Editor] Sound enabled")
         else:
             self.sound_button.setText("🔇")
-            print("[Facets Editor] Sound muted")
 
     def play_sound(self, sound_type: str):
         """
@@ -2781,25 +2985,33 @@ class FacetsEditorPanel(QWidget):
 
     def on_selection_changed(self):
         """Handle facet selection changes - emit signal for Inspector."""
-        selected = [item for item in self.scene.selectedItems() if isinstance(item, FacetNodeGraphics)]
+        # Guard: Don't process selection changes during scene transitions
+        if self.scene_transition_lock:
+            return
 
-        if len(selected) == 1:
-            # Single facet selected - send to Inspector
-            facet = selected[0].facet
-            self.facetSelected.emit(facet)
-            print(f"[Facets Editor] Selected: {facet.name} (id={facet.id})")
-        elif len(selected) == 0:
-            # No selection - clear Inspector
-            self.facetSelected.emit(None)
-        else:
-            # Multiple selection - Inspector shows count
-            self.facetSelected.emit(None)
-            print(f"[Facets Editor] Multiple selection: {len(selected)} facets")
+        # Guard: Don't process during right-click (causes crashes)
+        if hasattr(self, '_in_right_click') and self._in_right_click:
+            return
+
+        try:
+            selected = [item for item in self.scene.selectedItems() if isinstance(item, FacetNodeGraphics)]
+
+            if len(selected) == 1:
+                # Single facet selected - send to Inspector
+                facet = selected[0].facet
+                self.facetSelected.emit(facet)
+            elif len(selected) == 0:
+                # No selection - clear Inspector
+                self.facetSelected.emit(None)
+            else:
+                # Multiple selection - Inspector shows count
+                self.facetSelected.emit(None)
+        except Exception as e:
+            print(f"[Facets Editor] Selection error: {e}")
 
     def save_current_assembly_positions(self):
         """Save current assembly node positions to disk."""
         if not self.current_assembly or not self.current_assembly_name:
-            print(f"[Facets Editor] Cannot save positions - assembly={self.current_assembly is not None}, name={self.current_assembly_name}")
             return
 
         try:
@@ -2814,29 +3026,23 @@ class FacetsEditorPanel(QWidget):
                     facet.position = {'x': pos.x(), 'y': pos.y()}
                     if old_pos != facet.position:
                         updated_count += 1
-                        print(f"[Facets Editor]   {facet.name}: ({old_pos['x']:.0f}, {old_pos['y']:.0f}) → ({pos.x():.0f}, {pos.y():.0f})")
 
             if updated_count == 0:
-                print(f"[Facets Editor] No position changes to save")
                 return
 
             # Try direct path first (fastest, most reliable)
             if self.current_assembly_path and os.path.exists(self.current_assembly_path):
-                print(f"[Facets Editor] Saving directly to: {self.current_assembly_path}")
                 # Get file mtime before save for verification
                 import time
                 mtime_before = os.path.getmtime(self.current_assembly_path)
                 self.current_assembly.save_yaml(self.current_assembly_path)
                 mtime_after = os.path.getmtime(self.current_assembly_path)
-                if mtime_after > mtime_before:
-                    print(f"[Facets Editor] ✅ Saved {updated_count} position changes to: {os.path.basename(self.current_assembly_path)} (mtime verified)")
-                else:
-                    print(f"[Facets Editor] ⚠️ File mtime unchanged - save may have failed!")
+                if mtime_after <= mtime_before:
+                    print(f"[Facets Editor] Warning: File mtime unchanged - save may have failed!")
                 return
 
             # Fallback: Search by assembly name
             assembly_dir = os.path.join(os.path.dirname(__file__), '../facet_assemblies')
-            print(f"[Facets Editor] Searching for assembly '{self.current_assembly_name}' in {assembly_dir}")
 
             for filename in os.listdir(assembly_dir):
                 if filename.endswith('.yaml'):
@@ -2847,14 +3053,10 @@ class FacetsEditorPanel(QWidget):
                         if test_assembly.name == self.current_assembly_name:
                             # Found it! Save positions
                             self.current_assembly.save_yaml(test_path)
-                            print(f"[Facets Editor] ✅ Saved {updated_count} position changes to: {filename}")
                             return
-                        else:
-                            print(f"[Facets Editor]   Checked {filename}: name='{test_assembly.name}' (no match)")
                     except Exception as e:
-                        print(f"[Facets Editor]   Error checking {filename}: {e}")
                         pass
-            print(f"[Facets Editor] ❌ Could not find YAML file for assembly '{self.current_assembly_name}'")
+            print(f"[Facets Editor] Could not find YAML file for assembly '{self.current_assembly_name}'")
         except Exception as e:
             print(f"[Facets Editor] Error saving positions: {e}")
 
@@ -2866,7 +3068,6 @@ class FacetsEditorPanel(QWidget):
         """
         # Save previous agent's positions before switching
         if self.current_agent_id and self.current_agent_id != agent_id:
-            print(f"[Facets Editor] Switching from {self.current_agent_id} to {agent_id}, saving positions...")
             self.save_current_assembly_positions()
 
         self.current_agent_id = agent_id
@@ -2907,11 +3108,8 @@ class FacetsEditorPanel(QWidget):
                             from ..core.facet_system import FacetAssembly
                             assembly = FacetAssembly.load_yaml(assembly_path)
                             self.load_assembly_from_data(assembly, force_reload=True)
-                            print(f"[Facets Editor] Loaded assembly: {assembly.name} for agent {agent_id}")
                         else:
                             print(f"[Facets Editor] Assembly file not found: {assembly_path}")
-                    else:
-                        print(f"[Facets Editor] Agent {agent_id} has no facet_assembly")
             except Exception as e:
                 print(f"[Facets Editor] Failed to load agent assembly: {e}")
 
@@ -2938,7 +3136,6 @@ class FacetsEditorPanel(QWidget):
     def _start_websocket_connection(self):
         """Start WebSocket connection to execution event stream."""
         if not WEBSOCKETS_AVAILABLE:
-            print("[Facets Editor] websockets module not available - animations disabled")
             return
 
         # Start event processing timer (polls queue from Qt thread)
@@ -2951,16 +3148,14 @@ class FacetsEditorPanel(QWidget):
         ws_thread = threading.Thread(target=self._run_websocket_loop, daemon=True)
         ws_thread.start()
 
-        print("[Facets Editor] WebSocket connection initiated to ws://localhost:8081/ws/execution_events")
-
     def _run_websocket_loop(self):
         """Run WebSocket event loop in separate thread."""
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             loop.run_until_complete(self._websocket_handler())
-        except Exception as e:
-            print(f"[Facets Editor] WebSocket loop error: {e}")
+        except Exception:
+            pass  # WebSocket errors handled in _websocket_handler
 
     async def _websocket_handler(self):
         """Handle WebSocket connection and message receiving."""
@@ -2971,7 +3166,6 @@ class FacetsEditorPanel(QWidget):
                 async with websockets.connect(uri) as websocket:
                     self.ws_connection = websocket
                     self.ws_connected = True
-                    print("[Facets Editor] WebSocket connected")
 
                     async for message in websocket:
                         try:
@@ -2979,12 +3173,11 @@ class FacetsEditorPanel(QWidget):
                             # Add to queue for Qt thread processing
                             if self.event_queue:
                                 await self.event_queue.put(event_data)
-                        except json.JSONDecodeError as e:
-                            print(f"[Facets Editor] Invalid JSON: {e}")
+                        except json.JSONDecodeError:
+                            pass  # Ignore malformed messages
 
-            except Exception as e:
+            except Exception:
                 self.ws_connected = False
-                print(f"[Facets Editor] WebSocket error: {e}, reconnecting in 5s...")
                 await asyncio.sleep(5)  # Reconnect delay
 
     def _process_event_queue(self):
@@ -2997,16 +3190,11 @@ class FacetsEditorPanel(QWidget):
         for _ in range(10):
             try:
                 event = self.event_queue.get_nowait()
-                print(f"[Facets Editor] 🎯 EVENT RECEIVED: {event.get('type')}/{event.get('subtype')} - facet_id={event.get('source_id')}")
                 self._handle_execution_event(event)
             except asyncio.QueueEmpty:
-                # Queue empty - expected, exit silently
-                break
+                break  # Queue empty - expected
             except Exception as e:
-                # Actual error in event handling
-                print(f"[Facets Editor] ⚠️  Event processing error: {e}")
-                import traceback
-                traceback.print_exc()
+                _log_facet("EventProcessor", "ERROR", "", str(e))
                 break
 
     def _handle_execution_event(self, event: dict):
@@ -3035,6 +3223,12 @@ class FacetsEditorPanel(QWidget):
             return
         elif event_subtype == 'cycle_complete':
             self.play_sound('cycle_complete')
+            # Clean up cycle color for completed cycle (prevent memory leak)
+            execution_id = event.get('data', {}).get('execution_id', '')
+            if not execution_id:
+                execution_id = event.get('execution_id', '')
+            if execution_id and execution_id in self.cycle_colors:
+                del self.cycle_colors[execution_id]
             return
 
         # Handle data_flow events separately (they have from_facet/to_facet, not source_id)
@@ -3061,48 +3255,117 @@ class FacetsEditorPanel(QWidget):
                             wire.to_pad.facet_node.facet.id == to_facet):
                             wire.animate_data_flow()
                             break
-                except Exception as e:
-                    print(f"[Facets Editor] ⚠️  Data flow animation error: {e}")
+                except Exception:
+                    pass  # Silent data flow animation errors
             return  # data_flow handled, exit
 
         facet_id = event.get('source_id')
         if not facet_id or facet_id not in self.node_graphics:
-            print(f"[Facets Editor] ⚠️  Facet {facet_id} not in node_graphics! Available: {list(self.node_graphics.keys())[:5]}...")
-            return  # Facet not in current assembly
+            return  # Facet not in current assembly (normal during transitions)
 
         node = self.node_graphics.get(facet_id)
         if not node:
-            print(f"[Facets Editor] ⚠️  Node for facet {facet_id} is None!")
             return  # Node was deleted (race condition during scene transition)
 
         # CRITICAL: Check if node is still in scene (not deleted)
         if not node.scene():
-            print(f"[Facets Editor] ⚠️  Node {facet_id} not in scene!")
             return  # Node removed from scene, skip event
 
         # KRAFTWERK CLICK - Play terminal keypress sound for every event
         self._play_pachinko_sound()
 
+        # Extract execution_id for cycle tracking
+        execution_id = event.get('data', {}).get('execution_id', '')
+        if not execution_id:
+            execution_id = event.get('execution_id', '')
+
         try:
+            # Get facet name for logging
+            facet_name = node.facet.name if node.facet else facet_id
+
             if event_subtype == 'facet_start':
                 # KRAFTWERK: Node begins processing
-                print(f"[Facets Editor] 💛 ANIMATING facet_start for {facet_id}")
+                # Assign cycle color if not already assigned
+                if execution_id and execution_id not in self.cycle_colors:
+                    self.cycle_colors[execution_id] = self.cycle_color_palette[
+                        self.next_cycle_color_index % len(self.cycle_color_palette)
+                    ]
+                    self.next_cycle_color_index += 1
+
+                # Capture inputs for inspection (debugging feature)
+                event_data = event.get('data', {})
+                inputs = event_data.get('inputs')
+                if inputs:
+                    node.last_inputs = inputs
+                    # Store per-cycle inputs for inspection
+                    if execution_id:
+                        if execution_id not in node.cycle_data:
+                            node.cycle_data[execution_id] = {}
+                        node.cycle_data[execution_id]['inputs'] = inputs
+
+                # Add this cycle to active_cycles list (supports stacking!)
+                if execution_id:
+                    cycle_color = self.cycle_colors.get(execution_id, QColor("#00BFFF"))
+                    # Check if this cycle is already active on this node (avoid duplicates)
+                    existing_ids = [c[0] for c in node.active_cycles]
+                    if execution_id not in existing_ids:
+                        node.active_cycles.append((execution_id, cycle_color, inputs))
+
+                # Log to FACETS console
+                input_keys = list(inputs.keys()) if inputs else []
+                _log_facet(facet_name, "START", execution_id, f"inputs: {input_keys}")
+
                 node.set_execution_state('processing')
+                node.update()  # Force repaint to show cycle badge
 
             elif event_subtype == 'facet_complete':
                 # KRAFTWERK: Node completes (brief satisfaction, then idle)
+                # Capture outputs for inspection (debugging feature)
+                event_data = event.get('data', {})
+                outputs = event_data.get('outputs')
+                if outputs:
+                    node.last_outputs = outputs
+                    # Store per-cycle outputs for inspection
+                    if execution_id:
+                        if execution_id not in node.cycle_data:
+                            node.cycle_data[execution_id] = {}
+                        node.cycle_data[execution_id]['outputs'] = outputs
+
+                # Log to FACETS console
+                output_keys = list(outputs.keys()) if outputs else []
+                _log_facet(facet_name, "COMPLETE", execution_id, f"outputs: {output_keys}")
+
                 node.set_execution_state('complete')
+                node.update()
+
+                # Remove this cycle from active_cycles after animation completes
+                captured_exec_id = execution_id  # Capture for closure
+                def clear_cycle_from_list():
+                    if node and node.scene():
+                        # Remove only the completed cycle from the list
+                        node.active_cycles = [c for c in node.active_cycles if c[0] != captured_exec_id]
+                        # Clean up cycle_data after a delay (keep for inspection during pause)
+                        if not self.cognition_paused:
+                            if captured_exec_id in node.cycle_data:
+                                del node.cycle_data[captured_exec_id]
+                        node.update()
+                QTimer.singleShot(300, clear_cycle_from_list)
+
+            elif event_subtype == 'facet_error':
+                # ERROR: Something went wrong - flash red
+                error_msg = event.get('data', {}).get('error', 'Unknown error')
+                _log_facet(facet_name, "ERROR", execution_id, error_msg)
+                node.set_execution_state('error')
+                node.update()
 
             elif event_subtype == 'quantum_collapse':
                 # QUANTUM: Orchestrated objective reduction event
-                # Purple/blue flash + higher pitch sound
+                _log_facet(facet_name, "QUANTUM_COLLAPSE", execution_id)
                 node.set_execution_state('quantum_collapse')
                 self._play_quantum_collapse_sound()
 
         except Exception as e:
-            print(f"[Facets Editor] ⚠️  Animation error for {facet_id}: {e}")
-            import traceback
-            traceback.print_exc()
+            _log_facet(facet_name if 'facet_name' in dir() else facet_id, "ANIMATION_ERROR", "", str(e))
 
     def _play_pachinko_sound(self):
         """Play termkeypress.ogg sound (Kraftwerk pachinko click)."""
