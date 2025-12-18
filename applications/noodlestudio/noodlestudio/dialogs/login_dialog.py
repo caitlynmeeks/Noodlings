@@ -29,8 +29,7 @@ class LoginDialog(QDialog):
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        self.setWindowTitle("Sign In")
-        self.setFixedSize(420, 300)
+        self.setWindowTitle("Sign In to Noodlings")
         self.setModal(True)
 
         self.setStyleSheet("""
@@ -45,84 +44,168 @@ class LoginDialog(QDialog):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(16)
-        layout.setContentsMargins(60, 50, 60, 40)
+        layout.setSpacing(12)
+        layout.setContentsMargins(40, 30, 40, 20)
 
         # Title
-        title = QLabel("Sign in to noodlings.ai")
+        title = QLabel("Noodlings")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setFont(QFont("", 20, QFont.Weight.DemiBold))
-        title.setStyleSheet("color: #ffffff;")
+        title.setFont(QFont("", 18, QFont.Weight.DemiBold))
+        title.setStyleSheet("color: #76AF6A;")  # Green brand color
         layout.addWidget(title)
 
-        layout.addSpacing(20)
+        # Subtitle
+        subtitle = QLabel("Sign in to sync your Noodlings to the cloud")
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle.setStyleSheet("color: #888888; font-size: 13px;")
+        layout.addWidget(subtitle)
 
-        # Google button with icon
-        self.google_btn = QPushButton("Sign in with Google")
-        self.google_btn.setMinimumHeight(50)
+        layout.addSpacing(16)
+
+        # Google button
+        self.google_btn = QPushButton("Continue with Google")
+        self.google_btn.setMinimumHeight(44)
         self.google_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        google_icon = QIcon(str(ICONS_DIR / "google.svg"))
-        self.google_btn.setIcon(google_icon)
-        self.google_btn.setIconSize(QSize(20, 20))
         self.google_btn.setStyleSheet("""
             QPushButton {
-                background-color: #ffffff;
-                color: #3c4043;
-                border: 1px solid #dadce0;
-                border-radius: 4px;
-                padding: 12px 24px 12px 20px;
-                font-size: 15px;
+                background-color: #4285F4;
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 24px;
+                font-size: 14px;
                 font-weight: 500;
             }
             QPushButton:hover {
-                background-color: #f8f9fa;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                background-color: #5294F5;
             }
             QPushButton:pressed {
-                background-color: #f1f3f4;
+                background-color: #3275E4;
             }
         """)
         layout.addWidget(self.google_btn)
 
-        # GitHub button with icon
-        self.github_btn = QPushButton("Sign in with GitHub")
-        self.github_btn.setMinimumHeight(50)
+        # GitHub button
+        self.github_btn = QPushButton("Continue with GitHub")
+        self.github_btn.setMinimumHeight(44)
         self.github_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        github_icon = QIcon(str(ICONS_DIR / "github.svg"))
-        self.github_btn.setIcon(github_icon)
-        self.github_btn.setIconSize(QSize(20, 20))
         self.github_btn.setStyleSheet("""
             QPushButton {
-                background-color: #24292f;
+                background-color: #2d2d2d;
                 color: #ffffff;
-                border: none;
-                border-radius: 4px;
-                padding: 12px 24px 12px 20px;
-                font-size: 15px;
+                border: 1px solid #444444;
+                border-radius: 6px;
+                padding: 10px 24px;
+                font-size: 14px;
                 font-weight: 500;
             }
             QPushButton:hover {
-                background-color: #32383f;
+                background-color: #3d3d3d;
             }
             QPushButton:pressed {
-                background-color: #1c2024;
+                background-color: #1d1d1d;
             }
         """)
         layout.addWidget(self.github_btn)
 
-        layout.addStretch()
+        # Apple button
+        self.apple_btn = QPushButton("Continue with Apple")
+        self.apple_btn.setMinimumHeight(44)
+        self.apple_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.apple_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #000000;
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 24px;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background-color: #1a1a1a;
+            }
+            QPushButton:pressed {
+                background-color: #333333;
+            }
+        """)
+        layout.addWidget(self.apple_btn)
+
+        # Facebook button
+        self.facebook_btn = QPushButton("Continue with Facebook")
+        self.facebook_btn.setMinimumHeight(44)
+        self.facebook_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.facebook_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1877F2;
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 24px;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background-color: #2888F3;
+            }
+            QPushButton:pressed {
+                background-color: #0866E2;
+            }
+        """)
+        layout.addWidget(self.facebook_btn)
+
+        layout.addSpacing(12)
 
         # Footer
-        footer = QLabel("Manage and sync your projects, assets and services")
+        footer = QLabel("Your Noodlings, recipes, and facet assemblies will sync to the\ncloud. Use credits for routed LLM calls and future Asset Store\npurchases.")
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        footer.setStyleSheet("color: #888888; font-size: 14px;")
+        footer.setWordWrap(True)
+        footer.setStyleSheet("color: #666666; font-size: 11px;")
         layout.addWidget(footer)
+
+        layout.addSpacing(8)
+
+        # Cancel button
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setMinimumHeight(40)
+        self.cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #333333;
+                color: #888888;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 24px;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #404040;
+                color: #aaaaaa;
+            }
+        """)
+        self.cancel_btn.clicked.connect(self.reject)
+        layout.addWidget(self.cancel_btn)
+
+        # Adjust dialog size to fit content
+        self.adjustSize()
+        self.setMinimumWidth(380)
 
     def _connect_signals(self):
         self.google_btn.clicked.connect(lambda: self._login_with("google"))
         self.github_btn.clicked.connect(lambda: self._login_with("github"))
+        self.apple_btn.clicked.connect(lambda: self._show_coming_soon("Apple"))
+        self.facebook_btn.clicked.connect(lambda: self._show_coming_soon("Facebook"))
         AccountManager.instance().logged_in.connect(self._on_login_success)
         AccountManager.instance().login_failed.connect(self._on_login_failed)
+
+    def _show_coming_soon(self, provider: str):
+        """Show coming soon message for unsupported providers."""
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.information(
+            self,
+            "Coming Soon",
+            f"{provider} sign-in is coming soon.\n\nPlease use Google or GitHub for now."
+        )
 
     def _login_with(self, provider: str):
         login_url = AccountManager.instance().get_login_url(provider)

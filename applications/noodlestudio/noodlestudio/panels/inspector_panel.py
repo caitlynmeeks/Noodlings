@@ -198,9 +198,12 @@ class InspectorPanel(QWidget):
         if facet is None:
             # Facet deselected - reset dropdown
             print("[Inspector] Facet deselected - resetting dropdown")
-            if hasattr(self, 'facet_dropdown'):
-                self.facet_dropdown.setCurrentIndex(0)  # (none)
-            self.current_facet = None
+            try:
+                if hasattr(self, 'facet_dropdown') and self.facet_dropdown:
+                    self.facet_dropdown.setCurrentIndex(0)  # (none)
+                self.current_facet = None
+            except Exception as e:
+                print(f"[Inspector] Error resetting dropdown: {e}")
             return
 
         try:
@@ -992,7 +995,10 @@ class InspectorPanel(QWidget):
                 # Find facet object
                 facet = next((f for f in assembly.facets if f.id == facet_id), None)
                 if facet:
-                    self._load_facet_properties_inline(facet)
+                    # Defer UI rebuild to allow selection highlight to paint first
+                    # This prevents the 0.5-1s lag when clicking facets in the graph
+                    from PyQt6.QtCore import QTimer
+                    QTimer.singleShot(0, lambda: self._load_facet_properties_inline(facet))
             else:
                 # Clear facet properties
                 self._clear_facet_properties_inline()
@@ -1188,14 +1194,143 @@ class InspectorPanel(QWidget):
             props_layout.addRow(type_label)
 
         self.facet_properties_layout.addWidget(props_widget)
+
+        # Add collapsible section for Last Execution Data (debugging feature)
+        self._add_execution_data_section(facet)
+
         print(f"[Inspector] Facet properties loaded for: {facet.name}")
+
+    def _add_execution_data_section(self, facet):
+        """
+        Add collapsible section showing captured inputs/outputs from last execution.
+
+        Gets data from FacetNodeGraphics in facets_editor panel.
+        """
+        from PyQt6.QtWidgets import QPlainTextEdit
+        import json
+
+        try:
+            # Find facets editor to get node graphics
+            main_window = self.window()
+            if not main_window or not hasattr(main_window, 'facets_editor'):
+                return
+
+            facets_editor = main_window.facets_editor
+            if not facets_editor:
+                return
+
+            # Check if node_graphics exists and has this facet
+            if not hasattr(facets_editor, 'node_graphics') or not facets_editor.node_graphics:
+                return
+
+            if facet.id not in facets_editor.node_graphics:
+                return
+
+            node = facets_editor.node_graphics[facet.id]
+            if not node:
+                return
+
+            # Only show if there's data to display
+            has_data = (
+                (hasattr(node, 'last_inputs') and node.last_inputs) or
+                (hasattr(node, 'last_outputs') and node.last_outputs) or
+                (hasattr(node, 'active_cycles') and node.active_cycles)
+            )
+            if not has_data:
+                return
+        except Exception as e:
+            print(f"[Inspector] Error checking execution data: {e}")
+            return
+
+        try:
+            # Create collapsible section
+            exec_section = CollapsibleSection("Last Execution Data")
+            exec_section.setCollapsed(True)  # Start collapsed
+
+            def format_value(val):
+                if val is None:
+                    return "(none)"
+                if isinstance(val, str):
+                    # Truncate long strings for display
+                    if len(val) > 500:
+                        return val[:500] + "..."
+                    return val
+                try:
+                    return json.dumps(val, indent=2, default=str)
+                except:
+                    return str(val)
+
+            # Show inputs
+            if hasattr(node, 'last_inputs') and node.last_inputs:
+                inputs_label = QLabel("Inputs:")
+                inputs_label.setStyleSheet("color: #888888; font-weight: bold; margin-top: 4px;")
+                exec_section.content.layout().addRow(inputs_label)
+
+                for key, value in node.last_inputs.items():
+                    value_edit = QPlainTextEdit()
+                    value_edit.setReadOnly(True)
+                    value_edit.setPlainText(format_value(value))
+                    value_edit.setStyleSheet("""
+                        QPlainTextEdit {
+                            background-color: #1A1A1A;
+                            color: #AAAAAA;
+                            border: 1px solid #333333;
+                            font-family: 'Monaco', 'Consolas', monospace;
+                            font-size: 10px;
+                        }
+                    """)
+                    value_edit.setMaximumHeight(80)
+                    exec_section.content.layout().addRow(f"  {key}:", value_edit)
+
+            # Show outputs
+            if hasattr(node, 'last_outputs') and node.last_outputs:
+                outputs_label = QLabel("Outputs:")
+                outputs_label.setStyleSheet("color: #888888; font-weight: bold; margin-top: 8px;")
+                exec_section.content.layout().addRow(outputs_label)
+
+                for key, value in node.last_outputs.items():
+                    value_edit = QPlainTextEdit()
+                    value_edit.setReadOnly(True)
+                    value_edit.setPlainText(format_value(value))
+                    value_edit.setStyleSheet("""
+                        QPlainTextEdit {
+                            background-color: #1A1A1A;
+                            color: #AAAAAA;
+                            border: 1px solid #333333;
+                            font-family: 'Monaco', 'Consolas', monospace;
+                            font-size: 10px;
+                        }
+                    """)
+                    value_edit.setMaximumHeight(80)
+                    exec_section.content.layout().addRow(f"  {key}:", value_edit)
+
+            # Show active cycles count
+            if hasattr(node, 'active_cycles') and node.active_cycles:
+                active_label = QLabel(f"Active Cycles: {len(node.active_cycles)}")
+                active_label.setStyleSheet("color: #FFD700; margin-top: 8px;")
+                exec_section.content.layout().addRow(active_label)
+
+            self.facet_properties_layout.addWidget(exec_section)
+
+        except Exception as e:
+            print(f"[Inspector] Error building execution data section: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _clear_facet_properties_inline(self):
         """Clear facet properties from the inline container."""
-        while self.facet_properties_layout.count():
-            item = self.facet_properties_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        try:
+            if not hasattr(self, 'facet_properties_layout') or not self.facet_properties_layout:
+                return
+            while self.facet_properties_layout.count():
+                item = self.facet_properties_layout.takeAt(0)
+                if item and item.widget():
+                    try:
+                        item.widget().deleteLater()
+                    except RuntimeError:
+                        pass  # Widget already deleted
+        except Exception as e:
+            print(f"[Inspector] Error clearing facet properties: {e}")
 
     def _add_facets_section(self, agent_id: str, agent_data: dict):
         """
@@ -1387,6 +1522,11 @@ class InspectorPanel(QWidget):
                 self.entity_header.setText(f"Stage: {stage_name}")
                 self.load_stage_properties(entity_data)
 
+            elif entity_type == 'zone':
+                zone_name = entity_data.get('name', 'Unknown Zone')
+                self.entity_header.setText(f"Zone: {zone_name}")
+                self.load_zone_properties(entity_data)
+
         finally:
             # ALWAYS clear loading flag, even on error
             self.is_loading = False
@@ -1445,6 +1585,107 @@ class InspectorPanel(QWidget):
             no_occ.setStyleSheet("color: #888; padding: 4px;")
             occupants_group.content.layout().addRow(no_occ)
         self.properties_layout.addWidget(occupants_group)
+
+        self.properties_layout.addStretch()
+
+    def load_zone_properties(self, zone_data):
+        """Show Zone properties from Spatial View."""
+        zone_id = zone_data.get('id', '')
+        zone_name = zone_data.get('name', zone_id)
+        file_path = zone_data.get('file_path', '')
+
+        # Spatial Properties - compact layout
+        spatial_group = self.create_property_group("Spatial")
+        center = zone_data.get('center', [0, 0, 0])
+        self.add_vector3_field(spatial_group, "Center", center)
+
+        # Radius/Falloff on one row
+        size_row = QWidget()
+        size_layout = QHBoxLayout(size_row)
+        size_layout.setContentsMargins(0, 0, 0, 0)
+        size_layout.setSpacing(8)
+
+        radius_field = QDoubleSpinBox()
+        radius_field.setRange(0.1, 9999)
+        radius_field.setDecimals(1)
+        radius_field.setValue(float(zone_data.get('radius', 10)))
+        radius_field.setReadOnly(True)
+        radius_field.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+        radius_field.setFixedWidth(60)
+        radius_field.setStyleSheet("background-color: #1E1E1E; color: #888; border: 1px solid #3A3A3A; padding: 2px;")
+
+        falloff_field = QDoubleSpinBox()
+        falloff_field.setRange(0, 9999)
+        falloff_field.setDecimals(1)
+        falloff_field.setValue(float(zone_data.get('falloff', 5)))
+        falloff_field.setReadOnly(True)
+        falloff_field.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+        falloff_field.setFixedWidth(60)
+        falloff_field.setStyleSheet("background-color: #1E1E1E; color: #888; border: 1px solid #3A3A3A; padding: 2px;")
+
+        size_layout.addWidget(QLabel("R:"))
+        size_layout.addWidget(radius_field)
+        size_layout.addWidget(QLabel("Fall:"))
+        size_layout.addWidget(falloff_field)
+        size_layout.addStretch()
+        spatial_group.content.layout().addRow(size_row)
+
+        shape_label = QLabel(zone_data.get('shape', 'sphere'))
+        shape_label.setStyleSheet("color: #888; padding: 2px;")
+        spatial_group.content.layout().addRow("Shape:", shape_label)
+        self.properties_layout.addWidget(spatial_group)
+
+        # Description
+        desc_group = self.create_property_group("Description")
+        description = zone_data.get('description', '')
+        desc_text = QTextEdit(description)
+        desc_text.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+        desc_text.setMaximumHeight(120)
+        desc_text.setReadOnly(True)  # Read-only for now
+        desc_group.content.layout().addRow(desc_text)
+        self.properties_layout.addWidget(desc_group)
+
+        # Exits/Connections
+        exits_group = self.create_property_group("Connections")
+        exits = zone_data.get('exits', {})
+        if exits:
+            for direction, dest_id in exits.items():
+                exit_label = QLabel(f"{direction} -> {dest_id}")
+                exit_label.setStyleSheet("color: #D2D2D2; padding: 2px;")
+                exits_group.content.layout().addRow(exit_label)
+        else:
+            no_exits = QLabel("No connections")
+            no_exits.setStyleSheet("color: #888; padding: 4px;")
+            exits_group.content.layout().addRow(no_exits)
+        self.properties_layout.addWidget(exits_group)
+
+        # Perception
+        perception = zone_data.get('perception', {})
+        if perception:
+            perc_group = self.create_property_group("Perception")
+            self.add_text_field(perc_group, "Visibility", str(perception.get('visibility', 20)))
+            self.add_text_field(perc_group, "Audibility", str(perception.get('audibility', 20)))
+            self.add_text_field(perc_group, "Lighting", str(perception.get('lighting', 'natural')))
+            self.properties_layout.addWidget(perc_group)
+
+        # Ambient
+        ambient = zone_data.get('ambient', {})
+        if ambient:
+            amb_group = self.create_property_group("Ambient")
+            sounds = ambient.get('sounds', [])
+            self.add_text_field(amb_group, "Sounds", ', '.join(sounds) if sounds else '(none)')
+            self.add_text_field(amb_group, "Mood", str(ambient.get('mood', 'neutral')))
+            self.add_text_field(amb_group, "Temperature", str(ambient.get('temperature', 'pleasant')))
+            self.properties_layout.addWidget(amb_group)
+
+        # File Info
+        if file_path:
+            file_group = self.create_property_group("File")
+            file_label = QLabel(file_path)
+            file_label.setStyleSheet("color: #888; font-size: 10px; padding: 4px;")
+            file_label.setWordWrap(True)
+            file_group.content.layout().addRow(file_label)
+            self.properties_layout.addWidget(file_group)
 
         self.properties_layout.addStretch()
 
@@ -1576,35 +1817,18 @@ class InspectorPanel(QWidget):
             recipe_data.get('name', agent.get('name', ''))
         )
 
-        # UUID (read-only) with copy button
-        uuid_container = QWidget()
-        uuid_layout = QHBoxLayout(uuid_container)
-        uuid_layout.setContentsMargins(0, 0, 0, 0)
-        uuid_layout.setSpacing(4)
+        # UUID (read-only) - simple label on same row
+        # Use short display format but copy full ID
+        display_id = agent_id.replace('agent_', '')
+        if len(display_id) > 20:
+            display_id = display_id[:8] + "..." + display_id[-4:]
 
-        uuid_field = QLineEdit(agent_id)
-        uuid_field.setReadOnly(True)
-        uuid_field.setStyleSheet("color: #888888; background: #2a2a2a;")
-        uuid_layout.addWidget(uuid_field)
-
-        copy_btn = QPushButton("Copy")
-        copy_btn.setMaximumWidth(50)
-        copy_btn.setStyleSheet("""
-            QPushButton {
-                background: #3e3e3e;
-                color: #D2D2D2;
-                border: 1px solid #555555;
-                padding: 2px 8px;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background: #4e4e4e;
-            }
-        """)
-        copy_btn.clicked.connect(lambda: QApplication.clipboard().setText(agent_id))
-        uuid_layout.addWidget(copy_btn)
-
-        basics_group.content.layout().addRow("UUID:", uuid_container)
+        uuid_widget = QLabel(f'<span style="color:#888888">{display_id}</span> '
+                            f'<a href="copy" style="color:#666666;text-decoration:none">[copy]</a>')
+        uuid_widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        uuid_widget.linkActivated.connect(lambda: QApplication.clipboard().setText(agent_id))
+        uuid_widget.setToolTip(f"Full ID: {agent_id}\nClick [copy] to copy")
+        basics_group.content.layout().addRow("UUID:", uuid_widget)
 
         # Description (editable text area)
         description = recipe_data.get('description', agent.get('description', 'An empty noodling...'))
@@ -1757,6 +1981,41 @@ class InspectorPanel(QWidget):
         field.editingFinished.connect(self.save_changes)
         group.content.layout().addRow(f"{label}:", field)
         return field
+
+    def add_vector3_field(self, group: QGroupBox, label: str, values: list, read_only: bool = True):
+        """Add compact XYZ vector field on single line."""
+        row = QWidget()
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(4)
+
+        fields = []
+        for i, (axis, val) in enumerate(zip(['X', 'Y', 'Z'], values)):
+            field = QDoubleSpinBox()
+            field.setRange(-99999, 99999)
+            field.setDecimals(2)
+            field.setValue(float(val) if val else 0)
+            field.setReadOnly(read_only)
+            field.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+            field.setFixedWidth(65)
+            field.setStyleSheet("""
+                QDoubleSpinBox {
+                    background-color: #1E1E1E;
+                    color: #D2D2D2;
+                    border: 1px solid #3A3A3A;
+                    padding: 2px 4px;
+                }
+                QDoubleSpinBox:read-only {
+                    color: #888888;
+                }
+            """)
+            field.setToolTip(axis)
+            row_layout.addWidget(field)
+            fields.append(field)
+
+        row_layout.addStretch()
+        group.content.layout().addRow(f"{label}:", row)
+        return fields
 
     def add_text_area(self, group: QGroupBox, label: str, value: str):
         """Add editable text area to group (instant updates on change)."""

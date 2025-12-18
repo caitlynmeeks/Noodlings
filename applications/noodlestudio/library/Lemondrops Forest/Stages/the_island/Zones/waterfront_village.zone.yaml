@@ -1,0 +1,39 @@
+name: "Waterfront Village"
+id: "waterfront_village"
+
+spatial:
+  center: [0, 0, -120]
+  radius: 35.0
+  falloff: 15.0
+  shape: "sphere"
+
+text:
+  description: |
+    A charming village of colorful wooden buildings lines the waterfront.
+    Boats of all sizes bob in the harbor. Narrow streets wind between
+    shops and cafes, each building more whimsical than the last.
+
+  features:
+    - "COLORFUL BUILDINGS lean at impossible angles."
+    - "A DOCK extends into the crystal-clear water."
+    - "MARKET STALLS sell strange and wonderful goods."
+
+  exits:
+    north: "curvy_airport"
+    northeast: "mushroom_garden"
+    east: "burger_drome"
+    west: "socks_sushi"
+    bridge: "museum_island"
+    cinema: "cinema"
+    gallery: "cartoon_art_museum"
+    down: "the_sewers"
+
+perception:
+  visibility: 30.0
+  audibility: 35.0
+  lighting: "afternoon_sun"
+
+ambient:
+  sounds: ["water_lapping", "village_chatter", "seagulls"]
+  mood: "lively"
+  temperature: "warm"

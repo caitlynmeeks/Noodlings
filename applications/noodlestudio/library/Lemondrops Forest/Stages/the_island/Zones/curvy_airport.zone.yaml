@@ -1,0 +1,36 @@
+name: "Curvy Airport"
+id: "curvy_airport"
+
+spatial:
+  center: [0, 0, -60]
+  radius: 30.0
+  falloff: 15.0
+  shape: "sphere"
+
+text:
+  description: |
+    Four S-curved runways twist through a field of giant glowing mushrooms.
+    Weird candy-colored aircraft with improbable wings taxi between pools
+    of bioluminescent liquid. A confused squirrel sits in the control tower,
+    nervously consulting a manual.
+
+  features:
+    - "MUSHROOM RUNWAY LIGHTS pulse in hypnotic patterns."
+    - "A CONTROL TOWER shaped like a pine cone stands at the center."
+    - "WEIRD CANDY aircraft in impossible colors park at gates."
+
+  exits:
+    north: "great_oak"
+    up: "oak_platform"
+    east: "mushroom_garden"
+    south: "waterfront_village"
+
+perception:
+  visibility: 50.0
+  audibility: 40.0
+  lighting: "mushroom_glow"
+
+ambient:
+  sounds: ["aircraft_hum", "mushroom_pulse", "squirrel_panic"]
+  mood: "chaotic"
+  temperature: "pleasant"

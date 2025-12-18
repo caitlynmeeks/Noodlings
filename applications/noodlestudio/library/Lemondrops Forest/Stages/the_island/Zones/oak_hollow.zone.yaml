@@ -1,0 +1,32 @@
+name: "Oak Hollow"
+id: "oak_hollow"
+
+spatial:
+  center: [0, 5, 0]
+  radius: 15.0
+  falloff: 5.0
+  shape: "cylinder"
+
+text:
+  description: |
+    Inside the hollow trunk of the great oak, the walls are smooth and curved.
+    Tiny windows let in streams of golden light. The space feels cozy and
+    protected, like being inside a giant's cup.
+
+  features:
+    - "A HAMMOCK hangs between two root protrusions."
+    - "Shelves carved into the walls hold mysterious bottles."
+    - "The floor is covered in soft, dry leaves."
+
+  exits:
+    up: "great_oak"
+
+perception:
+  visibility: 10.0
+  audibility: 15.0
+  lighting: "warm_interior"
+
+ambient:
+  sounds: ["creaking_wood", "muffled_wind"]
+  mood: "cozy"
+  temperature: "warm"

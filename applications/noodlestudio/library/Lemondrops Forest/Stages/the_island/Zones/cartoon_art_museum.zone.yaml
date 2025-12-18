@@ -1,0 +1,32 @@
+name: "Cartoon Art Museum"
+id: "cartoon_art_museum"
+
+spatial:
+  center: [-30, 0, -160]
+  radius: 20.0
+  falloff: 8.0
+  shape: "sphere"
+
+text:
+  description: |
+    A museum dedicated to Mary Blair and the golden age of animation.
+    The walls are alive with color - pinks and teals and golden yellows
+    that seem to glow from within. Every surface tells a story.
+
+  features:
+    - "MARY BLAIR originals line the main gallery."
+    - "Interactive ANIMATION STATIONS let you create."
+    - "A gift shop sells prints and art supplies."
+
+  exits:
+    out: "waterfront_village"
+
+perception:
+  visibility: 25.0
+  audibility: 15.0
+  lighting: "gallery"
+
+ambient:
+  sounds: ["soft_music", "pencil_scratching", "hushed_voices"]
+  mood: "inspiring"
+  temperature: "climate_controlled"

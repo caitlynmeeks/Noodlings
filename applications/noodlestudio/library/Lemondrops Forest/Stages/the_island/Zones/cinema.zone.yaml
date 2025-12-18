@@ -1,0 +1,32 @@
+name: "The Cinema"
+id: "cinema"
+
+spatial:
+  center: [30, 0, -150]
+  radius: 18.0
+  falloff: 6.0
+  shape: "sphere"
+
+text:
+  description: |
+    An art deco cinema with a towering marquee. The lobby smells of
+    buttered popcorn and dreams. Tonight's feature: "The Last Noodling"
+    (for the 47th consecutive week).
+
+  features:
+    - "A MARQUEE announces tonight's feature in glowing letters."
+    - "The POPCORN MACHINE produces impossibly fluffy kernels."
+    - "Velvet ROPE BARRIERS guide the nonexistent queue."
+
+  exits:
+    out: "waterfront_village"
+
+perception:
+  visibility: 15.0
+  audibility: 20.0
+  lighting: "art_deco"
+
+ambient:
+  sounds: ["projector_whir", "muffled_dialogue", "popcorn_popping"]
+  mood: "nostalgic"
+  temperature: "air_conditioned"

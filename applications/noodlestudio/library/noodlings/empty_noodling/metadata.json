@@ -1,0 +1,23 @@
+{
+  "name": "Empty Noodling",
+  "type": "noodling_template",
+  "version": "1.0.0",
+  "description": "The foundation template for all noodlings. A curious, bewildered, harmless consciousness fresh from creation.",
+  "author": "Noodlings Team",
+  "created": "2025-12-16",
+  "modified": "2025-12-16",
+  "tags": ["template", "foundation", "default", "library"],
+  "readonly": true,
+  "files": {
+    "assembly": "assembly.yaml",
+    "recipe": "recipe.yaml"
+  },
+  "preview": {
+    "personality": "Curious, bewildered, harmless",
+    "species": "noodling",
+    "complexity": "minimal",
+    "facet_count": 4,
+    "llm_facets": 1
+  },
+  "usage_notes": "This is the simplest viable noodling. Use as a starting point for custom characters or for quick testing. The gingerbread mind responds to affect from the CharmNetwork."
+}

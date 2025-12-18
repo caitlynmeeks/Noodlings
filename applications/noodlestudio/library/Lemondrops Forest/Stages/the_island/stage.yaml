@@ -1,0 +1,69 @@
+name: "The Island"
+description: "A whimsical island with curvy airports, hamburger buildings, and alligator submarines"
+created: "2025-12-18"
+modified: "2025-12-18"
+
+# Geometry (optional - null for text-only)
+geometry:
+  file: null
+  scale: 1.0
+  up_axis: "Y"
+
+# World properties
+world:
+  bounds:
+    min: [-200, -50, -200]
+    max: [200, 100, 200]
+  ambient:
+    time_of_day: "afternoon"
+    weather: "clear"
+    soundscape: "forest_magical"
+
+# Default spawn point
+spawn:
+  position: [0, 0, 0]
+  zone: "great_oak"
+
+# Zone graph (adjacency for pathfinding)
+zone_graph:
+  great_oak:
+    - oak_hollow
+    - oak_platform
+    - curvy_airport
+  oak_hollow:
+    - great_oak
+  oak_platform:
+    - great_oak
+    - curvy_airport
+  curvy_airport:
+    - great_oak
+    - oak_platform
+    - mushroom_garden
+    - waterfront_village
+  mushroom_garden:
+    - curvy_airport
+    - waterfront_village
+  waterfront_village:
+    - curvy_airport
+    - mushroom_garden
+    - burger_drome
+    - socks_sushi
+    - the_sewers
+  burger_drome:
+    - waterfront_village
+  socks_sushi:
+    - waterfront_village
+  museum_island:
+    - waterfront_village
+  cinema:
+    - waterfront_village
+  cartoon_art_museum:
+    - waterfront_village
+  the_sewers:
+    - waterfront_village
+    - alligator_interior
+  alligator_interior:
+    - the_sewers
+    - alligator_cockpit
+  alligator_cockpit:
+    - alligator_interior

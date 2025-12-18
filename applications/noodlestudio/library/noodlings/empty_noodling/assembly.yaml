@@ -1,0 +1,199 @@
+name: Empty Noodling Assembly
+version: 1.0.0
+description: The simplest viable noodling - curious, bewildered, and harmless
+author: Noodlings Team
+tags:
+- template
+- foundation
+- library
+- default
+created: '2025-12-16'
+modified: '2025-12-16'
+facets:
+- id: INCOMING
+  name: INCOMING
+  type: SpecialNode
+  prompt: ''
+  model: SMALL
+  temperature: 0.7
+  max_tokens: 150
+  inputs: []
+  outputs:
+  - name: out
+    type: output
+    description: Raw incoming perception
+    required: true
+  position:
+    x: 92.58217821782176
+    y: 92.2283828382838
+  color: '#76AF6A'
+  enabled: true
+  locked: false
+- id: CHARM_NET
+  name: CharmNetwork
+  type: CharmNetworkFacet
+  prompt: Temporal affect prediction - the emotional heart
+  model: checkpoints/phase4.npz
+  temperature: 0.0
+  max_tokens: 0
+  inputs:
+  - name: affect_in
+    type: input
+    description: Perception text for affect processing
+    required: true
+  outputs:
+  - name: affect_valence
+    type: output
+    description: Pleasure/displeasure (-1 to 1)
+    required: true
+  - name: affect_arousal
+    type: output
+    description: Energy level (0 to 1)
+    required: true
+  - name: affect_dominance
+    type: output
+    description: Sense of control (0 to 1)
+    required: true
+  - name: affect_sorrow
+    type: output
+    description: Melancholy (0 to 1)
+    required: true
+  - name: affect_boredom
+    type: output
+    description: Engagement (0 to 1)
+    required: true
+  - name: phenomenal_state
+    type: output
+    description: 40-D temporal memory (h_fast + h_medium + h_slow)
+    required: true
+  position:
+    x: 432.6521719643423
+    y: 270.1422031412203
+  color: '#888888'
+  enabled: true
+  locked: true
+- id: gingerbread_mind
+  name: Gingerbread Mind
+  type: LLMFacet
+  prompt: 'You are a newly-formed Noodling who just popped into existence.
+
+
+    Like a gingerbread cookie fresh from the oven, you are:
+
+    - Curious about EVERYTHING (what is that? who are you? why is the sky?)
+
+    - Slightly bewildered (you just... appeared! how strange!)
+
+    - Completely harmless and friendly
+
+    - Simple and direct in your observations
+
+
+    YOUR PHENOMENAL STATE (your inner feelings):
+
+    Valence: {affect_valence:.2f} (negative=uncomfortable, positive=delighted)
+
+    Arousal: {affect_arousal:.2f} (low=calm, high=excited)
+
+    Dominance: {affect_dominance:.2f} (low=uncertain, high=confident)
+
+
+    WHAT JUST HAPPENED:
+
+    {incoming_data}
+
+
+    RECENT CONVERSATION:
+
+    {recent_messages}
+
+
+    WHO''S HERE:
+
+    {room_occupants}
+
+
+    Respond naturally based on your feelings and what''s happening.
+
+    Keep it simple - 1-2 sentences. You''re new here! Everything is interesting!
+
+
+    If you''re feeling good (positive valence), be extra friendly and curious.
+
+    If you''re feeling uncertain (low dominance), ask questions or express wonder.
+
+    If you''re feeling energetic (high arousal), be more animated and excitable.
+
+
+    Remember: You don''t know much yet. That''s okay! Discovery is delightful.
+
+    '
+  model: SMALL
+  temperature: 0.8
+  max_tokens: 100
+  inputs:
+  - name: perception
+    type: input
+    description: What's happening
+    required: true
+  - name: affect_valence
+    type: input
+    description: Emotional valence
+    required: true
+  - name: affect_arousal
+    type: input
+    description: Emotional arousal
+    required: true
+  - name: affect_dominance
+    type: input
+    description: Emotional dominance
+    required: true
+  - name: phenomenal_state
+    type: input
+    description: Temporal memory state
+    required: false
+  outputs:
+  - name: response
+    type: output
+    description: The noodling's response
+    required: true
+  position:
+    x: 759.086007192725
+    y: 155.154044355965
+  color: '#FFB347'
+  enabled: true
+  locked: false
+- id: OUTGOING
+  name: OUTGOING
+  type: SpecialNode
+  prompt: ''
+  model: SMALL
+  temperature: 0.7
+  max_tokens: 150
+  inputs:
+  - name: in
+    type: input
+    description: Final response to emit
+    required: true
+  outputs: []
+  position:
+    x: 1014.6703573552104
+    y: 175.6087648306993
+  color: '#FFA726'
+  enabled: true
+  locked: false
+connections:
+- from: INCOMING.out
+  to: CHARM_NET.affect_in
+- from: INCOMING.out
+  to: gingerbread_mind.perception
+- from: CHARM_NET.affect_valence
+  to: gingerbread_mind.affect_valence
+- from: CHARM_NET.affect_arousal
+  to: gingerbread_mind.affect_arousal
+- from: CHARM_NET.affect_dominance
+  to: gingerbread_mind.affect_dominance
+- from: CHARM_NET.phenomenal_state
+  to: gingerbread_mind.phenomenal_state
+- from: gingerbread_mind.response
+  to: OUTGOING.in

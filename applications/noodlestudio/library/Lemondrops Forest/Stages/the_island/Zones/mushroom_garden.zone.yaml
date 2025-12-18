@@ -1,0 +1,33 @@
+name: "Mushroom Garden"
+id: "mushroom_garden"
+
+spatial:
+  center: [50, 0, -40]
+  radius: 25.0
+  falloff: 10.0
+  shape: "sphere"
+
+text:
+  description: |
+    Giant glowing mushrooms tower overhead, their caps pulsing with soft
+    bioluminescent light. The air smells of petrichor and something sweet.
+    Paths wind between the stalks, marked by smaller luminescent fungi.
+
+  features:
+    - "GIANT MUSHROOMS in shades of blue, purple, and gold."
+    - "GLOWING PATHS wind between the fungal forest."
+    - "A MEDITATION CIRCLE formed by white toadstools."
+
+  exits:
+    west: "curvy_airport"
+    south: "waterfront_village"
+
+perception:
+  visibility: 25.0
+  audibility: 20.0
+  lighting: "bioluminescent"
+
+ambient:
+  sounds: ["mushroom_hum", "dripping_water", "distant_chimes"]
+  mood: "dreamy"
+  temperature: "humid"

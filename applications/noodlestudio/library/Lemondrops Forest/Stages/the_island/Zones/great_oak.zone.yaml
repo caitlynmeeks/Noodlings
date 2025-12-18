@@ -1,0 +1,35 @@
+name: "The Great Oak"
+id: "great_oak"
+
+spatial:
+  center: [0, 30, 0]
+  radius: 25.0
+  falloff: 10.0
+  shape: "sphere"
+
+text:
+  description: |
+    A massive ancient oak tree rises from the center of the island, its trunk
+    wide enough to hold a small village. Bioluminescent fairy wings flutter
+    in the branches, powering some kind of elaborate machine. A spiral
+    staircase wraps around the trunk.
+
+  features:
+    - "A FAIRY WING MACHINE hums in the branches, glowing softly."
+    - "Carved wooden signs point to different levels of the tree."
+    - "Small mushrooms grow in the bark crevices, glowing faintly."
+
+  exits:
+    down: "oak_hollow"
+    up: "oak_platform"
+    south: "curvy_airport"
+
+perception:
+  visibility: 40.0
+  audibility: 30.0
+  lighting: "dappled_sunlight"
+
+ambient:
+  sounds: ["wind_leaves", "fairy_wings", "distant_birdsong"]
+  mood: "magical"
+  temperature: "pleasant"

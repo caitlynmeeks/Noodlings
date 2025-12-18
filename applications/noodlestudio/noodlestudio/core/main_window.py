@@ -123,29 +123,31 @@ class MainWindow(QMainWindow):
 
         file_menu.addSeparator()
 
-        # Stage management
-        file_menu.addAction(self._create_action("&New Stage", "Ctrl+N"))
-        file_menu.addAction(self._create_action("&Open Stage...", "Ctrl+O"))
-        file_menu.addAction(self._create_action("&Save Stage", "Ctrl+S"))
+        # Create new assets (per PROJECT_SPEC.md)
+        file_menu.addAction(self._create_action("New &Noodling...", "Ctrl+N", slot=self.new_noodling))
+        file_menu.addAction(self._create_action("New &Stage...", "Ctrl+Shift+N", slot=self.new_stage))
+        file_menu.addAction(self._create_action("New &Prim...", slot=self.new_prim))
+
+        file_menu.addSeparator()
+
+        # Save
+        file_menu.addAction(self._create_action("&Save Project", "Ctrl+S", slot=self.save_project))
 
         # Import section
         file_menu.addSeparator()
         file_menu.addSection("Import")
-        file_menu.addAction(self._create_action("Import Prim (.prim)...", slot=self.import_prim_menu))
-        file_menu.addAction(self._create_action("Import Ensemble (.ensemble)...", slot=self.import_ensemble))
-        file_menu.addAction(self._create_action("Import Noodling (.json)...", slot=self.import_noodling_file))
+        file_menu.addAction(self._create_action("Import Noodling Folder...", slot=self.import_noodling_folder))
+        file_menu.addAction(self._create_action("Import USD Layer (.usda)...", slot=self.import_usd_layer))
 
         # Export section
         file_menu.addSeparator()
         file_menu.addSection("Export")
-        file_menu.addAction(self._create_action("Export Selected Prim(s)...", slot=self.export_selected_prims))
-        file_menu.addAction(self._create_action("Export Noodling(s)...", slot=self.export_noodlings_dialog))
-
-        # USD export/import
-        file_menu.addSeparator()
+        file_menu.addAction(self._create_action("Export Noodling...", slot=self.export_noodling))
         file_menu.addAction(self._create_action("Export Stage to USD (.usda)...", slot=self.export_stage_to_usd))
-        file_menu.addAction(self._create_action("Export Timeline to USD (.usda)...", slot=self.export_timeline_to_usd))
-        file_menu.addAction(self._create_action("Import USD Layer (.usda)...", slot=self.import_usd_layer))
+
+        # Migration tool
+        file_menu.addSeparator()
+        file_menu.addAction(self._create_action("Migrate Legacy Data...", slot=self.migrate_legacy_data))
 
         file_menu.addSeparator()
         file_menu.addAction(self._create_action("&Quit", "Ctrl+Q", self.close))
@@ -291,11 +293,8 @@ class MainWindow(QMainWindow):
         # ===== HELP MENU =====
         help_menu = menu_bar.addMenu("&Help")
         help_menu.addAction(self._create_action("Scripting API Reference", "F1", slot=self.open_scripting_api))
-        help_menu.addAction(self._create_action("NoodleStudio Documentation", slot=self.open_documentation))
-        help_menu.addAction(self._create_action("Noodlings Architecture Guide"))
-        help_menu.addAction(self._create_action("Report Issue..."))
         help_menu.addSeparator()
-        help_menu.addAction(self._create_action("Credits (Demo Scene Style)", slot=self.show_credits))
+        help_menu.addAction(self._create_action("Report Issue...", slot=self.report_issue))
         help_menu.addAction(self._create_action("About NoodleStudio", slot=self.show_about))
 
     def _setup_tool_bar(self):
@@ -357,14 +356,22 @@ class MainWindow(QMainWindow):
         import subprocess
 
         if enabled:
-            # Start server
+            # Build environment with project path if one is open
+            env = os.environ.copy()
+            if self.project_manager.is_project_open():
+                env["PROJECT_PATH"] = self.project_manager.current_project_path
+                self.connection_label.setText(f"Starting server for {self.project_manager.current_project_name}...")
+            else:
+                self.connection_label.setText("Starting server (legacy mode)...")
+
+            # Start server with project environment
             subprocess.Popen(
                 ['../cmush/start.sh'],
                 cwd='../cmush',
+                env=env,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            self.connection_label.setText("Starting server...")
         else:
             # Stop server
             subprocess.run(['pkill', '-f', 'python.*server.py'])
@@ -437,6 +444,7 @@ class MainWindow(QMainWindow):
         """)
 
         self.hierarchy = SceneHierarchy(None)  # Not a dock widget anymore
+        self.hierarchy.set_project_manager(self.project_manager)  # Wire up project structure support
         self.assets = AssetsPanel(None)
         self.assets.project_manager = self.project_manager
         self.assets.agentRezzed.connect(self.hierarchy.refresh_scene)
@@ -496,14 +504,21 @@ class MainWindow(QMainWindow):
             world_layout.addWidget(placeholder)
             self.web_view = None
 
-        center_tabs.addTab(world_widget, "World")
+        center_tabs.addTab(world_widget, "Text View")
+
+        # Spatial View tab - Qt Quick 3D visualization of stage zones
+        from ..panels.spatial_view_panel import SpatialViewPanel
+        self.spatial_view = SpatialViewPanel()
+        self.spatial_view.set_project_manager(self.project_manager)
+        self.spatial_view.zoneSelected.connect(self._on_zone_selected)
+        center_tabs.addTab(self.spatial_view, "Spatial View")
 
         # Facets Editor tab
         from ..panels.facets_editor_panel import FacetsEditorPanel
         self.facets_editor = FacetsEditorPanel()
         center_tabs.addTab(self.facets_editor, "Facets Editor")
 
-        # Neural Canvas tab (NEW)
+        # Neural Canvas tab
         from ..panels.neural_canvas import NeuralCanvasPanel
         self.neural_canvas = NeuralCanvasPanel()
         center_tabs.addTab(self.neural_canvas, "Neural Canvas")
@@ -1837,14 +1852,34 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'world_view'):
             self.world_view.show_offline_card()
 
-        # Gray out hierarchy
+        # Refresh hierarchy with new project structure
         if hasattr(self, 'hierarchy'):
-            self.hierarchy.set_server_state(False)
+            self.hierarchy.current_stage = None  # Reset to first stage
+            self.hierarchy.populate_stage_selector()
+            self.hierarchy.refresh_scene()
+            self.hierarchy.set_server_state(False)  # Gray out until server starts
 
         # Update toggle
         QTimer.singleShot(500, self.update_connection_status)
 
+        # Refresh spatial view with new project
+        if hasattr(self, 'spatial_view'):
+            self.spatial_view.set_project_manager(self.project_manager)
+
         print(f"Project opened: {project_path}")
+
+    def _on_zone_selected(self, zone_id: str, zone_data: dict):
+        """Handle zone selection from Spatial View panel."""
+        if not zone_id:
+            return
+
+        # Show zone info in status bar
+        zone_name = zone_data.get('name', zone_id)
+        self.statusBar().showMessage(f"Selected zone: {zone_name}", 3000)
+
+        # Load zone in Inspector panel
+        if hasattr(self, 'inspector'):
+            self.inspector.load_entity('zone', zone_data)
 
     def on_project_closed(self):
         """Handle project closed event."""
@@ -1855,7 +1890,235 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'assets'):
             self.assets.refresh()
 
+        # Refresh hierarchy back to legacy mode
+        if hasattr(self, 'hierarchy'):
+            self.hierarchy.current_stage = None
+            self.hierarchy.current_room = "room_000"
+            self.hierarchy.populate_stage_selector()
+            self.hierarchy.refresh_scene()
+
         print("Project closed")
+
+    def new_noodling(self):
+        """Create a new Noodling in the current project."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Please open a project first.")
+            return
+
+        name, ok = QInputDialog.getText(
+            self, "New Noodling", "Noodling Name:", text="MyNoodling"
+        )
+        if not ok or not name:
+            return
+
+        desc, ok = QInputDialog.getText(
+            self, "New Noodling", "Description (optional):"
+        )
+
+        path = self.project_manager.create_noodling(name, desc if ok else "")
+        if path:
+            self.statusBar().showMessage(f"Created noodling: {name}", 3000)
+            if hasattr(self, 'assets'):
+                self.assets.refresh()
+        else:
+            QMessageBox.warning(self, "Error", f"Failed to create noodling. Name may already exist.")
+
+    def new_stage(self):
+        """Create a new Stage in the current project."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Please open a project first.")
+            return
+
+        name, ok = QInputDialog.getText(
+            self, "New Stage", "Stage Name:", text="MyStage"
+        )
+        if not ok or not name:
+            return
+
+        desc, ok = QInputDialog.getText(
+            self, "New Stage", "Description (optional):"
+        )
+
+        path = self.project_manager.create_stage(name, desc if ok else "")
+        if path:
+            self.statusBar().showMessage(f"Created stage: {name}", 3000)
+            if hasattr(self, 'assets'):
+                self.assets.refresh()
+        else:
+            QMessageBox.warning(self, "Error", f"Failed to create stage. Name may already exist.")
+
+    def new_prim(self):
+        """Create a new Prim template in the current project."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Please open a project first.")
+            return
+
+        name, ok = QInputDialog.getText(
+            self, "New Prim", "Prim Name:", text="MyPrim"
+        )
+        if not ok or not name:
+            return
+
+        desc, ok = QInputDialog.getText(
+            self, "New Prim", "Text description (for MUD):", text=f"a {name.lower()}"
+        )
+
+        path = self.project_manager.create_prim(name, "", desc if ok else "")
+        if path:
+            self.statusBar().showMessage(f"Created prim: {name}", 3000)
+            if hasattr(self, 'assets'):
+                self.assets.refresh()
+        else:
+            QMessageBox.warning(self, "Error", f"Failed to create prim. Name may already exist.")
+
+    def save_project(self):
+        """Save the current project."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "No project is open.")
+            return
+
+        if self.project_manager.save_project():
+            self.statusBar().showMessage("Project saved", 3000)
+        else:
+            QMessageBox.warning(self, "Error", "Failed to save project.")
+
+    def import_noodling_folder(self):
+        """Import a noodling folder into the current project."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Please open a project first.")
+            return
+
+        folder = QFileDialog.getExistingDirectory(
+            self, "Import Noodling Folder", os.path.expanduser("~")
+        )
+        if not folder:
+            return
+
+        # Check if it's a valid noodling folder
+        if not os.path.exists(os.path.join(folder, "noodling.yaml")):
+            # Check for recipe.yaml as fallback
+            if not os.path.exists(os.path.join(folder, "recipe.yaml")):
+                QMessageBox.warning(
+                    self, "Invalid Folder",
+                    "This doesn't appear to be a valid noodling folder.\n"
+                    "Expected noodling.yaml or recipe.yaml."
+                )
+                return
+
+        # Copy to Noodlings folder
+        import shutil
+        noodling_name = os.path.basename(folder)
+        target = os.path.join(self.project_manager.get_noodlings_path(), noodling_name)
+
+        if os.path.exists(target):
+            reply = QMessageBox.question(
+                self, "Noodling Exists",
+                f"A noodling named '{noodling_name}' already exists. Overwrite?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            shutil.rmtree(target)
+
+        shutil.copytree(folder, target)
+        self.statusBar().showMessage(f"Imported noodling: {noodling_name}", 3000)
+        if hasattr(self, 'assets'):
+            self.assets.refresh()
+
+    def export_noodling(self):
+        """Export a noodling to a folder."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Please open a project first.")
+            return
+
+        noodlings = self.project_manager.list_noodlings()
+        if not noodlings:
+            QMessageBox.information(self, "No Noodlings", "No noodlings to export.")
+            return
+
+        name, ok = QInputDialog.getItem(
+            self, "Export Noodling", "Select noodling:", noodlings, 0, False
+        )
+        if not ok:
+            return
+
+        target_dir = QFileDialog.getExistingDirectory(
+            self, "Export To", os.path.expanduser("~")
+        )
+        if not target_dir:
+            return
+
+        import shutil
+        source = self.project_manager.get_noodling_path(name)
+        target = os.path.join(target_dir, name)
+
+        if os.path.exists(target):
+            shutil.rmtree(target)
+
+        shutil.copytree(source, target)
+        self.statusBar().showMessage(f"Exported noodling to: {target}", 3000)
+
+    def migrate_legacy_data(self):
+        """Run the migration tool to convert legacy data."""
+        reply = QMessageBox.question(
+            self,
+            "Migrate Legacy Data",
+            "This will migrate data from the legacy noodleMUSH format\n"
+            "to a new PROJECT_SPEC.md compliant project.\n\n"
+            "Choose a location to create the new project.",
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+        )
+        if reply != QMessageBox.StandardButton.Ok:
+            return
+
+        # Get target location
+        target = QFileDialog.getExistingDirectory(
+            self, "Create Migrated Project In", os.path.expanduser("~/Documents")
+        )
+        if not target:
+            return
+
+        name, ok = QInputDialog.getText(
+            self, "Project Name", "Name for migrated project:", text="MigratedProject"
+        )
+        if not ok or not name:
+            return
+
+        target_path = os.path.join(target, name)
+        if os.path.exists(target_path):
+            QMessageBox.warning(self, "Error", "A folder with that name already exists.")
+            return
+
+        # Run migration
+        from .project_migrator import migrate_to_project
+        import os
+
+        # Source is the repo root
+        source_root = os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )))
+
+        self.statusBar().showMessage("Migrating legacy data...", 0)
+        QApplication.processEvents()
+
+        success, report = migrate_to_project(source_root, target_path, dry_run=False)
+
+        if success:
+            QMessageBox.information(
+                self, "Migration Complete",
+                f"Successfully migrated to:\n{target_path}\n\n"
+                "Open the new project to continue."
+            )
+            # Optionally open the new project
+            self.project_manager.open_project(target_path)
+        else:
+            QMessageBox.warning(
+                self, "Migration Failed",
+                f"Migration encountered errors.\n\nSee console for details."
+            )
+            print(report)
+
+        self.statusBar().clearMessage()
 
     def get_settings_path(self) -> Path:
         """Get path to NoodleStudio settings file."""
@@ -2135,6 +2398,11 @@ class MainWindow(QMainWindow):
             "About NoodleSTUDIO",
             about_text
         )
+
+    def report_issue(self):
+        """Open GitHub issues page in browser."""
+        import webbrowser
+        webbrowser.open("https://github.com/caitlynmeeks/noodlings/issues")
 
     # ===== ACCOUNT METHODS =====
 

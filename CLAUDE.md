@@ -2,113 +2,146 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: December 17, 2025
+**Last Updated**: December 18, 2025
 
-**FOR NEXT CLAUDE: START HERE!** 👇
+**FOR NEXT CLAUDE: START HERE!**
 
 ---
 
-## 🎯 NEXT SESSION: Project Architecture & Cloud Sync
+## 🎯 NEXT SESSION: Rethink Spatial View as 2D Illustrated Map
 
-**Goal:** Define exactly what a "project" is, formalize the data structure, and design local + cloud storage
+**Goal:** Redesign the Spatial View as a 2D top-down illustrated map with simple graphic primitives
 
-### The Problem
-The current project system is placeholder-level. We need crystal-clear specifications for:
-1. What exactly constitutes a project
-2. How its parts are organized (folder structure)
-3. How to sync projects to the cloud backend
+### The Vision (Caitlyn's Words)
 
-### Current State (Incomplete)
+We need a **design language for spaces that decomposes easily to text and vice versa**.
 
-**project_manager.py** creates this structure:
+**Example - A Cafe Interior:**
+- Draw a U-shape for a horseshoe counter (like dragging boxes in Illustrator)
+- Group shapes and attach metadata (counter has jars, cake bell, positions of items)
+- Place circles for stools with metadata (facing direction, moveable, occupied, who's sitting)
+- Position Noodling instances (Zappalita the barista in her station)
+- Every object is a **prim** with rich metadata
+
+**Zones as "Weenies":**
+- Like Disneyland's centers of interest
+- Zones are cards/areas connected by zone connections
+- Looking down at Lemondrops Forest = illustrated top-down map (like Disneyland's park map)
+- Zone connections should show in Inspector too
+
+**End Goal:**
+- Provide spatial context to feed into **Google Genie** or **Mirage** for generative rendering
+- Consistent, persistent context with clear spatial boundaries
+- Attention regions and interactable prims (stools you can sit on, etc.)
+- The "brains and hearts" powering characters in generative worlds
+
+**Key Insight:**
+- NOT full 3D - we need **2D top-down view with simple graphic primitives**
+- Shapes compose to form furniture, counters, layouts
+- Everything has metadata that decomposes to text for LLMs
+- Text, 2D maps, 3D renders are all projections of the same semantic truth
+
+### What Was Done (December 18, 2025)
+- **Spatial View Panel** - Qt Quick 3D visualization (first attempt)
+  - `spatial_view_panel.py` (~1300 lines) - Panel with QQuickWidget
+  - Zone boxes rendered in 3D with wireframe mode
+  - Camera controls: Option+LMB tumble, Option+MMB track, scroll zoom
+  - Shortcuts: A (frame all/top-down), F (focus selected), W (wireframe), T (ghost)
+  - Zone selector dropdown, stage selector
+  - Inspector integration for zone properties
+- **Inspector compact vector3 fields** - XYZ on one line instead of 3 rows
+- **Lemondrops Forest test project** - 14 zones with spatial positions
+- **Login dialog fixed** - Added Apple/Facebook buttons, Cancel, proper sizing
+
+### Files Changed This Session
+- `noodlestudio/panels/spatial_view_panel.py` - New (~1300 lines)
+- `noodlestudio/panels/inspector_panel.py` - Added vector3 fields, zone properties
+- `noodlestudio/core/main_window.py` - Tab ordering, zone selection handling
+- `noodlestudio/dialogs/login_dialog.py` - UI fixes
+- `library/Lemondrops Forest/` - Test project with 14 zone YAMLs
+- `library/Lemondrops Forest/SPATIAL_VISUALIZATION.md` - Design doc
+
+### Architecture Decision Needed
+The current 3D approach (Qt Quick 3D with boxes) may not be the right solution.
+Next session should explore:
+1. **2D Canvas approach** - QPainter or QGraphicsScene for illustrated map style
+2. **SVG/Vector graphics** - Scalable primitives that look clean at any zoom
+3. **Prim composition** - How to compose shapes (like U-shape counters)
+4. **Metadata binding** - Rich data on every shape/group
+5. **Text decomposition** - How spatial data becomes LLM context
+
+### Reference Documents
+- `PROJECT_SPEC.md` - Project structure specification
+- `library/Lemondrops Forest/SPATIAL_VISUALIZATION.md` - Current Qt Quick 3D design doc
+
+---
+
+## Previous: Wire Up New Project System
+
+### What Was Done (December 17, 2025)
+- **PROJECT_SPEC.md** - Complete specification for project architecture
+- **project_manager.py** - Fully rewritten to implement spec
+- **project_migrator.py** - Migration tool for legacy data
+- **main_window.py** - Updated menus (New Noodling/Stage/Prim, Migration tool)
+- **Help menu cleaned** - Removed placeholder items
+
+### Current Project Structure (PROJECT_SPEC.md)
 ```
 MyProject/
-├── project.noodleproj      # JSON metadata
-├── .gitignore
-├── Assets/
-│   ├── Noodlings/          # Empty - not used
-│   ├── Ensembles/          # Empty - not used
-│   ├── Prims/              # Empty - not used
-│   ├── Scripts/            # Empty - not used
-│   └── Stages/             # Empty - not used
-├── Temp/
-└── Library/
+├── project.noodleproj          # Project manifest
+├── Noodlings/                  # Reusable character prefabs
+│   └── red/
+│       ├── noodling.yaml       # Master manifest
+│       ├── recipe.yaml         # Character definition
+│       ├── assembly.yaml       # Facet topology
+│       ├── charm_weights.npz   # Trained weights
+│       ├── Scripts/            # ScriptedFacets
+│       ├── NeuralGraphs/       # .nncanvas files
+│       └── Assets/             # Multimodal content
+├── Prims/                      # Reusable prop templates
+│   └── radio/
+│       ├── prim.yaml
+│       └── Scripts/
+├── Stages/                     # Scenes with continuous space
+│   └── the_nexus/
+│       ├── stage.yaml
+│       ├── Zones/              # Soft attention regions
+│       ├── Instances/          # Live agent instances
+│       └── Props/              # Live prop instances
+├── Generations/                # AI-generated content
+├── SharedAssets/               # Project-wide resources
+└── Library/                    # Local cache (never syncs)
 ```
 
-**But actual data lives elsewhere:**
-- `applications/cmush/world/` - agents.json, rooms.json, stages.json, chat_history.json
-- `applications/cmush/world/agents/agent_xxx/` - per-agent folders with history
-- `applications/cmush/recipes/` - YAML recipe files
-- `applications/noodlestudio/facet_assemblies/` - YAML facet assembly files
-- `applications/noodlestudio/library/noodlings/xxx/` - has recipe.yaml, assembly.yaml, metadata.json
-- `applications/noodlestudio/library/Generations/` - AI-generated images
+### Key Architecture Decisions
+1. **Text is first-class** - MUD and 3D are equal renderings of spatial truth
+2. **Zones are soft** - Overlapping attention regions, not hard-edged rooms
+3. **Prefab model** - Noodlings/Prims are templates; Instances are live copies
+4. **Self-contained** - Projects are portable folders (zip and share)
 
-### Questions to Answer
+### What Needs Doing
 
-1. **What is a Project?**
-   - A world with stages, rooms, agents?
-   - Or just a collection of Noodlings?
-   - Or both?
+1. **Wire server.py to new project structure**
+   - Currently loads from `cmush/world/` hardcoded paths
+   - Should load from `project.get_stages_path()` etc.
 
-2. **What is a Noodling (precisely)?**
-   - recipe.yaml (character definition)
-   - assembly.yaml (facet topology)
-   - charm_weights.npz (trained neural network)
-   - metadata.json
-   - Reference assets (images, audio)?
+2. **Update AssetsPanel to show new structure**
+   - Currently shows old folder layout
+   - Should show Noodlings/Prims/Stages categories
 
-3. **What is a Stage?**
-   - A room/environment where Noodlings interact
-   - Has its own state, history, objects
+3. **Connect scene_hierarchy.py to Stages/Instances**
+   - Currently loads from old agents.json
+   - Should load from `Stages/xxx/Instances/`
 
-4. **Folder Structure Options:**
-   ```
-   Option A: Unity-style (current attempt)
-   MyProject/
-   ├── project.noodleproj
-   ├── Assets/
-   │   ├── Noodlings/noodling_name/
-   │   ├── Stages/stage_name/
-   │   └── Generations/
-   └── Library/  # Cache only
+4. **Implement cloud sync** (future)
+   - Backend ready at noodlings-api.caitsters.workers.dev
+   - Need to wire up sync buttons/status
 
-   Option B: Flat with manifest
-   MyProject/
-   ├── manifest.json  # Lists all content
-   ├── noodlings/
-   ├── stages/
-   └── generations/
-   ```
-
-5. **Cloud Sync Strategy:**
-   - What uploads to R2? (full project? individual noodlings?)
-   - How to handle large files (charm weights, generations)?
-   - Versioning? Conflict resolution?
-
-### Backend Already Deployed
-
-**API:** `https://noodlings-api.caitsters.workers.dev`
-- D1 database (users, noodlings, assets, generations)
-- R2 storage (files)
-- KV sessions
-- OAuth (Google, GitHub working)
-- Stripe credits (configured)
-
-**Database schema already has:**
-- `noodlings` table (recipe_yaml, facet_assembly_yaml, charm_weights_r2_key)
-- `reference_assets` table (linked to noodlings)
-- `generations` table
-
-### Files to Review
-- `noodlestudio/core/project_manager.py` - Current implementation
-- `noodlestudio/core/main_window.py` - Menu actions (new/open/save)
-- `cmush/world/` - How noodleMUSH stores world state
-- `noodlestudio/library/noodlings/empty_noodling/` - Example noodling folder structure
-
-### Deliverables
-1. **Specification document** - Exact folder structure, file formats, naming conventions
-2. **Updated project_manager.py** - Actually implements the spec
-3. **Cloud sync design** - What syncs, when, how conflicts resolve
+### Files Changed This Session
+- `noodlestudio/core/project_manager.py` - Rewritten (~900 lines)
+- `noodlestudio/core/project_migrator.py` - New (~500 lines)
+- `noodlestudio/core/main_window.py` - Updated menus and methods
+- `PROJECT_SPEC.md` - New spec document (~700 lines)
 
 ---
 
@@ -126,22 +159,37 @@ MyProject/
 
 **Fix needed:** Debug why gh-pages isn't serving correctly
 
-### 2. Clean Up NoodleStudio Help Menu
-**Remove these** (no content yet):
-- Help → "Credits (Demo Scene Style)"
-- Help → "NoodleStudio Documentation"
-- Help → "Noodlings Architecture Guide"
-
-**Keep:**
-- Help → "Scripting API Reference" (F1) - Opens http://127.0.0.1:8000/api/overview/
-- Help → "Report Issue..."
-- Help → "About NoodleStudio"
-
-**File:** `applications/noodlestudio/noodlestudio/core/main_window.py:247-255`
-
 ---
 
 ## ✅ COMPLETED (December 17, 2025)
+
+### Project Architecture & Specification
+- **PROJECT_SPEC.md** - Complete 700-line specification defining:
+  - Project structure (self-contained, portable folders)
+  - Noodling format (recipe + assembly + scripts + NeuralGraphs + assets)
+  - Stage format (continuous 3D space with soft zones)
+  - Prim/Prop format (scriptable objects with MUD verbs)
+  - Zone format (overlapping attention regions, not hard rooms)
+  - Cloud sync strategy (auto-sync vs publish)
+- **Key insight:** Text and 3D are equal renderings of spatial truth
+- **project_manager.py** - Rewritten (~900 lines) with:
+  - `create_noodling()`, `create_stage()`, `create_prim()`
+  - `create_instance()`, `create_prop()` for stage population
+  - Full folder structure creation per spec
+  - Path helpers for all asset types
+- **project_migrator.py** - New migration tool (~500 lines):
+  - Converts legacy cmush/world data to new format
+  - Maps rooms to soft zones with calculated positions
+  - Migrates agents to instances
+  - Preserves agent state and history
+- **main_window.py updates:**
+  - File menu: New Noodling/Stage/Prim, Migration tool
+  - Help menu cleaned (removed placeholder items)
+  - Import/Export noodling folders
+- **Files:**
+  - `PROJECT_SPEC.md` - Specification document
+  - `noodlestudio/core/project_manager.py` - Implementation
+  - `noodlestudio/core/project_migrator.py` - Migration tool
 
 ### Cloud Account System
 - **Backend deployed** at `noodlings-api.caitsters.workers.dev`
