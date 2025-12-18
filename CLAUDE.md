@@ -8,21 +8,42 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
-## 🎯 NEXT SESSION: Neural Canvas Tutorials
+## 🎯 NEXT SESSION: Multimodal Facets
 
-**Goal:** Build pedagogical NN tutorials for Steve DiPaola demo and newcomers.
+**Goal:** Maximum flexibility multimodal I/O with real-time focus
 
-**Full spec:** `NEURAL_CANVAS_TUTORIALS.md`
+**Design decisions made:**
+- Auto-detect modality, optional explicit override
+- Model labels: VISION, AUDIO_IN, AUDIO_OUT, IMAGE_GEN, VIDEO_IN
+- Real-time streaming via WebSocket (~250ms chunks)
+- Hybrid memory: hot tokens → warm descriptions → cold storage
 
-**Phase 1 - Start here:**
-1. Implement `NUMBER_INPUT` node (scalar with slider)
-2. Implement `THRESHOLD_OUTPUT` node (ON/OFF display)
-3. Create `tutorials/01_and_gate.nncanvas`
-4. Create `tutorials/02_or_gate.nncanvas`
-5. Create `tutorials/03_xor_problem.nncanvas`
-6. Add tutorial loading UI to Neural Canvas panel
+**Implementation order:**
+1. MultimodalFacet base class with modality detection
+2. Model Configurator multimodal tab (like text labels but for media)
+3. Audio streaming (mic → Whisper → TTS → speaker)
+4. Vision integration (camera/screenshot → Claude Vision)
+5. Image generation output (facet → Flux/DALL-E → display)
 
-**Key insight:** XOR tutorial is the "aha moment" - single layer fails, hidden layer succeeds.
+**Architecture sketch:**
+```
+            ┌─────────────┐
+Mic Input → │ AudioBuffer │ → Whisper chunks → Text
+            └─────────────┘
+                  ↓
+            Facet Assembly (processes text)
+                  ↓
+            ┌─────────────┐
+Text Out →  │ TTS Stream  │ → Speaker
+            └─────────────┘
+```
+
+**Key question:** Where does real-time audio fit in facet execution cycle?
+
+**Memory model:**
+- Hot context: Last 2-3 images stay as tokens
+- Warm references: Older images → text description + UUID + embedding
+- Cold storage: Full images on disk, retrievable by semantic similarity
 
 ---
 
@@ -56,6 +77,26 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 ---
 
 ## ✅ COMPLETED (December 17, 2025)
+
+### Real IBM Quantum Integration
+- QuantumAPI connects to IBM Quantum Platform (156-qubit ibm_fez etc.)
+- Transpiles circuits to native gate set automatically
+- Falls back to simulator when offline
+- Auto-connect from `IBM_QUANTUM_API_KEY` in `.env`
+- **File:** `noodlestudio/scripting/quantum_api.py`
+
+### Schrodinger's Cat Experiment
+- Cat's fate determined by REAL quantum collapse (not pseudo-random!)
+- `schrodingers_cat()` runs actual quantum circuit on IBM hardware
+- |0> = Alive cat (Schrodinger), |1> = Sassy ghost cat (Quantum Whiskers)
+- Recipes and facet assemblies for both outcomes
+- **Files:** `recipes/schrodinger_*.yaml`, `facet_assemblies/schrodinger_*.yaml`
+
+### ScriptedFacet Context Wiring Fix
+- Fixed all placeholder strings to actual JavaScript functions
+- `__wire_noodle_context__` properly binds storage, logging, events, actions, quantum
+- `context.noodle.quantum` now works in JavaScript ScriptedFacets
+- **File:** `noodlestudio/core/scripted_facet.py`
 
 ### Neural Canvas Test Mode
 - PyTorch-based test executor for canvas topology
@@ -302,7 +343,9 @@ Think: Dr. Bronner's soap or Craigslist - eccentric, brilliant, one person's vis
 - ✅ Facet system operational
 - ✅ Docs site (F1 to open)
 - ✅ Noodling names generator
-- ⏳ Tutorial system (next task)
+- ✅ Real IBM Quantum integration (context.noodle.quantum)
+- ✅ Schrodinger's Cat with actual quantum collapse
+- ⏳ Multimodal facets (next task)
 - ⏳ Homepage fix needed
 
 **Key Scriptability API Files:**
@@ -310,6 +353,7 @@ Think: Dr. Bronner's soap or Craigslist - eccentric, brilliant, one person's vis
 - `noodlestudio/scripting/models_api.py` - Model/provider config
 - `noodlestudio/scripting/neural_api.py` - Neural Canvas manipulation
 - `noodlestudio/scripting/agents_api.py` - Facet assembly access
+- `noodlestudio/scripting/quantum_api.py` - IBM Quantum integration
 
 **UI/UX Notes:**
 - Server toggle: Bottom-right status bar
