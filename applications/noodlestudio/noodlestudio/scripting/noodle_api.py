@@ -19,6 +19,7 @@ from typing import Dict, Any, Optional
 from .models_api import ModelsAPI
 from .neural_api import NeuralAPI
 from .agents_api import AgentsAPI
+from .quantum_api import QuantumAPI
 
 
 class NoodleAPI:
@@ -62,6 +63,7 @@ class NoodleAPI:
         self._models_api = None
         self._neural_api = NeuralAPI()
         self._agents_api = AgentsAPI()
+        self._quantum_api = QuantumAPI()
 
         # Manager references (lazy initialization)
         self._model_label_manager = model_label_manager
@@ -124,6 +126,37 @@ class NoodleAPI:
         """
         return self._agents_api
 
+    @property
+    def quantum(self) -> QuantumAPI:
+        """
+        Access Quantum API.
+
+        Provides quantum computation simulation for ScriptedFacets:
+        - Qubit measurement with simulated quantum randomness
+        - Schrodinger's Cat experiment helper
+        - Neural Canvas quantum node execution
+        - Entanglement simulation
+
+        Returns:
+            QuantumAPI instance
+
+        Example (JavaScript):
+            // Measure a qubit
+            var q = context.noodle.quantum.measure_qubit();
+
+            // Schrodinger's Cat experiment
+            var cat = context.noodle.quantum.schrodingers_cat();
+            if (cat.is_alive) {
+                console.log("The cat lives!");
+            }
+
+            // Execute a quantum canvas
+            var result = context.noodle.quantum.execute_canvas(
+                "tutorials/08_schrodingers_cat.nncanvas"
+            );
+        """
+        return self._quantum_api
+
     def get_by_uuid(self, uuid: str) -> Optional[Dict[str, Any]]:
         """
         Get any entity by UUID (future enhancement).
@@ -164,6 +197,7 @@ class NoodleAPI:
             'models': self.models.to_dict(),
             'neural': self.neural.to_dict(),
             'agents': self.agents.to_dict(),
+            'quantum': self.quantum.to_dict(),
             'get_by_uuid': '__noodle_get_by_uuid__'
         }
 

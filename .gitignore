@@ -133,3 +133,4 @@ THE_ONES_WHO_WALK_AWAY.md
 # MkDocs build output
 site/
 site_scripting_api/
+.env

@@ -148,6 +148,14 @@ class ScriptContext:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert context to JavaScript-compatible dict."""
+        # Build noodle API dict, wiring quantum to JS implementation
+        noodle_dict = {}
+        if self._noodle_api:
+            noodle_dict = self._noodle_api.to_dict()
+            # Override quantum with JavaScript-side __quantum__ object reference
+            # This tells the context to use the JS-native quantum implementation
+            noodle_dict['quantum'] = '__quantum__'
+
         return {
             'cycle': self.cycle,
             'timestamp': self.timestamp,
@@ -184,7 +192,7 @@ class ScriptContext:
             'nextCycle': '__next_cycle__',
             'setTimeout': '__set_timeout__',
             # Noodle API - System configuration
-            'noodle': self._noodle_api.to_dict() if self._noodle_api else {}
+            'noodle': noodle_dict
         }
 
 
@@ -371,6 +379,169 @@ class ScriptedFacet:
             __events__ = [];
             __action_queue__ = [];
         }
+
+        // ===========================================
+        // Quantum API - JavaScript implementation
+        // ===========================================
+        var __quantum_measurement_count__ = 0;
+        var __quantum_backend__ = 'simulator';
+
+        // High-entropy seed (will be overwritten from Python)
+        var __quantum_seed__ = Date.now() ^ (Math.random() * 0xFFFFFFFF);
+
+        // Simple quantum random using LCG with time-based seed
+        function __quantum_random__() {
+            __quantum_seed__ = (__quantum_seed__ * 1103515245 + 12345) & 0x7fffffff;
+            return __quantum_seed__ / 0x7fffffff;
+        }
+
+        var __quantum__ = {
+            measure_qubit: function(shots) {
+                shots = shots || 1;
+                __quantum_measurement_count__++;
+
+                if (shots === 1) {
+                    // Single measurement - definite outcome
+                    var prob = __quantum_random__();
+                    var result = prob < 0.5 ? 0 : 1;
+
+                    return {
+                        result: result,
+                        probability: prob,
+                        shots: 1,
+                        counts: {0: result === 0 ? 1 : 0, 1: result === 1 ? 1 : 0},
+                        measurement_id: 'qm_' + __quantum_measurement_count__,
+                        state: result === 0 ? '|0>' : '|1>'
+                    };
+                } else {
+                    // Multiple measurements - statistical distribution
+                    var counts = {0: 0, 1: 0};
+                    for (var i = 0; i < shots; i++) {
+                        var r = __quantum_random__() < 0.5 ? 0 : 1;
+                        counts[r]++;
+                    }
+
+                    var dominant = counts[0] >= counts[1] ? 0 : 1;
+
+                    return {
+                        result: dominant,
+                        probability: counts[0] / shots,
+                        shots: shots,
+                        counts: counts,
+                        measurement_id: 'qm_' + __quantum_measurement_count__,
+                        state: dominant === 0 ? '|0>' : '|1>'
+                    };
+                }
+            },
+
+            schrodingers_cat: function() {
+                var q = __quantum__.measure_qubit(1);
+                var is_alive = q.result === 0;
+
+                return {
+                    is_alive: is_alive,
+                    measurement: q.probability,
+                    state: q.state,
+                    outcome: is_alive ? 'alive' : 'ghost',
+                    cat_name: is_alive ? 'Schrodinger' : 'Quantum Whiskers',
+                    description: is_alive ?
+                        'The wavefunction collapsed to |0> - the cat is ALIVE! A joyful cartoon cat bounds out of the box!' :
+                        'The wavefunction collapsed to |1> - the cat is a GHOST! An adorable, glowing ghost-cat floats out of the box!',
+                    recipe: is_alive ? 'schrodinger_alive_cat' : 'schrodinger_ghost_cat',
+                    facet_assembly: is_alive ? 'schrodinger_alive_cat' : 'schrodinger_ghost_cat'
+                };
+            },
+
+            entangle: function(qubit_count) {
+                qubit_count = qubit_count || 2;
+
+                // All entangled qubits collapse together
+                var shared_result = __quantum_random__() < 0.5 ? 0 : 1;
+
+                var results = [];
+                var stateStr = '|';
+                for (var i = 0; i < qubit_count; i++) {
+                    results.push(shared_result);
+                    stateStr += shared_result;
+                }
+                stateStr += '>';
+
+                return {
+                    results: results,
+                    correlation: 1.0,
+                    state: stateStr,
+                    qubit_count: qubit_count,
+                    description: 'All ' + qubit_count + ' qubits collapsed to ' + shared_result +
+                                 ' - quantum entanglement maintains correlation!'
+                };
+            },
+
+            get_stats: function() {
+                return {
+                    measurement_count: __quantum_measurement_count__,
+                    backend: __quantum_backend__,
+                    has_ibm_key: false
+                };
+            },
+
+            set_backend: function(backend, api_key) {
+                __quantum_backend__ = backend;
+                // Note: IBM Quantum not yet supported in JavaScript sandbox
+            }
+        };
+
+        // Wire up context placeholders to actual JavaScript functions
+        function __wire_noodle_context__(ctx) {
+            // Wire up storage functions
+            if (ctx && ctx.storage) {
+                if (ctx.storage.get === '__storage_get__') {
+                    ctx.storage.get = __storage_get__;
+                }
+                if (ctx.storage.set === '__storage_set__') {
+                    ctx.storage.set = __storage_set__;
+                }
+                if (ctx.storage.clear === '__storage_clear__') {
+                    ctx.storage.clear = __storage_clear__;
+                }
+            }
+
+            // Wire up global functions
+            if (ctx.emit === '__emit__') ctx.emit = __emit__;
+            if (ctx.log === '__log__') ctx.log = __log__;
+            if (ctx.random === '__random__') ctx.random = __random__;
+            if (ctx.getFacet === '__get_facet__') ctx.getFacet = __get_facet__;
+            if (ctx.getFacetOutput === '__get_facet_output__') ctx.getFacetOutput = __get_facet_output__;
+
+            // Wire up execution event callbacks
+            if (ctx.onFacetComplete === '__on_facet_complete__') ctx.onFacetComplete = __on_facet_complete__;
+            if (ctx.onFacetStart === '__on_facet_start__') ctx.onFacetStart = __on_facet_start__;
+            if (ctx.onDataFlow === '__on_data_flow__') ctx.onDataFlow = __on_data_flow__;
+            if (ctx.onCycleStart === '__on_cycle_start__') ctx.onCycleStart = __on_cycle_start__;
+            if (ctx.onCycleComplete === '__on_cycle_complete__') ctx.onCycleComplete = __on_cycle_complete__;
+
+            // Wire up state access
+            if (ctx.getSelf === '__get_self__') ctx.getSelf = __get_self__;
+            if (ctx.getRoom === '__get_room__') ctx.getRoom = __get_room__;
+            if (ctx.getAgent === '__get_agent__') ctx.getAgent = __get_agent__;
+
+            // Wire up actions
+            if (ctx.speak === '__speak__') ctx.speak = __speak__;
+            if (ctx.emote === '__emote__') ctx.emote = __emote__;
+            if (ctx.think === '__think__') ctx.think = __think__;
+
+            // Wire up timers
+            if (ctx.nextCycle === '__next_cycle__') ctx.nextCycle = __next_cycle__;
+            if (ctx.setTimeout === '__set_timeout__') ctx.setTimeout = __set_timeout__;
+
+            // Wire up noodle.quantum to __quantum__ object
+            if (ctx && ctx.noodle) {
+                if (ctx.noodle.quantum === '__quantum__') {
+                    ctx.noodle.quantum = __quantum__;
+                }
+            }
+
+            return ctx;
+        }
         """
 
         self.js_context.eval(helper_lib)
@@ -446,7 +617,8 @@ class ScriptedFacet:
                     timeout=int(self.timeout * 1000)  # milliseconds
                 )
             else:  # QuickJS - use eval with JSON serialization
-                call_code = f"process({json.dumps(inputs)}, {json.dumps(context_js)})"
+                # Wire up noodle.quantum to actual __quantum__ object after JSON deserialization
+                call_code = f"process({json.dumps(inputs)}, __wire_noodle_context__({json.dumps(context_js)}))"
                 result_obj = self.js_context.eval(call_code)
                 # Convert QuickJS object to Python dict
                 if hasattr(result_obj, 'json'):
@@ -662,5 +834,54 @@ if __name__ == "__main__":
 
     print(f"\nLogs: {context2._logs}")
     print(f"Stats: {facet2.get_stats()}")
+
+    # Test 3: Quantum API
+    print("\n\nTest 3: Quantum API")
+    print("-" * 40)
+
+    QUANTUM_TEST_SCRIPT = """
+    function process(inputs, context) {
+        // Test qubit measurement
+        var q = context.noodle.quantum.measure_qubit();
+
+        // Test Schrodinger's cat
+        var cat = context.noodle.quantum.schrodingers_cat();
+
+        // Test entanglement
+        var ent = context.noodle.quantum.entangle(3);
+
+        // Test stats
+        var stats = context.noodle.quantum.get_stats();
+
+        return {
+            qubit_result: q.result,
+            qubit_state: q.state,
+            cat_alive: cat.is_alive,
+            cat_name: cat.cat_name,
+            entangled_state: ent.state,
+            entangled_correlation: ent.correlation,
+            measurement_count: stats.measurement_count
+        };
+    }
+    """
+
+    context3 = ScriptContext(
+        cycle=1,
+        timestamp=time.time(),
+        agent_id="agent_quantum",
+        agent_name="Quantum Test Agent",
+        agent_species="quantum"
+    )
+
+    facet3 = ScriptedFacet("quantum_test", QUANTUM_TEST_SCRIPT)
+
+    # Run quantum test
+    outputs = facet3.process({}, context3)
+    print(f"Qubit Result: {outputs['qubit_result']} ({outputs['qubit_state']})")
+    print(f"Cat Alive: {outputs['cat_alive']} (Name: {outputs['cat_name']})")
+    print(f"Entangled State: {outputs['entangled_state']} (Correlation: {outputs['entangled_correlation']})")
+    print(f"Total Measurements: {outputs['measurement_count']}")
+
+    print(f"\nStats: {facet3.get_stats()}")
 
     print("\n=== All tests complete ===")
