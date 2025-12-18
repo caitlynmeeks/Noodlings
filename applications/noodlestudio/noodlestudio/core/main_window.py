@@ -278,6 +278,16 @@ class MainWindow(QMainWindow):
         settings_menu.addSeparator()
         settings_menu.addAction(self._create_action("Entropy Service...", slot=self.show_rng_settings))
 
+        # ===== ACCOUNT MENU =====
+        account_menu = menu_bar.addMenu("&Account")
+        account_menu.addAction(self._create_action("Sign In...", slot=self.show_login_dialog))
+        account_menu.addAction(self._create_action("Account Info...", slot=self.show_account_info))
+        account_menu.addSeparator()
+        account_menu.addAction(self._create_action("My Noodlings (Cloud)", slot=self.show_cloud_noodlings))
+        account_menu.addAction(self._create_action("Buy Credits...", slot=self.show_buy_credits))
+        account_menu.addSeparator()
+        account_menu.addAction(self._create_action("Sign Out", slot=self.sign_out))
+
         # ===== HELP MENU =====
         help_menu = menu_bar.addMenu("&Help")
         help_menu.addAction(self._create_action("Scripting API Reference", "F1", slot=self.open_scripting_api))
@@ -298,22 +308,23 @@ class MainWindow(QMainWindow):
 
 
     def _setup_status_bar(self):
-        """Create status bar with server toggle."""
+        """Create status bar with server toggle and account status."""
         from PyQt6.QtWidgets import QLabel, QWidget, QHBoxLayout
         from ..widgets.toggle_switch import ToggleSwitch
+        from ..widgets.account_status_widget import AccountStatusWidget
 
         status_bar = self.statusBar()
+
+        # Account status (leftmost permanent widget)
+        self.account_status_widget = AccountStatusWidget()
+        self.account_status_widget.sign_in_clicked.connect(self.show_login_dialog)
+        status_bar.addPermanentWidget(self.account_status_widget)
 
         # Server status section (more prominent!)
         server_container = QWidget()
         server_layout = QHBoxLayout()
         server_layout.setContentsMargins(10, 0, 10, 0)
         server_layout.setSpacing(10)
-
-        # Server icon
-        server_icon = QLabel("🔌")
-        server_icon.setStyleSheet("font-size: 16px;")
-        server_layout.addWidget(server_icon)
 
         # Server status label
         self.server_status_label = QLabel("noodleMUSH Server:")
@@ -2124,6 +2135,96 @@ class MainWindow(QMainWindow):
             "About NoodleSTUDIO",
             about_text
         )
+
+    # ===== ACCOUNT METHODS =====
+
+    def show_login_dialog(self):
+        """Show the OAuth login dialog."""
+        from ..dialogs.login_dialog import LoginDialog
+        from .account_manager import AccountManager
+
+        if AccountManager.instance().is_logged_in:
+            # Already logged in, show account info instead
+            self.show_account_info()
+            return
+
+        dialog = LoginDialog(self)
+        dialog.login_successful.connect(self._on_login_successful)
+        dialog.exec()
+
+    def show_account_info(self):
+        """Show account information dialog."""
+        from ..dialogs.login_dialog import AccountInfoDialog
+        from .account_manager import AccountManager
+
+        if not AccountManager.instance().is_logged_in:
+            # Not logged in, show login dialog instead
+            self.show_login_dialog()
+            return
+
+        dialog = AccountInfoDialog(self)
+        dialog.exec()
+
+    def show_cloud_noodlings(self):
+        """Show cloud noodlings browser."""
+        from .account_manager import AccountManager
+
+        if not AccountManager.instance().is_logged_in:
+            QMessageBox.information(
+                self,
+                "Sign In Required",
+                "Please sign in to view your cloud Noodlings."
+            )
+            self.show_login_dialog()
+            return
+
+        # TODO: Implement cloud noodlings browser panel
+        QMessageBox.information(
+            self,
+            "Coming Soon",
+            "Cloud Noodlings browser coming soon!"
+        )
+
+    def show_buy_credits(self):
+        """Open credits purchase page."""
+        import webbrowser
+        from .account_manager import AccountManager
+
+        if not AccountManager.instance().is_logged_in:
+            QMessageBox.information(
+                self,
+                "Sign In Required",
+                "Please sign in to purchase credits."
+            )
+            self.show_login_dialog()
+            return
+
+        webbrowser.open("https://noodlings.ai/credits")
+
+    def sign_out(self):
+        """Sign out of cloud account."""
+        from .account_manager import AccountManager
+
+        if not AccountManager.instance().is_logged_in:
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Sign Out",
+            "Are you sure you want to sign out?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            AccountManager.instance().logout()
+            self.statusBar().showMessage("Signed out", 3000)
+
+    def _on_login_successful(self):
+        """Handle successful login."""
+        from .account_manager import AccountManager
+        user = AccountManager.instance().user
+        if user:
+            self.statusBar().showMessage(f"Signed in as {user.email}", 5000)
 
     def open_scripting_api(self):
         """Open Scripting API documentation in browser."""

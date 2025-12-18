@@ -137,3 +137,7 @@ site_scripting_api/
 
 # AI-generated content (user-specific, not in repo)
 applications/noodlestudio/library/Generations/
+
+# Backend API (separate private repo)
+# Managed as sister project at github.com/[your-org]/noodlings-api (private)
+backend/

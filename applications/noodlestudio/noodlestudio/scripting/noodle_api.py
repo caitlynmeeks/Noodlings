@@ -22,6 +22,7 @@ from .agents_api import AgentsAPI
 from .quantum_api import QuantumAPI
 from .audio_api import AudioAPI, get_audio_api
 from .vision_api import VisionAPI, get_vision_api
+from .cloud_api import CloudAPI, CloudAPIJS, get_cloud_api
 
 
 class NoodleAPI:
@@ -68,6 +69,7 @@ class NoodleAPI:
         self._quantum_api = QuantumAPI()
         self._audio_api = None  # Lazy init
         self._vision_api = None  # Lazy init
+        self._cloud_api = None  # Lazy init
 
         # Manager references (lazy initialization)
         self._model_label_manager = model_label_manager
@@ -231,6 +233,59 @@ class NoodleAPI:
         if self._vision_api is None:
             self._vision_api = get_vision_api()
         return self._vision_api
+
+    @property
+    def cloud(self) -> CloudAPIJS:
+        """
+        Access Cloud API.
+
+        Provides cloud account and storage integration for ScriptedFacets:
+        - User authentication state
+        - Credit balance checking
+        - Noodling cloud sync (save/load)
+        - Routed LLM generation (uses credits)
+        - Asset Store browsing
+
+        Note: Some operations (like generate) are async and use events.
+
+        Returns:
+            CloudAPIJS instance (JavaScript-friendly wrapper)
+
+        Example (JavaScript):
+            // Check if logged in
+            if (context.noodle.cloud.isAuthenticated()) {
+                var user = context.noodle.cloud.getUser();
+                context.log("Logged in as: " + user.email);
+                context.log("Credits: " + user.creditsBalance);
+            }
+
+            // Get credit balance
+            var balance = context.noodle.cloud.getCredits();
+
+            // Estimate LLM cost
+            var estimate = context.noodle.cloud.estimateCost({
+                model: "anthropic/claude-3-sonnet",
+                messages: [{role: "user", content: "Hello!"}]
+            });
+            context.log("Estimated cost: " + estimate.estimated_credits);
+
+            // List available models
+            var models = context.noodle.cloud.listModels();
+
+            // Save noodling to cloud
+            context.noodle.cloud.saveNoodling({
+                name: "my-noodling",
+                displayName: "My Noodling",
+                recipe: recipeYaml,
+                facetAssembly: assemblyYaml
+            });
+
+            // Browse public noodlings
+            var store = context.noodle.cloud.browseStore({tag: "fantasy"});
+        """
+        if self._cloud_api is None:
+            self._cloud_api = CloudAPIJS(get_cloud_api())
+        return self._cloud_api
 
     def get_by_uuid(self, uuid: str) -> Optional[Dict[str, Any]]:
         """
