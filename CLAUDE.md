@@ -8,48 +8,107 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
-## 🎯 NEXT SESSION: Backend & Account System Architecture
+## 🎯 NEXT SESSION: Project Architecture & Cloud Sync
 
-**Goal:** Design architecture for cloud backend and user accounts (Noodlings Asset Store model)
+**Goal:** Define exactly what a "project" is, formalize the data structure, and design local + cloud storage
 
-**Context:**
-- NoodleStudio is a desktop app (PyQt6)
-- noodleMUSH is the live world server (local or cloud)
-- Users will want to share facet assemblies, recipes, generations
-- Need accounts for the future Asset Store (think Unity Asset Store but for AI minds)
+### The Problem
+The current project system is placeholder-level. We need crystal-clear specifications for:
+1. What exactly constitutes a project
+2. How its parts are organized (folder structure)
+3. How to sync projects to the cloud backend
 
-**Questions to explore:**
-1. **Backend architecture** - What services are needed?
-   - User auth (email + magic link? OAuth?)
-   - Asset storage (S3? R2? Direct upload?)
-   - API gateway (FastAPI? Cloudflare Workers?)
-   - Database (Postgres? Supabase? PlanetScale?)
+### Current State (Incomplete)
 
-2. **Asset types to share:**
-   - Facet assemblies (.yaml)
-   - Recipes (Noodling definitions)
-   - CharmNetwork checkpoints (.npz)
-   - Neural Canvas topologies (.nncanvas)
-   - Generated images (from Generations folder)
-   - Scripts (JavaScript facet code)
+**project_manager.py** creates this structure:
+```
+MyProject/
+├── project.noodleproj      # JSON metadata
+├── .gitignore
+├── Assets/
+│   ├── Noodlings/          # Empty - not used
+│   ├── Ensembles/          # Empty - not used
+│   ├── Prims/              # Empty - not used
+│   ├── Scripts/            # Empty - not used
+│   └── Stages/             # Empty - not used
+├── Temp/
+└── Library/
+```
 
-3. **Account features:**
-   - Email collection (already via degoosification worker)
-   - Profile with avatar, bio
-   - Library of owned/published assets
-   - Usage tracking (API calls, generations)
+**But actual data lives elsewhere:**
+- `applications/cmush/world/` - agents.json, rooms.json, stages.json, chat_history.json
+- `applications/cmush/world/agents/agent_xxx/` - per-agent folders with history
+- `applications/cmush/recipes/` - YAML recipe files
+- `applications/noodlestudio/facet_assemblies/` - YAML facet assembly files
+- `applications/noodlestudio/library/noodlings/xxx/` - has recipe.yaml, assembly.yaml, metadata.json
+- `applications/noodlestudio/library/Generations/` - AI-generated images
 
-4. **Sync strategy:**
-   - Local-first (NoodleStudio stores everything locally)
-   - Opt-in cloud sync (upload to share, download from store)
-   - No required internet connection for basic use
+### Questions to Answer
 
-**Existing infrastructure:**
-- Cloudflare Worker: `degoosification-worker.caitsters.workers.dev` (email collection)
-- Domain: noodlings.ai (GitHub Pages, currently broken)
-- No database yet
+1. **What is a Project?**
+   - A world with stages, rooms, agents?
+   - Or just a collection of Noodlings?
+   - Or both?
 
-**Reference:** `ACCOUNT_SYSTEM_ROADMAP.md` (if exists)
+2. **What is a Noodling (precisely)?**
+   - recipe.yaml (character definition)
+   - assembly.yaml (facet topology)
+   - charm_weights.npz (trained neural network)
+   - metadata.json
+   - Reference assets (images, audio)?
+
+3. **What is a Stage?**
+   - A room/environment where Noodlings interact
+   - Has its own state, history, objects
+
+4. **Folder Structure Options:**
+   ```
+   Option A: Unity-style (current attempt)
+   MyProject/
+   ├── project.noodleproj
+   ├── Assets/
+   │   ├── Noodlings/noodling_name/
+   │   ├── Stages/stage_name/
+   │   └── Generations/
+   └── Library/  # Cache only
+
+   Option B: Flat with manifest
+   MyProject/
+   ├── manifest.json  # Lists all content
+   ├── noodlings/
+   ├── stages/
+   └── generations/
+   ```
+
+5. **Cloud Sync Strategy:**
+   - What uploads to R2? (full project? individual noodlings?)
+   - How to handle large files (charm weights, generations)?
+   - Versioning? Conflict resolution?
+
+### Backend Already Deployed
+
+**API:** `https://noodlings-api.caitsters.workers.dev`
+- D1 database (users, noodlings, assets, generations)
+- R2 storage (files)
+- KV sessions
+- OAuth (Google, GitHub working)
+- Stripe credits (configured)
+
+**Database schema already has:**
+- `noodlings` table (recipe_yaml, facet_assembly_yaml, charm_weights_r2_key)
+- `reference_assets` table (linked to noodlings)
+- `generations` table
+
+### Files to Review
+- `noodlestudio/core/project_manager.py` - Current implementation
+- `noodlestudio/core/main_window.py` - Menu actions (new/open/save)
+- `cmush/world/` - How noodleMUSH stores world state
+- `noodlestudio/library/noodlings/empty_noodling/` - Example noodling folder structure
+
+### Deliverables
+1. **Specification document** - Exact folder structure, file formats, naming conventions
+2. **Updated project_manager.py** - Actually implements the spec
+3. **Cloud sync design** - What syncs, when, how conflicts resolve
 
 ---
 
@@ -83,6 +142,19 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 ---
 
 ## ✅ COMPLETED (December 17, 2025)
+
+### Cloud Account System
+- **Backend deployed** at `noodlings-api.caitsters.workers.dev`
+  - Cloudflare Workers + D1 + R2 + KV
+  - OAuth providers: Google, GitHub (working)
+  - Stripe credits integration (configured)
+  - OpenRouter LLM routing (configured)
+- **NoodleStudio integration:**
+  - `account_manager.py` - Session handling, macOS keychain storage
+  - `login_dialog.py` - OAuth login with branded Google/GitHub buttons
+  - `cloud_api.py` - Scripting API (`context.noodle.cloud`)
+  - `account_status_widget.py` - Status bar (Sign In / name + Sign Out menu)
+- **Backend repo:** `github.com/caitlynmeeks/noodlings-api` (private)
 
 ### Generations Asset Storage
 - **GenerationsManager** for storing AI-generated content
