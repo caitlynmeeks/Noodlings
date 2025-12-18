@@ -8,42 +8,48 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
-## 🎯 NEXT SESSION: Multimodal Facets
+## 🎯 NEXT SESSION: Backend & Account System Architecture
 
-**Goal:** Maximum flexibility multimodal I/O with real-time focus
+**Goal:** Design architecture for cloud backend and user accounts (Noodlings Asset Store model)
 
-**Design decisions made:**
-- Auto-detect modality, optional explicit override
-- Model labels: VISION, AUDIO_IN, AUDIO_OUT, IMAGE_GEN, VIDEO_IN
-- Real-time streaming via WebSocket (~250ms chunks)
-- Hybrid memory: hot tokens → warm descriptions → cold storage
+**Context:**
+- NoodleStudio is a desktop app (PyQt6)
+- noodleMUSH is the live world server (local or cloud)
+- Users will want to share facet assemblies, recipes, generations
+- Need accounts for the future Asset Store (think Unity Asset Store but for AI minds)
 
-**Implementation order:**
-1. MultimodalFacet base class with modality detection
-2. Model Configurator multimodal tab (like text labels but for media)
-3. Audio streaming (mic → Whisper → TTS → speaker)
-4. Vision integration (camera/screenshot → Claude Vision)
-5. Image generation output (facet → Flux/DALL-E → display)
+**Questions to explore:**
+1. **Backend architecture** - What services are needed?
+   - User auth (email + magic link? OAuth?)
+   - Asset storage (S3? R2? Direct upload?)
+   - API gateway (FastAPI? Cloudflare Workers?)
+   - Database (Postgres? Supabase? PlanetScale?)
 
-**Architecture sketch:**
-```
-            ┌─────────────┐
-Mic Input → │ AudioBuffer │ → Whisper chunks → Text
-            └─────────────┘
-                  ↓
-            Facet Assembly (processes text)
-                  ↓
-            ┌─────────────┐
-Text Out →  │ TTS Stream  │ → Speaker
-            └─────────────┘
-```
+2. **Asset types to share:**
+   - Facet assemblies (.yaml)
+   - Recipes (Noodling definitions)
+   - CharmNetwork checkpoints (.npz)
+   - Neural Canvas topologies (.nncanvas)
+   - Generated images (from Generations folder)
+   - Scripts (JavaScript facet code)
 
-**Key question:** Where does real-time audio fit in facet execution cycle?
+3. **Account features:**
+   - Email collection (already via degoosification worker)
+   - Profile with avatar, bio
+   - Library of owned/published assets
+   - Usage tracking (API calls, generations)
 
-**Memory model:**
-- Hot context: Last 2-3 images stay as tokens
-- Warm references: Older images → text description + UUID + embedding
-- Cold storage: Full images on disk, retrievable by semantic similarity
+4. **Sync strategy:**
+   - Local-first (NoodleStudio stores everything locally)
+   - Opt-in cloud sync (upload to share, download from store)
+   - No required internet connection for basic use
+
+**Existing infrastructure:**
+- Cloudflare Worker: `degoosification-worker.caitsters.workers.dev` (email collection)
+- Domain: noodlings.ai (GitHub Pages, currently broken)
+- No database yet
+
+**Reference:** `ACCOUNT_SYSTEM_ROADMAP.md` (if exists)
 
 ---
 
@@ -77,6 +83,68 @@ Text Out →  │ TTS Stream  │ → Speaker
 ---
 
 ## ✅ COMPLETED (December 17, 2025)
+
+### Generations Asset Storage
+- **GenerationsManager** for storing AI-generated content
+- Storage: `library/Generations/Images/<YYYY-MM>/img_xxx.png`
+- Rich metadata with agent, prompt, style, emotional_signature
+- Auto-thumbnail generation (128x128)
+- Events: `generation_stored`, `generations_cleared`
+- AssetsPanel "Generations" category with source grouping
+- Context menu: View, Show in Folder, Copy Prompt, Delete
+
+### SubconsciousFacet Visual Mode
+- Can now generate actual images from symbolic text (haiku/metaphor)
+- Configure via prompt: `generate_visual:true,style:artistic,probability:0.3`
+- Emotion-aware prompts (valence -> lighting, arousal -> movement)
+- Auto-stores in Generations folder with full metadata
+- Event: `subconscious_imagery_generated`
+
+### Multimodal Facet System (Audio)
+- **Option C architecture:** Parallel subsystem with sync points (like Unity's FixedUpdate)
+- `MultimodalFacet` base class with modality auto-detection
+- `AudioStreamFacet` with full audio pipeline:
+  - Voice Activity Detection (VAD)
+  - Transcription buffering and chunking
+  - TTS queue with interrupt handling
+  - Events: `transcription_ready`, `speech_start`, `speech_end`, etc.
+- **Transcription clients:** Groq Whisper (fast), local faster-whisper (offline), OpenAI Whisper
+- **TTS clients:** ElevenLabs (quality), OpenAI TTS, local Piper (offline)
+- **WebSocket streaming:** Real-time mic input with browser JS client
+- **Scripting API:** `context.noodle.audio` with Unity-like interface
+  - Polling: `isListening`, `isSpeaking`, `lastTranscription`
+  - Control: `speak()`, `listen()`, `stopListening()`, `interrupt()`
+  - Config: `setVoice()`, `setSensitivity()`
+- **Model labels:** VISION, AUDIO_IN, AUDIO_OUT, IMAGE_GEN, VIDEO_IN added to ModelLabelManager
+- **Files:**
+  - `noodlestudio/core/multimodal_facet.py` - Base class
+  - `noodlestudio/core/audio_stream_facet.py` - Audio implementation
+  - `noodlestudio/core/transcription_clients.py` - Whisper clients
+  - `noodlestudio/core/tts_clients.py` - TTS clients
+  - `noodlestudio/core/audio_streaming.py` - WebSocket handler
+  - `noodlestudio/scripting/audio_api.py` - Scripting interface
+
+### Vision & Image Generation System
+- **VisionFacet** for image understanding:
+  - Claude Vision, GPT-4V, LLaVA (local via Ollama) backends
+  - Screenshot capture support
+  - Hybrid memory model: hot (full tokens) → warm (descriptions) → cold (disk)
+  - Semantic image search
+- **ImageGenFacet** for image output:
+  - DALL-E 3, Flux, Stable Diffusion backends
+  - Style presets: photorealistic, artistic, anime, cinematic, concept_art, fantasy, scifi
+  - Generation queue with callbacks
+- **Scripting API:** `context.noodle.vision` with Unity-like interface
+  - `analyze(path)` - analyze image
+  - `screenshot()` - capture and analyze screen
+  - `generate(prompt, style)` - create image
+  - `searchImages(query)` - search memory
+- **Files:**
+  - `noodlestudio/core/vision_clients.py` - Vision backends
+  - `noodlestudio/core/vision_facet.py` - Vision implementation
+  - `noodlestudio/core/image_gen_clients.py` - Generation backends
+  - `noodlestudio/core/image_gen_facet.py` - Generation implementation
+  - `noodlestudio/scripting/vision_api.py` - Scripting interface
 
 ### Real IBM Quantum Integration
 - QuantumAPI connects to IBM Quantum Platform (156-qubit ibm_fez etc.)
