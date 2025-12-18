@@ -36,6 +36,9 @@ from .flow_control_facets import (
     RateLimiterFacet, CacheFacet, AccumulatorFacet
 )
 from .execution_event_bus import get_event_bus, EventChannel, EventPriority
+from .audio_stream_facet import AudioStreamFacet
+from .vision_facet import VisionFacet
+from .image_gen_facet import ImageGenFacet
 
 logger = logging.getLogger(__name__)
 
@@ -289,6 +292,106 @@ class FacetExecutor:
                 self.singleton_facets[facet.id] = ConditionalBranchFacet(facet.id, condition, variables)
             return self.singleton_facets[facet.id]
 
+        elif facet.facet_type == "AudioStreamFacet":
+            # MULTIMODAL: Singleton with parallel processing loop
+            # Runs independently, syncs at cycle boundaries
+            if facet.id not in self.singleton_facets:
+                # Parse config from facet properties
+                sample_rate = int(facet.max_tokens) if facet.max_tokens > 8000 else 16000
+                chunk_ms = int(facet.temperature * 1000) if facet.temperature < 1 else 250
+
+                # Create facet with real clients
+                from .audio_stream_facet import create_audio_facet_with_clients
+                audio_facet = create_audio_facet_with_clients(
+                    facet_id=facet.id,
+                    process_interval_ms=chunk_ms,
+                    sample_rate=sample_rate,
+                    transcription_model=facet.model or "AUDIO_IN",
+                    tts_model="AUDIO_OUT"
+                )
+                self.singleton_facets[facet.id] = audio_facet
+                logger.info(f"[FacetExecutor] Created singleton AudioStreamFacet (id={facet.id[:8]})")
+
+                # Connect to audio API for scripting access
+                from ..scripting.audio_api import get_audio_api
+                audio_api = get_audio_api()
+                audio_api.set_audio_facet(audio_facet)
+
+                # Start the parallel processing loop
+                asyncio.create_task(audio_facet.start())
+                logger.info(f"[FacetExecutor] Started AudioStreamFacet processing loop")
+
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "VisionFacet":
+            # MULTIMODAL: Singleton for image understanding
+            if facet.id not in self.singleton_facets:
+                from .vision_facet import create_vision_facet_with_client
+                vision_facet = create_vision_facet_with_client(
+                    facet_id=facet.id,
+                    model_label=facet.model or "VISION"
+                )
+                self.singleton_facets[facet.id] = vision_facet
+                logger.info(f"[FacetExecutor] Created singleton VisionFacet (id={facet.id[:8]})")
+
+                # Connect to vision API for scripting access
+                from ..scripting.vision_api import get_vision_api
+                vision_api = get_vision_api()
+                vision_api.set_vision_facet(vision_facet)
+
+                # Start processing loop
+                asyncio.create_task(vision_facet.start())
+
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "ImageGenFacet":
+            # MULTIMODAL: Singleton for image generation
+            if facet.id not in self.singleton_facets:
+                from .image_gen_facet import create_image_gen_facet_with_client
+                gen_facet = create_image_gen_facet_with_client(
+                    facet_id=facet.id,
+                    model_label=facet.model or "IMAGE_GEN"
+                )
+                self.singleton_facets[facet.id] = gen_facet
+                logger.info(f"[FacetExecutor] Created singleton ImageGenFacet (id={facet.id[:8]})")
+
+                # Connect to vision API for scripting access
+                from ..scripting.vision_api import get_vision_api
+                vision_api = get_vision_api()
+                vision_api.set_image_gen_facet(gen_facet)
+
+                # Connect to GenerationsManager for asset storage
+                from .generations_manager import get_generations_manager
+                gen_manager = get_generations_manager()
+
+                # Subscribe to image_generated events for auto-storage
+                async def on_image_generated(event_data):
+                    """Store generated images in Generations folder."""
+                    try:
+                        # Get the image from facet cache
+                        last_image = gen_facet.get_last_image()
+                        if last_image and last_image.image_data:
+                            gen_manager.store_generation(
+                                image_data=last_image.image_data,
+                                metadata={
+                                    'source': 'facet',
+                                    'prompt': event_data.get('prompt', ''),
+                                    'style': event_data.get('style', ''),
+                                    'width': last_image.width,
+                                    'height': last_image.height
+                                }
+                            )
+                            logger.info("[FacetExecutor] Stored generated image via event")
+                    except Exception as e:
+                        logger.error(f"[FacetExecutor] Image storage error: {e}")
+
+                gen_facet.on('image_generated', on_image_generated)
+
+                # Start processing loop
+                asyncio.create_task(gen_facet.start())
+
+            return self.singleton_facets[facet.id]
+
         # STATELESS FACETS - Create fresh instance per execution
         elif facet.facet_type == "ContextIntelligenceFacet":
             # ISOLATED: Fresh instance prevents contamination between cycles
@@ -306,7 +409,47 @@ class FacetExecutor:
 
         elif facet.facet_type == "SubconsciousFacet":
             # ISOLATED: Generates metaphors from inputs (no state)
-            return SubconsciousFacet(facet.id)
+            # But connects to ImageGenFacet for visual generation
+
+            # Parse visual generation settings from facet prompt
+            # Format: "generate_visual:true,style:artistic,probability:0.3"
+            generate_visual = False
+            visual_style = "artistic"
+            visual_probability = 0.3
+
+            if facet.prompt:
+                for part in facet.prompt.split(','):
+                    if ':' in part:
+                        key, value = part.strip().split(':', 1)
+                        if key == 'generate_visual':
+                            generate_visual = value.lower() == 'true'
+                        elif key == 'style':
+                            visual_style = value
+                        elif key == 'probability':
+                            try:
+                                visual_probability = float(value)
+                            except ValueError:
+                                pass
+
+            instance = SubconsciousFacet(
+                facet.id,
+                generate_visual=generate_visual,
+                visual_style=visual_style,
+                visual_probability=visual_probability
+            )
+
+            # Connect to ImageGenFacet if available
+            for key, singleton in self.singleton_facets.items():
+                if isinstance(singleton, ImageGenFacet):
+                    instance.set_image_gen_facet(singleton)
+                    logger.info(f"[FacetExecutor] Connected SubconsciousFacet to ImageGenFacet")
+                    break
+
+            # Connect to GenerationsManager
+            from .generations_manager import get_generations_manager
+            instance.set_generations_manager(get_generations_manager())
+
+            return instance
 
         elif facet.facet_type == "InsightEmergenceFacet":
             # ISOLATED: Surfaces insights from context (no state)
@@ -319,6 +462,21 @@ class FacetExecutor:
         else:
             # Default: LLM facet (will call LLM in execute)
             return None
+
+    def _facet_type_to_phase(self, facet_type: str, facet_name: str) -> str:
+        """Map facet type to cognitive phase for UI display."""
+        if facet_name == "INCOMING":
+            return "INCOMING"
+        elif facet_name == "OUTGOING":
+            return "OUTGOING"
+        elif facet_type == "CharmNetworkFacet":
+            return "NEURAL"
+        elif facet_type == "ContextIntelligenceFacet":
+            return "PRECOG"
+        elif facet_type in ("ConvergenceFacet", "SpeechGateFacet"):
+            return "POSTCOG"
+        else:
+            return "FACET"
 
     async def _execute_facet(
         self,
@@ -339,8 +497,30 @@ class FacetExecutor:
         """
         start_time = time.time()
 
-        # Emit facet_start event
-        print(f"[FacetExecutor] 🚀 EMITTING facet_start for {facet.name} (id={facet.id})")
+        # Update agent reference for real-time NoodleStudio visualization
+        agent_ref = context.get('_agent_ref')
+        if agent_ref is not None:
+            agent_ref.current_facet = facet.name
+            agent_ref.current_phase = self._facet_type_to_phase(facet.facet_type, facet.name)
+
+        # Emit facet_start event (include inputs for debugging/inspection)
+        execution_id = context.get('execution_id', '')
+        print(f"[FacetExecutor] 🚀 EMITTING facet_start for {facet.name} (id={facet.id}, exec={execution_id[:8]})")
+
+        # Sanitize inputs for JSON serialization (truncate large strings, handle non-serializable types)
+        sanitized_inputs = {}
+        for key, value in inputs.items():
+            if isinstance(value, str):
+                # Truncate long strings for event payload
+                sanitized_inputs[key] = value[:500] + '...' if len(value) > 500 else value
+            elif isinstance(value, (int, float, bool, type(None))):
+                sanitized_inputs[key] = value
+            elif isinstance(value, (list, tuple)):
+                # Truncate long lists
+                sanitized_inputs[key] = list(value)[:10] if len(value) > 10 else list(value)
+            else:
+                sanitized_inputs[key] = str(value)[:200]
+
         await self._emit_event({
             'type': 'facet_execution',
             'subtype': 'facet_start',
@@ -348,7 +528,9 @@ class FacetExecutor:
             'facet_name': facet.name,
             'facet_type': facet.facet_type,
             'timestamp': start_time,
-            'cycle': self.current_cycle
+            'cycle': self.current_cycle,
+            'execution_id': execution_id,
+            'inputs': sanitized_inputs  # Include inputs for inspection
         })
 
         # Get or create instance (hybrid strategy: singleton or isolated)
@@ -381,7 +563,7 @@ class FacetExecutor:
             outputs = {
                 'affect_valence': result.valence,
                 'affect_arousal': result.arousal,
-                'affect_fear': result.fear,
+                'affect_dominance': result.dominance,
                 'affect_sorrow': result.sorrow,
                 'affect_boredom': result.boredom,
                 'surprise': result.surprise,
@@ -447,6 +629,92 @@ class FacetExecutor:
             outputs = instance.process(inputs, context)
             token_count = 0
 
+        elif facet.facet_type == "AudioStreamFacet":
+            # MULTIMODAL: Sync with parallel audio processing
+            # Get pending commands from audio API
+            from ..scripting.audio_api import get_audio_api
+            audio_api = get_audio_api()
+            commands = audio_api.get_pending_commands()
+
+            # Merge with cycle inputs (e.g., text to speak from other facets)
+            cycle_data = {**inputs, **commands}
+
+            # Add any speak request from facet inputs
+            speak_text = inputs.get('speak', inputs.get('text_to_speak'))
+            if speak_text:
+                cycle_data['speak'] = speak_text
+
+            # Sync with audio facet
+            sync_result = await instance.sync(cycle_data)
+
+            # Update audio API state
+            audio_api.update_from_facet(sync_result)
+
+            # Map outputs
+            outputs = {
+                'transcription': sync_result.get('transcription', ''),
+                'is_speaking': sync_result.get('is_speaking', False),
+                'is_listening': sync_result.get('is_listening', False),
+                'state': sync_result.get('state', 'IDLE')
+            }
+            token_count = 0
+
+        elif facet.facet_type == "VisionFacet":
+            # MULTIMODAL: Sync with vision processing
+            from ..scripting.vision_api import get_vision_api
+            vision_api = get_vision_api()
+            commands = vision_api.get_pending_commands()
+
+            # Merge with cycle inputs
+            cycle_data = {**inputs, **commands}
+
+            # Check for image analysis request from facet inputs
+            image_path = inputs.get('analyze', inputs.get('image_path'))
+            if image_path:
+                cycle_data['analyze_image'] = image_path
+
+            # Sync with vision facet
+            sync_result = await instance.sync(cycle_data)
+
+            # Update vision API state
+            vision_api.update_from_vision_facet(sync_result)
+
+            # Map outputs
+            outputs = {
+                'description': sync_result.get('last_description', ''),
+                'hot_count': sync_result.get('hot_count', 0),
+                'warm_count': sync_result.get('warm_count', 0)
+            }
+            token_count = 0
+
+        elif facet.facet_type == "ImageGenFacet":
+            # MULTIMODAL: Sync with image generation
+            from ..scripting.vision_api import get_vision_api
+            vision_api = get_vision_api()
+            commands = vision_api.get_pending_commands()
+
+            # Merge with cycle inputs
+            cycle_data = {**inputs, **commands}
+
+            # Check for generation request from facet inputs
+            gen_prompt = inputs.get('generate', inputs.get('prompt'))
+            if gen_prompt:
+                cycle_data['generate'] = gen_prompt
+
+            # Sync with generation facet
+            sync_result = await instance.sync(cycle_data)
+
+            # Update vision API state
+            vision_api.update_from_gen_facet(sync_result)
+
+            # Map outputs
+            outputs = {
+                'is_generating': sync_result.get('is_generating', False),
+                'queue_size': sync_result.get('queue_size', 0),
+                'images_generated': sync_result.get('images_generated', 0)
+            }
+            token_count = 0
+
         else:
             # Default: LLM facet
             if self.llm_client is None:
@@ -482,7 +750,7 @@ class FacetExecutor:
                     agent_state = context['_agent_state']
                     affect = agent_state.get('affect', {})
 
-                    # Handle both list/array format [valence, arousal, fear, sorrow, boredom]
+                    # Handle both list/array format [valence, arousal, dominance, sorrow, boredom]
                     # and dict format {'valence': 0.5, 'arousal': 0.5, ...}
                     if isinstance(affect, (list, tuple)) or hasattr(affect, '__iter__'):
                         # Convert list/array to dict
@@ -490,14 +758,14 @@ class FacetExecutor:
                         affect_dict = {
                             'valence': affect_list[0] if len(affect_list) > 0 else 0.0,
                             'arousal': affect_list[1] if len(affect_list) > 1 else 0.0,
-                            'fear': affect_list[2] if len(affect_list) > 2 else 0.0,
+                            'dominance': affect_list[2] if len(affect_list) > 2 else 0.0,
                             'sorrow': affect_list[3] if len(affect_list) > 3 else 0.0,
                             'boredom': affect_list[4] if len(affect_list) > 4 else 0.0
                         }
                         format_vars['affect'] = affect_dict
                         format_vars['valence'] = affect_dict['valence']
                         format_vars['arousal'] = affect_dict['arousal']
-                        format_vars['dominance'] = 0.0  # Not in 5D affect
+                        format_vars['dominance'] = affect_dict['dominance']
                         format_vars['sorrow'] = affect_dict['sorrow']
                         format_vars['boredom'] = affect_dict['boredom']
                     else:
@@ -519,13 +787,44 @@ class FacetExecutor:
 
                 # Call LLM with facet parameters (use generate_with_tokens for tracking)
                 print(f"[FacetExecutor] 📞 Calling LLM for {facet.name} (model={facet.model}, temp={facet.temperature}, max_tokens={facet.max_tokens})")
-                response_text, token_count = await self.llm_client.generate_with_tokens(
-                    prompt=formatted_prompt,
-                    system_prompt="You are a cognitive facet in an AI consciousness architecture.",
-                    model=facet.model if facet.model else None,
-                    temperature=facet.temperature,
-                    max_tokens=facet.max_tokens
-                )
+
+                # Track activity for ambient visualization
+                from .model_activity_tracker import get_model_activity_tracker
+                activity_tracker = get_model_activity_tracker()
+                model_label = facet.model if facet.model else "MEDIUM"
+                request_id = activity_tracker.request_started(model_label)
+                llm_token_count = 0
+
+                # Update agent with LLM status for NoodleStudio visualization
+                if agent_ref is not None:
+                    agent_ref.current_model_label = model_label
+                    agent_ref.current_llm_status = "QUERYING"
+
+                try:
+                    # Update status to awaiting response
+                    if agent_ref is not None:
+                        agent_ref.current_llm_status = "AWAITING_RESPONSE"
+
+                    response_text, llm_token_count = await self.llm_client.generate_with_tokens(
+                        prompt=formatted_prompt,
+                        system_prompt="You are a cognitive facet in an AI consciousness architecture.",
+                        model=facet.model if facet.model else None,
+                        temperature=facet.temperature,
+                        max_tokens=facet.max_tokens
+                    )
+                    token_count = llm_token_count
+
+                    # Clear LLM status on success
+                    if agent_ref is not None:
+                        agent_ref.current_llm_status = ""
+                except Exception as e:
+                    # Mark error status
+                    if agent_ref is not None:
+                        agent_ref.current_llm_status = "ERROR"
+                    raise
+                finally:
+                    # Always mark request as completed
+                    activity_tracker.request_completed(model_label, request_id, llm_token_count)
 
                 # Map response to output pads
                 # Use first output pad name if defined, otherwise 'out'
@@ -584,6 +883,7 @@ class FacetExecutor:
             'facet_type': facet.facet_type,
             'timestamp': time.time(),
             'cycle': self.current_cycle,
+            'execution_id': execution_id,
             'execution_time': elapsed,
             'token_count': token_count,
             'outputs': outputs
@@ -638,7 +938,7 @@ class FacetExecutor:
             script_inputs = {
                 'affect_valence': float(inputs.get('affect_valence', 0)),
                 'affect_arousal': float(inputs.get('affect_arousal', 0)),
-                'affect_fear': float(inputs.get('affect_fear', 0)),
+                'affect_dominance': float(inputs.get('affect_dominance', 0)),
                 'affect_sorrow': float(inputs.get('affect_sorrow', 0)),
                 'affect_boredom': float(inputs.get('affect_boredom', 0)),
                 'phenomenal_state': inputs.get('phenomenal_state', []),
@@ -754,12 +1054,13 @@ class FacetExecutor:
         logger.info(f"[FacetExecutor] 🆔 Execution ID: {execution_id[:8]} (mode={self.concurrency_mode})")
 
         # Emit cycle_start event
-        print(f"[FacetExecutor] 🎯 EXECUTING ASSEMBLY: '{assembly.name}' with {len(assembly.facets)} facets")
+        print(f"[FacetExecutor] 🎯 EXECUTING ASSEMBLY: '{assembly.name}' with {len(assembly.facets)} facets (exec={execution_id[:8]})")
         print(f"[FacetExecutor]    Facet names: {[f.name for f in assembly.facets]}")
         await self._emit_event({
             'type': 'facet_execution',
             'subtype': 'cycle_start',
             'cycle': self.current_cycle,
+            'execution_id': execution_id,
             'timestamp': start_time,
             'assembly_name': assembly.name
         })
@@ -994,6 +1295,7 @@ class FacetExecutor:
             'type': 'facet_execution',
             'subtype': 'cycle_complete',
             'cycle': self.current_cycle,
+            'execution_id': execution_id,
             'timestamp': time.time(),
             'duration': elapsed,
             'total_tokens': total_tokens,

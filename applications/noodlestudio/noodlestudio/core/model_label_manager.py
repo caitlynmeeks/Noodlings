@@ -40,16 +40,32 @@ class ModelLabelManager(QObject):
     def _ensure_defaults(self):
         """Ensure default labels exist with DeepSeek R1 models on Ollama."""
         defaults = {
+            # Text generation tiers
             "Small": ("ollama", "deepseek-r1:7b"),
             "Medium": ("ollama", "deepseek-r1:14b"),
-            "Large": ("ollama", "deepseek-r1:70b")
+            "Large": ("ollama", "deepseek-r1:70b"),
+
+            # Multimodal labels (unassigned by default - user configures)
+            # VISION: Image understanding (Claude Vision, GPT-4V, LLaVA)
+            # AUDIO_IN: Speech-to-text (Whisper, Groq Whisper)
+            # AUDIO_OUT: Text-to-speech (ElevenLabs, OpenAI TTS, local)
+            # IMAGE_GEN: Image generation (Flux, DALL-E, Stable Diffusion)
+            # VIDEO_IN: Video understanding (future)
         }
+
+        # Multimodal labels - created unassigned so user can configure
+        multimodal_labels = ["VISION", "AUDIO_IN", "AUDIO_OUT", "IMAGE_GEN", "VIDEO_IN"]
 
         # Only set if not already configured
         for label, (provider, model) in defaults.items():
             existing = self.get_model_for_label(label)
             if not existing or not existing[0]:  # No provider set
                 self.set_model_for_label(label, provider, model, emit_signal=False)
+
+        # Create multimodal labels (unassigned - user configures in Model Manager)
+        for label in multimodal_labels:
+            if label not in self.get_all_labels():
+                self.create_label(label)
 
     def get_model_for_label(self, label: str) -> Tuple[Optional[str], Optional[str]]:
         """
@@ -97,7 +113,7 @@ class ModelLabelManager(QObject):
             model_name: Model name (e.g., "deepseek-r1:7b", "claude-sonnet-4.5")
             emit_signal: Whether to emit mappingsChanged signal
         """
-        print(f"DEBUG set_model_for_label: label='{label}', provider='{provider_id}', model='{model_name}'")
+        # print(f"DEBUG set_model_for_label: label='{label}', provider='{provider_id}', model='{model_name}'")
 
         # Store unassigned labels with special marker (so they appear in get_all_labels)
         if provider_id is None or model_name is None:
@@ -107,14 +123,14 @@ class ModelLabelManager(QObject):
             # Store as JSON
             data = {"provider": provider_id, "model": model_name}
             json_str = json.dumps(data)
-            print(f"DEBUG: Storing JSON: {json_str}")
+            # print(f"DEBUG: Storing JSON: {json_str}")
             self.settings.setValue(f"labels/{label}", json_str)
 
         self.settings.sync()
 
         # Verify what was actually saved
         saved = self.settings.value(f"labels/{label}")
-        print(f"DEBUG: Read back from settings: {saved}")
+        # print(f"DEBUG: Read back from settings: {saved}")
 
         if emit_signal:
             self.mappingsChanged.emit()
@@ -133,10 +149,10 @@ class ModelLabelManager(QObject):
         for label in self.get_all_labels():
             p, m = self.get_model_for_label(label)
             if p == provider_id and m == model_name:
-                print(f"DEBUG get_label_for_model: {provider_id}/{model_name} -> '{label}'")
+                # print(f"DEBUG get_label_for_model: {provider_id}/{model_name} -> '{label}'")
                 return label
 
-        print(f"DEBUG get_label_for_model: {provider_id}/{model_name} -> None (not found)")
+        # print(f"DEBUG get_label_for_model: {provider_id}/{model_name} -> None (not found)")
         return None
 
     def get_all_labels(self) -> List[str]:

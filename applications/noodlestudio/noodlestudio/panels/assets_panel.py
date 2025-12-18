@@ -1,8 +1,12 @@
 """
-Assets Panel - Shows all project assets (Noodlings, Ensembles, Prims, Scripts).
+Assets Panel - Shows all project assets (Noodlings, Ensembles, Prims, Scripts, Generations).
 
 Organizes assets by type with expandable categories.
 Right-click context menus for asset management (to be implemented).
+
+Generations:
+AI-generated content (images from subconscious, scripted facets, etc.)
+is automatically organized in the Generations category with thumbnails.
 """
 
 from PyQt6.QtWidgets import (
@@ -10,7 +14,7 @@ from PyQt6.QtWidgets import (
     QMenu, QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QIcon, QPixmap
 import os
 import json
 
@@ -22,6 +26,7 @@ class AssetsPanel(QWidget):
     Categories:
     - Noodlings (individual agents)
     - Ensembles (groups of agents)
+    - Generations (AI-generated content)
     - Prims (3D objects/props)
     - Scripts (behavior scripts)
     - Stages (saved scenes)
@@ -29,14 +34,23 @@ class AssetsPanel(QWidget):
 
     assetSelected = pyqtSignal(str, str)  # (asset_type, asset_name)
     agentRezzed = pyqtSignal(str)  # Signal when agent is rezzed (triggers hierarchy refresh)
+    generationSelected = pyqtSignal(str, dict)  # (gen_id, metadata)
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.project_manager = None  # Will be set by main window
+        self._generations_manager = None
 
         self._setup_ui()
         self._load_assets()
+
+    def set_generations_manager(self, manager):
+        """Connect to GenerationsManager for AI-generated content."""
+        self._generations_manager = manager
+        # Subscribe to new generations
+        manager.on('generation_stored', self._on_generation_stored)
+        self._load_generations()
 
     def _setup_ui(self):
         """Build UI components."""
@@ -100,6 +114,9 @@ class AssetsPanel(QWidget):
 
         self.ensembles_node = QTreeWidgetItem(self.tree, ["Ensembles"])
         self.ensembles_node.setExpanded(True)
+
+        self.generations_node = QTreeWidgetItem(self.tree, ["Generations"])
+        self.generations_node.setExpanded(True)
 
         self.prims_node = QTreeWidgetItem(self.tree, ["Prims"])
         self.prims_node.setExpanded(False)
@@ -165,6 +182,9 @@ class AssetsPanel(QWidget):
         placeholder_stages = QTreeWidgetItem(self.stages_node, ["(Coming soon)"])
         placeholder_stages.setForeground(0, Qt.GlobalColor.gray)
 
+        # Load Generations if manager is available
+        self._load_generations()
+
     def _on_item_clicked(self, item, column):
         """Handle item click."""
         data = item.data(0, Qt.ItemDataRole.UserRole)
@@ -185,6 +205,11 @@ class AssetsPanel(QWidget):
         data = item.data(0, Qt.ItemDataRole.UserRole)
         if not data:
             # Clicked on category header
+            return
+
+        # Handle generation items (3-tuple with dict)
+        if len(data) == 3 and data[0] == "generation":
+            self._show_generation_context_menu(item, position)
             return
 
         # Handle both 2-tuple and 3-tuple data formats
@@ -587,3 +612,203 @@ class AssetsPanel(QWidget):
     def refresh(self):
         """Refresh the asset list."""
         self._load_assets()
+
+    # ========== Generations ==========
+
+    def _load_generations(self):
+        """Load AI-generated content into the Generations category."""
+        if not hasattr(self, 'generations_node'):
+            return
+
+        # Clear existing generation items
+        while self.generations_node.childCount() > 0:
+            self.generations_node.takeChild(0)
+
+        if not self._generations_manager:
+            placeholder = QTreeWidgetItem(self.generations_node, ["(No generations yet)"])
+            placeholder.setForeground(0, Qt.GlobalColor.gray)
+            return
+
+        # Get recent generations (grouped by source)
+        generations = self._generations_manager.get_recent(50)
+
+        if not generations:
+            placeholder = QTreeWidgetItem(self.generations_node, ["(No generations yet)"])
+            placeholder.setForeground(0, Qt.GlobalColor.gray)
+            return
+
+        # Group by source
+        by_source = {}
+        for gen in generations:
+            source = gen.source or 'unknown'
+            if source not in by_source:
+                by_source[source] = []
+            by_source[source].append(gen)
+
+        # Create source folders
+        source_display = {
+            'subconscious': 'Subconscious Dreams',
+            'scripted': 'Scripted Facets',
+            'manual': 'Manual Generations',
+            'unknown': 'Other'
+        }
+
+        for source, gens in by_source.items():
+            display_name = source_display.get(source, source.title())
+            source_node = QTreeWidgetItem(
+                self.generations_node,
+                [f"{display_name} ({len(gens)})"]
+            )
+            source_node.setExpanded(True)
+
+            # Add individual generations
+            for gen in gens:
+                # Format display name
+                if gen.agent:
+                    display = f"{gen.agent}: {gen.prompt[:30]}..."
+                else:
+                    display = f"{gen.prompt[:40]}..."
+
+                item = QTreeWidgetItem(source_node, [display])
+                item.setData(0, Qt.ItemDataRole.UserRole, ("generation", gen.id, gen.to_dict()))
+                item.setToolTip(0, f"{gen.prompt}\n\nCreated: {gen.created_at}\nStyle: {gen.style}")
+
+                # Add thumbnail if available
+                if gen.thumbnail_path and os.path.exists(gen.thumbnail_path):
+                    try:
+                        pixmap = QPixmap(gen.thumbnail_path)
+                        if not pixmap.isNull():
+                            item.setIcon(0, QIcon(pixmap.scaled(
+                                24, 24,
+                                Qt.AspectRatioMode.KeepAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation
+                            )))
+                    except Exception:
+                        pass
+
+        # Update count in header
+        total = len(generations)
+        self.generations_node.setText(0, f"Generations ({total})")
+
+    def _on_generation_stored(self, data: dict):
+        """Handle new generation stored event."""
+        # Refresh the generations list
+        self._load_generations()
+
+    def _show_generation_context_menu(self, item, position):
+        """Show context menu for generation item."""
+        data = item.data(0, Qt.ItemDataRole.UserRole)
+        if not data or data[0] != "generation":
+            return
+
+        gen_id = data[1]
+        metadata = data[2]
+
+        menu = QMenu(self)
+
+        # View action
+        view_action = QAction("View Image", self)
+        view_action.triggered.connect(lambda: self._view_generation(gen_id, metadata))
+        menu.addAction(view_action)
+
+        # Open in folder
+        open_folder_action = QAction("Show in Folder", self)
+        open_folder_action.triggered.connect(lambda: self._open_generation_folder(metadata))
+        menu.addAction(open_folder_action)
+
+        menu.addSeparator()
+
+        # Copy prompt
+        copy_prompt_action = QAction("Copy Prompt", self)
+        copy_prompt_action.triggered.connect(lambda: self._copy_generation_prompt(metadata))
+        menu.addAction(copy_prompt_action)
+
+        # Details
+        details_action = QAction("View Details...", self)
+        details_action.triggered.connect(lambda: self._view_generation_details(metadata))
+        menu.addAction(details_action)
+
+        menu.addSeparator()
+
+        # Delete
+        delete_action = QAction("Delete", self)
+        delete_action.triggered.connect(lambda: self._delete_generation(gen_id))
+        menu.addAction(delete_action)
+
+        menu.exec(self.tree.viewport().mapToGlobal(position))
+
+    def _view_generation(self, gen_id: str, metadata: dict):
+        """Open generation image in default viewer."""
+        filepath = metadata.get('filepath', '')
+        if filepath and os.path.exists(filepath):
+            import subprocess
+            import sys
+            if sys.platform == 'darwin':
+                subprocess.run(['open', filepath])
+            elif sys.platform == 'win32':
+                os.startfile(filepath)
+            else:
+                subprocess.run(['xdg-open', filepath])
+        else:
+            QMessageBox.warning(self, "Not Found", "Image file not found.")
+
+    def _open_generation_folder(self, metadata: dict):
+        """Open containing folder in file manager."""
+        filepath = metadata.get('filepath', '')
+        if filepath:
+            folder = os.path.dirname(filepath)
+            if os.path.exists(folder):
+                import subprocess
+                import sys
+                if sys.platform == 'darwin':
+                    subprocess.run(['open', folder])
+                elif sys.platform == 'win32':
+                    os.startfile(folder)
+                else:
+                    subprocess.run(['xdg-open', folder])
+
+    def _copy_generation_prompt(self, metadata: dict):
+        """Copy prompt to clipboard."""
+        from PyQt6.QtWidgets import QApplication
+        prompt = metadata.get('prompt', '')
+        if prompt:
+            QApplication.clipboard().setText(prompt)
+
+    def _view_generation_details(self, metadata: dict):
+        """Show generation details dialog."""
+        details = f"ID: {metadata.get('id', 'unknown')}\n"
+        details += f"Source: {metadata.get('source', 'unknown')}\n"
+        details += f"Agent: {metadata.get('agent', 'none')}\n"
+        details += f"Created: {metadata.get('created_at', 'unknown')}\n\n"
+        details += f"Prompt:\n{metadata.get('prompt', 'none')}\n\n"
+        details += f"Style: {metadata.get('style', 'none')}\n"
+        details += f"Size: {metadata.get('width', 0)}x{metadata.get('height', 0)}\n\n"
+
+        if metadata.get('symbolic_text'):
+            details += f"Symbolic Text:\n{metadata.get('symbolic_text')}\n\n"
+
+        if metadata.get('emotional_signature'):
+            sig = metadata['emotional_signature']
+            details += "Emotional Signature:\n"
+            for k, v in sig.items():
+                details += f"  {k}: {v:.2f}\n"
+
+        QMessageBox.information(self, "Generation Details", details)
+
+    def _delete_generation(self, gen_id: str):
+        """Delete a generation."""
+        if not self._generations_manager:
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Delete Generation",
+            "Are you sure you want to delete this generation?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            if self._generations_manager.delete_generation(gen_id):
+                self._load_generations()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to delete generation.")

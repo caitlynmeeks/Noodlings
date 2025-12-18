@@ -20,6 +20,8 @@ from .models_api import ModelsAPI
 from .neural_api import NeuralAPI
 from .agents_api import AgentsAPI
 from .quantum_api import QuantumAPI
+from .audio_api import AudioAPI, get_audio_api
+from .vision_api import VisionAPI, get_vision_api
 
 
 class NoodleAPI:
@@ -64,6 +66,8 @@ class NoodleAPI:
         self._neural_api = NeuralAPI()
         self._agents_api = AgentsAPI()
         self._quantum_api = QuantumAPI()
+        self._audio_api = None  # Lazy init
+        self._vision_api = None  # Lazy init
 
         # Manager references (lazy initialization)
         self._model_label_manager = model_label_manager
@@ -157,6 +161,77 @@ class NoodleAPI:
         """
         return self._quantum_api
 
+    @property
+    def audio(self) -> AudioAPI:
+        """
+        Access Audio API.
+
+        Provides real-time audio I/O for ScriptedFacets:
+        - Speech-to-text transcription (Whisper)
+        - Text-to-speech synthesis (ElevenLabs, etc.)
+        - Voice activity detection
+        - Interrupt handling
+
+        Returns:
+            AudioAPI instance
+
+        Example (JavaScript):
+            // Speak text
+            context.noodle.audio.speak("Hello there!");
+
+            // Check state
+            if (context.noodle.audio.isSpeaking) {
+                context.log("Currently speaking...");
+            }
+
+            // Get transcription
+            var text = context.noodle.audio.lastTranscription;
+
+            // Start listening
+            context.noodle.audio.listen();
+
+            // Event subscription (in salience script)
+            context.noodle.audio.onTranscriptionReady((text) => {
+                context.log("User said: " + text);
+            });
+        """
+        if self._audio_api is None:
+            self._audio_api = get_audio_api()
+        return self._audio_api
+
+    @property
+    def vision(self) -> VisionAPI:
+        """
+        Access Vision API.
+
+        Provides image understanding and generation for ScriptedFacets:
+        - Image analysis (Claude Vision, GPT-4V, LLaVA)
+        - Screenshot capture
+        - Image generation (DALL-E, Flux, Stable Diffusion)
+        - Image memory with hybrid storage
+        - Semantic image search
+
+        Returns:
+            VisionAPI instance
+
+        Example (JavaScript):
+            // Analyze an image
+            var result = context.noodle.vision.analyze("/path/to/image.png");
+            context.log("I see: " + result.description);
+
+            // Generate an image
+            context.noodle.vision.generate("a sunset over mountains", "artistic");
+
+            // Search image memory
+            var cats = context.noodle.vision.searchImages("cat");
+
+            // Capture screenshot
+            var screen = context.noodle.vision.screenshot();
+        """
+        if self._vision_api is None:
+            self._vision_api = get_vision_api()
+        return self._vision_api
+
     def get_by_uuid(self, uuid: str) -> Optional[Dict[str, Any]]:
         """
         Get any entity by UUID (future enhancement).
@@ -198,6 +273,8 @@ class NoodleAPI:
             'neural': self.neural.to_dict(),
             'agents': self.agents.to_dict(),
             'quantum': self.quantum.to_dict(),
+            'audio': self.audio.to_dict(),
+            'vision': self.vision.to_dict(),
             'get_by_uuid': '__noodle_get_by_uuid__'
         }
 

@@ -24,6 +24,7 @@ from ..panels.console_panel import ConsolePanel
 from ..panels.assets_panel import AssetsPanel
 from ..panels.noodle_tuner_panel import NoodleTunerPanel
 from ..panels.settings_panel import SettingsPanel
+from ..panels.cognitive_cycles_panel import CognitiveCyclesPanel
 from .theme import DARK_THEME
 from .unity_theme import UNITY_DARK_THEME
 from .layout_manager import LayoutManager
@@ -87,6 +88,18 @@ class MainWindow(QMainWindow):
 
         # Show RNG status on startup
         QTimer.singleShot(500, self.show_startup_rng_status)
+
+        # Start cmush activity bridge for LLM visualization
+        QTimer.singleShot(600, self._start_activity_bridge)
+
+    def _start_activity_bridge(self):
+        """Start the cmush activity bridge for real-time LLM activity visualization."""
+        try:
+            from .model_activity_tracker import start_activity_bridge
+            self._activity_bridge = start_activity_bridge()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to start activity bridge: {e}")
 
     def _setup_ui(self):
         """Build UI components."""
@@ -417,6 +430,10 @@ class MainWindow(QMainWindow):
         self.assets.project_manager = self.project_manager
         self.assets.agentRezzed.connect(self.hierarchy.refresh_scene)
 
+        # Connect GenerationsManager for AI-generated asset storage
+        from .generations_manager import get_generations_manager
+        self.assets.set_generations_manager(get_generations_manager())
+
         left_tabs.addTab(self.hierarchy, "Stage")
         left_tabs.addTab(self.assets, "Assets")
 
@@ -645,6 +662,10 @@ class MainWindow(QMainWindow):
 
         bottom_tabs.addTab(self.console, "Console")
         bottom_tabs.addTab(self.profiler_panel, "Timeline Profiler")
+
+        # Cognitive Cycles panel - real-time agent cycle monitoring
+        self.cognitive_cycles = CognitiveCyclesPanel(None)
+        bottom_tabs.addTab(self.cognitive_cycles, "Cognitive Cycles")
 
         # Create horizontal splitter for left | center | right
         top_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -1131,7 +1152,7 @@ class MainWindow(QMainWindow):
             )
 
     def create_empty_noodling(self):
-        """Create an empty Noodling with default settings (via Create menu)."""
+        """Create an empty Noodling using the library template (via Create menu)."""
         from PyQt6.QtWidgets import QInputDialog
 
         name, ok = QInputDialog.getText(
@@ -1142,28 +1163,42 @@ class MainWindow(QMainWindow):
         )
 
         if ok and name:
-            # Default settings for empty Noodling
-            default_settings = {
-                'name': name,
-                'species': 'noodling',
-                'personality': {
-                    'extraversion': 0.5,
-                    'curiosity': 0.5,
-                    'impulsivity': 0.5,
-                    'emotional_volatility': 0.5
-                },
-                'llm_provider': 'local',
-                'llm_model': 'qwen/qwen3-4b-2507'
-            }
-
-            QMessageBox.information(
-                self,
-                "Create Noodling",
-                f"Creating empty Noodling: {name}\n\n"
-                f"Default personality: balanced (0.5)\n"
-                f"Species: noodling\n\n"
-                f"(API integration not yet implemented)"
-            )
+            try:
+                import requests
+                # Uses empty_noodling recipe which references library/empty_noodling template
+                response = requests.post(
+                    'http://localhost:8081/api/agents',
+                    json={
+                        'name': name,
+                        'species': 'noodling',
+                        'pronouns': 'they/them'
+                    },
+                    timeout=5
+                )
+                if response.status_code == 200:
+                    QMessageBox.information(
+                        self,
+                        "Noodling Rezzed",
+                        f"Rezzed: {name}\n\n"
+                        f"Template: library/empty_noodling (gingerbread foundation)\n"
+                        f"Personality: Curious, bewildered, harmless\n"
+                        f"Species: noodling"
+                    )
+                    # Refresh scene hierarchy if available
+                    if hasattr(self, 'scene_hierarchy') and self.scene_hierarchy:
+                        self.scene_hierarchy.refresh_scene()
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Rez Failed",
+                        f"Could not rez {name}:\n{response.text}"
+                    )
+            except Exception as e:
+                QMessageBox.warning(
+                    self,
+                    "Rez Failed",
+                    f"Could not rez {name}:\n{str(e)}\n\nIs the server running?"
+                )
 
     def create_specialized_noodling(self, species: str):
         """Create a specialized Noodling with species-specific defaults."""
@@ -1966,35 +2001,53 @@ class MainWindow(QMainWindow):
 
                 # Check if agent has facet_assembly reference
                 # entity_data structure: {'type': 'noodling', 'id': 'agent_xxx', 'data': {full agent data including config}}
+                # facet_assembly may be at: entity_data['data']['facet_assembly'], entity_data['facet_assembly'],
+                # or entity_data['data']['config']['facet_assembly']
                 agent_full_data = entity_data.get('data', {})
-                config = agent_full_data.get('config', {})
-                facet_assembly_config = config.get('facet_assembly')
 
-                assembly_filename = None
+                # Try multiple locations where facet_assembly might be
+                facet_assembly_config = (
+                    entity_data.get('facet_assembly') or
+                    agent_full_data.get('facet_assembly') or
+                    agent_full_data.get('config', {}).get('facet_assembly')
+                )
+
+                ref = None
                 if facet_assembly_config:
                     # Handle both string and dict formats
                     if isinstance(facet_assembly_config, str):
                         ref = facet_assembly_config
                     elif isinstance(facet_assembly_config, dict):
                         ref = facet_assembly_config.get('ref')
-                    else:
-                        ref = None
 
                     if ref:
-                        assembly_filename = f"{ref}.yaml"
-                        print(f"[Facets Editor] Loading assembly from ref: {assembly_filename}")
+                        print(f"[Facets Editor] Loading assembly from ref: {ref}")
 
                 # Fallback to default if no reference
-                if not assembly_filename:
-                    assembly_filename = "anklebiter_default.yaml"
-                    print(f"[Facets Editor] No assembly ref, using default: {assembly_filename}")
+                if not ref:
+                    ref = "library/empty_noodling"
+                    print(f"[Facets Editor] No assembly ref, using default: {ref}")
 
-                # Build path to assembly file (up to noodlestudio/ then into facet_assemblies/)
-                assembly_path = os.path.join(
-                    os.path.dirname(__file__),
-                    '../../facet_assemblies',
-                    assembly_filename
-                )
+                # Resolve assembly path - handle library/ prefix
+                noodlestudio_dir = os.path.join(os.path.dirname(__file__), '../..')
+
+                if ref.startswith('library/'):
+                    # Library template: library/empty_noodling -> library/noodlings/empty_noodling/assembly.yaml
+                    template_name = ref.replace('library/', '')
+                    assembly_path = os.path.join(
+                        noodlestudio_dir,
+                        'library/noodlings',
+                        template_name,
+                        'assembly.yaml'
+                    )
+                    print(f"[Facets Editor] Loading library template: {template_name}")
+                else:
+                    # Standard facet assembly
+                    assembly_path = os.path.join(
+                        noodlestudio_dir,
+                        'facet_assemblies',
+                        f'{ref}.yaml'
+                    )
                 print(f"[Facets Editor] Looking for assembly at: {assembly_path}")
 
                 if os.path.exists(assembly_path):

@@ -134,3 +134,6 @@ THE_ONES_WHO_WALK_AWAY.md
 site/
 site_scripting_api/
 .env
+
+# AI-generated content (user-specific, not in repo)
+applications/noodlestudio/library/Generations/
