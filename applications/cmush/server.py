@@ -23,7 +23,7 @@ from pathlib import Path
 import sys
 import os
 
-# Add consilience_core to path
+# Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../'))
 
 from world import World
@@ -33,7 +33,6 @@ from agent_bridge import AgentManager
 from llm_interface import OpenAICompatibleLLM
 from session_profiler import SessionProfiler
 from kimmie_character import KimmieCharacter
-from api_server import NoodleScopeAPI
 from recipe_loader import RecipeLoader
 from script_manager import ScriptManager
 from entropy_service import initialize_entropy_service
@@ -236,11 +235,9 @@ class CMUSHServer:
         self.affect_broadcast_interval = 2.0  # Broadcast every 2 seconds
         self.affect_broadcast_task = None
 
-        # NoodleScope 2.0 components
+        # Profiler and interpretation components
         self.session_profiler = None
         self.kimmie = None
-        self.api_server = None
-        self.api_runner = None
 
     async def initialize_async_components(self):
         """Initialize async components (LLM, agents)."""
@@ -345,7 +342,7 @@ class CMUSHServer:
             script_manager=self.script_manager  # Pass script_manager
         )
 
-        # Initialize NoodleScope 2.0 components
+        # Initialize session profiler
         session_id = f"cmush_session_{int(asyncio.get_event_loop().time())}"
         self.session_profiler = SessionProfiler(session_id=session_id)
 
@@ -354,17 +351,6 @@ class CMUSHServer:
             llm_base_url=provider_config.get('api_base', 'http://localhost:11434/v1'),
             llm_model=provider_config.get('model', 'SMALL'),
             session_profiler=self.session_profiler
-        )
-
-        # Initialize NoodleScope API server
-        self.api_server = NoodleScopeAPI(
-            session_profiler=self.session_profiler,
-            kimmie=self.kimmie,
-            config=self.config,  # Pass config for LLM config UI
-            agent_manager=self.agent_manager,  # Pass agent manager for agent list
-            server=self,  # Pass server instance for shutdown control
-            host='0.0.0.0',
-            port=8081
         )
 
         # Wire profiler into agent manager
@@ -462,7 +448,7 @@ class CMUSHServer:
         """Load all agents from world state."""
         for agent_id, agent_data in self.world.get_all_agents().items():
             # Get checkpoint path - use default if not specified
-            checkpoint_path = agent_data.get('checkpoint_path', '../../consilience_core/checkpoints_phase4/best_checkpoint.npz')
+            checkpoint_path = agent_data.get('checkpoint_path', '../../models/checkpoints/best_checkpoint.npz')
             current_room = agent_data.get('current_room', 'room_000')
             config = agent_data.get('config', {})
 
@@ -499,12 +485,6 @@ class CMUSHServer:
                 if recipe.affective_reinforcement:
                     config['affective_reinforcement'] = recipe.affective_reinforcement
                     logger.info(f"[LOAD] Loaded affective_reinforcement for {agent_id}: {recipe.affective_reinforcement}")
-
-                # Phase 7: Reload cognitive_components from recipe
-                # Critical: Ensures cognitive manifold transistors are initialized
-                if recipe.cognitive_components:
-                    config['cognitive_components'] = recipe.cognitive_components
-                    logger.info(f"[LOAD] Loaded cognitive_components for {agent_id}: {list(recipe.cognitive_components.keys())}")
 
                 logger.info(f"[LOAD] Reloaded recipe for {agent_id}: species={recipe.species}")
 
@@ -545,6 +525,17 @@ class CMUSHServer:
                     config=config
                 )
                 logger.info(f"Loaded agent: {agent_id}")
+
+                # Scene Protocol: sync agent to noodling for perception system
+                if SCENE_PROTOCOL_AVAILABLE:
+                    sync_agent_to_noodling(
+                        agent_data={
+                            'name': agent_name,
+                            'species': config.get('species', 'unknown'),
+                        },
+                        agent_id=agent_id,
+                        room_id=current_room
+                    )
             except Exception as e:
                 logger.error(f"Error loading agent {agent_id}: {e}")
 
@@ -582,6 +573,17 @@ class CMUSHServer:
                             user_id = response['user_id']
                             session_token = response['session_token']
                             self.connections[websocket] = user_id
+
+                            # Scene Protocol: sync player to scene
+                            if SCENE_PROTOCOL_AVAILABLE:
+                                user = self.world.get_user(user_id)
+                                if user:
+                                    room_id = user.get('current_room', 'room_000')
+                                    sync_player_to_scene(
+                                        player_id=user_id,
+                                        player_name=data['username'],
+                                        room_id=room_id
+                                    )
 
                             # Send chat history first
                             for history_entry in self.chat_history:
@@ -1148,6 +1150,31 @@ class CMUSHServer:
         except Exception as e:
             logger.debug(f"[SemanticWorld] Event logging failed (non-fatal): {e}")
 
+        # Scene Protocol: sync events to SceneStateManager
+        if SCENE_PROTOCOL_AVAILABLE:
+            try:
+                if event_type == 'say':
+                    # Record dialogue for perception slices
+                    scene_record_dialogue(user_id, text, tone="neutral")
+                elif event_type == 'enter':
+                    # Player/agent entered room - update their zone
+                    if user_id.startswith('agent_'):
+                        agent_data = self.world.get_user(user_id)
+                        if agent_data:
+                            sync_agent_to_noodling(
+                                agent_data={'name': username, 'species': agent_data.get('species', 'unknown')},
+                                agent_id=user_id,
+                                room_id=room_id
+                            )
+                    else:
+                        sync_player_to_scene(
+                            player_id=user_id,
+                            player_name=username,
+                            room_id=room_id
+                        )
+            except Exception as e:
+                logger.debug(f"[SceneProtocol] Event sync failed (non-fatal): {e}")
+
         # Extract model name from metadata (for debugging model routing)
         model_used = metadata.get('model_used', '')
         model_suffix = f' [{model_used}]' if model_used else ''
@@ -1365,11 +1392,6 @@ class CMUSHServer:
         # Start affect state broadcasting task
         self.affect_broadcast_task = asyncio.create_task(self.affect_broadcast_loop())
 
-        # Start NoodleScope API server
-        if self.api_server:
-            self.api_runner = await self.api_server.start()
-            logger.info("NoodleScope 2.0 API server started on port 8081")
-
         # Start WebSocket server
         host = self.config['server']['host']
         port = self.config['server']['port']
@@ -1380,7 +1402,6 @@ class CMUSHServer:
             logger.info("cMUSH server ready!")
             logger.info(f"World: {self.world.get_stats()}")
             logger.info(f"Agents: {len(self.agent_manager.agents)}")
-            logger.info("📊 NoodleScope 2.0 UI: http://localhost:8081/noodlescope")
             await asyncio.Future()  # Run forever
 
     async def graceful_shutdown(self, delay: int = 5):
@@ -1439,11 +1460,6 @@ class CMUSHServer:
         # Save everything (stop cognition on shutdown)
         self.world.save_all()
         await self.agent_manager.save_all_agents(stop_cognition=True)
-
-        # Cleanup NoodleScope API server
-        if self.api_runner:
-            await self.api_runner.cleanup()
-            logger.info("NoodleScope API server stopped")
 
         # Close LLM session
         if self.llm:

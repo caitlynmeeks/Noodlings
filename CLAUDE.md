@@ -2,135 +2,129 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: December 18, 2025
+**Last Updated**: December 19, 2025
 
 **FOR NEXT CLAUDE: START HERE!**
 
 ---
 
-## 🎯 NEXT SESSION: Wire Scene Protocol to Server
+## 🎯 NEXT SESSION: Neural Canvas Tutorials
 
-**Goal:** Connect the Scene Protocol system to the live server so facets receive perception-filtered context.
+### Task: Test & Implement Neural Canvas Tutorials
+- Test Scene Protocol wiring (verify perception slices work)
+- Review tutorial spec: `/docs/NEURAL_CANVAS_TUTORIALS.md`
+- Implement missing nodes identified in spec
+- Build first tutorial: Logic Gates with Neural Nodes
 
-### The Problem
-
-We have a complete Scene Protocol implementation (`semantic_world/`) but it's not wired into the actual server. Facets still receive raw context instead of perception-filtered slices.
-
-### What Needs to Be Done
-
-**1. Initialize SceneStateManager in server.py**
-
-```python
-from noodlestudio.core.semantic_world import SceneStateManager, SceneEmitter
-
-# In server initialization
-self.scene_manager = SceneStateManager()
-self.scene_emitter = SceneEmitter(self.scene_manager)
-```
-
-**2. Sync World State to Scene Manager**
-
-When agents/props move or change, update the scene manager:
-```python
-# When agent moves
-self.scene_manager.update_entity_position(agent_id, x, y, z)
-
-# When agent speaks
-self.scene_manager.add_dialogue(speaker_id, text, volume="normal")
-```
-
-**3. Generate Perception Slices for Facets**
-
-Before facet execution, build the perception slice:
-```python
-# In cognitive cycle
-perception_slice = self.scene_manager.get_perception_slice(agent_id)
-context["perception"] = perception_slice.to_dict()
-```
-
-**4. Emit Scene Packets via WebSocket**
-
-For connected renderers (future Genie/Mirage):
-```python
-# After state changes
-await self.scene_emitter.emit_delta()  # Only changed entities
-```
-
-### Key Files
-
-| File | Changes |
-|------|---------|
-| `applications/cmush/server.py` | Initialize scene manager, sync state |
-| `applications/cmush/cognitive_components.py` | Pass perception slice to facets |
-| `noodlestudio/core/semantic_world/scene_state_manager.py` | Already complete |
-| `noodlestudio/core/semantic_world/scene_emitter.py` | Already complete |
-
-### Testing
-
-```bash
-# Verify perception filtering works
-curl http://localhost:8081/api/scene/perception/red_fire_anklebiter
-
-# Should return only what Red can see/hear from her position
-```
+### Reference
+- 10 tutorials across 5 progressive levels
+- Missing nodes prioritized in spec
+- Implementation phases documented
 
 ---
 
-## ✅ COMPLETED This Session (December 18, 2025)
+## ✅ COMPLETED (December 19, 2025)
 
-### Spatial Operations REST API
+### Scene Protocol Wiring to Server - DONE!
+**Task:** Integrate Scene Protocol with cMUSH server for perception-filtered context
 
-Full HTTP API for programmatic control of transforms, materials, and metadata.
+**Files Modified:**
+- `server.py` - Added agent/player sync, dialogue recording, movement tracking
+- `scene_protocol_integration.py` - Fixed Zone constructor (ZoneBounds), added imports
+- `agent_cognition.py` - Added SCENE_PROTOCOL_AVAILABLE import for mixin
 
-**New REST Endpoints** (in `api_server.py`):
+**What Was Wired:**
+1. **Agent sync on load** (`server.py:529-538`)
+   - After `agent_manager.create_agent()`, calls `sync_agent_to_noodling()`
+   - Each agent appears in SceneStateManager with name, species, room
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/entities/{id}/transform` | GET | Get position/rotation/scale |
-| `/api/entities/{id}/transform` | POST | Set full transform |
-| `/api/entities/{id}/transform` | PATCH | Update specific fields |
-| `/api/materials` | GET | List all 17 material presets |
-| `/api/entities/{id}/material` | POST | Apply material preset |
-| `/api/entities/{id}/physics` | PATCH | Set mass/friction/elasticity/softness |
-| `/api/entities/{id}/properties` | GET | Get all custom metadata |
-| `/api/entities/{id}/properties/{key}` | POST | Set metadata key |
-| `/api/entities/{id}/properties/{key}` | DELETE | Remove metadata key |
-| `/api/entities/batch/transform` | POST | Batch update transforms |
+2. **Player sync on login** (`server.py:577-586`)
+   - After successful login, calls `sync_player_to_scene()`
+   - Players tracked in SceneStateManager with their room
 
-**New WorldAPI Methods** (in `world_api.py`):
+3. **Dialogue recording** (`server.py:1156-1158`)
+   - All `say` events call `scene_record_dialogue()`
+   - Builds narrative context for perception slices
 
-```javascript
-// In ScriptedFacet (JavaScript):
-context.noodle.world.setPosition("radio", 10, 0, 5);
-context.noodle.world.setRotation("radio", 0, 90, 0);
-context.noodle.world.setScale("radio", 2, 2, 2);
-context.noodle.world.setMaterial("radio", "metal");
-context.noodle.world.setPhysics("radio", {mass: "heavy", friction: "high"});
-context.noodle.world.setProperty("radio", "is_playing", true);
-var isPlaying = context.noodle.world.getProperty("radio", "is_playing");
-var transform = context.noodle.world.getTransform("radio");
+4. **Movement sync** (`server.py:1159-1174`)
+   - `enter` events update zone for both agents and players
+   - Keeps SceneStateManager synchronized with world state
+
+**Data Flow:**
+```
+World Events → broadcast_event() → SceneStateManager
+                                          ↓
+                          generate_perception_slice(agent_id)
+                                          ↓
+                      Facet Assembly (via prepare_facet_context)
 ```
 
-**WebSocket Broadcast**: Transform changes are broadcast to all connected clients as `transform_update` messages.
+**Already Wired (discovered during investigation):**
+- Facet execution wiring (`agent_cognition.py`, `agent_perception.py`)
+- PROJECT_PATH env var (`main_window.py:358-360`)
+- AssetsPanel structure (loads Noodlings/Stages/Prims/Generations)
+- scene_hierarchy.py → Stages/Instances loading
+- project_bridge.py - Complete bridge from new format to legacy World
 
-**Files Changed**:
-- `applications/cmush/api_server.py` - New endpoints (lines 2022-2550)
-- `noodlestudio/scripting/world_api.py` - New methods (lines 770-910)
+### Codebase Cleanup & Rebranding
+- **Consilience → Noodlings**: Renamed all classes and references
+  - `CMUSHConsilienceAgent` → `CMUSHNoodlingAgent`
+  - `ConsilienceAgentWithObservers` → `NoodlingAgentWithObservers`
+  - Updated imports, docstrings, comments throughout
+- **consciousness → charm**: Updated user-facing terminology
+  - "hierarchical affective consciousness" → "hierarchical affective charm"
+  - Disclaimer: "We explore functional correlates, not metaphysical claims"
+- **Author lines**: "Consilience Project" → "Caitlyn Meeks"
+- **Checkpoint paths**: `consilience_core/checkpoints_phase4/` → `models/checkpoints/`
+  - Copied `best.npz` from old location to new
+  - Updated 14 files with new paths
+- **Removed dead code**:
+  - Deleted 2 backup files
+  - Removed `consilience_core` sys.path inserts
+  - Cleaned up `.gitignore` (removed KINDLED_TERMINOLOGY.md)
+- **Fixed hardcoded paths**: `launch_with_log.sh` now uses relative paths
+- **Production code prints**: Already clean (only test blocks remain)
 
-### Scene Hierarchy Bug Fixes
-- **UUID read-only** - ID field in Inspector is now immutable (gray, non-editable)
-- **Auto-select new items** - Creating props/noodlings/zones auto-selects them and shows in Inspector
-- **Context menu fix** - Props/Instances/Zones now have correct menus (Delete, Duplicate) instead of Expand/Collapse
-- **Crash fix** - Fixed crash when clicking wrong menu option on props
+### Mixin Extraction - Mega-file Refactoring
+- **agent_bridge.py**: 5,168 → 2,592 lines (50% reduction)
+  - `agent_perception.py` (1,211 lines) - perceive_event, cognitive gate
+  - `agent_response.py` (728 lines) - response generation, conscience
+  - `agent_cognition.py` (490 lines) - cognition loop, intuition
+  - `agent_state.py` (317 lines) - state persistence
+- **commands.py**: 5,402 → 4,220 lines (22% reduction)
+  - `brenda_commands.py` (1,235 lines) - BRENDA natural language system
+- Pattern: Python mixin classes via multiple inheritance
+- Updated ARCHITECTURE.md with new structure
 
-### Project-Only Mode
-- **Removed legacy mode** - No project open = "No project open" message (no more cmush/world fallback)
-- **No popup dialogs** - Creating entities auto-generates names: "New Prop", "New Prop (2)", etc.
-- **UUID identifiers** - Props/Instances use real UUIDs for folder names, human-readable names in YAML
+---
 
-### Files Changed
-- `noodlestudio/panels/scene_hierarchy.py` - Major refactoring
-- `noodlestudio/panels/inspector_panel.py` - Read-only UUID, physics properties section
+## ✅ COMPLETED (December 18, 2025)
+
+### Major Cleanup: Transistor System Removal (~3,800 lines)
+- Deleted `cognitive_components.py` (2,989 lines)
+- Cleaned `agent_bridge.py` (6,028 → 5,260 lines)
+- Cleaned `api_server.py` (2,629 → 2,392 lines)
+- Removed all transistor API endpoints and methods
+- Deleted 5 transistor test files, 3 legacy demo scripts
+- Deleted obsolete `model_manager_panel.py`, `claude_client.py`, `claude_chat.py`, `claude_interact.py`
+- Fixed 33 bare `except:` clauses across 7 files
+- **Facets are now the only cognitive architecture**
+
+### Spatial Operations REST API
+- Transform endpoints: GET/POST/PATCH `/api/entities/{id}/transform`
+- Material endpoint: POST `/api/entities/{id}/material`
+- Physics endpoint: PATCH `/api/entities/{id}/physics`
+- Metadata endpoints: GET/POST/DELETE `/api/entities/{id}/properties/{key}`
+- Batch transforms: POST `/api/entities/batch/transform`
+- WorldAPI scripting methods for ScriptedFacets
+- WebSocket broadcast for transform updates
+
+### Scene Hierarchy & Project System
+- UUID field now read-only in Inspector
+- Auto-select new items on creation
+- Fixed context menus for Props/Instances/Zones
+- Removed legacy mode (project-only now)
+- Auto-generated names for new entities
 
 ---
 
@@ -309,22 +303,6 @@ MyProject/
 - `noodlestudio/core/project_migrator.py` - New (~500 lines)
 - `noodlestudio/core/main_window.py` - Updated menus and methods
 - `PROJECT_SPEC.md` - New spec document (~700 lines)
-
----
-
-## 🚨 URGENT ISSUES
-
-### 1. noodlings.ai Homepage Broken
-**Problem:** Website loads forever (beachballing in Chrome)
-
-**What should show:**
-- Black background with Noodlings mascot logo
-- "Multi-Timescale Affective Agents with Theatrical Control" tagline
-- "Documentation" and "Read Whitepaper" buttons
-
-**Current state:** gh-pages branch has correct index.html locally, but noodlings.ai serves broken/loading page
-
-**Fix needed:** Debug why gh-pages isn't serving correctly
 
 ---
 
@@ -687,9 +665,8 @@ Think: Dr. Bronner's soap or Craigslist - eccentric, brilliant, one person's vis
 ## 🎯 For Fresh Claude
 
 **Your mission:**
-1. **Read `NEURAL_CANVAS_TUTORIALS.md`** - Full spec for tutorial system
-2. Start with Phase 1: Logic gate tutorials (AND, OR, XOR)
-3. Implement missing nodes: `NUMBER_INPUT`, `THRESHOLD_OUTPUT`
+1. **Wire Scene Protocol to server.py** - See NEXT SESSION above
+2. Initialize SceneStateManager, sync world state, generate perception slices
 
 **Current State:**
 - ✅ Multi-provider model system (8 providers)
@@ -702,8 +679,10 @@ Think: Dr. Bronner's soap or Craigslist - eccentric, brilliant, one person's vis
 - ✅ Schrodinger's Cat with actual quantum collapse
 - ✅ Spatial Operations REST API (transforms, materials, physics, metadata)
 - ✅ Scene Protocol (perception slices, scene packets, emitters)
+- ✅ Codebase rebranded: Consilience → Noodlings, consciousness → charm
+- ✅ Checkpoints moved to `models/checkpoints/best_checkpoint.npz`
 - ⏳ Wire Scene Protocol to server (next task)
-- ⏳ Homepage fix needed
+- ⏳ Wire project structure to server
 
 **Key Scriptability API Files:**
 - `noodlestudio/scripting/noodle_api.py` - Main API

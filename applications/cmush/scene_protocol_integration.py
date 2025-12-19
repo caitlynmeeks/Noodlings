@@ -28,6 +28,7 @@ try:
         SceneStateManager,
         Vector3,
         Zone,
+        ZoneBounds,
         Noodling,
         Player,
         Prim,
@@ -98,13 +99,18 @@ def sync_room_to_zone(room_data: Dict[str, Any], room_id: str):
     if not _scene_state_manager:
         return
 
-    # Create zone from room
+    # Create zone from room with new Zone structure
+    bounds = ZoneBounds(
+        shape='circle',
+        radius=20.0,
+        perception_radius=25.0,
+        perception_falloff=10.0,
+    )
     zone = Zone(
         id=room_id,
         name=room_data.get('name', room_id),
-        center=Vector3(0, 0, 0),  # Default center
-        radius=20.0,  # Default radius
-        falloff=10.0,
+        world_position=Vector3(0, 0, 0),  # Default position
+        bounds=bounds,
         description=room_data.get('description', ''),
         features=room_data.get('features', []),
         mood=room_data.get('mood', 'neutral'),
