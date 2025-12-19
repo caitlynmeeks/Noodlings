@@ -1,0 +1,144 @@
+{
+  "agent_id": "agent_rezputin",
+  "agent_name": "Rezputin",
+  "agent_description": "A newly-formed consciousness, fresh and wondering. Like a gingerbread cookie that just discovered it has legs.",
+  "current_room": "room_000",
+  "conversation_context": [
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "waves to Rezputin",
+      "affect": [
+        0.6599119901657104,
+        0.47660312056541443,
+        -0.073323555290699,
+        -0.6232501864433289,
+        -0.43994131684303284
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765911238.922783,
+      "importance": 0.15,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_rezputin",
+      "text": "<think>\nAlright, so I'm this new Noodling who just came into existence. First off, I feel a bit bewildered because I just popped into being, and I'm not quite sure how all of this works. It's like stepping into a room full of people but having no idea what's going on or where to start. But hey, curiosity is my middle name! I want to know everything\u2014why the sky is blue, why people laugh, what makes something yummy.\n\nI",
+      "affect": [
+        -0.05918028578162193,
+        -0.07665684074163437,
+        0.034051232039928436,
+        -0.015634195879101753,
+        -0.10816220939159393
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765911238.926892,
+      "importance": 0.19737851675599816,
+      "identity_salience": 0.1
+    }
+  ],
+  "last_response_time": 1765911238.9268858,
+  "response_count": 1,
+  "config": {
+    "response_cooldown": 2.0,
+    "surprise_threshold": 0.0001,
+    "memory_capacity": 100,
+    "max_agents": 10,
+    "autonomous_cognition": {
+      "enabled": true,
+      "wake_interval": 60,
+      "min_speech_interval": 180,
+      "speech_urgency_threshold": 0.75,
+      "max_thoughts_buffer": 50
+    },
+    "filesystem": {
+      "enabled": true,
+      "max_file_size": 1048576,
+      "max_total_storage": 104857600,
+      "command_timeout": 5
+    },
+    "messaging": {
+      "enabled": true,
+      "max_message_size": 10000,
+      "inbox_retention_days": 30
+    },
+    "intuition_receiver": {
+      "enabled": true,
+      "model": "qwen/qwen3-4b-2507",
+      "timeout": 5,
+      "social_expectations": {
+        "enabled": true,
+        "timeout": 5,
+        "expectation_threshold": 0.3,
+        "intensity_multiplier": 1.0,
+        "question_threshold": 0.8,
+        "gesture_threshold": 0.6,
+        "greeting_threshold": 0.4,
+        "distress_threshold": 0.3,
+        "turn_threshold": 0.5
+      }
+    },
+    "personalities": {
+      "agent_desobelle": {
+        "extraversion": 0.35,
+        "emotional_sensitivity": 0.75,
+        "curiosity": 0.7,
+        "spontaneity": 0.4,
+        "reflection_depth": 0.8,
+        "social_orientation": 0.6
+      },
+      "agent_callie": {
+        "extraversion": 0.7,
+        "emotional_sensitivity": 0.55,
+        "curiosity": 0.65,
+        "spontaneity": 0.75,
+        "reflection_depth": 0.5,
+        "social_orientation": 0.8
+      }
+    },
+    "appetites": {
+      "curiosity": 0.3,
+      "status": 0.1,
+      "mastery": 0.2,
+      "novelty": 0.3,
+      "safety": 0.2,
+      "social_bond": 0.4,
+      "comfort": 0.2,
+      "autonomy": 0.2
+    },
+    "rumination_frequency": 0.7,
+    "addressed_speech_chance": 0.8,
+    "question_speech_chance": 0.3,
+    "unaddressed_speech_chance": 0.1,
+    "llm": {
+      "provider": "ollama",
+      "local": {
+        "api_base": "http://localhost:1234/v1",
+        "api_key": "not-needed",
+        "model": "qwen3-vl-30b-a3b-instruct-mlx",
+        "timeout": 60
+      },
+      "ollama": {
+        "host": "http://localhost:11434",
+        "models_directory": "/Volumes/DOUBLETROUBLE/models",
+        "default_timeout": 120,
+        "load_timeout": 300
+      },
+      "openrouter": {
+        "api_base": "https://openrouter.ai/api/v1",
+        "api_key": "${OPENROUTER_API_KEY}",
+        "model": "deepseek/deepseek-chat",
+        "timeout": 30
+      },
+      "lab_testing": {
+        "model": "qwen3-vl-30b-a3b-instruct-mlx",
+        "timeout": 30
+      }
+    },
+    "max_tokens": 100,
+    "temperature": 0.8,
+    "facet_assembly": {
+      "ref": "library/empty_noodling"
+    }
+  },
+  "phenomenal_state": [],
+  "timestamp": "2025-12-16T11:07:23.325295"
+}

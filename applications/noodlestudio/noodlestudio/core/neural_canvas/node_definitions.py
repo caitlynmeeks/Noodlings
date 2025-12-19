@@ -455,6 +455,57 @@ NODE_DEFINITIONS: Dict[NodeType, Dict[str, Any]] = {
         'weights': {},
         'color': '#795548',  # Brown (asset color)
         'icon': '💾'
+    },
+
+    # Tutorial/Interactive nodes
+    NodeType.NUMBER_INPUT: {
+        'name': 'Number Input',
+        'description': 'Interactive scalar input with slider (0.0 to 1.0)',
+        'params': {
+            'value': 0.5,  # Current value
+            'min_value': 0.0,
+            'max_value': 1.0,
+            'step': 0.1
+        },
+        'inputs': {},  # No inputs - this is a source node
+        'outputs': {
+            'value': Port('value', DataType.SCALAR, shape=(1,), label='Value')
+        },
+        'weights': {},
+        'color': '#4A6A4A',  # Forest green (input family)
+        'icon': '🎚️'
+    },
+
+    NodeType.THRESHOLD_OUTPUT: {
+        'name': 'Threshold Output',
+        'description': 'ON/OFF display based on threshold comparison',
+        'params': {
+            'threshold': 0.5,  # Activation threshold
+            'show_value': True  # Show numeric value alongside ON/OFF
+        },
+        'inputs': {
+            'value': Port('value', DataType.SCALAR, shape=(1,), required=True, label='Value')
+        },
+        'outputs': {},  # No outputs - this is a sink node
+        'weights': {},
+        'color': '#6A4A4A',  # Muted red-brown (output family)
+        'icon': '💡'
+    },
+
+    NodeType.CONCAT: {
+        'name': 'Concat',
+        'description': 'Concatenate two inputs into one tensor',
+        'params': {},
+        'inputs': {
+            'a': Port('a', DataType.TENSOR, required=True, label='Input A'),
+            'b': Port('b', DataType.TENSOR, required=True, label='Input B')
+        },
+        'outputs': {
+            'out': Port('out', DataType.TENSOR, label='Combined')
+        },
+        'weights': {},
+        'color': '#4A4A6A',  # Muted blue (utility)
+        'icon': '⊕'
     }
 }
 

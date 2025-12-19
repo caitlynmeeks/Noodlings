@@ -1,1 +1,20 @@
-{}
+{
+  "obj_butt_statue": {
+    "name": "Butt Statue",
+    "description": "A newly created object.",
+    "location": "room_000",
+    "properties": {}
+  },
+  "obj_newprim": {
+    "name": "NewPrim",
+    "description": "A newly created object.",
+    "location": "room_000",
+    "properties": {}
+  },
+  "obj_testboulder": {
+    "name": "TestBoulder",
+    "description": "A newly created object.",
+    "location": "room_000",
+    "properties": {}
+  }
+}

@@ -13,12 +13,92 @@ Date: October 2025
 
 import aiohttp
 import json
+import time
 from typing import List, Dict, Optional
 import logging
 import asyncio
+from dataclasses import dataclass, field
+from collections import defaultdict
 from performance_tracker import get_tracker
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# LLM Activity Tracker - Global state for NoodleStudio visualization
+# =============================================================================
+
+@dataclass
+class LabelActivity:
+    """Activity state for a single model label."""
+    active_requests: int = 0
+    total_requests: int = 0
+    last_activity_time: float = 0.0
+    total_tokens: int = 0
+
+
+class LLMActivityTracker:
+    """
+    Tracks real-time LLM activity for NoodleStudio visualization.
+
+    Singleton instance shared across all LLM clients in cmush.
+    Data exposed via /api/activity endpoint.
+    """
+
+    def __init__(self):
+        self._activity: Dict[str, LabelActivity] = defaultdict(LabelActivity)
+        self._lock = asyncio.Lock()
+
+    async def request_started(self, label: str) -> None:
+        """Mark a request as started for a model label."""
+        if not label:
+            label = "DEFAULT"
+        label = label.upper()
+
+        async with self._lock:
+            activity = self._activity[label]
+            activity.active_requests += 1
+            activity.total_requests += 1
+            activity.last_activity_time = time.time()
+
+    async def request_completed(self, label: str, tokens: int = 0) -> None:
+        """Mark a request as completed."""
+        if not label:
+            label = "DEFAULT"
+        label = label.upper()
+
+        async with self._lock:
+            activity = self._activity[label]
+            if activity.active_requests > 0:
+                activity.active_requests -= 1
+            activity.last_activity_time = time.time()
+            activity.total_tokens += tokens
+
+    def get_activity_snapshot(self) -> Dict[str, dict]:
+        """Get current activity state for all labels (for API)."""
+        result = {}
+        now = time.time()
+        for label, activity in self._activity.items():
+            result[label] = {
+                'active_requests': activity.active_requests,
+                'total_requests': activity.total_requests,
+                'last_activity_time': activity.last_activity_time,
+                'seconds_since_activity': now - activity.last_activity_time if activity.last_activity_time > 0 else float('inf'),
+                'total_tokens': activity.total_tokens
+            }
+        return result
+
+
+# Global singleton
+_activity_tracker: Optional[LLMActivityTracker] = None
+
+
+def get_llm_activity_tracker() -> LLMActivityTracker:
+    """Get global LLM activity tracker singleton."""
+    global _activity_tracker
+    if _activity_tracker is None:
+        _activity_tracker = LLMActivityTracker()
+    return _activity_tracker
 
 
 class LLMPool:
@@ -100,7 +180,7 @@ class OpenAICompatibleLLM:
         Initialize LLM client.
 
         Args:
-            api_base: Base URL for API (e.g., "http://localhost:1234/v1")
+            api_base: Base URL for API (e.g., "http://localhost:11434/v1" for Ollama)
             api_key: API key (not needed for LMStudio)
             model: Model name (base name, e.g. "qwen3")
             timeout: Request timeout in seconds
@@ -944,6 +1024,13 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
         logger.info(f"📋 SYSTEM: {system_prompt[:200]}{'...' if len(system_prompt) > 200 else ''}")
         logger.info(f"💬 USER: {prompt[:200]}{'...' if len(prompt) > 200 else ''}")
 
+        # Track activity for NoodleStudio visualization
+        activity_tracker = get_llm_activity_tracker()
+        # Use base model name (strip instance suffix) for tracking
+        track_label = model_instance.split(':')[0] if ':' in model_instance else model_instance
+        await activity_tracker.request_started(track_label)
+        token_count = 0  # Initialize for finally block
+
         try:
             async with self.session.post(
                 url,
@@ -977,6 +1064,8 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
         finally:
             # Restore original model
             self.model = original_model
+            # Mark request complete for activity tracking
+            await activity_tracker.request_completed(track_label, token_count)
 
     async def _complete(self, system_prompt: str, user_prompt: str, temperature: float = 0.7, model: str = None) -> tuple[str, str, str]:
         """
@@ -1033,6 +1122,11 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
             "max_tokens": 600  # Increased for verbose characters (SERVNAK, etc.)
         }
 
+        # Track activity for NoodleStudio visualization
+        activity_tracker = get_llm_activity_tracker()
+        track_label = model_instance.split(':')[0] if ':' in model_instance else model_instance
+        await activity_tracker.request_started(track_label)
+
         try:
             async with self.session.post(
                 url,
@@ -1061,6 +1155,9 @@ Stay concrete, personal, and character-specific. NO philosophical lectures!"""
         except aiohttp.ClientError as e:
             logger.error(f"HTTP request failed: {e}")
             raise
+        finally:
+            # Mark request complete for activity tracking
+            await activity_tracker.request_completed(track_label)
 
     async def generate_rumination(
         self,
@@ -1605,8 +1702,8 @@ Be calibrated: Most text should score low. Reserve high scores for genuine abuse
 async def test_llm():
     """Test LLM interface with sample inputs."""
     async with OpenAICompatibleLLM(
-        api_base="http://localhost:1234/v1",
-        model="mistral-7b-instruct"
+        api_base="http://localhost:11434/v1",
+        model="SMALL"
     ) as llm:
         # Test affect extraction
         print("Testing text_to_affect...")

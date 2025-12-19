@@ -13,6 +13,7 @@ Features:
 import os
 import subprocess
 import shutil
+import time
 from pathlib import Path
 from typing import Optional, Dict, List
 from PyQt6.QtWidgets import (
@@ -20,11 +21,149 @@ from PyQt6.QtWidgets import (
     QProgressBar, QScrollArea, QFrame, QMessageBox, QComboBox,
     QLineEdit, QDialog, QFormLayout, QSpinBox, QSplitter
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPropertyAnimation, QEasingCurve
+from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush
 
 from ..core.model_label_manager import get_model_label_manager
 from ..core.provider_manager import get_provider_manager, ProviderConfig
+from ..core.model_activity_tracker import get_model_activity_tracker
+
+
+class ActivityIndicatorWidget(QWidget):
+    """
+    Ambient activity indicator showing LLM request activity.
+
+    Displays 5 small dots that illuminate based on concurrent request count.
+    Includes subtle fade animation for recent activity.
+    """
+
+    def __init__(self, label: str, parent=None):
+        super().__init__(parent)
+        self.label = label.upper() if label else ""
+        self.tracker = get_model_activity_tracker()
+
+        # Visual state
+        self._active_count = 0
+        self._brightness = 0.0  # 0.0 (dim) to 1.0 (bright)
+        self._pulse_phase = 0.0  # For subtle pulse animation
+
+        # Colors (monochromatic)
+        self._color_idle = QColor(58, 58, 58)  # #3a3a3a - dim
+        self._color_active = QColor(136, 136, 136)  # #888888 - bright
+        self._color_hot = QColor(170, 170, 170)  # #aaaaaa - very active
+
+        # Size
+        self.setFixedSize(70, 16)
+        self.setToolTip(f"Activity for {self.label}")
+
+        # Animation timer
+        self._animation_timer = QTimer(self)
+        self._animation_timer.timeout.connect(self._animate)
+        self._animation_timer.start(50)  # 20 FPS
+
+        # Connect to tracker
+        self.tracker.activityChanged.connect(self._on_activity_changed)
+
+        # Initial state
+        self._update_from_tracker()
+
+    def _on_activity_changed(self, label: str, count: int):
+        """Handle activity change from tracker."""
+        if label.upper() == self.label:
+            self._active_count = count
+            if count > 0:
+                self._brightness = 1.0  # Immediate bright on activity
+            self.update()
+
+    def _update_from_tracker(self):
+        """Update state from tracker."""
+        self._active_count = self.tracker.get_active_count(self.label)
+        time_since = self.tracker.get_time_since_activity(self.label)
+
+        # Brightness based on recency (fade over 3 seconds)
+        if self._active_count > 0:
+            self._brightness = 1.0
+        elif time_since < 3.0:
+            self._brightness = max(0.0, 1.0 - (time_since / 3.0))
+        else:
+            self._brightness = 0.0
+
+    def _animate(self):
+        """Animation tick - handle fade and pulse."""
+        # Update from tracker for fade effect
+        time_since = self.tracker.get_time_since_activity(self.label)
+
+        if self._active_count > 0:
+            # Active: pulse subtly
+            self._pulse_phase = (self._pulse_phase + 0.15) % (2 * 3.14159)
+            self._brightness = 0.85 + 0.15 * abs(__import__('math').sin(self._pulse_phase))
+        elif time_since < 3.0:
+            # Recently active: fade out
+            self._brightness = max(0.0, 1.0 - (time_since / 3.0))
+        else:
+            # Idle
+            self._brightness = 0.0
+            self._pulse_phase = 0.0
+
+        self.update()
+
+    def paintEvent(self, event):
+        """Draw the activity indicator dots."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Draw 5 dots
+        dot_radius = 4
+        dot_spacing = 12
+        start_x = 6
+        y = self.height() // 2
+
+        for i in range(5):
+            x = start_x + i * dot_spacing
+
+            # Determine dot state
+            if i < self._active_count:
+                # Active dot - bright or hot based on load
+                if self._active_count > 3:
+                    color = self._interpolate_color(self._color_active, self._color_hot, self._brightness)
+                else:
+                    color = self._interpolate_color(self._color_idle, self._color_active, self._brightness)
+            elif self._brightness > 0.1:
+                # Recent activity glow (dimmer)
+                fade = self._brightness * 0.4
+                color = self._interpolate_color(self._color_idle, self._color_active, fade)
+            else:
+                # Idle
+                color = self._color_idle
+
+            painter.setBrush(QBrush(color))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(x - dot_radius, y - dot_radius, dot_radius * 2, dot_radius * 2)
+
+        # If more than 5 active, show overflow count
+        if self._active_count > 5:
+            painter.setPen(QPen(QColor(170, 170, 170)))
+            font = painter.font()
+            font.setPointSize(8)
+            painter.setFont(font)
+            painter.drawText(start_x + 5 * dot_spacing, y + 4, f"+{self._active_count - 5}")
+
+        painter.end()
+
+    def _interpolate_color(self, c1: QColor, c2: QColor, t: float) -> QColor:
+        """Interpolate between two colors."""
+        t = max(0.0, min(1.0, t))
+        return QColor(
+            int(c1.red() + (c2.red() - c1.red()) * t),
+            int(c1.green() + (c2.green() - c1.green()) * t),
+            int(c1.blue() + (c2.blue() - c1.blue()) * t)
+        )
+
+    def set_label(self, label: str):
+        """Change the label being tracked."""
+        self.label = label.upper() if label else ""
+        self.setToolTip(f"Activity for {self.label}")
+        self._update_from_tracker()
 
 
 class ProviderConfigDialog(QDialog):
@@ -108,6 +247,75 @@ class ProviderConfigDialog(QDialog):
             """)
             form.addRow("Port:", self.port_input)
 
+        # Ollama concurrency settings
+        if self.provider_config.type == "ollama":
+            # Separator
+            separator = QLabel("")
+            separator.setStyleSheet("border-bottom: 1px solid #555555; margin: 8px 0;")
+            form.addRow(separator)
+
+            concurrency_label = QLabel("Concurrency Settings")
+            concurrency_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 8px;")
+            form.addRow(concurrency_label)
+
+            spinbox_style = """
+                QSpinBox {
+                    background: #3e3e3e;
+                    color: #D2D2D2;
+                    border: 1px solid #555555;
+                    padding: 6px;
+                    border-radius: 3px;
+                }
+                QSpinBox::up-button, QSpinBox::down-button {
+                    background: #4e4e4e;
+                    border: none;
+                    width: 16px;
+                }
+                QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                    background: #5e5e5e;
+                }
+            """
+
+            # Parallel requests per model
+            self.num_parallel_input = QSpinBox()
+            self.num_parallel_input.setRange(1, 64)
+            self.num_parallel_input.setValue(self.provider_config.num_parallel or 16)
+            self.num_parallel_input.setStyleSheet(spinbox_style)
+            self.num_parallel_input.setToolTip(
+                "OLLAMA_NUM_PARALLEL: Number of parallel requests per model.\n"
+                "Higher values = more concurrent inference but more VRAM.\n"
+                "With 512GB unified memory, 16-32 is safe."
+            )
+            form.addRow("Parallel Requests:", self.num_parallel_input)
+
+            # Max loaded models
+            self.max_loaded_models_input = QSpinBox()
+            self.max_loaded_models_input.setRange(1, 32)
+            self.max_loaded_models_input.setValue(self.provider_config.max_loaded_models or 8)
+            self.max_loaded_models_input.setStyleSheet(spinbox_style)
+            self.max_loaded_models_input.setToolTip(
+                "OLLAMA_MAX_LOADED_MODELS: Models kept in memory simultaneously.\n"
+                "Higher values = faster model switching but more VRAM.\n"
+                "With 512GB unified memory, 8-16 is safe."
+            )
+            form.addRow("Max Loaded Models:", self.max_loaded_models_input)
+
+            # Max queue
+            self.max_queue_input = QSpinBox()
+            self.max_queue_input.setRange(64, 2048)
+            self.max_queue_input.setValue(self.provider_config.max_queue or 512)
+            self.max_queue_input.setStyleSheet(spinbox_style)
+            self.max_queue_input.setToolTip(
+                "OLLAMA_MAX_QUEUE: Max queued requests before returning 503.\n"
+                "Default 512 is usually fine."
+            )
+            form.addRow("Max Queue:", self.max_queue_input)
+
+            # Info label
+            info_label = QLabel("Restart server for changes to take effect")
+            info_label.setStyleSheet("color: #888888; font-size: 10px; font-style: italic;")
+            form.addRow(info_label)
+
         layout.addLayout(form)
         layout.addStretch()
 
@@ -160,6 +368,14 @@ class ProviderConfigDialog(QDialog):
 
         if hasattr(self, 'port_input'):
             self.provider_config.port = self.port_input.value()
+
+        # Ollama concurrency settings
+        if hasattr(self, 'num_parallel_input'):
+            self.provider_config.num_parallel = self.num_parallel_input.value()
+        if hasattr(self, 'max_loaded_models_input'):
+            self.provider_config.max_loaded_models = self.max_loaded_models_input.value()
+        if hasattr(self, 'max_queue_input'):
+            self.provider_config.max_queue = self.max_queue_input.value()
 
         self.accept()
 
@@ -1249,6 +1465,10 @@ class ModelManagerPanel(QWidget):
             row_layout.addWidget(info)
 
             row_layout.addStretch()
+
+            # Activity indicator (ambient LLM activity visualization)
+            activity_indicator = ActivityIndicatorWidget(label)
+            row_layout.addWidget(activity_indicator)
 
             # Delete button (only for custom labels, not defaults)
             if label not in ["Small", "Medium", "Large"]:

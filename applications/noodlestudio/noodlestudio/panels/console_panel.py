@@ -114,6 +114,10 @@ class ConsolePanel(QWidget):
         # Allow panel to shrink to small sizes (height only, full width)
         self.setMinimumHeight(50)
 
+        # Pending logs buffer - holds logs while user has text selected
+        self.pending_display_logs = []  # (buffer_name, formatted_log) tuples
+        self.selection_check_timer = None
+
         # Search/regex filter settings
         self.search_text = ""
         self.use_regex = False
@@ -336,6 +340,46 @@ class ConsolePanel(QWidget):
         """)
         layout.addWidget(self.log_text)
 
+        # Timer to flush pending logs when selection is cleared
+        self.selection_check_timer = QTimer()
+        self.selection_check_timer.timeout.connect(self._flush_pending_if_no_selection)
+        self.selection_check_timer.start(500)  # Check every 500ms
+
+    def _has_selection(self) -> bool:
+        """Check if user has text selected in the log view."""
+        cursor = self.log_text.textCursor()
+        return cursor.hasSelection()
+
+    def _flush_pending_if_no_selection(self):
+        """Flush pending logs to display if user has no selection."""
+        if not self._has_selection() and self.pending_display_logs:
+            was_at_bottom = self._is_scrolled_to_bottom()
+
+            # Flush all pending logs
+            for buffer_name, formatted in self.pending_display_logs:
+                # Only append if this log belongs to the current console mode
+                if buffer_name == self.console_mode:
+                    self.log_text.append(formatted)
+
+            self.pending_display_logs.clear()
+
+            # Auto-scroll if user was at bottom
+            if was_at_bottom:
+                self.log_text.moveCursor(QTextCursor.MoveOperation.End)
+
+    def _append_log_safely(self, buffer_name: str, formatted: str):
+        """Append log to display, buffering if user has selection."""
+        if self._has_selection():
+            # User is selecting text - buffer the log for later
+            self.pending_display_logs.append((buffer_name, formatted))
+            # Limit pending buffer size
+            if len(self.pending_display_logs) > 500:
+                self.pending_display_logs.pop(0)
+        else:
+            # No selection - append directly if this is the active console mode
+            if buffer_name == self.console_mode:
+                self.log_text.append(formatted)
+
     def start_log_stream(self):
         """Start WebSocket connection to noodleMUSH logs."""
         self.log_text.append("[Console] Connecting to noodleMUSH logs...")
@@ -384,6 +428,9 @@ class ConsolePanel(QWidget):
 
     def add_log(self, level: str, module: str, message: str):
         """Add log entry to console with Unity-style collapsing."""
+        # Check if user has text selected - skip display updates to preserve selection
+        user_has_selection = self._has_selection()
+
         # Check if user is scrolled to bottom BEFORE appending
         was_at_bottom = self._is_scrolled_to_bottom()
 
@@ -420,40 +467,42 @@ class ConsolePanel(QWidget):
             if self.log_buffer:
                 self.log_buffer[-1] = formatted
 
-            # Only update display if matches search filter (or no filter active)
-            if not self.search_text:
-                # No filter - update the last line with repeat count
-                cursor = self.log_text.textCursor()
-                cursor.movePosition(QTextCursor.MoveOperation.End)
-                cursor.select(QTextCursor.SelectionType.LineUnderCursor)
-                cursor.removeSelectedText()
-                cursor.deletePreviousChar()  # Remove newline
-                self.log_text.append(formatted)
-            else:
-                # Filter active - check if entry matches
-                search_target = raw_entry
-                search_term = self.search_text if self.case_sensitive else self.search_text.lower()
-                search_haystack = search_target if self.case_sensitive else search_target.lower()
-
-                matches = False
-                if self.use_regex:
-                    import re
-                    try:
-                        flags = 0 if self.case_sensitive else re.IGNORECASE
-                        matches = bool(re.search(search_term, search_haystack, flags))
-                    except re.error:
-                        matches = True
-                else:
-                    matches = search_term in search_haystack
-
-                if matches:
-                    # Update last line with repeat count
+            # Skip display updates if user has selection (preserves copy ability)
+            if not user_has_selection:
+                # Only update display if matches search filter (or no filter active)
+                if not self.search_text:
+                    # No filter - update the last line with repeat count
                     cursor = self.log_text.textCursor()
                     cursor.movePosition(QTextCursor.MoveOperation.End)
                     cursor.select(QTextCursor.SelectionType.LineUnderCursor)
                     cursor.removeSelectedText()
-                    cursor.deletePreviousChar()
+                    cursor.deletePreviousChar()  # Remove newline
                     self.log_text.append(formatted)
+                else:
+                    # Filter active - check if entry matches
+                    search_target = raw_entry
+                    search_term = self.search_text if self.case_sensitive else self.search_text.lower()
+                    search_haystack = search_target if self.case_sensitive else search_target.lower()
+
+                    matches = False
+                    if self.use_regex:
+                        import re
+                        try:
+                            flags = 0 if self.case_sensitive else re.IGNORECASE
+                            matches = bool(re.search(search_term, search_haystack, flags))
+                        except re.error:
+                            matches = True
+                    else:
+                        matches = search_term in search_haystack
+
+                    if matches:
+                        # Update last line with repeat count
+                        cursor = self.log_text.textCursor()
+                        cursor.movePosition(QTextCursor.MoveOperation.End)
+                        cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+                        cursor.removeSelectedText()
+                        cursor.deletePreviousChar()
+                        self.log_text.append(formatted)
         else:
             # New message - reset counter
             self.last_message = msg_signature
@@ -470,32 +519,34 @@ class ConsolePanel(QWidget):
             if len(self.log_buffer) > 1000:
                 self.log_buffer.pop(0)
 
-            # Only append to display if it matches current search filter
-            if self.search_text:
-                # Check if this entry matches the search
-                search_target = raw_entry if not self.case_sensitive else raw_entry
-                search_term = self.search_text if self.case_sensitive else self.search_text.lower()
-                search_haystack = search_target if self.case_sensitive else search_target.lower()
+            # Skip display updates if user has selection (preserves copy ability)
+            if not user_has_selection:
+                # Only append to display if it matches current search filter
+                if self.search_text:
+                    # Check if this entry matches the search
+                    search_target = raw_entry if not self.case_sensitive else raw_entry
+                    search_term = self.search_text if self.case_sensitive else self.search_text.lower()
+                    search_haystack = search_target if self.case_sensitive else search_target.lower()
 
-                if self.use_regex:
-                    import re
-                    try:
-                        flags = 0 if self.case_sensitive else re.IGNORECASE
-                        if re.search(search_term, search_haystack, flags):
+                    if self.use_regex:
+                        import re
+                        try:
+                            flags = 0 if self.case_sensitive else re.IGNORECASE
+                            if re.search(search_term, search_haystack, flags):
+                                self.log_text.append(formatted)
+                        except re.error:
+                            # Invalid regex - show anyway
                             self.log_text.append(formatted)
-                    except re.error:
-                        # Invalid regex - show anyway
-                        self.log_text.append(formatted)
+                    else:
+                        # Simple substring match
+                        if search_term in search_haystack:
+                            self.log_text.append(formatted)
                 else:
-                    # Simple substring match
-                    if search_term in search_haystack:
-                        self.log_text.append(formatted)
-            else:
-                # No filter active - show all logs
-                self.log_text.append(formatted)
+                    # No filter active - show all logs
+                    self.log_text.append(formatted)
 
-        # Only auto-scroll if user was already at bottom (don't disrupt reading)
-        if was_at_bottom:
+        # Only auto-scroll if user was already at bottom and has no selection
+        if was_at_bottom and not user_has_selection:
             self.log_text.moveCursor(QTextCursor.MoveOperation.End)
 
     def set_selected_entities(self, entity_ids: list):
@@ -667,8 +718,9 @@ class ConsolePanel(QWidget):
                 # Also capture to appropriate log buffer
                 if text.strip():
                     # Route facet-related logs to FACETS buffer
-                    # Check for emoji markers (work regardless of agent name prefix)
-                    if any(marker in text for marker in ['[FacetExecutor]', '🎭', '💡', '💭', '✨', 'FACET ASSEMBLY', 'salience_script']):
+                    # Check for markers (work regardless of agent name prefix)
+                    # [FACET] is the primary marker for facet execution logs
+                    if any(marker in text for marker in ['[FACET]', '[FacetExecutor]', '🎭', '💡', '💭', '✨', 'FACET ASSEMBLY', 'salience_script']):
                         self.console_panel.add_facets_log(text.strip())
                     else:
                         # Regular logs go to STUDIO buffer
@@ -685,8 +737,11 @@ class ConsolePanel(QWidget):
     def add_studio_log(self, message):
         """Add message to STUDIO log buffer."""
         # Skip if this is a facet log (don't duplicate!)
-        if any(marker in message for marker in ['🎭', '💡', '💭', '✨', '[FacetExecutor]', 'FACET ASSEMBLY']):
+        if any(marker in message for marker in ['[FACET]', '🎭', '💡', '💭', '✨', '[FacetExecutor]', 'FACET ASSEMBLY']):
             return  # Already handled by add_facets_log
+
+        # Check if user has text selected - skip display updates to preserve selection
+        user_has_selection = self._has_selection()
 
         # Store raw log
         self.studio_log_buffer_raw.append(message)
@@ -699,8 +754,8 @@ class ConsolePanel(QWidget):
         if len(self.studio_log_buffer) > 1000:
             self.studio_log_buffer.pop(0)
 
-        # If in STUDIO mode, update display (respecting search filter)
-        if self.console_mode == 'studio':
+        # If in STUDIO mode, update display (respecting search filter and selection)
+        if self.console_mode == 'studio' and not user_has_selection:
             # Only append if matches search filter
             if self.search_text:
                 search_term = self.search_text if self.case_sensitive else self.search_text.lower()
@@ -730,6 +785,9 @@ class ConsolePanel(QWidget):
 
     def add_facets_log(self, message):
         """Add message to FACETS log buffer (for facet execution debugging)."""
+        # Check if user has text selected - skip display updates to preserve selection
+        user_has_selection = self._has_selection()
+
         # Store raw log
         self.facets_log_buffer_raw.append(message)
         if len(self.facets_log_buffer_raw) > 1000:
@@ -741,8 +799,8 @@ class ConsolePanel(QWidget):
         if len(self.facets_log_buffer) > 1000:
             self.facets_log_buffer.pop(0)
 
-        # If in FACETS mode, update display (respecting search filter)
-        if self.console_mode == 'facets':
+        # If in FACETS mode, update display (respecting search filter and selection)
+        if self.console_mode == 'facets' and not user_has_selection:
             # Check if user is scrolled to bottom BEFORE appending
             was_at_bottom = self._is_scrolled_to_bottom()
 
@@ -782,6 +840,9 @@ class ConsolePanel(QWidget):
             facet_name: Name of facet that logged the message
             message: The log message
         """
+        # Check if user has text selected - skip display updates to preserve selection
+        user_has_selection = self._has_selection()
+
         # Format as "[FacetName] message"
         formatted_message = f"[{facet_name}] {message}"
 
@@ -796,8 +857,8 @@ class ConsolePanel(QWidget):
         if len(self.debug_log_buffer) > 1000:
             self.debug_log_buffer.pop(0)
 
-        # If in DEBUG mode, update display (respecting search filter)
-        if self.console_mode == 'debug':
+        # If in DEBUG mode, update display (respecting search filter and selection)
+        if self.console_mode == 'debug' and not user_has_selection:
             # Check if user is scrolled to bottom BEFORE appending
             was_at_bottom = self._is_scrolled_to_bottom()
 

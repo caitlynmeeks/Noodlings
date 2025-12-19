@@ -1507,9 +1507,10 @@ class InspectorPanel(QWidget):
                 self.entity_header.setText("User: caity")
                 self.load_user_properties(entity_data)
 
-            elif entity_type == 'prim' or entity_type == 'object':
-                obj_name = entity_data.get('id', 'Unknown Object').replace('obj_', '').replace('_', ' ').title()
-                self.entity_header.setText(f"Prim: {obj_name}")
+            elif entity_type in ('prim', 'object', 'prop'):
+                obj_name = entity_data.get('name') or entity_data.get('id', 'Unknown Object').replace('obj_', '').replace('_', ' ').title()
+                label = "Prop" if entity_type == 'prop' else "Prim"
+                self.entity_header.setText(f"{label}: {obj_name}")
                 self.load_object_properties(entity_data)
 
             elif entity_type == 'exit':
@@ -1885,7 +1886,7 @@ class InspectorPanel(QWidget):
         self.properties_layout.addStretch()
 
     def load_object_properties(self, entity_data):
-        """Show object properties."""
+        """Show object properties including physics settings."""
         # Clear previous entity's fields
         self.property_fields = {}
 
@@ -1894,16 +1895,98 @@ class InspectorPanel(QWidget):
 
         # Basic properties
         obj_group = self.create_property_group("Object Properties")
-        self.add_text_field(obj_group, "ID", obj_id)
+        self.add_text_field(obj_group, "ID", obj_id, read_only=True)  # UUID is immutable
         self.property_fields['name'] = self.add_text_field(obj_group, "Name", obj_data.get('name', 'Unnamed'))
         self.property_fields['description'] = self.add_text_area(obj_group, "Description", obj_data.get('description', 'An object in the world.'))
         self.properties_layout.addWidget(obj_group)
+
+        # Physics Properties section
+        physics_group = self.create_property_group("Physics (SPE)")
+        self._create_physics_properties(physics_group, obj_data)
+        self.properties_layout.addWidget(physics_group)
 
         # Arbitrary metadata editor
         metadata_component = self.create_metadata_component(obj_id)
         self.properties_layout.addWidget(metadata_component)
 
         self.properties_layout.addStretch()
+
+    def _create_physics_properties(self, group, obj_data):
+        """Create physics property dropdowns for a prim."""
+        # Import material presets
+        try:
+            from noodlestudio.core.semantic_world import MATERIAL_PRESETS
+        except ImportError:
+            MATERIAL_PRESETS = {}
+
+        # Current values (with defaults)
+        current_material = obj_data.get('material', 'unknown')
+        current_mass = obj_data.get('mass', 'medium')
+        current_friction = obj_data.get('friction', 'medium')
+        current_elasticity = obj_data.get('elasticity', 'normal')
+        current_softness = obj_data.get('softness', 'normal')
+
+        # Material preset dropdown - sorted alphabetically with "(custom)" at top
+        material_options = ["(custom)"] + sorted(MATERIAL_PRESETS.keys())
+
+        def on_material_preset_change(material):
+            """Apply material preset to all physics fields."""
+            if material == "(custom)":
+                return  # Don't change anything for custom
+
+            preset = MATERIAL_PRESETS.get(material, {})
+            if not preset:
+                return
+
+            # Update the dropdowns to reflect preset values
+            if 'mass' in self.property_fields and 'mass' in preset:
+                self.property_fields['mass'].setCurrentText(preset['mass'])
+            if 'friction' in self.property_fields and 'friction' in preset:
+                self.property_fields['friction'].setCurrentText(preset['friction'])
+            if 'elasticity' in self.property_fields and 'elasticity' in preset:
+                self.property_fields['elasticity'].setCurrentText(preset['elasticity'])
+            if 'softness' in self.property_fields and 'softness' in preset:
+                self.property_fields['softness'].setCurrentText(preset['softness'])
+
+            # Trigger save
+            self.save_changes()
+
+        # Material dropdown with preset application
+        self.property_fields['material'] = self.add_dropdown_field(
+            group, "Material Preset", current_material, material_options,
+            on_change=on_material_preset_change
+        )
+
+        # Mass options (from light to immovable)
+        mass_options = ["negligible", "very_light", "light", "medium", "heavy", "very_heavy", "immovable"]
+        self.property_fields['mass'] = self.add_dropdown_field(
+            group, "Mass", current_mass, mass_options
+        )
+
+        # Friction options
+        friction_options = ["slippery", "low", "medium", "high", "sticky"]
+        self.property_fields['friction'] = self.add_dropdown_field(
+            group, "Friction", current_friction, friction_options
+        )
+
+        # Elasticity options
+        elasticity_options = ["none", "low", "normal", "high", "bouncy"]
+        self.property_fields['elasticity'] = self.add_dropdown_field(
+            group, "Elasticity", current_elasticity, elasticity_options
+        )
+
+        # Softness options
+        softness_options = ["rigid", "hard", "normal", "soft", "squishy"]
+        self.property_fields['softness'] = self.add_dropdown_field(
+            group, "Softness", current_softness, softness_options
+        )
+
+        # Help text
+        from PyQt6.QtWidgets import QLabel
+        help_label = QLabel("Select a material preset to auto-fill physics properties,\nor set each property individually.")
+        help_label.setStyleSheet("color: #808080; font-size: 10px; padding: 4px;")
+        help_label.setWordWrap(True)
+        group.content.layout().addRow("", help_label)
 
     def load_exit_properties(self, entity_data):
         """Show exit properties."""
@@ -1973,12 +2056,16 @@ class InspectorPanel(QWidget):
                 if item and item.widget():
                     item.widget().setVisible(visible)
 
-    def add_text_field(self, group: QGroupBox, label: str, value: str):
-        """Add editable text field to group (instant updates on change)."""
+    def add_text_field(self, group: QGroupBox, label: str, value: str, read_only: bool = False):
+        """Add text field to group (instant updates on change unless read_only)."""
         field = QLineEdit(value)
-        field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-        # Use editingFinished for instant update when user finishes editing
-        field.editingFinished.connect(self.save_changes)
+        if read_only:
+            field.setReadOnly(True)
+            field.setStyleSheet("background-color: #1A1A1A; color: #808080; padding: 4px;")
+        else:
+            field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+            # Use editingFinished for instant update when user finishes editing
+            field.editingFinished.connect(self.save_changes)
         group.content.layout().addRow(f"{label}:", field)
         return field
 
@@ -2016,6 +2103,56 @@ class InspectorPanel(QWidget):
         row_layout.addStretch()
         group.content.layout().addRow(f"{label}:", row)
         return fields
+
+    def add_dropdown_field(self, group: QGroupBox, label: str, value: str, options: list, on_change=None):
+        """Add dropdown (combo box) field to group."""
+        from PyQt6.QtWidgets import QComboBox
+
+        combo = QComboBox()
+        combo.addItems(options)
+        combo.setStyleSheet("""
+            QComboBox {
+                background-color: #1E1E1E;
+                color: #D2D2D2;
+                padding: 4px;
+                border: 1px solid #3A3A3A;
+                border-radius: 2px;
+            }
+            QComboBox:hover {
+                border-color: #5A5A5A;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 6px solid #808080;
+                margin-right: 6px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #252525;
+                color: #D2D2D2;
+                selection-background-color: #3D5A80;
+            }
+        """)
+
+        # Set current value
+        if value:
+            index = combo.findText(str(value))
+            if index >= 0:
+                combo.setCurrentIndex(index)
+
+        # Connect change handler
+        if on_change:
+            combo.currentTextChanged.connect(on_change)
+        else:
+            combo.currentTextChanged.connect(lambda _: self.save_changes())
+
+        group.content.layout().addRow(f"{label}:", combo)
+        return combo
 
     def add_text_area(self, group: QGroupBox, label: str, value: str):
         """Add editable text area to group (instant updates on change)."""
@@ -2097,32 +2234,83 @@ class InspectorPanel(QWidget):
                 except Exception as e:
                     print(f"Error saving: {e}")
 
-            elif entity_type == 'prim':
-                # Build update payload for prim
-                object_id = entity_data.get('id', '')
+            elif entity_type in ('prim', 'prop'):
+                # Build update payload for prim/prop
                 updates = {}
 
-                # Collect field values
+                # Collect basic field values
                 if 'name' in self.property_fields:
                     updates['name'] = self.property_fields['name'].text()
                 if 'description' in self.property_fields:
                     updates['description'] = self.property_fields['description'].toPlainText()
 
-                # Save via API
-                try:
-                    url = f"{self.api_base}/objects/{object_id}/update"
-                    response = requests.post(url, json=updates, timeout=2)
-                    if response.status_code == 200:
-                        print(f"Saved changes for {object_id}")
-                    else:
-                        print(f"Error saving: {response.json().get('error', 'Unknown error')}")
-                except Exception as e:
-                    print(f"Error saving prim: {e}")
+                # Collect physics properties (from dropdowns)
+                physics_fields = ['material', 'mass', 'friction', 'elasticity', 'softness']
+                for field_name in physics_fields:
+                    if field_name in self.property_fields:
+                        widget = self.property_fields[field_name]
+                        # QComboBox - use currentText()
+                        if hasattr(widget, 'currentText'):
+                            value = widget.currentText()
+                            # Don't save "(custom)" as material - it's just a UI indicator
+                            if field_name == 'material' and value == "(custom)":
+                                continue
+                            updates[field_name] = value
+
+                # Save based on type
+                if entity_type == 'prop':
+                    # Project mode - save to prop.yaml
+                    self._save_prop_to_file(entity_data, updates)
+                else:
+                    # Legacy mode - save via API
+                    object_id = entity_data.get('id', '')
+                    try:
+                        url = f"{self.api_base}/objects/{object_id}/update"
+                        response = requests.post(url, json=updates, timeout=2)
+                        if response.status_code == 200:
+                            print(f"Saved prim {object_id}: {list(updates.keys())}")
+                        else:
+                            print(f"Error saving: {response.json().get('error', 'Unknown error')}")
+                    except Exception as e:
+                        print(f"Error saving prim: {e}")
 
         finally:
             # Clear flag after save completes (wait longer than refresh interval)
             from PyQt6.QtCore import QTimer
             QTimer.singleShot(2500, lambda: setattr(self, 'is_saving', False))
+
+    def _save_prop_to_file(self, entity_data: dict, updates: dict):
+        """Save prop changes to prop.yaml file."""
+        import yaml
+        import os
+
+        prop_path = entity_data.get('path', '')
+        if not prop_path:
+            print("No path for prop - cannot save")
+            return
+
+        prop_yaml = os.path.join(prop_path, "prop.yaml")
+        if not os.path.exists(prop_yaml):
+            print(f"prop.yaml not found at {prop_yaml}")
+            return
+
+        try:
+            # Load existing data
+            with open(prop_yaml, 'r') as f:
+                prop_data = yaml.safe_load(f) or {}
+
+            # Update with new values
+            prop_data.update(updates)
+
+            # Save back
+            with open(prop_yaml, 'w') as f:
+                yaml.dump(prop_data, f, default_flow_style=False)
+
+            prop_name = updates.get('name', entity_data.get('name', 'prop'))
+            print(f"Saved prop {prop_name}: {list(updates.keys())}")
+
+        except Exception as e:
+            print(f"Error saving prop to file: {e}")
 
     def save_component_changes(self, agent_id: str, component_id: str):
         """

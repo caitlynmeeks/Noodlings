@@ -8,71 +8,238 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
-## 🎯 NEXT SESSION: Rethink Spatial View as 2D Illustrated Map
+## 🎯 NEXT SESSION: Wire Scene Protocol to Server
 
-**Goal:** Redesign the Spatial View as a 2D top-down illustrated map with simple graphic primitives
+**Goal:** Connect the Scene Protocol system to the live server so facets receive perception-filtered context.
 
-### The Vision (Caitlyn's Words)
+### The Problem
 
-We need a **design language for spaces that decomposes easily to text and vice versa**.
+We have a complete Scene Protocol implementation (`semantic_world/`) but it's not wired into the actual server. Facets still receive raw context instead of perception-filtered slices.
 
-**Example - A Cafe Interior:**
-- Draw a U-shape for a horseshoe counter (like dragging boxes in Illustrator)
-- Group shapes and attach metadata (counter has jars, cake bell, positions of items)
-- Place circles for stools with metadata (facing direction, moveable, occupied, who's sitting)
-- Position Noodling instances (Zappalita the barista in her station)
-- Every object is a **prim** with rich metadata
+### What Needs to Be Done
 
-**Zones as "Weenies":**
-- Like Disneyland's centers of interest
-- Zones are cards/areas connected by zone connections
-- Looking down at Lemondrops Forest = illustrated top-down map (like Disneyland's park map)
-- Zone connections should show in Inspector too
+**1. Initialize SceneStateManager in server.py**
 
-**End Goal:**
-- Provide spatial context to feed into **Google Genie** or **Mirage** for generative rendering
-- Consistent, persistent context with clear spatial boundaries
-- Attention regions and interactable prims (stools you can sit on, etc.)
-- The "brains and hearts" powering characters in generative worlds
+```python
+from noodlestudio.core.semantic_world import SceneStateManager, SceneEmitter
 
-**Key Insight:**
-- NOT full 3D - we need **2D top-down view with simple graphic primitives**
-- Shapes compose to form furniture, counters, layouts
-- Everything has metadata that decomposes to text for LLMs
-- Text, 2D maps, 3D renders are all projections of the same semantic truth
+# In server initialization
+self.scene_manager = SceneStateManager()
+self.scene_emitter = SceneEmitter(self.scene_manager)
+```
+
+**2. Sync World State to Scene Manager**
+
+When agents/props move or change, update the scene manager:
+```python
+# When agent moves
+self.scene_manager.update_entity_position(agent_id, x, y, z)
+
+# When agent speaks
+self.scene_manager.add_dialogue(speaker_id, text, volume="normal")
+```
+
+**3. Generate Perception Slices for Facets**
+
+Before facet execution, build the perception slice:
+```python
+# In cognitive cycle
+perception_slice = self.scene_manager.get_perception_slice(agent_id)
+context["perception"] = perception_slice.to_dict()
+```
+
+**4. Emit Scene Packets via WebSocket**
+
+For connected renderers (future Genie/Mirage):
+```python
+# After state changes
+await self.scene_emitter.emit_delta()  # Only changed entities
+```
+
+### Key Files
+
+| File | Changes |
+|------|---------|
+| `applications/cmush/server.py` | Initialize scene manager, sync state |
+| `applications/cmush/cognitive_components.py` | Pass perception slice to facets |
+| `noodlestudio/core/semantic_world/scene_state_manager.py` | Already complete |
+| `noodlestudio/core/semantic_world/scene_emitter.py` | Already complete |
+
+### Testing
+
+```bash
+# Verify perception filtering works
+curl http://localhost:8081/api/scene/perception/red_fire_anklebiter
+
+# Should return only what Red can see/hear from her position
+```
+
+---
+
+## ✅ COMPLETED This Session (December 18, 2025)
+
+### Spatial Operations REST API
+
+Full HTTP API for programmatic control of transforms, materials, and metadata.
+
+**New REST Endpoints** (in `api_server.py`):
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/entities/{id}/transform` | GET | Get position/rotation/scale |
+| `/api/entities/{id}/transform` | POST | Set full transform |
+| `/api/entities/{id}/transform` | PATCH | Update specific fields |
+| `/api/materials` | GET | List all 17 material presets |
+| `/api/entities/{id}/material` | POST | Apply material preset |
+| `/api/entities/{id}/physics` | PATCH | Set mass/friction/elasticity/softness |
+| `/api/entities/{id}/properties` | GET | Get all custom metadata |
+| `/api/entities/{id}/properties/{key}` | POST | Set metadata key |
+| `/api/entities/{id}/properties/{key}` | DELETE | Remove metadata key |
+| `/api/entities/batch/transform` | POST | Batch update transforms |
+
+**New WorldAPI Methods** (in `world_api.py`):
+
+```javascript
+// In ScriptedFacet (JavaScript):
+context.noodle.world.setPosition("radio", 10, 0, 5);
+context.noodle.world.setRotation("radio", 0, 90, 0);
+context.noodle.world.setScale("radio", 2, 2, 2);
+context.noodle.world.setMaterial("radio", "metal");
+context.noodle.world.setPhysics("radio", {mass: "heavy", friction: "high"});
+context.noodle.world.setProperty("radio", "is_playing", true);
+var isPlaying = context.noodle.world.getProperty("radio", "is_playing");
+var transform = context.noodle.world.getTransform("radio");
+```
+
+**WebSocket Broadcast**: Transform changes are broadcast to all connected clients as `transform_update` messages.
+
+**Files Changed**:
+- `applications/cmush/api_server.py` - New endpoints (lines 2022-2550)
+- `noodlestudio/scripting/world_api.py` - New methods (lines 770-910)
+
+### Scene Hierarchy Bug Fixes
+- **UUID read-only** - ID field in Inspector is now immutable (gray, non-editable)
+- **Auto-select new items** - Creating props/noodlings/zones auto-selects them and shows in Inspector
+- **Context menu fix** - Props/Instances/Zones now have correct menus (Delete, Duplicate) instead of Expand/Collapse
+- **Crash fix** - Fixed crash when clicking wrong menu option on props
+
+### Project-Only Mode
+- **Removed legacy mode** - No project open = "No project open" message (no more cmush/world fallback)
+- **No popup dialogs** - Creating entities auto-generates names: "New Prop", "New Prop (2)", etc.
+- **UUID identifiers** - Props/Instances use real UUIDs for folder names, human-readable names in YAML
+
+### Files Changed
+- `noodlestudio/panels/scene_hierarchy.py` - Major refactoring
+- `noodlestudio/panels/inspector_panel.py` - Read-only UUID, physics properties section
+
+---
+
+## 🎯 CURRENT: Noodlings Scene Protocol (NSP) - Complete!
+
+**Goal:** Protocol for providing semantic scene truth to stateless generative rendering engines (Google Genie, Mirage, etc.)
+
+### The Core Insight
+
+**Genie is stateless. Noodlings is stateful.**
+
+Generative 3D engines render frames without memory. We provide:
+- **Persistent state** (who's where, what happened, relationships)
+- **Character consistency** (reference art per form/state)
+- **Narrative memory** (context that a stateless generator lacks)
+- **Perception-filtered context** (each noodling only knows what they perceive)
+
+**Text, 2D maps, 3D renders are all projections of the same semantic truth.**
 
 ### What Was Done (December 18, 2025)
-- **Spatial View Panel** - Qt Quick 3D visualization (first attempt)
-  - `spatial_view_panel.py` (~1300 lines) - Panel with QQuickWidget
-  - Zone boxes rendered in 3D with wireframe mode
-  - Camera controls: Option+LMB tumble, Option+MMB track, scroll zoom
-  - Shortcuts: A (frame all/top-down), F (focus selected), W (wireframe), T (ghost)
-  - Zone selector dropdown, stage selector
-  - Inspector integration for zone properties
-- **Inspector compact vector3 fields** - XYZ on one line instead of 3 rows
-- **Lemondrops Forest test project** - 14 zones with spatial positions
-- **Login dialog fixed** - Added Apple/Facebook buttons, Cancel, proper sizing
 
-### Files Changed This Session
-- `noodlestudio/panels/spatial_view_panel.py` - New (~1300 lines)
-- `noodlestudio/panels/inspector_panel.py` - Added vector3 fields, zone properties
-- `noodlestudio/core/main_window.py` - Tab ordering, zone selection handling
-- `noodlestudio/dialogs/login_dialog.py` - UI fixes
-- `library/Lemondrops Forest/` - Test project with 14 zone YAMLs
-- `library/Lemondrops Forest/SPATIAL_VISUALIZATION.md` - Design doc
+**SCENE_PROTOCOL_SPEC.md** (~1200 lines) - Complete protocol specification:
+- Scene Packet structure (header, spatial truth, entities, references, narrative, camera)
+- Multi-state character support (Yuki: ghostly_fox / normal_fox / humanoid_fox)
+- Camera directive language (POV, FOCUS_ON, TWO_SHOT, ESTABLISH, etc.)
+- Perception slices for information asymmetry
+- Transport/encoding (JSON, WebSocket, REST)
+- Text flattening for LLM-based renderers
 
-### Architecture Decision Needed
-The current 3D approach (Qt Quick 3D with boxes) may not be the right solution.
-Next session should explore:
-1. **2D Canvas approach** - QPainter or QGraphicsScene for illustrated map style
-2. **SVG/Vector graphics** - Scalable primitives that look clean at any zoom
-3. **Prim composition** - How to compose shapes (like U-shape counters)
-4. **Metadata binding** - Rich data on every shape/group
-5. **Text decomposition** - How spatial data becomes LLM context
+**Implementation** (`noodlestudio/core/semantic_world/`):
 
-### Reference Documents
-- `PROJECT_SPEC.md` - Project structure specification
-- `library/Lemondrops Forest/SPATIAL_VISUALIZATION.md` - Current Qt Quick 3D design doc
+1. **scene_packet.py** (~650 lines) - Data structures:
+   - `ScenePacket` - Complete scene snapshot
+   - `Noodling`, `Player`, `Prim` - Entity types with full state
+   - `VisualForm` - Multi-state character support with reference images
+   - `PerceptionCone` - Per-entity FOV, range, special senses
+   - `CameraDirective` - Cinematography instructions
+   - `Affect` - 5D continuous affect (PAD + boredom + sorrow)
+
+2. **perception.py** (~450 lines) - Perception filtering:
+   - `PerceptionSlice` - Filtered view per entity
+   - `PerceptionCalculator` - FOV cone calculations, audibility
+   - `PerceptionSliceGenerator` - Generates slices from full packets
+   - Information asymmetry: entities only know what they perceive
+
+3. **scene_state_manager.py** (~550 lines) - Canonical truth:
+   - Maintains authoritative world state
+   - Entity CRUD operations
+   - Dialogue/event recording
+   - Camera control
+   - Generates packets and perception slices
+
+4. **scene_emitter.py** (~400 lines) - Output streaming:
+   - Full/delta/camera-only packet emission
+   - WebSocket adapter for connected renderers
+   - Genie adapter (transforms to Genie format)
+   - Configurable emission rates
+
+### Key Architecture
+
+```
+SCENE STATE MANAGER (canonical truth)
+        │
+        ├──────────────────┬────────────────────┐
+        │                  │                    │
+        ▼                  ▼                    ▼
+   Red's Slice        Yuki's Slice         Full Packet
+   (her FOV only)     (her FOV only)       (everything)
+        │                  │                    │
+        ▼                  ▼                    ▼
+   Red's Facets       Yuki's Facets        Genie/Mirage
+   (cognition)        (cognition)          (rendering)
+```
+
+### Perception Features
+
+- **FOV filtering** - Can't see entities behind you
+- **Range filtering** - Can't see/hear beyond perception range
+- **Audibility** - Whispers don't carry far
+- **External observables only** - See posture/expression, NOT internal affect
+- **Special senses**:
+  - Fox (Yuki): 180 FOV, night vision, motion sensitivity
+  - Fire imp (Red): Heat sense through occlusion, smoke detection
+  - Ghost form: 360 awareness, sees through walls
+
+### Files Created/Modified
+
+**New files:**
+- `SCENE_PROTOCOL_SPEC.md` - Complete protocol specification
+- `noodlestudio/core/semantic_world/scene_packet.py` - Data structures
+- `noodlestudio/core/semantic_world/perception.py` - Perception system
+- `noodlestudio/core/semantic_world/scene_state_manager.py` - State manager
+- `noodlestudio/core/semantic_world/scene_emitter.py` - Output streaming
+- `noodlestudio/core/semantic_world/__init__.py` - Updated exports
+
+### Next Steps
+
+1. **Wire into server.py** - Build perception slices for facet context
+2. **2D Spatial Editor** - Illustrated map view using the same semantic data
+3. **Genie Integration** - Test with actual Genie/Mirage APIs
+4. **Reference asset pipeline** - Auto-extract from noodling definitions
+
+### Character Note
+
+Red is a **fire imp** like the Cheat Code fire imps from Conker's Bad Fur Day - mischievous little chaos agents, not a dragon!
+
+---
+
+## Previous: Spatial View Panel (Qt Quick 3D)
 
 ---
 
@@ -533,7 +700,9 @@ Think: Dr. Bronner's soap or Craigslist - eccentric, brilliant, one person's vis
 - ✅ Noodling names generator
 - ✅ Real IBM Quantum integration (context.noodle.quantum)
 - ✅ Schrodinger's Cat with actual quantum collapse
-- ⏳ Multimodal facets (next task)
+- ✅ Spatial Operations REST API (transforms, materials, physics, metadata)
+- ✅ Scene Protocol (perception slices, scene packets, emitters)
+- ⏳ Wire Scene Protocol to server (next task)
 - ⏳ Homepage fix needed
 
 **Key Scriptability API Files:**

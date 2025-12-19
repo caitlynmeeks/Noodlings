@@ -137,8 +137,8 @@ class ContextIntelligenceFacet:
         self.agent_name = agent_name
         self.world_model = WorldModel()
 
-        # Extract model from config
-        self.model = facet_config.get('model', 'qwen/qwen3-14b-2507')
+        # Extract model from config (use MEDIUM label by default)
+        self.model = facet_config.get('model', 'MEDIUM')
         self.max_tokens = facet_config.get('max_tokens', 512)
         self.temperature = facet_config.get('temperature', 0.3)  # Lower temp for accuracy
 
@@ -171,8 +171,12 @@ class ContextIntelligenceFacet:
         # Get stage for spatial context (if available)
         stage = context.get('_stage')
 
+        # Get semantic context (event-sourced narrative) if available
+        semantic_context = context.get('_semantic_context', '')
+
         logger.info(f"[ContextIntelligence]   raw_perception={raw_perception[:100] if raw_perception else 'NONE'}")
         logger.info(f"[ContextIntelligence]   stage={'present' if stage else 'absent'}")
+        logger.info(f"[ContextIntelligence]   semantic_context={'present (' + str(len(semantic_context)) + ' chars)' if semantic_context else 'absent'}")
 
         # Build spatial scene description
         spatial_context = ""
@@ -180,6 +184,13 @@ class ContextIntelligenceFacet:
             from stage_model import StageQuery
             spatial_context = StageQuery.describe_scene(stage, agent_name)
             logger.info(f"[ContextIntelligence]   spatial_context: {spatial_context[:200]}")
+
+        # Merge semantic context with spatial context (semantic provides narrative, spatial provides structure)
+        if semantic_context:
+            if spatial_context:
+                spatial_context = f"{semantic_context}\n\n[SPATIAL STRUCTURE]\n{spatial_context}"
+            else:
+                spatial_context = semantic_context
 
         # Build prompt for spatial narration
         logger.info(f"[ContextIntelligence] 🔨 Building narrator prompt...")
@@ -193,6 +204,12 @@ class ContextIntelligenceFacet:
 
         # Call LLM for spatial narration
         logger.info(f"[ContextIntelligence] 📞 Calling LLM ({self.model})...")
+
+        # Track activity for ambient visualization
+        from .model_activity_tracker import get_model_activity_tracker
+        activity_tracker = get_model_activity_tracker()
+        request_id = activity_tracker.request_started(self.model)
+
         try:
             response = await self.llm_client.generate(
                 prompt=prompt,
@@ -212,6 +229,8 @@ class ContextIntelligenceFacet:
             import traceback
             traceback.print_exc()
             raise
+        finally:
+            activity_tracker.request_completed(self.model, request_id)
 
         # Output includes BOTH original perception AND spatial context
         # This preserves what the user said while adding spatial awareness

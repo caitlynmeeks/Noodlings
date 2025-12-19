@@ -91,7 +91,7 @@ class AssetsPanel(QWidget):
         layout.addWidget(self.tree)
 
     def _load_assets(self):
-        """Load all assets from the project."""
+        """Load all assets from the project using PROJECT_SPEC.md structure."""
         self.tree.clear()
 
         # Check if project is open
@@ -103,40 +103,45 @@ class AssetsPanel(QWidget):
             placeholder_hint.setForeground(0, Qt.GlobalColor.darkGray)
             return
 
-        # Get assets path from project
-        assets_path = self.project_manager.get_assets_path()
-        if not assets_path or not os.path.exists(assets_path):
-            return
-
         # Create category nodes
         self.noodlings_node = QTreeWidgetItem(self.tree, ["Noodlings"])
         self.noodlings_node.setExpanded(True)
 
-        self.ensembles_node = QTreeWidgetItem(self.tree, ["Ensembles"])
-        self.ensembles_node.setExpanded(True)
-
-        self.generations_node = QTreeWidgetItem(self.tree, ["Generations"])
-        self.generations_node.setExpanded(True)
+        self.stages_node = QTreeWidgetItem(self.tree, ["Stages"])
+        self.stages_node.setExpanded(True)
 
         self.prims_node = QTreeWidgetItem(self.tree, ["Prims"])
         self.prims_node.setExpanded(False)
 
-        self.scripts_node = QTreeWidgetItem(self.tree, ["Scripts"])
-        self.scripts_node.setExpanded(False)
+        self.generations_node = QTreeWidgetItem(self.tree, ["Generations"])
+        self.generations_node.setExpanded(True)
 
-        self.stages_node = QTreeWidgetItem(self.tree, ["Stages"])
-        self.stages_node.setExpanded(False)
+        # Load Noodlings from project (new format)
+        noodlings = self.project_manager.list_noodlings()
+        if noodlings:
+            for name in sorted(noodlings):
+                item = QTreeWidgetItem(self.noodlings_node, [name])
+                item.setData(0, Qt.ItemDataRole.UserRole, ("noodling", name, "project"))
 
-        # Load Noodlings from project assets
-        noodlings_path = self.project_manager.get_assets_path("Noodlings")
-        if os.path.exists(noodlings_path):
-            for filename in sorted(os.listdir(noodlings_path)):
-                if filename.endswith(".json"):
-                    name = filename.replace(".json", "")
-                    item = QTreeWidgetItem(self.noodlings_node, [name])
-                    item.setData(0, Qt.ItemDataRole.UserRole, ("noodling", name, "project"))
+                # Load metadata for tooltip
+                noodling_path = self.project_manager.get_noodling_path(name)
+                try:
+                    import yaml
+                    manifest_path = os.path.join(noodling_path, "noodling.yaml")
+                    if os.path.exists(manifest_path):
+                        with open(manifest_path, 'r') as f:
+                            manifest = yaml.safe_load(f)
+                        desc = manifest.get("description", "")
+                        preview = manifest.get("preview", {})
+                        species = preview.get("species", "noodling")
+                        item.setToolTip(0, f"{species}: {desc}")
+                except:
+                    pass
+        else:
+            placeholder = QTreeWidgetItem(self.noodlings_node, ["(No noodlings yet)"])
+            placeholder.setForeground(0, Qt.GlobalColor.gray)
 
-        # Also load Noodlings from cmush/recipes (YAML recipes)
+        # Also load legacy recipes from cmush/recipes
         cmush_recipes_path = os.path.join(
             os.path.dirname(__file__),
             "../../../cmush/recipes"
@@ -145,42 +150,40 @@ class AssetsPanel(QWidget):
             for filename in sorted(os.listdir(cmush_recipes_path)):
                 if filename.endswith(".yaml"):
                     name = filename.replace(".yaml", "")
-                    # Add with badge to show it's from recipes
-                    item = QTreeWidgetItem(self.noodlings_node, [f"{name} (recipe)"])
-                    item.setData(0, Qt.ItemDataRole.UserRole, ("noodling", name, "recipe"))
-                    item.setForeground(0, Qt.GlobalColor.cyan)  # Color code recipes
+                    # Skip if already in project
+                    if name not in noodlings:
+                        item = QTreeWidgetItem(self.noodlings_node, [f"{name} (legacy)"])
+                        item.setData(0, Qt.ItemDataRole.UserRole, ("noodling", name, "recipe"))
+                        item.setForeground(0, Qt.GlobalColor.darkCyan)
 
-        # Load Ensembles
-        ensembles_path = self.project_manager.get_assets_path("Ensembles")
-        if os.path.exists(ensembles_path):
-            for filename in sorted(os.listdir(ensembles_path)):
-                if filename.endswith(".ensemble"):
-                    # Load ensemble to get display name
-                    filepath = os.path.join(ensembles_path, filename)
-                    try:
-                        with open(filepath, 'r') as f:
-                            data = json.load(f)
-                            name = data.get("name", filename.replace(".ensemble", ""))
-                            item = QTreeWidgetItem(self.ensembles_node, [name])
-                            item.setData(0, Qt.ItemDataRole.UserRole, ("ensemble", filename))
+        # Load Stages from project
+        stages = self.project_manager.list_stages()
+        if stages:
+            for name in sorted(stages):
+                item = QTreeWidgetItem(self.stages_node, [name])
+                item.setData(0, Qt.ItemDataRole.UserRole, ("stage", name, "project"))
 
-                            # Add agent count as tooltip
-                            agent_count = len(data.get("agents", []))
-                            item.setToolTip(0, f"{agent_count} agents: {data.get('description', '')}")
-                    except Exception as e:
-                        print(f"Error loading ensemble {filename}: {e}")
+                # Load zone count for tooltip
+                stage_path = self.project_manager.get_stage_path(name)
+                zones_path = os.path.join(stage_path, "Zones")
+                if os.path.exists(zones_path):
+                    zone_count = len([f for f in os.listdir(zones_path) if f.endswith(".zone.yaml")])
+                    instances_path = os.path.join(stage_path, "Instances")
+                    inst_count = len(os.listdir(instances_path)) if os.path.exists(instances_path) else 0
+                    item.setToolTip(0, f"{zone_count} zones, {inst_count} instances")
+        else:
+            placeholder = QTreeWidgetItem(self.stages_node, ["(No stages yet)"])
+            placeholder.setForeground(0, Qt.GlobalColor.gray)
 
-        # Prims (placeholder - will be implemented when USD integration is complete)
-        placeholder_prims = QTreeWidgetItem(self.prims_node, ["(Coming soon)"])
-        placeholder_prims.setForeground(0, Qt.GlobalColor.gray)
-
-        # Scripts (placeholder)
-        placeholder_scripts = QTreeWidgetItem(self.scripts_node, ["(Coming soon)"])
-        placeholder_scripts.setForeground(0, Qt.GlobalColor.gray)
-
-        # Stages (placeholder)
-        placeholder_stages = QTreeWidgetItem(self.stages_node, ["(Coming soon)"])
-        placeholder_stages.setForeground(0, Qt.GlobalColor.gray)
+        # Load Prims from project
+        prims = self.project_manager.list_prims()
+        if prims:
+            for name in sorted(prims):
+                item = QTreeWidgetItem(self.prims_node, [name])
+                item.setData(0, Qt.ItemDataRole.UserRole, ("prim", name, "project"))
+        else:
+            placeholder = QTreeWidgetItem(self.prims_node, ["(No prims yet)"])
+            placeholder.setForeground(0, Qt.GlobalColor.gray)
 
         # Load Generations if manager is available
         self._load_generations()

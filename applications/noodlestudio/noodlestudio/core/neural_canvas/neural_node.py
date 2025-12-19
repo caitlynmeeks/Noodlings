@@ -60,6 +60,11 @@ class NodeType(Enum):
     # Asset nodes
     CHECKPOINT = "CHECKPOINT"  # Trained weight checkpoint (.npz file)
 
+    # Tutorial/Interactive nodes
+    NUMBER_INPUT = "NUMBER_INPUT"  # Interactive scalar input with slider
+    THRESHOLD_OUTPUT = "THRESHOLD_OUTPUT"  # ON/OFF display at threshold
+    CONCAT = "CONCAT"  # Concatenate two tensors
+
 
 class DataType(Enum):
     """Data types for port validation."""

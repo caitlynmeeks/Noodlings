@@ -152,7 +152,15 @@ class NodeGraphicsItem(QGraphicsItem):
         max_ports = max(len(node.inputs), len(node.outputs), 1)
         ports_height = max_ports * 20 + 20  # 20px per port + margin
 
-        self.height = header_height + params_height + ports_height
+        # Extra height for special interactive nodes
+        if node.type == NodeType.NUMBER_INPUT:
+            extra_height = 60  # Space for slider + value text
+        elif node.type == NodeType.THRESHOLD_OUTPUT:
+            extra_height = 90  # Space for indicator + info text
+        else:
+            extra_height = 0
+
+        self.height = header_height + params_height + ports_height + extra_height
         self.setPos(node.position[0], node.position[1])
 
         # Calculate where ports start (after header + params)
@@ -183,17 +191,60 @@ class NodeGraphicsItem(QGraphicsItem):
         # Test mode values (displayed during test inference)
         self.test_values: dict = {}  # port_name -> value
 
+        # Slider interaction state (for NUMBER_INPUT nodes)
+        self._slider_rect = None
+        self._slider_x = 0
+        self._slider_width = 0
+        self._slider_dragging = False
+
     def mousePressEvent(self, event):
         """Record position when drag starts (for undo)."""
         from PyQt6.QtCore import Qt
         if event.button() == Qt.MouseButton.LeftButton:
+            # Check if clicking on slider (for NUMBER_INPUT nodes)
+            if self.node.type == NodeType.NUMBER_INPUT and self._slider_rect:
+                local_pos = event.pos()
+                # Expand hit area vertically for easier interaction
+                slider_hit_rect = QRectF(
+                    self._slider_rect.x() - 5,
+                    self._slider_rect.y() - 10,
+                    self._slider_rect.width() + 10,
+                    self._slider_rect.height() + 20
+                )
+                if slider_hit_rect.contains(local_pos):
+                    self._slider_dragging = True
+                    self._update_slider_value(local_pos.x())
+                    event.accept()
+                    return
+
             self.drag_start_pos = (int(self.pos().x()), int(self.pos().y()))
             self.is_being_dragged = True
         super().mousePressEvent(event)
 
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for slider dragging."""
+        if self._slider_dragging:
+            self._update_slider_value(event.pos().x())
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
     def mouseReleaseEvent(self, event):
         """Push move command when drag ends (if position changed)."""
         from PyQt6.QtCore import Qt
+
+        # Handle slider release
+        if event.button() == Qt.MouseButton.LeftButton and self._slider_dragging:
+            self._slider_dragging = False
+            # Emit graph modified signal
+            if self.scene():
+                for view in self.scene().views():
+                    if isinstance(view, NeuralCanvasView):
+                        view.graph_modified.emit()
+                        break
+            event.accept()
+            return
+
         if event.button() == Qt.MouseButton.LeftButton and self.is_being_dragged:
             self.is_being_dragged = False
 
@@ -224,9 +275,40 @@ class NodeGraphicsItem(QGraphicsItem):
 
         super().mouseReleaseEvent(event)
 
+    def _update_slider_value(self, x: float):
+        """Update NUMBER_INPUT slider value from mouse x position."""
+        if not self._slider_width or self._slider_width <= 0:
+            return
+
+        # Calculate normalized position (0-1)
+        normalized = (x - self._slider_x) / self._slider_width
+        normalized = max(0.0, min(1.0, normalized))
+
+        # Convert to actual value range
+        min_val = self.node.params.get('min_value', 0.0)
+        max_val = self.node.params.get('max_value', 1.0)
+        step = self.node.params.get('step', 0.1)
+
+        new_value = min_val + normalized * (max_val - min_val)
+
+        # Snap to step
+        if step > 0:
+            new_value = round(new_value / step) * step
+            new_value = max(min_val, min(max_val, new_value))
+
+        # Update node parameter
+        self.node.params['value'] = new_value
+
+        # Trigger repaint
+        self.update()
+
     def _get_display_params(self) -> dict:
         """Get key parameters to display inline on the node (moved up for init access)."""
         display = {}
+
+        # Special nodes have custom UI, no inline params
+        if self.node.type in (NodeType.NUMBER_INPUT, NodeType.THRESHOLD_OUTPUT):
+            return display
 
         if self.node.type in (NodeType.LSTM, NodeType.GRU, NodeType.RNN):
             if 'hidden_dim' in self.node.params:
@@ -319,9 +401,112 @@ class NodeGraphicsItem(QGraphicsItem):
         # Draw inline parameters (between header and ports)
         self._paint_parameters(painter, header_height)
 
-        # Draw test values if present
-        if self.test_values:
+        # Draw special interactive elements for tutorial nodes
+        if self.node.type == NodeType.NUMBER_INPUT:
+            self._paint_number_input_slider(painter)
+        elif self.node.type == NodeType.THRESHOLD_OUTPUT:
+            self._paint_threshold_output(painter)
+        # Draw test values if present (for non-special nodes)
+        elif self.test_values:
             self._paint_test_values(painter)
+
+    def _paint_number_input_slider(self, painter: QPainter):
+        """Paint interactive slider for NUMBER_INPUT node."""
+        # Slider track area
+        slider_y = self.port_start_y + 25
+        slider_x = 15
+        slider_width = self.width - 30
+        slider_height = 8
+
+        # Get current value (normalized 0-1)
+        value = self.node.params.get('value', 0.5)
+        min_val = self.node.params.get('min_value', 0.0)
+        max_val = self.node.params.get('max_value', 1.0)
+        normalized = (value - min_val) / (max_val - min_val) if max_val > min_val else 0.5
+
+        # Draw track background (dark)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor("#252525")))
+        track_rect = QRectF(slider_x, slider_y, slider_width, slider_height)
+        painter.drawRoundedRect(track_rect, 3, 3)
+
+        # Draw filled portion (green gradient)
+        filled_width = slider_width * normalized
+        painter.setBrush(QBrush(QColor("#4A8A4A")))
+        filled_rect = QRectF(slider_x, slider_y, filled_width, slider_height)
+        painter.drawRoundedRect(filled_rect, 3, 3)
+
+        # Draw thumb
+        thumb_x = slider_x + filled_width - 6
+        thumb_y = slider_y - 2
+        thumb_size = 12
+        painter.setBrush(QBrush(QColor("#CCCCCC")))
+        painter.setPen(QPen(QColor("#888888"), 1))
+        painter.drawEllipse(QRectF(thumb_x, thumb_y, thumb_size, thumb_size))
+
+        # Draw value text
+        painter.setPen(QColor("#e8e8e0"))
+        font = QFont("Arial", 10, QFont.Weight.Bold)
+        painter.setFont(font)
+        value_text = f"{value:.2f}"
+        value_rect = QRectF(slider_x, slider_y + slider_height + 5, slider_width, 16)
+        painter.drawText(value_rect, Qt.AlignmentFlag.AlignCenter, value_text)
+
+        # Store slider geometry for mouse interaction
+        self._slider_rect = track_rect
+        self._slider_x = slider_x
+        self._slider_width = slider_width
+
+    def _paint_threshold_output(self, painter: QPainter):
+        """Paint ON/OFF indicator for THRESHOLD_OUTPUT node."""
+        # Indicator area
+        indicator_y = self.port_start_y + 10
+        indicator_x = self.width / 2 - 25
+        indicator_size = 50
+
+        # Get state from test values or params
+        is_on = self.test_values.get('is_on', False)
+        value = self.test_values.get('value', 0.0)
+        threshold = self.node.params.get('threshold', 0.5)
+
+        # Draw indicator light
+        painter.setPen(QPen(QColor("#333333"), 2))
+
+        if is_on:
+            # ON - bright green with glow effect
+            painter.setBrush(QBrush(QColor("#44FF44")))
+            # Draw glow (outer ring)
+            glow_rect = QRectF(indicator_x - 5, indicator_y - 5, indicator_size + 10, indicator_size + 10)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor(68, 255, 68, 80)))
+            painter.drawEllipse(glow_rect)
+        else:
+            # OFF - dim gray/red
+            painter.setBrush(QBrush(QColor("#553333")))
+
+        # Main indicator circle
+        painter.setPen(QPen(QColor("#222222"), 2))
+        indicator_rect = QRectF(indicator_x, indicator_y, indicator_size, indicator_size)
+        painter.drawEllipse(indicator_rect)
+
+        # Draw ON/OFF text
+        painter.setPen(QColor("#FFFFFF" if is_on else "#666666"))
+        font = QFont("Arial", 12, QFont.Weight.Bold)
+        painter.setFont(font)
+        status_text = "ON" if is_on else "OFF"
+        painter.drawText(indicator_rect, Qt.AlignmentFlag.AlignCenter, status_text)
+
+        # Draw value and threshold info below
+        painter.setPen(QColor("#e8e8e0"))
+        font = QFont("Arial", 8)
+        painter.setFont(font)
+        info_y = indicator_y + indicator_size + 8
+        info_rect = QRectF(10, info_y, self.width - 20, 12)
+        if isinstance(value, float):
+            info_text = f"Value: {value:.3f} (threshold: {threshold:.2f})"
+        else:
+            info_text = f"threshold: {threshold:.2f}"
+        painter.drawText(info_rect, Qt.AlignmentFlag.AlignCenter, info_text)
 
     def _paint_test_values(self, painter: QPainter):
         """
@@ -987,7 +1172,8 @@ class NeuralCanvasView(QGraphicsView):
                 "Activation": [NodeType.TANH, NodeType.RELU, NodeType.SIGMOID],
                 "Utility": [NodeType.STATE_CONCAT, NodeType.AFFECT_HEAD],
                 "Quantum": [NodeType.QUANTUM_MICROTUBULE, NodeType.IBM_QUANTUM],
-                "Assets": [NodeType.CHECKPOINT]
+                "Assets": [NodeType.CHECKPOINT],
+                "Tutorial": [NodeType.NUMBER_INPUT, NodeType.THRESHOLD_OUTPUT, NodeType.CONCAT]
             }
 
             for group_name, node_types in groups.items():

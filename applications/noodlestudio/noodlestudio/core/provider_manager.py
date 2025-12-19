@@ -35,6 +35,11 @@ class ProviderConfig:
     base_url: Optional[str] = None  # For custom/lmstudio
     port: Optional[int] = None  # For lmstudio
 
+    # Ollama-specific concurrency settings
+    num_parallel: Optional[int] = None  # OLLAMA_NUM_PARALLEL (requests per model)
+    max_loaded_models: Optional[int] = None  # OLLAMA_MAX_LOADED_MODELS
+    max_queue: Optional[int] = None  # OLLAMA_MAX_QUEUE
+
     # Cached data (full model objects with metadata)
     available_models: List[Dict[str, Any]] = field(default_factory=list)
 
@@ -146,6 +151,10 @@ class ProviderManager(QObject):
             "api_key": self.settings.value("api_key", None),
             "base_url": self.settings.value("base_url", None),
             "port": self.settings.value("port", None, type=int),
+            # Ollama concurrency settings
+            "num_parallel": self.settings.value("num_parallel", None, type=int),
+            "max_loaded_models": self.settings.value("max_loaded_models", None, type=int),
+            "max_queue": self.settings.value("max_queue", None, type=int),
             "available_models": json.loads(self.settings.value("available_models", "[]"))
         }
 
@@ -165,6 +174,14 @@ class ProviderManager(QObject):
             self.settings.setValue("base_url", provider.base_url)
         if provider.port:
             self.settings.setValue("port", provider.port)
+
+        # Ollama concurrency settings
+        if provider.num_parallel is not None:
+            self.settings.setValue("num_parallel", provider.num_parallel)
+        if provider.max_loaded_models is not None:
+            self.settings.setValue("max_loaded_models", provider.max_loaded_models)
+        if provider.max_queue is not None:
+            self.settings.setValue("max_queue", provider.max_queue)
 
         self.settings.setValue("available_models", json.dumps(provider.available_models))
 

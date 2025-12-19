@@ -167,7 +167,7 @@ class NoodleMUSHTUI(App):
             table.add_column("Value", width=60)
             table.add_row("Provider", "local")
             table.add_row("API Base", "http://localhost:1234/v1")
-            table.add_row("Model", "qwen/qwen3-4b-2507")
+            table.add_row("Model", "SMALL")
             table.add_row("Timeout", "60s")
 
             yield table

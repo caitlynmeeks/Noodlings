@@ -170,10 +170,10 @@ class CommandParser:
         brenda_config = config.get('brenda', {}) if config else {}
 
         # Use Brenda-specific model if configured, otherwise fall back to general LLM model
-        brenda_model = brenda_config.get('model', llm_config.get('model', 'qwen3-4b-instruct-2507-mlx'))
+        brenda_model = brenda_config.get('model', llm_config.get('model', 'SMALL'))
 
         self.brenda_character = BrendaCharacter(
-            api_base=llm_config.get('api_base', 'http://localhost:1234/v1'),
+            api_base=llm_config.get('api_base', 'http://localhost:11434/v1'),
             api_key=llm_config.get('api_key', 'not-needed'),
             model=brenda_model,
             timeout=llm_config.get('timeout', 60)
@@ -1322,11 +1322,16 @@ class CommandParser:
         if not room:
             return {'success': False, 'output': 'Error getting location.', 'events': []}
 
-        for agent_name in agent_names:
-            agent_id = f"agent_{agent_name}"
+        import uuid as uuid_lib
 
-            # Check if agent already exists
-            if self.world.get_user(agent_id):
+        for agent_name in agent_names:
+            # Generate proper UUID for agent (not name-based)
+            agent_id = f"agent_{uuid_lib.uuid4()}"
+
+            # Check if agent with this NAME already exists (not ID)
+            existing = [aid for aid, a in self.world.agents.items()
+                       if a.get('name', '').lower() == agent_name.lower()]
+            if existing:
                 errors.append(f"'{agent_name}' already exists")
                 continue
 
@@ -1336,9 +1341,7 @@ class CommandParser:
             # Use recipe data if available, otherwise defaults
             if recipe:
                 display_name = recipe.name
-                # Use recipe name for agent_name too (consistent naming)
-                agent_name = recipe.name.lower().replace(' ', '_')
-                agent_id = f"agent_{agent_name}"
+                # Keep display_name from recipe but use UUID for agent_id
                 description = recipe.description if not agent_description else agent_description
 
                 # Build config from recipe

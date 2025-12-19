@@ -98,7 +98,7 @@ class CognitiveTransistor(ABC):
         try:
             # Make LLM call
             if model is None:
-                model = context.get('model', 'qwen/qwen3-4b-2507')
+                model = context.get('model', 'SMALL')
 
             response = await llm_client.generate(
                 prompt=prompt,
@@ -246,7 +246,7 @@ class ResponseTypeDecider:
         self,
         event_context: Dict[str, Any],
         llm_client,
-        model: str = 'qwen/qwen3-4b-2507',
+        model: str = 'SMALL',
         agent = None
     ) -> Dict[str, Any]:
         """
@@ -379,7 +379,7 @@ class SocialExecutiveFunction:
         internal_thought: str,
         event_context: Dict[str, Any],
         llm_client,
-        model: str = 'qwen/qwen3-4b-2507'
+        model: str = 'SMALL'
     ) -> str:
         """
         Filter internal thought into socially appropriate response.
@@ -568,7 +568,7 @@ class CognitiveManifold:
         elif self.response_planner and context.get('event_context'):
             # Use response planner to decide
             llm_client = context.get('llm_client')
-            model = context.get('model', 'qwen/qwen3-4b-2507')
+            model = context.get('model', 'SMALL')
             if llm_client:
                 try:
                     response_decision = await self.response_planner.decide(
@@ -627,7 +627,7 @@ class CognitiveManifold:
         # Apply social executive function filter if enabled
         if self.social_filter.enabled and context.get('event_context'):
             llm_client = context.get('llm_client')
-            model = context.get('model', 'qwen/qwen3-4b-2507')
+            model = context.get('model', 'SMALL')
             if llm_client:
                 try:
                     filtered_result = await self.social_filter.filter(
@@ -865,9 +865,9 @@ NOT: "What are they thinking/feeling/doing internally?"
             logger.error("No LLM client in context - manifold blending REQUIRES LLM")
             return " ".join([o.transformed_text for o in outputs[:2]])  # Emergency fallback
 
-        # Call LLM with SMART model - manifold blending is critical collapse point
-        # Use 30B model for nuanced character-preserving integration
-        blend_model = 'qwen3-vl-30b-a3b-instruct-mlx'  # Smart model for critical integration
+        # Call LLM with LARGE model - manifold blending is critical collapse point
+        # Use LARGE label for nuanced character-preserving integration
+        blend_model = 'LARGE'  # Smart model for critical integration
 
         # Build response-type-specific system prompt
         if response_type == 'SAY':
@@ -888,7 +888,7 @@ NOT: "What are they thinking/feeling/doing internally?"
         self,
         llm_client,
         prompt: str,
-        model: str = 'qwen/qwen3-4b-2507',
+        model: str = 'SMALL',
         context: Dict[str, Any] = None,
         max_tokens: int = 300,
         system_prompt: str = None
@@ -1027,7 +1027,7 @@ Content for {response_type}:"""
 
         # Use LLM to transform
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         if llm_client:
             try:
@@ -1137,7 +1137,7 @@ Write your personality-driven impulse - what you WANT to {response_type}. 1-2 se
 
         # Use LLM to transform
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         if llm_client:
             try:
@@ -1315,7 +1315,7 @@ Content for {response_type}:"""
 
         # Use LLM to transform
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         if llm_client:
             try:
@@ -1447,7 +1447,7 @@ Your DESIRE to act, not analysis of feeling:"""
 
         # Use LLM to transform
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         if llm_client:
             try:
@@ -1557,7 +1557,7 @@ Content for {response_type}:"""
 
         # Use LLM to transform
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         if llm_client:
             try:
@@ -1672,7 +1672,7 @@ Content for {response_type}:"""
 
         # Use LLM to transform
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         if llm_client:
             try:
@@ -1944,7 +1944,7 @@ Content for {response_type}:"""
 
             # Use LLM to transform
             llm_client = context.get('llm_client')
-            model = context.get('model', 'qwen/qwen3-4b-2507')
+            model = context.get('model', 'SMALL')
 
             if llm_client:
                 try:
@@ -2297,7 +2297,7 @@ Transformed output:"""
 
         # Use LLM to transform (if available)
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         if llm_client:
             try:
@@ -2459,7 +2459,7 @@ Output ONLY the physical reaction, nothing else."""
 
         # Generate embodied reaction using LLM
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         if llm_client:
             try:
@@ -2718,7 +2718,7 @@ Only include AUs that are actually activating. Return JSON only."""
 
         # Use LLM to generate FACS
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         facs_data = {}
         if llm_client:
@@ -2882,7 +2882,7 @@ Output plain text description (NOT JSON). Focus on physical movements only, no e
 
         # Use LLM to generate body-specific movement description
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         movement_text = ""
         if llm_client:

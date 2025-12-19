@@ -46,6 +46,29 @@ from entropy_service import get_entropy_service
 from event_system import Event
 from embodiment_loader import EmbodimentLoader
 
+# Semantic World integration (optional - graceful fallback if not available)
+try:
+    from semantic_integration import get_semantic_context, get_full_context
+    SEMANTIC_WORLD_AVAILABLE = True
+except ImportError:
+    SEMANTIC_WORLD_AVAILABLE = False
+    get_semantic_context = None
+    get_full_context = None
+
+# Scene Protocol integration (optional - graceful fallback if not available)
+try:
+    from scene_protocol_integration import (
+        SCENE_PROTOCOL_AVAILABLE,
+        prepare_facet_context,
+        finalize_facet_context,
+        sync_agent_to_noodling,
+    )
+except ImportError:
+    SCENE_PROTOCOL_AVAILABLE = False
+    prepare_facet_context = None
+    finalize_facet_context = None
+    sync_agent_to_noodling = None
+
 logger = logging.getLogger(__name__)
 
 # NoodleScope configuration
@@ -246,7 +269,7 @@ Translate into enthusiastic dog voice:"""
 
     try:
         # Use agent's model if specified, otherwise fall back to fast model
-        voice_model = model or "qwen/qwen3-4b-2507"
+        voice_model = model or "SMALL"
         translation = await llm.generate(
             prompt=prompt,
             system_prompt=f"You are a character voice translator for {agent_name}. Return ONLY the translated text, nothing else.",
@@ -860,12 +883,26 @@ class CMUSHConsilienceAgent:
                     from noodlestudio.core.facet_system import FacetAssembly
                     from noodlestudio.core.facet_executor import FacetExecutor
 
-                    # Load assembly YAML
-                    assembly_path = os.path.join(
-                        os.path.dirname(__file__),
-                        '../noodlestudio/facet_assemblies',
-                        f'{facet_assembly_name}.yaml'
-                    )
+                    # Resolve assembly path - check library first, then facet_assemblies
+                    noodlestudio_dir = os.path.join(os.path.dirname(__file__), '../noodlestudio')
+
+                    if facet_assembly_name.startswith('library/'):
+                        # Library template: library/empty_noodling -> library/noodlings/empty_noodling/assembly.yaml
+                        template_name = facet_assembly_name.replace('library/', '')
+                        assembly_path = os.path.join(
+                            noodlestudio_dir,
+                            'library/noodlings',
+                            template_name,
+                            'assembly.yaml'
+                        )
+                        logger.info(f"[{agent_id}] Loading library template: {template_name}")
+                    else:
+                        # Standard facet assembly
+                        assembly_path = os.path.join(
+                            noodlestudio_dir,
+                            'facet_assemblies',
+                            f'{facet_assembly_name}.yaml'
+                        )
 
                     self.facet_assembly = FacetAssembly.load_yaml(assembly_path)
                     # HYBRID STRATEGY: Use 'serial' for debug, 'hybrid' for production
@@ -1079,7 +1116,7 @@ class CMUSHConsilienceAgent:
             # Register Character Voice component
             voice_config = config.get('character_voice', {
                 'enabled': True,
-                'model': 'qwen/qwen3-4b-2507',
+                'model': 'SMALL',
                 'temperature': 0.4,
                 'max_tokens': 150
             })
@@ -1657,7 +1694,7 @@ Generate factual awareness:"""
 
             # ALWAYS use fast model for intuition - don't use agent's model override
             # Intuition needs to be fast and reliable, not character-specific
-            intuition_model = intuition_config.get('model', 'qwen3-vl-30b-a3b-instruct-mlx')
+            intuition_model = intuition_config.get('model', 'SMALL')
             timeout = intuition_config.get('timeout', 5)
 
             # Track this operation
@@ -1780,7 +1817,7 @@ Analyze and output ONLY valid JSON:
 }}"""
 
             # Use fast model for analysis
-            model = intuition_config.get('model', 'qwen/qwen3-4b-2507')
+            model = intuition_config.get('model', 'SMALL')
             timeout = expectation_config.get('timeout', 5)
 
             # Track operation
@@ -2472,12 +2509,57 @@ Analyze and output ONLY valid JSON:
                             exec_context._stage = stage
                             logger.debug(f"[{self.agent_id}] Stage injected: {stage.name} ({len(stage.entities)} entities)")
 
-                    # Execute facet assembly
-                    result = await self.facet_executor.execute(
-                        self.facet_assembly,
-                        incoming_data=text,
-                        context=vars(exec_context)
-                    )
+                    # Inject semantic context (event-sourced narrative)
+                    if SEMANTIC_WORLD_AVAILABLE and get_semantic_context:
+                        try:
+                            semantic_narrative = get_semantic_context(
+                                entity_id=self.agent_id,
+                                stage_id=current_room_id,
+                                window_minutes=10,
+                                max_events=10
+                            )
+                            if semantic_narrative:
+                                exec_context._semantic_context = semantic_narrative
+                                logger.debug(f"[{self.agent_id}] Semantic context injected: {len(semantic_narrative)} chars")
+                        except Exception as e:
+                            logger.debug(f"[{self.agent_id}] Semantic context unavailable: {e}")
+
+                    # Execute facet assembly (track for NoodleStudio visualization)
+                    self.current_facet = "INCOMING"
+                    self.current_phase = "INCOMING"
+                    self.current_assembly = getattr(self.facet_assembly, 'name', 'Facet Assembly')
+                    self.current_model_label = ""
+                    self.current_model_name = ""
+                    self.current_llm_status = ""  # QUERYING, AWAITING_RESPONSE, ERROR, or empty
+                    self.pending_llm_calls = 1  # Mark as busy
+                    try:
+                        # Pass agent reference for real-time facet tracking
+                        exec_vars = vars(exec_context)
+                        exec_vars['_agent_ref'] = self
+
+                        # Scene Protocol: inject WorldAPI with perception slice
+                        if SCENE_PROTOCOL_AVAILABLE and prepare_facet_context:
+                            exec_vars = prepare_facet_context(self.agent_id, exec_vars)
+
+                        result = await self.facet_executor.execute(
+                            self.facet_assembly,
+                            incoming_data=text,
+                            context=exec_vars
+                        )
+
+                        # Scene Protocol: process WorldAPI pending commands
+                        if SCENE_PROTOCOL_AVAILABLE and finalize_facet_context:
+                            scene_commands = finalize_facet_context(self.agent_id)
+                            if scene_commands:
+                                logger.debug(f"[{self.agent_id}] Scene commands processed: {list(scene_commands.keys())}")
+                    finally:
+                        self.current_facet = ""
+                        self.current_phase = "IDLE"
+                        self.current_assembly = ""
+                        self.current_model_label = ""
+                        self.current_model_name = ""
+                        self.current_llm_status = ""
+                        self.pending_llm_calls = 0
 
                     colored_perception = result.response
 
@@ -2500,12 +2582,12 @@ Analyze and output ONLY valid JSON:
                         stage = self.world.get_stage_for_room(current_room_id)
 
                     # Get current affect
-                    # affect_raw is a list: [valence, arousal, fear, sorrow, boredom]
+                    # affect_raw is a list: [valence, arousal, dominance, sorrow, boredom]
                     affect_state = {
                         'valence': affect_raw[0] if isinstance(affect_raw, list) else affect_raw.get('valence', 0.0),
                         'arousal': affect_raw[1] if isinstance(affect_raw, list) else affect_raw.get('arousal', 0.5),
                         'boredom': affect_raw[4] if isinstance(affect_raw, list) else affect_raw.get('boredom', 0.0),
-                        'fear': affect_raw[2] if isinstance(affect_raw, list) else affect_raw.get('fear', 0.0),
+                        'dominance': affect_raw[2] if isinstance(affect_raw, list) else affect_raw.get('dominance', 0.0),
                         'sorrow': affect_raw[3] if isinstance(affect_raw, list) else affect_raw.get('sorrow', 0.0)
                     }
 
@@ -2654,7 +2736,7 @@ Analyze and output ONLY valid JSON:
                         'memory_system': self.conversation_context,
                         'surprise': 0.0,
                         'llm_client': self.llm,
-                        'model': 'qwen/qwen3-4b-2507',
+                        'model': 'SMALL',
                         'intuition': intuition_text,
                         'location': self.current_room,
                         'world': self.world,
@@ -2673,7 +2755,7 @@ Analyze and output ONLY valid JSON:
                             response_decision = await self.cognitive_manifold.response_planner.decide(
                                 context['event_context'],
                                 self.llm,
-                                'qwen/qwen3-4b-2507',
+                                'SMALL',
                                 agent=self
                             )
                             context['response_decision'] = response_decision
@@ -2959,7 +3041,7 @@ Analyze and output ONLY valid JSON:
                     'predicted_affect': predicted_affect if 'predicted_affect' in locals() else None,
                     'affect': affect,
                     'llm_client': self.llm,
-                    'model': 'qwen/qwen3-4b-2507'
+                    'model': 'SMALL'
                 }
 
                 # Process FACS
@@ -3816,7 +3898,7 @@ Analyze and output ONLY valid JSON:
                             response_text,
                             event_ctx,
                             self.llm,
-                            model='qwen/qwen3-4b-2507'
+                            model='SMALL'
                         )
                         if response_text != pre_filter:
                             logger.info(f"[{self.agent_id}]  FINAL SOCIAL FILTER: {pre_filter[:80]}... → {response_text[:80]}...")
@@ -4050,7 +4132,7 @@ Analyze and output ONLY valid JSON:
                         'memory_system': self.conversation_context,
                         'surprise': state.get('surprise', 0.0),
                         'llm_client': self.llm,
-                        'model': 'qwen/qwen3-4b-2507',
+                        'model': 'SMALL',
                         'intuition': intuition_text,  # ADD SPATIAL CONTEXT
                         'event_context': event_context
                     }
@@ -4064,7 +4146,7 @@ Analyze and output ONLY valid JSON:
                             response_decision = await self.cognitive_manifold.response_planner.decide(
                                 event_context,
                                 self.llm,
-                                'qwen/qwen3-4b-2507',
+                                'SMALL',
                                 agent=self
                             )
                             context['response_decision'] = response_decision
@@ -4212,7 +4294,7 @@ Analyze and output ONLY valid JSON:
                 colored_thought_seed if 'colored_thought_seed' in locals() else thought_text,
                 {
                     'llm_client': self.llm,
-                    'model': 'qwen/qwen3-4b-2507'
+                    'model': 'SMALL'
                 }
             )
 
@@ -4483,7 +4565,7 @@ Look for keywords like:
 Output ONLY a number between 0.0 and 1.0. No explanation."""
 
         llm_client = context.get('llm_client')
-        model = context.get('model', 'qwen/qwen3-4b-2507')
+        model = context.get('model', 'SMALL')
 
         self._increment_llm_counter()
         try:
@@ -5016,12 +5098,42 @@ Output ONLY a number between 0.0 and 1.0. No explanation."""
                 # Inject latent memories for insight emergence
                 exec_context._latent_memories = self.latent_memories
 
-                # Execute facets
-                result = await self.facet_executor.execute(
-                    assembly=self.facet_assembly,
-                    incoming_data="",  # No external stimulus
-                    context=vars(exec_context)
-                )
+                # Execute facets (track for NoodleStudio visualization)
+                self.current_facet = "INCOMING"
+                self.current_phase = "INCOMING"
+                self.current_assembly = getattr(self.facet_assembly, 'name', 'Facet Assembly')
+                self.current_model_label = ""
+                self.current_model_name = ""
+                self.current_llm_status = ""
+                self.pending_llm_calls = 1
+                try:
+                    # Pass agent reference for real-time facet tracking
+                    exec_vars = vars(exec_context)
+                    exec_vars['_agent_ref'] = self
+
+                    # Scene Protocol: inject WorldAPI with perception slice
+                    if SCENE_PROTOCOL_AVAILABLE and prepare_facet_context:
+                        exec_vars = prepare_facet_context(self.agent_id, exec_vars)
+
+                    result = await self.facet_executor.execute(
+                        assembly=self.facet_assembly,
+                        incoming_data="",  # No external stimulus
+                        context=exec_vars
+                    )
+
+                    # Scene Protocol: process WorldAPI pending commands
+                    if SCENE_PROTOCOL_AVAILABLE and finalize_facet_context:
+                        scene_commands = finalize_facet_context(self.agent_id)
+                        if scene_commands:
+                            logger.debug(f"[{self.agent_id}] Autonomous scene commands: {list(scene_commands.keys())}")
+                finally:
+                    self.current_facet = ""
+                    self.current_phase = "IDLE"
+                    self.current_assembly = ""
+                    self.current_model_label = ""
+                    self.current_model_name = ""
+                    self.current_llm_status = ""
+                    self.pending_llm_calls = 0
 
                 # Check if facets produced speech output
                 response = result.response

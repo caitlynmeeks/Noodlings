@@ -114,7 +114,7 @@ class Facet:
     prompt: str                          # LLM prompt defining transformation
 
     # LLM parameters
-    model: str = "qwen/qwen3-4b-2507"   # Which LLM to use
+    model: str = "SMALL"   # Which LLM label to use (SMALL/MEDIUM/LARGE)
     temperature: float = 0.7             # Sampling temperature
     max_tokens: int = 150                # Max output length
 
@@ -171,7 +171,7 @@ class Facet:
             name=data['name'],
             facet_type=data['type'],
             prompt=data['prompt'],
-            model=data.get('model', 'qwen/qwen3-4b-2507'),
+            model=data.get('model', 'SMALL'),
             temperature=data.get('temperature', 0.7),
             max_tokens=data.get('max_tokens', 150),
             salience_script=data.get('salience_script'),  # Load salience script if present

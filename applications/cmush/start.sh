@@ -12,10 +12,15 @@ echo "Starting noodleMUSH from $SCRIPT_DIR..."
 # Use local noodlings venv python
 PYTHON="$SCRIPT_DIR/../../venv/bin/python3"
 
-# Check if world is initialized
-if [ ! -f "world/rooms.json" ]; then
-    echo "Initializing world..."
-    $PYTHON init_world.py
+# Check for PROJECT_PATH (new project system)
+if [ -n "$PROJECT_PATH" ]; then
+    echo "Using project: $PROJECT_PATH"
+else
+    # Legacy mode - check if world is initialized
+    if [ ! -f "world/rooms.json" ]; then
+        echo "Initializing legacy world..."
+        $PYTHON init_world.py
+    fi
 fi
 
 # Start HTTP server for web client in background (bind to all interfaces for network access)

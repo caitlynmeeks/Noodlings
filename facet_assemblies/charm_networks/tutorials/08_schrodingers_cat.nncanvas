@@ -1,0 +1,127 @@
+{
+  "version": "1.0",
+  "name": "Schrodinger's Cat Machine",
+  "description": "THE SCHRODINGER'S CAT EXPERIMENT\n\nInside this mysterious box, a cat exists in quantum superposition - \nsimultaneously ALIVE and DEAD until observed!\n\nTHE SETUP:\nA single qubit is prepared in the state |psi> = (|0> + |1>) / sqrt(2)\nThis is a perfect 50/50 superposition.\n\n|0> = Cat is ALIVE (cartoon cat emerges)\n|1> = Cat is DEAD (adorable ghost-cat emerges)\n\nUntil you press the COLLAPSE button, the cat exists in BOTH states!\nThe qubit remains in superposition, neither alive nor dead.\n\nWHEN YOU PRESS COLLAPSE:\nThe quantum measurement occurs. The wavefunction collapses.\nThe universe \"decides\" - and one outcome becomes real.\n\nWHAT MAKES THIS SPECIAL:\nThis isn't pseudo-random. The IBM_QUANTUM node uses quantum mechanics -\ntrue quantum indeterminacy that even the universe doesn't \"know\" \nuntil measurement. Einstein hated this (\"God doesn't play dice!\").\nBut experiments prove: reality IS probabilistic at the quantum level.\n\nPHILOSOPHICAL IMPLICATIONS:\n- Does the cat experience both lives before collapse?\n- Does YOUR observation cause the collapse?\n- Are there parallel universes where the other outcome occurred?\n\nPress the button. Collapse the wavefunction. Meet your cat.\nEither way, they're very glad to see you.",
+  "metadata": {
+    "created": null,
+    "modified": "2025-12-17T16:05:27.951406",
+    "author": "Noodlings Quantum Laboratory",
+    "total_parameters": 0
+  },
+  "nodes": [
+    {
+      "id": "8569d339-99a8-46d2-a1f8-4eeaabba1bd0",
+      "type": "NUMBER_INPUT",
+      "name": "OBSERVE Button",
+      "position": [
+        50,
+        150
+      ],
+      "params": {
+        "value": 1.0,
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "step": 1.0
+      },
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Value"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A4A",
+      "tags": [],
+      "description": "Interactive scalar input with slider (0.0 to 1.0)"
+    },
+    {
+      "id": "94452ae4-a120-4208-a52e-9cbf8ad3d362",
+      "type": "IBM_QUANTUM",
+      "name": "Quantum Box",
+      "position": [
+        350,
+        150
+      ],
+      "params": {
+        "num_qubits": 1,
+        "shots": 1,
+        "backend": "simulator",
+        "entanglement_type": "full"
+      },
+      "inputs": {
+        "classical_state": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": null
+        }
+      },
+      "outputs": {
+        "quantum_result": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": null
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A2A3A",
+      "tags": [],
+      "description": "Real quantum computation via IBM Quantum cloud"
+    },
+    {
+      "id": "4b3d030a-c221-4d3c-836f-38cdaa2d96ed",
+      "type": "THRESHOLD_OUTPUT",
+      "name": "Cat Status",
+      "position": [
+        650,
+        150
+      ],
+      "params": {
+        "threshold": 0.5,
+        "show_value": true
+      },
+      "inputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "required": true,
+          "label": "Value"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#6A4A4A",
+      "tags": [],
+      "description": "ON/OFF display based on threshold comparison"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "8569d339-99a8-46d2-a1f8-4eeaabba1bd0",
+      "from_port": "value",
+      "to_node": "94452ae4-a120-4208-a52e-9cbf8ad3d362",
+      "to_port": "classical_state"
+    },
+    {
+      "from_node": "94452ae4-a120-4208-a52e-9cbf8ad3d362",
+      "from_port": "quantum_result",
+      "to_node": "4b3d030a-c221-4d3c-836f-38cdaa2d96ed",
+      "to_port": "value"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": false,
+    "onnx": false
+  }
+}

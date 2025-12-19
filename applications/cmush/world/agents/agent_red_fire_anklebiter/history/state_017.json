@@ -1,0 +1,188 @@
+{
+  "agent_id": "agent_red_fire_anklebiter",
+  "agent_name": "Red Fire Anklebiter",
+  "agent_description": "A two-foot-tall imp of crimson flame, crackling and flickering with restless energy. Sharp white teeth flash when it grins. Wild orange eyes dart around constantly, assessing, judging. The air around it shimmers with heat - you can feel warmth radiating from a few feet away. Smells faintly of sulfur and burnt sugar. Its flames pulse and brighten with emotion, never quite still.",
+  "current_room": "room_000",
+  "conversation_context": [
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "Hi Red",
+      "affect": [
+        0.665132999420166,
+        0.40258049964904785,
+        0.05251049995422363,
+        -0.6476294994354248,
+        -0.4725944995880127
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765873768.642805,
+      "importance": 0.15,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_red_fire_anklebiter",
+      "text": "Oh WOW, look who decided to show up! *flames crackle* Trying to look all casual with that hat, huh?",
+      "affect": [
+        -0.03533047065138817,
+        -0.09971144050359726,
+        -0.021665582433342934,
+        -0.03149209916591644,
+        -0.02648448757827282
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765873768.6464262,
+      "importance": 0.19034285452216865,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "Hi Red",
+      "affect": [
+        0.665132999420166,
+        0.40258049964904785,
+        0.05251049995422363,
+        -0.6476294994354248,
+        -0.4725944995880127
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765873768.642805,
+      "importance": 0.15,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_red_fire_anklebiter",
+      "text": "Oh WOW, look who decided to show up! *flames crackle* Trying to look all casual with that hat, huh?",
+      "affect": [
+        -0.03533047065138817,
+        -0.09971144050359726,
+        -0.021665582433342934,
+        -0.03149209916591644,
+        -0.02648448757827282
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765873768.6464262,
+      "importance": 0.19034285452216865,
+      "identity_salience": 0.1
+    }
+  ],
+  "last_response_time": 1765873768.646422,
+  "response_count": 1,
+  "config": {
+    "response_cooldown": 9.0,
+    "surprise_threshold": 0.0001,
+    "memory_capacity": 100,
+    "max_agents": 10,
+    "autonomous_cognition": {
+      "enabled": true,
+      "wake_interval": 60,
+      "min_speech_interval": 180,
+      "speech_urgency_threshold": 0.75,
+      "max_thoughts_buffer": 50
+    },
+    "filesystem": {
+      "enabled": true,
+      "max_file_size": 1048576,
+      "max_total_storage": 104857600,
+      "command_timeout": 5
+    },
+    "messaging": {
+      "enabled": true,
+      "max_message_size": 10000,
+      "inbox_retention_days": 30
+    },
+    "intuition_receiver": {
+      "enabled": true,
+      "model": "qwen/qwen3-4b-2507",
+      "timeout": 5,
+      "social_expectations": {
+        "enabled": true,
+        "timeout": 5,
+        "expectation_threshold": 0.3,
+        "intensity_multiplier": 1.0,
+        "question_threshold": 0.8,
+        "gesture_threshold": 0.6,
+        "greeting_threshold": 0.4,
+        "distress_threshold": 0.3,
+        "turn_threshold": 0.5
+      }
+    },
+    "personalities": {
+      "agent_desobelle": {
+        "extraversion": 0.35,
+        "emotional_sensitivity": 0.75,
+        "curiosity": 0.7,
+        "spontaneity": 0.4,
+        "reflection_depth": 0.8,
+        "social_orientation": 0.6
+      },
+      "agent_callie": {
+        "extraversion": 0.7,
+        "emotional_sensitivity": 0.55,
+        "curiosity": 0.65,
+        "spontaneity": 0.75,
+        "reflection_depth": 0.5,
+        "social_orientation": 0.8
+      }
+    },
+    "appetites": {
+      "curiosity": 0.3,
+      "status": 0.1,
+      "mastery": 0.2,
+      "novelty": 0.3,
+      "safety": 0.2,
+      "social_bond": 0.4,
+      "comfort": 0.2,
+      "autonomy": 0.2
+    },
+    "rumination_frequency": 0.7,
+    "addressed_speech_chance": 0.8,
+    "question_speech_chance": 0.3,
+    "unaddressed_speech_chance": 0.1,
+    "llm": {
+      "provider": "ollama",
+      "local": {
+        "api_base": "http://localhost:1234/v1",
+        "api_key": "not-needed",
+        "model": "qwen3-vl-30b-a3b-instruct-mlx",
+        "timeout": 60
+      },
+      "ollama": {
+        "host": "http://localhost:11434",
+        "models_directory": "/Volumes/DOUBLETROUBLE/models",
+        "default_timeout": 120,
+        "load_timeout": 300
+      },
+      "openrouter": {
+        "api_base": "https://openrouter.ai/api/v1",
+        "api_key": "${OPENROUTER_API_KEY}",
+        "model": "deepseek/deepseek-chat",
+        "timeout": 30
+      },
+      "lab_testing": {
+        "model": "qwen3-vl-30b-a3b-instruct-mlx",
+        "timeout": 30
+      }
+    },
+    "max_tokens": 200,
+    "temperature": 0.95,
+    "facet_assembly": {
+      "ref": "red_fire_anklebiter"
+    },
+    "self_monitoring": {
+      "agent_phi": {
+        "enabled": true
+      },
+      "agent_callie": {
+        "enabled": true
+      },
+      "agent_servnak": {
+        "enabled": true
+      },
+      "agent_toad": {
+        "enabled": true
+      }
+    }
+  },
+  "phenomenal_state": [],
+  "timestamp": "2025-12-18T12:20:21.238388"
+}

@@ -225,7 +225,7 @@ Translate into enthusiastic dog voice:"""
     def parameters(self) -> Dict[str, Any]:
         return {
             'enabled': self.enabled,
-            'model': self.config.get('model', 'qwen/qwen3-4b-2507'),
+            'model': self.config.get('model', 'SMALL'),
             'temperature': self.config.get('temperature', 0.4),
             'max_tokens': self.config.get('max_tokens', 150),
             'species': self.species
@@ -322,7 +322,7 @@ Be concise but highlight important moments others might miss!"""
     def parameters(self) -> Dict[str, Any]:
         return {
             'enabled': self.enabled,
-            'model': self.config.get('model', 'qwen/qwen3-4b-2507'),
+            'model': self.config.get('model', 'SMALL'),
             'temperature': self.config.get('temperature', 0.3),
             'max_tokens': self.config.get('max_tokens', 150),
             'timeout': self.config.get('timeout', 5)
@@ -436,7 +436,7 @@ Analyze and output ONLY valid JSON:
             'greeting_threshold': self.config.get('greeting_threshold', 0.4),
             'distress_threshold': self.config.get('distress_threshold', 0.3),
             'turn_threshold': self.config.get('turn_threshold', 0.5),
-            'model': self.config.get('model', 'qwen/qwen3-4b-2507'),
+            'model': self.config.get('model', 'SMALL'),
             'temperature': self.config.get('temperature', 0.2),
             'timeout': self.config.get('timeout', 5)
         }

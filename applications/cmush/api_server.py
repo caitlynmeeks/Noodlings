@@ -133,6 +133,28 @@ class NoodleScopeAPI:
         # Health check
         self.app.router.add_get('/api/health', self.health_check)
 
+        # =====================================================================
+        # Spatial Operations REST API
+        # =====================================================================
+
+        # Transform operations (for props, instances, zones)
+        self.app.router.add_get('/api/entities/{entity_id}/transform', self.get_entity_transform)
+        self.app.router.add_post('/api/entities/{entity_id}/transform', self.set_entity_transform)
+        self.app.router.add_patch('/api/entities/{entity_id}/transform', self.patch_entity_transform)
+
+        # Material/Physics
+        self.app.router.add_get('/api/materials', self.get_material_presets)
+        self.app.router.add_post('/api/entities/{entity_id}/material', self.set_entity_material)
+        self.app.router.add_patch('/api/entities/{entity_id}/physics', self.set_entity_physics)
+
+        # Custom metadata
+        self.app.router.add_get('/api/entities/{entity_id}/properties', self.get_entity_properties)
+        self.app.router.add_post('/api/entities/{entity_id}/properties/{key}', self.set_entity_property)
+        self.app.router.add_delete('/api/entities/{entity_id}/properties/{key}', self.delete_entity_property)
+
+        # Batch operations
+        self.app.router.add_post('/api/entities/batch/transform', self.batch_update_transforms)
+
         # Ollama status (if using Ollama provider)
         self.app.router.add_get('/api/ollama/status', self.get_ollama_status)
 
@@ -1881,6 +1903,694 @@ class NoodleScopeAPI:
         except Exception as e:
             logger.error(f"Failed to continue step: {e}", exc_info=True)
             return web.json_response({'error': str(e)}, status=500)
+
+    # =========================================================================
+    # Spatial Operations REST API Handlers
+    # =========================================================================
+
+    def _get_project_manager(self):
+        """Get project manager from server if available."""
+        if not self.server:
+            return None
+        # Try to get from server's project_path
+        project_path = getattr(self.server, 'project_path', None)
+        if not project_path:
+            return None
+
+        # Import and create manager
+        try:
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent.parent / 'noodlestudio'))
+            from noodlestudio.core.project_manager import ProjectManager
+            pm = ProjectManager()
+            pm.open_project(project_path)
+            return pm
+        except Exception as e:
+            logger.error(f"Failed to get project manager: {e}")
+            return None
+
+    def _find_entity_file(self, entity_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Find entity file (prop/instance/zone) by ID.
+
+        Returns dict with:
+            - path: Path to YAML file
+            - type: "prop", "instance", or "zone"
+            - data: Loaded YAML data
+            - stage: Stage name (for props/instances)
+        """
+        project_path = getattr(self.server, 'project_path', None) if self.server else None
+        if not project_path:
+            return None
+
+        stages_path = Path(project_path) / "Stages"
+        if not stages_path.exists():
+            return None
+
+        # Search through all stages
+        for stage_dir in stages_path.iterdir():
+            if not stage_dir.is_dir():
+                continue
+
+            stage_name = stage_dir.name
+
+            # Check Props
+            props_path = stage_dir / "Props"
+            if props_path.exists():
+                for prop_dir in props_path.iterdir():
+                    if prop_dir.is_dir() and prop_dir.name == entity_id:
+                        yaml_path = prop_dir / "prop.yaml"
+                        if yaml_path.exists():
+                            import yaml
+                            with open(yaml_path, 'r') as f:
+                                data = yaml.safe_load(f)
+                            return {
+                                'path': yaml_path,
+                                'type': 'prop',
+                                'data': data,
+                                'stage': stage_name,
+                                'folder': prop_dir
+                            }
+
+            # Check Instances
+            instances_path = stage_dir / "Instances"
+            if instances_path.exists():
+                for inst_dir in instances_path.iterdir():
+                    if inst_dir.is_dir() and inst_dir.name == entity_id:
+                        yaml_path = inst_dir / "instance.yaml"
+                        if yaml_path.exists():
+                            import yaml
+                            with open(yaml_path, 'r') as f:
+                                data = yaml.safe_load(f)
+                            return {
+                                'path': yaml_path,
+                                'type': 'instance',
+                                'data': data,
+                                'stage': stage_name,
+                                'folder': inst_dir
+                            }
+
+            # Check Zones
+            zones_path = stage_dir / "Zones"
+            if zones_path.exists():
+                for zone_file in zones_path.glob("*.zone.yaml"):
+                    import yaml
+                    with open(zone_file, 'r') as f:
+                        data = yaml.safe_load(f)
+                    if data.get('id') == entity_id:
+                        return {
+                            'path': zone_file,
+                            'type': 'zone',
+                            'data': data,
+                            'stage': stage_name,
+                            'folder': zones_path
+                        }
+
+        return None
+
+    def _save_entity_file(self, entity_info: Dict[str, Any]) -> bool:
+        """Save entity YAML file."""
+        try:
+            import yaml
+            with open(entity_info['path'], 'w') as f:
+                yaml.dump(entity_info['data'], f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save entity file: {e}")
+            return False
+
+    async def _broadcast_transform_update(self, entity_id: str, transform: Dict[str, Any]):
+        """Broadcast transform update to WebSocket clients."""
+        if not self.execution_ws_clients:
+            return
+
+        message = {
+            'type': 'transform_update',
+            'entity_id': entity_id,
+            'transform': transform
+        }
+
+        disconnected = set()
+        for ws in self.execution_ws_clients:
+            try:
+                await ws.send_json(message)
+            except Exception:
+                disconnected.add(ws)
+
+        for ws in disconnected:
+            self.execution_ws_clients.discard(ws)
+
+    async def get_entity_transform(self, request: web.Request) -> web.Response:
+        """
+        Get transform for an entity.
+
+        GET /api/entities/{entity_id}/transform
+
+        Returns:
+            {
+                "entity_id": "prop_xxx",
+                "entity_type": "prop",
+                "position": {"x": 0, "y": 0, "z": 0},
+                "rotation": {"x": 0, "y": 0, "z": 0},
+                "scale": {"x": 1, "y": 1, "z": 1}
+            }
+        """
+        entity_id = request.match_info['entity_id']
+
+        entity_info = self._find_entity_file(entity_id)
+        if not entity_info:
+            return web.json_response({'error': f'Entity {entity_id} not found'}, status=404)
+
+        data = entity_info['data']
+
+        # Extract position/rotation/scale based on entity type
+        position = data.get('position', [0, 0, 0])
+        rotation = data.get('rotation', [0, 0, 0])
+        scale = data.get('scale', 1.0)
+
+        # Handle scale as single value or array
+        if isinstance(scale, (int, float)):
+            scale = [scale, scale, scale]
+
+        # Handle spatial block for zones
+        if entity_info['type'] == 'zone' and 'spatial' in data:
+            position = data['spatial'].get('center', [0, 0, 0])
+
+        return web.json_response({
+            'entity_id': entity_id,
+            'entity_type': entity_info['type'],
+            'stage': entity_info['stage'],
+            'position': {'x': position[0], 'y': position[1], 'z': position[2]},
+            'rotation': {'x': rotation[0], 'y': rotation[1], 'z': rotation[2]},
+            'scale': {'x': scale[0], 'y': scale[1], 'z': scale[2]}
+        })
+
+    async def set_entity_transform(self, request: web.Request) -> web.Response:
+        """
+        Set full transform for an entity.
+
+        POST /api/entities/{entity_id}/transform
+        Body: {
+            "position": {"x": 10, "y": 0, "z": 5},
+            "rotation": {"x": 0, "y": 45, "z": 0},
+            "scale": {"x": 1, "y": 1, "z": 1}
+        }
+        """
+        entity_id = request.match_info['entity_id']
+
+        try:
+            data = await request.json()
+        except:
+            return web.json_response({'error': 'Invalid JSON'}, status=400)
+
+        entity_info = self._find_entity_file(entity_id)
+        if not entity_info:
+            return web.json_response({'error': f'Entity {entity_id} not found'}, status=404)
+
+        entity_data = entity_info['data']
+
+        # Update position
+        if 'position' in data:
+            pos = data['position']
+            new_pos = [pos.get('x', 0), pos.get('y', 0), pos.get('z', 0)]
+            if entity_info['type'] == 'zone' and 'spatial' in entity_data:
+                entity_data['spatial']['center'] = new_pos
+            else:
+                entity_data['position'] = new_pos
+
+        # Update rotation
+        if 'rotation' in data:
+            rot = data['rotation']
+            entity_data['rotation'] = [rot.get('x', 0), rot.get('y', 0), rot.get('z', 0)]
+
+        # Update scale
+        if 'scale' in data:
+            scl = data['scale']
+            entity_data['scale'] = [scl.get('x', 1), scl.get('y', 1), scl.get('z', 1)]
+
+        # Save
+        if not self._save_entity_file(entity_info):
+            return web.json_response({'error': 'Failed to save'}, status=500)
+
+        # Broadcast update
+        await self._broadcast_transform_update(entity_id, data)
+
+        logger.info(f"[SpatialAPI] Set transform for {entity_id}")
+        return web.json_response({'success': True, 'entity_id': entity_id})
+
+    async def patch_entity_transform(self, request: web.Request) -> web.Response:
+        """
+        Partially update transform for an entity.
+
+        PATCH /api/entities/{entity_id}/transform
+        Body: {
+            "position": {"x": 10}  // Only update X position
+        }
+        """
+        entity_id = request.match_info['entity_id']
+
+        try:
+            data = await request.json()
+        except:
+            return web.json_response({'error': 'Invalid JSON'}, status=400)
+
+        entity_info = self._find_entity_file(entity_id)
+        if not entity_info:
+            return web.json_response({'error': f'Entity {entity_id} not found'}, status=404)
+
+        entity_data = entity_info['data']
+
+        # Get current values
+        if entity_info['type'] == 'zone' and 'spatial' in entity_data:
+            current_pos = entity_data['spatial'].get('center', [0, 0, 0])
+        else:
+            current_pos = entity_data.get('position', [0, 0, 0])
+        current_rot = entity_data.get('rotation', [0, 0, 0])
+        current_scale = entity_data.get('scale', [1, 1, 1])
+        if isinstance(current_scale, (int, float)):
+            current_scale = [current_scale, current_scale, current_scale]
+
+        # Patch position
+        if 'position' in data:
+            pos = data['position']
+            if 'x' in pos:
+                current_pos[0] = pos['x']
+            if 'y' in pos:
+                current_pos[1] = pos['y']
+            if 'z' in pos:
+                current_pos[2] = pos['z']
+
+            if entity_info['type'] == 'zone' and 'spatial' in entity_data:
+                entity_data['spatial']['center'] = current_pos
+            else:
+                entity_data['position'] = current_pos
+
+        # Patch rotation
+        if 'rotation' in data:
+            rot = data['rotation']
+            if 'x' in rot:
+                current_rot[0] = rot['x']
+            if 'y' in rot:
+                current_rot[1] = rot['y']
+            if 'z' in rot:
+                current_rot[2] = rot['z']
+            entity_data['rotation'] = current_rot
+
+        # Patch scale
+        if 'scale' in data:
+            scl = data['scale']
+            if 'x' in scl:
+                current_scale[0] = scl['x']
+            if 'y' in scl:
+                current_scale[1] = scl['y']
+            if 'z' in scl:
+                current_scale[2] = scl['z']
+            entity_data['scale'] = current_scale
+
+        # Save
+        if not self._save_entity_file(entity_info):
+            return web.json_response({'error': 'Failed to save'}, status=500)
+
+        # Broadcast update
+        broadcast_data = {
+            'position': {'x': current_pos[0], 'y': current_pos[1], 'z': current_pos[2]},
+            'rotation': {'x': current_rot[0], 'y': current_rot[1], 'z': current_rot[2]},
+            'scale': {'x': current_scale[0], 'y': current_scale[1], 'z': current_scale[2]}
+        }
+        await self._broadcast_transform_update(entity_id, broadcast_data)
+
+        logger.info(f"[SpatialAPI] Patched transform for {entity_id}")
+        return web.json_response({'success': True, 'entity_id': entity_id})
+
+    async def get_material_presets(self, request: web.Request) -> web.Response:
+        """
+        Get all available material presets.
+
+        GET /api/materials
+
+        Returns:
+            {
+                "materials": {
+                    "wood": {"mass": "medium", "friction": "medium", ...},
+                    "metal": {"mass": "heavy", "friction": "low", ...},
+                    ...
+                }
+            }
+        """
+        try:
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent.parent / 'noodlestudio'))
+            from noodlestudio.core.semantic_world.scene_packet import MATERIAL_PRESETS
+            return web.json_response({'materials': MATERIAL_PRESETS})
+        except ImportError:
+            # Fallback to inline presets
+            return web.json_response({'materials': {
+                'wood': {'mass': 'medium', 'friction': 'medium', 'elasticity': 'low', 'softness': 'hard'},
+                'metal': {'mass': 'heavy', 'friction': 'low', 'elasticity': 'low', 'softness': 'rigid'},
+                'glass': {'mass': 'medium', 'friction': 'slippery', 'elasticity': 'none', 'softness': 'rigid'},
+                'stone': {'mass': 'very_heavy', 'friction': 'high', 'elasticity': 'none', 'softness': 'rigid'},
+                'fabric': {'mass': 'very_light', 'friction': 'medium', 'elasticity': 'none', 'softness': 'soft'},
+            }})
+
+    async def set_entity_material(self, request: web.Request) -> web.Response:
+        """
+        Apply a material preset to an entity.
+
+        POST /api/entities/{entity_id}/material
+        Body: {"material": "wood"}
+        """
+        entity_id = request.match_info['entity_id']
+
+        try:
+            data = await request.json()
+        except:
+            return web.json_response({'error': 'Invalid JSON'}, status=400)
+
+        material_name = data.get('material', '').lower()
+        if not material_name:
+            return web.json_response({'error': 'Material name required'}, status=400)
+
+        entity_info = self._find_entity_file(entity_id)
+        if not entity_info:
+            return web.json_response({'error': f'Entity {entity_id} not found'}, status=404)
+
+        # Get material preset
+        try:
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent.parent / 'noodlestudio'))
+            from noodlestudio.core.semantic_world.scene_packet import MATERIAL_PRESETS
+            preset = MATERIAL_PRESETS.get(material_name)
+        except ImportError:
+            preset = None
+
+        if not preset:
+            return web.json_response({'error': f'Unknown material: {material_name}'}, status=400)
+
+        # Apply preset to entity
+        entity_data = entity_info['data']
+        entity_data['material'] = material_name
+        entity_data['mass'] = preset.get('mass', 'medium')
+        entity_data['friction'] = preset.get('friction', 'medium')
+        entity_data['elasticity'] = preset.get('elasticity', 'normal')
+        entity_data['softness'] = preset.get('softness', 'normal')
+
+        # Save
+        if not self._save_entity_file(entity_info):
+            return web.json_response({'error': 'Failed to save'}, status=500)
+
+        logger.info(f"[SpatialAPI] Set material {material_name} for {entity_id}")
+        return web.json_response({
+            'success': True,
+            'entity_id': entity_id,
+            'material': material_name,
+            'physics': preset
+        })
+
+    async def set_entity_physics(self, request: web.Request) -> web.Response:
+        """
+        Set physics properties for an entity.
+
+        PATCH /api/entities/{entity_id}/physics
+        Body: {
+            "mass": "heavy",
+            "friction": "high",
+            "elasticity": "bouncy",
+            "softness": "soft"
+        }
+        """
+        entity_id = request.match_info['entity_id']
+
+        try:
+            data = await request.json()
+        except:
+            return web.json_response({'error': 'Invalid JSON'}, status=400)
+
+        entity_info = self._find_entity_file(entity_id)
+        if not entity_info:
+            return web.json_response({'error': f'Entity {entity_id} not found'}, status=404)
+
+        entity_data = entity_info['data']
+
+        # Valid values for physics properties
+        valid_mass = ['negligible', 'very_light', 'light', 'medium', 'heavy', 'very_heavy', 'immovable']
+        valid_friction = ['slippery', 'low', 'medium', 'high', 'sticky']
+        valid_elasticity = ['none', 'low', 'normal', 'high', 'bouncy']
+        valid_softness = ['rigid', 'hard', 'normal', 'soft', 'squishy']
+
+        # Update physics properties with validation
+        updated = {}
+        if 'mass' in data:
+            if data['mass'] in valid_mass:
+                entity_data['mass'] = data['mass']
+                updated['mass'] = data['mass']
+
+        if 'friction' in data:
+            if data['friction'] in valid_friction:
+                entity_data['friction'] = data['friction']
+                updated['friction'] = data['friction']
+
+        if 'elasticity' in data:
+            if data['elasticity'] in valid_elasticity:
+                entity_data['elasticity'] = data['elasticity']
+                updated['elasticity'] = data['elasticity']
+
+        if 'softness' in data:
+            if data['softness'] in valid_softness:
+                entity_data['softness'] = data['softness']
+                updated['softness'] = data['softness']
+
+        # Save
+        if not self._save_entity_file(entity_info):
+            return web.json_response({'error': 'Failed to save'}, status=500)
+
+        logger.info(f"[SpatialAPI] Set physics for {entity_id}: {updated}")
+        return web.json_response({
+            'success': True,
+            'entity_id': entity_id,
+            'updated': updated
+        })
+
+    async def get_entity_properties(self, request: web.Request) -> web.Response:
+        """
+        Get all custom properties (metadata) for an entity.
+
+        GET /api/entities/{entity_id}/properties
+
+        Returns:
+            {
+                "entity_id": "prop_xxx",
+                "properties": {
+                    "custom_key": "value",
+                    ...
+                }
+            }
+        """
+        entity_id = request.match_info['entity_id']
+
+        entity_info = self._find_entity_file(entity_id)
+        if not entity_info:
+            return web.json_response({'error': f'Entity {entity_id} not found'}, status=404)
+
+        entity_data = entity_info['data']
+
+        # Get properties dict (or state dict for props)
+        properties = entity_data.get('properties', entity_data.get('state', {}))
+
+        return web.json_response({
+            'entity_id': entity_id,
+            'entity_type': entity_info['type'],
+            'properties': properties
+        })
+
+    async def set_entity_property(self, request: web.Request) -> web.Response:
+        """
+        Set a custom property on an entity.
+
+        POST /api/entities/{entity_id}/properties/{key}
+        Body: {"value": "any_value"}
+        """
+        entity_id = request.match_info['entity_id']
+        key = request.match_info['key']
+
+        try:
+            data = await request.json()
+        except:
+            return web.json_response({'error': 'Invalid JSON'}, status=400)
+
+        if 'value' not in data:
+            return web.json_response({'error': 'Value required'}, status=400)
+
+        entity_info = self._find_entity_file(entity_id)
+        if not entity_info:
+            return web.json_response({'error': f'Entity {entity_id} not found'}, status=404)
+
+        entity_data = entity_info['data']
+
+        # Initialize properties dict if needed
+        if 'properties' not in entity_data:
+            if 'state' in entity_data:
+                # Props use 'state' for custom properties
+                entity_data['state'][key] = data['value']
+            else:
+                entity_data['properties'] = {}
+                entity_data['properties'][key] = data['value']
+        else:
+            entity_data['properties'][key] = data['value']
+
+        # Save
+        if not self._save_entity_file(entity_info):
+            return web.json_response({'error': 'Failed to save'}, status=500)
+
+        logger.info(f"[SpatialAPI] Set property {key} for {entity_id}")
+        return web.json_response({
+            'success': True,
+            'entity_id': entity_id,
+            'key': key,
+            'value': data['value']
+        })
+
+    async def delete_entity_property(self, request: web.Request) -> web.Response:
+        """
+        Delete a custom property from an entity.
+
+        DELETE /api/entities/{entity_id}/properties/{key}
+        """
+        entity_id = request.match_info['entity_id']
+        key = request.match_info['key']
+
+        entity_info = self._find_entity_file(entity_id)
+        if not entity_info:
+            return web.json_response({'error': f'Entity {entity_id} not found'}, status=404)
+
+        entity_data = entity_info['data']
+
+        # Try to delete from properties or state
+        deleted = False
+        if 'properties' in entity_data and key in entity_data['properties']:
+            del entity_data['properties'][key]
+            deleted = True
+        elif 'state' in entity_data and key in entity_data['state']:
+            del entity_data['state'][key]
+            deleted = True
+
+        if not deleted:
+            return web.json_response({'error': f'Property {key} not found'}, status=404)
+
+        # Save
+        if not self._save_entity_file(entity_info):
+            return web.json_response({'error': 'Failed to save'}, status=500)
+
+        logger.info(f"[SpatialAPI] Deleted property {key} from {entity_id}")
+        return web.json_response({
+            'success': True,
+            'entity_id': entity_id,
+            'deleted': key
+        })
+
+    async def batch_update_transforms(self, request: web.Request) -> web.Response:
+        """
+        Update transforms for multiple entities at once.
+
+        POST /api/entities/batch/transform
+        Body: {
+            "updates": [
+                {"entity_id": "prop_a", "position": {"x": 1, "y": 0, "z": 0}},
+                {"entity_id": "prop_b", "rotation": {"y": 90}},
+                ...
+            ]
+        }
+        """
+        try:
+            data = await request.json()
+        except:
+            return web.json_response({'error': 'Invalid JSON'}, status=400)
+
+        updates = data.get('updates', [])
+        if not updates:
+            return web.json_response({'error': 'No updates provided'}, status=400)
+
+        results = []
+        for update in updates:
+            entity_id = update.get('entity_id')
+            if not entity_id:
+                results.append({'entity_id': None, 'success': False, 'error': 'Missing entity_id'})
+                continue
+
+            entity_info = self._find_entity_file(entity_id)
+            if not entity_info:
+                results.append({'entity_id': entity_id, 'success': False, 'error': 'Not found'})
+                continue
+
+            entity_data = entity_info['data']
+
+            # Get current values
+            if entity_info['type'] == 'zone' and 'spatial' in entity_data:
+                current_pos = entity_data['spatial'].get('center', [0, 0, 0])
+            else:
+                current_pos = entity_data.get('position', [0, 0, 0])
+            current_rot = entity_data.get('rotation', [0, 0, 0])
+            current_scale = entity_data.get('scale', [1, 1, 1])
+            if isinstance(current_scale, (int, float)):
+                current_scale = [current_scale, current_scale, current_scale]
+
+            # Apply updates
+            if 'position' in update:
+                pos = update['position']
+                if 'x' in pos:
+                    current_pos[0] = pos['x']
+                if 'y' in pos:
+                    current_pos[1] = pos['y']
+                if 'z' in pos:
+                    current_pos[2] = pos['z']
+
+                if entity_info['type'] == 'zone' and 'spatial' in entity_data:
+                    entity_data['spatial']['center'] = current_pos
+                else:
+                    entity_data['position'] = current_pos
+
+            if 'rotation' in update:
+                rot = update['rotation']
+                if 'x' in rot:
+                    current_rot[0] = rot['x']
+                if 'y' in rot:
+                    current_rot[1] = rot['y']
+                if 'z' in rot:
+                    current_rot[2] = rot['z']
+                entity_data['rotation'] = current_rot
+
+            if 'scale' in update:
+                scl = update['scale']
+                if 'x' in scl:
+                    current_scale[0] = scl['x']
+                if 'y' in scl:
+                    current_scale[1] = scl['y']
+                if 'z' in scl:
+                    current_scale[2] = scl['z']
+                entity_data['scale'] = current_scale
+
+            # Save
+            if self._save_entity_file(entity_info):
+                results.append({'entity_id': entity_id, 'success': True})
+
+                # Broadcast update
+                broadcast_data = {
+                    'position': {'x': current_pos[0], 'y': current_pos[1], 'z': current_pos[2]},
+                    'rotation': {'x': current_rot[0], 'y': current_rot[1], 'z': current_rot[2]},
+                    'scale': {'x': current_scale[0], 'y': current_scale[1], 'z': current_scale[2]}
+                }
+                await self._broadcast_transform_update(entity_id, broadcast_data)
+            else:
+                results.append({'entity_id': entity_id, 'success': False, 'error': 'Save failed'})
+
+        success_count = sum(1 for r in results if r.get('success'))
+        logger.info(f"[SpatialAPI] Batch transform: {success_count}/{len(updates)} succeeded")
+
+        return web.json_response({
+            'success': success_count == len(updates),
+            'results': results,
+            'succeeded': success_count,
+            'failed': len(updates) - success_count
+        })
 
     async def start(self):
         """Start the API server."""

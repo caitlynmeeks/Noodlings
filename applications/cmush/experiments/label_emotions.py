@@ -16,7 +16,7 @@ import urllib.parse
 
 # Simple synchronous LLM client for labeling
 class SimpleLLM:
-    def __init__(self, base_url="http://localhost:1234/v1", model="qwen/qwen3-4b-2507"):
+    def __init__(self, base_url="http://localhost:1234/v1", model="SMALL"):
         self.base_url = base_url
         self.model = model
 
@@ -133,7 +133,7 @@ def main():
 
     # Initialize LLM (use fast model for labeling)
     print("\nInitializing LLM interface...")
-    llm = SimpleLLM(base_url="http://localhost:1234/v1", model="qwen/qwen3-4b-2507")
+    llm = SimpleLLM(base_url="http://localhost:1234/v1", model="SMALL")
 
     # Label agent responses
     labeled_data = []

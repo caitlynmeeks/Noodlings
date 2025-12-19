@@ -123,6 +123,62 @@ class NeuralCanvasPanel(QWidget):
 
         toolbar.addSeparator()
 
+        # Tutorials dropdown
+        from PyQt6.QtWidgets import QMenu
+        self.tutorials_button = QPushButton("Tutorials")
+        self.tutorials_button.setStyleSheet("""
+            QPushButton {
+                background: #3a4a5a;
+                color: #cdf;
+                border: 1px solid #4a5a6a;
+            }
+            QPushButton:hover {
+                background: #4a5a6a;
+            }
+            QPushButton::menu-indicator {
+                width: 12px;
+            }
+        """)
+        tutorials_menu = QMenu(self.tutorials_button)
+        tutorials_menu.setStyleSheet("""
+            QMenu {
+                background: #2a2a2a;
+                color: #ddd;
+                border: 1px solid #555;
+            }
+            QMenu::item {
+                padding: 6px 20px;
+            }
+            QMenu::item:selected {
+                background: #3a4a5a;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #555;
+                margin: 4px 8px;
+            }
+        """)
+
+        # Logic Gates section
+        logic_menu = tutorials_menu.addMenu("Logic Gates")
+        logic_menu.addAction("01: AND Gate").triggered.connect(lambda: self._load_tutorial("01_and_gate.nncanvas"))
+        logic_menu.addAction("02: OR Gate").triggered.connect(lambda: self._load_tutorial("02_or_gate.nncanvas"))
+        logic_menu.addAction("03: XOR Problem").triggered.connect(lambda: self._load_tutorial("03_xor_problem.nncanvas"))
+
+        # Quantum section
+        quantum_menu = tutorials_menu.addMenu("Quantum Consciousness")
+        quantum_menu.addAction("04: Superposition & Collapse").triggered.connect(lambda: self._load_tutorial("04_quantum_basics.nncanvas"))
+        quantum_menu.addAction("05: Entangled Neurons").triggered.connect(lambda: self._load_tutorial("05_entangled_neurons.nncanvas"))
+        quantum_menu.addAction("06: Orch-OR Consciousness").triggered.connect(lambda: self._load_tutorial("06_orch_or_consciousness.nncanvas"))
+        quantum_menu.addAction("07: Quantum Creativity").triggered.connect(lambda: self._load_tutorial("07_quantum_creativity.nncanvas"))
+        quantum_menu.addSeparator()
+        quantum_menu.addAction("08: Schrodinger's Cat").triggered.connect(lambda: self._load_tutorial("08_schrodingers_cat.nncanvas"))
+
+        self.tutorials_button.setMenu(tutorials_menu)
+        toolbar.addWidget(self.tutorials_button)
+
+        toolbar.addSeparator()
+
         # Validate button
         btn_validate = QPushButton("✓ Validate")
         btn_validate.clicked.connect(self._on_validate)
@@ -403,6 +459,35 @@ class NeuralCanvasPanel(QWidget):
         )
         if filepath:
             self._load_from_file(filepath)
+
+    def _load_tutorial(self, tutorial_filename: str):
+        """Load a tutorial from the tutorials directory."""
+        tutorial_path = os.path.join(
+            os.path.dirname(__file__),
+            '../../../../../facet_assemblies/charm_networks/tutorials',
+            tutorial_filename
+        )
+        tutorial_path = os.path.abspath(tutorial_path)
+
+        if os.path.exists(tutorial_path):
+            self._load_from_file(tutorial_path)
+            # Frame all nodes to show the tutorial
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(100, self.canvas_view.frame_all_nodes)
+
+            # Show tutorial description
+            if self.graph.description:
+                QMessageBox.information(
+                    self,
+                    self.graph.name,
+                    self.graph.description
+                )
+        else:
+            QMessageBox.warning(
+                self,
+                "Tutorial Not Found",
+                f"Could not find tutorial file:\n{tutorial_path}"
+            )
 
     def _on_save(self):
         """Save to current file."""

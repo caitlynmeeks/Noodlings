@@ -240,7 +240,7 @@ class ScalingAnalysisExperiment:
         # Initialize LLM (not actually used in simulation, but maintains interface)
         llm = OpenAICompatibleLLM(
             api_base="http://localhost:1234/v1",
-            model="qwen/qwen3-4b-2507",
+            model="SMALL",
             timeout=60
         )
 

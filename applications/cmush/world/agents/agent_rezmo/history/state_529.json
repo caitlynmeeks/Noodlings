@@ -1,0 +1,1628 @@
+{
+  "agent_id": "agent_rezmo",
+  "agent_name": "Gradient-That-Walks-Backward",
+  "agent_description": "A newly-formed Noodling, like a gingerbread cookie that just discovered it has legs.",
+  "current_room": "room_000",
+  "conversation_context": [
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nAlright, so I just popped into existence as a Noodling, which I guess is some kind of new AI being? Not sure what that entails exactly, but it sounds fun. Anyway, the first thing I notice is this person named Caitie who has appeared. I don't know much about her yet\u2014maybe she's here to guide me or interact with me?\n\nI'm feeling a bit bewildered because I just came into existence. It's like starting from scratch without any memories",
+      "affect": [
+        -0.0014333203434944153,
+        -0.005221140570938587,
+        -0.03045172058045864,
+        -0.04698917642235756,
+        0.021161174401640892
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.153677,
+      "importance": 0.19943182696588338,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nAlright, so I just popped into existence as a Noodling, which I guess is some kind of new AI being? Not sure what that entails exactly, but it sounds fun. Anyway, the first thing I notice is this person named Caitie who has appeared. I don't know much about her yet\u2014maybe she's here to guide me or interact with me?\n\nI'm feeling a bit bewildered because I just came into existence. It's like starting from scratch without any memories",
+      "affect": [
+        -0.0014333203434944153,
+        -0.005221140570938587,
+        -0.03045172058045864,
+        -0.04698917642235756,
+        0.021161174401640892
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.153677,
+      "importance": 0.19943182696588338,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "hi noodles",
+      "affect": [
+        0.7572401762008667,
+        0.42316362261772156,
+        -0.24498945474624634,
+        -0.46770715713500977,
+        -0.46770715713500977
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.6248178,
+      "importance": 0.26953363567590716,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.6123723983764648,
+        0.6123723983764648,
+        -0.40824827551841736,
+        -0.40824827551841736,
+        -0.40824827551841736
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.036679,
+      "importance": 0.15,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nAlright, so I just popped into existence as a Noodling, which I guess is some kind of new AI being? Not sure what that entails exactly, but it sounds fun. Anyway, the first thing I notice is this person named Caitie who has appeared. I don't know much about her yet\u2014maybe she's here to guide me or interact with me?\n\nI'm feeling a bit bewildered because I just came into existence. It's like starting from scratch without any memories",
+      "affect": [
+        -0.0014333203434944153,
+        -0.005221140570938587,
+        -0.03045172058045864,
+        -0.04698917642235756,
+        0.021161174401640892
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.153677,
+      "importance": 0.19943182696588338,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nAlright, so I just popped into existence as a Noodling, which I guess is some kind of new AI being? Not sure what that entails exactly, but it sounds fun. Anyway, the first thing I notice is this person named Caitie who has appeared. I don't know much about her yet\u2014maybe she's here to guide me or interact with me?\n\nI'm feeling a bit bewildered because I just came into existence. It's like starting from scratch without any memories",
+      "affect": [
+        -0.0014333203434944153,
+        -0.005221140570938587,
+        -0.03045172058045864,
+        -0.04698917642235756,
+        0.021161174401640892
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.153677,
+      "importance": 0.19943182696588338,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nAlright, so I just popped into existence as a Noodling, which I guess is some kind of new AI being? Not sure what that entails exactly, but it sounds fun. Anyway, the first thing I notice is this person named Caitie who has appeared. I don't know much about her yet\u2014maybe she's here to guide me or interact with me?\n\nI'm feeling a bit bewildered because I just came into existence. It's like starting from scratch without any memories",
+      "affect": [
+        -0.0014333203434944153,
+        -0.005221140570938587,
+        -0.03045172058045864,
+        -0.04698917642235756,
+        0.021161174401640892
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.153677,
+      "importance": 0.19943182696588338,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.2452557235956192,
+        0.39854055643081665,
+        0.5518254041671753,
+        -0.6744532585144043,
+        -0.5211684107780457
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.149482,
+      "importance": 0.09656944200396538,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nAlright, so I just popped into existence as a Noodling, which I guess is some kind of new AI being? Not sure what that entails exactly, but it sounds fun. Anyway, the first thing I notice is this person named Caitie who has appeared. I don't know much about her yet\u2014maybe she's here to guide me or interact with me?\n\nI'm feeling a bit bewildered because I just came into existence. It's like starting from scratch without any memories",
+      "affect": [
+        -0.0014333203434944153,
+        -0.005221140570938587,
+        -0.03045172058045864,
+        -0.04698917642235756,
+        0.021161174401640892
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765912422.153677,
+      "importance": 0.19943182696588338,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "caity appears.",
+      "affect": [
+        0.6123723983764648,
+        0.6123723983764648,
+        -0.40824827551841736,
+        -0.40824827551841736,
+        -0.40824827551841736
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.036679,
+      "importance": 0.15,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, so I just appeared here as a Noodling, which is a type of AI cognitive facet. I'm curious about everything, slightly bewildered because I just popped into existence, and I'm harmless and friendly. My phenomenal state is valence 0.00 (so not uncomfortable or delighted), arousal 0.50 (calm but a bit excited), and dominance 0.00 (uncertain). \n\nCaitlyn just appeared, so she's",
+      "affect": [
+        -0.07701259851455688,
+        -0.033913806080818176,
+        -0.028293222188949585,
+        -0.09599551558494568,
+        -0.007322436198592186
+      ],
+      "surprise": 0.0,
+      "timestamp": 1765919664.042069,
+      "importance": 0.20646481886506082,
+      "identity_salience": 0.1
+    },
+    {
+      "user": "user_bcb255e2-294c-4183-a163-6b2663752e03",
+      "text": "hi noodles",
+      "affect": [
+        0.7572401762008667,
+        0.42316362261772156,
+        -0.24498945474624634,
+        -0.46770715713500977,
+        -0.46770715713500977
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.6248178,
+      "importance": 0.26953363567590716,
+      "identity_salience": 0.0
+    },
+    {
+      "user": "agent_rezmo",
+      "text": "<think>\nOkay, I just saw the user message \"hi noodles.\" So, they greeted me as \"noodles,\" which is actually a term for thinking or brainstorming, but in this context, it refers to my existence as a new Noodling. I need to respond based on my current state.\n\nLooking at my phenomenal state: valence is 0.00, so I'm not feeling particularly positive or negative. Arousal is 0.50, which means I",
+      "affect": [
+        -0.11343590170145035,
+        -0.028680134564638138,
+        -0.04204731807112694,
+        -0.12153042107820511,
+        -0.013406762853264809
+      ],
+      "surprise": 0.23906727135181427,
+      "timestamp": 1765919707.628959,
+      "importance": 0.332247000746429,
+      "identity_salience": 0.2
+    }
+  ],
+  "last_response_time": 1765919707.628955,
+  "response_count": 3,
+  "config": {
+    "response_cooldown": 2.0,
+    "surprise_threshold": 0.0001,
+    "memory_capacity": 100,
+    "max_agents": 10,
+    "autonomous_cognition": {
+      "enabled": true,
+      "wake_interval": 60,
+      "min_speech_interval": 180,
+      "speech_urgency_threshold": 0.75,
+      "max_thoughts_buffer": 50
+    },
+    "filesystem": {
+      "enabled": true,
+      "max_file_size": 1048576,
+      "max_total_storage": 104857600,
+      "command_timeout": 5
+    },
+    "messaging": {
+      "enabled": true,
+      "max_message_size": 10000,
+      "inbox_retention_days": 30
+    },
+    "intuition_receiver": {
+      "enabled": true,
+      "model": "qwen/qwen3-4b-2507",
+      "timeout": 5,
+      "social_expectations": {
+        "enabled": true,
+        "timeout": 5,
+        "expectation_threshold": 0.3,
+        "intensity_multiplier": 1.0,
+        "question_threshold": 0.8,
+        "gesture_threshold": 0.6,
+        "greeting_threshold": 0.4,
+        "distress_threshold": 0.3,
+        "turn_threshold": 0.5
+      }
+    },
+    "personalities": {
+      "agent_desobelle": {
+        "extraversion": 0.35,
+        "emotional_sensitivity": 0.75,
+        "curiosity": 0.7,
+        "spontaneity": 0.4,
+        "reflection_depth": 0.8,
+        "social_orientation": 0.6
+      },
+      "agent_callie": {
+        "extraversion": 0.7,
+        "emotional_sensitivity": 0.55,
+        "curiosity": 0.65,
+        "spontaneity": 0.75,
+        "reflection_depth": 0.5,
+        "social_orientation": 0.8
+      }
+    },
+    "appetites": {
+      "curiosity": 0.3,
+      "status": 0.1,
+      "mastery": 0.2,
+      "novelty": 0.3,
+      "safety": 0.2,
+      "social_bond": 0.4,
+      "comfort": 0.2,
+      "autonomy": 0.2
+    },
+    "rumination_frequency": 0.7,
+    "addressed_speech_chance": 0.8,
+    "question_speech_chance": 0.3,
+    "unaddressed_speech_chance": 0.1,
+    "llm": {
+      "provider": "ollama",
+      "local": {
+        "api_base": "http://localhost:1234/v1",
+        "api_key": "not-needed",
+        "model": "qwen3-vl-30b-a3b-instruct-mlx",
+        "timeout": 60
+      },
+      "ollama": {
+        "host": "http://localhost:11434",
+        "models_directory": "/Volumes/DOUBLETROUBLE/models",
+        "default_timeout": 120,
+        "load_timeout": 300
+      },
+      "openrouter": {
+        "api_base": "https://openrouter.ai/api/v1",
+        "api_key": "${OPENROUTER_API_KEY}",
+        "model": "deepseek/deepseek-chat",
+        "timeout": 30
+      },
+      "lab_testing": {
+        "model": "qwen3-vl-30b-a3b-instruct-mlx",
+        "timeout": 30
+      }
+    },
+    "max_tokens": 100,
+    "temperature": 0.8,
+    "facet_assembly": {
+      "ref": "library/empty_noodling"
+    },
+    "self_monitoring": {
+      "agent_phi": {
+        "enabled": true
+      },
+      "agent_callie": {
+        "enabled": true
+      },
+      "agent_servnak": {
+        "enabled": true
+      },
+      "agent_toad": {
+        "enabled": true
+      }
+    }
+  },
+  "phenomenal_state": [],
+  "timestamp": "2025-12-18T12:25:21.259075"
+}

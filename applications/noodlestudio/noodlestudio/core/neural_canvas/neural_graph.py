@@ -168,7 +168,8 @@ class NeuralGraph:
         Validate the entire graph.
 
         Checks:
-        - Exactly one INPUT and one OUTPUT
+        - At least one entry point (INPUT or NUMBER_INPUT)
+        - At least one exit point (OUTPUT or THRESHOLD_OUTPUT)
         - No cycles (DAG requirement)
         - All input ports connected
         - Type compatibility
@@ -177,23 +178,23 @@ class NeuralGraph:
         """
         result = ValidationResult(valid=True)
 
-        # Check for INPUT node
+        # Check for entry points (INPUT or NUMBER_INPUT nodes)
         input_nodes = self.get_input_nodes()
-        if len(input_nodes) == 0:
-            result.valid = False
-            result.errors.append("No INPUT node found")
-        elif len(input_nodes) > 1:
-            result.valid = False
-            result.errors.append(f"Multiple INPUT nodes found ({len(input_nodes)})")
+        number_input_nodes = self.get_nodes_by_type(NodeType.NUMBER_INPUT)
+        entry_points = input_nodes + number_input_nodes
 
-        # Check for OUTPUT node
+        if len(entry_points) == 0:
+            result.valid = False
+            result.errors.append("No entry point found (need INPUT or NUMBER_INPUT)")
+
+        # Check for exit points (OUTPUT or THRESHOLD_OUTPUT nodes)
         output_nodes = self.get_output_nodes()
-        if len(output_nodes) == 0:
+        threshold_output_nodes = self.get_nodes_by_type(NodeType.THRESHOLD_OUTPUT)
+        exit_points = output_nodes + threshold_output_nodes
+
+        if len(exit_points) == 0:
             result.valid = False
-            result.errors.append("No OUTPUT node found")
-        elif len(output_nodes) > 1:
-            result.valid = False
-            result.errors.append(f"Multiple OUTPUT nodes found ({len(output_nodes)})")
+            result.errors.append("No exit point found (need OUTPUT or THRESHOLD_OUTPUT)")
 
         # Check for cycles
         if self._has_cycle():
@@ -222,9 +223,11 @@ class NeuralGraph:
                             f"Node '{node.name}': required port '{port_name}' not connected"
                         )
 
-        # Check for unused nodes (except INPUT/OUTPUT)
+        # Check for unused nodes (except entry/exit points)
+        entry_exit_types = (NodeType.INPUT, NodeType.OUTPUT,
+                           NodeType.NUMBER_INPUT, NodeType.THRESHOLD_OUTPUT)
         for node in self.nodes.values():
-            if node.type in (NodeType.INPUT, NodeType.OUTPUT):
+            if node.type in entry_exit_types:
                 continue
 
             has_incoming = any(conn.to_node == node.id for conn in self.connections)

@@ -25,10 +25,31 @@
         "contains": [],
         "occupied_by": null
       },
-      "agent_a56e0ac2-9425-4f56-9309-ec9badc85110": {
-        "entity_id": "agent_a56e0ac2-9425-4f56-9309-ec9badc85110",
+      "agent_rezmo": {
+        "entity_id": "agent_rezmo",
         "entity_type": "agent",
-        "name": "red_fire_anklebiter",
+        "name": "Rezmo",
+        "zone": "main",
+        "parent": null,
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "tags": [],
+        "state": {},
+        "contains": [],
+        "occupied_by": null
+      },
+      "agent_tony": {
+        "entity_id": "agent_tony",
+        "entity_type": "agent",
+        "name": "Tony",
         "zone": "main",
         "parent": null,
         "position": {
@@ -50,7 +71,8 @@
     "zones": {
       "main": [
         "user_bcb255e2-294c-4183-a163-6b2663752e03",
-        "agent_a56e0ac2-9425-4f56-9309-ec9badc85110"
+        "agent_rezmo",
+        "agent_tony"
       ]
     },
     "zone_graph": {

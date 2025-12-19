@@ -38,6 +38,29 @@ from recipe_loader import RecipeLoader
 from script_manager import ScriptManager
 from entropy_service import initialize_entropy_service
 
+# Semantic World integration
+from semantic_integration import (
+    init_semantic_world,
+    log_speech,
+    log_arrival,
+    log_departure,
+    log_emote,
+    log_action,
+    register_stage_from_room,
+    get_stats as get_semantic_stats
+)
+
+# Scene Protocol integration (Noodlings Scene Protocol for renderers)
+from scene_protocol_integration import (
+    SCENE_PROTOCOL_AVAILABLE,
+    init_scene_state_manager,
+    sync_room_to_zone,
+    sync_agent_to_noodling,
+    sync_player_to_scene,
+    record_dialogue as scene_record_dialogue,
+    get_scene_packet_json,
+)
+
 # Setup logging
 os.makedirs('logs', exist_ok=True)
 log_filename = f'logs/cmush_{datetime.now().strftime("%Y-%m-%d")}.log'
@@ -134,15 +157,42 @@ class CMUSHServer:
         initialize_entropy_service(use_hardware=use_hardware, device_path=device_path)
         logger.info(f"Entropy service initialized: hardware={use_hardware}, device={device_path}")
 
-        # Initialize world
-        world_dir = self.config['paths']['world_dir']
+        # Initialize world - check for PROJECT_PATH first
+        self.project_path = None
+        project_path = os.environ.get("PROJECT_PATH")
+
+        if project_path and os.path.exists(project_path):
+            # New project mode - use ProjectBridge
+            try:
+                from project_bridge import ProjectBridge, setup_world_from_project
+                logger.info(f"Loading from project: {project_path}")
+                self.project_path = project_path
+
+                # Create legacy-compatible world in project's Library folder
+                world_dir = setup_world_from_project(project_path)
+                logger.info(f"Project world cache created at: {world_dir}")
+
+                # Set recipes path to project's Noodlings folder
+                self.recipes_path = os.path.join(project_path, "Noodlings")
+            except Exception as e:
+                logger.error(f"Failed to load project, falling back to legacy: {e}")
+                import traceback
+                traceback.print_exc()
+                world_dir = self.config['paths']['world_dir']
+                self.recipes_path = "recipes"
+        else:
+            # Legacy mode - use config world_dir
+            world_dir = self.config['paths']['world_dir']
+            self.recipes_path = "recipes"
+            logger.info(f"Using legacy world directory: {world_dir}")
+
         self.world = World(world_dir=world_dir)
 
         # Initialize auth
         self.auth = AuthManager(self.world)
 
-        # Initialize recipe loader (for reloading species on agent load)
-        self.recipe_loader = RecipeLoader("recipes")
+        # Initialize recipe loader
+        self.recipe_loader = RecipeLoader(self.recipes_path)
 
         # Initialize LLM (will be created in async context)
         self.llm = None
@@ -252,26 +302,26 @@ class CMUSHServer:
             logger.info(f"🌐 Using OpenRouter with model: {provider_config.get('model')}")
 
             self.llm = OpenAICompatibleLLM(
-                api_base=provider_config.get('api_base', 'http://localhost:1234/v1'),
+                api_base=provider_config.get('api_base', 'https://openrouter.ai/api/v1'),
                 api_key=provider_config.get('api_key', 'not-needed'),
-                model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
+                model=provider_config.get('model', 'SMALL'),
                 timeout=provider_config.get('timeout', 30),
                 max_concurrent=20,
                 use_model_instances=False
             )
             await self.llm.__aenter__()
 
-        else:  # default to 'local'
+        else:  # default to 'local' (Ollama)
             provider_config = llm_config.get('local', llm_config)  # Fallback to root llm config for backward compat
-            logger.info(f"💻 Using local LMStudio with model: {provider_config.get('model')}")
+            logger.info(f"💻 Using local Ollama with model: {provider_config.get('model')}")
 
             self.llm = OpenAICompatibleLLM(
-                api_base=provider_config.get('api_base', 'http://localhost:1234/v1'),
+                api_base=provider_config.get('api_base', 'http://localhost:11434/v1'),
                 api_key=provider_config.get('api_key', 'not-needed'),
-                model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
+                model=provider_config.get('model', 'SMALL'),
                 timeout=provider_config.get('timeout', 30),
-                max_concurrent=20,  # SCHLAG ZU! LMStudio has 0-19 loaded! 🚀⚡
-                use_model_instances=False  # Disabled - LMStudio rejects model:N format with 400 errors
+                max_concurrent=20,
+                use_model_instances=False
             )
             await self.llm.__aenter__()
 
@@ -301,8 +351,8 @@ class CMUSHServer:
 
         # Initialize @Kimmie character (use provider config from above)
         self.kimmie = KimmieCharacter(
-            llm_base_url=provider_config.get('api_base', 'http://localhost:1234/v1'),
-            llm_model=provider_config.get('model', 'qwen/qwen3-4b-2507'),
+            llm_base_url=provider_config.get('api_base', 'http://localhost:11434/v1'),
+            llm_model=provider_config.get('model', 'SMALL'),
             session_profiler=self.session_profiler
         )
 
@@ -319,6 +369,50 @@ class CMUSHServer:
 
         # Wire profiler into agent manager
         self.agent_manager.set_session_profiler(self.session_profiler)
+
+        # Initialize Semantic World system
+        try:
+            # Get stages path from world_dir
+            world_dir = self.config['paths']['world_dir']
+            stages_path = os.path.join(world_dir, 'stages')
+            events_path = os.path.join(world_dir, 'events')
+
+            init_semantic_world(
+                persist_path=events_path,
+                stages_path=stages_path
+            )
+
+            # Register existing rooms as stages
+            for room_id, room_data in self.world.rooms.items():
+                register_stage_from_room(room_id, room_data)
+
+            semantic_stats = get_semantic_stats()
+            logger.info(f"[SemanticWorld] Initialized: {semantic_stats['total_events']} events loaded")
+        except Exception as e:
+            logger.warning(f"[SemanticWorld] Failed to initialize (non-fatal): {e}")
+
+        # Initialize Scene Protocol (Noodlings Scene Protocol for renderers)
+        if SCENE_PROTOCOL_AVAILABLE:
+            try:
+                # Get default stage name from first room or config
+                default_room = next(iter(self.world.rooms.values()), {})
+                stage_name = default_room.get('name', 'The World')
+                stage_id = next(iter(self.world.rooms.keys()), 'default')
+
+                init_scene_state_manager(
+                    stage_id=stage_id,
+                    stage_name=stage_name
+                )
+
+                # Sync rooms to zones
+                for room_id, room_data in self.world.rooms.items():
+                    sync_room_to_zone(room_data, room_id)
+
+                logger.info(f"[SceneProtocol] Initialized with {len(self.world.rooms)} zones")
+            except Exception as e:
+                logger.warning(f"[SceneProtocol] Failed to initialize (non-fatal): {e}")
+                import traceback
+                traceback.print_exc()
 
         logger.info("Async components initialized")
         logger.info(f"Session profiler active: {session_id}")
@@ -1018,6 +1112,41 @@ class CMUSHServer:
         username = event.get('username', user_id)
         text = event.get('text', '')
         metadata = event.get('metadata', {})
+
+        # Log to Semantic World event store
+        try:
+            # Get room occupants as witnesses (excluding the actor)
+            room_occupants = self.world.get_room_occupants(room_id) if room_id else []
+            witnesses = [occ for occ in room_occupants if occ != user_id]
+
+            if event_type == 'say':
+                log_speech(
+                    speaker_id=user_id,
+                    stage_id=room_id,
+                    content=text,
+                    witnesses=witnesses
+                )
+            elif event_type == 'emote':
+                log_emote(
+                    actor_id=user_id,
+                    stage_id=room_id,
+                    emote_text=text,
+                    witnesses=witnesses
+                )
+            elif event_type == 'enter':
+                log_arrival(
+                    arriver_id=user_id,
+                    stage_id=room_id,
+                    witnesses=witnesses
+                )
+            elif event_type == 'exit':
+                log_departure(
+                    departer_id=user_id,
+                    stage_id=room_id,
+                    witnesses=witnesses
+                )
+        except Exception as e:
+            logger.debug(f"[SemanticWorld] Event logging failed (non-fatal): {e}")
 
         # Extract model name from metadata (for debugging model routing)
         model_used = metadata.get('model_used', '')

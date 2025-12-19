@@ -57,10 +57,10 @@ else:
 class CharmNetworkOutput:
     """Output from Charm Network neural computation."""
 
-    # Continuous 5-D affect
-    valence: float      # -1.0 (negative) to +1.0 (positive)
-    arousal: float      # 0.0 (calm) to 1.0 (excited)
-    fear: float         # 0.0 (safe) to 1.0 (anxious)
+    # Continuous 5-D affect (PAD + Boredom + Sorrow)
+    valence: float      # -1.0 (negative) to +1.0 (positive) - Pleasure
+    arousal: float      # 0.0 (calm) to 1.0 (excited) - Arousal
+    dominance: float    # 0.0 (submissive) to 1.0 (dominant) - Dominance/Control
     sorrow: float       # 0.0 (content) to 1.0 (sad)
     boredom: float      # 0.0 (engaged) to 1.0 (bored)
 
@@ -207,12 +207,12 @@ class CharmNetworkFacet:
                 affect_predicted = self.affect_head(self_state)  # (1, 5)
                 valence = float(affect_predicted[0, 0])
                 arousal = float(affect_predicted[0, 1])
-                fear = float(affect_predicted[0, 2])
+                dominance = float(affect_predicted[0, 2])
                 sorrow = float(affect_predicted[0, 3])
                 boredom = float(affect_predicted[0, 4])
             else:
                 # Fallback: use input affect
-                valence, arousal, fear, sorrow, boredom = affect_input
+                valence, arousal, dominance, sorrow, boredom = affect_input
 
             # Record execution stats
             elapsed = time.time() - start_time
@@ -224,7 +224,7 @@ class CharmNetworkFacet:
             return CharmNetworkOutput(
                 valence=valence,
                 arousal=arousal,
-                fear=fear,
+                dominance=dominance,
                 sorrow=sorrow,
                 boredom=boredom,
                 surprise=float(surprise),
@@ -310,7 +310,7 @@ if __name__ == "__main__":
         print("\n=== Charm Network Test Output ===")
         print(f"Valence: {output.valence:.3f}")
         print(f"Arousal: {output.arousal:.3f}")
-        print(f"Fear: {output.fear:.3f}")
+        print(f"Dominance: {output.dominance:.3f}")
         print(f"Sorrow: {output.sorrow:.3f}")
         print(f"Boredom: {output.boredom:.3f}")
         print(f"Surprise: {output.surprise:.3f}")

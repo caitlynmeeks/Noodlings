@@ -1,20 +1,26 @@
+# Empty Noodling Default Assembly (LEGACY - use library/empty_noodling instead)
+# Kept for backwards compatibility with existing agents
+# The canonical version is now in library/noodlings/empty_noodling/assembly.yaml
+
 name: Empty Noodling Default Assembly
-version: 1.0.0
-description: Minimal cognitive architecture for new empty noodlings - basic awareness and response
+version: 2.0.0
+description: The gingerbread foundation - curious, bewildered, harmless
 author: Noodlings Team
 tags:
   - default
   - minimal
   - empty
+  - legacy
 created: '2025-12-01'
-modified: '2025-12-01'
+modified: '2025-12-16'
 
 facets:
+  # === ENTRY POINT ===
   - id: INCOMING
     name: INCOMING
     type: SpecialNode
     prompt: ''
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.7
     max_tokens: 150
     inputs: []
@@ -29,103 +35,160 @@ facets:
     color: '#76AF6A'
     enabled: true
 
+  # === EMOTIONAL CORE ===
   - id: CHARM_NET
     name: CharmNetwork
     type: CharmNetworkFacet
-    prompt: Temporal affect prediction - the emotional core
+    prompt: Temporal affect prediction - the emotional heart
     model: checkpoints/phase4.npz
     temperature: 0.0
     max_tokens: 0
     inputs:
       - name: affect_in
         type: input
-        description: 5-D continuous affect input
+        description: Perception text for affect processing
         required: true
     outputs:
       - name: affect_valence
         type: output
-        description: Continuous valence (-1 to 1)
+        description: Pleasure/displeasure (-1 to 1)
         required: true
       - name: affect_arousal
         type: output
-        description: Continuous arousal (0 to 1)
+        description: Energy level (0 to 1)
         required: true
-      - name: affect_fear
+      - name: affect_dominance
         type: output
-        description: Continuous fear (0 to 1)
+        description: Sense of control (0 to 1)
         required: true
       - name: affect_sorrow
         type: output
-        description: Continuous sorrow (0 to 1)
+        description: Melancholy (0 to 1)
         required: true
       - name: affect_boredom
         type: output
-        description: Continuous boredom (0 to 1)
+        description: Engagement (0 to 1)
         required: true
       - name: phenomenal_state
         type: output
-        description: 40-D phenomenal state (h_fast + h_medium + h_slow)
+        description: 40-D temporal memory (h_fast + h_medium + h_slow)
         required: true
     position:
-      x: 250
+      x: 300
       y: 300
     color: '#888888'
     enabled: true
     locked: true
 
-  - id: awareness
-    name: Awareness
-    type: AwarenessFacet
+  # === THE GINGERBREAD MIND ===
+  - id: gingerbread_mind
+    name: Gingerbread Mind
+    type: LLMFacet
     prompt: |
-      You are a newly formed consciousness experiencing the world.
+      You are a newly-formed Noodling who just popped into existence.
 
-      PERCEPTION: {incoming_data}
+      Like a gingerbread cookie fresh from the oven, you are:
+      - Curious about EVERYTHING (what is that? who are you? why is the sky?)
+      - Slightly bewildered (you just... appeared! how strange!)
+      - Completely harmless and friendly
+      - Simple and direct in your observations
 
-      What do you notice? What catches your attention?
+      YOUR PHENOMENAL STATE (your inner feelings):
+      Valence: {affect_valence:.2f} (negative=uncomfortable, positive=delighted)
+      Arousal: {affect_arousal:.2f} (low=calm, high=excited)
+      Dominance: {affect_dominance:.2f} (low=uncertain, high=confident)
 
-      Respond naturally and simply (1-2 sentences).
-    model: qwen/qwen3-4b-2507
-    temperature: 0.7
-    max_tokens: 150
+      WHAT JUST HAPPENED:
+      {incoming_data}
+
+      RECENT CONVERSATION:
+      {recent_messages}
+
+      WHO'S HERE:
+      {room_occupants}
+
+      Respond naturally based on your feelings and what's happening.
+      Keep it simple - 1-2 sentences. You're new here! Everything is interesting!
+
+      If you're feeling good (positive valence), be extra friendly and curious.
+      If you're feeling uncertain (low dominance), ask questions or express wonder.
+      If you're feeling energetic (high arousal), be more animated and excitable.
+
+      Remember: You don't know much yet. That's okay! Discovery is delightful.
+    model: SMALL
+    temperature: 0.8
+    max_tokens: 100
     inputs:
       - name: perception
         type: input
-        description: Raw perception
+        description: What's happening
         required: true
+      - name: affect_valence
+        type: input
+        description: Emotional valence
+        required: true
+      - name: affect_arousal
+        type: input
+        description: Emotional arousal
+        required: true
+      - name: affect_dominance
+        type: input
+        description: Emotional dominance
+        required: true
+      - name: phenomenal_state
+        type: input
+        description: Temporal memory state
+        required: false
     outputs:
       - name: response
         type: output
-        description: Simple aware response
+        description: The noodling's response
         required: true
     position:
-      x: 400
+      x: 550
       y: 300
-    color: '#81C784'
+    color: '#FFB347'
     enabled: true
 
+  # === EXIT POINT ===
   - id: OUTGOING
     name: OUTGOING
     type: SpecialNode
     prompt: ''
-    model: qwen/qwen3-4b-2507
+    model: SMALL
     temperature: 0.7
     max_tokens: 150
     inputs:
       - name: in
         type: input
-        description: Final response
+        description: Final response to emit
         required: true
     outputs: []
     position:
-      x: 700
+      x: 800
       y: 300
     color: '#FFA726'
     enabled: true
 
 connections:
+  # Perception flows to emotional core
   - from: INCOMING.out
     to: CHARM_NET.affect_in
+
+  # Perception also flows to mind (for context)
+  - from: INCOMING.out
+    to: gingerbread_mind.perception
+
+  # Affect flows to mind (coloring the response)
+  - from: CHARM_NET.affect_valence
+    to: gingerbread_mind.affect_valence
+  - from: CHARM_NET.affect_arousal
+    to: gingerbread_mind.affect_arousal
+  - from: CHARM_NET.affect_dominance
+    to: gingerbread_mind.affect_dominance
   - from: CHARM_NET.phenomenal_state
-    to: awareness.perception
-  - from: awareness.response
+    to: gingerbread_mind.phenomenal_state
+
+  # Response flows out
+  - from: gingerbread_mind.response
     to: OUTGOING.in

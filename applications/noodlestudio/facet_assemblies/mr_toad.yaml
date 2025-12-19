@@ -101,9 +101,9 @@ facets:
         type: output
         description: Continuous arousal (0 to 1)
         required: true
-      - name: affect_fear
+      - name: affect_dominance
         type: output
-        description: Continuous fear (0 to 1)
+        description: Continuous dominance (0 to 1)
         required: true
       - name: affect_sorrow
         type: output

@@ -239,7 +239,7 @@ Respond in character:"""
         print("Connecting to LLM backend...")
         llm = OpenAICompatibleLLM(
             api_base="http://localhost:1234/v1",
-            model="qwen/qwen3-4b-2507",
+            model="SMALL",
             timeout=60
         )
         await llm.__aenter__()

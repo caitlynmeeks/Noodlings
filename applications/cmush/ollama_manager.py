@@ -57,6 +57,12 @@ class OllamaConfig:
     host: str = "http://localhost:11434"
     models_directory: str = "/Volumes/DOUBLETROUBLE/models"
 
+    # Concurrency settings (for parallel inference)
+    # Default high values for M3 Ultra with 512GB unified memory
+    num_parallel: int = 16  # OLLAMA_NUM_PARALLEL: parallel requests per model
+    max_loaded_models: int = 8  # OLLAMA_MAX_LOADED_MODELS: models in memory
+    max_queue: int = 512  # OLLAMA_MAX_QUEUE: queued requests before 503
+
     # Timeouts
     default_timeout: int = 180  # 3 minutes for 70B model inference
     load_timeout: int = 600  # 10 minutes to load/pull large models
@@ -136,12 +142,51 @@ class OllamaManager:
     """
 
     def __init__(self, config: Optional[OllamaConfig] = None):
-        self.config = config or OllamaConfig()
+        self.config = config or self._load_config_from_provider()
         self.client: Optional[AsyncClient] = None
         self.stats: Dict[str, ModelStats] = {}
         self._initialized = False
         self._lock = asyncio.Lock()
         self._ollama_process: Optional[subprocess.Popen] = None
+
+    @staticmethod
+    def _load_config_from_provider() -> OllamaConfig:
+        """Load Ollama config from NoodleStudio provider settings."""
+        try:
+            import sys
+            from pathlib import Path
+
+            # Add noodlestudio to path
+            noodlestudio_path = Path(__file__).parent.parent / "noodlestudio"
+            if str(noodlestudio_path) not in sys.path:
+                sys.path.insert(0, str(noodlestudio_path))
+
+            from noodlestudio.core.provider_manager import get_provider_manager
+            manager = get_provider_manager()
+            provider = manager.get_provider("ollama")
+
+            if provider:
+                config = OllamaConfig()
+                # Override defaults with provider settings if set
+                if provider.num_parallel is not None:
+                    config.num_parallel = provider.num_parallel
+                if provider.max_loaded_models is not None:
+                    config.max_loaded_models = provider.max_loaded_models
+                if provider.max_queue is not None:
+                    config.max_queue = provider.max_queue
+                if provider.base_url:
+                    config.host = provider.base_url
+
+                logger.info(f"Loaded Ollama config from provider: "
+                           f"num_parallel={config.num_parallel}, "
+                           f"max_loaded_models={config.max_loaded_models}")
+                return config
+
+        except Exception as e:
+            logger.warning(f"Could not load Ollama config from provider: {e}")
+
+        # Return defaults
+        return OllamaConfig()
 
     async def _ensure_ollama_server_running(self) -> bool:
         """
@@ -162,9 +207,18 @@ class OllamaManager:
             logger.info("Ollama server not detected, starting...")
 
             try:
-                # Set OLLAMA_MODELS environment variable to use local models directory
+                # Set environment variables for Ollama
                 env = os.environ.copy()
                 env['OLLAMA_MODELS'] = self.config.models_directory
+
+                # Concurrency settings for parallel inference
+                env['OLLAMA_NUM_PARALLEL'] = str(self.config.num_parallel)
+                env['OLLAMA_MAX_LOADED_MODELS'] = str(self.config.max_loaded_models)
+                env['OLLAMA_MAX_QUEUE'] = str(self.config.max_queue)
+
+                logger.info(f"Ollama concurrency: NUM_PARALLEL={self.config.num_parallel}, "
+                           f"MAX_LOADED_MODELS={self.config.max_loaded_models}, "
+                           f"MAX_QUEUE={self.config.max_queue}")
 
                 # Start ollama serve in background with custom models directory
                 self._ollama_process = subprocess.Popen(
@@ -359,12 +413,27 @@ class OllamaManager:
             # Filter out 'model' from kwargs to avoid duplicate argument
             filtered_kwargs = {k: v for k, v in kwargs.items() if k != 'model'}
 
-            response = await self.client.chat(
-                model=model_name,
-                messages=messages,
-                options=options,
-                **filtered_kwargs
-            )
+            # Track activity for NoodleStudio visualization
+            from llm_interface import get_llm_activity_tracker
+            activity_tracker = get_llm_activity_tracker()
+            # Track by model name (NoodleStudio will map to labels)
+            track_label = model_name.split(':')[0] if model_name and ':' in model_name else (model_name or model_tier)
+            await activity_tracker.request_started(track_label)
+
+            response = None
+            try:
+                response = await self.client.chat(
+                    model=model_name,
+                    messages=messages,
+                    options=options,
+                    **filtered_kwargs
+                )
+            finally:
+                # Extract token counts for tracking (may not be available on error)
+                tokens_for_tracking = 0
+                if response:
+                    tokens_for_tracking = response.get('prompt_eval_count', 0) + response.get('eval_count', 0)
+                await activity_tracker.request_completed(track_label, tokens_for_tracking)
 
             # Extract response
             generated_text = response['message']['content']

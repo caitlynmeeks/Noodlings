@@ -242,6 +242,49 @@ class CanvasTestExecutor:
                         }
                         continue
 
+                    if node.type == NodeType.NUMBER_INPUT:
+                        # Number input outputs its stored value as a scalar tensor
+                        value = node.params.get('value', 0.5)
+                        value_tensor = torch.tensor([[value]], dtype=torch.float32)
+                        node_outputs[node_id] = {
+                            'value': value_tensor,
+                            'x': value_tensor
+                        }
+                        continue
+
+                    if node.type == NodeType.THRESHOLD_OUTPUT:
+                        # Threshold output gathers inputs and computes ON/OFF
+                        incoming = self.graph.get_connections_to_node(node_id)
+                        output_values = {}
+                        for conn in incoming:
+                            src_outputs = node_outputs.get(conn.from_node, {})
+                            if conn.from_port in src_outputs:
+                                output_values[conn.to_port] = src_outputs[conn.from_port]
+
+                        # Get input value and compare to threshold
+                        input_val = output_values.get('value')
+                        if input_val is not None:
+                            if hasattr(input_val, 'item'):
+                                scalar_val = input_val.flatten()[0].item()
+                            else:
+                                scalar_val = float(input_val)
+
+                            threshold = node.params.get('threshold', 0.5)
+                            is_on = scalar_val >= threshold
+
+                            node_outputs[node_id] = {
+                                'value': scalar_val,
+                                'is_on': is_on,
+                                'threshold': threshold
+                            }
+                        else:
+                            node_outputs[node_id] = {
+                                'value': 0.0,
+                                'is_on': False,
+                                'threshold': node.params.get('threshold', 0.5)
+                            }
+                        continue
+
                     if node.type == NodeType.OUTPUT:
                         # Gather inputs to output node
                         incoming = self.graph.get_connections_to_node(node_id)
@@ -393,7 +436,9 @@ class CanvasTestExecutor:
             # Ensure 2D
             if len(x.shape) == 3:
                 x = x[:, -1, :]
-            outputs['x'] = layer(x)
+            result = layer(x)
+            outputs['x'] = result
+            outputs['out'] = result  # LINEAR uses 'out' port in node_definitions
 
         elif node.type == NodeType.STATE_CONCAT:
             # Concatenate all inputs (for phenomenal state)
@@ -405,6 +450,189 @@ class CanvasTestExecutor:
                 outputs['state'] = outputs['x']
             else:
                 outputs['x'] = x
+
+        elif node.type == NodeType.CONCAT:
+            # Simple concatenation of two inputs
+            a = inputs.get('a')
+            b = inputs.get('b')
+            if a is not None and b is not None:
+                # Flatten to 2D if needed and concat
+                if len(a.shape) == 1:
+                    a = a.unsqueeze(0)
+                if len(b.shape) == 1:
+                    b = b.unsqueeze(0)
+                a_flat = a.view(a.shape[0], -1)
+                b_flat = b.view(b.shape[0], -1)
+                result = torch.cat([a_flat, b_flat], dim=-1)
+                outputs['x'] = result
+                outputs['out'] = result
+            elif a is not None:
+                outputs['x'] = a
+                outputs['out'] = a
+            elif b is not None:
+                outputs['x'] = b
+                outputs['out'] = b
+
+        elif node.type == NodeType.IBM_QUANTUM:
+            # IBM Quantum computation (simulator mode or real hardware)
+            # For Schrodinger's Cat: 1 qubit in superposition, collapse on measurement
+
+            num_qubits = node.params.get('num_qubits', 1)
+            shots = node.params.get('shots', 1)  # For single measurement, use 1
+            backend = node.params.get('backend', 'simulator')
+
+            # Get classical input to influence quantum state
+            classical_input = inputs.get('classical_state', x)
+            if len(classical_input.shape) == 3:
+                classical_input = classical_input[:, -1, :]
+
+            # Initialize qubit states (|0⟩ = [1,0], |1⟩ = [0,1])
+            # Start in superposition: |ψ⟩ = (|0⟩ + |1⟩)/√2
+            qubit_states = []
+
+            for q in range(num_qubits):
+                if backend == 'simulator':
+                    # Simulate Hadamard gate: creates 50/50 superposition
+                    # Then collapse based on quantum random measurement
+                    # Use true random for authentic quantum behavior
+                    import random
+                    import time
+
+                    # Seed with high-entropy source for "quantum" randomness
+                    random.seed(int(time.time_ns()) ^ id(node) ^ hash(str(classical_input.tolist())))
+
+                    # Each shot is a measurement
+                    measurements = []
+                    for _ in range(shots):
+                        # 50/50 collapse - true quantum randomness
+                        measurement = random.random() < 0.5
+                        measurements.append(1.0 if measurement else 0.0)
+
+                    # Result is the most common outcome (or random single shot)
+                    if shots == 1:
+                        qubit_state = measurements[0]
+                    else:
+                        qubit_state = sum(measurements) / len(measurements)
+
+                    qubit_states.append(qubit_state)
+
+                else:
+                    # Real IBM Quantum hardware would go here
+                    # For now, fall back to simulator
+                    import random
+                    qubit_states.append(1.0 if random.random() < 0.5 else 0.0)
+
+            # Output as tensor
+            result = torch.tensor([qubit_states], dtype=torch.float32)
+
+            outputs['quantum_result'] = result
+            outputs['x'] = result
+            outputs['out'] = result
+            outputs['collapsed_state'] = qubit_states[0] if qubit_states else 0.0
+            outputs['is_alive'] = qubit_states[0] < 0.5 if qubit_states else True  # |0⟩ = alive
+
+        elif node.type == NodeType.QUANTUM_MICROTUBULE:
+            # Penrose-Hameroff quantum consciousness simulation
+            # Models: superposition, entanglement, and objective reduction (collapse)
+
+            input_dim = node.params.get('input_dim', 16)
+            hidden_dim = node.params.get('hidden_dim', 16)
+            collapse_threshold = node.params.get('collapse_threshold', 0.5)
+            coherence_time = node.params.get('coherence_time', 10)
+            entanglement_range = node.params.get('entanglement_range', 3)
+            noise_scale = node.params.get('noise_scale', 0.1)
+            use_collapse = node.params.get('use_collapse', True)
+            use_entanglement = node.params.get('use_entanglement', True)
+
+            # Get or initialize microtubule state (quantum superposition)
+            mt_state_name = f"{node.id}_mt_state"
+            mt_state = self.hidden_states.get(mt_state_name)
+
+            if mt_state is None:
+                # Initialize superposition state (complex amplitudes simulated as 2x hidden)
+                mt_state = torch.randn(1, hidden_dim * 2) * 0.1
+                self.hidden_states[mt_state_name] = mt_state
+
+            # Ensure input dimensions match
+            if len(x.shape) == 3:
+                x = x[:, -1, :]
+            if x.shape[-1] != input_dim:
+                # Project input to expected dimension
+                x = x[..., :input_dim] if x.shape[-1] > input_dim else \
+                    torch.nn.functional.pad(x, (0, input_dim - x.shape[-1]))
+
+            # Quantum processing: superposition evolution
+            # Split state into "real" and "imaginary" components (simulated)
+            real_part = mt_state[..., :hidden_dim]
+            imag_part = mt_state[..., hidden_dim:]
+
+            # Apply input as phase rotation (quantum gate simulation)
+            x_expanded = x.view(1, -1)
+            if x_expanded.shape[-1] < hidden_dim:
+                x_expanded = torch.nn.functional.pad(x_expanded, (0, hidden_dim - x_expanded.shape[-1]))
+            else:
+                x_expanded = x_expanded[..., :hidden_dim]
+
+            # Phase evolution (simplified quantum dynamics)
+            phase = x_expanded * 0.5
+            new_real = real_part * torch.cos(phase) - imag_part * torch.sin(phase)
+            new_imag = real_part * torch.sin(phase) + imag_part * torch.cos(phase)
+
+            # Entanglement: create correlations between neighboring units
+            if use_entanglement and entanglement_range > 0:
+                entangled_real = new_real.clone()
+                entangled_imag = new_imag.clone()
+                for i in range(hidden_dim):
+                    for j in range(max(0, i - entanglement_range),
+                                   min(hidden_dim, i + entanglement_range + 1)):
+                        if i != j:
+                            # Entangle: correlate amplitudes
+                            coupling = 0.1 / (abs(i - j) + 1)
+                            entangled_real[0, i] += coupling * new_real[0, j]
+                            entangled_imag[0, i] += coupling * new_imag[0, j]
+                new_real = entangled_real
+                new_imag = entangled_imag
+
+            # Add quantum noise (vacuum fluctuations)
+            if noise_scale > 0:
+                new_real = new_real + torch.randn_like(new_real) * noise_scale
+                new_imag = new_imag + torch.randn_like(new_imag) * noise_scale
+
+            # Compute probability amplitudes |psi|^2
+            probabilities = new_real ** 2 + new_imag ** 2
+            probabilities = probabilities / (probabilities.sum() + 1e-8)  # Normalize
+
+            # Objective Reduction (collapse) - Penrose's gravity-induced collapse
+            if use_collapse:
+                # Collapse when coherence reaches threshold
+                max_prob = probabilities.max().item()
+                if max_prob > collapse_threshold:
+                    # Collapse to most probable state (measurement)
+                    collapsed_idx = probabilities.argmax(dim=-1)
+                    collapsed_state = torch.zeros_like(new_real)
+                    collapsed_state[0, collapsed_idx] = 1.0
+
+                    # Reset quantum state after collapse (new superposition begins)
+                    new_real = collapsed_state + torch.randn_like(new_real) * 0.1
+                    new_imag = torch.randn_like(new_imag) * 0.1
+
+                    # Output is the collapsed classical state
+                    output = collapsed_state
+                else:
+                    # Still in superposition - output is probability-weighted
+                    output = probabilities
+            else:
+                output = probabilities
+
+            # Update microtubule state
+            new_mt_state = torch.cat([new_real, new_imag], dim=-1)
+            self.hidden_states[mt_state_name] = new_mt_state
+
+            outputs['out'] = output
+            outputs['x'] = output
+            outputs['new_mt_state'] = new_mt_state
+            outputs['probabilities'] = probabilities
+            outputs['coherence'] = torch.tensor([[probabilities.max().item()]])
 
         elif node.type == NodeType.AFFECT_HEAD:
             # nn.Sequential handles the whole forward pass
@@ -432,7 +660,9 @@ class CanvasTestExecutor:
             # Generic PyTorch module (Tanh, ReLU, GELU, Sigmoid, Softmax)
             if len(x.shape) == 3:
                 x = x[:, -1, :]
-            outputs['x'] = layer(x)
+            result = layer(x)
+            outputs['x'] = result
+            outputs['out'] = result  # Activation functions use 'out' port in node_definitions
 
         else:
             # Pass through for unsupported

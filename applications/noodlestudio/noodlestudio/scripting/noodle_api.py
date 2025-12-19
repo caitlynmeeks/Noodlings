@@ -23,6 +23,7 @@ from .quantum_api import QuantumAPI
 from .audio_api import AudioAPI, get_audio_api
 from .vision_api import VisionAPI, get_vision_api
 from .cloud_api import CloudAPI, CloudAPIJS, get_cloud_api
+from .world_api import WorldAPI, get_world_api
 
 
 class NoodleAPI:
@@ -70,6 +71,7 @@ class NoodleAPI:
         self._audio_api = None  # Lazy init
         self._vision_api = None  # Lazy init
         self._cloud_api = None  # Lazy init
+        self._world_api = None  # Lazy init - per-noodling, set via set_world_api()
 
         # Manager references (lazy initialization)
         self._model_label_manager = model_label_manager
@@ -287,6 +289,88 @@ class NoodleAPI:
             self._cloud_api = CloudAPIJS(get_cloud_api())
         return self._cloud_api
 
+    @property
+    def world(self) -> WorldAPI:
+        """
+        Access World API.
+
+        Provides perception-filtered access to scene state for ScriptedFacets.
+        Each noodling sees only what they can perceive (information asymmetry).
+
+        Properties (read-only):
+        - perceivedEntities: List of entities I can see
+        - perceivedEvents: List of events I witnessed
+        - myPosition, myFacing, myZone, myZoneName
+        - myPosture, myAction, myExpression, myGaze
+        - affect: {valence, arousal, dominance, boredom, sorrow}
+        - zoneExits, ambientSounds, ambientMood
+        - conversationPartner, lastInput
+
+        Query methods:
+        - canSee(entityId): Check if I can see someone
+        - canHear(entityId): Check if I heard someone recently
+        - getEntity(entityId): Get observable info about an entity
+        - getDistanceTo(entityId): Distance in meters
+        - getDirectionTo(entityId): "in_front", "left", "behind", etc.
+        - isLookingAtMe(entityId): Is entity looking at me?
+        - getRecentSpeech(limit): Recent dialogue I heard
+
+        Command methods:
+        - setExpression(expr): Change my facial expression
+        - setPosture(posture): Change my posture
+        - setGaze(target): Look at something/someone
+        - speak(text, tone): Say something
+        - emote(text): Do an action
+        - moveTo(x, y, z): Move to position
+
+        Camera methods (if enabled):
+        - focusCamera(entity, framing): Focus on entity
+        - twoShot(a, b, framing): Frame two entities
+        - povCamera(entity): Switch to POV
+        - establishShot(zone): Wide zone shot
+
+        Returns:
+            WorldAPI instance for this noodling
+
+        Example (JavaScript):
+            // Who can I see?
+            var entities = context.noodle.world.perceivedEntities;
+            for (var i = 0; i < entities.length; i++) {
+                context.log("I see: " + entities[i].displayName);
+            }
+
+            // Can I see Yuki?
+            if (context.noodle.world.canSee("yuki")) {
+                var yuki = context.noodle.world.getEntity("yuki");
+                context.log("Yuki is " + yuki.direction);
+            }
+
+            // React to someone looking at me
+            if (context.noodle.world.isLookingAtMe("caity")) {
+                context.noodle.world.setGaze("caity");
+                context.noodle.world.setExpression("curious");
+            }
+
+            // Say something
+            context.noodle.world.speak("Hello!", "friendly");
+        """
+        if self._world_api is None:
+            # Default instance - should be set per-noodling via set_world_api()
+            self._world_api = get_world_api("default")
+        return self._world_api
+
+    def set_world_api(self, world_api: WorldAPI):
+        """
+        Set the WorldAPI instance for this noodling.
+
+        Called by FacetExecutor to provide noodling-specific
+        perception-filtered world access.
+
+        Args:
+            world_api: WorldAPI instance configured for this noodling
+        """
+        self._world_api = world_api
+
     def get_by_uuid(self, uuid: str) -> Optional[Dict[str, Any]]:
         """
         Get any entity by UUID (future enhancement).
@@ -330,6 +414,7 @@ class NoodleAPI:
             'quantum': self.quantum.to_dict(),
             'audio': self.audio.to_dict(),
             'vision': self.vision.to_dict(),
+            'world': self.world.to_dict(),
             'get_by_uuid': '__noodle_get_by_uuid__'
         }
 

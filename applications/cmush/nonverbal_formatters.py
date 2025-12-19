@@ -95,7 +95,7 @@ Your description:"""
         response = await llm_client.generate(
             prompt=prompt,
             system_prompt="You are a facial action descriptor. Describe muscle movements without emotion labels.",
-            model='qwen/qwen3-4b-2507',
+            model='SMALL',
             max_tokens=30,
             temperature=0.5
         )
@@ -166,7 +166,7 @@ Your description:"""
         response = await llm_client.generate(
             prompt=prompt,
             system_prompt="You are a movement descriptor. Describe effort qualities without emotion labels.",
-            model='qwen/qwen3-4b-2507',
+            model='SMALL',
             max_tokens=30,
             temperature=0.5
         )

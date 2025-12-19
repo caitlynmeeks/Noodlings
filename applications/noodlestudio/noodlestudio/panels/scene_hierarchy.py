@@ -28,19 +28,23 @@ class SceneHierarchy(QWidget):
     Unity-style Scene Hierarchy panel.
 
     Tree structure:
-    ┬ Scene: The Nexus (room_000)
+    ┬ Stage: The Nexus
+    ├─┬ Zones
+    │ └─ main (soft region)
     ├─┬ Users
     │ └─ caity [Noodler, 9yo, she/her]
-    ├─┬ Noodlings
-    │ ├─ Phi [kitten, they]
-    │ ├─ Servnak [robot, they]
-    │ └─ Callie [noodling, they]
-    ├─┬ Objects
+    ├─┬ Noodlings (Instances)
+    │ ├─ Red [noodling, they]
+    │ └─ Servnak [robot, they]
+    ├─┬ Props
     │ ├─ WANTED POSTER
     │ └─ RADIO
     └─┬ Exits
       ├─ north → The Forest Path
       └─ east → The Pond
+
+    Supports both new project structure (Stages/xxx/Instances/) and legacy
+    format (cmush/world/agents.json).
     """
 
     entitySelected = pyqtSignal(str, dict)  # (entity_type, entity_data)
@@ -48,7 +52,9 @@ class SceneHierarchy(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.api_base = "http://localhost:8081/api"
-        self.current_room = "room_000"  # Start at Nexus
+        self.current_room = "room_000"  # Start at Nexus (legacy)
+        self.current_stage = None  # New project format
+        self.project_manager = None  # Set via set_project_manager()
 
         # Track expanded state (survives tree rebuild)
         self.expanded_items = set()
@@ -144,6 +150,12 @@ class SceneHierarchy(QWidget):
 
         layout.addWidget(self.tree)
 
+    def set_project_manager(self, project_manager):
+        """Set project manager reference for loading from project structure."""
+        self.project_manager = project_manager
+        # Refresh stage selector when project changes
+        self.populate_stage_selector()
+
     def save_expanded_state(self):
         """Save which items are currently expanded and selected."""
         def get_expanded_paths(item, path=""):
@@ -187,60 +199,113 @@ class SceneHierarchy(QWidget):
 
     def populate_stage_selector(self):
         """Populate stage selector with available stages/rooms."""
+        import json
+        import yaml
+
+        # Block signals during population to avoid triggering on_stage_changed
+        self.stage_selector.blockSignals(True)
+        self.stage_selector.clear()
+
         try:
-            import json
-            rooms_path = os.path.join(
-                os.path.dirname(__file__),
-                "../../../cmush/world/rooms.json"
-            )
-            with open(rooms_path, 'r') as f:
-                rooms_data = json.load(f)
+            # Check if project is open - use new format
+            if self.project_manager and self.project_manager.is_project_open():
+                stages = self.project_manager.list_stages()
 
-            # Block signals during population to avoid triggering on_stage_changed
-            self.stage_selector.blockSignals(True)
-            self.stage_selector.clear()
+                for stage_name in stages:
+                    stage_path = self.project_manager.get_stage_path(stage_name)
+                    if stage_path:
+                        # Try to load stage.yaml for display name
+                        display_name = stage_name
+                        stage_yaml = os.path.join(stage_path, "stage.yaml")
+                        if os.path.exists(stage_yaml):
+                            try:
+                                with open(stage_yaml, 'r') as f:
+                                    stage_data = yaml.safe_load(f) or {}
+                                    display_name = stage_data.get('name', stage_name)
+                            except:
+                                pass
 
-            for room_id, room_data in rooms_data.items():
-                room_name = room_data.get('name', room_id)
-                display_text = f"{room_name} ({room_id})"
-                self.stage_selector.addItem(display_text, room_id)
+                        display_text = f"{display_name} ({stage_name})"
+                        self.stage_selector.addItem(display_text, stage_name)
 
-                # Select current room
-                if room_id == self.current_room:
-                    self.stage_selector.setCurrentText(display_text)
+                        # Select current stage
+                        if stage_name == self.current_stage:
+                            self.stage_selector.setCurrentText(display_text)
 
-            self.stage_selector.blockSignals(False)
+                # If no stage selected, select first one
+                if not self.current_stage and stages:
+                    self.current_stage = stages[0]
+                    self.stage_selector.setCurrentIndex(0)
+
+            else:
+                # Legacy mode - load from rooms.json
+                rooms_path = os.path.join(
+                    os.path.dirname(__file__),
+                    "../../../cmush/world/rooms.json"
+                )
+                if os.path.exists(rooms_path):
+                    with open(rooms_path, 'r') as f:
+                        rooms_data = json.load(f)
+
+                    for room_id, room_data in rooms_data.items():
+                        room_name = room_data.get('name', room_id)
+                        display_text = f"{room_name} ({room_id})"
+                        self.stage_selector.addItem(display_text, room_id)
+
+                        # Select current room
+                        if room_id == self.current_room:
+                            self.stage_selector.setCurrentText(display_text)
 
         except Exception as e:
             print(f"Error populating stage selector: {e}")
+
+        self.stage_selector.blockSignals(False)
 
     def on_stage_changed(self, text):
         """Handle stage selection change."""
         if not text:
             return
 
-        # Get room_id from combo box data
-        new_room_id = self.stage_selector.currentData()
-        if new_room_id == self.current_room:
-            return
+        # Get stage/room id from combo box data
+        new_id = self.stage_selector.currentData()
 
-        # Show teleport popup
-        room_name = text.split(' (')[0] if ' (' in text else text
-        reply = QMessageBox.question(
-            self,
-            "Teleport to Stage?",
-            f"Teleport your character to stage '{room_name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes
-        )
+        # Check if this is project mode or legacy mode
+        if self.project_manager and self.project_manager.is_project_open():
+            # Project mode - using stages
+            if new_id == self.current_stage:
+                return
 
-        if reply == QMessageBox.StandardButton.Yes:
-            # Send teleport command to MUSH
-            self.teleport_to_stage(new_room_id)
+            stage_name = text.split(' (')[0] if ' (' in text else text
+            reply = QMessageBox.question(
+                self,
+                "Switch Stage?",
+                f"Switch to stage '{stage_name}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
 
-        # Update current room and refresh regardless of teleport choice
-        self.current_room = new_room_id
-        self.refresh_scene()
+            if reply == QMessageBox.StandardButton.Yes:
+                self.current_stage = new_id
+                self.refresh_scene()
+        else:
+            # Legacy mode - using rooms
+            if new_id == self.current_room:
+                return
+
+            room_name = text.split(' (')[0] if ' (' in text else text
+            reply = QMessageBox.question(
+                self,
+                "Teleport to Stage?",
+                f"Teleport your character to stage '{room_name}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                self.teleport_to_stage(new_id)
+
+            self.current_room = new_id
+            self.refresh_scene()
 
     def teleport_to_stage(self, room_id):
         """Send teleport command to noodleMUSH."""
@@ -252,7 +317,9 @@ class SceneHierarchy(QWidget):
             print(f"Error teleporting: {e}")
 
     def refresh_scene(self):
-        """Refresh scene hierarchy from noodleMUSH world state."""
+        """Refresh scene hierarchy from project structure."""
+        import yaml
+
         # Populate stage selector on first refresh
         if self.stage_selector.count() == 0:
             self.populate_stage_selector()
@@ -263,190 +330,388 @@ class SceneHierarchy(QWidget):
 
             # CRITICAL: Block signals BEFORE clearing to prevent empty selection event
             self.tree.blockSignals(True)
-
-            # TODO: Create proper world API endpoint
-            # For now, use agents API and build structure
-            agents_resp = requests.get(f"{self.api_base}/agents", timeout=2)
-            agents_data = agents_resp.json().get('agents', [])
-
             self.tree.clear()
 
-            # Root: Current stage - Get stage data from rooms.json
-            stage_name = "Unknown Stage"
-            stage_data = None
-            try:
-                import json
-                rooms_path = os.path.join(
-                    os.path.dirname(__file__),
-                    "../../../cmush/world/rooms.json"
-                )
-                with open(rooms_path, 'r') as f:
-                    rooms_data = json.load(f)
-                    if self.current_room in rooms_data:
-                        stage_data = rooms_data[self.current_room]
-                        stage_name = stage_data.get('name', self.current_room)
-            except:
-                pass
-
-            room_item = QTreeWidgetItem([f"Stage: {stage_name}"])
-            room_item.setFont(0, QFont("Arial", 12, QFont.Weight.Bold))
-            room_item.setForeground(0, Qt.GlobalColor.white)
-            # Set stage data for Inspector
-            room_item.setData(0, Qt.ItemDataRole.UserRole, {
-                'type': 'stage',
-                'id': self.current_room,
-                'data': stage_data or {'name': stage_name}
-            })
-            self.tree.addTopLevelItem(room_item)
-            # Expand stage by default
-            room_item.setExpanded(True)
-
-            # Connected Users folder
-            users_folder = QTreeWidgetItem(["Connected Users"])
-            users_folder.setForeground(0, Qt.GlobalColor.gray)
-            room_item.addChild(users_folder)
-
-            # Add current user
-            user_item = QTreeWidgetItem(["caity [Noodler, 9yo, she/her]"])
-            user_item.setData(0, Qt.ItemDataRole.UserRole, {'type': 'user', 'id': 'user_caity'})
-            users_folder.addChild(user_item)
-
-            # Noodlings folder
-            noodlings_folder = QTreeWidgetItem(["Noodlings"])
-            noodlings_folder.setForeground(0, Qt.GlobalColor.gray)
-            room_item.addChild(noodlings_folder)
-
-            # Add each Noodling (filter by location)
-            for agent in agents_data:
-                # Only show agents in current stage
-                agent_location = agent.get('location') or agent.get('current_room')
-                if agent_location != self.current_room:
-                    continue
-
-                name = agent.get('name', agent.get('id'))
-                agent_id = agent.get('id')
-                is_locked = agent.get('locked', False)
-
-                # Build status text (replaces species)
-                is_paused = self.get_agent_pause_state(agent_id)
-                status_parts = []
-                if is_paused:
-                    status_parts.append("paused")
-                if is_locked:
-                    status_parts.append("locked")
-                # TODO: Add error detection here when available
-                status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
-
-                # Build display with controls on right
-                pause_icon = "▶" if is_paused else "⏸"
-                lock_icon = "[L]" if is_locked else ""
-
-                # Display format: "Name        [status]      ⏸ [L]"
-                # Using unicode spaces for alignment
-                display_text = f"{name:<20} {status_text:<20} {pause_icon} {lock_icon}"
-
-                noodling_item = QTreeWidgetItem([display_text])
-                noodling_item.setData(0, Qt.ItemDataRole.UserRole, {
-                    'type': 'noodling',
-                    'id': agent_id,
-                    'name': name,
-                    'locked': is_locked,
-                    'data': agent
-                })
-                noodlings_folder.addChild(noodling_item)
-
-            # Prims folder (USD terminology!) - Always show, load from world
-            prims_folder = QTreeWidgetItem(["Prims"])
-            prims_folder.setForeground(0, Qt.GlobalColor.gray)
-            room_item.addChild(prims_folder)
-
-            # Load actual prims from objects.json
-            try:
-                import json
-                objects_path = os.path.join(
-                    os.path.dirname(__file__),
-                    "../../../cmush/world/objects.json"
-                )
-                with open(objects_path, 'r') as f:
-                    objects_data = json.load(f)
-
-                # Add each prim in current room
-                for obj_id, obj_data in objects_data.items():
-                    if obj_data.get('location') == self.current_room:
-                        prim_name = obj_data.get('name', obj_id)
-                        is_locked = obj_data.get('locked', False)
-                        is_disabled = obj_data.get('disabled', False)
-
-                        # Build status text
-                        status_parts = []
-                        if is_disabled:
-                            status_parts.append("disabled")
-                        if is_locked:
-                            status_parts.append("locked")
-                        status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
-
-                        # Lock icon only (prims don't have pause)
-                        lock_icon = "[L]" if is_locked else ""
-
-                        # Display format: "Name        [status]         [L]"
-                        display_text = f"{prim_name:<20} {status_text:<20}    {lock_icon}"
-
-                        prim_item = QTreeWidgetItem([display_text])
-                        prim_item.setData(0, Qt.ItemDataRole.UserRole, {
-                            'type': 'prim',
-                            'id': obj_id,
-                            'locked': is_locked,
-                            'disabled': is_disabled,
-                            'data': obj_data
-                        })
-                        prims_folder.addChild(prim_item)
-
-            except Exception as e:
-                print(f"Error loading prims: {e}")
-
-            # Exits folder - Always show, load from room data
-            exits_folder = QTreeWidgetItem(["Exits"])
-            exits_folder.setForeground(0, Qt.GlobalColor.gray)
-            room_item.addChild(exits_folder)
-
-            # Load actual exits from rooms.json
-            try:
-                import json
-                rooms_path = os.path.join(
-                    os.path.dirname(__file__),
-                    "../../../cmush/world/rooms.json"
-                )
-                with open(rooms_path, 'r') as f:
-                    rooms_data = json.load(f)
-
-                # Get current room's exits
-                if self.current_room in rooms_data:
-                    room_data = rooms_data[self.current_room]
-                    exits = room_data.get('exits', {})
-
-                    for direction, dest_room_id in exits.items():
-                        # Get destination room name
-                        dest_name = rooms_data.get(dest_room_id, {}).get('name', dest_room_id)
-                        exit_item = QTreeWidgetItem([f"{direction} → {dest_name}"])
-                        exit_item.setData(0, Qt.ItemDataRole.UserRole, {
-                            'type': 'exit',
-                            'direction': direction,
-                            'destination': dest_room_id
-                        })
-                        exits_folder.addChild(exit_item)
-
-            except Exception as e:
-                print(f"Error loading exits: {e}")
+            # Check if project is open
+            if self.project_manager and self.project_manager.is_project_open():
+                self._refresh_from_project()
+            else:
+                self._show_no_project_message()
 
             # Restore expanded state after rebuilding tree (signals still blocked)
             self.restore_expanded_state()
 
             # CRITICAL: Re-enable signals AFTER everything is restored
-            # This prevents tree.clear() and restore from triggering selection events
             self.tree.blockSignals(False)
 
         except Exception as e:
             print(f"Error refreshing scene: {e}")
+            import traceback
+            traceback.print_exc()
+            self.tree.blockSignals(False)
+
+    def _show_no_project_message(self):
+        """Show message when no project is open."""
+        msg_item = QTreeWidgetItem(["No project open"])
+        msg_item.setForeground(0, Qt.GlobalColor.gray)
+        msg_item.setFlags(msg_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.tree.addTopLevelItem(msg_item)
+
+        hint_item = QTreeWidgetItem(["File > Open Project..."])
+        hint_item.setForeground(0, Qt.GlobalColor.darkGray)
+        hint_item.setFlags(hint_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.tree.addTopLevelItem(hint_item)
+
+    def _refresh_from_project(self):
+        """Refresh scene from project structure (Stages/xxx/...)."""
+        import yaml
+
+        if not self.current_stage:
+            stages = self.project_manager.list_stages()
+            if stages:
+                self.current_stage = stages[0]
+            else:
+                # No stages - show empty
+                empty_item = QTreeWidgetItem(["No stages in project"])
+                empty_item.setForeground(0, Qt.GlobalColor.gray)
+                self.tree.addTopLevelItem(empty_item)
+                return
+
+        stage_path = self.project_manager.get_stage_path(self.current_stage)
+        if not stage_path:
+            return
+
+        # Load stage.yaml
+        stage_name = self.current_stage
+        stage_data = {}
+        stage_yaml = os.path.join(stage_path, "stage.yaml")
+        if os.path.exists(stage_yaml):
+            try:
+                with open(stage_yaml, 'r') as f:
+                    stage_data = yaml.safe_load(f) or {}
+                    stage_name = stage_data.get('name', self.current_stage)
+            except:
+                pass
+
+        # Root: Stage item
+        stage_item = QTreeWidgetItem([f"Stage: {stage_name}"])
+        stage_item.setFont(0, QFont("Arial", 12, QFont.Weight.Bold))
+        stage_item.setForeground(0, Qt.GlobalColor.white)
+        stage_item.setData(0, Qt.ItemDataRole.UserRole, {
+            'type': 'stage',
+            'id': self.current_stage,
+            'path': stage_path,
+            'data': stage_data
+        })
+        self.tree.addTopLevelItem(stage_item)
+        stage_item.setExpanded(True)
+
+        # Zones folder
+        zones_folder = QTreeWidgetItem(["Zones"])
+        zones_folder.setForeground(0, Qt.GlobalColor.gray)
+        stage_item.addChild(zones_folder)
+
+        # Load zones from Zones/*.zone.yaml
+        zones_dir = os.path.join(stage_path, "Zones")
+        if os.path.exists(zones_dir):
+            for filename in os.listdir(zones_dir):
+                if filename.endswith(".zone.yaml"):
+                    zone_path = os.path.join(zones_dir, filename)
+                    try:
+                        with open(zone_path, 'r') as f:
+                            zone_data = yaml.safe_load(f) or {}
+                        zone_id = zone_data.get('id', filename.replace('.zone.yaml', ''))
+                        zone_name = zone_data.get('name', zone_id)
+                        radius = zone_data.get('radius', 10)
+                        falloff = zone_data.get('falloff', 5)
+
+                        display_text = f"{zone_name} (r={radius}, f={falloff})"
+                        zone_item = QTreeWidgetItem([display_text])
+                        zone_item.setData(0, Qt.ItemDataRole.UserRole, {
+                            'type': 'zone',
+                            'id': zone_id,
+                            'path': zone_path,
+                            'data': zone_data
+                        })
+                        zones_folder.addChild(zone_item)
+                    except Exception as e:
+                        print(f"Error loading zone {filename}: {e}")
+
+        # Connected Users folder
+        users_folder = QTreeWidgetItem(["Connected Users"])
+        users_folder.setForeground(0, Qt.GlobalColor.gray)
+        stage_item.addChild(users_folder)
+
+        user_item = QTreeWidgetItem(["caity [Noodler, 9yo, she/her]"])
+        user_item.setData(0, Qt.ItemDataRole.UserRole, {'type': 'user', 'id': 'user_caity'})
+        users_folder.addChild(user_item)
+
+        # Instances folder (Noodlings in stage)
+        instances_folder = QTreeWidgetItem(["Noodlings"])
+        instances_folder.setForeground(0, Qt.GlobalColor.gray)
+        stage_item.addChild(instances_folder)
+
+        # Load instances from Instances/*/instance.yaml
+        instances_dir = os.path.join(stage_path, "Instances")
+        if os.path.exists(instances_dir):
+            for inst_name in os.listdir(instances_dir):
+                inst_path = os.path.join(instances_dir, inst_name)
+                if not os.path.isdir(inst_path):
+                    continue
+
+                inst_yaml = os.path.join(inst_path, "instance.yaml")
+                if not os.path.exists(inst_yaml):
+                    continue
+
+                try:
+                    with open(inst_yaml, 'r') as f:
+                        inst_data = yaml.safe_load(f) or {}
+
+                    overrides = inst_data.get('overrides', {})
+                    display_name = overrides.get('name', inst_name)
+                    noodling_ref = inst_data.get('noodling', '')
+                    zone = overrides.get('zone', 'default')
+
+                    # Check pause state
+                    agent_id = f"agent_{inst_name}"
+                    is_paused = self.get_agent_pause_state(agent_id)
+
+                    # Build status text
+                    status_parts = []
+                    if is_paused:
+                        status_parts.append("paused")
+                    status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
+                    pause_icon = "▶" if is_paused else "⏸"
+
+                    display_text = f"{display_name:<20} {status_text:<20} {pause_icon}"
+
+                    inst_item = QTreeWidgetItem([display_text])
+                    inst_item.setData(0, Qt.ItemDataRole.UserRole, {
+                        'type': 'instance',
+                        'id': agent_id,
+                        'name': display_name,
+                        'path': inst_path,
+                        'noodling_ref': noodling_ref,
+                        'zone': zone,
+                        'data': inst_data
+                    })
+                    instances_folder.addChild(inst_item)
+
+                except Exception as e:
+                    print(f"Error loading instance {inst_name}: {e}")
+
+        # Props folder
+        props_folder = QTreeWidgetItem(["Props"])
+        props_folder.setForeground(0, Qt.GlobalColor.gray)
+        stage_item.addChild(props_folder)
+
+        # Load props from Props/*/prop.yaml
+        props_dir = os.path.join(stage_path, "Props")
+        if os.path.exists(props_dir):
+            for prop_name in os.listdir(props_dir):
+                prop_path = os.path.join(props_dir, prop_name)
+                if not os.path.isdir(prop_path):
+                    continue
+
+                prop_yaml = os.path.join(prop_path, "prop.yaml")
+                if not os.path.exists(prop_yaml):
+                    continue
+
+                try:
+                    with open(prop_yaml, 'r') as f:
+                        prop_data = yaml.safe_load(f) or {}
+
+                    display_name = prop_data.get('name', prop_name)
+                    prim_ref = prop_data.get('prim', '')
+                    zone = prop_data.get('zone', 'default')
+                    is_locked = prop_data.get('locked', False)
+
+                    lock_icon = "[L]" if is_locked else ""
+                    display_text = f"{display_name:<20}                     {lock_icon}"
+
+                    prop_item = QTreeWidgetItem([display_text])
+                    prop_item.setData(0, Qt.ItemDataRole.UserRole, {
+                        'type': 'prop',
+                        'id': f"prop_{prop_name}",
+                        'name': display_name,
+                        'path': prop_path,
+                        'prim_ref': prim_ref,
+                        'zone': zone,
+                        'locked': is_locked,
+                        'data': prop_data
+                    })
+                    props_folder.addChild(prop_item)
+
+                except Exception as e:
+                    print(f"Error loading prop {prop_name}: {e}")
+
+        # Zone connections (exits between zones)
+        exits_folder = QTreeWidgetItem(["Zone Connections"])
+        exits_folder.setForeground(0, Qt.GlobalColor.gray)
+        stage_item.addChild(exits_folder)
+
+        # Load from stage.yaml zone_graph
+        zone_graph = stage_data.get('zone_graph', {})
+        for from_zone, connections in zone_graph.items():
+            for to_zone in connections:
+                exit_item = QTreeWidgetItem([f"{from_zone} → {to_zone}"])
+                exit_item.setData(0, Qt.ItemDataRole.UserRole, {
+                    'type': 'zone_connection',
+                    'from': from_zone,
+                    'to': to_zone
+                })
+                exits_folder.addChild(exit_item)
+
+    def _refresh_from_legacy(self):
+        """Refresh scene from legacy format (cmush/world/...)."""
+        import json
+
+        # Try to get agents from API first
+        agents_data = []
+        try:
+            agents_resp = requests.get(f"{self.api_base}/agents", timeout=2)
+            agents_data = agents_resp.json().get('agents', [])
+        except:
+            pass
+
+        # Get stage data from rooms.json
+        stage_name = "Unknown Stage"
+        stage_data = None
+        try:
+            rooms_path = os.path.join(
+                os.path.dirname(__file__),
+                "../../../cmush/world/rooms.json"
+            )
+            with open(rooms_path, 'r') as f:
+                rooms_data = json.load(f)
+                if self.current_room in rooms_data:
+                    stage_data = rooms_data[self.current_room]
+                    stage_name = stage_data.get('name', self.current_room)
+        except:
+            rooms_data = {}
+
+        room_item = QTreeWidgetItem([f"Stage: {stage_name}"])
+        room_item.setFont(0, QFont("Arial", 12, QFont.Weight.Bold))
+        room_item.setForeground(0, Qt.GlobalColor.white)
+        room_item.setData(0, Qt.ItemDataRole.UserRole, {
+            'type': 'stage',
+            'id': self.current_room,
+            'data': stage_data or {'name': stage_name}
+        })
+        self.tree.addTopLevelItem(room_item)
+        room_item.setExpanded(True)
+
+        # Connected Users folder
+        users_folder = QTreeWidgetItem(["Connected Users"])
+        users_folder.setForeground(0, Qt.GlobalColor.gray)
+        room_item.addChild(users_folder)
+
+        user_item = QTreeWidgetItem(["caity [Noodler, 9yo, she/her]"])
+        user_item.setData(0, Qt.ItemDataRole.UserRole, {'type': 'user', 'id': 'user_caity'})
+        users_folder.addChild(user_item)
+
+        # Noodlings folder
+        noodlings_folder = QTreeWidgetItem(["Noodlings"])
+        noodlings_folder.setForeground(0, Qt.GlobalColor.gray)
+        room_item.addChild(noodlings_folder)
+
+        # Add each Noodling (filter by location)
+        for agent in agents_data:
+            agent_location = agent.get('location') or agent.get('current_room')
+            if agent_location != self.current_room:
+                continue
+
+            name = agent.get('name', agent.get('id'))
+            agent_id = agent.get('id')
+            is_locked = agent.get('locked', False)
+
+            is_paused = self.get_agent_pause_state(agent_id)
+            status_parts = []
+            if is_paused:
+                status_parts.append("paused")
+            if is_locked:
+                status_parts.append("locked")
+            status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
+
+            pause_icon = "▶" if is_paused else "⏸"
+            lock_icon = "[L]" if is_locked else ""
+
+            display_text = f"{name:<20} {status_text:<20} {pause_icon} {lock_icon}"
+
+            noodling_item = QTreeWidgetItem([display_text])
+            noodling_item.setData(0, Qt.ItemDataRole.UserRole, {
+                'type': 'noodling',
+                'id': agent_id,
+                'name': name,
+                'locked': is_locked,
+                'data': agent
+            })
+            noodlings_folder.addChild(noodling_item)
+
+        # Prims folder
+        prims_folder = QTreeWidgetItem(["Prims"])
+        prims_folder.setForeground(0, Qt.GlobalColor.gray)
+        room_item.addChild(prims_folder)
+
+        try:
+            objects_path = os.path.join(
+                os.path.dirname(__file__),
+                "../../../cmush/world/objects.json"
+            )
+            with open(objects_path, 'r') as f:
+                objects_data = json.load(f)
+
+            for obj_id, obj_data in objects_data.items():
+                if obj_data.get('location') == self.current_room:
+                    prim_name = obj_data.get('name', obj_id)
+                    is_locked = obj_data.get('locked', False)
+                    is_disabled = obj_data.get('disabled', False)
+
+                    status_parts = []
+                    if is_disabled:
+                        status_parts.append("disabled")
+                    if is_locked:
+                        status_parts.append("locked")
+                    status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
+
+                    lock_icon = "[L]" if is_locked else ""
+                    display_text = f"{prim_name:<20} {status_text:<20}    {lock_icon}"
+
+                    prim_item = QTreeWidgetItem([display_text])
+                    prim_item.setData(0, Qt.ItemDataRole.UserRole, {
+                        'type': 'prim',
+                        'id': obj_id,
+                        'locked': is_locked,
+                        'disabled': is_disabled,
+                        'data': obj_data
+                    })
+                    prims_folder.addChild(prim_item)
+
+        except Exception as e:
+            print(f"Error loading prims: {e}")
+
+        # Exits folder
+        exits_folder = QTreeWidgetItem(["Exits"])
+        exits_folder.setForeground(0, Qt.GlobalColor.gray)
+        room_item.addChild(exits_folder)
+
+        try:
+            if self.current_room in rooms_data:
+                room_data = rooms_data[self.current_room]
+                exits = room_data.get('exits', {})
+
+                for direction, dest_room_id in exits.items():
+                    dest_name = rooms_data.get(dest_room_id, {}).get('name', dest_room_id)
+                    exit_item = QTreeWidgetItem([f"{direction} → {dest_name}"])
+                    exit_item.setData(0, Qt.ItemDataRole.UserRole, {
+                        'type': 'exit',
+                        'direction': direction,
+                        'destination': dest_room_id
+                    })
+                    exits_folder.addChild(exit_item)
+
+        except Exception as e:
+            print(f"Error loading exits: {e}")
             # Make sure signals are unblocked even on error
             self.tree.blockSignals(False)
 
@@ -575,6 +840,26 @@ class SceneHierarchy(QWidget):
                 menu.addAction("Duplicate Prim", lambda d=entity_data: self.duplicate_prim_data(d))
                 menu.addAction("De-Rez Prim", lambda d=entity_data: self.delete_selected_items())
 
+            elif entity_type == 'prop':
+                # Project-mode prop (same as prim but stored in project)
+                menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
+                menu.addSeparator()
+                menu.addAction("Duplicate Prop", lambda d=entity_data: self.duplicate_prop(d))
+                menu.addAction("De-Rez Prop", lambda d=entity_data: self.delete_prop(d))
+
+            elif entity_type == 'instance':
+                # Project-mode noodling instance
+                menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
+                menu.addSeparator()
+                menu.addAction("Duplicate Instance", lambda d=entity_data: self.duplicate_instance(d))
+                menu.addAction("De-Rez Instance", lambda d=entity_data: self.delete_instance(d))
+
+            elif entity_type == 'zone':
+                # Project-mode zone
+                menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
+                menu.addSeparator()
+                menu.addAction("Delete Zone", lambda d=entity_data: self.delete_zone(d))
+
             elif entity_type == 'user':
                 menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
                 menu.addAction("View Profile", lambda d=entity_data: self.view_user_profile_data(d))
@@ -588,16 +873,28 @@ class SceneHierarchy(QWidget):
                 menu.addAction("Expand All", lambda: self.expand_recursive(item))
                 menu.addAction("Collapse All", lambda: self.collapse_recursive(item))
         else:
-            # Empty space - show rez options
-            create_menu = menu.addMenu("Rez")
-            create_menu.addAction("Empty Noodling", lambda: self.create_empty_noodling())
-            create_menu.addAction("Empty Prim", lambda: self.create_empty_prim())
-            create_menu.addAction("Empty Room", lambda: self.create_empty_room())
+            # Empty space - show rez options only if project is open
+            if self.project_manager and self.project_manager.is_project_open():
+                create_menu = menu.addMenu("Rez")
+                create_menu.addAction("New Noodling", lambda: self.create_empty_noodling())
+                create_menu.addAction("New Prop", lambda: self.create_empty_prim())
+                create_menu.addAction("New Zone", lambda: self.create_empty_zone())
 
-            menu.addSeparator()
-            menu.addAction("Import Prim...", lambda: self.import_prim())
+                menu.addSeparator()
+                menu.addAction("Import Prop...", lambda: self.import_prim())
+            else:
+                menu.addAction("Open Project...", lambda: self._prompt_open_project())
 
         menu.exec(self.tree.viewport().mapToGlobal(position))
+
+    def _prompt_open_project(self):
+        """Prompt user to open a project."""
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.information(
+            self,
+            "No Project Open",
+            "Please open a project first.\n\nFile > Open Project..."
+        )
 
     def inspect_entity(self, entity_data):
         """Inspect entity (safe - uses data not item)."""
@@ -923,76 +1220,463 @@ class SceneHierarchy(QWidget):
             self.collapse_recursive(item.child(i))
 
     def create_empty_noodling(self):
-        """Create an empty Noodling with default settings."""
-        name, ok = QInputDialog.getText(
-            self,
-            "Create Empty Noodling",
-            "Noodling name:",
-            text="NewNoodling"
-        )
-        if ok and name:
-            try:
-                import requests
-                response = requests.post(
-                    'http://localhost:8081/api/agents',
-                    json={'name': name, 'species': 'unknown', 'pronouns': 'they/them'},
-                    timeout=5
-                )
-                if response.status_code == 200:
-                    print(f"Created Noodling: {name}")
-                    self.refresh_scene()
-                else:
-                    print(f"Error creating Noodling: {response.text}")
-            except Exception as e:
-                print(f"Error creating Noodling: {e}")
+        """Create a new Noodling instance in the current stage (no dialog)."""
+        import yaml
+        import os
+        import uuid
+
+        if not self.project_manager or not self.project_manager.is_project_open():
+            self._prompt_open_project()
+            return
+
+        if not self.current_stage:
+            print("No stage selected - cannot create noodling")
+            return
+
+        stage_path = self.project_manager.get_stage_path(self.current_stage)
+        if not stage_path:
+            print(f"Stage path not found for {self.current_stage}")
+            return
+
+        # Create Instances folder if needed
+        instances_dir = os.path.join(stage_path, "Instances")
+        os.makedirs(instances_dir, exist_ok=True)
+
+        # Generate unique name: "New Noodling", "New Noodling (2)", etc.
+        display_name = self._generate_unique_name(instances_dir, "New Noodling", "instance.yaml")
+
+        # Use UUID for folder name (the actual identifier)
+        instance_id = str(uuid.uuid4())
+        instance_path = os.path.join(instances_dir, instance_id)
+        os.makedirs(instance_path, exist_ok=True)
+
+        # Create instance.yaml
+        instance_data = {
+            'id': instance_id,
+            'noodling': '',  # Reference to Noodlings/xxx (empty = blank template)
+            'overrides': {
+                'name': display_name,
+                'zone': 'default',
+                'position': [0, 0, 0],
+                'rotation': [0, 0, 0],
+            }
+        }
+
+        instance_yaml = os.path.join(instance_path, "instance.yaml")
+        with open(instance_yaml, 'w') as f:
+            yaml.dump(instance_data, f, default_flow_style=False)
+
+        print(f"Created Noodling: {display_name} ({instance_id[:8]}...)")
+        self.refresh_scene()
+        # Auto-select the newly created instance (uses agent_ prefix like tree data)
+        self._select_item_by_id(f"agent_{instance_id}")
 
     def create_empty_prim(self):
-        """Create an empty prim."""
-        name, ok = QInputDialog.getText(
+        """Create a new Prop in the current stage (no dialog)."""
+        import yaml
+        import os
+        import uuid
+
+        if not self.project_manager or not self.project_manager.is_project_open():
+            self._prompt_open_project()
+            return
+
+        if not self.current_stage:
+            print("No stage selected - cannot create prop")
+            return
+
+        stage_path = self.project_manager.get_stage_path(self.current_stage)
+        if not stage_path:
+            print(f"Stage path not found for {self.current_stage}")
+            return
+
+        # Create Props folder if needed
+        props_dir = os.path.join(stage_path, "Props")
+        os.makedirs(props_dir, exist_ok=True)
+
+        # Generate unique name: "New Prop", "New Prop (2)", etc.
+        display_name = self._generate_unique_name(props_dir, "New Prop", "prop.yaml")
+
+        # Use UUID for folder name (the actual identifier)
+        prop_id = str(uuid.uuid4())
+        prop_path = os.path.join(props_dir, prop_id)
+        os.makedirs(prop_path, exist_ok=True)
+
+        # Create prop.yaml with default physics properties
+        prop_data = {
+            'id': prop_id,
+            'name': display_name,
+            'description': 'A newly created prop.',
+            'zone': 'default',
+            'position': [0, 0, 0],
+            'rotation': [0, 0, 0],
+            'scale': [1, 1, 1],
+            # Physics properties (SPE)
+            'mass': 'medium',
+            'material': 'unknown',
+            'friction': 'medium',
+            'elasticity': 'normal',
+            'softness': 'normal',
+        }
+
+        prop_yaml = os.path.join(prop_path, "prop.yaml")
+        with open(prop_yaml, 'w') as f:
+            yaml.dump(prop_data, f, default_flow_style=False)
+
+        print(f"Created Prop: {display_name} ({prop_id[:8]}...)")
+        self.refresh_scene()
+        # Auto-select the newly created prop (uses prop_ prefix like tree data)
+        self._select_item_by_id(f"prop_{prop_id}")
+
+    def create_empty_zone(self):
+        """Create a new Zone in the current stage (no dialog)."""
+        import yaml
+        import os
+        import uuid
+
+        if not self.project_manager or not self.project_manager.is_project_open():
+            self._prompt_open_project()
+            return
+
+        if not self.current_stage:
+            print("No stage selected - cannot create zone")
+            return
+
+        stage_path = self.project_manager.get_stage_path(self.current_stage)
+        if not stage_path:
+            print(f"Stage path not found for {self.current_stage}")
+            return
+
+        # Create Zones folder if needed
+        zones_dir = os.path.join(stage_path, "Zones")
+        os.makedirs(zones_dir, exist_ok=True)
+
+        # Generate unique name: "New Zone", "New Zone (2)", etc.
+        display_name = self._generate_unique_zone_name(zones_dir, "New Zone")
+
+        # Use UUID for the zone file
+        zone_id = str(uuid.uuid4())
+        zone_filename = f"{zone_id}.zone.yaml"
+        zone_path = os.path.join(zones_dir, zone_filename)
+
+        # Create zone.yaml
+        zone_data = {
+            'id': zone_id,
+            'name': display_name,
+            'description': 'A newly created zone.',
+            'center': [0, 0, 0],
+            'radius': 10,
+            'falloff': 5,
+            'shape': 'sphere',
+        }
+
+        with open(zone_path, 'w') as f:
+            yaml.dump(zone_data, f, default_flow_style=False)
+
+        print(f"Created Zone: {display_name} ({zone_id[:8]}...)")
+        self.refresh_scene()
+        # Auto-select the newly created zone
+        self._select_item_by_id(zone_id)
+
+    def _generate_unique_name(self, directory: str, base_name: str, yaml_file: str) -> str:
+        """Generate unique name like 'New Prop', 'New Prop (2)', etc."""
+        import os
+        import yaml
+
+        existing_names = set()
+
+        # Scan existing items for their display names
+        if os.path.exists(directory):
+            for item_name in os.listdir(directory):
+                item_path = os.path.join(directory, item_name)
+                if os.path.isdir(item_path):
+                    yaml_path = os.path.join(item_path, yaml_file)
+                    if os.path.exists(yaml_path):
+                        try:
+                            with open(yaml_path, 'r') as f:
+                                data = yaml.safe_load(f) or {}
+                            # Check both direct 'name' and 'overrides.name'
+                            name = data.get('name') or data.get('overrides', {}).get('name', '')
+                            if name:
+                                existing_names.add(name)
+                        except:
+                            pass
+
+        # Find first available name
+        if base_name not in existing_names:
+            return base_name
+
+        counter = 2
+        while f"{base_name} ({counter})" in existing_names:
+            counter += 1
+
+        return f"{base_name} ({counter})"
+
+    def _generate_unique_zone_name(self, zones_dir: str, base_name: str) -> str:
+        """Generate unique zone name like 'New Zone', 'New Zone (2)', etc."""
+        import os
+        import yaml
+
+        existing_names = set()
+
+        # Scan existing zone files for their names
+        if os.path.exists(zones_dir):
+            for filename in os.listdir(zones_dir):
+                if filename.endswith('.zone.yaml'):
+                    zone_path = os.path.join(zones_dir, filename)
+                    try:
+                        with open(zone_path, 'r') as f:
+                            data = yaml.safe_load(f) or {}
+                        name = data.get('name', '')
+                        if name:
+                            existing_names.add(name)
+                    except:
+                        pass
+
+        # Find first available name
+        if base_name not in existing_names:
+            return base_name
+
+        counter = 2
+        while f"{base_name} ({counter})" in existing_names:
+            counter += 1
+
+        return f"{base_name} ({counter})"
+
+    # =========================================================================
+    # Delete/Duplicate for Project-mode entities
+    # =========================================================================
+
+    def delete_prop(self, entity_data: dict):
+        """Delete a prop from the project."""
+        import shutil
+        from PyQt6.QtWidgets import QMessageBox
+
+        prop_path = entity_data.get('path', '')
+        prop_name = entity_data.get('name', 'this prop')
+
+        if not prop_path or not os.path.exists(prop_path):
+            print(f"Prop path not found: {prop_path}")
+            return
+
+        reply = QMessageBox.question(
             self,
-            "Create Empty Prim",
-            "Prim name:",
-            text="NewPrim"
+            "De-Rez Prop",
+            f"Delete '{prop_name}'?\n\nThis cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
         )
-        if ok and name:
+
+        if reply == QMessageBox.StandardButton.Yes:
             try:
-                import requests
-                response = requests.post(
-                    'http://localhost:8081/api/objects',
-                    json={'name': name, 'location': self.current_room},  # Pass current room
-                    timeout=5
-                )
-                if response.status_code == 200:
-                    print(f"Created Prim: {name}")
-                    self.refresh_scene()
-                else:
-                    print(f"Error creating Prim: {response.text}")
+                shutil.rmtree(prop_path)
+                print(f"Deleted prop: {prop_name}")
+                self.refresh_scene()
             except Exception as e:
-                print(f"Error creating Prim: {e}")
+                print(f"Error deleting prop: {e}")
+
+    def duplicate_prop(self, entity_data: dict):
+        """Duplicate a prop in the project."""
+        import yaml
+        import uuid
+        import shutil
+
+        prop_path = entity_data.get('path', '')
+        if not prop_path or not os.path.exists(prop_path):
+            print(f"Prop path not found: {prop_path}")
+            return
+
+        # Load existing prop data
+        prop_yaml = os.path.join(prop_path, "prop.yaml")
+        if not os.path.exists(prop_yaml):
+            return
+
+        with open(prop_yaml, 'r') as f:
+            prop_data = yaml.safe_load(f) or {}
+
+        # Get props directory
+        props_dir = os.path.dirname(prop_path)
+
+        # Generate new UUID and name
+        new_id = str(uuid.uuid4())
+        old_name = prop_data.get('name', 'Prop')
+        new_name = self._generate_unique_name(props_dir, old_name, "prop.yaml")
+
+        # Create new folder
+        new_path = os.path.join(props_dir, new_id)
+        os.makedirs(new_path, exist_ok=True)
+
+        # Copy and update data
+        new_data = prop_data.copy()
+        new_data['id'] = new_id
+        new_data['name'] = new_name
+
+        with open(os.path.join(new_path, "prop.yaml"), 'w') as f:
+            yaml.dump(new_data, f, default_flow_style=False)
+
+        print(f"Duplicated prop: {new_name} ({new_id[:8]}...)")
+        self.refresh_scene()
+
+    def delete_instance(self, entity_data: dict):
+        """Delete a noodling instance from the project."""
+        import shutil
+        from PyQt6.QtWidgets import QMessageBox
+
+        inst_path = entity_data.get('path', '')
+        inst_name = entity_data.get('name', 'this instance')
+
+        if not inst_path or not os.path.exists(inst_path):
+            print(f"Instance path not found: {inst_path}")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "De-Rez Instance",
+            f"Delete '{inst_name}'?\n\nThis cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                shutil.rmtree(inst_path)
+                print(f"Deleted instance: {inst_name}")
+                self.refresh_scene()
+            except Exception as e:
+                print(f"Error deleting instance: {e}")
+
+    def duplicate_instance(self, entity_data: dict):
+        """Duplicate a noodling instance in the project."""
+        import yaml
+        import uuid
+
+        inst_path = entity_data.get('path', '')
+        if not inst_path or not os.path.exists(inst_path):
+            print(f"Instance path not found: {inst_path}")
+            return
+
+        # Load existing instance data
+        inst_yaml = os.path.join(inst_path, "instance.yaml")
+        if not os.path.exists(inst_yaml):
+            return
+
+        with open(inst_yaml, 'r') as f:
+            inst_data = yaml.safe_load(f) or {}
+
+        # Get instances directory
+        instances_dir = os.path.dirname(inst_path)
+
+        # Generate new UUID and name
+        new_id = str(uuid.uuid4())
+        old_name = inst_data.get('overrides', {}).get('name', 'Noodling')
+        new_name = self._generate_unique_name(instances_dir, old_name, "instance.yaml")
+
+        # Create new folder
+        new_path = os.path.join(instances_dir, new_id)
+        os.makedirs(new_path, exist_ok=True)
+
+        # Copy and update data
+        new_data = inst_data.copy()
+        new_data['id'] = new_id
+        if 'overrides' not in new_data:
+            new_data['overrides'] = {}
+        new_data['overrides']['name'] = new_name
+
+        with open(os.path.join(new_path, "instance.yaml"), 'w') as f:
+            yaml.dump(new_data, f, default_flow_style=False)
+
+        print(f"Duplicated instance: {new_name} ({new_id[:8]}...)")
+        self.refresh_scene()
+
+    def delete_zone(self, entity_data: dict):
+        """Delete a zone from the project."""
+        from PyQt6.QtWidgets import QMessageBox
+
+        zone_path = entity_data.get('path', '')
+        zone_name = entity_data.get('name') or entity_data.get('data', {}).get('name', 'this zone')
+
+        if not zone_path or not os.path.exists(zone_path):
+            print(f"Zone path not found: {zone_path}")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Delete Zone",
+            f"Delete zone '{zone_name}'?\n\nThis cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                os.remove(zone_path)
+                print(f"Deleted zone: {zone_name}")
+                self.refresh_scene()
+            except Exception as e:
+                print(f"Error deleting zone: {e}")
+
+    # =========================================================================
+    # Auto-select newly created items
+    # =========================================================================
+
+    def _select_item_by_id(self, item_id: str):
+        """Find and select an item in the tree by its ID, triggering Inspector update."""
+        def find_item(parent_item, target_id):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                data = child.data(0, Qt.ItemDataRole.UserRole)
+                if isinstance(data, dict) and data.get('id') == target_id:
+                    return child
+                # Recurse into children
+                found = find_item(child, target_id)
+                if found:
+                    return found
+            return None
+
+        # Search from root
+        for i in range(self.tree.topLevelItemCount()):
+            top_item = self.tree.topLevelItem(i)
+            data = top_item.data(0, Qt.ItemDataRole.UserRole)
+            if isinstance(data, dict) and data.get('id') == item_id:
+                self.tree.clearSelection()
+                top_item.setSelected(True)
+                self.tree.setCurrentItem(top_item)
+                self.tree.scrollToItem(top_item)
+                return
+
+            found = find_item(top_item, item_id)
+            if found:
+                self.tree.clearSelection()
+                found.setSelected(True)
+                self.tree.setCurrentItem(found)
+                self.tree.scrollToItem(found)
+                return
+
+    def _REMOVED_create_prim_legacy(self, name: str):
+        """REMOVED: Legacy prim creation via API. Projects are now required."""
+        pass
+
+    def _REMOVED_create_prim_legacy_actual(self, name: str):
+        """Create a prim via the legacy API (objects.json). REMOVED - keeping for reference."""
+        try:
+            import requests
+            response = requests.post(
+                'http://localhost:8081/api/objects',
+                json={'name': name, 'location': self.current_room},
+                timeout=5
+            )
+            if response.status_code == 200:
+                print(f"Created Prim: {name}")
+                self.refresh_scene()
+            else:
+                print(f"Error creating Prim: {response.text}")
+        except Exception as e:
+            print(f"Error creating Prim: {e}")
 
     def create_empty_room(self):
-        """Create an empty room."""
-        name, ok = QInputDialog.getText(
-            self,
-            "Create Empty Room",
-            "Room name:",
-            text="NewRoom"
-        )
-        if ok and name:
-            try:
-                import requests
-                response = requests.post(
-                    'http://localhost:8081/api/rooms',
-                    json={'name': name},
-                    timeout=5
-                )
-                if response.status_code == 200:
-                    print(f"Created Room: {name}")
-                    self.refresh_scene()
-                else:
-                    print(f"Error creating Room: {response.text}")
-            except Exception as e:
-                print(f"Error creating Room: {e}")
+        """LEGACY: Create an empty room - redirects to create_empty_zone."""
+        # Legacy rooms are now zones in project mode
+        self.create_empty_zone()
 
     def create_custom_prim(self):
         """Create a custom prim with specific type."""

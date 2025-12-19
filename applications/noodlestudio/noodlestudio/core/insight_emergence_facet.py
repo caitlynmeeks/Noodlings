@@ -68,7 +68,7 @@ class InsightEmergenceFacet:
             affect = {
                 'valence': inputs.get('affect_valence', 0.0),
                 'arousal': inputs.get('affect_arousal', 0.0),
-                'fear': inputs.get('affect_fear', 0.0),
+                'dominance': inputs.get('affect_dominance', 0.0),
                 'sorrow': inputs.get('affect_sorrow', 0.0)
             }
 
@@ -109,14 +109,22 @@ Now translate YOUR symbolic image into conscious thought:
 Conscious thought (privately thinks format):"""
 
         try:
-            # Generate conscious translation
-            conscious_thought = await llm_client.generate(
-                prompt=translation_prompt,
-                system_prompt="You are translating subconscious symbolism into conscious vulnerable thoughts.",
-                model="qwen/qwen3-4b-2507",
-                temperature=0.8,
-                max_tokens=150
-            )
+            # Track activity for ambient visualization
+            from .model_activity_tracker import get_model_activity_tracker
+            activity_tracker = get_model_activity_tracker()
+            request_id = activity_tracker.request_started("SMALL")
+
+            try:
+                # Generate conscious translation
+                conscious_thought = await llm_client.generate(
+                    prompt=translation_prompt,
+                    system_prompt="You are translating subconscious symbolism into conscious vulnerable thoughts.",
+                    model="SMALL",  # Use label for fast model routing
+                    temperature=0.8,
+                    max_tokens=150
+                )
+            finally:
+                activity_tracker.request_completed("SMALL", request_id)
 
             # Handle dict responses (some LLM clients return {text: ...})
             if isinstance(conscious_thought, dict):

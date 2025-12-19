@@ -154,14 +154,14 @@ Remember: You're not an AI assistant - you're BRENDA, the professional stage man
         self,
         api_base: str,
         api_key: str = "not-needed",
-        model: str = "qwen3-4b-instruct-2507-mlx",
+        model: str = "SMALL",
         timeout: int = 30
     ):
         """
         Initialize BRENDA's character interface.
 
         Args:
-            api_base: Base URL for API (e.g., "http://localhost:1234/v1")
+            api_base: Base URL for API (e.g., "http://localhost:11434/v1" for Ollama)
             api_key: API key (not needed for LMStudio)
             model: Model name (same as agents for now, but can be different)
             timeout: Request timeout in seconds
