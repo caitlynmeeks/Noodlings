@@ -1,0 +1,210 @@
+# Toy Claude Code - Agentic Coding Tutorial
+#
+# A simplified demonstration of how to build a coding agent using facets.
+# This implements a basic ReAct (Reason-Act-Observe) pattern:
+#
+# 1. Receive task from user
+# 2. Plan what to do
+# 3. Execute tool (read file via MCP)
+# 4. Observe result
+# 5. Generate response
+#
+# This is NOT a full Claude Code implementation - it's a tutorial showing
+# the pattern of wiring LLM reasoning with tool execution.
+#
+# Author: Caitlyn + Claude
+# Date: December 20, 2025
+
+name: "Toy Claude Code"
+description: "Tutorial: Simple agentic coding assistant using MCP tools"
+version: "1.0.0"
+
+# Note: Requires MCP filesystem server to be configured
+# Default config creates this at ~/.noodlestudio/mcp_servers.yaml
+
+facets:
+  # ============ ENTRY POINT ============
+  - id: "incoming"
+    name: "INCOMING"
+    type: "SpecialNode"
+    prompt: ""
+    model: ""
+    temperature: 0.7
+    max_tokens: 100
+    position: {x: 50, y: 200}
+    inputs: []
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "User's coding task"
+
+  # ============ PLANNING PHASE ============
+  - id: "task_analyzer"
+    name: "Task Analyzer"
+    type: "LLMFacet"
+    model: "MEDIUM"
+    temperature: 0.3
+    max_tokens: 500
+    prompt: |
+      You are an AI coding assistant. Analyze this task and determine what needs to be done.
+
+      USER TASK: {in}
+
+      Respond with a JSON object:
+      {
+        "task_type": "read",
+        "file_path": "path/to/file",
+        "description": "what needs to be done"
+      }
+
+      Be concise. If the task mentions a specific file, extract the path.
+      Only output valid JSON, nothing else.
+    position: {x: 250, y: 200}
+    inputs:
+      - name: "in"
+        type: "input"
+        description: "Task from user"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "Task analysis JSON"
+
+  - id: "parse_analysis"
+    name: "Parse Analysis"
+    type: "JSONParseFacet"
+    prompt: ""
+    model: ""
+    temperature: 0.7
+    max_tokens: 100
+    position: {x: 450, y: 200}
+    inputs:
+      - name: "in"
+        type: "input"
+        description: "JSON string from analyzer"
+    outputs:
+      - name: "result"
+        type: "output"
+        description: "Parsed object"
+      - name: "out"
+        type: "output"
+        description: "Parsed object (alias)"
+
+  - id: "get_file_path"
+    name: "Get File Path"
+    type: "GetPropertyFacet"
+    prompt: "key:file_path"
+    model: ""
+    temperature: 0.7
+    max_tokens: 100
+    position: {x: 650, y: 200}
+    inputs:
+      - name: "in"
+        type: "input"
+        description: "Parsed analysis object"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "File path string"
+
+  # ============ MCP TOOL EXECUTION ============
+  - id: "read_file_tool"
+    name: "Read File (MCP)"
+    type: "MCPFacet"
+    model: "filesystem/read_file"
+    prompt: "server:filesystem,tool:read_file"
+    temperature: 0.7
+    max_tokens: 100
+    position: {x: 850, y: 200}
+    inputs:
+      - name: "path"
+        type: "input"
+        description: "File path to read"
+    outputs:
+      - name: "result"
+        type: "output"
+        description: "File contents"
+      - name: "error"
+        type: "output"
+        description: "Error message if failed"
+      - name: "out"
+        type: "output"
+        description: "Default output"
+
+  # ============ RESPONSE GENERATION ============
+  - id: "response_generator"
+    name: "Response Generator"
+    type: "LLMFacet"
+    model: "MEDIUM"
+    temperature: 0.5
+    max_tokens: 1000
+    prompt: |
+      You are an AI coding assistant. Based on the task and file contents, provide a helpful response.
+
+      ORIGINAL TASK: {task}
+
+      FILE CONTENTS:
+      {file_contents}
+
+      If the file was not found, explain what went wrong and suggest alternatives.
+      If the file was found, explain what you see and provide any requested analysis or changes.
+
+      Be helpful and concise.
+    position: {x: 1050, y: 200}
+    inputs:
+      - name: "task"
+        type: "input"
+        description: "Original user task"
+      - name: "file_contents"
+        type: "input"
+        description: "Contents from file read"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "Final response"
+
+  # ============ EXIT POINT ============
+  - id: "outgoing"
+    name: "OUTGOING"
+    type: "SpecialNode"
+    prompt: ""
+    model: ""
+    temperature: 0.7
+    max_tokens: 100
+    position: {x: 1250, y: 200}
+    inputs:
+      - name: "in"
+        type: "input"
+        description: "Final response"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "Output to user"
+
+# ============ CONNECTIONS ============
+# Format: "facet_id.pad_name"
+connections:
+  # Task flow
+  - from: "incoming.out"
+    to: "task_analyzer.in"
+
+  - from: "task_analyzer.out"
+    to: "parse_analysis.in"
+
+  # Extract file path from analysis
+  - from: "parse_analysis.result"
+    to: "get_file_path.in"
+
+  # Wire file path to MCP tool
+  - from: "get_file_path.out"
+    to: "read_file_tool.path"
+
+  # Wire to response generator
+  - from: "incoming.out"
+    to: "response_generator.task"
+
+  - from: "read_file_tool.result"
+    to: "response_generator.file_contents"
+
+  # Output
+  - from: "response_generator.out"
+    to: "outgoing.in"
