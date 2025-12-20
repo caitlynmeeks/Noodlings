@@ -467,7 +467,7 @@ class TestPlayer:
         import tempfile
         import yaml
 
-        # Create temporary assembly file
+        # Create temporary assembly file (using correct YAML format)
         assembly_data = {
             'name': 'Test Assembly',
             'facets': [
@@ -475,25 +475,31 @@ class TestPlayer:
                     'id': 'incoming',
                     'name': 'INCOMING',
                     'type': 'SpecialNode',
+                    'prompt': '',
+                    'model': '',
+                    'temperature': 0.7,
+                    'max_tokens': 100,
                     'position': {'x': 0, 'y': 0},
-                    'input_pads': [],
-                    'output_pads': [{'name': 'out'}]
+                    'inputs': [],
+                    'outputs': [{'name': 'out', 'type': 'output'}]
                 },
                 {
                     'id': 'outgoing',
                     'name': 'OUTGOING',
                     'type': 'SpecialNode',
+                    'prompt': '',
+                    'model': '',
+                    'temperature': 0.7,
+                    'max_tokens': 100,
                     'position': {'x': 100, 'y': 0},
-                    'input_pads': [{'name': 'in'}],
-                    'output_pads': [{'name': 'out'}]
+                    'inputs': [{'name': 'in', 'type': 'input'}],
+                    'outputs': [{'name': 'out', 'type': 'output'}]
                 }
             ],
             'connections': [
                 {
-                    'from_facet': 'incoming',
-                    'from_pad': 'out',
-                    'to_facet': 'outgoing',
-                    'to_pad': 'in'
+                    'from': 'incoming.out',
+                    'to': 'outgoing.in'
                 }
             ]
         }
@@ -512,12 +518,13 @@ class TestPlayer:
         import os
         os.unlink(temp_path)
 
-    @pytest.mark.asyncio
-    async def test_run_without_assembly(self):
+    def test_run_without_assembly(self):
+        """Test running Player without loading an assembly first."""
+        import asyncio
         from noodlestudio.player import Player
 
         player = Player()
-        result = await player.run("Hello")
+        result = asyncio.run(player.run("Hello"))
 
         assert result['error'] == 'No assembly loaded'
 
