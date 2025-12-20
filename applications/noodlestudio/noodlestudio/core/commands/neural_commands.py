@@ -292,12 +292,10 @@ class EditNeuralNodeParamCommand(MergeableCommand):
 
     def _do(self):
         """Apply the new value."""
-        if self._first_redo:
-            # Value is already set, just emit modified
-            self.view.graph_modified.emit()
-        else:
-            # Re-redo: actually set the value
-            self.view._set_node_param_internal(self.node_id, self.param_name, self.new_value)
+        # Always set the value - works for both canvas sliders (where value
+        # is already set) and Inspector edits (where value isn't set yet).
+        # Setting an already-set value is harmless (idempotent).
+        self.view._set_node_param_internal(self.node_id, self.param_name, self.new_value)
 
     def _undo(self):
         """Restore the old value."""

@@ -28,6 +28,8 @@ sys.path.append('..')
 from noodlestudio.widgets.collapsible_section import CollapsibleSection
 from ..panels.floating_text_editor import FloatingTextEditor
 from ..core.property_binding import PropertyBindingManager, PropertyMeta, property_registry
+from ..core.undo_manager import UndoManager
+from ..core.commands.neural_commands import EditNeuralNodeParamCommand, RenameNeuralNodeCommand
 
 
 class ClickableTextEdit(QTextEdit):
@@ -1873,7 +1875,7 @@ class InspectorPanel(QWidget):
         self.properties_layout.addStretch()
 
     def _save_neural_node_field(self, field_name: str, value):
-        """Save a basic field (name) to the neural node."""
+        """Save a basic field (name) to the neural node with undo support."""
         if not hasattr(self, '_current_neural_node_id'):
             return
 
@@ -1884,19 +1886,29 @@ class InspectorPanel(QWidget):
         if not hasattr(main_window, 'neural_canvas'):
             return
 
+        canvas_view = main_window.neural_canvas.canvas_view
         node = main_window.neural_canvas.graph.get_node_by_id(node_id)
         if not node:
             return
 
         if field_name == 'name':
-            node.name = value
+            old_name = node.name
+            # Skip if value hasn't changed
+            if old_name == value:
+                return
 
-        # Signal canvas to refresh (also emits graph_modified for auto-save)
-        main_window.neural_canvas.canvas_view.refresh_nodes()
-        print(f"[Inspector] Neural node {field_name} updated: {value}")
+            # Push undo command
+            cmd = RenameNeuralNodeCommand(
+                view=canvas_view,
+                node_id=node_id,
+                old_name=old_name,
+                new_name=value
+            )
+            UndoManager.instance().push(cmd)
+            print(f"[Inspector] Neural node name updated: {old_name} -> {value}")
 
     def _save_neural_node_param(self, param_name: str, value):
-        """Save a parameter value to the neural node."""
+        """Save a parameter value to the neural node with undo support."""
         if not hasattr(self, '_current_neural_node_id'):
             return
 
@@ -1907,24 +1919,38 @@ class InspectorPanel(QWidget):
         if not hasattr(main_window, 'neural_canvas'):
             return
 
+        canvas_view = main_window.neural_canvas.canvas_view
         node = main_window.neural_canvas.graph.get_node_by_id(node_id)
         if not node:
             return
 
+        # Get old value
+        old_value = node.params.get(param_name)
+
+        # Skip if value hasn't changed
+        if old_value == value:
+            return
+
         # Special handling for show_on_start - only one COMMENT can have it
+        # Note: This is a side effect that won't be undone, but it's minor
         if param_name == 'show_on_start' and value is True:
-            from ...core.neural_canvas.neural_node import NodeType
+            from ..core.neural_canvas.neural_node import NodeType
             # Uncheck all other COMMENT nodes
             for other_id, other_node in main_window.neural_canvas.graph.nodes.items():
                 if other_id != node_id and other_node.type == NodeType.COMMENT:
                     if other_node.params.get('show_on_start', False):
                         other_node.params['show_on_start'] = False
 
-        # Update param
-        node.params[param_name] = value
-
-        # Signal canvas to refresh (also emits graph_modified for auto-save)
-        main_window.neural_canvas.canvas_view.refresh_nodes()
+        # Push undo command
+        cmd = EditNeuralNodeParamCommand(
+            view=canvas_view,
+            node_id=node_id,
+            param_name=param_name,
+            old_value=old_value,
+            new_value=value,
+            node_name=node.name
+        )
+        UndoManager.instance().push(cmd)
         print(f"[Inspector] Neural node param '{param_name}' updated")
 
     def update_neural_node_param(self, param_name: str, new_value):
