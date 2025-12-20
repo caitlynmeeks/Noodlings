@@ -31,6 +31,14 @@ from .neural_commands import (
     EditNeuralNodeParamCommand,
     RenameNeuralNodeCommand
 )
+from .scene_commands import (
+    CreateNoodlingCommand,
+    DeleteNoodlingCommand,
+    CreatePropCommand,
+    DeletePropCommand,
+    CreateZoneCommand,
+    DeleteZoneCommand
+)
 
 __all__ = [
     'StudioCommand',
@@ -53,5 +61,12 @@ __all__ = [
     'CreateNeuralConnectionCommand',
     'DeleteNeuralConnectionCommand',
     'EditNeuralNodeParamCommand',
-    'RenameNeuralNodeCommand'
+    'RenameNeuralNodeCommand',
+    # Scene Hierarchy commands
+    'CreateNoodlingCommand',
+    'DeleteNoodlingCommand',
+    'CreatePropCommand',
+    'DeletePropCommand',
+    'CreateZoneCommand',
+    'DeleteZoneCommand'
 ]

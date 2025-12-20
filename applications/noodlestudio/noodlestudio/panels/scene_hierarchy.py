@@ -22,6 +22,13 @@ import requests
 import sys
 import os
 
+from ..core.undo_manager import UndoManager
+from ..core.commands.scene_commands import (
+    CreateNoodlingCommand, DeleteNoodlingCommand,
+    CreatePropCommand, DeletePropCommand,
+    CreateZoneCommand, DeleteZoneCommand
+)
+
 
 class SceneHierarchy(QWidget):
     """
@@ -1221,8 +1228,6 @@ class SceneHierarchy(QWidget):
 
     def create_empty_noodling(self):
         """Create a new Noodling instance in the current stage (no dialog)."""
-        import yaml
-        import os
         import uuid
 
         if not self.project_manager or not self.project_manager.is_project_open():
@@ -1238,19 +1243,19 @@ class SceneHierarchy(QWidget):
             print(f"Stage path not found for {self.current_stage}")
             return
 
-        # Create Instances folder if needed
+        # Get Instances directory (will be created by command if needed)
         instances_dir = os.path.join(stage_path, "Instances")
-        os.makedirs(instances_dir, exist_ok=True)
 
         # Generate unique name: "New Noodling", "New Noodling (2)", etc.
+        # Need to create dir first so we can check existing names
+        os.makedirs(instances_dir, exist_ok=True)
         display_name = self._generate_unique_name(instances_dir, "New Noodling", "instance.yaml")
 
         # Use UUID for folder name (the actual identifier)
         instance_id = str(uuid.uuid4())
         instance_path = os.path.join(instances_dir, instance_id)
-        os.makedirs(instance_path, exist_ok=True)
 
-        # Create instance.yaml
+        # Prepare instance data
         instance_data = {
             'id': instance_id,
             'noodling': '',  # Reference to Noodlings/xxx (empty = blank template)
@@ -1262,19 +1267,18 @@ class SceneHierarchy(QWidget):
             }
         }
 
-        instance_yaml = os.path.join(instance_path, "instance.yaml")
-        with open(instance_yaml, 'w') as f:
-            yaml.dump(instance_data, f, default_flow_style=False)
-
+        # Push undo command (which creates the files)
+        cmd = CreateNoodlingCommand(
+            hierarchy=self,
+            instance_path=instance_path,
+            instance_data=instance_data,
+            display_name=display_name
+        )
+        UndoManager.instance().push(cmd)
         print(f"Created Noodling: {display_name} ({instance_id[:8]}...)")
-        self.refresh_scene()
-        # Auto-select the newly created instance (uses agent_ prefix like tree data)
-        self._select_item_by_id(f"agent_{instance_id}")
 
     def create_empty_prim(self):
         """Create a new Prop in the current stage (no dialog)."""
-        import yaml
-        import os
         import uuid
 
         if not self.project_manager or not self.project_manager.is_project_open():
@@ -1290,19 +1294,19 @@ class SceneHierarchy(QWidget):
             print(f"Stage path not found for {self.current_stage}")
             return
 
-        # Create Props folder if needed
+        # Get Props directory (will be created by command if needed)
         props_dir = os.path.join(stage_path, "Props")
-        os.makedirs(props_dir, exist_ok=True)
 
         # Generate unique name: "New Prop", "New Prop (2)", etc.
+        # Need to create dir first so we can check existing names
+        os.makedirs(props_dir, exist_ok=True)
         display_name = self._generate_unique_name(props_dir, "New Prop", "prop.yaml")
 
         # Use UUID for folder name (the actual identifier)
         prop_id = str(uuid.uuid4())
         prop_path = os.path.join(props_dir, prop_id)
-        os.makedirs(prop_path, exist_ok=True)
 
-        # Create prop.yaml with default physics properties
+        # Prepare prop data with default physics properties
         prop_data = {
             'id': prop_id,
             'name': display_name,
@@ -1319,19 +1323,18 @@ class SceneHierarchy(QWidget):
             'softness': 'normal',
         }
 
-        prop_yaml = os.path.join(prop_path, "prop.yaml")
-        with open(prop_yaml, 'w') as f:
-            yaml.dump(prop_data, f, default_flow_style=False)
-
+        # Push undo command (which creates the files)
+        cmd = CreatePropCommand(
+            hierarchy=self,
+            prop_path=prop_path,
+            prop_data=prop_data,
+            display_name=display_name
+        )
+        UndoManager.instance().push(cmd)
         print(f"Created Prop: {display_name} ({prop_id[:8]}...)")
-        self.refresh_scene()
-        # Auto-select the newly created prop (uses prop_ prefix like tree data)
-        self._select_item_by_id(f"prop_{prop_id}")
 
     def create_empty_zone(self):
         """Create a new Zone in the current stage (no dialog)."""
-        import yaml
-        import os
         import uuid
 
         if not self.project_manager or not self.project_manager.is_project_open():
@@ -1347,11 +1350,12 @@ class SceneHierarchy(QWidget):
             print(f"Stage path not found for {self.current_stage}")
             return
 
-        # Create Zones folder if needed
+        # Get Zones directory (will be created by command if needed)
         zones_dir = os.path.join(stage_path, "Zones")
-        os.makedirs(zones_dir, exist_ok=True)
 
         # Generate unique name: "New Zone", "New Zone (2)", etc.
+        # Need to create dir first so we can check existing names
+        os.makedirs(zones_dir, exist_ok=True)
         display_name = self._generate_unique_zone_name(zones_dir, "New Zone")
 
         # Use UUID for the zone file
@@ -1359,7 +1363,7 @@ class SceneHierarchy(QWidget):
         zone_filename = f"{zone_id}.zone.yaml"
         zone_path = os.path.join(zones_dir, zone_filename)
 
-        # Create zone.yaml
+        # Prepare zone data
         zone_data = {
             'id': zone_id,
             'name': display_name,
@@ -1370,13 +1374,15 @@ class SceneHierarchy(QWidget):
             'shape': 'sphere',
         }
 
-        with open(zone_path, 'w') as f:
-            yaml.dump(zone_data, f, default_flow_style=False)
-
+        # Push undo command (which creates the file)
+        cmd = CreateZoneCommand(
+            hierarchy=self,
+            zone_path=zone_path,
+            zone_data=zone_data,
+            display_name=display_name
+        )
+        UndoManager.instance().push(cmd)
         print(f"Created Zone: {display_name} ({zone_id[:8]}...)")
-        self.refresh_scene()
-        # Auto-select the newly created zone
-        self._select_item_by_id(zone_id)
 
     def _generate_unique_name(self, directory: str, base_name: str, yaml_file: str) -> str:
         """Generate unique name like 'New Prop', 'New Prop (2)', etc."""
@@ -1448,9 +1454,8 @@ class SceneHierarchy(QWidget):
     # =========================================================================
 
     def delete_prop(self, entity_data: dict):
-        """Delete a prop from the project."""
-        import shutil
-        from PyQt6.QtWidgets import QMessageBox
+        """Delete a prop from the project (with undo support)."""
+        import yaml
 
         prop_path = entity_data.get('path', '')
         prop_name = entity_data.get('name', 'this prop')
@@ -1462,18 +1467,31 @@ class SceneHierarchy(QWidget):
         reply = QMessageBox.question(
             self,
             "De-Rez Prop",
-            f"Delete '{prop_name}'?\n\nThis cannot be undone.",
+            f"Delete '{prop_name}'?\n\nCmd+Z to undo.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            try:
-                shutil.rmtree(prop_path)
-                print(f"Deleted prop: {prop_name}")
-                self.refresh_scene()
-            except Exception as e:
-                print(f"Error deleting prop: {e}")
+            # Load full prop data for potential undo
+            prop_yaml = os.path.join(prop_path, "prop.yaml")
+            prop_data = entity_data.get('data', {})
+            if os.path.exists(prop_yaml):
+                try:
+                    with open(prop_yaml, 'r') as f:
+                        prop_data = yaml.safe_load(f) or {}
+                except Exception as e:
+                    print(f"Warning: Could not read prop.yaml: {e}")
+
+            # Push undo command (which deletes the files)
+            cmd = DeletePropCommand(
+                hierarchy=self,
+                prop_path=prop_path,
+                prop_data=prop_data,
+                display_name=prop_name
+            )
+            UndoManager.instance().push(cmd)
+            print(f"Deleted prop: {prop_name}")
 
     def duplicate_prop(self, entity_data: dict):
         """Duplicate a prop in the project."""
@@ -1518,9 +1536,8 @@ class SceneHierarchy(QWidget):
         self.refresh_scene()
 
     def delete_instance(self, entity_data: dict):
-        """Delete a noodling instance from the project."""
-        import shutil
-        from PyQt6.QtWidgets import QMessageBox
+        """Delete a noodling instance from the project (with undo support)."""
+        import yaml
 
         inst_path = entity_data.get('path', '')
         inst_name = entity_data.get('name', 'this instance')
@@ -1532,18 +1549,31 @@ class SceneHierarchy(QWidget):
         reply = QMessageBox.question(
             self,
             "De-Rez Instance",
-            f"Delete '{inst_name}'?\n\nThis cannot be undone.",
+            f"Delete '{inst_name}'?\n\nCmd+Z to undo.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            try:
-                shutil.rmtree(inst_path)
-                print(f"Deleted instance: {inst_name}")
-                self.refresh_scene()
-            except Exception as e:
-                print(f"Error deleting instance: {e}")
+            # Load full instance data for potential undo
+            inst_yaml = os.path.join(inst_path, "instance.yaml")
+            inst_data = entity_data.get('data', {})
+            if os.path.exists(inst_yaml):
+                try:
+                    with open(inst_yaml, 'r') as f:
+                        inst_data = yaml.safe_load(f) or {}
+                except Exception as e:
+                    print(f"Warning: Could not read instance.yaml: {e}")
+
+            # Push undo command (which deletes the files)
+            cmd = DeleteNoodlingCommand(
+                hierarchy=self,
+                instance_path=inst_path,
+                instance_data=inst_data,
+                display_name=inst_name
+            )
+            UndoManager.instance().push(cmd)
+            print(f"Deleted instance: {inst_name}")
 
     def duplicate_instance(self, entity_data: dict):
         """Duplicate a noodling instance in the project."""
@@ -1589,8 +1619,8 @@ class SceneHierarchy(QWidget):
         self.refresh_scene()
 
     def delete_zone(self, entity_data: dict):
-        """Delete a zone from the project."""
-        from PyQt6.QtWidgets import QMessageBox
+        """Delete a zone from the project (with undo support)."""
+        import yaml
 
         zone_path = entity_data.get('path', '')
         zone_name = entity_data.get('name') or entity_data.get('data', {}).get('name', 'this zone')
@@ -1602,18 +1632,30 @@ class SceneHierarchy(QWidget):
         reply = QMessageBox.question(
             self,
             "Delete Zone",
-            f"Delete zone '{zone_name}'?\n\nThis cannot be undone.",
+            f"Delete zone '{zone_name}'?\n\nCmd+Z to undo.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            try:
-                os.remove(zone_path)
-                print(f"Deleted zone: {zone_name}")
-                self.refresh_scene()
-            except Exception as e:
-                print(f"Error deleting zone: {e}")
+            # Load full zone data for potential undo
+            zone_data = entity_data.get('data', {})
+            if os.path.exists(zone_path):
+                try:
+                    with open(zone_path, 'r') as f:
+                        zone_data = yaml.safe_load(f) or {}
+                except Exception as e:
+                    print(f"Warning: Could not read zone file: {e}")
+
+            # Push undo command (which deletes the file)
+            cmd = DeleteZoneCommand(
+                hierarchy=self,
+                zone_path=zone_path,
+                zone_data=zone_data,
+                display_name=zone_name
+            )
+            UndoManager.instance().push(cmd)
+            print(f"Deleted zone: {zone_name}")
 
     # =========================================================================
     # Auto-select newly created items
