@@ -582,5 +582,298 @@ class TestIntegration:
         assert final['count'] == 42
 
 
+# =============================================================================
+# SCRIPTING API TESTS - Unity-style access
+# =============================================================================
+
+class TestFacetProxy:
+    """Tests for FacetProxy Unity-style methods."""
+
+    def test_facet_proxy_properties(self):
+        """Test FacetProxy property access."""
+        from noodlestudio.scripting.agents_api import FacetProxy
+        from noodlestudio.core.facet_system import Facet, FacetPad, PadType
+
+        facet = Facet(
+            id="test_facet",
+            name="Test Facet",
+            facet_type="LLMFacet",
+            prompt="Hello {input}",
+            model="MEDIUM",
+            temperature=0.8,
+            max_tokens=100,
+            position={'x': 100, 'y': 200}
+        )
+        facet.input_pads = [FacetPad(name="input", pad_type=PadType.INPUT, description="Input")]
+        facet.output_pads = [FacetPad(name="out", pad_type=PadType.OUTPUT, description="Output")]
+
+        proxy = FacetProxy(facet, None)
+
+        assert proxy.get_id() == "test_facet"
+        assert proxy.get_name() == "Test Facet"
+        assert proxy.get_type() == "LLMFacet"
+        assert proxy.get_prompt() == "Hello {input}"
+        assert proxy.get_model() == "MEDIUM"
+        assert proxy.get_temperature() == 0.8
+
+    def test_facet_proxy_setters(self):
+        """Test FacetProxy property setters."""
+        from noodlestudio.scripting.agents_api import FacetProxy
+        from noodlestudio.core.facet_system import Facet
+
+        facet = Facet(
+            id="test",
+            name="Test",
+            facet_type="LLMFacet",
+            prompt="Original"
+        )
+        proxy = FacetProxy(facet, None)
+
+        assert proxy.set_prompt("New prompt") is True
+        assert proxy.get_prompt() == "New prompt"
+
+        assert proxy.set_model("LARGE") is True
+        assert proxy.get_model() == "LARGE"
+
+        assert proxy.set_temperature(0.5) is True
+        assert proxy.get_temperature() == 0.5
+
+    def test_facet_proxy_enabled(self):
+        """Test enable/disable facet."""
+        from noodlestudio.scripting.agents_api import FacetProxy
+        from noodlestudio.core.facet_system import Facet
+
+        facet = Facet(id="test", name="Test", facet_type="LLMFacet", prompt="")
+        proxy = FacetProxy(facet, None)
+
+        assert proxy.is_enabled() is True  # Default enabled
+        assert proxy.set_enabled(False) is True
+        assert proxy.is_enabled() is False
+
+    def test_facet_proxy_pads(self):
+        """Test input/output pad access."""
+        from noodlestudio.scripting.agents_api import FacetProxy
+        from noodlestudio.core.facet_system import Facet, FacetPad, PadType
+
+        facet = Facet(id="test", name="Test", facet_type="LLMFacet", prompt="")
+        facet.input_pads = [
+            FacetPad(name="a", pad_type=PadType.INPUT, description="Input A"),
+            FacetPad(name="b", pad_type=PadType.INPUT, description="Input B")
+        ]
+        facet.output_pads = [
+            FacetPad(name="out", pad_type=PadType.OUTPUT, description="Output")
+        ]
+
+        proxy = FacetProxy(facet, None)
+        inputs = proxy.get_inputs()
+        outputs = proxy.get_outputs()
+
+        assert len(inputs) == 2
+        assert inputs[0]['name'] == 'a'
+        assert len(outputs) == 1
+        assert outputs[0]['name'] == 'out'
+
+
+class TestFacetAssemblyProxy:
+    """Tests for FacetAssemblyProxy Unity-style methods."""
+
+    def _create_test_assembly(self):
+        """Create a test assembly with multiple facets."""
+        from noodlestudio.core.facet_system import (
+            FacetAssembly, Facet, FacetConnection, FacetPad, PadType
+        )
+
+        assembly = FacetAssembly(name="Test Assembly")
+
+        # Add INCOMING
+        incoming = Facet(
+            id="incoming", name="INCOMING", facet_type="SpecialNode", prompt=""
+        )
+        incoming.output_pads = [FacetPad(name="out", pad_type=PadType.OUTPUT)]
+        assembly.facets.append(incoming)
+
+        # Add two LLM facets
+        llm1 = Facet(
+            id="llm1", name="Analyzer", facet_type="LLMFacet",
+            prompt="Analyze", model="MEDIUM"
+        )
+        llm1.input_pads = [FacetPad(name="in", pad_type=PadType.INPUT)]
+        llm1.output_pads = [FacetPad(name="out", pad_type=PadType.OUTPUT)]
+        assembly.facets.append(llm1)
+
+        llm2 = Facet(
+            id="llm2", name="Generator", facet_type="LLMFacet",
+            prompt="Generate", model="LARGE"
+        )
+        llm2.input_pads = [FacetPad(name="in", pad_type=PadType.INPUT)]
+        llm2.output_pads = [FacetPad(name="out", pad_type=PadType.OUTPUT)]
+        assembly.facets.append(llm2)
+
+        # Add OUTGOING
+        outgoing = Facet(
+            id="outgoing", name="OUTGOING", facet_type="SpecialNode", prompt=""
+        )
+        outgoing.input_pads = [FacetPad(name="in", pad_type=PadType.INPUT)]
+        assembly.facets.append(outgoing)
+
+        # Add connections
+        assembly.connections.append(FacetConnection("incoming", "out", "llm1", "in"))
+        assembly.connections.append(FacetConnection("llm1", "out", "llm2", "in"))
+        assembly.connections.append(FacetConnection("llm2", "out", "outgoing", "in"))
+
+        return assembly
+
+    def test_get_facets_by_type(self):
+        """Test getting facets by type (like GetComponents<T>)."""
+        from noodlestudio.scripting.agents_api import FacetAssemblyProxy
+
+        assembly = self._create_test_assembly()
+        proxy = FacetAssemblyProxy(assembly)
+
+        llm_facets = proxy.get_facets_by_type("LLMFacet")
+        assert len(llm_facets) == 2
+
+        special_facets = proxy.get_facets_by_type("SpecialNode")
+        assert len(special_facets) == 2
+
+    def test_find_facets(self):
+        """Test finding facets with predicate."""
+        from noodlestudio.scripting.agents_api import FacetAssemblyProxy
+
+        assembly = self._create_test_assembly()
+        proxy = FacetAssemblyProxy(assembly)
+
+        large_llms = proxy.find_facets({'type': 'LLMFacet', 'model': 'LARGE'})
+        assert len(large_llms) == 1
+        assert large_llms[0].get_name() == "Generator"
+
+    def test_get_connections(self):
+        """Test getting all connections."""
+        from noodlestudio.scripting.agents_api import FacetAssemblyProxy
+
+        assembly = self._create_test_assembly()
+        proxy = FacetAssemblyProxy(assembly)
+
+        conns = proxy.get_connections()
+        assert len(conns) == 3
+
+    def test_get_connections_from(self):
+        """Test getting connections from a specific facet."""
+        from noodlestudio.scripting.agents_api import FacetAssemblyProxy
+
+        assembly = self._create_test_assembly()
+        proxy = FacetAssemblyProxy(assembly)
+
+        conns = proxy.get_connections_from("llm1")
+        assert len(conns) == 1
+        assert conns[0]['to_facet'] == "llm2"
+
+    def test_get_connections_to(self):
+        """Test getting connections to a specific facet."""
+        from noodlestudio.scripting.agents_api import FacetAssemblyProxy
+
+        assembly = self._create_test_assembly()
+        proxy = FacetAssemblyProxy(assembly)
+
+        conns = proxy.get_connections_to("llm2")
+        assert len(conns) == 1
+        assert conns[0]['from_facet'] == "llm1"
+
+    def test_duplicate_facet(self):
+        """Test duplicating a facet."""
+        from noodlestudio.scripting.agents_api import FacetAssemblyProxy
+
+        assembly = self._create_test_assembly()
+        proxy = FacetAssemblyProxy(assembly)
+
+        original_count = proxy.get_facet_count()
+        clone_id = proxy.duplicate_facet("llm1", "Analyzer Clone")
+
+        assert clone_id is not None
+        assert proxy.get_facet_count() == original_count + 1
+
+        clone = proxy.get_facet(clone_id)
+        assert clone is not None
+        assert clone.get_name() == "Analyzer Clone"
+        assert clone.get_type() == "LLMFacet"
+
+    def test_get_incoming_outgoing(self):
+        """Test getting INCOMING and OUTGOING facets."""
+        from noodlestudio.scripting.agents_api import FacetAssemblyProxy
+
+        assembly = self._create_test_assembly()
+        proxy = FacetAssemblyProxy(assembly)
+
+        incoming = proxy.get_incoming()
+        assert incoming is not None
+        assert incoming.get_id() == "incoming"
+
+        outgoing = proxy.get_outgoing()
+        assert outgoing is not None
+        assert outgoing.get_id() == "outgoing"
+
+
+class TestNeuralNetworkProxy:
+    """Tests for NeuralNetworkProxy Unity-style methods."""
+
+    def test_list_nodes(self):
+        """Test listing all nodes."""
+        from noodlestudio.scripting.neural_api import NeuralAPI
+
+        api = NeuralAPI()
+        network = api.create_network("Test")
+
+        # Create some nodes
+        lstm_id = network.create_node("LSTM", position=[100, 100])
+        gru_id = network.create_node("GRU", position=[200, 100])
+
+        nodes = network.list_nodes()
+        assert len(nodes) == 2
+
+    def test_get_nodes_by_type(self):
+        """Test getting nodes by type."""
+        from noodlestudio.scripting.neural_api import NeuralAPI
+
+        api = NeuralAPI()
+        network = api.create_network("Test")
+
+        # Create mixed nodes
+        network.create_node("LSTM", position=[100, 100])
+        network.create_node("LSTM", position=[200, 100])
+        network.create_node("GRU", position=[300, 100])
+
+        lstms = network.get_nodes_by_type("LSTM")
+        assert len(lstms) == 2
+
+        grus = network.get_nodes_by_type("GRU")
+        assert len(grus) == 1
+
+    def test_get_node_count(self):
+        """Test node count."""
+        from noodlestudio.scripting.neural_api import NeuralAPI
+
+        api = NeuralAPI()
+        network = api.create_network("Test")
+
+        assert network.get_node_count() == 0
+        network.create_node("LSTM", position=[100, 100])
+        assert network.get_node_count() == 1
+        network.create_node("GRU", position=[200, 100])
+        assert network.get_node_count() == 2
+
+    def test_set_node_name(self):
+        """Test setting node name."""
+        from noodlestudio.scripting.neural_api import NeuralAPI
+
+        api = NeuralAPI()
+        network = api.create_network("Test")
+
+        node_id = network.create_node("LSTM", position=[100, 100])
+        assert network.set_node_name(node_id, "My LSTM") is True
+
+        node = network.get_node(node_id)
+        assert node['name'] == "My LSTM"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
