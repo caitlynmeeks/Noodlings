@@ -1,0 +1,409 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 3: The XOR Problem",
+  "description": "XOR: Output ON when inputs DIFFER (one high, one low).\n\nTHE PROBLEM: Try all possible weight combinations in a single-layer \nnetwork (like AND/OR gates). You'll find it's IMPOSSIBLE!\n\nXOR truth table:\n  0 XOR 0 = 0\n  0 XOR 1 = 1  \n  1 XOR 0 = 1\n  1 XOR 1 = 0\n\nTHE SOLUTION: This network has a HIDDEN LAYER (2 neurons).\nThe hidden neurons learn intermediate features:\n  - One learns \"A AND NOT B\"\n  - One learns \"B AND NOT A\"  \n  - Combined: gives XOR!\n\nThis is WHY deep networks are powerful - they can compute \nfunctions that single layers cannot.\n\nHistorical note: The XOR problem stumped AI for years until \nbackpropagation was popularized in the 1980s.",
+  "metadata": {
+    "created": null,
+    "modified": "2025-12-19T19:13:16.505254",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 1088
+  },
+  "nodes": [
+    {
+      "id": "9d57d587-3afd-4a49-b142-150bd136e838",
+      "type": "NUMBER_INPUT",
+      "name": "Input A",
+      "position": [
+        50,
+        50
+      ],
+      "params": {
+        "value": 0.0,
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "step": 1.0
+      },
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Value"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A4A",
+      "tags": [],
+      "description": "Interactive scalar input with slider (0.0 to 1.0)"
+    },
+    {
+      "id": "c87cd3ae-58b7-4806-8816-c9a4d4706ed0",
+      "type": "NUMBER_INPUT",
+      "name": "Input B",
+      "position": [
+        50,
+        250
+      ],
+      "params": {
+        "value": 1.0,
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "step": 1.0
+      },
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Value"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A4A",
+      "tags": [],
+      "description": "Interactive scalar input with slider (0.0 to 1.0)"
+    },
+    {
+      "id": "99aabf2d-e605-4686-839b-ad70029d1ef9",
+      "type": "CONCAT",
+      "name": "Combine",
+      "position": [
+        250,
+        150
+      ],
+      "params": {},
+      "inputs": {
+        "a": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input A"
+        },
+        "b": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input B"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Combined"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A4A6A",
+      "tags": [],
+      "description": "Concatenate two inputs into one tensor"
+    },
+    {
+      "id": "bba8dc09-4159-4763-a063-a3ee35e125d0",
+      "type": "LINEAR",
+      "name": "Hidden Layer",
+      "position": [
+        449,
+        150
+      ],
+      "params": {
+        "in_features": 2,
+        "out_features": 2,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": null
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": null
+        }
+      },
+      "weights": {
+        "weight": {
+          "shape": [
+            32,
+            16
+          ],
+          "path": null,
+          "trainable": true,
+          "values": null
+        },
+        "bias": {
+          "shape": [
+            32
+          ],
+          "path": null,
+          "trainable": true,
+          "values": null
+        }
+      },
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "Fully connected linear transformation"
+    },
+    {
+      "id": "319e1a14-aac6-4345-b1db-c3df49602343",
+      "type": "TANH",
+      "name": "Hidden Activation",
+      "position": [
+        649,
+        150
+      ],
+      "params": {},
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A3A3A",
+      "tags": [],
+      "description": "Hyperbolic tangent activation"
+    },
+    {
+      "id": "91fa4825-1e25-4ec8-b00b-74922db46900",
+      "type": "LINEAR",
+      "name": "Output Layer",
+      "position": [
+        850,
+        150
+      ],
+      "params": {
+        "in_features": 2,
+        "out_features": 1,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": null
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": null
+        }
+      },
+      "weights": {
+        "weight": {
+          "shape": [
+            32,
+            16
+          ],
+          "path": null,
+          "trainable": true,
+          "values": null
+        },
+        "bias": {
+          "shape": [
+            32
+          ],
+          "path": null,
+          "trainable": true,
+          "values": null
+        }
+      },
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "Fully connected linear transformation"
+    },
+    {
+      "id": "cfc439dd-65aa-4741-8811-daf7134f8864",
+      "type": "SIGMOID",
+      "name": "Sigmoid",
+      "position": [
+        1050,
+        150
+      ],
+      "params": {},
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A3A3A",
+      "tags": [],
+      "description": "Sigmoid activation function"
+    },
+    {
+      "id": "78b53b4f-3203-4c2a-a033-2e2287b5a27e",
+      "type": "THRESHOLD_OUTPUT",
+      "name": "XOR Result",
+      "position": [
+        1245,
+        156
+      ],
+      "params": {
+        "threshold": 0.5,
+        "show_value": true
+      },
+      "inputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "required": true,
+          "label": "Value"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#6A4A4A",
+      "tags": [],
+      "description": "ON/OFF display based on threshold comparison"
+    },
+    {
+      "id": "23670092-4476-4030-a1b1-57d3eedaf814",
+      "type": "SCRIPTED_NODE",
+      "name": "Script Node",
+      "position": [
+        1470,
+        132
+      ],
+      "params": {
+        "script": "// Custom node logic\n// inputs.a, inputs.b, etc. are your inputs\n// Return an object with output values\nreturn {\n    out: inputs.a * 2.0\n};",
+        "num_inputs": 1,
+        "num_outputs": 1,
+        "input_names": "a",
+        "output_names": "out"
+      },
+      "inputs": {
+        "a": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": false,
+          "label": "Input A"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#FF8F00",
+      "tags": [],
+      "description": "Custom JavaScript logic for user-defined behavior"
+    },
+    {
+      "id": "comment-f6de0b8e-594e-4fb4-bdbf-25927a3c30ff",
+      "type": "COMMENT",
+      "name": "Welcome",
+      "position": [
+        50,
+        50
+      ],
+      "params": {
+        "text": "# XOR - The Problem That Changed History\n\nXOR (exclusive or) outputs ON when inputs are **different**.\n\n## Why XOR Matters\n\nIn 1969, Minsky & Papert proved a single neuron CAN'T learn XOR.\nThis \"killed\" neural network research for 15 years!\n\n## To Do and Notice\n\n1. **Try all combinations**: Notice XOR needs (0,1) and (1,0) ON, but (0,0) and (1,1) OFF\n2. **The hidden layer**: See how we need TWO neurons working together?\n3. **Think geometrically**: XOR points can't be separated by a single line\n\n## The Solution\n\nWe need a **hidden layer** - neurons that compute intermediate features.\nThe breakthrough came when backpropagation let us train these hidden layers.\n\n**Challenge**: Trace the values through both paths. How do they combine?",
+        "width": 450,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Tutorial introduction"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "9d57d587-3afd-4a49-b142-150bd136e838",
+      "from_port": "value",
+      "to_node": "99aabf2d-e605-4686-839b-ad70029d1ef9",
+      "to_port": "a"
+    },
+    {
+      "from_node": "c87cd3ae-58b7-4806-8816-c9a4d4706ed0",
+      "from_port": "value",
+      "to_node": "99aabf2d-e605-4686-839b-ad70029d1ef9",
+      "to_port": "b"
+    },
+    {
+      "from_node": "99aabf2d-e605-4686-839b-ad70029d1ef9",
+      "from_port": "out",
+      "to_node": "bba8dc09-4159-4763-a063-a3ee35e125d0",
+      "to_port": "x"
+    },
+    {
+      "from_node": "bba8dc09-4159-4763-a063-a3ee35e125d0",
+      "from_port": "out",
+      "to_node": "319e1a14-aac6-4345-b1db-c3df49602343",
+      "to_port": "x"
+    },
+    {
+      "from_node": "319e1a14-aac6-4345-b1db-c3df49602343",
+      "from_port": "out",
+      "to_node": "91fa4825-1e25-4ec8-b00b-74922db46900",
+      "to_port": "x"
+    },
+    {
+      "from_node": "91fa4825-1e25-4ec8-b00b-74922db46900",
+      "from_port": "out",
+      "to_node": "cfc439dd-65aa-4741-8811-daf7134f8864",
+      "to_port": "x"
+    },
+    {
+      "from_node": "cfc439dd-65aa-4741-8811-daf7134f8864",
+      "from_port": "out",
+      "to_node": "78b53b4f-3203-4c2a-a033-2e2287b5a27e",
+      "to_port": "value"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": false,
+    "onnx": false
+  }
+}

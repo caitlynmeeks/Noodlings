@@ -22,7 +22,6 @@ from ..panels.scene_hierarchy import SceneHierarchy
 from ..panels.inspector_panel import InspectorPanel
 from ..panels.console_panel import ConsolePanel
 from ..panels.assets_panel import AssetsPanel
-from ..panels.noodle_tuner_panel import NoodleTunerPanel
 from ..panels.settings_panel import SettingsPanel
 from ..panels.cognitive_cycles_panel import CognitiveCyclesPanel
 from .theme import DARK_THEME
@@ -266,8 +265,7 @@ class MainWindow(QMainWindow):
         # window_menu.addAction(self._create_action("Assets", "Cmd+2", lambda: self._toggle_panel(self.assets)))
         # window_menu.addAction(self._create_action("World View", "Cmd+3", lambda: self._toggle_panel(self.world_view)))
         # window_menu.addAction(self._create_action("Inspector", "Cmd+4", lambda: self._toggle_panel(self.inspector)))
-        # window_menu.addAction(self._create_action("Noodle Tuner", "Cmd+5", lambda: self._toggle_panel(self.noodle_tuner)))
-        # window_menu.addAction(self._create_action("Console", "Cmd+6", lambda: self._toggle_panel(self.console)))
+        # window_menu.addAction(self._create_action("Console", "Cmd+5", lambda: self._toggle_panel(self.console)))
         # window_menu.addAction(self._create_action("Timeline Profiler", "Cmd+7", lambda: self._toggle_panel(self.profiler_panel)))
         # window_menu.addSeparator()
         # window_menu.addAction(self._create_action("Ensemble Store...", slot=self.show_ensemble_store))
@@ -645,10 +643,8 @@ class MainWindow(QMainWindow):
         """)
 
         self.inspector = InspectorPanel(None)
-        self.noodle_tuner = NoodleTunerPanel(None)
 
         right_tabs.addTab(self.inspector, "Inspector")
-        right_tabs.addTab(self.noodle_tuner, "Noodle Tuner")
 
         # BOTTOM: Tabbed widget for Console + Profiler
         bottom_tabs = QTabWidget()
@@ -755,16 +751,6 @@ class MainWindow(QMainWindow):
                 import traceback
                 traceback.print_exc()
 
-        def safe_tuner_select(entity_type, entity_data):
-            try:
-                print(f"[SAFE WRAPPER] Calling on_entity_selected_for_noodle_tuner({entity_type}, ...)")
-                self.on_entity_selected_for_noodle_tuner(entity_type, entity_data)
-                print(f"[SAFE WRAPPER] on_entity_selected_for_noodle_tuner returned successfully")
-            except Exception as e:
-                print(f"[SAFE WRAPPER] ERROR in on_entity_selected_for_noodle_tuner: {e}")
-                import traceback
-                traceback.print_exc()
-
         def safe_facets_select(entity_type, entity_data):
             try:
                 print(f"[SAFE WRAPPER] Calling on_entity_selected_for_facets_editor({entity_type}, ...)")
@@ -783,8 +769,11 @@ class MainWindow(QMainWindow):
 
         # Connect Neural Canvas node selection to Inspector
         self.neural_canvas.node_selected.connect(self._on_neural_canvas_node_selected)
+        # Connect param changes (e.g., slider) to update Inspector live
+        self.neural_canvas.canvas_view.node_param_changed.connect(self._on_neural_canvas_param_changed)
+        # Clear inspector when new graph is loaded
+        self.neural_canvas.graph_loaded.connect(self._on_neural_canvas_graph_loaded)
         self.hierarchy.entitySelected.connect(safe_console_select)
-        self.hierarchy.entitySelected.connect(safe_tuner_select)
         self.hierarchy.entitySelected.connect(safe_facets_select)
 
         # Check server state
@@ -2135,7 +2124,7 @@ class MainWindow(QMainWindow):
                 with open(settings_path, 'r') as f:
                     settings = json.load(f)
                     return settings.get('recent_projects', [])
-            except:
+            except (FileNotFoundError, json.JSONDecodeError):
                 return []
         return []
 
@@ -2147,7 +2136,7 @@ class MainWindow(QMainWindow):
             try:
                 with open(settings_path, 'r') as f:
                     settings = json.load(f)
-            except:
+            except (FileNotFoundError, json.JSONDecodeError):
                 pass
         settings['recent_projects'] = projects
         with open(settings_path, 'w') as f:
@@ -2238,23 +2227,6 @@ class MainWindow(QMainWindow):
         # In future, hierarchy should emit list of all selected entities
         if entity_id:
             self.console.set_selected_entities([entity_id])
-
-    def on_entity_selected_for_noodle_tuner(self, entity_type: str, entity_data: dict):
-        """Update Noodle Tuner when an agent is selected in hierarchy."""
-        if not hasattr(self, 'noodle_tuner'):
-            return
-
-        # Handle deselection
-        if entity_type is None or entity_data is None:
-            # Clear noodle tuner
-            self.noodle_tuner.set_agent(None)
-            return
-
-        # Only update Noodle Tuner for noodlings
-        if entity_type == 'noodling':
-            agent_id = entity_data.get('id', '')
-            if agent_id:
-                self.noodle_tuner.set_agent(agent_id)
 
     def on_entity_selected_for_facets_editor(self, entity_type: str, entity_data: dict):
         """Update Facets Editor when a noodling is selected in hierarchy."""
@@ -2347,17 +2319,27 @@ class MainWindow(QMainWindow):
 
     def _on_neural_canvas_node_selected(self, node_id: str):
         """Handle node selection in Neural Canvas - show in Inspector."""
+        # Empty string = deselected, clear inspector
+        if not node_id:
+            self.inspector.clear_inspector()
+            return
+
         # Get the node from the graph
         node = self.neural_canvas.graph.get_node_by_id(node_id)
         if not node:
             return
+
+        # Merge default params with node's actual params (for newly added defaults)
+        from ..core.neural_canvas.node_definitions import NODE_DEFINITIONS
+        default_params = NODE_DEFINITIONS.get(node.type, {}).get('params', {})
+        merged_params = {**default_params, **node.params}  # node.params override defaults
 
         # Create entity data for Inspector
         entity_data = {
             'id': node.id,
             'name': node.name,
             'type': node.type.value,
-            'params': node.params,
+            'params': merged_params,
             'weights': {
                 name: {
                     'shape': list(weight.shape),
@@ -2376,6 +2358,27 @@ class MainWindow(QMainWindow):
 
         # Load into Inspector as a "neural_node" entity type
         self.inspector.load_entity('neural_node', entity_data)
+
+    def _on_neural_canvas_param_changed(self, node_id: str, param_name: str, new_value):
+        """Handle param change from Neural Canvas (e.g., slider drag) - update Inspector live."""
+        # Check if Inspector is currently showing this node
+        if not hasattr(self.inspector, '_current_neural_node_id'):
+            return
+        if self.inspector._current_neural_node_id != node_id:
+            return
+
+        # Update the Inspector's displayed value
+        self.inspector.update_neural_node_param(param_name, new_value)
+
+    def _on_neural_canvas_graph_loaded(self):
+        """Handle new graph loaded in Neural Canvas - clear Inspector if showing a neural_node."""
+        # Check if Inspector is showing a neural_node
+        if hasattr(self.inspector, '_current_neural_node_id') and self.inspector._current_neural_node_id:
+            # Clear it since the old nodes no longer exist
+            self.inspector._current_neural_node_id = None
+            self.inspector._neural_node_param_widgets = {}
+            self.inspector.clear_inspector()
+            print("[MainWindow] Cleared Inspector - neural canvas graph loaded")
 
     def show_credits(self):
         """Show demo scene style credits with music."""
@@ -2513,7 +2516,7 @@ class MainWindow(QMainWindow):
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL
                 )
-            except:
+            except (FileNotFoundError, subprocess.SubprocessError):
                 pass
 
         # Open directly to API overview (immediately browsable)
@@ -2619,7 +2622,7 @@ class MainWindow(QMainWindow):
                 with open(config_file, 'r') as f:
                     settings = json.load(f)
                     return settings.get('rng_source', 'internal')
-            except:
+            except (FileNotFoundError, json.JSONDecodeError):
                 pass
         return 'internal'
 
@@ -2636,7 +2639,7 @@ class MainWindow(QMainWindow):
             try:
                 with open(config_file, 'r') as f:
                     settings = json.load(f)
-            except:
+            except (FileNotFoundError, json.JSONDecodeError):
                 pass
 
         settings['rng_source'] = rng_source
@@ -2700,11 +2703,11 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About NoodleSTUDIO",
-            "🧠 <b>NoodleSTUDIO</b><br>"
+            "<b>NoodleSTUDIO</b><br>"
             "Version 1.0.0-alpha<br><br>"
             "Professional IDE for Noodlings<br><br>"
-            "<b>Consilience, Inc.</b><br>"
+            "<b>Noodlings Project</b><br>"
             "Founded by Caitlyn Meeks<br><br>"
             "\"Movies are out. Noodlings are in.\"<br><br>"
-            "🚀 Built with PyQt6 & MLX"
+            "Built with PyQt6 and MLX"
         )

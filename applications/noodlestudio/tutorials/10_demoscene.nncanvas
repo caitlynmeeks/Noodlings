@@ -1,0 +1,353 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 10: Demoscene - Neural Shaders",
+  "description": "Drive GLSL shaders with neural network signals!\n\nTHE DEMOSCENE:\nIn the 80s/90s, hackers made stunning visuals on\nlimited hardware. Plasma, tunnels, fractals - all\ndriven by math functions like sine and time.\n\nNOW YOU CAN TOO:\n1. TIME node outputs elapsed seconds\n2. SINE transforms time into smooth oscillation\n3. NOISE adds organic randomness\n4. SHADER_VIS renders GLSL with your signals!\n\nTHE ARCHITECTURE:\n- Time drives the animation\n- Sine creates smooth waves\n- Multiply combines signals\n- Shader receives values as 'uniforms'\n\nTRY THIS:\n1. Watch the shader animate automatically\n2. Adjust SINE frequency for faster/slower waves\n3. Change NOISE scale for more chaos\n4. Edit the shader code in the Inspector!\n\nThis is how neural networks can drive generative art.",
+  "metadata": {
+    "created": "2025-12-19T22:00:00",
+    "modified": "2025-12-19T22:00:00",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 0
+  },
+  "nodes": [
+    {
+      "id": "time-1",
+      "type": "TIME",
+      "name": "Animation Clock",
+      "position": [
+        50,
+        100
+      ],
+      "params": {
+        "scale": 1.0,
+        "loop_duration": 0.0
+      },
+      "inputs": {},
+      "outputs": {
+        "time": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Time"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#1565C0",
+      "tags": [],
+      "description": "Outputs seconds since start"
+    },
+    {
+      "id": "sine-slow-1",
+      "type": "SINE",
+      "name": "Slow Wave",
+      "position": [
+        250,
+        50
+      ],
+      "params": {
+        "frequency": 0.5,
+        "amplitude": 1.0,
+        "phase": 0.0
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#2E7D32",
+      "tags": [],
+      "description": "Slow breathing wave (0.5 Hz)"
+    },
+    {
+      "id": "sine-fast-1",
+      "type": "SINE",
+      "name": "Fast Wave",
+      "position": [
+        250,
+        180
+      ],
+      "params": {
+        "frequency": 3.0,
+        "amplitude": 0.3,
+        "phase": 0.25
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#2E7D32",
+      "tags": [],
+      "description": "Fast shimmer wave (3 Hz)"
+    },
+    {
+      "id": "noise-1",
+      "type": "NOISE",
+      "name": "Chaos",
+      "position": [
+        250,
+        310
+      ],
+      "params": {
+        "noise_type": "uniform",
+        "scale": 0.1,
+        "seed": 0
+      },
+      "inputs": {
+        "shape": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": false,
+          "label": "Shape Hint"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Noise"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#5D4037",
+      "tags": [],
+      "description": "Random variation (scale 0.1)"
+    },
+    {
+      "id": "add-1",
+      "type": "ADD",
+      "name": "Mix Waves",
+      "position": [
+        450,
+        100
+      ],
+      "params": {},
+      "inputs": {
+        "a": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "A"
+        },
+        "b": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "B"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "A + B"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A4A4A",
+      "tags": [],
+      "description": "Combine slow + fast waves"
+    },
+    {
+      "id": "add-2",
+      "type": "ADD",
+      "name": "Add Noise",
+      "position": [
+        620,
+        180
+      ],
+      "params": {},
+      "inputs": {
+        "a": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "A"
+        },
+        "b": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "B"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "A + B"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A4A4A",
+      "tags": [],
+      "description": "Add organic randomness"
+    },
+    {
+      "id": "shader-1",
+      "type": "SHADER_VIS",
+      "name": "Plasma Display",
+      "position": [
+        820,
+        150
+      ],
+      "params": {
+        "shader_code": "#version 330 core\nout vec4 FragColor;\nuniform float time;\nuniform vec2 resolution;\nuniform float u_value;\n\nvoid main() {\n    vec2 uv = gl_FragCoord.xy / resolution;\n    \n    // Classic plasma with neural modulation\n    float v = 0.0;\n    v += sin((uv.x + time * 0.5) * 10.0);\n    v += sin((uv.y + time * 0.3) * 10.0);\n    v += sin((uv.x + uv.y + time) * 10.0);\n    v += sin(sqrt(uv.x * uv.x + uv.y * uv.y) * 10.0 + u_value * 6.28);\n    v /= 4.0;\n    \n    // Neural-controlled color cycling\n    vec3 col = vec3(\n        0.5 + 0.5 * sin(v * 3.14159 + u_value * 2.0),\n        0.5 + 0.5 * sin(v * 3.14159 + u_value * 2.0 + 2.0),\n        0.5 + 0.5 * sin(v * 3.14159 + u_value * 2.0 + 4.0)\n    );\n    \n    FragColor = vec4(col, 1.0);\n}",
+        "width": 256,
+        "height": 256,
+        "preset": "custom"
+      },
+      "inputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "required": false,
+          "label": "Uniform Value"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#00695C",
+      "tags": [],
+      "description": "GLSL plasma driven by neural signals!"
+    },
+    {
+      "id": "chart-1",
+      "type": "OUTPUT_CHART",
+      "name": "Signal Monitor",
+      "position": [
+        820,
+        380
+      ],
+      "params": {
+        "history_length": 100,
+        "min_value": -2.0,
+        "max_value": 2.0,
+        "auto_scale": true
+      },
+      "inputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "required": true,
+          "label": "Value"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A6A",
+      "tags": [],
+      "description": "Watch the combined signal"
+    },
+    {
+      "id": "comment-1",
+      "type": "COMMENT",
+      "name": "Demoscene Tutorial",
+      "position": [
+        50,
+        380
+      ],
+      "params": {
+        "text": "SIGNAL FLOW:\nTime -> Sine waves -> Mix -> Shader\n\nThe u_value uniform controls\ncolor cycling in the plasma.\n\nEdit shader_code in Inspector\nto create your own effects!",
+        "width": 220,
+        "collapsed": false,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A3A3A",
+      "tags": [],
+      "description": "Floating explanatory text"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "time-1",
+      "from_port": "time",
+      "to_node": "sine-slow-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "time-1",
+      "from_port": "time",
+      "to_node": "sine-fast-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "sine-slow-1",
+      "from_port": "out",
+      "to_node": "add-1",
+      "to_port": "a"
+    },
+    {
+      "from_node": "sine-fast-1",
+      "from_port": "out",
+      "to_node": "add-1",
+      "to_port": "b"
+    },
+    {
+      "from_node": "add-1",
+      "from_port": "out",
+      "to_node": "add-2",
+      "to_port": "a"
+    },
+    {
+      "from_node": "noise-1",
+      "from_port": "out",
+      "to_node": "add-2",
+      "to_port": "b"
+    },
+    {
+      "from_node": "add-2",
+      "from_port": "out",
+      "to_node": "shader-1",
+      "to_port": "value"
+    },
+    {
+      "from_node": "add-2",
+      "from_port": "out",
+      "to_node": "chart-1",
+      "to_port": "value"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": true,
+    "onnx": false
+  }
+}

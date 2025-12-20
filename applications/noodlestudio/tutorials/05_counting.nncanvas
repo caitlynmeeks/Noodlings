@@ -1,0 +1,246 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 5: Learning to Count",
+  "description": "LSTM can count pulses over long sequences!\n\nUNLIKE the simple RNN which forgets after ~10 steps,\nLSTM has a CELL STATE that acts as long-term memory.\n\nTHE LSTM GATES:\n- Forget Gate: What to erase from memory\n- Input Gate: What new info to store\n- Output Gate: What to output from memory\n\nThese gates let LSTM decide what to remember and what to forget.\n\nTRY THIS:\n1. Click the Pulse button to send a 1.0\n2. Watch the counter increment\n3. Keep clicking - LSTM keeps counting!\n4. Reset states to start over\n\nThis is how LSTMs can track things over hundreds of steps -\nthe cell state maintains information the gates decide to keep.\n\nReal-world use: This is how language models remember context\nacross long documents.",
+  "metadata": {
+    "created": "2025-12-19T20:50:00",
+    "modified": "2025-12-19T20:50:00",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 0
+  },
+  "nodes": [
+    {
+      "id": "pulse-input-1",
+      "type": "PULSE_INPUT",
+      "name": "Pulse!",
+      "position": [
+        50,
+        150
+      ],
+      "params": {
+        "pulse_active": false,
+        "pulse_duration": 1
+      },
+      "inputs": {},
+      "outputs": {
+        "pulse": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Pulse"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#6A4A6A",
+      "tags": [],
+      "description": "Click to send a pulse (1.0)!"
+    },
+    {
+      "id": "lstm-counter-1",
+      "type": "LSTM",
+      "name": "LSTM Counter",
+      "position": [
+        280,
+        150
+      ],
+      "params": {
+        "input_dim": 1,
+        "hidden_dim": 8,
+        "dropout": 0.0,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        },
+        "h": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Hidden"
+        },
+        "c": {
+          "data_type": "CELL_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Cell"
+        }
+      },
+      "outputs": {
+        "h_out": {
+          "data_type": "HIDDEN_STATE",
+          "shape": [
+            8
+          ],
+          "label": "Hidden"
+        },
+        "c_out": {
+          "data_type": "CELL_STATE",
+          "shape": [
+            8
+          ],
+          "label": "Cell"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A2A4A",
+      "tags": [],
+      "description": "Long Short-Term Memory - the cell state remembers!"
+    },
+    {
+      "id": "linear-count-1",
+      "type": "LINEAR",
+      "name": "Count Projection",
+      "position": [
+        510,
+        150
+      ],
+      "params": {
+        "in_features": 8,
+        "out_features": 1,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": [
+            1
+          ],
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "Project 8D hidden to count"
+    },
+    {
+      "id": "counter-out-1",
+      "type": "COUNTER_OUTPUT",
+      "name": "Count",
+      "position": [
+        740,
+        150
+      ],
+      "params": {
+        "scale": 10.0,
+        "offset": 0.0
+      },
+      "inputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "required": true,
+          "label": "Value"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#6A6A4A",
+      "tags": [],
+      "description": "Displays the pulse count"
+    },
+    {
+      "id": "chart-count-1",
+      "type": "OUTPUT_CHART",
+      "name": "Count Over Time",
+      "position": [
+        740,
+        320
+      ],
+      "params": {
+        "history_length": 50,
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "auto_scale": true
+      },
+      "inputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "required": true,
+          "label": "Value"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A6A",
+      "tags": [],
+      "description": "Watch the count increase over time"
+    },
+    {
+      "id": "comment-0e6a8e26-ea88-4bb3-bbd7-bea5e2924344",
+      "type": "COMMENT",
+      "name": "Welcome",
+      "position": [
+        50,
+        50
+      ],
+      "params": {
+        "text": "# Counting Network - Learning to Count\n\nCan a neural network learn to count? Let's find out!\n\n## To Do and Notice\n\n1. **Sequence processing**: How does the network handle different length inputs?\n2. **State accumulation**: Watch the hidden state grow with each input\n3. **The output**: Does it accurately count?\n\n## Why Counting is Hard\n\nCounting seems simple but requires:\n- Memory (how many so far?)\n- Increment operation\n- Generalization to unseen lengths\n\n**Challenge**: What's the maximum count this network can handle accurately?",
+        "width": 450,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Tutorial introduction"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "pulse-input-1",
+      "from_port": "pulse",
+      "to_node": "lstm-counter-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "lstm-counter-1",
+      "from_port": "h_out",
+      "to_node": "linear-count-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "linear-count-1",
+      "from_port": "out",
+      "to_node": "counter-out-1",
+      "to_port": "value"
+    },
+    {
+      "from_node": "linear-count-1",
+      "from_port": "out",
+      "to_node": "chart-count-1",
+      "to_port": "value"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": true,
+    "onnx": false
+  }
+}

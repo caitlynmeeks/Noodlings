@@ -1528,6 +1528,12 @@ class InspectorPanel(QWidget):
                 self.entity_header.setText(f"Zone: {zone_name}")
                 self.load_zone_properties(entity_data)
 
+            elif entity_type == 'neural_node':
+                node_name = entity_data.get('name', 'Unknown Node')
+                node_type = entity_data.get('type', 'UNKNOWN')
+                self.entity_header.setText(f"Node: {node_name}")
+                self.load_neural_node_properties(entity_data)
+
         finally:
             # ALWAYS clear loading flag, even on error
             self.is_loading = False
@@ -1689,6 +1695,267 @@ class InspectorPanel(QWidget):
             self.properties_layout.addWidget(file_group)
 
         self.properties_layout.addStretch()
+
+    def load_neural_node_properties(self, entity_data):
+        """
+        Show Neural Canvas node properties for editing.
+
+        Allows editing node params including comment text.
+        Changes are synced back to the canvas graph.
+        """
+        node_id = entity_data.get('id', '')
+        node_type = entity_data.get('type', 'UNKNOWN')
+        node_name = entity_data.get('name', 'Unknown')
+        params = entity_data.get('params', {})
+        weights = entity_data.get('weights', {})
+        inputs = entity_data.get('inputs', {})
+        outputs = entity_data.get('outputs', {})
+        position = entity_data.get('position', (0, 0))
+        description = entity_data.get('description', '')
+
+        # Store node_id for save operations
+        self._current_neural_node_id = node_id
+
+        # Track param widgets for live updates from canvas
+        self._neural_node_param_widgets = {}
+
+        # Basic Info Component
+        basic_group = self.create_property_group("Basic Info")
+
+        # Name (editable)
+        name_field = QLineEdit(node_name)
+        name_field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+        name_field.editingFinished.connect(lambda: self._save_neural_node_field('name', name_field.text()))
+        basic_group.content.layout().addRow("Name:", name_field)
+
+        # Type (read-only)
+        type_label = QLabel(node_type)
+        type_label.setStyleSheet("color: #888; padding: 4px;")
+        basic_group.content.layout().addRow("Type:", type_label)
+
+        # ID (read-only)
+        id_label = QLabel(node_id[:16] + "..." if len(node_id) > 16 else node_id)
+        id_label.setStyleSheet("color: #666; font-size: 10px; padding: 4px;")
+        id_label.setToolTip(node_id)
+        basic_group.content.layout().addRow("ID:", id_label)
+
+        # Position (read-only)
+        pos_label = QLabel(f"({position[0]}, {position[1]})")
+        pos_label.setStyleSheet("color: #888; padding: 4px;")
+        basic_group.content.layout().addRow("Position:", pos_label)
+
+        self.properties_layout.addWidget(basic_group)
+
+        # Parameters Component (editable)
+        if params:
+            params_group = self.create_property_group("Parameters")
+
+            for param_name, param_value in params.items():
+                if param_name == 'text':
+                    # Multi-line text field for COMMENT nodes
+                    text_edit = ClickableTextEdit(
+                        field_name=param_name,
+                        on_apply_callback=lambda val, pn=param_name: self._save_neural_node_param(pn, val)
+                    )
+                    text_edit.setPlainText(str(param_value))
+                    text_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+                    text_edit.setMinimumHeight(150)
+                    text_edit.setMaximumHeight(300)
+                    text_edit.textChanged.connect(
+                        lambda te=text_edit, pn=param_name: self._save_neural_node_param(pn, te.toPlainText())
+                    )
+                    params_group.content.layout().addRow("Text:", text_edit)
+                    self._neural_node_param_widgets[param_name] = text_edit
+
+                elif isinstance(param_value, bool):
+                    # Boolean as checkbox
+                    from PyQt6.QtWidgets import QCheckBox
+                    checkbox = QCheckBox()
+                    checkbox.setChecked(param_value)
+                    checkbox.stateChanged.connect(
+                        lambda state, pn=param_name: self._save_neural_node_param(pn, state == 2)
+                    )
+                    # Prettier labels for known params
+                    label_map = {
+                        'show_on_start': 'Show on Start',
+                    }
+                    label = label_map.get(param_name, param_name)
+                    params_group.content.layout().addRow(f"{label}:", checkbox)
+                    self._neural_node_param_widgets[param_name] = checkbox
+
+                elif isinstance(param_value, (int, float)):
+                    # Numeric field
+                    if isinstance(param_value, int):
+                        spin = QSpinBox()
+                        spin.setRange(-99999, 99999)
+                        spin.setValue(param_value)
+                        spin.valueChanged.connect(
+                            lambda val, pn=param_name: self._save_neural_node_param(pn, val)
+                        )
+                    else:
+                        spin = QDoubleSpinBox()
+                        spin.setRange(-99999.0, 99999.0)
+                        spin.setDecimals(3)
+                        spin.setValue(param_value)
+                        spin.valueChanged.connect(
+                            lambda val, pn=param_name: self._save_neural_node_param(pn, val)
+                        )
+                    spin.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 2px;")
+                    params_group.content.layout().addRow(f"{param_name}:", spin)
+                    self._neural_node_param_widgets[param_name] = spin
+
+                else:
+                    # String field
+                    field = QLineEdit(str(param_value))
+                    field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+                    field.editingFinished.connect(
+                        lambda f=field, pn=param_name: self._save_neural_node_param(pn, f.text())
+                    )
+                    params_group.content.layout().addRow(f"{param_name}:", field)
+                    self._neural_node_param_widgets[param_name] = field
+
+            self.properties_layout.addWidget(params_group)
+
+        # Weights Component (read-only)
+        if weights:
+            weights_group = self.create_property_group("Weights")
+            total_params = 0
+            for weight_name, weight_info in weights.items():
+                shape = weight_info.get('shape', [])
+                trainable = weight_info.get('trainable', True)
+                num_params = weight_info.get('num_params', 0)
+                total_params += num_params
+
+                shape_str = "x".join(str(d) for d in shape)
+                trainable_str = " (trainable)" if trainable else " (frozen)"
+                label = QLabel(f"{weight_name}: [{shape_str}] = {num_params} params{trainable_str}")
+                label.setStyleSheet("color: #888; padding: 2px;")
+                weights_group.content.layout().addRow(label)
+
+            total_label = QLabel(f"Total: {total_params} parameters")
+            total_label.setStyleSheet("color: #D2D2D2; font-weight: bold; padding: 4px;")
+            weights_group.content.layout().addRow(total_label)
+            self.properties_layout.addWidget(weights_group)
+
+        # Inputs/Outputs Component (read-only)
+        if inputs or outputs:
+            ports_group = self.create_property_group("Ports")
+
+            if inputs:
+                inputs_label = QLabel("Inputs:")
+                inputs_label.setStyleSheet("color: #D2D2D2; font-weight: bold; padding: 2px;")
+                ports_group.content.layout().addRow(inputs_label)
+                for port_name, port_info in inputs.items():
+                    port_label = QLabel(f"  {port_name}: {port_info}")
+                    port_label.setStyleSheet("color: #888; padding: 2px;")
+                    ports_group.content.layout().addRow(port_label)
+
+            if outputs:
+                outputs_label = QLabel("Outputs:")
+                outputs_label.setStyleSheet("color: #D2D2D2; font-weight: bold; padding: 2px;")
+                ports_group.content.layout().addRow(outputs_label)
+                for port_name, port_info in outputs.items():
+                    port_label = QLabel(f"  {port_name}: {port_info}")
+                    port_label.setStyleSheet("color: #888; padding: 2px;")
+                    ports_group.content.layout().addRow(port_label)
+
+            self.properties_layout.addWidget(ports_group)
+
+        # Description (if present)
+        if description:
+            desc_group = self.create_property_group("Description")
+            desc_label = QLabel(description)
+            desc_label.setStyleSheet("color: #888; padding: 4px;")
+            desc_label.setWordWrap(True)
+            desc_group.content.layout().addRow(desc_label)
+            self.properties_layout.addWidget(desc_group)
+
+        self.properties_layout.addStretch()
+
+    def _save_neural_node_field(self, field_name: str, value):
+        """Save a basic field (name) to the neural node."""
+        if not hasattr(self, '_current_neural_node_id'):
+            return
+
+        node_id = self._current_neural_node_id
+
+        # Get main window reference
+        main_window = self.window()
+        if not hasattr(main_window, 'neural_canvas'):
+            return
+
+        node = main_window.neural_canvas.graph.get_node_by_id(node_id)
+        if not node:
+            return
+
+        if field_name == 'name':
+            node.name = value
+
+        # Signal canvas to refresh (also emits graph_modified for auto-save)
+        main_window.neural_canvas.canvas_view.refresh_nodes()
+        print(f"[Inspector] Neural node {field_name} updated: {value}")
+
+    def _save_neural_node_param(self, param_name: str, value):
+        """Save a parameter value to the neural node."""
+        if not hasattr(self, '_current_neural_node_id'):
+            return
+
+        node_id = self._current_neural_node_id
+
+        # Get main window reference
+        main_window = self.window()
+        if not hasattr(main_window, 'neural_canvas'):
+            return
+
+        node = main_window.neural_canvas.graph.get_node_by_id(node_id)
+        if not node:
+            return
+
+        # Special handling for show_on_start - only one COMMENT can have it
+        if param_name == 'show_on_start' and value is True:
+            from ...core.neural_canvas.neural_node import NodeType
+            # Uncheck all other COMMENT nodes
+            for other_id, other_node in main_window.neural_canvas.graph.nodes.items():
+                if other_id != node_id and other_node.type == NodeType.COMMENT:
+                    if other_node.params.get('show_on_start', False):
+                        other_node.params['show_on_start'] = False
+
+        # Update param
+        node.params[param_name] = value
+
+        # Signal canvas to refresh (also emits graph_modified for auto-save)
+        main_window.neural_canvas.canvas_view.refresh_nodes()
+        print(f"[Inspector] Neural node param '{param_name}' updated")
+
+    def update_neural_node_param(self, param_name: str, new_value):
+        """
+        Update a displayed param value in the Inspector (called externally).
+
+        Used when canvas slider changes to sync the Inspector's widget.
+        """
+        if not hasattr(self, '_neural_node_param_widgets'):
+            return
+
+        widget = self._neural_node_param_widgets.get(param_name)
+        if not widget:
+            return
+
+        # Block signals to prevent feedback loop
+        widget.blockSignals(True)
+        try:
+            from PyQt6.QtWidgets import QCheckBox
+            if isinstance(widget, QDoubleSpinBox):
+                widget.setValue(float(new_value))
+            elif isinstance(widget, QSpinBox):
+                widget.setValue(int(new_value))
+            elif isinstance(widget, QCheckBox):
+                widget.setChecked(bool(new_value))
+            elif isinstance(widget, QLineEdit):
+                widget.setText(str(new_value))
+            elif isinstance(widget, QTextEdit):
+                widget.setPlainText(str(new_value))
+        finally:
+            widget.blockSignals(False)
 
     def _save_collapsible_states(self):
         """
@@ -2506,7 +2773,6 @@ class InspectorPanel(QWidget):
 
         # Track widget and wire state change to save
         comp_widgets['enabled'] = enabled_checkbox
-        # DISABLED FOR DEBUG: enabled_checkbox.stateChanged.connect(lambda: self.save_component_changes(agent_id, component_id))
 
         section.add_widget(enabled_checkbox)
 
@@ -2530,20 +2796,8 @@ class InspectorPanel(QWidget):
             }
         """)
 
-        # Track widget and wire focusOutEvent to save
+        # Track widget
         comp_widgets['prompt_template'] = prompt_edit
-
-        # DISABLED FOR DEBUG
-        # def create_prompt_handler(edit_widget, ag_id, comp_id):
-        #     """Create focusOut handler for prompt template field."""
-        #     original_focus_out = edit_widget.focusOutEvent
-        #     def custom_focus_out(event):
-        #         self.save_component_changes(ag_id, comp_id)
-        #         if original_focus_out:
-        #             original_focus_out(event)
-        #     edit_widget.focusOutEvent = custom_focus_out
-        #
-        # create_prompt_handler(prompt_edit, agent_id, component_id)
 
         section.add_widget(prompt_edit)
 
@@ -2570,33 +2824,18 @@ class InspectorPanel(QWidget):
                 if isinstance(param_value, bool):
                     param_widget = QCheckBox()
                     param_widget.setChecked(param_value)
-                    # DISABLED FOR DEBUG: Wire stateChanged to save
-                    # param_widget.stateChanged.connect(lambda state, ag_id=agent_id, comp_id=component_id: self.save_component_changes(ag_id, comp_id))
                 elif isinstance(param_value, float):
                     param_widget = QDoubleSpinBox()
                     param_widget.setValue(param_value)
                     param_widget.setRange(0.0, 10.0)
                     param_widget.setSingleStep(0.1)
                     param_widget.setDecimals(2)
-                    # DISABLED FOR DEBUG: Wire valueChanged to save
-                    # param_widget.valueChanged.connect(lambda value, ag_id=agent_id, comp_id=component_id: self.save_component_changes(ag_id, comp_id))
                 elif isinstance(param_value, int):
                     param_widget = QSpinBox()
                     param_widget.setValue(param_value)
                     param_widget.setRange(0, 1000)
-                    # DISABLED FOR DEBUG: Wire valueChanged to save
-                    # param_widget.valueChanged.connect(lambda value, ag_id=agent_id, comp_id=component_id: self.save_component_changes(ag_id, comp_id))
                 else:
                     param_widget = QLineEdit(str(param_value))
-                    # DISABLED FOR DEBUG: Wire focusOutEvent to save
-                    # def create_param_handler(edit_widget, ag_id, comp_id):
-                    #     original_focus_out = edit_widget.focusOutEvent
-                    #     def custom_focus_out(event):
-                    #         self.save_component_changes(ag_id, comp_id)
-                    #         if original_focus_out:
-                    #             original_focus_out(event)
-                    #     edit_widget.focusOutEvent = custom_focus_out
-                    # create_param_handler(param_widget, agent_id, component_id)
 
                 param_widget.setStyleSheet("""
                     QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox {

@@ -441,8 +441,9 @@ class FacetNodeGraphics(QGraphicsRectItem):
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             # Apply grid snapping if enabled
             new_pos = value
-            if self.scene() and hasattr(self.scene().views()[0].parent(), 'snap_to_grid'):
-                editor = self.scene().views()[0].parent()
+            views = self.scene().views() if self.scene() else []
+            if views and hasattr(views[0].parent(), 'snap_to_grid'):
+                editor = views[0].parent()
                 if editor.snap_to_grid:
                     grid = editor.grid_size
                     snapped_x = round(new_pos.x() / grid) * grid

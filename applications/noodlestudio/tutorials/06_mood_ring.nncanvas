@@ -1,0 +1,263 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 6: The Mood Ring",
+  "description": "See how neural networks map text to continuous affect!\n\nThis network converts words into a 5-DIMENSIONAL AFFECT SPACE:\n- Valence: Pleasure (-1 to +1)\n- Arousal: Energy level (0 to 1)\n- Dominance: Control (0 to 1)\n- Sorrow: Sadness (0 to 1)\n- Boredom: Disinterest (0 to 1)\n\nWHY CONTINUOUS AFFECT?\nDiscrete emotion labels (happy, sad, angry) are too simple.\nReal feelings blend and shift continuously.\n\nTRY THESE WORDS:\n- happy, joy, love -> High valence, moderate arousal\n- sad, crying, grief -> Low valence, high sorrow\n- angry, furious, rage -> Low valence, HIGH arousal\n- calm, peaceful, serene -> Neutral valence, LOW arousal\n- bored, tedious, dull -> High boredom\n\nTHIS IS THE NOODLINGS AFFECT MODEL!\nEvery noodling's emotional state lives in this 5D space.",
+  "metadata": {
+    "created": "2025-12-19T21:00:00.000000",
+    "modified": "2025-12-19T21:00:00.000000",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 200
+  },
+  "nodes": [
+    {
+      "id": "text-input-1",
+      "type": "TEXT_INPUT",
+      "name": "How do you feel?",
+      "position": [
+        50,
+        150
+      ],
+      "params": {
+        "text": "happy",
+        "max_length": 200
+      },
+      "inputs": {},
+      "outputs": {
+        "text": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Text"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A5A4A",
+      "tags": [],
+      "description": "Type emotion words: happy, sad, angry, calm, bored..."
+    },
+    {
+      "id": "embed-1",
+      "type": "SIMPLE_EMBED",
+      "name": "Word Encoder",
+      "position": [
+        280,
+        150
+      ],
+      "params": {
+        "output_dim": 8
+      },
+      "inputs": {
+        "text": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Text"
+        }
+      },
+      "outputs": {
+        "embedding": {
+          "data_type": "TENSOR",
+          "shape": [
+            8
+          ],
+          "label": "Embedding"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A4A5A",
+      "tags": [],
+      "description": "Converts text to 8D embedding"
+    },
+    {
+      "id": "linear-hidden-1",
+      "type": "LINEAR",
+      "name": "Hidden Layer",
+      "position": [
+        480,
+        150
+      ],
+      "params": {
+        "in_features": 8,
+        "out_features": 8,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": [
+            8
+          ],
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "Transform embedding"
+    },
+    {
+      "id": "tanh-1",
+      "type": "TANH",
+      "name": "Activation",
+      "position": [
+        680,
+        150
+      ],
+      "params": {},
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A3A3A",
+      "tags": [],
+      "description": "Non-linearity"
+    },
+    {
+      "id": "linear-affect-1",
+      "type": "LINEAR",
+      "name": "To Affect",
+      "position": [
+        880,
+        150
+      ],
+      "params": {
+        "in_features": 8,
+        "out_features": 5,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": [
+            5
+          ],
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "Project to 5D affect"
+    },
+    {
+      "id": "affect-vis-1",
+      "type": "AFFECT_VIS",
+      "name": "Your Mood",
+      "position": [
+        1100,
+        150
+      ],
+      "params": {
+        "show_labels": true,
+        "show_values": true
+      },
+      "inputs": {
+        "affect": {
+          "data_type": "AFFECT",
+          "shape": [
+            5
+          ],
+          "required": true,
+          "label": "Affect (5-D)"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A4A",
+      "tags": [],
+      "description": "Pentagon showing valence, arousal, dominance, sorrow, boredom"
+    },
+    {
+      "id": "comment-83067229-4103-40bb-9105-1f753cbd0e6d",
+      "type": "COMMENT",
+      "name": "Welcome",
+      "position": [
+        50,
+        50
+      ],
+      "params": {
+        "text": "# Mood Ring - Affect from Text\n\nThis network maps text features to emotional valence.\n\n## To Do and Notice\n\n1. **Input features**: Word embeddings capture meaning\n2. **Hidden processing**: The network learns emotional patterns\n3. **Output**: A continuous valence value (-1 to +1)\n\n## Affect in Noodlings\n\nNoodlings use continuous affect (PAD model):\n- **P**leasure (valence)\n- **A**rousal (energy)\n- **D**ominance (control)\n\nPlus boredom and sorrow for richer expression.\n\n**Challenge**: What makes the network predict positive vs negative?",
+        "width": 450,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Tutorial introduction"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "text-input-1",
+      "from_port": "text",
+      "to_node": "embed-1",
+      "to_port": "text"
+    },
+    {
+      "from_node": "embed-1",
+      "from_port": "embedding",
+      "to_node": "linear-hidden-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "linear-hidden-1",
+      "from_port": "out",
+      "to_node": "tanh-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "tanh-1",
+      "from_port": "out",
+      "to_node": "linear-affect-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "linear-affect-1",
+      "from_port": "out",
+      "to_node": "affect-vis-1",
+      "to_port": "affect"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": true,
+    "onnx": false
+  }
+}

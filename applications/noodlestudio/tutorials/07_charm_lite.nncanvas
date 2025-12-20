@@ -1,0 +1,275 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 7: Mood Persistence (CharmNetwork Lite)",
+  "description": "See how LSTM smooths mood transitions over time!\n\nWHY THIS MATTERS:\nMood doesn't jump instantly. If you're happy and something\nsad happens, you don't immediately become sad - there's\na transition period.\n\nTHIS IS THE CORE OF CHARMNETWORK!\nThe LSTM's hidden state carries 'emotional momentum':\n- Quick spikes get smoothed\n- Sustained input shifts mood gradually\n- Reset states = instant mood change (unrealistic!)\n\nTRY THIS:\n1. Input high valence (happy) for several steps\n2. Watch affect visualization respond\n3. Switch to low valence (sad)\n4. Watch the GRADUAL transition\n5. Compare to instant reset - feels robotic!\n\nThis is why Noodlings feel more alive - their emotions\nhave inertia, just like ours.",
+  "metadata": {
+    "created": "2025-12-19T21:05:00.000000",
+    "modified": "2025-12-19T21:15:00.000000",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 2000
+  },
+  "nodes": [
+    {
+      "id": "affect-input-1",
+      "type": "INPUT",
+      "name": "Affect Input",
+      "position": [
+        50,
+        180
+      ],
+      "params": {
+        "output_dim": 5
+      },
+      "inputs": {},
+      "outputs": {
+        "affect": {
+          "data_type": "AFFECT",
+          "shape": [
+            5
+          ],
+          "label": "Affect (5-D)"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#2A4A2A",
+      "tags": [],
+      "description": "5D affect input: [valence, arousal, dominance, sorrow, boredom]"
+    },
+    {
+      "id": "lstm-mood-1",
+      "type": "LSTM",
+      "name": "Mood Memory",
+      "position": [
+        300,
+        180
+      ],
+      "params": {
+        "input_dim": 5,
+        "hidden_dim": 16,
+        "dropout": 0.0,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        },
+        "h": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Hidden"
+        },
+        "c": {
+          "data_type": "CELL_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Cell"
+        }
+      },
+      "outputs": {
+        "h_out": {
+          "data_type": "HIDDEN_STATE",
+          "shape": [
+            16
+          ],
+          "label": "Hidden"
+        },
+        "c_out": {
+          "data_type": "CELL_STATE",
+          "shape": [
+            16
+          ],
+          "label": "Cell"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A2A4A",
+      "tags": [],
+      "description": "LSTM carries emotional momentum - smooths transitions"
+    },
+    {
+      "id": "affect-head-1",
+      "type": "AFFECT_HEAD",
+      "name": "Affect Head",
+      "position": [
+        550,
+        180
+      ],
+      "params": {
+        "state_dim": 16,
+        "affect_dim": 5,
+        "hidden_dim": 16
+      },
+      "inputs": {
+        "state": {
+          "data_type": "PHENOMENAL_STATE",
+          "shape": [
+            16
+          ],
+          "required": true,
+          "label": "State"
+        }
+      },
+      "outputs": {
+        "valence": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Valence"
+        },
+        "arousal": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Arousal"
+        },
+        "dominance": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Dominance"
+        },
+        "sorrow": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Sorrow"
+        },
+        "boredom": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Boredom"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A3A2A",
+      "tags": [],
+      "description": "Maps LSTM state to 5D affect output"
+    },
+    {
+      "id": "affect-vis-1",
+      "type": "AFFECT_VIS",
+      "name": "Smoothed Mood",
+      "position": [
+        820,
+        180
+      ],
+      "params": {
+        "show_labels": true,
+        "show_values": true
+      },
+      "inputs": {
+        "affect": {
+          "data_type": "AFFECT",
+          "shape": [
+            5
+          ],
+          "required": true,
+          "label": "Affect (5-D)"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A4A",
+      "tags": [],
+      "description": "Watch mood smooth over time!"
+    },
+    {
+      "id": "chart-mood-1",
+      "type": "OUTPUT_CHART",
+      "name": "Valence Over Time",
+      "position": [
+        820,
+        350
+      ],
+      "params": {
+        "history_length": 30,
+        "min_value": -1.0,
+        "max_value": 1.0,
+        "auto_scale": false
+      },
+      "inputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "required": true,
+          "label": "Value"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A6A",
+      "tags": [],
+      "description": "Track valence smoothing over time"
+    },
+    {
+      "id": "comment-d24e2464-4c49-4ae1-a86f-9589bb259655",
+      "type": "COMMENT",
+      "name": "Welcome",
+      "position": [
+        50,
+        50
+      ],
+      "params": {
+        "text": "# CharmLite - A Minimal Affective Network\n\nThis is a stripped-down version of Noodlings' CharmNetwork.\n\n## To Do and Notice\n\n1. **Multi-timescale**: Fast, medium, and slow processing paths\n2. **Temporal hierarchy**: Different rates of change\n3. **Affect head**: Outputs continuous PAD values\n\n## The CharmNetwork Architecture\n\nFull CharmNetwork has:\n- Fast LSTM (16-D): Seconds - immediate reactions\n- Medium LSTM (16-D): Minutes - mood\n- Slow GRU (8-D): Hours/days - personality drift\n\n~54K parameters, ~2-3ms inference.\n\n**Challenge**: Trace how a single input affects all three timescales.",
+        "width": 450,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Tutorial introduction"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "affect-input-1",
+      "from_port": "affect",
+      "to_node": "lstm-mood-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "lstm-mood-1",
+      "from_port": "h_out",
+      "to_node": "affect-head-1",
+      "to_port": "state"
+    },
+    {
+      "from_node": "affect-head-1",
+      "from_port": "affect",
+      "to_node": "affect-vis-1",
+      "to_port": "affect"
+    },
+    {
+      "from_node": "affect-head-1",
+      "from_port": "valence",
+      "to_node": "chart-mood-1",
+      "to_port": "value"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": true,
+    "onnx": false
+  }
+}

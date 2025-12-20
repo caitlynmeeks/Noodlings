@@ -17,11 +17,173 @@ Date: November 28, 2025
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QPushButton,
-    QLabel, QGraphicsProxyWidget, QMessageBox, QWidget
+    QLabel, QGraphicsProxyWidget, QMessageBox, QWidget, QTextBrowser
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPointF, QSettings
 from PyQt6.QtGui import QFont, QColor, QPalette, QMouseEvent
 from typing import Optional, Callable
+import re
+import html as html_module
+
+
+def markdown_to_html(text: str, base_font_size: int = 14) -> str:
+    """
+    Convert markdown text to HTML for display in QTextBrowser.
+
+    Supports:
+    - Headers (# ## ###)
+    - Bold (**text** or __text__)
+    - Italic (*text* or _text_)
+    - Code blocks (``` or indented 4 spaces)
+    - Inline code (`code`)
+    - Lists (- item or * item or numbered)
+    - Images (![alt](src))
+    - Links ([text](url))
+    - Blockquotes (> text)
+    - Horizontal rules (--- or ***)
+
+    Args:
+        text: Markdown text to convert
+        base_font_size: Base font size in pixels (default 14)
+    """
+    # Scale other sizes relative to base
+    code_font_size = max(base_font_size - 1, 10)
+    # Escape HTML first (but we'll unescape our markdown conversions)
+    lines = text.split('\n')
+    html_lines = []
+    in_code_block = False
+    in_list = False
+    list_type = None  # 'ul' or 'ol'
+
+    for line in lines:
+        # Code blocks (```)
+        if line.strip().startswith('```'):
+            if in_code_block:
+                html_lines.append('</code></pre>')
+                in_code_block = False
+            else:
+                if in_list:
+                    html_lines.append(f'</{list_type}>')
+                    in_list = False
+                html_lines.append(f'<pre style="background: #1e1e1e; padding: 12px; border-radius: 4px; overflow-x: auto;"><code style="color: #98c379; font-family: Monaco, Consolas, monospace; font-size: {code_font_size}px;">')
+                in_code_block = True
+            continue
+
+        if in_code_block:
+            html_lines.append(html_module.escape(line))
+            continue
+
+        stripped = line.strip()
+
+        # Empty lines
+        if not stripped:
+            if in_list:
+                html_lines.append(f'</{list_type}>')
+                in_list = False
+            html_lines.append('<br/>')
+            continue
+
+        # Horizontal rules
+        if re.match(r'^[-*_]{3,}$', stripped):
+            if in_list:
+                html_lines.append(f'</{list_type}>')
+                in_list = False
+            html_lines.append('<hr style="border: none; border-top: 1px solid #444; margin: 16px 0;"/>')
+            continue
+
+        # Headers
+        header_match = re.match(r'^(#{1,6})\s+(.+)$', stripped)
+        if header_match:
+            if in_list:
+                html_lines.append(f'</{list_type}>')
+                in_list = False
+            level = len(header_match.group(1))
+            header_text = _inline_markdown(header_match.group(2), code_font_size)
+            # Scale header sizes relative to base (ratios: 1.7, 1.4, 1.3, 1.15, 1.0, 0.9)
+            header_scales = {1: 1.7, 2: 1.4, 3: 1.3, 4: 1.15, 5: 1.0, 6: 0.9}
+            header_size = int(base_font_size * header_scales[level])
+            html_lines.append(f'<h{level} style="color: #8ab4f8; margin: 16px 0 8px 0; font-size: {header_size}px; font-weight: 600;">{header_text}</h{level}>')
+            continue
+
+        # Blockquotes
+        if stripped.startswith('>'):
+            if in_list:
+                html_lines.append(f'</{list_type}>')
+                in_list = False
+            quote_text = _inline_markdown(stripped[1:].strip(), code_font_size)
+            html_lines.append(f'<blockquote style="border-left: 3px solid #555; padding-left: 12px; margin: 8px 0; color: #aaa; font-style: italic;">{quote_text}</blockquote>')
+            continue
+
+        # Unordered lists
+        ul_match = re.match(r'^[-*+]\s+(.+)$', stripped)
+        if ul_match:
+            if not in_list or list_type != 'ul':
+                if in_list:
+                    html_lines.append(f'</{list_type}>')
+                html_lines.append('<ul style="margin: 8px 0; padding-left: 24px;">')
+                in_list = True
+                list_type = 'ul'
+            html_lines.append(f'<li style="margin: 4px 0;">{_inline_markdown(ul_match.group(1), code_font_size)}</li>')
+            continue
+
+        # Ordered lists
+        ol_match = re.match(r'^(\d+)[.)]\s+(.+)$', stripped)
+        if ol_match:
+            if not in_list or list_type != 'ol':
+                if in_list:
+                    html_lines.append(f'</{list_type}>')
+                html_lines.append('<ol style="margin: 8px 0; padding-left: 24px;">')
+                in_list = True
+                list_type = 'ol'
+            html_lines.append(f'<li style="margin: 4px 0;">{_inline_markdown(ol_match.group(2), code_font_size)}</li>')
+            continue
+
+        # Regular paragraph
+        if in_list:
+            html_lines.append(f'</{list_type}>')
+            in_list = False
+        html_lines.append(f'<p style="margin: 8px 0; line-height: 1.5;">{_inline_markdown(stripped, code_font_size)}</p>')
+
+    # Close any open blocks
+    if in_code_block:
+        html_lines.append('</code></pre>')
+    if in_list:
+        html_lines.append(f'</{list_type}>')
+
+    body = '\n'.join(html_lines)
+
+    return f'''
+    <html>
+    <body style="margin: 0; padding: 0; color: #e8e8e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: {base_font_size}px;">
+        {body}
+    </body>
+    </html>
+    '''
+
+
+def _inline_markdown(text: str, code_font_size: int = 13) -> str:
+    """Convert inline markdown (bold, italic, code, links, images) to HTML."""
+    # Escape HTML entities first
+    text = html_module.escape(text)
+
+    # Images: ![alt](src) - must come before links
+    text = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2" alt="\1" style="max-width: 100%; height: auto;"/>', text)
+
+    # Links: [text](url)
+    text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" style="color: #8ab4f8;">\1</a>', text)
+
+    # Bold: **text** or __text__
+    text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
+    text = re.sub(r'__([^_]+)__', r'<strong>\1</strong>', text)
+
+    # Italic: *text* or _text_ (but not inside words for _)
+    text = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', text)
+    text = re.sub(r'(?<!\w)_([^_]+)_(?!\w)', r'<em>\1</em>', text)
+
+    # Inline code: `code`
+    text = re.sub(r'`([^`]+)`', rf'<code style="background: #1e1e1e; padding: 2px 6px; border-radius: 3px; font-family: Monaco, monospace; font-size: {code_font_size}px; color: #98c379;">\1</code>', text)
+
+    return text
 
 
 class DoubleClickHeader(QLabel):
@@ -69,7 +231,7 @@ class FloatingTextEditor(QDialog):
     textApplied = pyqtSignal(str, str)  # field_key, new_value
 
     def __init__(self, field_name: str, field_key: str, initial_value: str,
-                 read_only: bool = False, parent=None):
+                 read_only: bool = False, render_markdown: bool = False, parent=None):
         """
         Initialize floating editor.
 
@@ -78,6 +240,7 @@ class FloatingTextEditor(QDialog):
             field_key: Field identifier (e.g., "prompt")
             initial_value: Current field value
             read_only: If True, field cannot be edited
+            render_markdown: If True and read_only, render content as markdown
             parent: Parent widget
         """
         super().__init__(parent)
@@ -85,6 +248,7 @@ class FloatingTextEditor(QDialog):
         self.field_key = field_key
         self.initial_value = initial_value
         self.read_only = read_only
+        self.render_markdown = render_markdown and read_only  # Only render markdown in read-only mode
 
         # Load saved font size preference
         settings = QSettings("NoodleStudio", "FloatingTextEditor")
@@ -158,22 +322,39 @@ class FloatingTextEditor(QDialog):
 
         layout.addWidget(header_widget)
 
-        # Text edit area
-        self.text_edit = QTextEdit()
-        self.text_edit.setPlainText(self.initial_value)
-        self.text_edit.setReadOnly(self.read_only)
-        self.text_edit.setStyleSheet("""
-            QTextEdit {
-                background-color: #2A2A2A;
-                color: #CCCCCC;
-                border: none;
-                font-family: Monaco, Consolas, monospace;
-                padding: 10px;
-                selection-background-color: #4A4A4A;
-            }
-        """)
-        # Apply saved font size
-        self.text_edit.setFont(QFont("Monaco", self.font_size))
+        # Text content area - use QTextBrowser for markdown, QTextEdit for editing
+        if self.render_markdown:
+            # Rendered markdown view (read-only, HTML display)
+            self.text_edit = QTextBrowser()
+            self.text_edit.setOpenExternalLinks(True)
+            html_content = markdown_to_html(self.initial_value, base_font_size=self.font_size)
+            self.text_edit.setHtml(html_content)
+            self.text_edit.setStyleSheet("""
+                QTextBrowser {
+                    background-color: #2A2A2A;
+                    color: #e8e8e0;
+                    border: none;
+                    padding: 16px;
+                    selection-background-color: #4A4A4A;
+                }
+            """)
+        else:
+            # Plain text editor
+            self.text_edit = QTextEdit()
+            self.text_edit.setPlainText(self.initial_value)
+            self.text_edit.setReadOnly(self.read_only)
+            self.text_edit.setStyleSheet("""
+                QTextEdit {
+                    background-color: #2A2A2A;
+                    color: #CCCCCC;
+                    border: none;
+                    font-family: Monaco, Consolas, monospace;
+                    padding: 10px;
+                    selection-background-color: #4A4A4A;
+                }
+            """)
+            # Apply saved font size (only for plain text mode)
+            self.text_edit.setFont(QFont("Monaco", self.font_size))
 
         # Install event filter to catch Cmd+/- before text edit processes them
         self.text_edit.installEventFilter(self)
@@ -347,19 +528,24 @@ class FloatingTextEditor(QDialog):
 
     def update_font(self):
         """Update text editor font size and save preference."""
-        # Update both QFont AND stylesheet (like console does)
-        self.text_edit.setFont(QFont("Monaco", self.font_size))
-        self.text_edit.setStyleSheet(f"""
-            QTextEdit {{
-                background-color: #2A2A2A;
-                color: #CCCCCC;
-                border: none;
-                font-family: Monaco, Consolas, monospace;
-                font-size: {self.font_size}pt;
-                padding: 10px;
-                selection-background-color: #4A4A4A;
-            }}
-        """)
+        if self.render_markdown:
+            # Re-render markdown with new base font size
+            html_content = markdown_to_html(self.initial_value, base_font_size=self.font_size)
+            self.text_edit.setHtml(html_content)
+        else:
+            # Update both QFont AND stylesheet (like console does)
+            self.text_edit.setFont(QFont("Monaco", self.font_size))
+            self.text_edit.setStyleSheet(f"""
+                QTextEdit {{
+                    background-color: #2A2A2A;
+                    color: #CCCCCC;
+                    border: none;
+                    font-family: Monaco, Consolas, monospace;
+                    font-size: {self.font_size}pt;
+                    padding: 10px;
+                    selection-background-color: #4A4A4A;
+                }}
+            """)
         # Update label
         if hasattr(self, 'font_size_label'):
             self.font_size_label.setText(f"{self.font_size}pt")

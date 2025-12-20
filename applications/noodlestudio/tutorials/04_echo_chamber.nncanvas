@@ -1,0 +1,235 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 4: The Echo Chamber",
+  "description": "Watch how RNN remembers previous inputs!\n\nThis network has MEMORY. When you input 1.0, then switch to 0.0,\nthe output doesn't immediately drop - it slowly decays like an echo.\n\nHOW IT WORKS:\n- The RNN has a hidden state that persists between steps\n- Each step, the hidden state mixes old memory with new input\n- Output gradually fades as old information decays\n\nTRY THIS:\n1. Set input to 1.0, run several steps - watch output rise\n2. Set input to 0.0, run more steps - watch the 'echo' fade\n3. Reset states and see the echo disappear instantly\n\nThis is WHY recurrent networks are used for sequences -\nthey remember what came before.",
+  "metadata": {
+    "created": "2025-12-19T20:45:00.000000",
+    "modified": "2025-12-19T20:45:00.000000",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 100
+  },
+  "nodes": [
+    {
+      "id": "input-number-1",
+      "type": "NUMBER_INPUT",
+      "name": "Input Signal",
+      "position": [
+        50,
+        150
+      ],
+      "params": {
+        "value": 1.0,
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "step": 0.1
+      },
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Value"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A4A",
+      "tags": [],
+      "description": "Interactive scalar input - try 1.0 then 0.0"
+    },
+    {
+      "id": "rnn-echo-1",
+      "type": "RNN",
+      "name": "Echo Memory (RNN)",
+      "position": [
+        280,
+        150
+      ],
+      "params": {
+        "input_dim": 1,
+        "hidden_dim": 4,
+        "activation": "tanh"
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        },
+        "h": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Hidden"
+        }
+      },
+      "outputs": {
+        "h_out": {
+          "data_type": "HIDDEN_STATE",
+          "shape": [
+            4
+          ],
+          "label": "Hidden Out"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#673AB7",
+      "tags": [],
+      "description": "Recurrent layer - hidden state persists between steps"
+    },
+    {
+      "id": "linear-out-1",
+      "type": "LINEAR",
+      "name": "Output Projection",
+      "position": [
+        510,
+        150
+      ],
+      "params": {
+        "in_features": 4,
+        "out_features": 1,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": [
+            1
+          ],
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "Project 4D hidden state to 1D output"
+    },
+    {
+      "id": "sigmoid-1",
+      "type": "SIGMOID",
+      "name": "Squash",
+      "position": [
+        710,
+        150
+      ],
+      "params": {},
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A3A3A",
+      "tags": [],
+      "description": "Squash to 0-1 range"
+    },
+    {
+      "id": "chart-out-1",
+      "type": "OUTPUT_CHART",
+      "name": "Echo Decay",
+      "position": [
+        910,
+        150
+      ],
+      "params": {
+        "history_length": 30,
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "auto_scale": false
+      },
+      "inputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "required": true,
+          "label": "Value"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A6A",
+      "tags": [],
+      "description": "Watch the output over time - see the echo decay!"
+    },
+    {
+      "id": "comment-b9b2f4a3-e5b5-4ec2-8060-4a2828d493c5",
+      "type": "COMMENT",
+      "name": "Welcome",
+      "position": [
+        50,
+        50
+      ],
+      "params": {
+        "text": "# Echo Chamber - Memory in Networks\n\nThis tutorial shows how **recurrence** lets networks remember.\n\n## To Do and Notice\n\n1. **Feed a signal**: Watch how it persists even after input stops\n2. **The feedback loop**: Output feeds back to input\n3. **Decay**: Notice how memory fades over time without reinforcement\n\n## Why This Matters\n\nRecurrence is the foundation of:\n- Language models (remembering context)\n- Time series prediction\n- Music generation\n\n**Challenge**: Can you make the memory last longer by adjusting weights?",
+        "width": 450,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Tutorial introduction"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "input-number-1",
+      "from_port": "value",
+      "to_node": "rnn-echo-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "rnn-echo-1",
+      "from_port": "h_out",
+      "to_node": "linear-out-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "linear-out-1",
+      "from_port": "out",
+      "to_node": "sigmoid-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "sigmoid-1",
+      "from_port": "out",
+      "to_node": "chart-out-1",
+      "to_port": "value"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": true,
+    "onnx": false
+  }
+}

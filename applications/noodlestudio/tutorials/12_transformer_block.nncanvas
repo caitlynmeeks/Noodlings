@@ -1,0 +1,702 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 12: The Transformer Block",
+  "description": "The production-ready transformer - one node does it all!\n\nIn Tutorial 11, you saw attention exploded into pieces.\nHere, we use the TRANSFORMER_BLOCK node - a single\noptimized component that contains:\n\n1. Multi-Head Self-Attention\n2. Add & Layer Norm (residual connection)\n3. Feed-Forward Network (Linear -> GELU -> Linear)\n4. Another Add & Layer Norm\n\nTHIS IS WHAT GPT/CLAUDE USE:\nStacks of transformer blocks, one after another.\nGPT-2 has 12 blocks. GPT-4 has ~120. Claude has many too!\n\nTRY THIS:\n1. Compare speed to the exploded view (Tutorial 11)\n2. Stack multiple blocks with the 'Stacked' example\n3. See how depth improves predictions!",
+  "metadata": {
+    "created": "2025-12-19T22:30:00",
+    "modified": "2025-12-19T22:30:00",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 0
+  },
+  "nodes": [
+    {
+      "id": "token-input-1",
+      "type": "TOKEN_INPUT",
+      "name": "Token 1",
+      "position": [
+        9,
+        0
+      ],
+      "params": {
+        "token_id": 0,
+        "vocab_size": 10,
+        "vocab": [
+          "the",
+          "cat",
+          "sat",
+          "on",
+          "mat",
+          "it",
+          "was",
+          "tired",
+          "happy",
+          "sad"
+        ]
+      },
+      "inputs": {},
+      "outputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Token ID"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A5A5A",
+      "tags": [],
+      "description": "First token"
+    },
+    {
+      "id": "token-input-2",
+      "type": "TOKEN_INPUT",
+      "name": "Token 2",
+      "position": [
+        -34,
+        220
+      ],
+      "params": {
+        "token_id": 1,
+        "vocab_size": 10,
+        "vocab": [
+          "the",
+          "cat",
+          "sat",
+          "on",
+          "mat",
+          "it",
+          "was",
+          "tired",
+          "happy",
+          "sad"
+        ]
+      },
+      "inputs": {},
+      "outputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Token ID"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A5A5A",
+      "tags": [],
+      "description": "Second token"
+    },
+    {
+      "id": "token-input-3",
+      "type": "TOKEN_INPUT",
+      "name": "Token 3",
+      "position": [
+        50,
+        340
+      ],
+      "params": {
+        "token_id": 2,
+        "vocab_size": 10,
+        "vocab": [
+          "the",
+          "cat",
+          "sat",
+          "on",
+          "mat",
+          "it",
+          "was",
+          "tired",
+          "happy",
+          "sad"
+        ]
+      },
+      "inputs": {},
+      "outputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Token ID"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A5A5A",
+      "tags": [],
+      "description": "Third token"
+    },
+    {
+      "id": "embed-1",
+      "type": "EMBEDDING",
+      "name": "Embed 1",
+      "position": [
+        230,
+        100
+      ],
+      "params": {
+        "vocab_size": 10,
+        "embed_dim": 32
+      },
+      "inputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "required": true,
+          "label": "Token ID"
+        }
+      },
+      "outputs": {
+        "embedding": {
+          "data_type": "TENSOR",
+          "shape": [
+            32
+          ],
+          "label": "Embedding"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A6A",
+      "tags": [],
+      "description": "32D embedding (larger for transformer)"
+    },
+    {
+      "id": "embed-2",
+      "type": "EMBEDDING",
+      "name": "Embed 2",
+      "position": [
+        230,
+        220
+      ],
+      "params": {
+        "vocab_size": 10,
+        "embed_dim": 32
+      },
+      "inputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "required": true,
+          "label": "Token ID"
+        }
+      },
+      "outputs": {
+        "embedding": {
+          "data_type": "TENSOR",
+          "shape": [
+            32
+          ],
+          "label": "Embedding"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A6A",
+      "tags": [],
+      "description": "32D embedding"
+    },
+    {
+      "id": "embed-3",
+      "type": "EMBEDDING",
+      "name": "Embed 3",
+      "position": [
+        230,
+        340
+      ],
+      "params": {
+        "vocab_size": 10,
+        "embed_dim": 32
+      },
+      "inputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "required": true,
+          "label": "Token ID"
+        }
+      },
+      "outputs": {
+        "embedding": {
+          "data_type": "TENSOR",
+          "shape": [
+            32
+          ],
+          "label": "Embedding"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A6A",
+      "tags": [],
+      "description": "32D embedding"
+    },
+    {
+      "id": "concat-12",
+      "type": "STACK",
+      "name": "Stack 1+2",
+      "position": [
+        430,
+        100
+      ],
+      "params": {},
+      "inputs": {
+        "a": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Token 1"
+        },
+        "b": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Token 2"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Combined"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A4A6A",
+      "tags": [],
+      "description": "Combine first two"
+    },
+    {
+      "id": "concat-seq",
+      "type": "STACK",
+      "name": "Build Sequence",
+      "position": [
+        430,
+        220
+      ],
+      "params": {},
+      "inputs": {
+        "a": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Tokens 1-2"
+        },
+        "b": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Token 3"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Sequence"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A4A6A",
+      "tags": [],
+      "description": "Build 3-token sequence"
+    },
+    {
+      "id": "pos-encoding",
+      "type": "POSITIONAL_ENCODING",
+      "name": "Position",
+      "position": [
+        630,
+        220
+      ],
+      "params": {
+        "max_seq_len": 512,
+        "embed_dim": 32
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Embeddings"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "With Position"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#FF9800",
+      "tags": [],
+      "description": "Add position information"
+    },
+    {
+      "id": "transformer-1",
+      "type": "TRANSFORMER_BLOCK",
+      "name": "Transformer Block 1",
+      "position": [
+        850,
+        220
+      ],
+      "params": {
+        "embed_dim": 32,
+        "num_heads": 4,
+        "ff_dim": 128,
+        "dropout": 0.0
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        },
+        "attn_weights": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Attention"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#E65100",
+      "tags": [],
+      "description": "COMPLETE TRANSFORMER BLOCK - attention + FFN + norms!"
+    },
+    {
+      "id": "transformer-2",
+      "type": "TRANSFORMER_BLOCK",
+      "name": "Transformer Block 2",
+      "position": [
+        1100,
+        220
+      ],
+      "params": {
+        "embed_dim": 32,
+        "num_heads": 4,
+        "ff_dim": 128,
+        "dropout": 0.0
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        },
+        "attn_weights": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Attention"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#E65100",
+      "tags": [],
+      "description": "Second block - stacking adds depth!"
+    },
+    {
+      "id": "attn-vis-1",
+      "type": "ATTENTION_VIS",
+      "name": "Block 1 Attention",
+      "position": [
+        850,
+        380
+      ],
+      "params": {
+        "show_values": false,
+        "colormap": "viridis",
+        "token_labels": []
+      },
+      "inputs": {
+        "weights": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Weights"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#FF7043",
+      "tags": [],
+      "description": "Layer 1 attention patterns"
+    },
+    {
+      "id": "attn-vis-2",
+      "type": "ATTENTION_VIS",
+      "name": "Block 2 Attention",
+      "position": [
+        1100,
+        380
+      ],
+      "params": {
+        "show_values": false,
+        "colormap": "viridis",
+        "token_labels": []
+      },
+      "inputs": {
+        "weights": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Weights"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#FF7043",
+      "tags": [],
+      "description": "Layer 2 attention - often different from layer 1!"
+    },
+    {
+      "id": "linear-out",
+      "type": "LINEAR",
+      "name": "To Vocab",
+      "position": [
+        1350,
+        220
+      ],
+      "params": {
+        "in_features": 32,
+        "out_features": 10,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": [
+            10
+          ],
+          "label": "Logits"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "Project to vocabulary"
+    },
+    {
+      "id": "softmax-1",
+      "type": "SOFTMAX",
+      "name": "Softmax",
+      "position": [
+        1550,
+        220
+      ],
+      "params": {},
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Logits"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Probs"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A3A3A",
+      "tags": [],
+      "description": "To probabilities"
+    },
+    {
+      "id": "prob-vis-1",
+      "type": "PROB_VIS",
+      "name": "Next Token",
+      "position": [
+        1750,
+        220
+      ],
+      "params": {
+        "top_k": 10,
+        "vocab": [
+          "the",
+          "cat",
+          "sat",
+          "on",
+          "mat",
+          "it",
+          "was",
+          "tired",
+          "happy",
+          "sad"
+        ]
+      },
+      "inputs": {
+        "probs": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Probabilities"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A5A",
+      "tags": [],
+      "description": "Predicted next token"
+    },
+    {
+      "id": "comment-tutorial",
+      "type": "COMMENT",
+      "name": "Tutorial",
+      "position": [
+        1800,
+        50
+      ],
+      "params": {
+        "text": " THE TRANSFORMER BLOCK - Production Power!\n\nThis is the REAL transformer - the optimized version\nthat GPT, Claude, and every LLM actually uses.\n\nWHAT'S INSIDE EACH ORANGE BLOCK:\n1. Multi-Head Self-Attention\n   (what you saw exploded in Tutorial 11)\n2. Residual Connection + Layer Norm\n   x' = LayerNorm(x + Attention(x))\n3. Feed-Forward Network\n   FFN(x) = Linear(GELU(Linear(x)))\n4. Another Residual + Layer Norm\n   output = LayerNorm(x' + FFN(x'))\n\nWHY RESIDUAL CONNECTIONS?\n- Allows gradients to flow through deep networks\n- Information can 'skip' layers if needed\n- This is why we can stack 100+ blocks!\n\nWHY LAYER NORM?\n- Keeps activations stable\n- Prevents exploding/vanishing values\n- Critical for deep networks\n\nTHE DEPTH ADVANTAGE:\nNotice we have TWO transformer blocks.\nEach layer learns different patterns:\n- Layer 1: Basic syntax, word relationships\n- Layer 2: Higher-level semantics, meaning\n\nGPT-2 has 12 layers. GPT-4 has ~120!\nMore layers = more complex understanding.\n\nCOMPARE THE ATTENTION MAPS:\nBlock 1 and Block 2 show different patterns.\nThis is the model learning at multiple levels!\n\nPERFORMANCE:\nOne TRANSFORMER_BLOCK node = optimized C++/CUDA\nMuch faster than building it from scratch!",
+        "width": 400,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Tutorial explanation"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "token-input-1",
+      "from_port": "token_id",
+      "to_node": "embed-1",
+      "to_port": "token_id"
+    },
+    {
+      "from_node": "token-input-2",
+      "from_port": "token_id",
+      "to_node": "embed-2",
+      "to_port": "token_id"
+    },
+    {
+      "from_node": "token-input-3",
+      "from_port": "token_id",
+      "to_node": "embed-3",
+      "to_port": "token_id"
+    },
+    {
+      "from_node": "embed-1",
+      "from_port": "embedding",
+      "to_node": "concat-12",
+      "to_port": "a"
+    },
+    {
+      "from_node": "embed-2",
+      "from_port": "embedding",
+      "to_node": "concat-12",
+      "to_port": "b"
+    },
+    {
+      "from_node": "concat-12",
+      "from_port": "out",
+      "to_node": "concat-seq",
+      "to_port": "a"
+    },
+    {
+      "from_node": "embed-3",
+      "from_port": "embedding",
+      "to_node": "concat-seq",
+      "to_port": "b"
+    },
+    {
+      "from_node": "concat-seq",
+      "from_port": "out",
+      "to_node": "pos-encoding",
+      "to_port": "x"
+    },
+    {
+      "from_node": "pos-encoding",
+      "from_port": "out",
+      "to_node": "transformer-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "transformer-1",
+      "from_port": "out",
+      "to_node": "transformer-2",
+      "to_port": "x"
+    },
+    {
+      "from_node": "transformer-1",
+      "from_port": "attn_weights",
+      "to_node": "attn-vis-1",
+      "to_port": "weights"
+    },
+    {
+      "from_node": "transformer-2",
+      "from_port": "out",
+      "to_node": "linear-out",
+      "to_port": "x"
+    },
+    {
+      "from_node": "transformer-2",
+      "from_port": "attn_weights",
+      "to_node": "attn-vis-2",
+      "to_port": "weights"
+    },
+    {
+      "from_node": "linear-out",
+      "from_port": "out",
+      "to_node": "softmax-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "softmax-1",
+      "from_port": "out",
+      "to_node": "prob-vis-1",
+      "to_port": "probs"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": true,
+    "onnx": false
+  }
+}

@@ -1,0 +1,307 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 8: Token Prediction",
+  "description": "See how language models predict the next word!\n\nTHIS IS WHAT LLMs DO:\n1. Token -> Embedding (word becomes vector)\n2. LSTM processes context (remembers sequence)\n3. Linear projects to vocabulary size\n4. Softmax converts to probabilities\n5. Sample next token!\n\nTHE KEY INSIGHT:\nThe network learns which words follow which words.\n'The cat sat on the ___' -> probably 'mat' or 'floor'\n\nTRY THIS:\n1. Select different input tokens\n2. Watch probability distribution change\n3. See which tokens become likely\n4. Run multiple steps to generate sequences!\n\nThis is the foundation of GPT, Claude, and every LLM.",
+  "metadata": {
+    "created": "2025-12-19T21:30:00.000000",
+    "modified": "2025-12-19T21:30:00.000000",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 3000
+  },
+  "nodes": [
+    {
+      "id": "token-input-1",
+      "type": "TOKEN_INPUT",
+      "name": "Input Token",
+      "position": [
+        50,
+        180
+      ],
+      "params": {
+        "token_id": 0,
+        "vocab_size": 10,
+        "vocab": [
+          "the",
+          "cat",
+          "sat",
+          "on",
+          "mat",
+          "dog",
+          "ran",
+          "fast",
+          "happy",
+          "sad"
+        ]
+      },
+      "inputs": {},
+      "outputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Token ID"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A5A5A",
+      "tags": [],
+      "description": "Select: the(0), cat(1), sat(2), on(3), mat(4), dog(5), ran(6), fast(7), happy(8), sad(9)"
+    },
+    {
+      "id": "embed-1",
+      "type": "EMBEDDING",
+      "name": "Word Embedding",
+      "position": [
+        280,
+        180
+      ],
+      "params": {
+        "vocab_size": 10,
+        "embed_dim": 16
+      },
+      "inputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "required": true,
+          "label": "Token ID"
+        }
+      },
+      "outputs": {
+        "embedding": {
+          "data_type": "TENSOR",
+          "shape": [
+            16
+          ],
+          "label": "Embedding"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A6A",
+      "tags": [],
+      "description": "Lookup table: token ID -> 16D vector"
+    },
+    {
+      "id": "lstm-1",
+      "type": "LSTM",
+      "name": "Context Memory",
+      "position": [
+        500,
+        180
+      ],
+      "params": {
+        "input_dim": 16,
+        "hidden_dim": 32,
+        "dropout": 0.0,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        },
+        "h": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Hidden"
+        },
+        "c": {
+          "data_type": "CELL_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Cell"
+        }
+      },
+      "outputs": {
+        "h_out": {
+          "data_type": "HIDDEN_STATE",
+          "shape": [
+            32
+          ],
+          "label": "Hidden"
+        },
+        "c_out": {
+          "data_type": "CELL_STATE",
+          "shape": [
+            32
+          ],
+          "label": "Cell"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A2A4A",
+      "tags": [],
+      "description": "Remembers sequence context"
+    },
+    {
+      "id": "linear-logits-1",
+      "type": "LINEAR",
+      "name": "To Logits",
+      "position": [
+        720,
+        180
+      ],
+      "params": {
+        "in_features": 32,
+        "out_features": 10,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": [
+            10
+          ],
+          "label": "Logits"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "Project to vocabulary size (10 tokens)"
+    },
+    {
+      "id": "softmax-1",
+      "type": "SOFTMAX",
+      "name": "To Probabilities",
+      "position": [
+        940,
+        180
+      ],
+      "params": {},
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Logits"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Probabilities"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A3A3A",
+      "tags": [],
+      "description": "Convert logits to probability distribution"
+    },
+    {
+      "id": "prob-vis-1",
+      "type": "PROB_VIS",
+      "name": "Next Token Probs",
+      "position": [
+        1160,
+        180
+      ],
+      "params": {
+        "top_k": 10,
+        "vocab": [
+          "the",
+          "cat",
+          "sat",
+          "on",
+          "mat",
+          "dog",
+          "ran",
+          "fast",
+          "happy",
+          "sad"
+        ]
+      },
+      "inputs": {
+        "probs": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Probabilities"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A5A",
+      "tags": [],
+      "description": "Bar chart of token probabilities"
+    },
+    {
+      "id": "comment-170adba5-5c5b-4b9c-b9e9-5f7cefe32436",
+      "type": "COMMENT",
+      "name": "Welcome",
+      "position": [
+        50,
+        50
+      ],
+      "params": {
+        "text": "# Token Prediction - How LLMs \"Think\"\n\nLanguage models predict the next token. Let's see how!\n\n## To Do and Notice\n\n1. **Context**: Previous tokens influence prediction\n2. **Probability distribution**: Each token has a likelihood\n3. **Sampling**: How we pick from the distribution\n\n## The Core Loop\n\n```\nfor each position:\n    context = previous_tokens\n    logits = model(context)\n    probs = softmax(logits)\n    next_token = sample(probs)\n```\n\nThis is happening billions of times in ChatGPT!\n\n**Challenge**: How does context length affect predictions?",
+        "width": 450,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Tutorial introduction"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "token-input-1",
+      "from_port": "token_id",
+      "to_node": "embed-1",
+      "to_port": "token_id"
+    },
+    {
+      "from_node": "embed-1",
+      "from_port": "embedding",
+      "to_node": "lstm-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "lstm-1",
+      "from_port": "h_out",
+      "to_node": "linear-logits-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "linear-logits-1",
+      "from_port": "out",
+      "to_node": "softmax-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "softmax-1",
+      "from_port": "out",
+      "to_node": "prob-vis-1",
+      "to_port": "probs"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": true,
+    "onnx": false
+  }
+}

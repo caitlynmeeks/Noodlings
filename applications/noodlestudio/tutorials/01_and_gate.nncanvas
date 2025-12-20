@@ -1,0 +1,323 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 1: The AND Gate",
+  "description": "Learn how a single neuron can compute logical AND.\n\nChallenge: Adjust the weights in the Linear layer to make this network \noutput ON only when BOTH inputs are high (1.0).\n\nHint: AND gate needs positive weights and a negative bias around -1.5.\nThink about it: with weights of 1.0 each, the sum is 0, 1, or 2.\nWhere should the threshold be to only activate when sum = 2?",
+  "metadata": {
+    "created": null,
+    "modified": "2025-12-17T14:09:33.632062",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 3
+  },
+  "nodes": [
+    {
+      "id": "33ffe971-f647-40c9-a33c-1ff6851071f3",
+      "type": "NUMBER_INPUT",
+      "name": "Input A",
+      "position": [
+        100,
+        100
+      ],
+      "params": {
+        "value": 1.0,
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "step": 1.0
+      },
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Value"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A4A",
+      "tags": [],
+      "description": "Interactive scalar input with slider (0.0 to 1.0)"
+    },
+    {
+      "id": "daa164d3-e194-4226-acfc-925b978c8b96",
+      "type": "NUMBER_INPUT",
+      "name": "Input B",
+      "position": [
+        100,
+        460
+      ],
+      "params": {
+        "value": 1.0,
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "step": 1.0
+      },
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Value"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A6A4A",
+      "tags": [],
+      "description": "Interactive scalar input with slider (0.0 to 1.0)"
+    },
+    {
+      "id": "911a9400-65df-47d0-af6f-a0646d010635",
+      "type": "CONCAT",
+      "name": "DORKERIZER",
+      "position": [
+        400,
+        100
+      ],
+      "params": {},
+      "inputs": {
+        "a": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input A"
+        },
+        "b": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input B"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Combined"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A4A6A",
+      "tags": [],
+      "description": "Concatenate two inputs into one tensor"
+    },
+    {
+      "id": "b5636c0e-40ae-4252-a31c-12ec6a6ebb61",
+      "type": "LINEAR",
+      "name": "Neuron (weights)",
+      "position": [
+        700,
+        100
+      ],
+      "params": {
+        "in_features": 2,
+        "out_features": 1,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": null
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": null
+        }
+      },
+      "weights": {
+        "weight": {
+          "shape": [
+            1,
+            2
+          ],
+          "path": null,
+          "trainable": true,
+          "values": [
+            [
+              1.0,
+              1.0
+            ]
+          ]
+        },
+        "bias": {
+          "shape": [
+            1
+          ],
+          "path": null,
+          "trainable": true,
+          "values": [
+            -1.5
+          ]
+        }
+      },
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "Fully connected linear transformation"
+    },
+    {
+      "id": "1488e8a6-ea87-4aca-868d-7467589268a3",
+      "type": "SIGMOID",
+      "name": "Sigmoid",
+      "position": [
+        1000,
+        100
+      ],
+      "params": {},
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Output"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A3A3A",
+      "tags": [],
+      "description": "Sigmoid activation function"
+    },
+    {
+      "id": "e9af93a5-8505-460d-9799-f0dccd66a552",
+      "type": "THRESHOLD_OUTPUT",
+      "name": "Output",
+      "position": [
+        1300,
+        280
+      ],
+      "params": {
+        "threshold": 0.5,
+        "show_value": true
+      },
+      "inputs": {
+        "value": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "required": true,
+          "label": "Value"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#6A4A4A",
+      "tags": [],
+      "description": "ON/OFF display based on threshold comparison"
+    },
+    {
+      "id": "comment-tutorial-1",
+      "type": "COMMENT",
+      "name": "Tutorial: The AND Gate",
+      "position": [
+        1628,
+        105
+      ],
+      "params": {
+        "text": " THE AND GATE - Your First Neural Network!\n\nWhat even IS a neural network? It's a math machine that\nlearns to make decisions. This tiny one has just ONE\nneuron - the purple 'Linear' box. Let's see how it works!\n\nFOLLOW THE FLOW (left to right):\n1. INPUT A and INPUT B: Your two switches (0=off, 1=on)\n2. CONCAT: Bundles both inputs together into [A, B]\n3. LINEAR (the neuron): Does the actual thinking!\n4. SIGMOID: Squishes the result between 0 and 1\n5. OUTPUT: Shows ON if result > 0.5, OFF otherwise\n\nHOW THE NEURON THINKS:\nIt multiplies each input by a 'weight' (how important\nthat input is), adds them up, then adds a 'bias'\n(a nudge to shift the decision point).\n\n  result = (A * weight1) + (B * weight2) + bias\n  result = (A * 1.0) + (B * 1.0) + (-1.5)\n\nSo with weights=1 and bias=-1.5:\n  Both OFF (0,0): 0 + 0 - 1.5 = -1.5  (very negative = OFF)\n  One ON  (1,0): 1 + 0 - 1.5 = -0.5  (still negative = OFF)\n  One ON  (0,1): 0 + 1 - 1.5 = -0.5  (still negative = OFF)\n  Both ON (1,1): 1 + 1 - 1.5 = +0.5  (positive = ON!)\n\nThat's AND logic! Only +0.5 is positive, so only\nboth-inputs-on produces ON. The bias of -1.5 sets the\nbar high enough that you need BOTH inputs to clear it.\n\nTRY IT: Toggle the sliders and watch the output change!",
+        "width": 420,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Floating explanatory text"
+    },
+    {
+      "id": "audio-trigger-1",
+      "type": "AUDIO_TRIGGER",
+      "name": "Sound",
+      "position": [
+        1300,
+        100
+      ],
+      "params": {
+        "threshold": 0.5,
+        "audio_on_path": "tutorials/audio/ding.wav",
+        "audio_off_path": "tutorials/audio/buzz.wav",
+        "volume": 0.5
+      },
+      "inputs": {
+        "trigger": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "required": true,
+          "label": "Trigger"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#C62828",
+      "tags": [],
+      "description": "Plays ding when ON, buzz when OFF"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "33ffe971-f647-40c9-a33c-1ff6851071f3",
+      "from_port": "value",
+      "to_node": "911a9400-65df-47d0-af6f-a0646d010635",
+      "to_port": "a"
+    },
+    {
+      "from_node": "daa164d3-e194-4226-acfc-925b978c8b96",
+      "from_port": "value",
+      "to_node": "911a9400-65df-47d0-af6f-a0646d010635",
+      "to_port": "b"
+    },
+    {
+      "from_node": "911a9400-65df-47d0-af6f-a0646d010635",
+      "from_port": "out",
+      "to_node": "b5636c0e-40ae-4252-a31c-12ec6a6ebb61",
+      "to_port": "x"
+    },
+    {
+      "from_node": "b5636c0e-40ae-4252-a31c-12ec6a6ebb61",
+      "from_port": "out",
+      "to_node": "1488e8a6-ea87-4aca-868d-7467589268a3",
+      "to_port": "x"
+    },
+    {
+      "from_node": "1488e8a6-ea87-4aca-868d-7467589268a3",
+      "from_port": "out",
+      "to_node": "e9af93a5-8505-460d-9799-f0dccd66a552",
+      "to_port": "value"
+    },
+    {
+      "from_node": "1488e8a6-ea87-4aca-868d-7467589268a3",
+      "from_port": "out",
+      "to_node": "audio-trigger-1",
+      "to_port": "trigger"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": false,
+    "onnx": false
+  }
+}

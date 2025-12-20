@@ -1,0 +1,361 @@
+{
+  "version": "1.0",
+  "name": "Tutorial 9: Temperature Control",
+  "description": "See how temperature affects randomness in generation!\n\nTEMPERATURE IS THE CREATIVITY DIAL:\n- Low (0.1): Almost deterministic, always picks most likely\n- Medium (1.0): Balanced, natural randomness\n- High (2.0): Very random, surprising choices\n\nTHE MATH:\n1. Logits / temperature\n2. Softmax to probabilities\n3. Sample from distribution\n\nLow temp -> peaked distribution -> same token every time\nHigh temp -> flat distribution -> random tokens\n\nTRY THIS:\n1. Set temperature to 0.1 - run many times, notice same output\n2. Set temperature to 2.0 - run many times, notice variety\n3. Find YOUR sweet spot for creativity vs coherence\n\nThis is why Claude has a temperature setting!",
+  "metadata": {
+    "created": "2025-12-19T21:35:00.000000",
+    "modified": "2025-12-19T21:35:00.000000",
+    "author": "Noodlings Tutorial",
+    "total_parameters": 3000
+  },
+  "nodes": [
+    {
+      "id": "token-input-1",
+      "type": "TOKEN_INPUT",
+      "name": "Input Token",
+      "position": [
+        50,
+        180
+      ],
+      "params": {
+        "token_id": 0,
+        "vocab_size": 10,
+        "vocab": [
+          "the",
+          "cat",
+          "sat",
+          "on",
+          "mat",
+          "dog",
+          "ran",
+          "fast",
+          "happy",
+          "sad"
+        ]
+      },
+      "inputs": {},
+      "outputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Token ID"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A5A5A",
+      "tags": [],
+      "description": "Select input token"
+    },
+    {
+      "id": "embed-1",
+      "type": "EMBEDDING",
+      "name": "Embedding",
+      "position": [
+        250,
+        180
+      ],
+      "params": {
+        "vocab_size": 10,
+        "embed_dim": 16
+      },
+      "inputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "required": true,
+          "label": "Token ID"
+        }
+      },
+      "outputs": {
+        "embedding": {
+          "data_type": "TENSOR",
+          "shape": [
+            16
+          ],
+          "label": "Embedding"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A6A",
+      "tags": [],
+      "description": "Token to vector"
+    },
+    {
+      "id": "lstm-1",
+      "type": "LSTM",
+      "name": "Context",
+      "position": [
+        450,
+        180
+      ],
+      "params": {
+        "input_dim": 16,
+        "hidden_dim": 32,
+        "dropout": 0.0,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        },
+        "h": {
+          "data_type": "HIDDEN_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Hidden"
+        },
+        "c": {
+          "data_type": "CELL_STATE",
+          "shape": null,
+          "required": false,
+          "label": "Cell"
+        }
+      },
+      "outputs": {
+        "h_out": {
+          "data_type": "HIDDEN_STATE",
+          "shape": [
+            32
+          ],
+          "label": "Hidden"
+        },
+        "c_out": {
+          "data_type": "CELL_STATE",
+          "shape": [
+            32
+          ],
+          "label": "Cell"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A2A4A",
+      "tags": [],
+      "description": "Context memory"
+    },
+    {
+      "id": "linear-logits-1",
+      "type": "LINEAR",
+      "name": "To Logits",
+      "position": [
+        650,
+        180
+      ],
+      "params": {
+        "in_features": 32,
+        "out_features": 10,
+        "bias": true
+      },
+      "inputs": {
+        "x": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Input"
+        }
+      },
+      "outputs": {
+        "out": {
+          "data_type": "TENSOR",
+          "shape": [
+            10
+          ],
+          "label": "Logits"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#9C27B0",
+      "tags": [],
+      "description": "To vocabulary logits"
+    },
+    {
+      "id": "sampling-1",
+      "type": "SAMPLING",
+      "name": "Sample (adjust temp!)",
+      "position": [
+        870,
+        180
+      ],
+      "params": {
+        "temperature": 1.0,
+        "top_k": 0,
+        "top_p": 1.0
+      },
+      "inputs": {
+        "logits": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Logits"
+        }
+      },
+      "outputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": [
+            1
+          ],
+          "label": "Sampled Token"
+        },
+        "probs": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "label": "Probabilities"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#6A5A5A",
+      "tags": [],
+      "description": "Adjust temperature: 0.1 (deterministic) to 2.0 (random)"
+    },
+    {
+      "id": "token-output-1",
+      "type": "TOKEN_OUTPUT",
+      "name": "Generated Token",
+      "position": [
+        1100,
+        120
+      ],
+      "params": {
+        "vocab": [
+          "the",
+          "cat",
+          "sat",
+          "on",
+          "mat",
+          "dog",
+          "ran",
+          "fast",
+          "happy",
+          "sad"
+        ]
+      },
+      "inputs": {
+        "token_id": {
+          "data_type": "SCALAR",
+          "shape": null,
+          "required": true,
+          "label": "Token ID"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A6A5A",
+      "tags": [],
+      "description": "Shows sampled word"
+    },
+    {
+      "id": "prob-vis-1",
+      "type": "PROB_VIS",
+      "name": "Token Probabilities",
+      "position": [
+        1100,
+        280
+      ],
+      "params": {
+        "top_k": 10,
+        "vocab": [
+          "the",
+          "cat",
+          "sat",
+          "on",
+          "mat",
+          "dog",
+          "ran",
+          "fast",
+          "happy",
+          "sad"
+        ]
+      },
+      "inputs": {
+        "probs": {
+          "data_type": "TENSOR",
+          "shape": null,
+          "required": true,
+          "label": "Probabilities"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A5A",
+      "tags": [],
+      "description": "See how temperature changes the distribution"
+    },
+    {
+      "id": "comment-0723d318-3852-498f-8a85-f2d25f326df2",
+      "type": "COMMENT",
+      "name": "Welcome",
+      "position": [
+        50,
+        50
+      ],
+      "params": {
+        "text": "# Temperature - Controlling Randomness\n\nTemperature controls how \"creative\" vs \"focused\" outputs are.\n\n## To Do and Notice\n\n1. **Low temperature (0.1)**: Very deterministic, picks top choice\n2. **Medium (1.0)**: Balanced, natural distribution\n3. **High (2.0+)**: More random, creative, chaotic\n\n## The Math\n\n```\nprobs = softmax(logits / temperature)\n```\n\nDividing by temperature before softmax changes the distribution shape.\n\n## In Practice\n\n- Code generation: Low temp (0.2-0.4)\n- Creative writing: Higher temp (0.7-1.0)\n- Brainstorming: Even higher (1.2+)\n\n**Challenge**: Find the \"sweet spot\" for different tasks.",
+        "width": 450,
+        "show_on_start": true
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Tutorial introduction"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "token-input-1",
+      "from_port": "token_id",
+      "to_node": "embed-1",
+      "to_port": "token_id"
+    },
+    {
+      "from_node": "embed-1",
+      "from_port": "embedding",
+      "to_node": "lstm-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "lstm-1",
+      "from_port": "h_out",
+      "to_node": "linear-logits-1",
+      "to_port": "x"
+    },
+    {
+      "from_node": "linear-logits-1",
+      "from_port": "out",
+      "to_node": "sampling-1",
+      "to_port": "logits"
+    },
+    {
+      "from_node": "sampling-1",
+      "from_port": "token_id",
+      "to_node": "token-output-1",
+      "to_port": "token_id"
+    },
+    {
+      "from_node": "sampling-1",
+      "from_port": "probs",
+      "to_node": "prob-vis-1",
+      "to_port": "probs"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": true,
+    "pytorch": true,
+    "onnx": false
+  }
+}

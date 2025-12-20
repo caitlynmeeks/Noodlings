@@ -9,17 +9,19 @@ import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QFileDialog, QMessageBox, QToolBar, QSplitter, QSpinBox,
-    QLineEdit, QFrame
+    QLineEdit, QFrame, QCheckBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut
 
 from ...core.neural_canvas.neural_graph import NeuralGraph, ValidationResult
+from ...core.neural_canvas.neural_node import NodeType
 from ...core.neural_canvas.mlx_codegen import generate_mlx_code
 from ...core.neural_canvas.test_executor import CanvasTestExecutor, text_to_affect
 from .neural_canvas_view import NeuralCanvasView
 from .node_palette_panel import NodePalettePanel
 from ...dialogs.neural_export_dialog import NeuralExportDialog
+from ..floating_text_editor import FloatingTextEditor
 
 
 class NeuralCanvasPanel(QWidget):
@@ -38,6 +40,7 @@ class NeuralCanvasPanel(QWidget):
     # Signals
     node_selected = pyqtSignal(str)  # node_id
     graph_modified = pyqtSignal()
+    graph_loaded = pyqtSignal()  # Emitted when new graph is loaded (clears selection)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -73,6 +76,7 @@ class NeuralCanvasPanel(QWidget):
         self.canvas_view = NeuralCanvasView(self.graph)
         self.canvas_view.node_selected.connect(self._on_node_selected)
         self.canvas_view.graph_modified.connect(self._on_graph_modified)
+        self.canvas_view.node_param_changed.connect(self._on_param_changed_auto_run)
         layout.addWidget(self.canvas_view, 1)
 
         # Status bar
@@ -159,20 +163,46 @@ class NeuralCanvasPanel(QWidget):
             }
         """)
 
-        # Logic Gates section
+        # Logic Gates section (fundamentals)
         logic_menu = tutorials_menu.addMenu("Logic Gates")
         logic_menu.addAction("01: AND Gate").triggered.connect(lambda: self._load_tutorial("01_and_gate.nncanvas"))
         logic_menu.addAction("02: OR Gate").triggered.connect(lambda: self._load_tutorial("02_or_gate.nncanvas"))
         logic_menu.addAction("03: XOR Problem").triggered.connect(lambda: self._load_tutorial("03_xor_problem.nncanvas"))
 
-        # Quantum section
-        quantum_menu = tutorials_menu.addMenu("Quantum Consciousness")
-        quantum_menu.addAction("04: Superposition & Collapse").triggered.connect(lambda: self._load_tutorial("04_quantum_basics.nncanvas"))
-        quantum_menu.addAction("05: Entangled Neurons").triggered.connect(lambda: self._load_tutorial("05_entangled_neurons.nncanvas"))
-        quantum_menu.addAction("06: Orch-OR Consciousness").triggered.connect(lambda: self._load_tutorial("06_orch_or_consciousness.nncanvas"))
-        quantum_menu.addAction("07: Quantum Creativity").triggered.connect(lambda: self._load_tutorial("07_quantum_creativity.nncanvas"))
+        # Memory & Recurrence section (RNN/LSTM basics)
+        memory_menu = tutorials_menu.addMenu("Memory & Recurrence")
+        memory_menu.addAction("04: Echo Chamber (RNN)").triggered.connect(lambda: self._load_tutorial("04_echo_chamber.nncanvas"))
+        memory_menu.addAction("05: Learning to Count (LSTM)").triggered.connect(lambda: self._load_tutorial("05_counting.nncanvas"))
+
+        # Affect Processing section
+        affect_menu = tutorials_menu.addMenu("Affect Processing")
+        affect_menu.addAction("06: Mood Ring").triggered.connect(lambda: self._load_tutorial("06_mood_ring.nncanvas"))
+        affect_menu.addAction("07: Mood Persistence (CharmNetwork)").triggered.connect(lambda: self._load_tutorial("07_charm_lite.nncanvas"))
+
+        # Language Models section
+        language_menu = tutorials_menu.addMenu("Language Models")
+        language_menu.addAction("08: Token Prediction").triggered.connect(lambda: self._load_tutorial("08_token_prediction.nncanvas"))
+        language_menu.addAction("09: Temperature Control").triggered.connect(lambda: self._load_tutorial("09_temperature.nncanvas"))
+
+        # Transformer section
+        transformer_menu = tutorials_menu.addMenu("Transformer Architecture")
+        transformer_menu.addAction("11: Attention Mechanism").triggered.connect(lambda: self._load_tutorial("11_attention_mechanism.nncanvas"))
+        transformer_menu.addAction("12: Transformer Block").triggered.connect(lambda: self._load_tutorial("12_transformer_block.nncanvas"))
+
+        # Creative Output section
+        creative_menu = tutorials_menu.addMenu("Creative Output")
+        creative_menu.addAction("10: Demoscene Neural Shaders").triggered.connect(lambda: self._load_tutorial("10_demoscene.nncanvas"))
+
+        tutorials_menu.addSeparator()
+
+        # Quantum Exploration section (speculative/philosophical)
+        quantum_menu = tutorials_menu.addMenu("Quantum Exploration")
+        quantum_menu.addAction("Q1: Superposition & Collapse").triggered.connect(lambda: self._load_tutorial("04_quantum_basics.nncanvas"))
+        quantum_menu.addAction("Q2: Entangled Neurons").triggered.connect(lambda: self._load_tutorial("05_entangled_neurons.nncanvas"))
+        quantum_menu.addAction("Q3: Orch-OR Theory").triggered.connect(lambda: self._load_tutorial("06_orch_or_consciousness.nncanvas"))
+        quantum_menu.addAction("Q4: Quantum Creativity").triggered.connect(lambda: self._load_tutorial("07_quantum_creativity.nncanvas"))
         quantum_menu.addSeparator()
-        quantum_menu.addAction("08: Schrodinger's Cat").triggered.connect(lambda: self._load_tutorial("08_schrodingers_cat.nncanvas"))
+        quantum_menu.addAction("Schrodinger's Cat").triggered.connect(lambda: self._load_tutorial("08_schrodingers_cat.nncanvas"))
 
         self.tutorials_button.setMenu(tutorials_menu)
         toolbar.addWidget(self.tutorials_button)
@@ -289,6 +319,33 @@ class NeuralCanvasPanel(QWidget):
         self.reset_button.clicked.connect(self._on_reset_states)
         self.reset_button.setToolTip("Reset hidden states to zero")
         toolbar.addWidget(self.reset_button)
+
+        # Auto-run checkbox - exploratorium mode!
+        toolbar.addSeparator()
+        self.auto_run_checkbox = QCheckBox("Auto-run")
+        self.auto_run_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: #aaa;
+                padding: 4px 8px;
+            }
+            QCheckBox::indicator {
+                width: 14px;
+                height: 14px;
+            }
+            QCheckBox::indicator:checked {
+                background: #4CAF50;
+                border: 1px solid #388E3C;
+                border-radius: 2px;
+            }
+            QCheckBox::indicator:unchecked {
+                background: #3a3a3a;
+                border: 1px solid #555;
+                border-radius: 2px;
+            }
+        """)
+        self.auto_run_checkbox.setToolTip("Automatically re-run when inputs change (exploratorium mode)")
+        self.auto_run_checkbox.setChecked(True)  # On by default for tutorials
+        toolbar.addWidget(self.auto_run_checkbox)
 
         return toolbar
 
@@ -420,7 +477,12 @@ class NeuralCanvasPanel(QWidget):
             self.current_filepath = filepath
             self.canvas_view.set_graph(self.graph)
             self._update_status_bar()
+            self._test_initialized = False  # Reset test executor
+            self.graph_loaded.emit()  # Clear inspector selection
             print(f"[NeuralCanvas] Loaded: {filepath}")
+
+            # Check for show_on_start COMMENT node and display it
+            self._show_startup_comment()
         except Exception as e:
             QMessageBox.critical(self, "Load Error", f"Failed to load file:\n{e}")
 
@@ -448,6 +510,8 @@ class NeuralCanvasPanel(QWidget):
             self.current_filepath = None
             self.canvas_view.set_graph(self.graph)
             self._update_status_bar()
+            self._test_initialized = False  # Reset test executor
+            self.graph_loaded.emit()  # Clear inspector selection
 
     def _on_open(self):
         """Open .nncanvas file."""
@@ -464,7 +528,7 @@ class NeuralCanvasPanel(QWidget):
         """Load a tutorial from the tutorials directory."""
         tutorial_path = os.path.join(
             os.path.dirname(__file__),
-            '../../../../../facet_assemblies/charm_networks/tutorials',
+            '../../../tutorials',
             tutorial_filename
         )
         tutorial_path = os.path.abspath(tutorial_path)
@@ -475,19 +539,61 @@ class NeuralCanvasPanel(QWidget):
             from PyQt6.QtCore import QTimer
             QTimer.singleShot(100, self.canvas_view.frame_all_nodes)
 
-            # Show tutorial description
-            if self.graph.description:
-                QMessageBox.information(
-                    self,
-                    self.graph.name,
-                    self.graph.description
-                )
+            # Show tutorial description ONLY if no show_on_start COMMENT exists
+            # (show_on_start COMMENT takes priority via _show_startup_comment in _load_from_file)
+            has_startup_comment = any(
+                node.type == NodeType.COMMENT and node.params.get('show_on_start', False)
+                for node in self.graph.nodes.values()
+            )
+            if self.graph.description and not has_startup_comment:
+                self._show_tutorial_description(self.graph.name, self.graph.description)
         else:
             QMessageBox.warning(
                 self,
                 "Tutorial Not Found",
                 f"Could not find tutorial file:\n{tutorial_path}"
             )
+
+    def _show_tutorial_description(self, title: str, description: str):
+        """Show tutorial description in floating text editor (exploratorium style).
+
+        Unlike a dialog, this stays open so users can reference it while exploring.
+        Supports markdown formatting including images.
+        """
+        # Store reference to prevent garbage collection
+        self._tutorial_editor = FloatingTextEditor(
+            field_name=f"TO DO AND NOTICE: {title}",
+            field_key="tutorial_description",
+            initial_value=description,
+            read_only=True,
+            render_markdown=True,
+            parent=self
+        )
+        # Position near top-left of canvas, offset so it doesn't cover controls
+        self._tutorial_editor.move(self.mapToGlobal(self.rect().topLeft()) + QPoint(50, 80))
+        self._tutorial_editor.resize(500, 400)
+        self._tutorial_editor.show()
+
+    def _show_startup_comment(self):
+        """Check for COMMENT node with show_on_start=True and display it.
+
+        Called after loading a file. Only one COMMENT can have show_on_start.
+        """
+        if not self.graph:
+            return
+
+        # Find COMMENT node with show_on_start=True
+        for node_id, node in self.graph.nodes.items():
+            if node.type == NodeType.COMMENT and node.params.get('show_on_start', False):
+                comment_text = node.params.get('text', '')
+                if comment_text:
+                    # Use a small delay to let the UI settle after loading
+                    from PyQt6.QtCore import QTimer
+                    QTimer.singleShot(200, lambda t=comment_text, n=node.name: self._show_tutorial_description(
+                        n if n != "Comment" else "Welcome",
+                        t
+                    ))
+                break  # Only show the first one
 
     def _on_save(self):
         """Save to current file."""
@@ -679,6 +785,13 @@ class NeuralCanvasPanel(QWidget):
         """Handle node selected in canvas."""
         self.node_selected.emit(node_id)
 
+    def _on_param_changed_auto_run(self, node_id: str, param_name: str, new_value):
+        """Handle param change - auto-run if enabled (exploratorium mode)."""
+        if hasattr(self, 'auto_run_checkbox') and self.auto_run_checkbox.isChecked():
+            # Small delay to batch rapid changes (like slider dragging)
+            # For now, just run immediately - can add debouncing later if needed
+            self._on_test_run()
+
     def _on_graph_modified(self):
         """Handle graph modification - auto-save if we have a file path."""
         self._update_status_bar()
@@ -866,13 +979,25 @@ class NeuralCanvasPanel(QWidget):
             return False
 
     def _on_reset_states(self):
-        """Reset hidden states to zero."""
-        if self.test_executor:
-            self.test_executor.reset_states()
-            # Clear visual feedback
-            self.canvas_view.clear_test_values()
+        """Reset hidden states to zero and invalidate executor."""
+        try:
+            if self.test_executor:
+                self.test_executor.reset_states()
+
+            # Clear visual feedback (always try, even if executor is None)
+            if self.canvas_view:
+                self.canvas_view.clear_test_values()
+
             self.status_validation_label.setText("States reset")
             self.status_validation_label.setStyleSheet("color: #aaa;")
+        except Exception as e:
+            print(f"[NeuralCanvas] Reset error (non-fatal): {e}")
+            self.status_validation_label.setText("Reset (partial)")
+            self.status_validation_label.setStyleSheet("color: #FF9800;")
+
+        # Invalidate executor so next Run re-reads all node params (slider values, etc.)
+        self._test_initialized = False
+        self.test_executor = None  # Force full re-creation on next Run
 
     def _display_test_results(self, result):
         """Display test results on the canvas nodes."""
