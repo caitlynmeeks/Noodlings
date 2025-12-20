@@ -17,9 +17,14 @@ toml>=0.10.2
 aiohttp>=3.9.0
 websockets>=12.0
 
+# MCP (Model Context Protocol) for tool integration
+mcp>=1.0.0
+
 # Plotting & Visualization
 matplotlib>=3.8.0
 plotly>=5.18.0
+
+# Note: Audio playback uses PyQt6.QtMultimedia (included in PyQt6)
 
 # Development Tools
 pytest>=7.4.0

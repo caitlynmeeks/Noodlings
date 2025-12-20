@@ -27,6 +27,7 @@ import logging
 from .facet_system import Facet, FacetAssembly, FacetConnection
 from .charm_network_facet import CharmNetworkFacet, CharmNetworkOutput
 from .scripted_facet import ScriptedFacet, ScriptContext
+from .transformer_facet import TransformerFacet, TransformerOutput
 from .subconscious_facet import SubconsciousFacet
 from .insight_emergence_facet import InsightEmergenceFacet
 from .context_intelligence_facet import ContextIntelligenceFacet
@@ -39,6 +40,8 @@ from .execution_event_bus import get_event_bus, EventChannel, EventPriority
 from .audio_stream_facet import AudioStreamFacet
 from .vision_facet import VisionFacet
 from .image_gen_facet import ImageGenFacet
+from .mcp_facet import MCPFacet
+from .utility_facets import UTILITY_FACET_TYPES, create_utility_facet
 
 logger = logging.getLogger(__name__)
 
@@ -243,6 +246,33 @@ class FacetExecutor:
                 logger.info("[FacetExecutor] Created singleton CharmNetworkFacet")
             return self.singleton_facets['charm_network']
 
+        elif facet.facet_type == "TransformerFacet":
+            # Singleton: Transformer is stateless but model loading is expensive
+            key = f"transformer_{facet.id}"
+            if key not in self.singleton_facets:
+                # Parse config from prompt (format: embed_dim=64,num_heads=4,...)
+                config = {}
+                if facet.prompt:
+                    for part in facet.prompt.split(','):
+                        if '=' in part:
+                            k, v = part.strip().split('=')
+                            try:
+                                config[k.strip()] = int(v.strip())
+                            except ValueError:
+                                try:
+                                    config[k.strip()] = float(v.strip())
+                                except ValueError:
+                                    config[k.strip()] = v.strip()
+                self.singleton_facets[key] = TransformerFacet(
+                    embed_dim=config.get('embed_dim', 64),
+                    num_heads=config.get('num_heads', 4),
+                    num_layers=config.get('num_layers', 2),
+                    ff_dim=config.get('ff_dim', 256),
+                    checkpoint_path=facet.model if facet.model != "SMALL" else None
+                )
+                logger.info(f"[FacetExecutor] Created TransformerFacet: {facet.id}")
+            return self.singleton_facets[key]
+
         elif facet.facet_type == "RateLimiterFacet":
             # Singleton: Tracks last execution timestamp
             if facet.id not in self.singleton_facets:
@@ -392,6 +422,56 @@ class FacetExecutor:
 
             return self.singleton_facets[facet.id]
 
+        elif facet.facet_type == "MCPFacet":
+            # MCP: Singleton - connections are expensive to set up
+            if facet.id not in self.singleton_facets:
+                # Parse config from facet properties
+                # Expected: model="server_name/tool_name" or use facet.prompt for config
+                config = {}
+
+                # Parse model field as "server/tool" format
+                if facet.model and '/' in facet.model:
+                    parts = facet.model.split('/', 1)
+                    config['server'] = parts[0]
+                    config['tool'] = parts[1]
+
+                # Alternatively, parse from prompt as JSON/YAML-like config
+                if facet.prompt:
+                    for part in facet.prompt.split(','):
+                        if ':' in part:
+                            k, v = part.strip().split(':', 1)
+                            config[k.strip()] = v.strip()
+
+                self.singleton_facets[facet.id] = MCPFacet(facet.id, config)
+                logger.info(f"[FacetExecutor] Created singleton MCPFacet (id={facet.id[:8]}, server={config.get('server')}, tool={config.get('tool')})")
+
+            return self.singleton_facets[facet.id]
+
+        # UTILITY FACETS - Check if it's a utility type
+        elif facet.facet_type in UTILITY_FACET_TYPES:
+            # Stateful facets (Counter) should be singletons
+            if facet.facet_type in ('CounterFacet',):
+                if facet.id not in self.singleton_facets:
+                    config = {}
+                    if facet.prompt:
+                        for part in facet.prompt.split(','):
+                            if ':' in part:
+                                k, v = part.strip().split(':', 1)
+                                config[k.strip()] = v.strip()
+                    self.singleton_facets[facet.id] = create_utility_facet(
+                        facet.facet_type, facet.id, config
+                    )
+                return self.singleton_facets[facet.id]
+            else:
+                # Stateless utility facets - create fresh
+                config = {}
+                if facet.prompt:
+                    for part in facet.prompt.split(','):
+                        if ':' in part:
+                            k, v = part.strip().split(':', 1)
+                            config[k.strip()] = v.strip()
+                return create_utility_facet(facet.facet_type, facet.id, config)
+
         # STATELESS FACETS - Create fresh instance per execution
         elif facet.facet_type == "ContextIntelligenceFacet":
             # ISOLATED: Fresh instance prevents contamination between cycles
@@ -471,6 +551,8 @@ class FacetExecutor:
             return "OUTGOING"
         elif facet_type == "CharmNetworkFacet":
             return "NEURAL"
+        elif facet_type == "TransformerFacet":
+            return "NEURAL"  # Also neural computation
         elif facet_type == "ContextIntelligenceFacet":
             return "PRECOG"
         elif facet_type in ("ConvergenceFacet", "SpeechGateFacet"):
@@ -570,6 +652,28 @@ class FacetExecutor:
                 'phenomenal_state': result.phenomenal_state
             }
             token_count = 0
+
+        elif facet.facet_type == "TransformerFacet":
+            # Attention-based context processing
+            # Input: 'text' for raw text, or 'tokens' for token IDs
+            text_input = inputs.get('text', inputs.get('in', ''))
+            if isinstance(text_input, str):
+                result = await instance.process_text(text_input)
+            else:
+                # Assume token IDs
+                result = await instance.process(
+                    text_input if isinstance(text_input, list) else [0]
+                )
+
+            # Map TransformerOutput to pad outputs
+            outputs = {
+                'context_embedding': result.context_embedding,
+                'attention_weights': result.attention_weights,
+                'top_attended': result.top_attended_tokens,
+                'classification': result.classification or {},
+                'out': result.context_embedding  # Default output
+            }
+            token_count = 0  # Neural computation, not LLM
 
         elif facet.facet_type == "ScriptedFacet":
             # JavaScript execution
@@ -714,6 +818,23 @@ class FacetExecutor:
                 'images_generated': sync_result.get('images_generated', 0)
             }
             token_count = 0
+
+        elif facet.facet_type == "MCPFacet":
+            # MCP: Tool invocation via Model Context Protocol
+            # instance is MCPFacet, process_async is async
+            outputs = await instance.process_async(inputs, context)
+            token_count = 0  # No LLM tokens, but could track tool usage
+
+            # Log MCP tool result for debugging
+            if outputs.get('success'):
+                logger.info(f"[FacetExecutor] MCP tool {facet.name} succeeded")
+            else:
+                logger.warning(f"[FacetExecutor] MCP tool {facet.name} failed: {outputs.get('error')}")
+
+        elif facet.facet_type in UTILITY_FACET_TYPES:
+            # UTILITY: Simple data transformation, no LLM calls
+            outputs = instance.process(inputs, context)
+            token_count = 0  # No LLM tokens
 
         else:
             # Default: LLM facet

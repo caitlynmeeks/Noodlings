@@ -276,6 +276,7 @@ class MainWindow(QMainWindow):
         settings_menu = menu_bar.addMenu("&Settings")
         settings_menu.addAction(self._create_action("Open Settings...", "Cmd+,", slot=self._open_settings_tab))
         settings_menu.addSeparator()
+        settings_menu.addAction(self._create_action("MCP Servers...", slot=self.show_mcp_settings))
         settings_menu.addAction(self._create_action("Entropy Service...", slot=self.show_rng_settings))
 
         # ===== ACCOUNT MENU =====
@@ -2526,6 +2527,24 @@ class MainWindow(QMainWindow):
         """Open main documentation in browser."""
         import webbrowser
         webbrowser.open("https://noodlings.ai/")
+
+    def show_mcp_settings(self):
+        """Show MCP (Model Context Protocol) servers configuration dialog."""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout
+        from ..panels.mcp_settings_panel import MCPSettingsPanel
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("MCP Server Configuration")
+        dialog.resize(700, 500)
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Add the MCP settings panel
+        mcp_panel = MCPSettingsPanel()
+        layout.addWidget(mcp_panel)
+
+        dialog.exec()
 
     def show_rng_settings(self):
         """Show Random Number Generator settings dialog."""

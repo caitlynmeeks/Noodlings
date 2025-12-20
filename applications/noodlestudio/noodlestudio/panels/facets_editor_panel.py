@@ -1478,8 +1478,87 @@ class FacetsEditorPanel(QWidget):
                 ("Memory Recall Facet", "MemoryFacet"),
                 ("Response Planning Facet", "PlanningFacet"),
                 ("Convergence Facet", "ConvergenceFacet"),
+                ("Scripted Facet (JavaScript)", "ScriptedFacet"),
+                ("MCP Tool Facet", "MCPFacet"),
                 # NOTE: INCOMING/OUTGOING (SpecialNode) not shown - they're special
             ]
+
+            # Math facets submenu
+            math_menu = add_menu.addMenu("Math")
+            math_types = [
+                ("Add (a + b)", "MathAddFacet"),
+                ("Subtract (a - b)", "MathSubtractFacet"),
+                ("Multiply (a * b)", "MathMultiplyFacet"),
+                ("Divide (a / b)", "MathDivideFacet"),
+                ("Min", "MathMinFacet"),
+                ("Max", "MathMaxFacet"),
+                ("Clamp", "MathClampFacet"),
+                ("Absolute Value", "MathAbsFacet"),
+            ]
+            for display_name, facet_type in math_types:
+                action = math_menu.addAction(display_name)
+                action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
+                                        self.add_facet(ft, dn, position))
+
+            # Logic facets submenu
+            logic_menu = add_menu.addMenu("Logic")
+            logic_types = [
+                ("AND", "LogicAndFacet"),
+                ("OR", "LogicOrFacet"),
+                ("NOT", "LogicNotFacet"),
+                ("Compare", "LogicCompareFacet"),
+                ("Switch (If/Else)", "LogicSwitchFacet"),
+            ]
+            for display_name, facet_type in logic_types:
+                action = logic_menu.addAction(display_name)
+                action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
+                                        self.add_facet(ft, dn, position))
+
+            # String facets submenu
+            string_menu = add_menu.addMenu("String")
+            string_types = [
+                ("Concat", "StringConcatFacet"),
+                ("Split", "StringSplitFacet"),
+                ("Replace", "StringReplaceFacet"),
+                ("Format (Template)", "StringFormatFacet"),
+                ("Length", "StringLengthFacet"),
+                ("Contains", "StringContainsFacet"),
+                ("Regex Match", "StringRegexFacet"),
+            ]
+            for display_name, facet_type in string_types:
+                action = string_menu.addAction(display_name)
+                action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
+                                        self.add_facet(ft, dn, position))
+
+            # Array facets submenu
+            array_menu = add_menu.addMenu("Array")
+            array_types = [
+                ("Get Element", "ArrayGetFacet"),
+                ("First", "ArrayFirstFacet"),
+                ("Last", "ArrayLastFacet"),
+                ("Join", "ArrayJoinFacet"),
+                ("Length", "ArrayLengthFacet"),
+            ]
+            for display_name, facet_type in array_types:
+                action = array_menu.addAction(display_name)
+                action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
+                                        self.add_facet(ft, dn, position))
+
+            # Data/Control facets submenu
+            data_menu = add_menu.addMenu("Data")
+            data_types = [
+                ("Pass Through", "PassThroughFacet"),
+                ("Gate", "GateFacet"),
+                ("Counter", "CounterFacet"),
+                ("JSON Parse", "JSONParseFacet"),
+                ("JSON Stringify", "JSONStringifyFacet"),
+                ("Get Property", "GetPropertyFacet"),
+                ("Set Property", "SetPropertyFacet"),
+            ]
+            for display_name, facet_type in data_types:
+                action = data_menu.addAction(display_name)
+                action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
+                                        self.add_facet(ft, dn, position))
 
             for display_name, facet_type in facet_types:
                 action = add_menu.addAction(display_name)

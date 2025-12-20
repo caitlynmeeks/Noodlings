@@ -1909,49 +1909,61 @@ class InspectorPanel(QWidget):
 
     def _save_neural_node_param(self, param_name: str, value):
         """Save a parameter value to the neural node with undo support."""
-        if not hasattr(self, '_current_neural_node_id'):
+        # Guard against re-entrant calls (e.g., signal feedback loops)
+        if getattr(self, '_saving_neural_param', False):
             return
+        self._saving_neural_param = True
 
-        node_id = self._current_neural_node_id
+        try:
+            if not hasattr(self, '_current_neural_node_id'):
+                return  # finally will reset _saving_neural_param
 
-        # Get main window reference
-        main_window = self.window()
-        if not hasattr(main_window, 'neural_canvas'):
-            return
+            node_id = self._current_neural_node_id
 
-        canvas_view = main_window.neural_canvas.canvas_view
-        node = main_window.neural_canvas.graph.get_node_by_id(node_id)
-        if not node:
-            return
+            # Get main window reference
+            main_window = self.window()
+            if not hasattr(main_window, 'neural_canvas'):
+                return  # finally will reset _saving_neural_param
 
-        # Get old value
-        old_value = node.params.get(param_name)
+            canvas_view = main_window.neural_canvas.canvas_view
+            node = main_window.neural_canvas.graph.get_node_by_id(node_id)
+            if not node:
+                return  # finally will reset _saving_neural_param
 
-        # Skip if value hasn't changed
-        if old_value == value:
-            return
+            # Get old value
+            old_value = node.params.get(param_name)
 
-        # Special handling for show_on_start - only one COMMENT can have it
-        # Note: This is a side effect that won't be undone, but it's minor
-        if param_name == 'show_on_start' and value is True:
-            from ..core.neural_canvas.neural_node import NodeType
-            # Uncheck all other COMMENT nodes
-            for other_id, other_node in main_window.neural_canvas.graph.nodes.items():
-                if other_id != node_id and other_node.type == NodeType.COMMENT:
-                    if other_node.params.get('show_on_start', False):
-                        other_node.params['show_on_start'] = False
+            # Skip if value hasn't changed
+            if old_value == value:
+                return  # finally will reset _saving_neural_param
 
-        # Push undo command
-        cmd = EditNeuralNodeParamCommand(
-            view=canvas_view,
-            node_id=node_id,
-            param_name=param_name,
-            old_value=old_value,
-            new_value=value,
-            node_name=node.name
-        )
-        UndoManager.instance().push(cmd)
-        print(f"[Inspector] Neural node param '{param_name}' updated")
+            # Special handling for show_on_start - only one COMMENT can have it
+            # Note: This is a side effect that won't be undone, but it's minor
+            if param_name == 'show_on_start' and value is True:
+                from ..core.neural_canvas.neural_node import NodeType
+                # Uncheck all other COMMENT nodes
+                for other_id, other_node in main_window.neural_canvas.graph.nodes.items():
+                    if other_id != node_id and other_node.type == NodeType.COMMENT:
+                        if other_node.params.get('show_on_start', False):
+                            other_node.params['show_on_start'] = False
+
+            # Push undo command
+            cmd = EditNeuralNodeParamCommand(
+                view=canvas_view,
+                node_id=node_id,
+                param_name=param_name,
+                old_value=old_value,
+                new_value=value,
+                node_name=node.name
+            )
+            UndoManager.instance().push(cmd)
+            print(f"[Inspector] Neural node param '{param_name}' updated")
+        except Exception as e:
+            import traceback
+            print(f"[Inspector] ERROR in _save_neural_node_param: {e}")
+            traceback.print_exc()
+        finally:
+            self._saving_neural_param = False
 
     def update_neural_node_param(self, param_name: str, new_value):
         """

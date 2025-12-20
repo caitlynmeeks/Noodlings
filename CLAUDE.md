@@ -2,28 +2,129 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: December 19, 2025
+**Last Updated**: December 20, 2025
 
 **FOR NEXT CLAUDE: START HERE!**
 
 ---
 
-## 🎯 NEXT SESSION: Neural Canvas Tutorials
+## 🎯 NEXT SESSION: Toy Claude Code Tutorial & Testing
 
-### Task: Test & Implement Neural Canvas Tutorials
-- Test Scene Protocol wiring (verify perception slices work)
-- Review tutorial spec: `/docs/NEURAL_CANVAS_TUTORIALS.md`
-- Implement missing nodes identified in spec
-- Build first tutorial: Logic Gates with Neural Nodes
+### Build Agentic Coding Tutorial
+Create a demonstration facet assembly showing how to build a simple coding agent:
+- ReAct-style loop (Reason → Act → Observe)
+- MCP tools for file operations (filesystem server)
+- Decision facets for planning what to do next
+- Example: "Fix the typo in README.md"
 
-### Reference
-- 10 tutorials across 5 progressive levels
-- Missing nodes prioritized in spec
-- Implementation phases documented
+### Test New Systems
+1. **MCP Integration** - Test connecting to filesystem/fetch servers
+2. **Utility Facets** - Verify math/logic/string/array operations work
+3. **Player Runtime** - Test headless execution from CLI
+
+### Backlog: noodleMUSH Connection Issues
+User reported these problems (lower priority now):
+1. Account not recognized - Has to re-register each session
+2. "I see nothing" on look - Room descriptions not loading
+3. Noodlings not showing in world - Agents not visible
+4. Inspector not updating - Selecting/rezzing noodlings doesn't show in Inspector
+
+### Reference Docs
+- **Player Runtime**: `noodlestudio/player.py`
+- **MCP Manager**: `noodlestudio/core/mcp_manager.py`
+- **Utility Facets**: `noodlestudio/core/utility_facets.py`
+
+---
+
+## ✅ COMPLETED (December 20, 2025)
+
+### MCP (Model Context Protocol) Integration
+**Facets can now invoke external tools via MCP!**
+
+**New Files:**
+- `noodlestudio/core/mcp_manager.py` (~475 lines) - Connection handling, tool discovery
+- `noodlestudio/core/mcp_facet.py` (~280 lines) - MCPFacet for tool invocation
+- `noodlestudio/panels/mcp_settings_panel.py` (~350 lines) - Configuration UI
+
+**Features:**
+- Connect to MCP servers via stdio transport (npx, python, etc.)
+- Auto-discover available tools from connected servers
+- YAML config at `~/.noodlestudio/mcp_servers.yaml`
+- Environment variable expansion (`${VAR}` syntax)
+- Settings > MCP Servers opens configuration dialog
+- MCPFacet type available in Facets Editor
+
+**Default Servers:**
+- `filesystem` - File read/write operations
+- `fetch` - HTTP requests
+
+### Utility Facets (31 new facet types)
+**Common operations for agentic workflows without LLM calls**
+
+**New File:** `noodlestudio/core/utility_facets.py` (~700 lines)
+
+**Categories:**
+- **Math (8):** Add, Subtract, Multiply, Divide, Min, Max, Clamp, Abs
+- **Logic (5):** And, Or, Not, Compare, Switch (If/Else)
+- **String (7):** Concat, Split, Replace, Format, Length, Contains, Regex
+- **Array (5):** Get, First, Last, Join, Length
+- **Data (6):** PassThrough, Gate, Counter, JSONParse, JSONStringify, GetProperty, SetProperty
+
+All available in Facets Editor under organized submenus (right-click > Add Facet).
+
+### Headless Player Runtime
+**Execute facet assemblies without the GUI**
+
+**New File:** `noodlestudio/player.py` (~350 lines)
+
+```python
+# As library
+from noodlestudio.player import Player
+player = Player()
+player.load_assembly("my_agent.yaml")
+result = await player.run("Hello!")
+
+# From command line
+python -m noodlestudio.player --assembly agent.yaml --input "Hello"
+python -m noodlestudio.player --assembly agent.yaml --interactive
+```
+
+**Features:**
+- Load assemblies from YAML or dict
+- Configure LLM provider (ollama, anthropic, openai, openrouter)
+- Interactive REPL mode
+- JSON output option for scripting
+- Timeout and verbose flags
+
+### Inspector Crash Fix
+Fixed crash when clicking "Show on Start" checkbox for COMMENT nodes in Neural Canvas tutorials.
+- Added re-entrancy guard to prevent signal feedback loops
+- File: `noodlestudio/panels/inspector_panel.py`
 
 ---
 
 ## ✅ COMPLETED (December 19, 2025)
+
+### Cognitive Timeline Editor - Phase 1
+**"What Premiere did for video, what Maya did for 3D - we do for cognition"**
+
+See full design: `/docs/COGNITIVE_TIMELINE_EDITOR.md`
+
+**New Files:**
+- `noodlestudio/core/timeline_recorder.py` (~500 lines) - EventBus → ProfilerPanel bridge
+- `noodlestudio/widgets/facet_track.py` (~350 lines) - Facet swimlane visualization
+
+**Updated:**
+- `noodlestudio/panels/profiler_panel.py` - Now has Facets + Affect + Inspector sections
+
+**Features:**
+- Live recording of facet executions from ExecutionEventBus
+- Color-coded swimlanes by facet type (LLM=purple, Neural=green, Script=blue)
+- Click facet block to inspect inputs/outputs/timing
+- Recording controls (REC/PAUSE/CLEAR)
+- Deferred EventBus connection (retries until server starts)
+
+---
 
 ### Scene Protocol Wiring to Server - DONE!
 **Task:** Integrate Scene Protocol with cMUSH server for perception-filtered context
