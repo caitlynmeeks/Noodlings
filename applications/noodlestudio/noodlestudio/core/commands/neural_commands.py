@@ -248,6 +248,79 @@ class DeleteNeuralConnectionCommand(StudioCommand):
         })
 
 
+class EditNeuralNodeParamCommand(MergeableCommand):
+    """
+    Command for editing a neural node parameter.
+
+    Supports merging consecutive edits to the same param (e.g., slider dragging).
+    """
+
+    COMMAND_ID = CommandID.EDIT_NEURAL_PARAM
+
+    def __init__(
+        self,
+        view: 'NeuralCanvasView',
+        node_id: str,
+        param_name: str,
+        old_value: Any,
+        new_value: Any,
+        node_name: str = ""
+    ):
+        """
+        Initialize param edit command.
+
+        Args:
+            view: Reference to NeuralCanvasView
+            node_id: UUID of node being edited
+            param_name: Name of the parameter being changed
+            old_value: Value before change
+            new_value: Value after change
+            node_name: Display name for undo text
+        """
+        if node_name:
+            text = f"Edit '{node_name}' {param_name}"
+        else:
+            text = f"Edit {param_name}"
+        # Merge ID combines node_id and param_name so different params don't merge
+        super().__init__(text, merge_id=f"{node_id}:{param_name}")
+
+        self.view = view
+        self.node_id = node_id
+        self.param_name = param_name
+        self.old_value = old_value
+        self.new_value = new_value
+
+    def _do(self):
+        """Apply the new value."""
+        if self._first_redo:
+            # Value is already set, just emit modified
+            self.view.graph_modified.emit()
+        else:
+            # Re-redo: actually set the value
+            self.view._set_node_param_internal(self.node_id, self.param_name, self.new_value)
+
+    def _undo(self):
+        """Restore the old value."""
+        self.view._set_node_param_internal(self.node_id, self.param_name, self.old_value)
+
+    def id(self) -> int:
+        """Return command ID for merge compatibility."""
+        return self.COMMAND_ID
+
+    def mergeWith(self, other: QUndoCommand) -> bool:
+        """Merge consecutive edits to the same param."""
+        if not isinstance(other, EditNeuralNodeParamCommand):
+            return False
+        if other.node_id != self.node_id:
+            return False
+        if other.param_name != self.param_name:
+            return False
+
+        # Merge: keep our old_value, take their new_value
+        self.new_value = other.new_value
+        return True
+
+
 class RenameNeuralNodeCommand(StudioCommand):
     """Command for renaming a neural network node."""
 

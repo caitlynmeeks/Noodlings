@@ -28,6 +28,7 @@ from .neural_commands import (
     DeleteNeuralNodeCommand,
     CreateNeuralConnectionCommand,
     DeleteNeuralConnectionCommand,
+    EditNeuralNodeParamCommand,
     RenameNeuralNodeCommand
 )
 
@@ -51,5 +52,6 @@ __all__ = [
     'DeleteNeuralNodeCommand',
     'CreateNeuralConnectionCommand',
     'DeleteNeuralConnectionCommand',
+    'EditNeuralNodeParamCommand',
     'RenameNeuralNodeCommand'
 ]

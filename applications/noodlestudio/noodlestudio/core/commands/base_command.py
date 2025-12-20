@@ -156,4 +156,6 @@ class CommandID:
     MOVE_FACET = 1
     MOVE_NEURAL_NODE = 2
     CHANGE_PROPERTY = 3
+    EDIT_NEURAL_PARAM = 4
+    EDIT_FACET_PROPERTY = 5
     # Add more as needed

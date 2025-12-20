@@ -384,6 +384,7 @@ class NodeGraphicsItem(QGraphicsItem):
         self._slider_x = 0
         self._slider_width = 0
         self._slider_dragging = False
+        self._slider_value_before_drag = None  # For undo
 
         # Help icon rect (for click detection)
         self._help_icon_rect = QRectF(self.width - 20, 4, 16, 16)
@@ -392,6 +393,7 @@ class NodeGraphicsItem(QGraphicsItem):
         self._comment_resizing = False
         self._resize_start_pos = None
         self._resize_start_size = None
+        self._comment_width_before_resize = None  # For undo
 
     def mousePressEvent(self, event):
         """Record position when drag starts (for undo)."""
@@ -426,6 +428,7 @@ class NodeGraphicsItem(QGraphicsItem):
                     self._comment_resizing = True
                     self._resize_start_pos = local_pos
                     self._resize_start_size = (self.width, self.height)
+                    self._comment_width_before_resize = self.node.params.get('width', self.width)  # Store for undo
                     event.accept()
                     return
 
@@ -440,6 +443,7 @@ class NodeGraphicsItem(QGraphicsItem):
                 )
                 if slider_hit_rect.contains(local_pos):
                     self._slider_dragging = True
+                    self._slider_value_before_drag = self.node.params.get('value', 0)  # Store for undo
                     self._update_slider_value(local_pos.x())
                     event.accept()
                     return
@@ -478,12 +482,26 @@ class NodeGraphicsItem(QGraphicsItem):
         # Handle slider release
         if event.button() == Qt.MouseButton.LeftButton and self._slider_dragging:
             self._slider_dragging = False
-            # Emit graph modified signal
-            if self.scene():
-                for view in self.scene().views():
-                    if isinstance(view, NeuralCanvasView):
-                        view.graph_modified.emit()
-                        break
+            # Push undo command if value changed
+            new_value = self.node.params.get('value', 0)
+            if self._slider_value_before_drag is not None and new_value != self._slider_value_before_drag:
+                if self.scene():
+                    for view in self.scene().views():
+                        if isinstance(view, NeuralCanvasView):
+                            from ...core.undo_manager import undo_manager
+                            from ...core.commands import EditNeuralNodeParamCommand
+
+                            cmd = EditNeuralNodeParamCommand(
+                                view=view,
+                                node_id=self.node.id,
+                                param_name='value',
+                                old_value=self._slider_value_before_drag,
+                                new_value=new_value,
+                                node_name=self.node.name
+                            )
+                            undo_manager.push(cmd)
+                            break
+            self._slider_value_before_drag = None
             event.accept()
             return
 
@@ -492,12 +510,26 @@ class NodeGraphicsItem(QGraphicsItem):
             self._comment_resizing = False
             self._resize_start_pos = None
             self._resize_start_size = None
-            # Emit graph modified signal
-            if self.scene():
-                for view in self.scene().views():
-                    if isinstance(view, NeuralCanvasView):
-                        view.graph_modified.emit()
-                        break
+            # Push undo command if width changed
+            new_width = self.node.params.get('width', self.width)
+            if self._comment_width_before_resize is not None and new_width != self._comment_width_before_resize:
+                if self.scene():
+                    for view in self.scene().views():
+                        if isinstance(view, NeuralCanvasView):
+                            from ...core.undo_manager import undo_manager
+                            from ...core.commands import EditNeuralNodeParamCommand
+
+                            cmd = EditNeuralNodeParamCommand(
+                                view=view,
+                                node_id=self.node.id,
+                                param_name='width',
+                                old_value=self._comment_width_before_resize,
+                                new_value=new_width,
+                                node_name=self.node.name
+                            )
+                            undo_manager.push(cmd)
+                            break
+            self._comment_width_before_resize = None
             event.accept()
             return
 
@@ -2113,6 +2145,35 @@ class NeuralCanvasView(QGraphicsView):
             node_item.update()  # Trigger repaint
 
         self.graph_modified.emit()
+
+    def _set_node_param_internal(self, node_id: str, param_name: str, value):
+        """
+        Set a node parameter without pushing undo command.
+
+        Called by EditNeuralNodeParamCommand during undo/redo.
+        """
+        # Update data model
+        node = self.graph.nodes.get(node_id)
+        if node:
+            node.params[param_name] = value
+
+        # Update graphics
+        node_item = self.node_items.get(node_id)
+        if node_item:
+            node_item.node.params[param_name] = value
+            # Update visual dimensions for COMMENT width/height
+            if param_name == 'width' and hasattr(node_item, 'width'):
+                node_item.prepareGeometryChange()
+                node_item.width = value
+            elif param_name == 'height' and hasattr(node_item, 'height'):
+                node_item.prepareGeometryChange()
+                node_item.height = value
+            node_item.update()  # Trigger repaint
+
+        self.graph_modified.emit()
+
+        # Emit param changed signal for auto-run
+        self.node_param_changed.emit(node_id, param_name, value)
 
     # ========== TEST MODE DISPLAY ==========
 
