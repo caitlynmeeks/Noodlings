@@ -1536,6 +1536,11 @@ class InspectorPanel(QWidget):
                 self.entity_header.setText(f"Node: {node_name}")
                 self.load_neural_node_properties(entity_data)
 
+            elif entity_type == 'radiance':
+                asset_name = entity_data.get('name', 'Unknown Asset')
+                self.entity_header.setText(f"Radiance: {asset_name}")
+                self.load_radiance_properties(entity_data)
+
         finally:
             # ALWAYS clear loading flag, even on error
             self.is_loading = False
@@ -2301,6 +2306,27 @@ class InspectorPanel(QWidget):
         self.properties_layout.addWidget(exit_group)
 
         self.properties_layout.addStretch()
+
+    def load_radiance_properties(self, entity_data):
+        """Show RadianceComponent properties using RadianceInspector widget."""
+        from noodlestudio.panels.radiance_inspector import RadianceInspector
+
+        # Store reference to prevent garbage collection
+        if not hasattr(self, '_radiance_inspector'):
+            self._radiance_inspector = RadianceInspector()
+
+        # Get component and path from entity_data
+        component = entity_data.get('component')
+        path = entity_data.get('path', '')
+        on_change = entity_data.get('on_change')
+
+        # Configure inspector
+        self._radiance_inspector.set_component(component, path)
+        if on_change:
+            self._radiance_inspector.set_on_change_callback(on_change)
+
+        # Add to properties layout
+        self.properties_layout.addWidget(self._radiance_inspector)
 
     def create_property_group(self, title: str) -> CollapsibleSection:
         """

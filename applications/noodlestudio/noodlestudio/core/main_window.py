@@ -24,6 +24,7 @@ from ..panels.console_panel import ConsolePanel
 from ..panels.assets_panel import AssetsPanel
 from ..panels.settings_panel import SettingsPanel
 from ..panels.cognitive_cycles_panel import CognitiveCyclesPanel
+from ..panels.gaussian_viewer_panel import GaussianViewerPanel
 from .theme import DARK_THEME
 from .unity_theme import UNITY_DARK_THEME
 from .layout_manager import LayoutManager
@@ -522,6 +523,10 @@ class MainWindow(QMainWindow):
         self.neural_canvas = NeuralCanvasPanel()
         center_tabs.addTab(self.neural_canvas, "Neural Canvas")
 
+        # Gaussian Viewer tab - native Gaussian splat preview
+        self.gaussian_viewer = GaussianViewerPanel()
+        center_tabs.addTab(self.gaussian_viewer, "Gaussian Viewer")
+
         # Settings tab (contains Models, External Apps, etc.)
         self.settings_panel = SettingsPanel()
         center_tabs.addTab(self.settings_panel, "Settings")
@@ -776,6 +781,9 @@ class MainWindow(QMainWindow):
         self.neural_canvas.graph_loaded.connect(self._on_neural_canvas_graph_loaded)
         self.hierarchy.entitySelected.connect(safe_console_select)
         self.hierarchy.entitySelected.connect(safe_facets_select)
+
+        # Connect Gaussian Viewer to Inspector
+        self.gaussian_viewer.radianceLoaded.connect(self._on_radiance_loaded)
 
         # Check server state
         QTimer.singleShot(200, self.update_connection_status)
@@ -2379,7 +2387,21 @@ class MainWindow(QMainWindow):
             self.inspector._current_neural_node_id = None
             self.inspector._neural_node_param_widgets = {}
             self.inspector.clear_inspector()
-            print("[MainWindow] Cleared Inspector - neural canvas graph loaded")
+
+    def _on_radiance_loaded(self, path: str, component):
+        """Handle radiance loaded in Gaussian Viewer - show in Inspector."""
+        from pathlib import Path
+
+        # Create entity data for Inspector
+        entity_data = {
+            'name': Path(path).stem,
+            'path': path,
+            'component': component,
+            'on_change': lambda: self.gaussian_viewer._request_full_render()
+        }
+
+        # Load into Inspector as a "radiance" entity type
+        self.inspector.load_entity('radiance', entity_data)
 
     def show_credits(self):
         """Show demo scene style credits with music."""
