@@ -2,8 +2,45 @@
 
 Noodlings Multi-Timescale Affective Agents - Technical Architecture Reference
 
-**Generated:** December 18, 2025
+**Generated:** December 27, 2025
 **Purpose:** Reference for maintaining code quality and consistency during organic development
+
+---
+
+## The Big Picture
+
+**Genie is stateless. Noodlings is stateful.**
+
+Generative 3D engines (Google Genie, Mirage, etc.) render frames without memory. We provide:
+- **Persistent state** - Who's where, what happened, relationships
+- **Character consistency** - Reference art per form/state
+- **Narrative memory** - Context that stateless generators lack
+- **Perception-filtered context** - Each noodling only knows what they perceive
+
+**Text, 2D maps, and 3D Gaussian renders are all projections of the same semantic truth.**
+
+```
+                    ┌─────────────────────────────────────┐
+                    │     SCENE STATE MANAGER             │
+                    │     (canonical spatial truth)        │
+                    └─────────────┬───────────────────────┘
+                                  │
+          ┌───────────────────────┼───────────────────────┐
+          │                       │                       │
+          ▼                       ▼                       ▼
+    ┌───────────┐          ┌───────────┐          ┌───────────┐
+    │ Red's     │          │ Yuki's    │          │  Full     │
+    │ Perception│          │ Perception│          │  Packet   │
+    │ Slice     │          │ Slice     │          │           │
+    └─────┬─────┘          └─────┬─────┘          └─────┬─────┘
+          │                      │                      │
+          ▼                      ▼                      ▼
+    ┌───────────┐          ┌───────────┐          ┌───────────┐
+    │ Red's     │          │ Yuki's    │          │  Genie/   │
+    │ Facets    │          │ Facets    │          │  Mirage   │
+    │(cognition)│          │(cognition)│          │(rendering)│
+    └───────────┘          └───────────┘          └───────────┘
+```
 
 ---
 
@@ -126,18 +163,33 @@ noodlestudio/
 │   │   ├── node_definitions.py     # 26 node types
 │   │   └── test_executor.py        # PyTorch inference
 │   │
-│   └── semantic_world/             # Scene protocol (WELL ORGANIZED)
-│       ├── scene_packet.py         # Data structures
-│       ├── scene_state_manager.py  # Canonical truth
-│       ├── perception.py           # FOV filtering
-│       └── scene_emitter.py        # Output streaming
+│   ├── semantic_world/             # Scene protocol (WELL ORGANIZED)
+│   │   ├── scene_packet.py         # Data structures
+│   │   ├── scene_state_manager.py  # Canonical truth
+│   │   ├── perception.py           # FOV filtering
+│   │   ├── scene_emitter.py        # Output streaming
+│   │   ├── network_bridge.py       # Scene → Network sync
+│   │   ├── gaussian_adapter.py     # Gaussian splatting bridge
+│   │   ├── vrm_parser.py           # VRM avatar import
+│   │   ├── spring_bone_simulation.py # Hair/cloth physics
+│   │   └── mesh_import.py          # 3D mesh → Gaussians
+│   │
+│   ├── social/                     # VRChat-killer features
+│   │   ├── mirror_portal_system.py # Mirrors and portals
+│   │   ├── spatial_audio.py        # 3D positioned audio
+│   │   ├── gaussian_particles.py   # Fire, smoke, sparkles
+│   │   └── network_sync.py         # Multi-user networking
+│   │
+│   └── backend_services.py         # Cloud API clients
 │
 ├── panels/                         # UI panels
 │   ├── inspector_panel.py          # Property editor (3749 lines - LARGE)
 │   ├── facets_editor_panel.py      # Node editor (3459 lines - LARGE)
-│   ├── scene_hierarchy.py          # Scene tree (2008 lines)
+│   ├── scene_hierarchy.py          # Unity-style scene tree (~2200 lines)
+│   │   ├── SceneNode              # Node: Folder/Noodling/Prim/Zone/Bone
+│   │   ├── SceneGraph             # Manager: CRUD, hierarchy persistence
+│   │   └── hierarchy.yaml         # Saved to Stages/{name}/
 │   ├── model_manager_panel_v2.py   # Model browser (CURRENT)
-│   ├── model_manager_panel.py      # LEGACY - REMOVE
 │   └── ...
 │
 ├── scripting/                      # Scripting API (context.noodle)
@@ -269,9 +321,360 @@ context.noodle.world.*       // Entity transforms
 | UI layout | QSettings | OS-specific |
 | Model labels | QSettings | OS-specific |
 
+### NoodleStudio Project Structure (Unity-Style)
+
+```
+MyProject/
+├── Library/                      # Asset templates (like Unity prefabs)
+│   ├── Noodlings/
+│   │   ├── empty_noodling/
+│   │   │   └── recipe.yaml      # Default noodling template
+│   │   └── fire_imp/
+│   │       └── recipe.yaml      # Custom character template
+│   └── Props/
+│       └── sword/
+│           └── prop.yaml
+│
+├── Stages/                       # Scene instances
+│   └── main_stage/
+│       ├── hierarchy.yaml        # Scene graph (folders, parent/children)
+│       ├── Instances/            # Instantiated entities
+│       │   ├── {uuid}/
+│       │   │   └── instance.yaml # Overrides template values
+│       │   └── ...
+│       └── Zones/
+│           └── {uuid}.yaml
+│
+└── project.yaml                  # Project manifest
+```
+
+**Key Concept:** Library contains templates, Stages contain instances that reference and override templates.
+
 ---
 
-## 4. Code Smell Inventory
+## 4. Gaussian Rendering Pipeline
+
+**No Unity. No Unreal. Just Gaussians and vibes.**
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         NOODLESTUDIO (authoring)                         │
+│                                                                          │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐               │
+│  │ VRM Parser   │    │ Mesh Import  │    │ Gaussian     │               │
+│  │ (avatars)    │───▶│ Pipeline     │───▶│ Asset Mgr    │               │
+│  └──────────────┘    └──────────────┘    └──────┬───────┘               │
+│                                                  │                       │
+│  ┌──────────────┐                               │                       │
+│  │ Spring Bone  │◀──────────────────────────────┘                       │
+│  │ Simulation   │  (hair, cloth, tails)                                 │
+│  └──────────────┘                                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        SCENE PACKET EMITTER                              │
+│                                                                          │
+│  Scene State Manager → ScenePacket → GaussianSceneCompositor            │
+│                                                                          │
+│  Output: Composed Gaussian scene with:                                   │
+│    - Positioned avatar instances                                         │
+│    - Animated blend shapes (expressions)                                 │
+│    - Spring bone deformations                                            │
+│    - Particle systems                                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    STATELESS RENDERER (Genie/Mirage)                     │
+│                                                                          │
+│  Receives: Scene Packet + Gaussian data + Camera directives              │
+│  Outputs:  Rendered frame (no state retained)                            │
+│                                                                          │
+│  Adapters:                                                               │
+│    - GenieAdapter: Transforms to Google Genie format                     │
+│    - WebSocketPacketAdapter: Real-time streaming                         │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         WEB CLIENT (WebGL/WebGPU)                        │
+│                                                                          │
+│  - Gaussian splat renderer                                               │
+│  - Entity interpolation (client-side prediction)                         │
+│  - Spatial audio playback                                                │
+│  - Voice chat UI                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Gaussian Asset Pipeline
+
+| Stage | Input | Output | File |
+|-------|-------|--------|------|
+| VRM Import | `.vrm` avatar | Skeleton + blend shapes + spring bones | `vrm_parser.py` |
+| Mesh Import | `.glb`, `.gltf`, `.obj` | Mesh primitives + materials | `mesh_import.py` |
+| Gaussian Conversion | Mesh + materials | `.ply` Gaussian splat | `gaussian_adapter.py` |
+| Spring Simulation | Skeleton + physics params | Deformed Gaussian positions | `spring_bone_simulation.py` |
+
+### Key Insight: Mirrors and Portals are Trivial
+
+With Gaussians, mirrors and portals don't need stencil buffers or render-to-texture.
+Just render the scene from a different camera position - the Gaussians are the same!
+
+```python
+# Mirror: Reflect camera across mirror plane
+mirror_cam = reflect_camera(main_cam, mirror_surface)
+mirror_frame = render_gaussians(scene, mirror_cam)
+
+# Portal: Render from destination camera
+portal_frame = render_gaussians(destination_scene, destination_cam)
+```
+
+---
+
+## 5. Social Features (VRChat-Killer)
+
+### Mirror and Portal System (`social/mirror_portal_system.py`)
+
+**Mirrors:**
+- Flat, curved, or fun-house distortion
+- Configurable reflection quality
+- VRChat's #1 feature - people love looking at their avatars
+
+**Portals:**
+- Portal-game style linked pairs
+- Destination preview rendering
+- Seamless teleportation on walk-through
+
+```python
+# Create a portal pair
+portal_a, portal_b = create_portal_pair(
+    position_a=[0, 0, 10],
+    position_b=[100, 0, 0],
+    size=(2.0, 3.0)  # Width x Height
+)
+```
+
+### Spatial Audio (`social/spatial_audio.py`)
+
+**Features:**
+- 3D positioned audio sources
+- Distance-based attenuation (inverse, linear, exponential)
+- Audio cones for directional sound
+- Ambient zones (reverb, echo)
+- Voice chat integration
+
+**Distance Models:**
+| Model | Use Case |
+|-------|----------|
+| `inverse` | Realistic falloff |
+| `linear` | Predictable range |
+| `exponential` | Sharp cutoff |
+
+**Scripting API** (`context.noodle.audio`):
+```javascript
+// Attach spatial audio to entity
+context.noodle.audio.attach_source("npc_radio", {
+    clip: "jazz_loop.ogg",
+    volume: 0.8,
+    ref_distance: 2.0,
+    max_distance: 50.0,
+    rolloff: 1.0
+});
+
+// Play positional one-shot
+context.noodle.audio.play_at("explosion.wav", [10, 0, 5], { volume: 1.0 });
+```
+
+### Gaussian Particles (`social/gaussian_particles.py`)
+
+Unlike mesh particles, Gaussian particles ARE Gaussians - they composite naturally with the scene.
+
+**Presets:**
+| Preset | Effect |
+|--------|--------|
+| `create_fire_emitter()` | Flickering flames |
+| `create_smoke_emitter()` | Billowing smoke |
+| `create_sparkle_emitter()` | Magic sparkles |
+| `create_snow_emitter()` | Falling snow |
+
+**Custom emitters:**
+```python
+emitter = ParticleEmitter(
+    shape=EmitterShape.CONE,
+    emission_rate=100,
+    lifetime=(1.0, 2.0),
+    size_over_life=Curve.ease_out(1.0, 0.0),
+    color_over_life=ColorGradient([
+        (0.0, (1.0, 0.5, 0.0, 1.0)),  # Orange
+        (1.0, (0.2, 0.0, 0.0, 0.0)),  # Fade to transparent red
+    ]),
+)
+```
+
+---
+
+## 6. Network Architecture
+
+### Multi-User Networking (`social/network_sync.py`)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        NETWORK SERVER                            │
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   Lobby     │  │  Interest   │  │   Delta     │              │
+│  │   Manager   │  │  Manager    │  │ Compressor  │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   Voice     │  │  Entity     │  │  Network    │              │
+│  │   Manager   │  │ Interpolate │  │   Bridge    │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+└─────────────────────────────────────────────────────────────────┘
+          │                   │                    │
+          ▼                   ▼                    ▼
+    ┌───────────┐      ┌───────────┐       ┌───────────┐
+    │  LiveKit  │      │ WebSocket │       │  Scene    │
+    │  (SFU)    │      │ Clients   │       │  State    │
+    └───────────┘      └───────────┘       │  Manager  │
+                                           └───────────┘
+```
+
+### Interest Management
+
+Distance-based filtering reduces bandwidth:
+
+| Zone | Distance | Detail Level |
+|------|----------|--------------|
+| Full | 0-50m | All updates, full fidelity |
+| Reduced | 50-100m | Position only, 10 Hz |
+| Minimal | 100-200m | Position only, 2 Hz |
+| Culled | >200m | No updates |
+
+### Delta Compression
+
+Only send changed fields:
+
+```python
+# Full update (first sync)
+{"id": "npc_1", "position": [1,2,3], "rotation": [0,0,0,1], "animation": "idle"}
+
+# Delta update (subsequent)
+{"id": "npc_1", "position": [1.1,2,3]}  # Only position changed
+```
+
+### Voice Chat (SFU Integration)
+
+| Component | Purpose |
+|-----------|---------|
+| `VoiceManager` | WebRTC session management |
+| `VoiceChannel` | Spatial voice rooms |
+| `VoiceState` | Mute, deafen, speaking |
+
+Integrates with LiveKit or mediasoup for selective forwarding.
+
+### Network Bridge (`semantic_world/network_bridge.py`)
+
+Connects SceneStateManager to NetworkServer:
+
+```
+SceneStateManager → NetworkBridge → NetworkServer → WebSocket → Clients
+```
+
+- 20 Hz entity broadcast loop
+- Entity converters (noodling/player/prim → network format)
+- Chat/dialogue broadcasting
+- Spawn/despawn notifications
+
+---
+
+## 7. Backend Services
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      NOODLESTUDIO CLIENT                         │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                   BackendClient                          │    │
+│  │                                                          │    │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │    │
+│  │  │Inventory │ │ Friends  │ │ Worlds   │ │ Teleport │   │    │
+│  │  │ Service  │ │ Service  │ │ Service  │ │ Service  │   │    │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │    │
+│  │                                                          │    │
+│  │  ┌──────────┐ ┌──────────┐                              │    │
+│  │  │Achieve-  │ │ Asset    │                              │    │
+│  │  │ments     │ │ Storage  │                              │    │
+│  │  └──────────┘ └──────────┘                              │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ HTTPS
+┌─────────────────────────────────────────────────────────────────┐
+│                   CLOUDFLARE WORKERS                             │
+│                   noodlings-api.caitsters.workers.dev            │
+│                                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                       │
+│  │   D1     │  │   R2     │  │   KV     │                       │
+│  │(SQLite)  │  │(Storage) │  │ (Cache)  │                       │
+│  └──────────┘  └──────────┘  └──────────┘                       │
+│                                                                  │
+│  - Users, inventory, friends, achievements                       │
+│  - Gaussian assets, avatars, audio                               │
+│  - Session tokens, rate limits                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Services
+
+| Service | Purpose | Data Store |
+|---------|---------|------------|
+| `InventoryService` | Avatars, props, stages you own | D1 |
+| `FriendService` | Social graph, online status, permissions | D1 |
+| `WorldDirectoryService` | Public stages, population, featured | D1 |
+| `TeleportService` | Invitations, saved destinations | D1 + KV |
+| `AchievementService` | Milestones, progress tracking | D1 |
+| `AssetStorageService` | Gaussian PLY, avatars, audio | R2 |
+
+### Data Split: Backend vs MUSH
+
+| Backend (Persistent) | MUSH Server (Real-time) |
+|---------------------|------------------------|
+| Inventory ownership | Who's in what room now |
+| Friend list | Voice chat connections |
+| Achievement progress | Entity positions |
+| Asset URLs | Chat messages |
+| Saved destinations | Teleport execution |
+
+### Scripting API (`context.noodle.cloud`)
+
+```javascript
+// Friends
+let friends = context.noodle.cloud.getFriends(true);  // online only
+context.noodle.cloud.sendFriendRequest("user_123", "Hey!");
+
+// Inventory
+let avatar = context.noodle.cloud.getEquippedAvatar();
+context.noodle.cloud.equipItem("avatar_fancy_fox");
+
+// Teleport
+context.noodle.cloud.sendTeleportInvite("friend_id", "the_nexus", {
+    position: [10, 0, 5],
+    message: "Come hang out!"
+});
+
+// Worlds
+let worlds = context.noodle.cloud.getPopularWorlds(10);
+```
+
+---
+
+## 8. Code Smell Inventory
 
 ### HIGH PRIORITY - Fix Soon
 
@@ -350,7 +753,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 ---
 
-## 5. Files to Remove
+## 9. Files to Remove
 
 ### Already Removed (December 18, 2025)
 
@@ -383,7 +786,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 ---
 
-## 6. Standardization Guidelines
+## 10. Standardization Guidelines
 
 ### Logging
 
@@ -454,7 +857,7 @@ module/
 
 ---
 
-## 7. Dependency Graph
+## 11. Dependency Graph
 
 ### External Dependencies (Critical)
 
@@ -485,7 +888,7 @@ Layer 0: Utilities (event_system.py, entropy_service.py)
 
 ---
 
-## 8. Testing Strategy
+## 12. Testing Strategy
 
 ### Current State
 
@@ -513,7 +916,7 @@ tests/
 
 ---
 
-## 9. Quick Reference
+## 13. Quick Reference
 
 ### Starting the Server
 
@@ -561,7 +964,90 @@ cd applications/cmush
 
 ---
 
-## 10. Changelog
+## 14. Changelog
+
+### December 27, 2025
+- **UNITY-STYLE STAGE VIEW HIERARCHY** - Scene graph system for NoodleStudio
+  - `scene_hierarchy.py` - Complete rewrite with tree-based organization
+  - **SceneNode data model** - Parent/children, transforms, node types
+  - **SceneGraph manager** - CRUD operations, serialization to hierarchy.yaml
+  - **Node types**: Folder, Noodling, Prim, Zone (Bone coming next)
+  - **Features**:
+    - Drag-and-drop reparenting (preserve user organization)
+    - Inline rename (double-click, Unity-style)
+    - Context menu: New Folder, Rename, Delete
+    - Hierarchy persistence to `Stages/{name}/hierarchy.yaml`
+  - **Library + Instance pattern**:
+    - `Library/Noodlings/{ref}/recipe.yaml` - Template definitions
+    - `Stages/{name}/Instances/{uuid}/instance.yaml` - Instance overrides
+    - Inspector merges template + overrides at runtime
+  - **Files modified**:
+    - `panels/scene_hierarchy.py` - New tree implementation
+    - `panels/inspector_panel.py` - Library recipe loading, zone UUID
+    - `core/main_window.py` - Project default name fix
+
+- **CHAT PANEL WHITE FLASH FIX**
+  - Set `page.setBackgroundColor(QColor(0, 0, 0))` before loading URLs
+  - Prevents white flash during server connect transition
+
+- **LEGACY CODE REMOVAL**
+  - Removed server recipe fallback from inspector (no cruft policy)
+
+### December 23, 2025
+- **CLIP SEMANTIC QUERY SYSTEM** - Natural language queries on Gaussian scenes
+  - `semantic_query.py` - Added `CLIPEmbeddingGenerator`, `populate_asset_embeddings()`
+  - Auto-generates CLIP embeddings from semantic labels (e.g., "leftHand" → CLIP vector)
+  - Query: "Red's left hand" → finds matching Gaussians with similarity scores
+  - Supports both `transformers` and `open_clip` backends
+  - Query speed: ~8ms after model loaded
+
+- **SERVER SEMANTIC ENDPOINTS** - WebSocket API for CLIP queries
+  - `semantic_query` - Natural language search (returns body parts, positions)
+  - `semantic_raycast` - Click-to-inspect (ray → Gaussian hit info)
+  - `get_visible_body_parts` - FOV-based body part visibility
+
+- **SCENE PROTOCOL SEMANTIC INTEGRATION**
+  - `scene_protocol_integration.py` - Added semantic query wiring
+  - `init_semantic_query_engine()` - Initialize CLIP engine
+  - `register_entity_radiance()` - Load .radiance + generate embeddings
+  - `query_scene_semantic()` - Natural language scene queries
+  - `get_entity_visible_body_parts()` - Perceiver → target visibility
+
+- **VRM TO GAUSSIANS PIPELINE** (NinaK session)
+  - `vrm_to_radiance.py` - VRM mesh → Gaussian splat conversion
+  - `gaussian_renderer.py` - Pure PyTorch/MPS renderer (no external deps)
+  - `model_importer.py` - Unified import + muscle system
+  - `.radiance` format: GAUS + SKEL + SKIN + SEMA + CLIP chunks
+
+### December 21, 2025
+- **GAUSSIAN RENDERING PIPELINE** - Complete architecture documentation
+  - VRM avatar import with skeleton, blend shapes, spring bones
+  - Mesh import pipeline (GLB, GLTF, OBJ → Gaussians)
+  - Spring bone simulation for hair, cloth, tails
+  - Scene packet emitter for stateless renderers
+
+- **SOCIAL FEATURES (VRChat-KILLER)**
+  - Mirror and portal system (trivial with Gaussians - just different camera!)
+  - Spatial audio with 3D positioning, distance models, audio cones
+  - Gaussian particles (fire, smoke, sparkles, snow)
+  - Network sync with interpolation buffer
+
+- **MULTI-USER NETWORKING**
+  - Interest management (50m full, 100m reduced, 200m max)
+  - Delta compression (only send changed fields)
+  - Voice chat integration (LiveKit/mediasoup SFU)
+  - Network bridge connecting SceneStateManager → NetworkServer
+
+- **BACKEND SERVICES**
+  - `backend_services.py` - Complete client layer (~950 lines)
+  - Six services: Inventory, Friends, Worlds, Teleport, Achievements, Assets
+  - Cloudflare Workers backend (D1 + R2 + KV)
+  - Extended `cloud_api.py` with ~20 scripting methods
+
+- **ARCHITECTURE.MD UPDATE**
+  - Added "The Big Picture" overview diagram
+  - Sections 4-7: Gaussian Pipeline, Social Features, Network, Backend
+  - Renumbered all sections (now 14 total)
 
 ### December 19, 2025 (Afternoon)
 - **SCENE PROTOCOL WIRING** - Connected Scene Protocol to cMUSH server

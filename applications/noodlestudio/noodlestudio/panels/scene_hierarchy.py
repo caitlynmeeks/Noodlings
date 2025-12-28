@@ -15,9 +15,10 @@ Date: November 17, 2025
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget,
                              QTreeWidgetItem, QLabel, QPushButton, QMenu, QInputDialog, QComboBox,
-                             QMessageBox)
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon, QAction
+                             QMessageBox, QAbstractItemView, QLineEdit)
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QMimeData
+from PyQt6.QtGui import QFont, QIcon, QAction, QDrag
+from PyQt6 import sip
 import requests
 import sys
 import os
@@ -28,6 +29,24 @@ from ..core.commands.scene_commands import (
     CreatePropCommand, DeletePropCommand,
     CreateZoneCommand, DeleteZoneCommand
 )
+from ..core.scene_graph import SceneGraph
+from ..core.scene_node import SceneNode, SceneNodeType
+
+
+def _safe_callback(func):
+    """Wrap a callback function to catch and log exceptions.
+
+    Qt slots that raise exceptions can crash the app fatally.
+    This wrapper ensures exceptions are logged but don't crash Qt.
+    """
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            print(f"[SceneHierarchy] Callback error: {e}")
+            import traceback
+            traceback.print_exc()
+    return wrapper
 
 
 class SceneHierarchy(QWidget):
@@ -63,6 +82,18 @@ class SceneHierarchy(QWidget):
         self.current_stage = None  # New project format
         self.project_manager = None  # Set via set_project_manager()
 
+        # Scene graph - the canonical data model for hierarchy
+        self.scene_graph = SceneGraph(self)
+        self.scene_graph.nodeAdded.connect(self._on_graph_changed)
+        self.scene_graph.nodeRemoved.connect(self._on_graph_changed)
+        self.scene_graph.nodeReparented.connect(self._on_node_reparented)
+        self.scene_graph.nodeRenamed.connect(self._on_node_renamed)
+
+        # Map tree items to node IDs for quick lookup
+        # Note: QTreeWidgetItem is not hashable, so we use id(item) as key
+        self._item_id_to_node_id = {}  # {id(QTreeWidgetItem): node_id}
+        self._node_id_to_item = {}  # {node_id: QTreeWidgetItem}
+
         # Track expanded state (survives tree rebuild)
         self.expanded_items = set()
 
@@ -75,16 +106,23 @@ class SceneHierarchy(QWidget):
         # Track agent pause states
         self.agent_pause_states = {}  # {agent_id: bool}
 
+        # Server state - controls whether full hierarchy is shown
+        self._server_running = False
+
+        # Flag to prevent refresh during edits
+        self._suppress_refresh = False
+        self._editing_item = None  # Track item being inline edited
+
         # Initialize UI directly on this widget
         self.init_ui(self)
 
-        # Auto-refresh
-        self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.refresh_scene)
-        self.refresh_timer.start(2000)
-
-        # Initial load
-        self.refresh_scene()
+        # NO MORE POLLING TIMER - Event-driven updates only
+        # Refresh happens when:
+        # 1. Project opened/changed (set_project_manager)
+        # 2. Server state changes (set_server_state)
+        # 3. User explicitly requests (F5 / refresh button)
+        # 4. Server sends WebSocket event (future)
+        # Local changes update tree surgically, not via rebuild
 
     def init_ui(self, widget):
         layout = QVBoxLayout(widget)
@@ -132,6 +170,10 @@ class SceneHierarchy(QWidget):
         # Prevent auto-collapse: set animation to false
         self.tree.setAnimated(False)
 
+        # Enable inline editing (Unity-style double-click to rename)
+        self.tree.setEditTriggers(QTreeWidget.EditTrigger.NoEditTriggers)  # We control when editing starts
+        self.tree.itemChanged.connect(self._on_item_renamed)
+
         # Enable multi-selection for batch derez
         self.tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
         self.tree.setSelectionBehavior(QTreeWidget.SelectionBehavior.SelectRows)
@@ -149,7 +191,11 @@ class SceneHierarchy(QWidget):
         self.tree.setDragEnabled(True)
         self.tree.setAcceptDrops(True)
         self.tree.setDropIndicatorShown(True)
-        self.tree.setDragDropMode(QTreeWidget.DragDropMode.DragDrop)  # Accept external drops
+        self.tree.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)  # Reparenting within tree
+        self.tree.setDefaultDropAction(Qt.DropAction.MoveAction)
+
+        # Custom drop handling for hierarchy reparenting
+        self.tree.dropEvent = self._handle_tree_drop
 
         # Context menu
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -160,8 +206,254 @@ class SceneHierarchy(QWidget):
     def set_project_manager(self, project_manager):
         """Set project manager reference for loading from project structure."""
         self.project_manager = project_manager
+        print(f"[SceneHierarchy] set_project_manager called, project_manager={project_manager is not None}")
         # Refresh stage selector when project changes
         self.populate_stage_selector()
+        # Do initial refresh (event-driven, no polling timer)
+        self.refresh_scene()
+
+    # =========================================================================
+    # SceneGraph Signal Handlers
+    # =========================================================================
+
+    def _on_graph_changed(self, node_id: str):
+        """Handle node added/removed - rebuild tree."""
+        if not self._suppress_refresh:
+            self.refresh_scene()
+
+    def _on_node_reparented(self, node_id: str, old_parent: str, new_parent: str):
+        """Handle node reparented - update tree structure."""
+        # For now, rebuild. Later: move item in tree without full rebuild.
+        if not self._suppress_refresh:
+            self.refresh_scene()
+
+    def _on_node_renamed(self, node_id: str, new_name: str):
+        """Handle node renamed - update tree item text."""
+        item = self._node_id_to_item.get(node_id)
+        if item:
+            item.setText(0, new_name)
+
+    # =========================================================================
+    # Drag and Drop Handling
+    # =========================================================================
+
+    def _handle_tree_drop(self, event):
+        """Handle drop event for reparenting nodes."""
+        # Get the item being dropped on
+        drop_item = self.tree.itemAt(event.position().toPoint())
+
+        # Get the dragged items
+        dragged_items = self.tree.selectedItems()
+        if not dragged_items:
+            event.ignore()
+            return
+
+        dragged_item = dragged_items[0]
+        dragged_node_id = self._item_id_to_node_id.get(id(dragged_item))
+
+        if not dragged_node_id:
+            event.ignore()
+            return
+
+        dragged_node = self.scene_graph.get_node(dragged_node_id)
+        if not dragged_node:
+            event.ignore()
+            return
+
+        # Can't move virtual nodes (bones)
+        if dragged_node.is_virtual:
+            event.ignore()
+            return
+
+        # Determine new parent
+        new_parent_id = None
+        if drop_item:
+            new_parent_id = self._item_id_to_node_id.get(id(drop_item))
+
+            # If dropping on non-folder, drop as sibling instead
+            if new_parent_id:
+                drop_node = self.scene_graph.get_node(new_parent_id)
+                if drop_node and drop_node.node_type != SceneNodeType.FOLDER:
+                    # Make sibling - use drop node's parent
+                    new_parent_id = drop_node.parent_id
+
+        # Prevent invalid reparent operations
+        if new_parent_id == dragged_node_id:
+            event.ignore()
+            return
+
+        # Perform reparent in scene graph
+        self._suppress_refresh = True
+        success = self.scene_graph.reparent(dragged_node_id, new_parent_id)
+        self._suppress_refresh = False
+
+        if success:
+            # Save hierarchy
+            self._save_hierarchy()
+            # Rebuild tree
+            self.refresh_scene()
+            event.accept()
+        else:
+            event.ignore()
+
+    def _save_hierarchy(self):
+        """Save the scene graph to hierarchy.yaml."""
+        if not self.project_manager or not self.project_manager.is_project_open():
+            return
+
+        if not self.current_stage:
+            return
+
+        stage_path = self.project_manager.get_stage_path(self.current_stage)
+        if not stage_path:
+            return
+
+        hierarchy_path = os.path.join(stage_path, "hierarchy.yaml")
+        self.scene_graph.save(hierarchy_path)
+        print(f"Saved hierarchy to {hierarchy_path}")
+
+    def _load_hierarchy(self, stage_path: str) -> bool:
+        """Load scene graph from hierarchy.yaml if it exists."""
+        hierarchy_path = os.path.join(stage_path, "hierarchy.yaml")
+        if os.path.exists(hierarchy_path):
+            return self.scene_graph.load(hierarchy_path)
+        return False
+
+    def _sync_names_from_disk(self, stage_path: str):
+        """Update node names from disk files (in case inspector changed them)."""
+        import yaml
+
+        for node_id, node in list(self.scene_graph.nodes.items()):
+            if not node.asset_path:
+                continue
+
+            # Determine which YAML file to check
+            yaml_file = None
+            name_key = 'name'
+
+            if node.node_type == SceneNodeType.PROP:
+                yaml_file = os.path.join(node.asset_path, 'prop.yaml')
+            elif node.node_type == SceneNodeType.NOODLING:
+                yaml_file = os.path.join(node.asset_path, 'instance.yaml')
+                name_key = 'overrides.name'
+            elif node.node_type == SceneNodeType.ZONE:
+                yaml_file = node.asset_path  # Zone path IS the yaml file
+
+            if yaml_file and os.path.exists(yaml_file):
+                try:
+                    with open(yaml_file, 'r') as f:
+                        data = yaml.safe_load(f) or {}
+
+                    # Get name from data
+                    if name_key == 'overrides.name':
+                        disk_name = data.get('overrides', {}).get('name', '')
+                    else:
+                        disk_name = data.get('name', '')
+
+                    # Update node if name changed
+                    if disk_name and disk_name != node.name:
+                        print(f"[SceneHierarchy] Syncing name from disk: {node.name} -> {disk_name}")
+                        self.scene_graph.rename_node(node_id, disk_name)
+                except Exception as e:
+                    print(f"[SceneHierarchy] Error syncing name for {node.name}: {e}")
+
+    def _add_new_files_to_hierarchy(self, stage_path: str):
+        """Detect files on disk not in hierarchy and add them."""
+        import yaml
+
+        # CRITICAL: Suppress refresh during file detection to prevent signal cascade
+        # (nodeAdded signals would otherwise trigger refresh_scene() recursively)
+        self._suppress_refresh = True
+
+        try:
+            # Get existing asset paths in hierarchy
+            existing_paths = set()
+            for node in self.scene_graph.nodes.values():
+                if node.asset_path:
+                    existing_paths.add(node.asset_path)
+
+            # Find stage root node
+            stage_node_id = None
+            for node_id, node in self.scene_graph.nodes.items():
+                if node.name.startswith("Stage:"):
+                    stage_node_id = node_id
+                    break
+
+            if not stage_node_id:
+                return
+
+            # Check for new zones
+            zones_dir = os.path.join(stage_path, "Zones")
+            if os.path.exists(zones_dir):
+                for filename in os.listdir(zones_dir):
+                    if filename.endswith(".zone.yaml"):
+                        zone_path = os.path.join(zones_dir, filename)
+                        if zone_path not in existing_paths:
+                            try:
+                                with open(zone_path, 'r') as f:
+                                    zone_data = yaml.safe_load(f) or {}
+                                zone_name = zone_data.get('name', filename.replace('.zone.yaml', ''))
+                                self.scene_graph.create_node(
+                                    zone_name, SceneNodeType.ZONE, stage_node_id, zone_path)
+                                print(f"[SceneHierarchy] Added new zone: {zone_name}")
+                            except Exception as e:
+                                print(f"[SceneHierarchy] Error adding zone {filename}: {e}")
+
+            # Check for new instances (noodlings)
+            instances_dir = os.path.join(stage_path, "Instances")
+            if os.path.exists(instances_dir):
+                for inst_name in os.listdir(instances_dir):
+                    inst_path = os.path.join(instances_dir, inst_name)
+                    if not os.path.isdir(inst_path):
+                        continue
+                    if inst_path not in existing_paths:
+                        inst_yaml = os.path.join(inst_path, "instance.yaml")
+                        if os.path.exists(inst_yaml):
+                            try:
+                                with open(inst_yaml, 'r') as f:
+                                    inst_data = yaml.safe_load(f) or {}
+                                display_name = inst_data.get('overrides', {}).get('name', inst_name)
+                                self.scene_graph.create_node(
+                                    display_name, SceneNodeType.NOODLING, stage_node_id, inst_path)
+                                print(f"[SceneHierarchy] Added new noodling: {display_name}")
+                            except Exception as e:
+                                print(f"[SceneHierarchy] Error adding noodling {inst_name}: {e}")
+
+            # Check for new props
+            props_dir = os.path.join(stage_path, "Props")
+            if os.path.exists(props_dir):
+                for prop_name in os.listdir(props_dir):
+                    prop_path = os.path.join(props_dir, prop_name)
+                    if not os.path.isdir(prop_path):
+                        continue
+                    if prop_path not in existing_paths:
+                        prop_yaml = os.path.join(prop_path, "prop.yaml")
+                        if os.path.exists(prop_yaml):
+                            try:
+                                with open(prop_yaml, 'r') as f:
+                                    prop_data = yaml.safe_load(f) or {}
+                                display_name = prop_data.get('name', prop_name)
+                                self.scene_graph.create_node(
+                                    display_name, SceneNodeType.PROP, stage_node_id, prop_path)
+                                print(f"[SceneHierarchy] Added new prop: {display_name}")
+                            except Exception as e:
+                                print(f"[SceneHierarchy] Error adding prop {prop_name}: {e}")
+        finally:
+            self._suppress_refresh = False
+
+    def clear_for_project_change(self):
+        """Clear all state when switching to a different project."""
+        self._suppress_refresh = True
+        try:
+            self.scene_graph.clear()
+            self.tree.clear()
+            self._item_id_to_node_id.clear()
+            self._node_id_to_item.clear()
+            self.expanded_items.clear()
+            self.selected_item_path = None
+            self.current_stage = None
+        finally:
+            self._suppress_refresh = False
 
     def save_expanded_state(self):
         """Save which items are currently expanded and selected."""
@@ -194,6 +486,10 @@ class SceneHierarchy(QWidget):
                 item.setExpanded(True)
             elif current_path in self.expanded_items:
                 item.setExpanded(True)
+            else:
+                # Explicitly collapse items not in the expanded set
+                item.setExpanded(False)
+
             # Restore selection
             if self.selected_item_path and current_path == self.selected_item_path:
                 item.setSelected(True)
@@ -327,6 +623,10 @@ class SceneHierarchy(QWidget):
         """Refresh scene hierarchy from project structure."""
         import yaml
 
+        # Skip refresh if suppressed (during drag-drop operations)
+        if self._suppress_refresh:
+            return
+
         # Populate stage selector on first refresh
         if self.stage_selector.count() == 0:
             self.populate_stage_selector()
@@ -339,11 +639,20 @@ class SceneHierarchy(QWidget):
             self.tree.blockSignals(True)
             self.tree.clear()
 
+            # Clear item/node mappings
+            self._item_id_to_node_id.clear()
+            self._node_id_to_item.clear()
+
             # Check if project is open
-            if self.project_manager and self.project_manager.is_project_open():
-                self._refresh_from_project()
-            else:
+            is_open = self.project_manager and self.project_manager.is_project_open()
+            print(f"[SceneHierarchy] refresh_scene: project_manager={self.project_manager is not None}, is_open={is_open}, server={self._server_running}, current_stage={self.current_stage}")
+
+            if not is_open:
                 self._show_no_project_message()
+            elif not self._server_running:
+                self._show_server_offline_message()
+            else:
+                self._refresh_from_project()
 
             # Restore expanded state after rebuilding tree (signals still blocked)
             self.restore_expanded_state()
@@ -369,6 +678,28 @@ class SceneHierarchy(QWidget):
         hint_item.setFlags(hint_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
         self.tree.addTopLevelItem(hint_item)
 
+    def _show_server_offline_message(self):
+        """Show message when project is open but server is offline."""
+        # Show project name
+        project_name = self.project_manager.current_project_name if self.project_manager else "Project"
+        project_item = QTreeWidgetItem([project_name])
+        project_item.setForeground(0, Qt.GlobalColor.gray)
+        project_item.setFlags(project_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.tree.addTopLevelItem(project_item)
+
+        # Show server offline message
+        msg_item = QTreeWidgetItem(["Server offline"])
+        msg_item.setForeground(0, Qt.GlobalColor.darkGray)
+        msg_item.setFlags(msg_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        project_item.addChild(msg_item)
+
+        hint_item = QTreeWidgetItem(["Toggle server to view stage"])
+        hint_item.setForeground(0, Qt.GlobalColor.darkGray)
+        hint_item.setFlags(hint_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        project_item.addChild(hint_item)
+
+        project_item.setExpanded(True)
+
     def _refresh_from_project(self):
         """Refresh scene from project structure (Stages/xxx/...)."""
         import yaml
@@ -387,6 +718,299 @@ class SceneHierarchy(QWidget):
         stage_path = self.project_manager.get_stage_path(self.current_stage)
         if not stage_path:
             return
+
+        # Try to load saved hierarchy first (preserves user organization)
+        hierarchy_path = os.path.join(stage_path, "hierarchy.yaml")
+        if os.path.exists(hierarchy_path):
+            print(f"[SceneHierarchy] Loading saved hierarchy: {hierarchy_path}")
+            try:
+                if self._load_hierarchy(stage_path):
+                    # Update names from disk files (in case inspector changed them)
+                    self._sync_names_from_disk(stage_path)
+                    # Detect any new files not in hierarchy
+                    self._add_new_files_to_hierarchy(stage_path)
+                    # Build tree from scene graph
+                    self._build_tree_from_graph()
+                    print(f"[SceneHierarchy] Tree built from hierarchy, {self.tree.topLevelItemCount()} top-level items")
+                    return
+            except Exception as e:
+                print(f"[SceneHierarchy] Error loading hierarchy: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fall through to build from files
+
+        # No hierarchy file or load failed - build fresh from files
+        print(f"[SceneHierarchy] Building tree from files: {stage_path}")
+        try:
+            self._build_tree_from_files(stage_path)
+            print(f"[SceneHierarchy] Tree built from files, {self.tree.topLevelItemCount()} top-level items")
+            # Save the initial hierarchy
+            self._save_hierarchy()
+        except Exception as e:
+            print(f"[SceneHierarchy] ERROR building tree: {e}")
+            import traceback
+            traceback.print_exc()
+            return
+
+    def _extract_user_hierarchy(self) -> dict:
+        """Extract user modifications to hierarchy (folders + reparented items)."""
+        # Unity-style: No built-in category folders anymore
+        # Items load flat under Stage, user creates folders to organize
+
+        user_folders = []
+        reparented_items = []  # Items moved into user-created folders
+
+        # Find the stage node (root)
+        stage_node_id = None
+        for node_id, node in self.scene_graph.nodes.items():
+            if node.name.startswith("Stage:"):
+                stage_node_id = node_id
+                break
+
+        for node_id, node in self.scene_graph.nodes.items():
+            if node.node_type == SceneNodeType.FOLDER and not node.is_virtual:
+                # Skip Stage: folder itself
+                if node.name.startswith("Stage:"):
+                    continue
+                # User-created folder - save it
+                parent_node = self.scene_graph.get_node(node.parent_id) if node.parent_id else None
+                user_folders.append({
+                    'name': node.name,
+                    'parent_name': parent_node.name if parent_node else None,
+                    'is_expanded': node.is_expanded,
+                })
+            elif node.node_type in (SceneNodeType.ZONE, SceneNodeType.NOODLING, SceneNodeType.PROP):
+                # Check if this item was moved from Stage root to a user folder
+                parent_node = self.scene_graph.get_node(node.parent_id) if node.parent_id else None
+                if parent_node and node.parent_id != stage_node_id:
+                    # Item is not under Stage root - was moved to a user folder
+                    reparented_items.append({
+                        'name': node.name,
+                        'node_type': node.node_type.value,
+                        'parent_name': parent_node.name,
+                    })
+
+        return {'folders': user_folders, 'reparented': reparented_items}
+
+    def _restore_user_folders(self, user_folders: list):
+        """Restore user-created folders after tree rebuild."""
+        for folder_info in user_folders:
+            # Find parent by name
+            parent_id = None
+            if folder_info['parent_name']:
+                for node_id, node in self.scene_graph.nodes.items():
+                    if node.name == folder_info['parent_name']:
+                        parent_id = node_id
+                        break
+
+            # Create folder in scene graph
+            folder_node = self.scene_graph.create_folder(
+                folder_info['name'], parent_id)
+            folder_node.is_expanded = folder_info.get('is_expanded', True)
+
+            # Create tree item
+            folder_item = QTreeWidgetItem([folder_info['name']])
+            folder_item.setForeground(0, Qt.GlobalColor.gray)
+            folder_item.setData(0, Qt.ItemDataRole.UserRole, {
+                'type': 'folder',
+                'node_id': folder_node.id,
+                'name': folder_info['name']
+            })
+
+            # Find parent item and add
+            if parent_id and parent_id in self._node_id_to_item:
+                parent_item = self._node_id_to_item[parent_id]
+                parent_item.addChild(folder_item)
+            else:
+                self.tree.addTopLevelItem(folder_item)
+
+            # Track mappings
+            self._item_id_to_node_id[id(folder_item)] = folder_node.id
+            self._node_id_to_item[folder_node.id] = folder_item
+
+            # Set expanded state
+            folder_item.setExpanded(folder_info.get('is_expanded', True))
+
+    def _restore_reparented_items(self, reparented_items: list):
+        """Restore items that were moved from their default locations."""
+        for item_info in reparented_items:
+            item_name = item_info['name']
+            new_parent_name = item_info['parent_name']
+
+            # Find the item node by name
+            item_node = None
+            item_node_id = None
+            for node_id, node in self.scene_graph.nodes.items():
+                if node.name == item_name:
+                    item_node = node
+                    item_node_id = node_id
+                    break
+
+            if not item_node:
+                print(f"[SceneHierarchy] Could not find item '{item_name}' to reparent")
+                continue
+
+            # Find new parent node by name
+            new_parent_id = None
+            for node_id, node in self.scene_graph.nodes.items():
+                if node.name == new_parent_name:
+                    new_parent_id = node_id
+                    break
+
+            if not new_parent_id:
+                print(f"[SceneHierarchy] Could not find parent '{new_parent_name}' for item '{item_name}'")
+                continue
+
+            # Reparent in scene graph
+            self.scene_graph.reparent(item_node_id, new_parent_id)
+
+            # Move tree widget item
+            tree_item = self._node_id_to_item.get(item_node_id)
+            new_parent_item = self._node_id_to_item.get(new_parent_id)
+
+            if tree_item and new_parent_item:
+                # Remove from current parent
+                old_parent = tree_item.parent()
+                if old_parent:
+                    old_parent.removeChild(tree_item)
+                else:
+                    index = self.tree.indexOfTopLevelItem(tree_item)
+                    if index >= 0:
+                        self.tree.takeTopLevelItem(index)
+
+                # Add to new parent
+                new_parent_item.addChild(tree_item)
+                # Don't force expand - let restore_expanded_state handle it
+
+                print(f"[SceneHierarchy] Reparented '{item_name}' to '{new_parent_name}'")
+
+    def _build_tree_from_graph(self):
+        """Build tree widget from scene graph data."""
+        import yaml
+
+        # Build tree recursively from root nodes
+        for node_id in self.scene_graph.root_ids:
+            node = self.scene_graph.get_node(node_id)
+            if node:
+                self._add_node_to_tree(node, None)
+
+    def _add_node_to_tree(self, node: SceneNode, parent_item: QTreeWidgetItem):
+        """Recursively add a node and its children to the tree."""
+        import yaml
+
+        # Determine display text (may include status icons for noodlings)
+        display_text = node.name
+
+        # Style based on node type
+        if node.node_type == SceneNodeType.FOLDER:
+            pass  # Gray set below
+        elif node.node_type == SceneNodeType.BONE:
+            pass  # Cyan set below
+        elif node.node_type == SceneNodeType.NOODLING and node.asset_path:
+            # Add pause icon for noodlings
+            agent_id = f"agent_{os.path.basename(node.asset_path)}"
+            is_paused = self.get_agent_pause_state(agent_id)
+            pause_icon = "[>]" if is_paused else "[||]"
+            status_text = "[paused]" if is_paused else ""
+            display_text = f"{node.name:<20} {status_text:<20} {pause_icon}"
+
+        # Create tree item
+        item = QTreeWidgetItem([display_text])
+
+        # Style based on node type
+        if node.node_type == SceneNodeType.FOLDER:
+            item.setForeground(0, Qt.GlobalColor.gray)
+        elif node.node_type == SceneNodeType.BONE:
+            item.setForeground(0, Qt.GlobalColor.cyan)
+
+        # Store node data - load full entity data from disk for inspector
+        entity_data = {
+            'type': node.node_type.value,
+            'id': node.id,
+            'name': node.name,
+            'node_id': node.id,  # For scene graph operations
+        }
+        if node.asset_path:
+            entity_data['asset_path'] = node.asset_path
+            entity_data['path'] = node.asset_path
+
+            # Load full data from disk for inspector
+            self._load_entity_data_from_disk(node, entity_data)
+
+        if node.bone_name:
+            entity_data['bone_name'] = node.bone_name
+
+        item.setData(0, Qt.ItemDataRole.UserRole, entity_data)
+
+        # Track mappings
+        self._item_id_to_node_id[id(item)] = node.id
+        self._node_id_to_item[node.id] = item
+
+        # Add to tree
+        if parent_item:
+            parent_item.addChild(item)
+        else:
+            self.tree.addTopLevelItem(item)
+
+        # Set expanded state
+        item.setExpanded(node.is_expanded)
+
+        # Add children recursively
+        for child_id in node.children_ids:
+            child_node = self.scene_graph.get_node(child_id)
+            if child_node:
+                self._add_node_to_tree(child_node, item)
+
+    def _load_entity_data_from_disk(self, node: SceneNode, entity_data: dict):
+        """Load full entity data from disk files for inspector."""
+        import yaml
+
+        if node.node_type == SceneNodeType.PROP:
+            prop_yaml = os.path.join(node.asset_path, 'prop.yaml')
+            if os.path.exists(prop_yaml):
+                try:
+                    with open(prop_yaml, 'r') as f:
+                        prop_data = yaml.safe_load(f) or {}
+                    entity_data['data'] = prop_data
+                except Exception as e:
+                    print(f"[SceneHierarchy] Error loading prop data: {e}")
+
+        elif node.node_type == SceneNodeType.NOODLING:
+            inst_yaml = os.path.join(node.asset_path, 'instance.yaml')
+            if os.path.exists(inst_yaml):
+                try:
+                    with open(inst_yaml, 'r') as f:
+                        inst_data = yaml.safe_load(f) or {}
+                    entity_data['data'] = inst_data
+                    entity_data['noodling_ref'] = inst_data.get('noodling', '')
+                    entity_data['zone'] = inst_data.get('overrides', {}).get('zone', 'default')
+                    # Use 'noodling' type for inspector compatibility
+                    entity_data['type'] = 'noodling'
+                    # Build agent_id
+                    entity_data['id'] = f"agent_{os.path.basename(node.asset_path)}"
+                except Exception as e:
+                    print(f"[SceneHierarchy] Error loading noodling data: {e}")
+
+        elif node.node_type == SceneNodeType.ZONE:
+            # Zone asset_path IS the yaml file
+            if os.path.exists(node.asset_path):
+                try:
+                    with open(node.asset_path, 'r') as f:
+                        zone_data = yaml.safe_load(f) or {}
+                    entity_data['data'] = zone_data
+                    entity_data['id'] = zone_data.get('id', node.id)
+                    entity_data['radius'] = zone_data.get('radius', 10)
+                    entity_data['falloff'] = zone_data.get('falloff', 5)
+                except Exception as e:
+                    print(f"[SceneHierarchy] Error loading zone data: {e}")
+
+    def _build_tree_from_files(self, stage_path: str):
+        """Build tree from file structure (legacy mode)."""
+        import yaml
+
+        # Clear and populate scene graph
+        self._suppress_refresh = True
+        self.scene_graph.clear()
 
         # Load stage.yaml
         stage_name = self.current_stage
@@ -413,12 +1037,15 @@ class SceneHierarchy(QWidget):
         self.tree.addTopLevelItem(stage_item)
         stage_item.setExpanded(True)
 
-        # Zones folder
-        zones_folder = QTreeWidgetItem(["Zones"])
-        zones_folder.setForeground(0, Qt.GlobalColor.gray)
-        stage_item.addChild(zones_folder)
+        # Create stage node in graph
+        stage_node = self.scene_graph.create_folder(f"Stage: {stage_name}")
+        self._item_id_to_node_id[id(stage_item)] = stage_node.id
+        self._node_id_to_item[stage_node.id] = stage_item
 
-        # Load zones from Zones/*.zone.yaml
+        # Unity-style: Load all items directly under Stage (no category folders)
+        # User can create their own folders to organize
+
+        # Load zones from Zones/*.zone.yaml - directly under stage
         zones_dir = os.path.join(stage_path, "Zones")
         if os.path.exists(zones_dir):
             for filename in os.listdir(zones_dir):
@@ -434,31 +1061,28 @@ class SceneHierarchy(QWidget):
 
                         display_text = f"{zone_name} (r={radius}, f={falloff})"
                         zone_item = QTreeWidgetItem([display_text])
+
+                        # Add to scene graph first so we have node_id
+                        zone_node = self.scene_graph.create_node(
+                            zone_name, SceneNodeType.ZONE, stage_node.id, zone_path)
+
                         zone_item.setData(0, Qt.ItemDataRole.UserRole, {
                             'type': 'zone',
                             'id': zone_id,
+                            'name': zone_name,  # For inspector header
                             'path': zone_path,
-                            'data': zone_data
+                            'data': zone_data,
+                            'node_id': zone_node.id  # For inline rename
                         })
-                        zones_folder.addChild(zone_item)
+                        stage_item.addChild(zone_item)
+
+                        self._item_id_to_node_id[id(zone_item)] = zone_node.id
+                        self._node_id_to_item[zone_node.id] = zone_item
+
                     except Exception as e:
                         print(f"Error loading zone {filename}: {e}")
 
-        # Connected Users folder
-        users_folder = QTreeWidgetItem(["Connected Users"])
-        users_folder.setForeground(0, Qt.GlobalColor.gray)
-        stage_item.addChild(users_folder)
-
-        user_item = QTreeWidgetItem(["caity [Noodler, 9yo, she/her]"])
-        user_item.setData(0, Qt.ItemDataRole.UserRole, {'type': 'user', 'id': 'user_caity'})
-        users_folder.addChild(user_item)
-
-        # Instances folder (Noodlings in stage)
-        instances_folder = QTreeWidgetItem(["Noodlings"])
-        instances_folder.setForeground(0, Qt.GlobalColor.gray)
-        stage_item.addChild(instances_folder)
-
-        # Load instances from Instances/*/instance.yaml
+        # Load instances from Instances/*/instance.yaml - directly under stage
         instances_dir = os.path.join(stage_path, "Instances")
         if os.path.exists(instances_dir):
             for inst_name in os.listdir(instances_dir):
@@ -492,27 +1116,30 @@ class SceneHierarchy(QWidget):
 
                     display_text = f"{display_name:<20} {status_text:<20} {pause_icon}"
 
+                    # Add to scene graph first so we have node_id
+                    inst_node = self.scene_graph.create_node(
+                        display_name, SceneNodeType.NOODLING, stage_node.id, inst_path)
+
                     inst_item = QTreeWidgetItem([display_text])
                     inst_item.setData(0, Qt.ItemDataRole.UserRole, {
-                        'type': 'instance',
+                        'type': 'noodling',  # Use 'noodling' so inspector handles it
                         'id': agent_id,
                         'name': display_name,
                         'path': inst_path,
                         'noodling_ref': noodling_ref,
                         'zone': zone,
-                        'data': inst_data
+                        'data': inst_data,
+                        'node_id': inst_node.id  # For inline rename
                     })
-                    instances_folder.addChild(inst_item)
+                    stage_item.addChild(inst_item)
+
+                    self._item_id_to_node_id[id(inst_item)] = inst_node.id
+                    self._node_id_to_item[inst_node.id] = inst_item
 
                 except Exception as e:
                     print(f"Error loading instance {inst_name}: {e}")
 
-        # Props folder
-        props_folder = QTreeWidgetItem(["Props"])
-        props_folder.setForeground(0, Qt.GlobalColor.gray)
-        stage_item.addChild(props_folder)
-
-        # Load props from Props/*/prop.yaml
+        # Load props from Props/*/prop.yaml - directly under stage
         props_dir = os.path.join(stage_path, "Props")
         if os.path.exists(props_dir):
             for prop_name in os.listdir(props_dir):
@@ -536,6 +1163,10 @@ class SceneHierarchy(QWidget):
                     lock_icon = "[L]" if is_locked else ""
                     display_text = f"{display_name:<20}                     {lock_icon}"
 
+                    # Add to scene graph first so we have node_id
+                    prop_node = self.scene_graph.create_node(
+                        display_name, SceneNodeType.PROP, stage_node.id, prop_path)
+
                     prop_item = QTreeWidgetItem([display_text])
                     prop_item.setData(0, Qt.ItemDataRole.UserRole, {
                         'type': 'prop',
@@ -545,19 +1176,18 @@ class SceneHierarchy(QWidget):
                         'prim_ref': prim_ref,
                         'zone': zone,
                         'locked': is_locked,
-                        'data': prop_data
+                        'data': prop_data,
+                        'node_id': prop_node.id  # For inline rename
                     })
-                    props_folder.addChild(prop_item)
+                    stage_item.addChild(prop_item)
+
+                    self._item_id_to_node_id[id(prop_item)] = prop_node.id
+                    self._node_id_to_item[prop_node.id] = prop_item
 
                 except Exception as e:
                     print(f"Error loading prop {prop_name}: {e}")
 
-        # Zone connections (exits between zones)
-        exits_folder = QTreeWidgetItem(["Zone Connections"])
-        exits_folder.setForeground(0, Qt.GlobalColor.gray)
-        stage_item.addChild(exits_folder)
-
-        # Load from stage.yaml zone_graph
+        # Zone connections shown directly under stage (not in folder)
         zone_graph = stage_data.get('zone_graph', {})
         for from_zone, connections in zone_graph.items():
             for to_zone in connections:
@@ -567,7 +1197,11 @@ class SceneHierarchy(QWidget):
                     'from': from_zone,
                     'to': to_zone
                 })
-                exits_folder.addChild(exit_item)
+                stage_item.addChild(exit_item)
+
+        # Re-enable refresh
+        # NOTE: Don't auto-save here - only save when user explicitly modifies hierarchy
+        self._suppress_refresh = False
 
     def _refresh_from_legacy(self):
         """Refresh scene from legacy format (cmush/world/...)."""
@@ -763,17 +1397,147 @@ class SceneHierarchy(QWidget):
             traceback.print_exc()
 
     def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
-        """Handle double-click - unpack ensembles, inspect entities."""
-        entity_data = item.data(0, Qt.ItemDataRole.UserRole)
-        if entity_data:
-            if isinstance(entity_data, tuple):
-                # Ensemble from Assets - unpack it!
-                asset_type, asset_name = entity_data
-                if asset_type == "ensemble":
-                    self.unpack_ensemble(asset_name)
-            elif isinstance(entity_data, dict):
-                # Regular entity - inspect it
-                self.inspect_entity(entity_data)
+        """Handle double-click - start inline rename (Unity-style)."""
+        try:
+            # Safety check - ensure item is valid
+            if sip.isdeleted(item):
+                return
+
+            entity_data = item.data(0, Qt.ItemDataRole.UserRole)
+            if entity_data:
+                if isinstance(entity_data, tuple):
+                    # Ensemble from Assets - unpack it!
+                    asset_type, asset_name = entity_data
+                    if asset_type == "ensemble":
+                        self.unpack_ensemble(asset_name)
+                        return
+
+                # Start inline editing for renaming (Unity-style)
+                entity_type = entity_data.get('type', '') if isinstance(entity_data, dict) else ''
+
+                # Don't allow renaming stage root or virtual nodes
+                if entity_type == 'stage':
+                    return
+
+                node_id = entity_data.get('node_id') if isinstance(entity_data, dict) else None
+                if node_id:
+                    node = self.scene_graph.get_node(node_id)
+                    if node and node.is_virtual:
+                        return  # Can't rename bones
+
+                # Make item editable and start editing
+                # CRITICAL: Suppress refresh during inline editing to prevent tree rebuild
+                self._suppress_refresh = True
+                self._editing_item = item  # Track which item is being edited
+
+                # Block signals while modifying flags to prevent itemChanged from firing
+                self.tree.blockSignals(True)
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                self.tree.blockSignals(False)
+
+                self.tree.editItem(item, 0)
+        except Exception as e:
+            print(f"[HIERARCHY] Error in on_item_double_clicked: {e}")
+            import traceback
+            traceback.print_exc()
+            self._suppress_refresh = False
+            self._editing_item = None
+
+    def _on_item_renamed(self, item: QTreeWidgetItem, column: int):
+        """Handle inline rename completion."""
+        # Re-enable refresh now that editing is done
+        self._suppress_refresh = False
+        self._editing_item = None
+
+        # Safety check - ensure item is valid
+        try:
+            if sip.isdeleted(item):
+                return
+        except RuntimeError:
+            return
+
+        # Make item non-editable again - MUST defer to avoid Qt crash
+        # (can't call setFlags inside itemChanged signal handler)
+        # Also check if item is still valid before accessing it
+        def clear_editable():
+            try:
+                if not sip.isdeleted(item):
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            except RuntimeError:
+                pass  # Item was deleted
+        QTimer.singleShot(0, clear_editable)
+
+        try:
+            new_name = item.text(0).strip()
+            if not new_name:
+                return
+
+            entity_data = item.data(0, Qt.ItemDataRole.UserRole)
+            if not entity_data or not isinstance(entity_data, dict):
+                return
+
+            node_id = entity_data.get('node_id')
+            if node_id:
+                # Update scene graph
+                node = self.scene_graph.get_node(node_id)
+                if node and node.name != new_name:
+                    self.scene_graph.rename_node(node_id, new_name)
+                    # Update entity_data
+                    entity_data['name'] = new_name
+                    item.setData(0, Qt.ItemDataRole.UserRole, entity_data)
+                    self._save_hierarchy()
+                    print(f"Renamed to: {new_name}")
+
+            # Also update prop/noodling/zone on disk if it has a path
+            prop_path = entity_data.get('path')
+            if prop_path:
+                self._rename_on_disk(entity_data, new_name)
+
+            # Re-emit entitySelected to update Inspector with new name
+            entity_type = entity_data.get('type', 'unknown')
+            self.entitySelected.emit(entity_type, entity_data)
+        except Exception as e:
+            print(f"[HIERARCHY] Error in _on_item_renamed: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _rename_on_disk(self, entity_data: dict, new_name: str):
+        """Update the display name in the YAML file on disk."""
+        import yaml
+
+        entity_type = entity_data.get('type', '')
+        prop_path = entity_data.get('path')
+
+        if not prop_path:
+            return
+
+        yaml_file = None
+        name_key = 'name'
+
+        if entity_type == 'prop':
+            yaml_file = os.path.join(prop_path, 'prop.yaml')
+        elif entity_type == 'instance':
+            yaml_file = os.path.join(prop_path, 'instance.yaml')
+            name_key = 'overrides.name'  # Nested key
+        elif entity_type == 'zone':
+            yaml_file = prop_path  # Zone path is the yaml file itself
+
+        if yaml_file and os.path.exists(yaml_file):
+            try:
+                with open(yaml_file, 'r') as f:
+                    data = yaml.safe_load(f) or {}
+
+                if name_key == 'overrides.name':
+                    if 'overrides' not in data:
+                        data['overrides'] = {}
+                    data['overrides']['name'] = new_name
+                else:
+                    data[name_key] = new_name
+
+                with open(yaml_file, 'w') as f:
+                    yaml.dump(data, f, default_flow_style=False)
+            except Exception as e:
+                print(f"Error updating name on disk: {e}")
 
     def on_item_clicked_for_expansion(self, item: QTreeWidgetItem, column: int):
         """
@@ -797,6 +1561,15 @@ class SceneHierarchy(QWidget):
 
     def show_context_menu(self, position):
         """Show right-click context menu (Unity-style)."""
+        try:
+            self._show_context_menu_impl(position)
+        except Exception as e:
+            print(f"[SceneHierarchy] CONTEXT MENU ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _show_context_menu_impl(self, position):
+        """Implementation of context menu (separated for error handling)."""
         item = self.tree.itemAt(position)
 
         menu = QMenu()
@@ -820,77 +1593,87 @@ class SceneHierarchy(QWidget):
             entity_type = entity_data.get('type', '') if entity_data and isinstance(entity_data, dict) else None
 
             # Context-specific actions (capture data, not item reference)
+            # All callbacks wrapped in _safe_callback to prevent Qt slot crashes
             if entity_type == 'noodling':
-                menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
-                menu.addAction("Toggle Enlightenment", lambda d=entity_data: self.toggle_enlightenment_data(d))
+                menu.addAction("Toggle Enlightenment", _safe_callback(lambda d=entity_data: self.toggle_enlightenment_data(d)))
 
                 # Check if cognition is paused for this agent
                 agent_id = entity_data.get('id')
                 is_paused = self.get_agent_pause_state(agent_id)
                 pause_text = "Resume Cognition" if is_paused else "Pause Cognition"
-                menu.addAction(pause_text, lambda d=entity_data: self.toggle_cognition_pause_data(d))
+                menu.addAction(pause_text, _safe_callback(lambda d=entity_data: self.toggle_cognition_pause_data(d)))
 
                 menu.addSeparator()
-                menu.addAction("Export Noodling", lambda d=entity_data: self.export_noodling_data(d))
+                menu.addAction("Export Noodling", _safe_callback(lambda d=entity_data: self.export_noodling_data(d)))
                 menu.addSeparator()
-                menu.addAction("Duplicate Noodling", lambda d=entity_data: self.duplicate_prim_data(d))
-                menu.addAction("Reset State", lambda d=entity_data: self.reset_prim_state_data(d))
+                menu.addAction("Duplicate Noodling", _safe_callback(lambda d=entity_data: self.duplicate_prim_data(d)))
+                menu.addAction("Reset State", _safe_callback(lambda d=entity_data: self.reset_prim_state_data(d)))
                 menu.addSeparator()
-                menu.addAction("De-Rez Noodling", lambda d=entity_data: self.delete_selected_items())
+                menu.addAction("De-Rez Noodling", _safe_callback(lambda d=entity_data: self.delete_selected_items()))
 
             elif entity_type == 'prim':
-                menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
-                menu.addAction("Edit Description", lambda d=entity_data: self.edit_description_data(d))
+                menu.addAction("Edit Description", _safe_callback(lambda d=entity_data: self.edit_description_data(d)))
                 menu.addSeparator()
-                menu.addAction("Export Prim", lambda d=entity_data: self.export_prim_data(d))
+                menu.addAction("Export Prim", _safe_callback(lambda d=entity_data: self.export_prim_data(d)))
                 menu.addSeparator()
-                menu.addAction("Duplicate Prim", lambda d=entity_data: self.duplicate_prim_data(d))
-                menu.addAction("De-Rez Prim", lambda d=entity_data: self.delete_selected_items())
+                menu.addAction("Duplicate Prim", _safe_callback(lambda d=entity_data: self.duplicate_prim_data(d)))
+                menu.addAction("De-Rez Prim", _safe_callback(lambda d=entity_data: self.delete_selected_items()))
 
             elif entity_type == 'prop':
-                # Project-mode prop (same as prim but stored in project)
-                menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
-                menu.addSeparator()
-                menu.addAction("Duplicate Prop", lambda d=entity_data: self.duplicate_prop(d))
-                menu.addAction("De-Rez Prop", lambda d=entity_data: self.delete_prop(d))
+                # Project-mode prop
+                menu.addAction("Duplicate", _safe_callback(lambda d=entity_data: self.duplicate_prop(d)))
+                menu.addAction("De-Rez", _safe_callback(lambda d=entity_data: self.delete_prop(d)))
 
-            elif entity_type == 'instance':
-                # Project-mode noodling instance
-                menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
-                menu.addSeparator()
-                menu.addAction("Duplicate Instance", lambda d=entity_data: self.duplicate_instance(d))
-                menu.addAction("De-Rez Instance", lambda d=entity_data: self.delete_instance(d))
+            # Note: noodling instances handled in 'noodling' case above
 
             elif entity_type == 'zone':
                 # Project-mode zone
-                menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
-                menu.addSeparator()
-                menu.addAction("Delete Zone", lambda d=entity_data: self.delete_zone(d))
+                menu.addAction("De-Rez", _safe_callback(lambda d=entity_data: self.delete_zone(d)))
 
             elif entity_type == 'user':
-                menu.addAction("Inspect Properties", lambda d=entity_data: self.inspect_entity(d))
-                menu.addAction("View Profile", lambda d=entity_data: self.view_user_profile_data(d))
+                menu.addAction("View Profile", _safe_callback(lambda d=entity_data: self.view_user_profile_data(d)))
 
             elif entity_type == 'exit':
-                menu.addAction("Edit Exit", lambda d=entity_data: self.edit_exit_data(d))
-                menu.addAction("De-Rez Exit", lambda d=entity_data: self.delete_prim_data(d))
+                menu.addAction("Edit Exit", _safe_callback(lambda d=entity_data: self.edit_exit_data(d)))
+                menu.addAction("De-Rez Exit", _safe_callback(lambda d=entity_data: self.delete_prim_data(d)))
 
-            else:
-                # Folder or other
-                menu.addAction("Expand All", lambda: self.expand_recursive(item))
-                menu.addAction("Collapse All", lambda: self.collapse_recursive(item))
-        else:
-            # Empty space - show rez options only if project is open
-            if self.project_manager and self.project_manager.is_project_open():
-                create_menu = menu.addMenu("Rez")
-                create_menu.addAction("New Noodling", lambda: self.create_empty_noodling())
-                create_menu.addAction("New Prop", lambda: self.create_empty_prim())
-                create_menu.addAction("New Zone", lambda: self.create_empty_zone())
-
+            elif entity_type == 'folder':
+                # User-created folder
+                node_id = entity_data.get('node_id')
+                menu.addAction("New Folder", _safe_callback(lambda nid=node_id: self.create_folder_under(nid)))
+                menu.addAction("Rename", _safe_callback(lambda nid=node_id, itm=item: self.rename_node(nid, itm)))
                 menu.addSeparator()
-                menu.addAction("Import Prop...", lambda: self.import_prim())
+                menu.addAction("Expand All", _safe_callback(lambda: self.expand_recursive(item)))
+                menu.addAction("Collapse All", _safe_callback(lambda: self.collapse_recursive(item)))
+                menu.addSeparator()
+                menu.addAction("Delete Folder", _safe_callback(lambda nid=node_id: self.delete_folder(nid)))
+
             else:
-                menu.addAction("Open Project...", lambda: self._prompt_open_project())
+                # Stage root or default folders (Zones, Noodlings, Props, etc.)
+                node_id = self._item_id_to_node_id.get(id(item))
+                menu.addAction("New Folder", _safe_callback(lambda nid=node_id: self.create_folder_under(nid)))
+                menu.addSeparator()
+                menu.addAction("Expand All", _safe_callback(lambda: self.expand_recursive(item)))
+                menu.addAction("Collapse All", _safe_callback(lambda: self.collapse_recursive(item)))
+        else:
+            # Empty space - show rez options only if project is open AND server is running
+            if self.project_manager and self.project_manager.is_project_open():
+                if self._server_running and self.current_stage:
+                    menu.addAction("New Folder", _safe_callback(lambda: self.create_folder_under(None)))
+                    menu.addSeparator()
+                    create_menu = menu.addMenu("Rez")
+                    create_menu.addAction("New Noodling", _safe_callback(lambda: self.create_empty_noodling()))
+                    create_menu.addAction("New Prim", _safe_callback(lambda: self.create_empty_prim()))
+                    create_menu.addAction("New Zone", _safe_callback(lambda: self.create_empty_zone()))
+
+                    menu.addSeparator()
+                    menu.addAction("Import Prim...", _safe_callback(lambda: self.import_prim()))
+                else:
+                    # Server offline or no stage - show info
+                    info_action = menu.addAction("Start server to create items")
+                    info_action.setEnabled(False)
+            else:
+                menu.addAction("Open Project...", _safe_callback(lambda: self._prompt_open_project()))
 
         menu.exec(self.tree.viewport().mapToGlobal(position))
 
@@ -1226,6 +2009,121 @@ class SceneHierarchy(QWidget):
         for i in range(item.childCount()):
             self.collapse_recursive(item.child(i))
 
+    # =========================================================================
+    # Folder Management (Unity-style hierarchy)
+    # =========================================================================
+
+    def create_folder_under(self, parent_id: str = None):
+        """Create a new folder under the specified parent (or at root if None)."""
+        if not self.project_manager or not self.project_manager.is_project_open():
+            self._prompt_open_project()
+            return
+
+        # Suppress refresh during folder creation to avoid recursion
+        self._suppress_refresh = True
+        folder_node_id = None
+        try:
+            # Generate unique folder name
+            base_name = "New Folder"
+            name = self.scene_graph.get_unique_name(base_name, parent_id)
+
+            # Create folder node
+            folder_node = self.scene_graph.create_folder(name, parent_id)
+            folder_node.node_type = SceneNodeType.FOLDER  # Ensure it's marked as folder
+            folder_node_id = folder_node.id
+
+            # Save hierarchy
+            self._save_hierarchy()
+            print(f"Created folder: {name}")
+        finally:
+            self._suppress_refresh = False
+
+        # Now refresh and select (with suppression off)
+        self.refresh_scene()
+        if folder_node_id:
+            self._select_node_by_id(folder_node_id)
+
+    def rename_node(self, node_id: str, item: QTreeWidgetItem = None):
+        """Rename a node via inline editing or dialog."""
+        node = self.scene_graph.get_node(node_id)
+        if not node:
+            return
+
+        if node.is_virtual:
+            QMessageBox.warning(self, "Cannot Rename", "Cannot rename skeleton bones.")
+            return
+
+        # Use dialog for rename
+        new_name, ok = QInputDialog.getText(
+            self,
+            "Rename",
+            "Enter new name:",
+            QLineEdit.EchoMode.Normal,
+            node.name
+        )
+
+        if ok and new_name and new_name != node.name:
+            self.scene_graph.rename_node(node_id, new_name)
+            # Update tree item directly (don't refresh - it destroys user hierarchy)
+            if item:
+                item.setText(0, new_name)
+            self._save_hierarchy()
+            print(f"Renamed to: {new_name}")
+
+    def delete_folder(self, node_id: str):
+        """Delete a folder and optionally its contents."""
+        node = self.scene_graph.get_node(node_id)
+        if not node:
+            return
+
+        if node.is_virtual:
+            QMessageBox.warning(self, "Cannot Delete", "Cannot delete skeleton folders.")
+            return
+
+        # Check if folder has children
+        children = self.scene_graph.get_children(node_id)
+        if children:
+            reply = QMessageBox.question(
+                self,
+                "Delete Folder",
+                f"Delete folder '{node.name}' and all its contents ({len(children)} items)?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+        else:
+            reply = QMessageBox.question(
+                self,
+                "Delete Folder",
+                f"Delete empty folder '{node.name}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+        # Delete the folder
+        self.scene_graph.delete_node(node_id, recursive=True)
+        self._save_hierarchy()
+        self.refresh_scene()
+        print(f"Deleted folder: {node.name}")
+
+    def _select_node_by_id(self, node_id: str):
+        """Select a node in the tree by its ID."""
+        item = self._node_id_to_item.get(node_id)
+        if item:
+            self.tree.clearSelection()
+            item.setSelected(True)
+            self.tree.setCurrentItem(item)
+            self.tree.scrollToItem(item)
+
+            # Expand parent chain to make visible
+            parent = item.parent()
+            while parent:
+                parent.setExpanded(True)
+                parent = parent.parent()
+
     def create_empty_noodling(self):
         """Create a new Noodling instance in the current stage (no dialog)."""
         import uuid
@@ -1258,7 +2156,7 @@ class SceneHierarchy(QWidget):
         # Prepare instance data
         instance_data = {
             'id': instance_id,
-            'noodling': '',  # Reference to Noodlings/xxx (empty = blank template)
+            'noodling': 'empty_noodling',  # Reference to Library/Noodlings/empty_noodling
             'overrides': {
                 'name': display_name,
                 'zone': 'default',
@@ -1274,7 +2172,7 @@ class SceneHierarchy(QWidget):
             instance_data=instance_data,
             display_name=display_name
         )
-        UndoManager.instance().push(cmd)
+        UndoManager().push(cmd)
         print(f"Created Noodling: {display_name} ({instance_id[:8]}...)")
 
     def create_empty_prim(self):
@@ -1297,10 +2195,10 @@ class SceneHierarchy(QWidget):
         # Get Props directory (will be created by command if needed)
         props_dir = os.path.join(stage_path, "Props")
 
-        # Generate unique name: "New Prop", "New Prop (2)", etc.
+        # Generate unique name: "New Prim", "New Prim (2)", etc.
         # Need to create dir first so we can check existing names
         os.makedirs(props_dir, exist_ok=True)
-        display_name = self._generate_unique_name(props_dir, "New Prop", "prop.yaml")
+        display_name = self._generate_unique_name(props_dir, "New Prim", "prop.yaml")
 
         # Use UUID for folder name (the actual identifier)
         prop_id = str(uuid.uuid4())
@@ -1330,7 +2228,7 @@ class SceneHierarchy(QWidget):
             prop_data=prop_data,
             display_name=display_name
         )
-        UndoManager.instance().push(cmd)
+        UndoManager().push(cmd)
         print(f"Created Prop: {display_name} ({prop_id[:8]}...)")
 
     def create_empty_zone(self):
@@ -1381,7 +2279,7 @@ class SceneHierarchy(QWidget):
             zone_data=zone_data,
             display_name=display_name
         )
-        UndoManager.instance().push(cmd)
+        UndoManager().push(cmd)
         print(f"Created Zone: {display_name} ({zone_id[:8]}...)")
 
     def _generate_unique_name(self, directory: str, base_name: str, yaml_file: str) -> str:
@@ -1490,7 +2388,7 @@ class SceneHierarchy(QWidget):
                 prop_data=prop_data,
                 display_name=prop_name
             )
-            UndoManager.instance().push(cmd)
+            UndoManager().push(cmd)
             print(f"Deleted prop: {prop_name}")
 
     def duplicate_prop(self, entity_data: dict):
@@ -1572,7 +2470,7 @@ class SceneHierarchy(QWidget):
                 instance_data=inst_data,
                 display_name=inst_name
             )
-            UndoManager.instance().push(cmd)
+            UndoManager().push(cmd)
             print(f"Deleted instance: {inst_name}")
 
     def duplicate_instance(self, entity_data: dict):
@@ -1654,7 +2552,7 @@ class SceneHierarchy(QWidget):
                 zone_data=zone_data,
                 display_name=zone_name
             )
-            UndoManager.instance().push(cmd)
+            UndoManager().push(cmd)
             print(f"Deleted zone: {zone_name}")
 
     # =========================================================================
@@ -1804,6 +2702,39 @@ class SceneHierarchy(QWidget):
             if index >= 0:
                 self.tree.takeTopLevelItem(index)
 
+    def _remove_tree_item_by_node_id(self, node_id: str):
+        """Find and remove a tree item by its scene graph node_id."""
+        if not node_id:
+            return
+
+        # Search all items in tree
+        def find_and_remove(parent_item):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                entity_data = child.data(0, Qt.ItemDataRole.UserRole)
+                if isinstance(entity_data, dict):
+                    item_node_id = entity_data.get('node_id', '')
+                    if item_node_id == node_id:
+                        parent_item.removeChild(child)
+                        return True
+                # Recurse
+                if find_and_remove(child):
+                    return True
+            return False
+
+        # Search top-level items
+        for i in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(i)
+            entity_data = item.data(0, Qt.ItemDataRole.UserRole)
+            if isinstance(entity_data, dict):
+                item_node_id = entity_data.get('node_id', '')
+                if item_node_id == node_id:
+                    self.tree.takeTopLevelItem(i)
+                    return
+            # Search children
+            if find_and_remove(item):
+                return
+
     def delete_selected_items(self):
         """De-rez all selected items (supports multi-selection)."""
         selected_items = self.tree.selectedItems()
@@ -1923,17 +2854,20 @@ class SceneHierarchy(QWidget):
             print(f"Error derezzing {prim_id}: {e}")
 
     def set_server_state(self, running: bool):
-        """Update hierarchy based on server state - gray out if offline."""
+        """Update hierarchy based on server state."""
+        print(f"[SceneHierarchy] set_server_state({running})")
+        self._server_running = running
+
         if running:
-            # Server online - enable tree
+            # Server online - enable tree and refresh to show full hierarchy
             self.tree.setEnabled(True)
             self.tree.setStyleSheet(self.tree.styleSheet().replace("color: #666;", "color: #D2D2D2;"))
         else:
-            # Server offline - disable and gray out tree
-            self.tree.setEnabled(False)
-            # Make text gray
-            for i in range(self.tree.topLevelItemCount()):
-                self._gray_out_item(self.tree.topLevelItem(i))
+            # Server offline - show offline message instead of full tree
+            self.tree.setEnabled(True)  # Keep enabled so user can see the message
+
+        # Refresh to show appropriate content based on server state
+        self.refresh_scene()
 
     def _gray_out_item(self, item):
         """Recursively gray out an item and its children."""

@@ -1498,47 +1498,44 @@ class InspectorPanel(QWidget):
             # Clear component widget tracking for clean slate
             self.component_widgets.clear()
 
-            # Update header
+            # Update header - just show the name (no type prefix)
             if entity_type == 'noodling':
-                name = entity_data.get('data', {}).get('name', entity_data.get('id'))
-                species = entity_data.get('data', {}).get('species', 'unknown')
-                self.entity_header.setText(f"Noodling: {name} ({species})")
+                name = entity_data.get('name') or entity_data.get('data', {}).get('name', entity_data.get('id', 'Noodling'))
+                self.entity_header.setText(name)
                 self.load_noodling_properties(entity_data)
 
             elif entity_type == 'user':
-                self.entity_header.setText("User: caity")
+                self.entity_header.setText("caity")
                 self.load_user_properties(entity_data)
 
             elif entity_type in ('prim', 'object', 'prop'):
-                obj_name = entity_data.get('name') or entity_data.get('id', 'Unknown Object').replace('obj_', '').replace('_', ' ').title()
-                label = "Prop" if entity_type == 'prop' else "Prim"
-                self.entity_header.setText(f"{label}: {obj_name}")
+                obj_name = entity_data.get('name') or entity_data.get('id', 'Unknown').replace('obj_', '').replace('_', ' ').title()
+                self.entity_header.setText(obj_name)
                 self.load_object_properties(entity_data)
 
             elif entity_type == 'exit':
                 direction = entity_data.get('direction', 'unknown')
-                self.entity_header.setText(f"Exit: {direction}")
+                self.entity_header.setText(direction)
                 self.load_exit_properties(entity_data)
 
             elif entity_type == 'stage':
-                stage_name = entity_data.get('data', {}).get('name', 'Unknown Stage')
-                self.entity_header.setText(f"Stage: {stage_name}")
+                stage_name = entity_data.get('data', {}).get('name', 'Stage')
+                self.entity_header.setText(stage_name)
                 self.load_stage_properties(entity_data)
 
             elif entity_type == 'zone':
-                zone_name = entity_data.get('name', 'Unknown Zone')
-                self.entity_header.setText(f"Zone: {zone_name}")
+                zone_name = entity_data.get('name') or entity_data.get('data', {}).get('name', 'Zone')
+                self.entity_header.setText(zone_name)
                 self.load_zone_properties(entity_data)
 
             elif entity_type == 'neural_node':
-                node_name = entity_data.get('name', 'Unknown Node')
-                node_type = entity_data.get('type', 'UNKNOWN')
-                self.entity_header.setText(f"Node: {node_name}")
+                node_name = entity_data.get('name', 'Node')
+                self.entity_header.setText(node_name)
                 self.load_neural_node_properties(entity_data)
 
             elif entity_type == 'radiance':
-                asset_name = entity_data.get('name', 'Unknown Asset')
-                self.entity_header.setText(f"Radiance: {asset_name}")
+                asset_name = entity_data.get('name', 'Radiance')
+                self.entity_header.setText(asset_name)
                 self.load_radiance_properties(entity_data)
 
         finally:
@@ -1606,7 +1603,30 @@ class InspectorPanel(QWidget):
         """Show Zone properties from Spatial View."""
         zone_id = zone_data.get('id', '')
         zone_name = zone_data.get('name', zone_id)
-        file_path = zone_data.get('file_path', '')
+        file_path = zone_data.get('file_path', zone_data.get('path', ''))
+
+        # Clear property fields
+        self.property_fields = {}
+
+        # Zone Basics (Name + UUID) - similar to Noodling/Prop
+        basics_group = self.create_property_group("Zone")
+
+        # Name (editable)
+        self.property_fields['name'] = self.add_text_field(basics_group, "Name", zone_name)
+
+        # UUID (read-only) with copy button
+        display_id = zone_id
+        if len(display_id) > 20:
+            display_id = display_id[:8] + "..." + display_id[-4:]
+
+        uuid_widget = QLabel(f'<span style="color:#888888">{display_id}</span> '
+                            f'<a href="copy" style="color:#666666;text-decoration:none">[copy]</a>')
+        uuid_widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        uuid_widget.linkActivated.connect(lambda: QApplication.clipboard().setText(zone_id))
+        uuid_widget.setToolTip(f"Full ID: {zone_id}\nClick [copy] to copy")
+        basics_group.content.layout().addRow("UUID:", uuid_widget)
+
+        self.properties_layout.addWidget(basics_group)
 
         # Spatial Properties - compact layout
         spatial_group = self.create_property_group("Spatial")
@@ -2102,18 +2122,42 @@ class InspectorPanel(QWidget):
         recipe_data = {}
         try:
             import os
-            recipe_name = agent.get('name', agent_id.replace('agent_', ''))
-            recipe_path = os.path.join(
-                os.path.dirname(__file__),
-                '../../../cmush/recipes',
-                f'{recipe_name}.yaml'
-            )
-            if os.path.exists(recipe_path):
-                with open(recipe_path, 'r') as f:
-                    recipe_data = yaml.safe_load(f)
-                    print(f"[Inspector] Loaded recipe from: {recipe_path}")
-            else:
-                print(f"[Inspector] Recipe not found: {recipe_path}")
+            # First check for noodling template reference (project-based)
+            noodling_ref = entity_data.get('noodling_ref') or agent.get('noodling', '')
+            instance_path = entity_data.get('path', '')
+
+            if noodling_ref and instance_path:
+                # Project mode: Load from Library/Noodlings/{noodling_ref}/recipe.yaml
+                # Instance path is like: .../Stages/xxx/Instances/uuid
+                # Library is at: .../Library/Noodlings/{noodling_ref}
+                project_root = os.path.dirname(os.path.dirname(os.path.dirname(instance_path)))
+                library_recipe = os.path.join(
+                    project_root, 'Library', 'Noodlings', noodling_ref, 'recipe.yaml'
+                )
+                if os.path.exists(library_recipe):
+                    with open(library_recipe, 'r') as f:
+                        recipe_data = yaml.safe_load(f) or {}
+                    print(f"[Inspector] Loaded library recipe: {library_recipe}")
+                else:
+                    # Fallback to app-wide library
+                    app_library = os.path.join(
+                        os.path.dirname(__file__), '..', 'library', 'noodlings', noodling_ref, 'recipe.yaml'
+                    )
+                    if os.path.exists(app_library):
+                        with open(app_library, 'r') as f:
+                            recipe_data = yaml.safe_load(f) or {}
+                        print(f"[Inspector] Loaded app library recipe: {app_library}")
+                    else:
+                        print(f"[Inspector] Recipe not found: {library_recipe} or {app_library}")
+
+            # Apply overrides from instance
+            overrides = agent.get('overrides', {})
+            if overrides:
+                # Merge overrides into recipe_data
+                for key, value in overrides.items():
+                    if value:  # Only override non-empty values
+                        recipe_data[key] = value
+
         except Exception as e:
             print(f"[Inspector] Error loading recipe: {e}")
             import traceback
@@ -2605,6 +2649,15 @@ class InspectorPanel(QWidget):
                     except Exception as e:
                         print(f"Error saving prim: {e}")
 
+            elif entity_type == 'zone':
+                # Build update payload for zone
+                updates = {}
+                if 'name' in self.property_fields:
+                    updates['name'] = self.property_fields['name'].text()
+
+                # Save to zone.yaml file
+                self._save_zone_to_file(entity_data, updates)
+
         finally:
             # Clear flag after save completes (wait longer than refresh interval)
             from PyQt6.QtCore import QTimer
@@ -2642,6 +2695,39 @@ class InspectorPanel(QWidget):
 
         except Exception as e:
             print(f"Error saving prop to file: {e}")
+
+    def _save_zone_to_file(self, entity_data: dict, updates: dict):
+        """Save zone changes to zone.yaml file."""
+        import yaml
+        import os
+
+        # Zone path IS the yaml file (unlike props which are directories)
+        zone_path = entity_data.get('path', '')
+        if not zone_path:
+            print("No path for zone - cannot save")
+            return
+
+        if not os.path.exists(zone_path):
+            print(f"Zone file not found at {zone_path}")
+            return
+
+        try:
+            # Load existing data
+            with open(zone_path, 'r') as f:
+                zone_data = yaml.safe_load(f) or {}
+
+            # Update with new values
+            zone_data.update(updates)
+
+            # Save back
+            with open(zone_path, 'w') as f:
+                yaml.dump(zone_data, f, default_flow_style=False)
+
+            zone_name = updates.get('name', entity_data.get('name', 'zone'))
+            print(f"Saved zone {zone_name}: {list(updates.keys())}")
+
+        except Exception as e:
+            print(f"Error saving zone to file: {e}")
 
     def save_component_changes(self, agent_id: str, component_id: str):
         """

@@ -784,6 +784,7 @@ class MainWindow(QMainWindow):
 
         # Connect Gaussian Viewer to Inspector
         self.gaussian_viewer.radianceLoaded.connect(self._on_radiance_loaded)
+        self.gaussian_viewer.meshImported.connect(self._on_mesh_imported)
 
         # Check server state
         QTimer.singleShot(200, self.update_connection_status)
@@ -934,7 +935,7 @@ class MainWindow(QMainWindow):
             self,
             "Save Layout",
             "Layout name:",
-            text="My Layout"
+            text="New Layout"
         )
         if ok and layout_name:
             self.layout_manager.save_layout(self, layout_name)
@@ -1360,7 +1361,7 @@ class MainWindow(QMainWindow):
             self,
             "Create Empty Ensemble",
             "Ensemble name:",
-            text="MyEnsemble"
+            text="New Ensemble"
         )
 
         if ok and name:
@@ -1457,7 +1458,7 @@ class MainWindow(QMainWindow):
                 self,
                 "Export Ensemble",
                 f"Export {len(agents)} current Noodlings as ensemble?\n\nEnsemble name:",
-                text="MyEnsemble"
+                text="New Ensemble"
             )
 
             if not ok or not ensemble_name:
@@ -1782,7 +1783,7 @@ class MainWindow(QMainWindow):
             self,
             "New Project",
             "Project Name:",
-            text="MyNoodlingProject"
+            text="New Project"
         )
 
         if not ok or not project_name:
@@ -1852,7 +1853,7 @@ class MainWindow(QMainWindow):
 
         # Refresh hierarchy with new project structure
         if hasattr(self, 'hierarchy'):
-            self.hierarchy.current_stage = None  # Reset to first stage
+            self.hierarchy.clear_for_project_change()  # Clear old project state
             self.hierarchy.populate_stage_selector()
             self.hierarchy.refresh_scene()
             self.hierarchy.set_server_state(False)  # Gray out until server starts
@@ -1904,7 +1905,7 @@ class MainWindow(QMainWindow):
             return
 
         name, ok = QInputDialog.getText(
-            self, "New Noodling", "Noodling Name:", text="MyNoodling"
+            self, "New Noodling", "Noodling Name:", text="New Noodling"
         )
         if not ok or not name:
             return
@@ -1928,20 +1929,30 @@ class MainWindow(QMainWindow):
             return
 
         name, ok = QInputDialog.getText(
-            self, "New Stage", "Stage Name:", text="MyStage"
+            self, "New Stage", "Stage Name:", text="New Stage"
         )
         if not ok or not name:
             return
 
-        desc, ok = QInputDialog.getText(
-            self, "New Stage", "Description (optional):"
-        )
-
-        path = self.project_manager.create_stage(name, desc if ok else "")
+        # No description popup - user can set it in inspector if they want
+        path = self.project_manager.create_stage(name, "")
         if path:
             self.statusBar().showMessage(f"Created stage: {name}", 3000)
             if hasattr(self, 'assets'):
                 self.assets.refresh()
+            # Refresh stage selector and select the new stage
+            if hasattr(self, 'hierarchy'):
+                # Extract folder name from path (the stage ID used by list_stages)
+                import os
+                stage_folder_name = os.path.basename(path)
+                self.hierarchy.populate_stage_selector()
+                self.hierarchy.current_stage = stage_folder_name
+                # Find and select the new stage in the dropdown
+                for i in range(self.hierarchy.stage_selector.count()):
+                    if self.hierarchy.stage_selector.itemData(i) == stage_folder_name:
+                        self.hierarchy.stage_selector.setCurrentIndex(i)
+                        break
+                self.hierarchy.refresh_scene()
         else:
             QMessageBox.warning(self, "Error", f"Failed to create stage. Name may already exist.")
 
@@ -1952,7 +1963,7 @@ class MainWindow(QMainWindow):
             return
 
         name, ok = QInputDialog.getText(
-            self, "New Prim", "Prim Name:", text="MyPrim"
+            self, "New Prim", "Prim Name:", text="New Prim"
         )
         if not ok or not name:
             return
@@ -2389,7 +2400,7 @@ class MainWindow(QMainWindow):
             self.inspector.clear_inspector()
 
     def _on_radiance_loaded(self, path: str, component):
-        """Handle radiance loaded in Gaussian Viewer - show in Inspector."""
+        """Handle radiance loaded in Gaussian Viewer - show in Inspector and Assets panel."""
         from pathlib import Path
 
         # Create entity data for Inspector
@@ -2402,6 +2413,45 @@ class MainWindow(QMainWindow):
 
         # Load into Inspector as a "radiance" entity type
         self.inspector.load_entity('radiance', entity_data)
+
+        # Connect inspector's bone focus signal to viewer
+        if hasattr(self.inspector, '_radiance_inspector') and self.inspector._radiance_inspector:
+            ri = self.inspector._radiance_inspector
+            # Disconnect old connections
+            try:
+                ri.focusBoneRequested.disconnect()
+            except TypeError:
+                pass
+            try:
+                ri.boneSelected.disconnect()
+            except TypeError:
+                pass
+            try:
+                ri.requestViewerFocus.disconnect()
+            except TypeError:
+                pass
+            try:
+                self.gaussian_viewer.boneSelectionChanged.disconnect()
+            except TypeError:
+                pass
+            # Inspector -> Viewer: focus on bone (from Focus button)
+            ri.focusBoneRequested.connect(self.gaussian_viewer.focus_on_bone)
+            # Viewer -> Inspector: sync bone dropdown when viewer selects/deselects
+            self.gaussian_viewer.boneSelectionChanged.connect(ri.set_selected_bone)
+            # Inspector -> Viewer: sync bone selection when dropdown changes
+            ri.boneSelected.connect(self.gaussian_viewer.set_bone_selection)
+            # Inspector -> Viewer: give viewer keyboard focus after Focus button
+            ri.requestViewerFocus.connect(self.gaussian_viewer.setFocus)
+
+        # Also add to Assets panel and select it
+        if hasattr(self, 'assets'):
+            self.assets.add_loaded_radiance(path, component)
+
+    def _on_mesh_imported(self, source_path: str, mesh_type: str, output_radiance_path: str):
+        """Handle mesh imported in Gaussian Viewer - add to Assets panel Meshes category."""
+        if hasattr(self, 'assets'):
+            metadata = {'radiance_path': output_radiance_path}
+            self.assets.add_loaded_mesh(source_path, mesh_type, metadata)
 
     def show_credits(self):
         """Show demo scene style credits with music."""

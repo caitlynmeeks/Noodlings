@@ -163,11 +163,16 @@ class ChatPanel(MaximizableDock):
         self.web_view.setMinimumSize(0, 0)
         self.web_view.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX)
 
-        # Ensure web view background is black
+        # Ensure web view background is black (stylesheet for Qt widget)
         self.web_view.setStyleSheet("background-color: #000000;")
 
-        # Enable console message forwarding
+        # Set page background color to black BEFORE loading any URL
+        # This prevents the white flash during page load
+        from PyQt6.QtGui import QColor
         page = self.web_view.page()
+        page.setBackgroundColor(QColor(0, 0, 0))
+
+        # Enable console message forwarding
         page.javaScriptConsoleMessage = self._on_console_message
 
         # Configure WebEngine settings for WebSocket and localhost access

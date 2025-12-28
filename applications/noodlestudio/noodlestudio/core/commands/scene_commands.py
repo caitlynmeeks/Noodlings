@@ -107,7 +107,29 @@ class DeleteNoodlingCommand(StudioCommand):
             self.folder_backup = self._backup_folder(self.instance_path)
             shutil.rmtree(self.instance_path)
 
-        self.hierarchy.refresh_scene()
+        # Surgical update: remove from scene graph and tree (no full refresh)
+        instance_id = self.instance_data.get('id', '')
+        node_id = f"agent_{instance_id}"
+
+        # Find and store node_id for undo (might be different format)
+        self.deleted_node_id = None
+        self.deleted_parent_id = None
+        for nid, node in self.hierarchy.scene_graph.nodes.items():
+            if node.component_ref and instance_id in node.component_ref:
+                self.deleted_node_id = nid
+                self.deleted_parent_id = node.parent_id
+                break
+
+        # Remove from scene graph
+        if self.deleted_node_id:
+            self.hierarchy.scene_graph.delete_node(self.deleted_node_id)
+
+        # Remove tree item surgically
+        self.hierarchy._remove_tree_item_by_node_id(self.deleted_node_id or node_id)
+
+        # Save hierarchy
+        self.hierarchy._save_hierarchy()
+
         # Clear Inspector (entity was deleted)
         self.hierarchy.entitySelected.emit("", {})
 
@@ -240,7 +262,28 @@ class DeletePropCommand(StudioCommand):
             self.folder_backup = self._backup_folder(self.prop_path)
             shutil.rmtree(self.prop_path)
 
-        self.hierarchy.refresh_scene()
+        # Surgical update: remove from scene graph and tree (no full refresh)
+        prop_id = self.prop_data.get('id', '')
+
+        # Find and store node_id for undo
+        self.deleted_node_id = None
+        self.deleted_parent_id = None
+        for nid, node in self.hierarchy.scene_graph.nodes.items():
+            if node.component_ref and prop_id in node.component_ref:
+                self.deleted_node_id = nid
+                self.deleted_parent_id = node.parent_id
+                break
+
+        # Remove from scene graph
+        if self.deleted_node_id:
+            self.hierarchy.scene_graph.delete_node(self.deleted_node_id)
+
+        # Remove tree item surgically
+        self.hierarchy._remove_tree_item_by_node_id(self.deleted_node_id or f"prop_{prop_id}")
+
+        # Save hierarchy
+        self.hierarchy._save_hierarchy()
+
         self.hierarchy.entitySelected.emit("", {})
 
     def _undo(self):
@@ -369,7 +412,28 @@ class DeleteZoneCommand(StudioCommand):
                 self.file_backup = f.read()
             os.remove(self.zone_path)
 
-        self.hierarchy.refresh_scene()
+        # Surgical update: remove from scene graph and tree (no full refresh)
+        zone_id = self.zone_data.get('id', '')
+
+        # Find and store node_id for undo
+        self.deleted_node_id = None
+        self.deleted_parent_id = None
+        for nid, node in self.hierarchy.scene_graph.nodes.items():
+            if node.component_ref and zone_id in node.component_ref:
+                self.deleted_node_id = nid
+                self.deleted_parent_id = node.parent_id
+                break
+
+        # Remove from scene graph
+        if self.deleted_node_id:
+            self.hierarchy.scene_graph.delete_node(self.deleted_node_id)
+
+        # Remove tree item surgically
+        self.hierarchy._remove_tree_item_by_node_id(self.deleted_node_id or zone_id)
+
+        # Save hierarchy
+        self.hierarchy._save_hierarchy()
+
         self.hierarchy.entitySelected.emit("", {})
 
     def _undo(self):
