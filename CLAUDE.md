@@ -8,7 +8,42 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
-## NEXT SESSION: Unified Authentication
+## NEXT SESSION: Stage View Architecture Fixes
+
+### Priority 1: SceneNode UUID Consistency
+**Problem:** Zones show "UUID" field, Prims show "ID" field. Inconsistent display.
+**Fix:**
+- All SceneNodes should have `uuid` as a common property (auto-generated on creation)
+- Inspector should display consistently: `UUID: {uuid}` with copy button for all entity types
+- SceneNode base class should handle this, not each entity type separately
+
+### Priority 2: Remove Project/Stage from Hierarchy Tree
+**Problem:**
+- Empty project shows "> Andy" as tree item with "turn on server" child message
+- After creating stage, shows "> Stage: Campfire" as tree item
+- This is WRONG - stages are containers (like Unity scenes), not entities
+
+**Fix:**
+- Stage View tree should ONLY show entities WITHIN the stage (zones, noodlings, prims, folders)
+- "Turn on server" message should be shown at TOP of panel, not as tree item
+- Stage selector dropdown (already exists at top) is the ONLY place to see/switch stages
+- Stage is analogous to a Unity Scene file - a container, not a scene entity
+
+### Priority 3: Save Stage Flow
+**Needed:**
+- File > Save Stage menu item
+- Prompt for unsaved changes when switching stages via dropdown
+- Dirty flag tracking for stage modifications
+
+### Key Files to Modify
+- `panels/scene_hierarchy.py` - Remove project/stage from tree, fix messages
+- `panels/inspector_panel.py` - Consistent UUID display for all entities
+- `core/scene_node.py` - Add uuid as common property
+- `core/main_window.py` - Add Save Stage menu item
+
+---
+
+## AFTER THAT: Unified Authentication
 
 ### The Goal
 Replace noodleMUSH's homebrewed auth with the backend's Cloudflare-based auth system.
