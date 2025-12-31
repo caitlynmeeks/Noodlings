@@ -3,10 +3,10 @@
   "name": "Tutorial 6: The Mood Ring",
   "description": "See how neural networks map text to continuous affect!\n\nThis network converts words into a 5-DIMENSIONAL AFFECT SPACE:\n- Valence: Pleasure (-1 to +1)\n- Arousal: Energy level (0 to 1)\n- Dominance: Control (0 to 1)\n- Sorrow: Sadness (0 to 1)\n- Boredom: Disinterest (0 to 1)\n\nWHY CONTINUOUS AFFECT?\nDiscrete emotion labels (happy, sad, angry) are too simple.\nReal feelings blend and shift continuously.\n\nTRY THESE WORDS:\n- happy, joy, love -> High valence, moderate arousal\n- sad, crying, grief -> Low valence, high sorrow\n- angry, furious, rage -> Low valence, HIGH arousal\n- calm, peaceful, serene -> Neutral valence, LOW arousal\n- bored, tedious, dull -> High boredom\n\nTHIS IS THE NOODLINGS AFFECT MODEL!\nEvery noodling's emotional state lives in this 5D space.",
   "metadata": {
-    "created": "2025-12-19T21:00:00.000000",
-    "modified": "2025-12-19T21:00:00.000000",
+    "created": "2025-12-19T21:00:00",
+    "modified": "2025-12-19T21:00:00",
     "author": "Noodlings Tutorial",
-    "total_parameters": 200
+    "total_parameters": 0
   },
   "nodes": [
     {
@@ -205,8 +205,8 @@
       "type": "COMMENT",
       "name": "Welcome",
       "position": [
-        50,
-        50
+        -137,
+        0
       ],
       "params": {
         "text": "# Mood Ring - Affect from Text\n\nThis network maps text features to emotional valence.\n\n## To Do and Notice\n\n1. **Input features**: Word embeddings capture meaning\n2. **Hidden processing**: The network learns emotional patterns\n3. **Output**: A continuous valence value (-1 to +1)\n\n## Affect in Noodlings\n\nNoodlings use continuous affect (PAD model):\n- **P**leasure (valence)\n- **A**rousal (energy)\n- **D**ominance (control)\n\nPlus boredom and sorrow for richer expression.\n\n**Challenge**: What makes the network predict positive vs negative?",

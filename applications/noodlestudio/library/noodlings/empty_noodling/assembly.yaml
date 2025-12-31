@@ -158,8 +158,8 @@ facets:
     description: The noodling's response
     required: true
   position:
-    x: 759.086007192725
-    y: 155.154044355965
+    x: 731.3135071927251
+    y: 86.38404435596496
   color: '#FFB347'
   enabled: true
   locked: false
@@ -180,6 +180,29 @@ facets:
     x: 1014.6703573552104
     y: 175.6087648306993
   color: '#FFA726'
+  enabled: true
+  locked: false
+- id: ec03a7a3-fad0-4019-bd0e-b0418d8a1db5
+  name: MCP Tool Facet
+  type: MCPFacet
+  prompt: 'TODO: Define prompt for MCP Tool Facet'
+  model: SMALL
+  temperature: 0.7
+  max_tokens: 150
+  inputs:
+  - name: in
+    type: input
+    description: Input
+    required: true
+  outputs:
+  - name: out
+    type: output
+    description: Output
+    required: true
+  position:
+    x: 817.305
+    y: 423.1999999999999
+  color: '#64B5F6'
   enabled: true
   locked: false
 connections:
