@@ -25,6 +25,10 @@ research/logs/
 # Profiler sessions
 applications/cmush/profiler_sessions/
 
+# Archived experiments (historical research)
+archive/
+research/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -48,6 +52,13 @@ training/checkpoints/
 applications/cmush/world/agents/*/agent_state.json
 applications/cmush/world/agents/*/checkpoint.npz
 applications/cmush/world/agents/*/thoughts/*.txt
+applications/cmush/world/agents/*/history/
+
+# UUID-based agents (runtime-generated, transient)
+applications/cmush/world/agents/agent_????????-????-????-????-????????????/
+
+# Event logs (runtime data)
+applications/cmush/world/events/
 
 # Evaluation results
 evaluation/ablation_studies/results/
@@ -97,7 +108,6 @@ WHITEPAPER.md
 WHITEPAPER.pdf
 WHITEPAPER_v2.md
 business/
-KINDLED_TERMINOLOGY.md
 
 # Private documentation (keep out of repo)
 ACTION_EMISSION_SYSTEM.md
@@ -137,6 +147,13 @@ site_scripting_api/
 
 # AI-generated content (user-specific, not in repo)
 applications/noodlestudio/library/Generations/
+
+# External dependencies and large files (VRM samples, trained models, etc.)
+external/
+models/
+
+# NoodleStudio logs
+applications/noodlestudio/logs/
 
 # Backend API (separate private repo)
 # Managed as sister project at github.com/[your-org]/noodlings-api (private)
