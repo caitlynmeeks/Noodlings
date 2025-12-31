@@ -674,7 +674,108 @@ let worlds = context.noodle.cloud.getPopularWorlds(10);
 
 ---
 
-## 8. Code Smell Inventory
+## 8. Authentication System
+
+### Dual Auth Architecture
+
+Two authentication paths exist - both end at the same destination:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        noodleMUSH Server                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────┐          ┌──────────────────┐             │
+│  │  OLD: 'login'    │          │  NEW: 'token_auth'│             │
+│  │  msg_type        │          │  msg_type         │             │
+│  └────────┬─────────┘          └────────┬─────────┘             │
+│           │                              │                       │
+│           ▼                              ▼                       │
+│  ┌──────────────────┐          ┌──────────────────┐             │
+│  │  handle_login()  │          │handle_token_auth()│             │
+│  │                  │          │                   │             │
+│  │  Validates via:  │          │  Validates via:   │             │
+│  │  LOCAL auth.py   │          │  CLOUD API call   │             │
+│  │  (users.json)    │          │  (Cloudflare)     │             │
+│  └────────┬─────────┘          └────────┬─────────┘             │
+│           │                              │                       │
+│           │    ┌─────────────────────┐   │                       │
+│           └───►│ self.connections    │◄──┘                       │
+│                │ [websocket]=user_id │                           │
+│                └──────────┬──────────┘                           │
+│                           │                                      │
+│                           ▼                                      │
+│                ┌─────────────────────┐                          │
+│                │  SAME chat/command  │                          │
+│                │  handling from here │                          │
+│                └─────────────────────┘                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Comparison
+
+| Aspect | Old (login) | New (token_auth) |
+|--------|-------------|------------------|
+| Message type | `login` | `token_auth` |
+| Validation | Local `auth.py` + `users.json` | Cloudflare API call |
+| User creation | Local only | Cloud + local link |
+| Avatar | Username = display name | Rich avatar metadata |
+| Offline capable | Yes | No (needs backend) |
+| Entry point | Web client login form | NoodleStudio "Enter World" |
+
+### NoodleStudio Flow (token_auth)
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  NoodleStudio   │     │   Web Client    │     │  noodleMUSH     │
+│                 │     │   (index.html)  │     │    Server       │
+└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
+         │                       │                       │
+         │  1. User clicks       │                       │
+         │     "Enter World"     │                       │
+         │                       │                       │
+         │  2. Load URL with     │                       │
+         │     ?token=xxx&avatar=│                       │
+         │─────────────────────►│                       │
+         │                       │                       │
+         │                       │  3. ws.onopen()      │
+         │                       │     detects token    │
+         │                       │                       │
+         │                       │  4. Send token_auth  │
+         │                       │─────────────────────►│
+         │                       │                       │
+         │                       │                       │  5. Validate token
+         │                       │                       │     via Cloudflare API
+         │                       │                       │
+         │                       │  6. token_auth_response
+         │                       │◄─────────────────────│
+         │                       │                       │
+         │                       │  7. Hide login modal │
+         │                       │     Show terminal    │
+         │                       │                       │
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `noodlestudio/core/account_manager.py` | Cloud auth, avatar management |
+| `noodlestudio/dialogs/login_dialog.py` | OAuth login UI |
+| `noodlestudio/core/main_window.py` | "Enter World" button, URL loading |
+| `cmush/server.py` | `handle_token_auth()` handler |
+| `cmush/auth.py` | `authenticate_with_cloud_token()` |
+| `cmush/web/index.html` | URL param detection, `token_auth_response` handler |
+
+### Future Direction
+
+- **Keep old system** as offline fallback (backend resilience)
+- **Hide login form** in UI when token auth available
+- **Show "Offline mode"** indicator when using local auth
+- **Eventually**: Migrate local users to cloud accounts on sign-up
+
+---
+
+## 9. Code Smell Inventory (renumbered from 8)
 
 ### HIGH PRIORITY - Fix Soon
 
@@ -965,6 +1066,31 @@ cd applications/cmush
 ---
 
 ## 14. Changelog
+
+### December 28, 2025
+- **UNIFIED AUTHENTICATION SYSTEM** - NoodleStudio ↔ noodleMUSH integration
+  - Added `token_auth` message type to noodleMUSH server
+  - Web client URL parameter auth: `?token=xxx&avatar=xxx`
+  - NoodleStudio "Enter World" button in status bar
+  - Avatar dropdown for persona selection
+  - Auto-hide login modal, auto-focus chat input
+  - **Files modified**:
+    - `cmush/server.py` - `handle_token_auth()` handler
+    - `cmush/auth.py` - `authenticate_with_cloud_token()`
+    - `cmush/web/index.html` - URL param detection, `token_auth_response`
+    - `noodlestudio/core/main_window.py` - Status bar widgets, URL loading
+    - `noodlestudio/core/account_manager.py` - Avatar metadata model
+    - `noodlestudio/dialogs/login_dialog.py` - OAuth button styling
+    - `noodlestudio/panels/settings_panel.py` - "Show Text View on world entry" setting
+
+- **STATUS BAR UX IMPROVEMENTS**
+  - Fixed layout: [Username] [Avatar dropdown] [Enter World] [Server toggle]
+  - Fixed widths prevent UI shifting
+  - Avatar dropdown shows tooltip for long names
+  - Enter World button disabled until server ready
+  - Monochromatic color scheme
+
+- **ARCHITECTURE.MD** - Added Section 8: Authentication System
 
 ### December 27, 2025
 - **UNITY-STYLE STAGE VIEW HIERARCHY** - Scene graph system for NoodleStudio

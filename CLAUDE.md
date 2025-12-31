@@ -2,63 +2,149 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: December 27, 2025
+**Last Updated**: December 30, 2025
 
 **FOR NEXT CLAUDE: START HERE!**
 
 ---
 
-## NEXT SESSION: Stage View Architecture Fixes
+## NEXT SESSION: Asset-Aware Inspector
 
-### Priority 1: SceneNode UUID Consistency
-**Problem:** Zones show "UUID" field, Prims show "ID" field. Inconsistent display.
-**Fix:**
-- All SceneNodes should have `uuid` as a common property (auto-generated on creation)
-- Inspector should display consistently: `UUID: {uuid}` with copy button for all entity types
-- SceneNode base class should handle this, not each entity type separately
+### The Goal
+When selecting an asset in the Assets panel, the Inspector should show contextual information based on asset type (like Unity's Project window → Inspector relationship).
 
-### Priority 2: Remove Project/Stage from Hierarchy Tree
-**Problem:**
-- Empty project shows "> Andy" as tree item with "turn on server" child message
-- After creating stage, shows "> Stage: Campfire" as tree item
-- This is WRONG - stages are containers (like Unity scenes), not entities
+### Asset Inspector Designs (APPROVED)
 
-**Fix:**
-- Stage View tree should ONLY show entities WITHIN the stage (zones, noodlings, prims, folders)
-- "Turn on server" message should be shown at TOP of panel, not as tree item
-- Stage selector dropdown (already exists at top) is the ONLY place to see/switch stages
-- Stage is analogous to a Unity Scene file - a container, not a scene entity
+**Folders:**
+- Name, Type: Folder, Path, Contains: X items
 
-### Priority 3: Save Stage Flow
-**Needed:**
-- File > Save Stage menu item
-- Prompt for unsaved changes when switching stages via dropdown
-- Dirty flag tracking for stage modifications
+**Noodlings (recipe.yaml):**
+- Name, Type: Noodling
+- Personality summary (Big 5 traits)
+- Affect baseline (PAD + boredom + sorrow)
+- Assembly reference
+- Actions: [Rez] [Edit Recipe]
+
+**Stages (stage.yaml):**
+- Name, Type: Stage
+- Zone count, Instance count
+- Actions: [Open Stage]
+
+**Radiance (.radiance):**
+- Name, Type: Gaussian Splat
+- Gaussian count, Skeleton (bone count), Semantic labels, CLIP embeddings
+- File size
+- Actions: [Open in Viewer]
+
+**VRM (.vrm):**
+- Name, Type: Avatar Model
+- Bones, Materials, File size
+- Import Settings: Densify, Face Centers, Scale
+- Actions: [Import as Radiance] [Preview]
+
+**Images (.png, .jpg):**
+- Name, Dimensions, File size
+- Thumbnail preview
+- Actions: [Open in System Viewer]
+
+**Audio (.mp3, .wav):**
+- Name, Duration, Sample rate, Channels, File size
+- Actions: [Play] [Stop]
+
+**Scripts (.py, .js):**
+- Name, Lines, File size
+- Read-only code preview (scrollable)
+- Actions: [Open in Editor]
+
+**Neural Canvas (.nncanvas):**
+- Name, Node count, Connection count
+- Actions: [Open in Editor]
 
 ### Key Files to Modify
-- `panels/scene_hierarchy.py` - Remove project/stage from tree, fix messages
-- `panels/inspector_panel.py` - Consistent UUID display for all entities
-- `core/scene_node.py` - Add uuid as common property
-- `core/main_window.py` - Add Save Stage menu item
+- `noodlestudio/panels/inspector_panel.py` - Add asset inspection modes
+- `noodlestudio/panels/assets_panel.py` - Emit signals with asset data
+- `noodlestudio/core/main_window.py` - Connect asset selection to inspector
+
+### Implementation Notes
+- Inspector already has entity modes (noodling, zone, prop, facet)
+- Add new mode for "asset" with sub-types
+- Don't show: full YAML dumps, binary data, internal paths, UUIDs
 
 ---
 
-## AFTER THAT: Unified Authentication
+## COMPLETED (Dec 30): Assets Panel - Unity-Style Filesystem Browser
 
-### The Goal
-Replace noodleMUSH's homebrewed auth with the backend's Cloudflare-based auth system.
-Currently users sign in via NoodleStudio but then have to separately "log in" through
-the text UI when launching the MUSH server. Should be one account, one auth.
+### What Was Done
+Completely rewrote Assets panel to be a real filesystem browser:
+- Shows actual project folder structure (Noodlings/, Stages/, Prims/, etc.)
+- Hides internal folders (Library/, .git, __pycache__)
+- File icons by type (folders, yaml, images, audio, 3D models, scripts)
+- QFileSystemWatcher for auto-refresh on external changes
+- Selection preservation across refreshes
+- Expanded state preservation
 
-### Questions to Resolve
-1. How does Second Life-style persistence work across different worlds?
-2. Inventory system - what persists per-user vs per-world?
-3. Session tokens - how to share auth between Studio and MUSH server?
+### Features
+- Context menu: New Folder, Import Asset, Rename, Delete, Reveal in Finder
+- Inline rename (F2 or context menu)
+- Double-click: folders expand, files open with system default
+- Drag-drop file operations
+- Refresh button + debounced auto-refresh (500ms)
 
 ### Key Files
-- `noodlestudio/core/account_manager.py` - Studio auth
-- `noodlestudio/dialogs/login_dialog.py` - Studio login UI
-- `cmush/server.py` - MUSH server with homebrew auth
+- `noodlestudio/panels/assets_panel.py` - Complete rewrite
+- Old `asset_graph.py` and `asset_node.py` are now dead code (can delete)
+
+---
+
+## COMPLETED (Dec 30): Settings & Auto-Start Fixes
+
+### Auto-Start MUSH Server
+- Setting was in UI but not wired up
+- Added `_check_autostart_mush()` in main_window.py
+- Runs 700ms after startup (after project loads)
+- Triggers server toggle if setting enabled
+
+### Auto-Login as Last Account
+- Added checkbox in Settings > Startup Options
+- Modified `account_manager.py` `_restore_session()` to check setting
+- When disabled: App starts logged out
+- When enabled: Session restored from keychain/settings
+
+---
+
+## COMPLETED (Dec 30): "Nowhere" Location Bug Fix
+
+### The Problem
+Cloud-authenticated users spawned in "room_000" which may not exist in project-based worlds.
+
+### The Fix
+- `auth.py`: New users spawn in first available room (not hardcoded "room_000")
+- `server.py`: On login, validates user's `current_room` exists; fixes if not
+- Creates default "The Nexus" room if no rooms exist
+
+---
+
+## COMPLETED (Dec 28): Unified Authentication
+
+### What Was Done
+Integrated NoodleStudio auth with noodleMUSH:
+- **token_auth** message type for cloud-validated authentication
+- **URL parameter auth**: Web client accepts `?token=xxx&avatar=xxx`
+- **Enter World button** in status bar with avatar dropdown
+- **Auto-hide login modal** when token auth succeeds
+
+### Architecture
+Two auth paths, same destination:
+- OLD: `login` → `handle_login()` → local auth.py → `self.connections[ws]`
+- NEW: `token_auth` → `handle_token_auth()` → Cloudflare API → `self.connections[ws]`
+
+Old system kept as offline fallback.
+
+### Key Files
+- `cmush/server.py` - `handle_token_auth()` handler
+- `cmush/web/index.html` - URL param detection, response handler
+- `noodlestudio/core/main_window.py` - Status bar, URL loading
+- See ARCHITECTURE.md Section 8 for full details
 
 ---
 
@@ -75,6 +161,85 @@ Unity-style wizard dialog. Should handle:
 ### Dialog Polish
 - Remove unnecessary green maximize buttons from QInputDialogs
 - Consider custom dialog classes for cleaner appearance
+
+---
+
+## COMPLETED (Dec 28): Assets Panel Refactor - Unity-Style Flat Folders
+
+### What Was Done
+Removed folder functionality from Stage View and moved it to Assets Panel:
+- Stage View: For scene entity hierarchy (instances in the world)
+- Assets Panel: For asset organization (files on disk)
+
+### Architecture
+Created new `AssetGraph` system (parallel to `SceneGraph`):
+- **AssetNode** (`core/asset_node.py`) - Data model for asset hierarchy
+- **AssetGraph** (`core/asset_graph.py`) - Manager with CRUD, reparenting, persistence
+- **Assets Panel** rewritten to use AssetGraph
+
+### Asset Node Types
+```python
+class AssetNodeType(Enum):
+    FOLDER = "folder"          # User-created folder
+    NOODLING = "noodling"      # AI character definition
+    STAGE = "stage"            # Scene/level
+    PRIM = "prim"              # 3D object template
+    RADIANCE = "radiance"      # Gaussian splat model
+    MESH = "mesh"              # Imported mesh
+    GENERATION = "generation"  # AI-generated content
+```
+
+### Features
+- **Flat folder structure**: No fixed categories - users create their own folders
+- **Drag-drop reparenting**: Move assets into/out of folders
+- **Inline rename**: Double-click or right-click > Rename
+- **Context menu**: New Folder, Rename, Delete, asset-specific actions
+- **Persistence**: Hierarchy saved to `assets_hierarchy.yaml` per project
+- **Auto-discovery**: Assets discovered on first load, then hierarchy persisted
+
+### Stage View Changes
+- Removed "New Folder" from context menu
+- Disabled drag-drop reparenting (DropOnly mode)
+- Stage View is now purely for scene entity organization
+
+### Files Created/Modified
+| File | Description |
+|------|-------------|
+| `core/asset_node.py` | NEW - AssetNode dataclass |
+| `core/asset_graph.py` | NEW - AssetGraph manager |
+| `panels/assets_panel.py` | REWRITTEN - Uses AssetGraph |
+| `panels/scene_hierarchy.py` | MODIFIED - Removed folder ops |
+| `core/main_window.py` | MODIFIED - Signal wiring |
+
+---
+
+## COMPLETED (Dec 28): Stage View Architecture Fixes
+
+### Priority 1: UUID Consistency - DONE
+- Inspector now shows "UUID:" with copy button for ALL entity types (zones, noodlings, props)
+- Previously props showed "ID:" while others showed "UUID:" - now consistent
+
+### Priority 2: Remove Project/Stage from Tree - DONE
+- Stage View tree now shows entities directly at root (no "Stage: xxx" wrapper)
+- Added status_label widget for "Server offline" message (not tree items)
+- Stage is selected via dropdown only, not shown in tree hierarchy
+- Updated `_build_tree_from_files`, `_add_new_files_to_hierarchy`, `_extract_user_hierarchy`
+
+### Priority 3: Save Stage Flow - DONE
+- Added `File > Save Stage` menu item (Ctrl+Shift+S)
+- Added dirty tracking (`_dirty` flag, `is_dirty()`, `_set_dirty()`)
+- Hierarchy changes (add/remove/reparent/rename) mark stage as dirty
+- Switching stages prompts to save if there are unsaved changes
+- Added `save_stage()` public method
+
+### Bidirectional Name Sync - DONE
+- Inspector `nameChanged` signal connected to Stage View `update_entity_name()`
+- Assets Panel `assetRenamed` signal wired up in main_window
+
+### Files Modified
+- `panels/scene_hierarchy.py` - All three priorities
+- `panels/inspector_panel.py` - UUID consistency, nameChanged signal
+- `core/main_window.py` - Save Stage menu item, signal wiring
 
 ---
 
