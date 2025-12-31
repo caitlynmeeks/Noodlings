@@ -1,0 +1,108 @@
+"""
+Main Window Server Mixin - Server management and status
+
+Contains:
+- is_server_running: Check if noodleMUSH server is running
+- on_server_toggled: Handle server toggle switch
+- update_connection_status: Update UI based on server state
+
+Author: Noodlings Project
+Date: December 2025
+"""
+
+import os
+import subprocess
+
+
+class MainWindowServerMixin:
+    """Mixin providing server management for MainWindow."""
+
+    def is_server_running(self) -> bool:
+        """Check if noodleMUSH server is running."""
+        result = subprocess.run(['pgrep', '-f', 'python.*server.py'], capture_output=True)
+        return result.returncode == 0
+
+    def on_server_toggled(self, enabled: bool):
+        """Handle server toggle switch."""
+        # Disable Enter World while server state is changing
+        self.enter_world_btn.setEnabled(False)
+
+        if enabled:
+            # Build environment with project path if one is open
+            env = os.environ.copy()
+            if self.project_manager.is_project_open():
+                env["PROJECT_PATH"] = self.project_manager.current_project_path
+                self.connection_label.setText(
+                    f"Starting server for {self.project_manager.current_project_name}..."
+                )
+            else:
+                self.connection_label.setText("Starting server (legacy mode)...")
+
+            # Start server with project environment
+            subprocess.Popen(
+                ['../cmush/start.sh'],
+                cwd='../cmush',
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        else:
+            # Stop server
+            subprocess.run(['pkill', '-f', 'python.*server.py'])
+            self.connection_label.setText("Server stopped")
+
+        # Update status after a delay (5 seconds for server startup)
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(5000, self.update_connection_status)
+
+    def update_connection_status(self):
+        """Update connection status label and UI state."""
+        running = self.is_server_running()
+
+        if running:
+            if hasattr(self, 'connection_label'):
+                self.connection_label.setText("Server running on :8765")
+                self.connection_label.setStyleSheet("color: #76AF6A;")
+            if hasattr(self, 'server_toggle'):
+                self.server_toggle.setChecked(True)
+        else:
+            if hasattr(self, 'connection_label'):
+                self.connection_label.setText("Server offline")
+                self.connection_label.setStyleSheet("color: #999;")
+            if hasattr(self, 'server_toggle'):
+                self.server_toggle.setChecked(False)
+
+        # Update Enter World button state
+        if hasattr(self, 'enter_world_btn'):
+            self.enter_world_btn.setEnabled(running)
+
+        # Update World View
+        if hasattr(self, 'world_view'):
+            self.world_view.set_server_state(running)
+
+        # Update Hierarchy (gray out if offline)
+        if hasattr(self, 'hierarchy'):
+            self.hierarchy.set_server_state(running)
+
+        # Update Console (reconnect if server just started)
+        if hasattr(self, 'console'):
+            if running and not self.console.connected:
+                self.console.reconnect()
+
+    def _check_autostart_mush(self):
+        """Check if MUSH server should auto-start based on settings."""
+        from PyQt6.QtCore import QSettings
+        settings = QSettings("Noodlings", "NoodleStudio")
+        autostart = settings.value("autostart_mush", False, type=bool)
+
+        if autostart and not self.is_server_running():
+            self.server_toggle.setChecked(True)
+
+    def _start_activity_bridge(self):
+        """Start the cmush activity bridge for real-time LLM activity visualization."""
+        try:
+            from .model_activity_tracker import start_activity_bridge
+            self._activity_bridge = start_activity_bridge()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to start activity bridge: {e}")
