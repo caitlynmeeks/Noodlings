@@ -158,3 +158,6 @@ applications/noodlestudio/logs/
 # Backend API (separate private repo)
 # Managed as sister project at github.com/[your-org]/noodlings-api (private)
 backend/
+
+# Legacy documentation (boxed up, not shipped)
+docs/_legacy/

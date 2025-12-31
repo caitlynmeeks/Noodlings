@@ -1,43 +1,45 @@
-# Noodlings Scripting API
+# Noodlings Documentation
 
-Programmatic access to all Noodlings systems from ScriptedFacets.
+Multi-timescale affective agents with semantic Gaussian worlds.
 
-## Quick Access
+---
 
-- **[Quick Start](quick-start.md)** - Get started in 5 minutes
-- **[Complete API Reference](api-reference.md)** - All methods on one page
-- **Browse the sidebar** → Click "MUSH API" or "Studio API" to see all methods
+## Products
 
-## What is `context.noodle`?
+### [NoodleMUSH](noodlemush/overview.md)
+Real-time multi-user server for hosting Noodlings in persistent worlds.
 
-The Noodlings Scripting API provides JavaScript-accessible methods for configuring the Noodlings system from within ScriptedFacets.
+### [Noodlings](noodlings/overview.md)
+AI characters with continuous affect, temporal memory, and visual cognitive architectures.
 
-```javascript
-function process(inputs, context) {
-    // Change which model a label uses
-    context.noodle.models.set_label("LARGE", "anthropic", "claude-opus-4.5");
+### [NoodleStudio](noodlestudio/overview.md)
+Desktop IDE for designing cognitive architectures and building worlds.
 
-    // Modify neural topology
-    var network = context.noodle.neural.get_network(graph_id);
-    var lstm = network.create_node("LSTM", {hidden_dim: 64});
+---
 
-    // Reconfigure facet assemblies
-    var assembly = context.noodle.agents.get_assembly("red-fire-anklebiter");
-    facet.set_property("model", "LARGE");
+## Quick Links
 
-    return {modified: true};
-}
-```
+| I want to... | Go here |
+|--------------|---------|
+| Run the server | [NoodleMUSH Quickstart](noodlemush/quickstart.md) |
+| Create a character | [Recipe Format](noodlings/recipe-format.md) |
+| Design cognition visually | [Neural Canvas](noodlestudio/neural-canvas.md) |
+| Write scripted facets | [Scripting API](noodlestudio/scripting.md) |
+| Understand file formats | [Formats Reference](formats/) |
 
-## API Structure
+---
 
-```
-context.noodle
-  ├─ .models      // Model/provider configuration
-  ├─ .neural      // Neural Canvas manipulation
-  └─ .agents      // Facet assembly access
-```
+## Architecture Overview
 
-## Browse Methods
+[Architecture](architecture.md) - System design at a glance.
 
-**Look at the LEFT SIDEBAR** - expand "MUSH API" or "Studio API" to see all available methods!
+---
+
+## Source Code
+
+- [github.com/noodlings-ai/noodlings](https://github.com/noodlings-ai/noodlings)
+
+## Support
+
+- Issues: GitHub Issues
+- Email: caitlyn.meeks@noodlings.ai
