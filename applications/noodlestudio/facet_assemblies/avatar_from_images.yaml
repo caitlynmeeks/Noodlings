@@ -1,0 +1,275 @@
+# Avatar from Images - Complete VRM-to-Rigged-Radiance Pipeline
+#
+# Creates a fully rigged Gaussian avatar from:
+# 1. Multi-view images of a VRM (with transforms.json)
+# 2. Original VRM file (for skeleton and skinning)
+#
+# Pipeline:
+# 1. Train Gaussians from images using OpenSplat
+# 2. Bind trained Gaussians to VRM skeleton
+# 3. Output skeleton-rigged .radiance file
+#
+# This is the recommended workflow for creating animatable avatars.
+#
+# Author: Caitlyn + Claude
+# Date: December 24, 2025
+
+name: "Avatar from Images"
+description: "Create rigged Gaussian avatar from multi-view images + VRM"
+version: "1.0.0"
+assembly_type: "tool"
+
+facets:
+  # ============ ENTRY POINT ============
+  - id: "incoming"
+    name: "INCOMING"
+    type: "SpecialNode"
+    prompt: ""
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 50, y: 200}
+    inputs: []
+    outputs:
+      - name: "dataset_path"
+        type: "output"
+        description: "Path to images + transforms.json"
+      - name: "vrm_path"
+        type: "output"
+        description: "Path to VRM file (for skeleton)"
+      - name: "output_path"
+        type: "output"
+        description: "Output .radiance path (optional)"
+      - name: "iterations"
+        type: "output"
+        description: "Training iterations (default: 30000)"
+      - name: "display_name"
+        type: "output"
+        description: "Avatar display name"
+
+  # ============ VALIDATE CONFIG ============
+  - id: "validate"
+    name: "Validate Config"
+    type: "ScriptedFacet"
+    prompt: |
+      // Validate required inputs and set defaults
+      if (!inputs.dataset_path) {
+        return { error: 'Missing dataset_path - path to images directory' };
+      }
+      if (!inputs.vrm_path) {
+        return { error: 'Missing vrm_path - path to VRM file for skeleton' };
+      }
+
+      // Extract name from paths if not provided
+      const datasetName = inputs.dataset_path.split('/').pop();
+      const displayName = inputs.display_name || datasetName;
+
+      // Generate output path from dataset if not specified
+      const outputPath = inputs.output_path ||
+        inputs.dataset_path + '/' + datasetName + '_rigged.radiance';
+
+      return {
+        dataset_path: inputs.dataset_path,
+        vrm_path: inputs.vrm_path,
+        output_path: outputPath,
+        iterations: parseInt(inputs.iterations) || 30000,
+        display_name: displayName,
+        valid: true
+      };
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 250, y: 200}
+    inputs:
+      - name: "dataset_path"
+        type: "input"
+      - name: "vrm_path"
+        type: "input"
+      - name: "output_path"
+        type: "input"
+      - name: "iterations"
+        type: "input"
+      - name: "display_name"
+        type: "input"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "Validated config"
+      - name: "error"
+        type: "output"
+        description: "Error if validation failed"
+
+  # ============ TRAINING ============
+  - id: "trainer"
+    name: "Train Gaussians"
+    type: "GaussianTrainingFacet"
+    prompt: "backend:opensplat,convert_to_radiance:false"
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 500, y: 150}
+    inputs:
+      - name: "dataset_path"
+        type: "input"
+      - name: "iterations"
+        type: "input"
+      - name: "sh_degree"
+        type: "input"
+    outputs:
+      - name: "success"
+        type: "output"
+      - name: "output_path"
+        type: "output"
+        description: "Path to trained .ply"
+      - name: "gaussian_count"
+        type: "output"
+      - name: "message"
+        type: "output"
+
+  # ============ SKELETON BINDING ============
+  - id: "binder"
+    name: "Bind to Skeleton"
+    type: "SkeletonBindingFacet"
+    prompt: ""
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 750, y: 200}
+    inputs:
+      - name: "gaussian_ply_path"
+        type: "input"
+        description: "Trained PLY from trainer"
+      - name: "vrm_path"
+        type: "input"
+        description: "VRM for skeleton"
+      - name: "output_path"
+        type: "input"
+        description: "Final output path"
+      - name: "display_name"
+        type: "input"
+    outputs:
+      - name: "success"
+        type: "output"
+      - name: "output_path"
+        type: "output"
+      - name: "gaussian_count"
+        type: "output"
+      - name: "bone_count"
+        type: "output"
+      - name: "message"
+        type: "output"
+
+  # ============ FORMAT RESULT ============
+  - id: "format_result"
+    name: "Format Result"
+    type: "ScriptedFacet"
+    prompt: |
+      if (!inputs.training_success) {
+        return `Training failed: ${inputs.training_message}`;
+      }
+      if (!inputs.binding_success) {
+        return `Training OK but binding failed: ${inputs.binding_message}`;
+      }
+
+      const gaussians = inputs.gaussian_count.toLocaleString();
+      const bones = inputs.bone_count;
+      const path = inputs.output_path;
+
+      return `Avatar created successfully!
+  Output: ${path}
+  Gaussians: ${gaussians}
+  Bones: ${bones}
+  Ready for animation via muscle tracks.`;
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 1000, y: 200}
+    inputs:
+      - name: "training_success"
+        type: "input"
+      - name: "training_message"
+        type: "input"
+      - name: "binding_success"
+        type: "input"
+      - name: "binding_message"
+        type: "input"
+      - name: "output_path"
+        type: "input"
+      - name: "gaussian_count"
+        type: "input"
+      - name: "bone_count"
+        type: "input"
+    outputs:
+      - name: "out"
+        type: "output"
+
+  # ============ EXIT ============
+  - id: "outgoing"
+    name: "OUTGOING"
+    type: "SpecialNode"
+    prompt: ""
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 1200, y: 200}
+    inputs:
+      - name: "in"
+        type: "input"
+    outputs:
+      - name: "out"
+        type: "output"
+
+# ============ CONNECTIONS ============
+connections:
+  # Incoming -> Validate
+  - from: "incoming.dataset_path"
+    to: "validate.dataset_path"
+  - from: "incoming.vrm_path"
+    to: "validate.vrm_path"
+  - from: "incoming.output_path"
+    to: "validate.output_path"
+  - from: "incoming.iterations"
+    to: "validate.iterations"
+  - from: "incoming.display_name"
+    to: "validate.display_name"
+
+  # Validate -> Trainer
+  - from: "validate.out"
+    to: "trainer.dataset_path"
+    property: "dataset_path"
+  - from: "validate.out"
+    to: "trainer.iterations"
+    property: "iterations"
+
+  # Trainer -> Binder
+  - from: "trainer.output_path"
+    to: "binder.gaussian_ply_path"
+  - from: "validate.out"
+    to: "binder.vrm_path"
+    property: "vrm_path"
+  - from: "validate.out"
+    to: "binder.output_path"
+    property: "output_path"
+  - from: "validate.out"
+    to: "binder.display_name"
+    property: "display_name"
+
+  # Results -> Formatter
+  - from: "trainer.success"
+    to: "format_result.training_success"
+  - from: "trainer.message"
+    to: "format_result.training_message"
+  - from: "binder.success"
+    to: "format_result.binding_success"
+  - from: "binder.message"
+    to: "format_result.binding_message"
+  - from: "binder.output_path"
+    to: "format_result.output_path"
+  - from: "binder.gaussian_count"
+    to: "format_result.gaussian_count"
+  - from: "binder.bone_count"
+    to: "format_result.bone_count"
+
+  # Output
+  - from: "format_result.out"
+    to: "outgoing.in"

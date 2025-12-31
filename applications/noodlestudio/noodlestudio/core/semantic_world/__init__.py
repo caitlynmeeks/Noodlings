@@ -160,6 +160,123 @@ from .spe_bridge import (
     init_spe_bridge,
 )
 
+# Gaussian Adapter - Bridge to 3D Gaussian Splatting
+from .gaussian_adapter import (
+    GaussianAsset,
+    GaussianInstance,
+    GaussianScene,
+    GaussianAssetManager,
+    GaussianSceneCompositor,
+    GaussianGenerator,
+    init_gaussian_adapter,
+    get_asset_manager,
+    get_compositor,
+    get_generator,
+    compose_scene_from_packet,
+)
+
+# VRM Parser - Parse VRM avatars for Gaussian conversion
+from .vrm_parser import (
+    VRMAvatar,
+    VRMMetadata,
+    VRMParser,
+    Skeleton,
+    Bone,
+    BlendShape,
+    SpringBoneChain,
+    SpringBoneCollider,
+    SpringBoneSystem,
+    MToonMaterial,
+    Mesh,
+    parse_vrm,
+    vrm_to_gaussian_package,
+    export_skeleton_json,
+    export_skinning_json,
+    export_spring_bones_json,
+    export_blend_shapes_json,
+)
+
+# Spring Bone Simulation - Physics for hair/cloth
+from .spring_bone_simulation import (
+    SpringJoint,
+    SpringChainState,
+    ColliderState,
+    SpringBoneSimulator,
+    GaussianSpringDeformer,
+    create_spring_simulation,
+    create_gaussian_deformer,
+)
+
+# Mesh Import - Import arbitrary 3D meshes for Gaussian conversion
+from .mesh_import import (
+    MeshMaterial,
+    MeshPrimitive,
+    ImportedMesh,
+    MeshImporter,
+    GaussianConversionConfig,
+    MeshToGaussianPipeline,
+    import_mesh,
+    mesh_to_gaussians,
+)
+
+# Network Bridge - Connect scene state to network layer
+from .network_bridge import (
+    noodling_to_network,
+    player_to_network,
+    prim_to_network,
+    NetworkBridge,
+    get_network_bridge,
+    init_network_bridge,
+)
+
+# Radiance Format - Semantic Gaussian Splat file format
+from .radiance_format import (
+    RadianceAsset,
+    RadianceBone,
+    RadianceSkeleton,
+    RadianceMetadata,
+    SpringChain,
+    SpringCollider,
+    BodyRegion,
+    BODY_REGION_NAMES,
+    load_radiance,
+    save_radiance,
+    ply_to_radiance,
+)
+
+# Gaussian Collision Detection - Touch detection between entities
+from .gaussian_collision import (
+    TouchEvent,
+    TouchType,
+    TouchRegion,
+    AffectImpulse,
+    GaussianCollisionDetector,
+    TouchAffectMapper,
+    PhysicsEventBus,
+    gaussian_overlap_integral,
+    sphere_approximation_touch,
+    build_covariance_matrix,
+    init_collision_system,
+    get_detector,
+    get_affect_mapper,
+    get_physics_event_bus,
+    detect_and_emit_touches,
+)
+
+# Semantic Query - Click-to-inspect and CLIP search
+from .semantic_query import (
+    SplatHitInfo,
+    SemanticSearchResult,
+    SemanticMatch,
+    CLIPEmbeddingIndex,
+    SemanticQueryEngine,
+    init_semantic_query_engine,
+    get_semantic_query_engine,
+    click_to_inspect,
+    query_scene,
+    ray_gaussian_intersection,
+)
+
 __all__ = [
     # Core classes
     "Event",
@@ -288,4 +405,105 @@ __all__ = [
     "SpatialResolver",
     "get_spe_bridge",
     "init_spe_bridge",
+
+    # Gaussian Adapter
+    "GaussianAsset",
+    "GaussianInstance",
+    "GaussianScene",
+    "GaussianAssetManager",
+    "GaussianSceneCompositor",
+    "GaussianGenerator",
+    "init_gaussian_adapter",
+    "get_asset_manager",
+    "get_compositor",
+    "get_generator",
+    "compose_scene_from_packet",
+
+    # VRM Parser
+    "VRMAvatar",
+    "VRMMetadata",
+    "VRMParser",
+    "Skeleton",
+    "Bone",
+    "BlendShape",
+    "SpringBoneChain",
+    "SpringBoneCollider",
+    "SpringBoneSystem",
+    "MToonMaterial",
+    "Mesh",
+    "parse_vrm",
+    "vrm_to_gaussian_package",
+    "export_skeleton_json",
+    "export_skinning_json",
+    "export_spring_bones_json",
+    "export_blend_shapes_json",
+
+    # Spring Bone Simulation
+    "SpringJoint",
+    "SpringChainState",
+    "ColliderState",
+    "SpringBoneSimulator",
+    "GaussianSpringDeformer",
+    "create_spring_simulation",
+    "create_gaussian_deformer",
+
+    # Mesh Import
+    "MeshMaterial",
+    "MeshPrimitive",
+    "ImportedMesh",
+    "MeshImporter",
+    "GaussianConversionConfig",
+    "MeshToGaussianPipeline",
+    "import_mesh",
+    "mesh_to_gaussians",
+
+    # Network Bridge
+    "noodling_to_network",
+    "player_to_network",
+    "prim_to_network",
+    "NetworkBridge",
+    "get_network_bridge",
+    "init_network_bridge",
+
+    # Radiance Format
+    "RadianceAsset",
+    "RadianceBone",
+    "RadianceSkeleton",
+    "RadianceMetadata",
+    "SpringChain",
+    "SpringCollider",
+    "BodyRegion",
+    "BODY_REGION_NAMES",
+    "load_radiance",
+    "save_radiance",
+    "ply_to_radiance",
+
+    # Gaussian Collision Detection
+    "TouchEvent",
+    "TouchType",
+    "TouchRegion",
+    "AffectImpulse",
+    "GaussianCollisionDetector",
+    "TouchAffectMapper",
+    "PhysicsEventBus",
+    "gaussian_overlap_integral",
+    "sphere_approximation_touch",
+    "build_covariance_matrix",
+    "init_collision_system",
+    "get_detector",
+    "get_affect_mapper",
+    "get_physics_event_bus",
+    "detect_and_emit_touches",
+
+    # Semantic Query
+    "SplatHitInfo",
+    "SemanticSearchResult",
+    "SemanticMatch",
+    "CLIPEmbeddingIndex",
+    "SemanticQueryEngine",
+    "init_semantic_query_engine",
+    "get_semantic_query_engine",
+    "click_to_inspect",
+    "query_scene",
+    "ray_gaussian_intersection",
 ]

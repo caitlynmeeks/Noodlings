@@ -1,0 +1,284 @@
+# Gaussian Training Assembly - Train 3D Gaussian splats from images
+#
+# This facet assembly wraps the OpenSplat training pipeline, allowing users
+# to train Gaussian splat models directly from NoodleStudio.
+#
+# Pipeline:
+# 1. INCOMING: Receive training configuration (dataset path, etc.)
+# 2. TRAINING: Run OpenSplat with progress reporting
+# 3. CONVERT: Convert PLY to .radiance format with filtering
+# 4. OUTGOING: Output final asset path and statistics
+#
+# Example usage via scripting API:
+#   let result = await context.noodle.facets.execute('gaussian_training', {
+#       dataset_path: '/path/to/images',
+#       iterations: 30000,
+#       convert_to_radiance: true
+#   });
+#
+# Author: Caitlyn + Claude
+# Date: December 24, 2025
+
+name: "Gaussian Training"
+description: "Train 3D Gaussian splats from multi-view images"
+version: "1.0.0"
+
+# This is a tool assembly, not a cognitive pipeline
+# It runs once per invocation, not continuously
+assembly_type: "tool"
+
+facets:
+  # ============ ENTRY POINT ============
+  - id: "incoming"
+    name: "INCOMING"
+    type: "SpecialNode"
+    prompt: ""
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 50, y: 200}
+    inputs: []
+    outputs:
+      - name: "dataset_path"
+        type: "output"
+        description: "Path to dataset directory (images + transforms.json)"
+      - name: "output_path"
+        type: "output"
+        description: "Output .ply path (optional, auto-generated if empty)"
+      - name: "iterations"
+        type: "output"
+        description: "Training iterations (default: 30000)"
+      - name: "sh_degree"
+        type: "output"
+        description: "Spherical harmonics degree 0-3 (default: 2)"
+      - name: "convert_to_radiance"
+        type: "output"
+        description: "Convert to .radiance format (default: true)"
+      - name: "filter_output"
+        type: "output"
+        description: "Filter background artifacts (default: true)"
+
+  # ============ DEFAULTS ============
+  - id: "set_defaults"
+    name: "Set Defaults"
+    type: "ScriptedFacet"
+    prompt: |
+      // Set default values for optional parameters
+      const config = {
+        dataset_path: inputs.dataset_path || '',
+        output_path: inputs.output_path || '',
+        iterations: parseInt(inputs.iterations) || 30000,
+        sh_degree: parseInt(inputs.sh_degree) || 2,
+        convert_to_radiance: inputs.convert_to_radiance !== false,
+        filter_output: inputs.filter_output !== false,
+        min_opacity: 0.8,
+        max_scale: 0.05,
+        max_brightness: 2.0,
+      };
+
+      if (!config.dataset_path) {
+        return { error: 'No dataset_path provided' };
+      }
+
+      return config;
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 250, y: 200}
+    inputs:
+      - name: "dataset_path"
+        type: "input"
+        description: "Dataset path from incoming"
+      - name: "output_path"
+        type: "input"
+        description: "Output path from incoming"
+      - name: "iterations"
+        type: "input"
+        description: "Iterations from incoming"
+      - name: "sh_degree"
+        type: "input"
+        description: "SH degree from incoming"
+      - name: "convert_to_radiance"
+        type: "input"
+        description: "Convert flag from incoming"
+      - name: "filter_output"
+        type: "input"
+        description: "Filter flag from incoming"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "Training configuration"
+      - name: "error"
+        type: "output"
+        description: "Error message if validation failed"
+
+  # ============ TRAINING ============
+  - id: "trainer"
+    name: "Gaussian Trainer"
+    type: "GaussianTrainingFacet"
+    prompt: "backend:opensplat"
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 500, y: 200}
+    inputs:
+      - name: "dataset_path"
+        type: "input"
+        description: "Path to training images"
+      - name: "output_path"
+        type: "input"
+        description: "Output .ply path"
+      - name: "iterations"
+        type: "input"
+        description: "Number of training iterations"
+      - name: "sh_degree"
+        type: "input"
+        description: "Spherical harmonics degree"
+      - name: "convert_to_radiance"
+        type: "input"
+        description: "Whether to convert to .radiance"
+      - name: "filter_output"
+        type: "input"
+        description: "Whether to filter artifacts"
+      - name: "min_opacity"
+        type: "input"
+        description: "Minimum opacity threshold"
+      - name: "max_scale"
+        type: "input"
+        description: "Maximum scale threshold"
+      - name: "max_brightness"
+        type: "input"
+        description: "Maximum SH brightness threshold"
+    outputs:
+      - name: "success"
+        type: "output"
+        description: "Whether training succeeded"
+      - name: "output_path"
+        type: "output"
+        description: "Path to output file"
+      - name: "gaussian_count"
+        type: "output"
+        description: "Number of Gaussians in output"
+      - name: "message"
+        type: "output"
+        description: "Status message"
+      - name: "progress"
+        type: "output"
+        description: "Final progress state"
+
+  # ============ FORMAT OUTPUT ============
+  - id: "format_result"
+    name: "Format Result"
+    type: "ScriptedFacet"
+    prompt: |
+      // Format training result for output
+      const result = {
+        success: inputs.success,
+        output_path: inputs.output_path,
+        gaussian_count: inputs.gaussian_count,
+        message: inputs.message,
+      };
+
+      if (result.success) {
+        return `Training complete! Created ${result.gaussian_count.toLocaleString()} Gaussians at ${result.output_path}`;
+      } else {
+        return `Training failed: ${result.message}`;
+      }
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 750, y: 200}
+    inputs:
+      - name: "success"
+        type: "input"
+        description: "Success flag"
+      - name: "output_path"
+        type: "input"
+        description: "Output path"
+      - name: "gaussian_count"
+        type: "input"
+        description: "Gaussian count"
+      - name: "message"
+        type: "input"
+        description: "Status message"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "Formatted result string"
+
+  # ============ EXIT POINT ============
+  - id: "outgoing"
+    name: "OUTGOING"
+    type: "SpecialNode"
+    prompt: ""
+    model: ""
+    temperature: 0.0
+    max_tokens: 100
+    position: {x: 950, y: 200}
+    inputs:
+      - name: "in"
+        type: "input"
+        description: "Final result"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "Output to caller"
+
+# ============ CONNECTIONS ============
+connections:
+  # Wire incoming to defaults
+  - from: "incoming.dataset_path"
+    to: "set_defaults.dataset_path"
+  - from: "incoming.output_path"
+    to: "set_defaults.output_path"
+  - from: "incoming.iterations"
+    to: "set_defaults.iterations"
+  - from: "incoming.sh_degree"
+    to: "set_defaults.sh_degree"
+  - from: "incoming.convert_to_radiance"
+    to: "set_defaults.convert_to_radiance"
+  - from: "incoming.filter_output"
+    to: "set_defaults.filter_output"
+
+  # Wire defaults to trainer (spread the config object)
+  - from: "set_defaults.out"
+    to: "trainer.dataset_path"
+    property: "dataset_path"
+  - from: "set_defaults.out"
+    to: "trainer.output_path"
+    property: "output_path"
+  - from: "set_defaults.out"
+    to: "trainer.iterations"
+    property: "iterations"
+  - from: "set_defaults.out"
+    to: "trainer.sh_degree"
+    property: "sh_degree"
+  - from: "set_defaults.out"
+    to: "trainer.convert_to_radiance"
+    property: "convert_to_radiance"
+  - from: "set_defaults.out"
+    to: "trainer.filter_output"
+    property: "filter_output"
+  - from: "set_defaults.out"
+    to: "trainer.min_opacity"
+    property: "min_opacity"
+  - from: "set_defaults.out"
+    to: "trainer.max_scale"
+    property: "max_scale"
+  - from: "set_defaults.out"
+    to: "trainer.max_brightness"
+    property: "max_brightness"
+
+  # Wire trainer output to formatter
+  - from: "trainer.success"
+    to: "format_result.success"
+  - from: "trainer.output_path"
+    to: "format_result.output_path"
+  - from: "trainer.gaussian_count"
+    to: "format_result.gaussian_count"
+  - from: "trainer.message"
+    to: "format_result.message"
+
+  # Wire to output
+  - from: "format_result.out"
+    to: "outgoing.in"

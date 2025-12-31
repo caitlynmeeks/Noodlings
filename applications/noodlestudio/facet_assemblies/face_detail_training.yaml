@@ -1,0 +1,253 @@
+# Face Detail Training Assembly
+# Trains Gaussian splats with importance-weighted facial detail
+#
+# The key insight: more training views of a region = more Gaussians allocated there.
+# This assembly generates camera distributions weighted towards expressive facial regions:
+# - Lips (speech, emotion) - highest importance
+# - Eyes and eyelids (subtle emotion cues)
+# - Brow (concern, surprise, anger)
+# - Profile (nose, chin, cheekbones)
+#
+# Pipeline:
+# 1. Generate importance-weighted camera views (more face close-ups)
+# 2. Render training images from VRM
+# 3. Train with OpenSplat (body + face views)
+# 4. Refine with face-only views for extra detail
+#
+# Usage:
+#   Load this assembly, set input VRM path, execute
+#   Output: .radiance file with high-detail face
+
+name: Face Detail Training
+description: Train Gaussian splat with facial expression detail focus
+version: 1.0.0
+
+# Configuration parameters (adjustable in UI)
+parameters:
+  vrm_path:
+    type: path
+    label: VRM Avatar
+    description: Path to VRM file to train from
+    required: true
+
+  output_dir:
+    type: path
+    label: Output Directory
+    description: Where to save training artifacts
+    default: ./face_detail_output
+
+  body_views:
+    type: int
+    label: Body Views
+    description: Number of full-body turntable views
+    default: 24
+    min: 8
+    max: 72
+
+  face_views:
+    type: int
+    label: Face Views
+    description: Number of face-focused orbital views
+    default: 48
+    min: 24
+    max: 120
+
+  detail_views:
+    type: int
+    label: Detail Views Per Region
+    description: Close-up views per facial region (lips, eyes, brow)
+    default: 8
+    min: 4
+    max: 16
+
+  iterations:
+    type: int
+    label: Training Iterations
+    description: Total training iterations (30K=good, 50K=publication)
+    default: 30000
+    min: 5000
+    max: 100000
+
+  enable_refinement:
+    type: bool
+    label: Face Refinement Pass
+    description: Extra training pass with face-only views
+    default: true
+
+  refinement_iterations:
+    type: int
+    label: Refinement Iterations
+    description: Iterations for face refinement stage
+    default: 10000
+    min: 2000
+    max: 30000
+
+# Facet topology
+facets:
+  - id: incoming
+    type: INCOMING
+    position: [100, 200]
+
+  - id: camera_gen
+    type: ScriptedFacet
+    name: Generate Cameras
+    position: [300, 200]
+    config:
+      script: |
+        // Generate importance-weighted camera views
+        const vrm_path = context.params.vrm_path;
+        const output_dir = context.params.output_dir;
+
+        // Auto-detect head position from VRM
+        const headPos = await context.noodle.training.detectHeadPosition(vrm_path);
+        context.log(`Head position: ${JSON.stringify(headPos)}`);
+
+        // Generate cameras
+        const views = await context.noodle.training.generateFaceDetailCameras({
+          head_position: headPos,
+          output_dir: output_dir,
+          body_views: context.params.body_views,
+          face_views: context.params.face_views,
+          detail_views: context.params.detail_views,
+        });
+
+        return {
+          view_count: views.length,
+          transforms_path: `${output_dir}/transforms.json`,
+          head_position: headPos,
+        };
+
+  - id: render
+    type: ScriptedFacet
+    name: Render Training Images
+    position: [500, 200]
+    config:
+      script: |
+        // Render VRM from all camera views
+        const vrm_path = context.params.vrm_path;
+        const output_dir = context.params.output_dir;
+        const transforms_path = context.input.transforms_path;
+
+        context.log(`Rendering ${context.input.view_count} training views...`);
+
+        const result = await context.noodle.training.renderVRMViews({
+          vrm_path: vrm_path,
+          transforms_path: transforms_path,
+          output_dir: `${output_dir}/images`,
+          resolution: 1024,
+          onProgress: (p) => context.reportProgress(p),
+        });
+
+        return {
+          images_dir: result.output_dir,
+          image_count: result.count,
+        };
+
+  - id: train_stage1
+    type: GaussianTrainingFacet
+    name: Train (Body + Face)
+    position: [700, 200]
+    config:
+      iterations: ${iterations}
+      sh_degree: 2
+      densify_interval: 100
+
+  - id: train_stage2
+    type: ScriptedFacet
+    name: Refine (Face Only)
+    position: [900, 200]
+    config:
+      script: |
+        // Face refinement pass (optional)
+        if (!context.params.enable_refinement) {
+          context.log("Refinement disabled, skipping...");
+          return context.input;
+        }
+
+        const output_dir = context.params.output_dir;
+        const stage1_ply = context.input.ply_path;
+
+        context.log("Running face refinement pass...");
+
+        // Create face-only transforms
+        const faceTransforms = await context.noodle.training.filterTransforms({
+          transforms_path: `${output_dir}/transforms.json`,
+          exclude_regions: ['body'],
+          output_path: `${output_dir}/transforms_face.json`,
+        });
+
+        // Continue training with face-only views
+        const result = await context.noodle.training.train({
+          dataset_path: output_dir,
+          transforms_override: faceTransforms,
+          continue_from: stage1_ply,
+          iterations: context.params.refinement_iterations,
+          output_path: `${output_dir}/refined.ply`,
+          onProgress: (p) => context.reportProgress(p),
+        });
+
+        return {
+          ply_path: result.output_path,
+          refined: true,
+        };
+
+  - id: convert
+    type: ScriptedFacet
+    name: Convert to Radiance
+    position: [1100, 200]
+    config:
+      script: |
+        // Convert final PLY to .radiance format with filtering
+        const output_dir = context.params.output_dir;
+        const ply_path = context.input.ply_path;
+
+        const radiance_path = `${output_dir}/face_detail.radiance`;
+
+        const result = await context.noodle.training.convertToRadiance({
+          ply_path: ply_path,
+          output_path: radiance_path,
+          filter: true,
+          min_opacity: 0.8,
+          max_scale: 0.05,
+        });
+
+        context.log(`Conversion complete: ${result.gaussian_count} Gaussians`);
+
+        return {
+          radiance_path: radiance_path,
+          gaussian_count: result.gaussian_count,
+          success: true,
+        };
+
+  - id: outgoing
+    type: OUTGOING
+    position: [1300, 200]
+
+# Connections
+connections:
+  - from: incoming
+    to: camera_gen
+
+  - from: camera_gen
+    to: render
+
+  - from: render
+    to: train_stage1
+
+  - from: train_stage1
+    to: train_stage2
+
+  - from: train_stage2
+    to: convert
+
+  - from: convert
+    to: outgoing
+
+# Metadata
+metadata:
+  author: NoodleStudio
+  category: training
+  tags: [gaussian, training, face, detail, expression]
+  icon: face
+  estimated_time: "15-45 minutes depending on iterations"
+  gpu_required: true
