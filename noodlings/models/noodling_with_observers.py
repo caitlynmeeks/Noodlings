@@ -9,7 +9,7 @@ This creates maximum Φ (integrated information) by adding observer loops that:
 3. Add only ~5% computational overhead
 4. Boost Φ by 50-100% according to IIT predictions
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: November 2025
 """
 

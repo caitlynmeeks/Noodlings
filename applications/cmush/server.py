@@ -52,12 +52,24 @@ from semantic_integration import (
 # Scene Protocol integration (Noodlings Scene Protocol for renderers)
 from scene_protocol_integration import (
     SCENE_PROTOCOL_AVAILABLE,
+    GAUSSIAN_ADAPTER_AVAILABLE,
+    SEMANTIC_QUERY_AVAILABLE,
     init_scene_state_manager,
     sync_room_to_zone,
     sync_agent_to_noodling,
     sync_player_to_scene,
     record_dialogue as scene_record_dialogue,
     get_scene_packet_json,
+    # Gaussian Scene Composition
+    init_gaussian_scene_integration,
+    compose_gaussian_scene,
+    get_gaussian_scene_json,
+    # Semantic Query (CLIP natural language)
+    init_semantic_query_engine,
+    query_scene_semantic,
+    raycast_scene,
+    get_entity_visible_body_parts,
+    register_entity_radiance,
 )
 
 # Setup logging
@@ -211,9 +223,19 @@ class CMUSHServer:
         # Log subscribers: websockets that want to receive log streams
         self.log_subscribers: Set = set()
 
-        # Chat history for session continuity
+        # Chat history for session continuity (per-project if PROJECT_PATH set)
         self.chat_history = []
-        self.history_file = Path('world/chat_history.json')
+        project_path = os.environ.get('PROJECT_PATH')
+        if project_path:
+            # Use project-specific chat history
+            self.history_file = Path(project_path) / 'Library' / 'chat_history.json'
+            # Ensure Library folder exists
+            self.history_file.parent.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Using project chat history: {self.history_file}")
+        else:
+            # Fall back to legacy global history
+            self.history_file = Path('world/chat_history.json')
+            logger.info("Using legacy global chat history")
         self.max_history = 200  # Keep last 200 messages
         self._load_chat_history()
 
@@ -400,6 +422,16 @@ class CMUSHServer:
                 import traceback
                 traceback.print_exc()
 
+        # Initialize Gaussian Scene Integration (for 3D Gaussian Splatting rendering)
+        if GAUSSIAN_ADAPTER_AVAILABLE:
+            try:
+                # Use PROJECT_PATH env var if set, otherwise default to project root
+                project_path = os.environ.get('PROJECT_PATH', str(Path(__file__).parent.parent.parent))
+                if init_gaussian_scene_integration(project_path):
+                    logger.info(f"[Gaussian] Scene integration initialized")
+            except Exception as e:
+                logger.warning(f"[Gaussian] Failed to initialize (non-fatal): {e}")
+
         logger.info("Async components initialized")
         logger.info(f"Session profiler active: {session_id}")
 
@@ -565,6 +597,105 @@ class CMUSHServer:
                         logger.info(f"[AUTH] Registration response: {response}")
                         await websocket.send(json.dumps(response))
 
+                    elif msg_type == 'token_auth':
+                        # Cloud token authentication (NoodleStudio unified auth)
+                        logger.info(f"[AUTH] Token auth attempt")
+                        response = await self.handle_token_auth(data)
+                        logger.info(f"[AUTH] Token auth response: success={response.get('success')}")
+                        if response['success']:
+                            user_id = response['user_id']
+                            session_token = response['session_token']
+                            self.connections[websocket] = user_id
+
+                            # Get avatar info for welcome message
+                            avatar_name = response.get('avatar_name', response.get('display_name', 'Traveler'))
+
+                            # Scene Protocol: sync player to scene
+                            if SCENE_PROTOCOL_AVAILABLE:
+                                user = self.world.get_user(user_id)
+                                if user:
+                                    room_id = user.get('current_room', 'room_000')
+                                    sync_player_to_scene(
+                                        player_id=user_id,
+                                        player_name=avatar_name,
+                                        room_id=room_id
+                                    )
+
+                            # Send chat history first
+                            for history_entry in self.chat_history:
+                                await self.send_to_user(websocket, {
+                                    'type': 'history',
+                                    'text': history_entry['text'],
+                                    'timestamp': history_entry['timestamp']
+                                })
+
+                            # Send welcome message
+                            pid = os.getpid()
+                            ws_port = self.config.get('server', {}).get('port', 8765)
+                            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            rng_status = self._get_rng_status()
+
+                            banner = (
+                                ":::.    :::.    ...         ...    :::::::-.   :::    .,::::::      .        :    ...    ::: .::::::.   ::   .:\n"
+                                "`;;;;,  `;;; .;;;;;;;.   .;;;;;;;.  ;;,   `';, ;;;    ;;;;''''      ;;,.    ;;;   ;;     ;;;;;;`    `  ,;;   ;;,\n"
+                                "  [[[[[. '[[,[[     \\[[,,[[     \\[[,`[[     [[ [[[     [[cccc       [[[[, ,[[[[, [['     [[\'[==/[[[[,,[[[,,,[[[[\n"
+                                "  $$$ \"Y$c$$$$$,     $$$$$$,     $$$ $$,    $$ $$'     $$\"\"\"\"       $$$$$$$$\"$$$ $$      $$$  '''    $\"$$$\"\"\"$$$\n"
+                                "  888    Y88\"888,_ _,88P\"888,_ _,88P 888_,o8P'o88oo,.__888oo,__     888 Y88\" 888o88    .d888 88b    dP 888   \"88o\n"
+                                "  MMM     YM  \"YMMMMMP\"   \"YMMMMMP\"  MMMMP\"`  \"\"\"\"YUMMM\"\"\"\"YUMMM    MMM  M'  \"MMM \"YmmMMMM\"\"  \"YMmMY\"  MMM    YMM\n"
+                                "\n"
+                                f"Welcome, {avatar_name}!\n"
+                                "Noodlings Multi-User Shared Hallucination\n"
+                                f"(Authenticated via NoodleStudio)\n"
+                                "\n"
+                                f"Server: PID {pid} | ws://localhost:{ws_port} | {timestamp}\n"
+                                f"RNG: {rng_status}\n"
+                            )
+
+                            await self.send_to_user(websocket, {
+                                'type': 'tui-green',
+                                'text': banner
+                            })
+
+                            # Send agent list
+                            agent_list = []
+                            for agent_id, agent in self.agent_manager.agents.items():
+                                agent_list.append({
+                                    'id': agent_id,
+                                    'name': agent.agent_name,
+                                    'enlightened': agent.config.get('enlightenment', False)
+                                })
+
+                            await self.send_to_user(websocket, {
+                                'type': 'agents',
+                                'agents': agent_list
+                            })
+
+                            # Generate enter event
+                            user = self.world.get_user(user_id)
+                            room = self.world.get_user_room(user_id)
+                            if user and room:
+                                room_id = user.get('current_room', 'room_000')
+                                enter_text = f"{avatar_name} materializes."
+
+                                enter_event = {
+                                    'type': 'enter',
+                                    'user': user_id,
+                                    'room': room_id,
+                                    'text': enter_text
+                                }
+
+                                await self.broadcast_event(enter_event)
+                                asyncio.create_task(self._handle_agent_entrance(enter_event))
+
+                            # Show current room
+                            look_result = await self.command_parser.cmd_look(user_id, '')
+                            await self.send_to_user(websocket, {
+                                'type': 'output',
+                                'text': look_result['output']
+                            })
+
+                        await websocket.send(json.dumps(response))
+
                     elif msg_type == 'login':
                         logger.info(f"[AUTH] Login attempt: username={data.get('username')}")
                         response = await self.handle_login(data)
@@ -594,8 +725,7 @@ class CMUSHServer:
                                 })
 
                             # Send welcome message with ASCII banner and server diagnostics
-                            import os
-                            from datetime import datetime
+                            # (os and datetime already imported at module level)
 
                             pid = os.getpid()
                             ws_port = self.config.get('server', {}).get('port', 8765)
@@ -939,6 +1069,59 @@ class CMUSHServer:
                     elif msg_type == 'ping':
                         await websocket.send(json.dumps({'type': 'pong'}))
 
+                    # Scene Protocol: Get scene packet (for LLM renderers like Genie)
+                    elif msg_type == 'get_scene_packet':
+                        scene_json = get_scene_packet_json()
+                        await websocket.send(json.dumps({
+                            'type': 'scene_packet',
+                            'data': json.loads(scene_json) if scene_json else None,
+                            'available': SCENE_PROTOCOL_AVAILABLE
+                        }))
+
+                    # Gaussian Scene: Get composed Gaussian scene (for 3DGS renderers)
+                    elif msg_type == 'get_gaussian_scene':
+                        gaussian_json = get_gaussian_scene_json()
+                        await websocket.send(json.dumps({
+                            'type': 'gaussian_scene',
+                            'data': json.loads(gaussian_json) if gaussian_json else None,
+                            'available': GAUSSIAN_ADAPTER_AVAILABLE
+                        }))
+
+                    # Semantic Query: Natural language query on Gaussian scene
+                    elif msg_type == 'semantic_query':
+                        query = data.get('query', '')
+                        top_k = data.get('top_k', 5)
+                        result = query_scene_semantic(query, top_k=top_k)
+                        await websocket.send(json.dumps({
+                            'type': 'semantic_query_result',
+                            'data': result,
+                            'available': SEMANTIC_QUERY_AVAILABLE
+                        }))
+
+                    # Semantic Query: Raycast for click-to-inspect
+                    elif msg_type == 'semantic_raycast':
+                        origin = data.get('origin', [0, 0, 0])
+                        direction = data.get('direction', [0, 0, 1])
+                        result = raycast_scene(origin, direction)
+                        await websocket.send(json.dumps({
+                            'type': 'semantic_raycast_result',
+                            'data': result,
+                            'available': SEMANTIC_QUERY_AVAILABLE
+                        }))
+
+                    # Semantic Query: Get visible body parts
+                    elif msg_type == 'get_visible_body_parts':
+                        perceiver_id = data.get('perceiver_id', '')
+                        target_id = data.get('target_id', '')
+                        visible_parts = get_entity_visible_body_parts(perceiver_id, target_id)
+                        await websocket.send(json.dumps({
+                            'type': 'visible_body_parts_result',
+                            'perceiver_id': perceiver_id,
+                            'target_id': target_id,
+                            'visible_parts': visible_parts,
+                            'available': SEMANTIC_QUERY_AVAILABLE
+                        }))
+
                 except json.JSONDecodeError:
                     logger.error(f"Invalid JSON from {websocket.remote_address}")
                 except Exception as e:
@@ -1021,6 +1204,88 @@ class CMUSHServer:
         else:
             return {
                 'type': 'login_response',
+                'success': False,
+                'message': message
+            }
+
+    async def handle_token_auth(self, data: Dict) -> Dict:
+        """
+        Handle cloud token authentication (NoodleStudio unified auth).
+
+        Args:
+            data: Token auth data containing:
+                - token: NoodleStudio session token
+                - avatar_id: Optional avatar ID to use
+                - avatar: Optional avatar metadata dict
+
+        Returns:
+            Response dict with user_id, session_token, avatar info
+        """
+        token = data.get('token', '')
+        avatar_id = data.get('avatar_id')
+        avatar_data = data.get('avatar', {})
+
+        if not token:
+            return {
+                'type': 'token_auth_response',
+                'success': False,
+                'message': 'No token provided'
+            }
+
+        # Authenticate with cloud
+        success, user_id, message, profile = self.auth.authenticate_with_cloud_token(
+            token=token,
+            avatar_id=avatar_id
+        )
+
+        if success:
+            session_token = self.auth.create_session(user_id)
+
+            # Determine display name (avatar > cloud profile > generic)
+            avatar_name = avatar_data.get('display_name') or profile.get('display_name') or 'Traveler'
+
+            # Update user's current avatar info
+            user = self.world.get_user(user_id)
+            if user:
+                user['current_avatar_id'] = avatar_id
+                user['current_avatar_name'] = avatar_name
+                if avatar_data.get('description'):
+                    user['description'] = avatar_data['description']
+
+                # Verify user's current_room exists - fix if not
+                current_room = user.get('current_room')
+                if not current_room or not self.world.get_room(current_room):
+                    # Room doesn't exist - find a valid one
+                    if self.world.rooms:
+                        valid_room = next(iter(self.world.rooms.keys()))
+                        user['current_room'] = valid_room
+                        logger.info(f"Fixed user {user_id} room: {current_room} -> {valid_room}")
+                    else:
+                        # No rooms exist - create a default
+                        new_room = self.world.create_room(
+                            name="The Nexus",
+                            description="A cozy campfire with crackling logs. Welcome to the world!"
+                        )
+                        user['current_room'] = new_room
+                        logger.info(f"Created default room for user {user_id}: {new_room}")
+
+                self.world.save_all()
+
+            logger.info(f"Token auth success: {avatar_name} ({user_id})")
+
+            return {
+                'type': 'token_auth_response',
+                'success': True,
+                'user_id': user_id,
+                'session_token': session_token,
+                'display_name': profile.get('display_name', ''),
+                'avatar_name': avatar_name,
+                'avatar_id': avatar_id,
+                'message': message
+            }
+        else:
+            return {
+                'type': 'token_auth_response',
                 'success': False,
                 'message': message
             }

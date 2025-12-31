@@ -44,7 +44,7 @@ class AutonomousCognitionEngine:
         Initialize autonomous cognition engine.
 
         Args:
-            agent: CMUSHConsilienceAgent instance
+            agent: CMUSHNoodlingAgent instance
             config: Configuration dict (includes personality traits)
         """
         self.agent = agent

@@ -1,7 +1,7 @@
 name: TestSubject
 species: human
 pronouns: they/them
-checkpoint: ../../consilience_core/checkpoints_phase4/best_checkpoint.npz
+checkpoint: ../../models/checkpoints/best_checkpoint.npz
 
 identity_prompt: |
   You are TestSubject, a simple test agent for scientific experiments.

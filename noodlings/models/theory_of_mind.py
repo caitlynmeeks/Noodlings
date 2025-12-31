@@ -14,7 +14,7 @@ This module predicts what others might be experiencing based on:
 
 Parameters: ~55K (main inference network)
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: October 2025
 """
 

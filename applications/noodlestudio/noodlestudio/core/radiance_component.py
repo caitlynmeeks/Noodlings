@@ -89,6 +89,7 @@ class MaterialOverride:
     alpha_mult: float = 1.0
     roughness_mult: float = 1.0
     scale_mult: float = 1.0  # Gaussian size multiplier
+    sharpness_mult: float = 1.0  # Edge sharpness (< 1 = crisper, > 1 = softer)
 
     def is_default(self) -> bool:
         """Check if this override has any effect."""
@@ -99,7 +100,8 @@ class MaterialOverride:
             self.emission.b == 0.0 and
             self.alpha_mult == 1.0 and
             self.roughness_mult == 1.0 and
-            self.scale_mult == 1.0
+            self.scale_mult == 1.0 and
+            self.sharpness_mult == 1.0
         )
 
 
@@ -651,15 +653,19 @@ class RadianceComponent:
 
         # Start with asset data
         positions = self._world_positions
-        scales = self._asset.scales.copy() * self.material.scale_mult
+        # Apply both scale_mult and sharpness_mult to Gaussian scales
+        # Sharpness < 1 means crisper (smaller scales), > 1 means softer (larger scales)
+        effective_scale = self.material.scale_mult * self.material.sharpness_mult
+        scales = self._asset.scales.copy() * effective_scale
         rotations = self._asset.rotations
         opacities = self._asset.opacities.copy() if self._asset.opacities is not None else np.ones(self.gaussian_count)
 
         # Get base colors from SH DC
         if self._asset.sh_dc is not None:
-            # SH DC are in [-inf, inf], convert to [0, 1] RGB
-            # Using sigmoid activation
-            colors = 1.0 / (1.0 + np.exp(-self._asset.sh_dc))
+            # SH DC formula: color = sh_dc * SH_C0 + 0.5
+            # This is the standard 3D Gaussian Splatting formula
+            SH_C0 = 0.28209479177387814
+            colors = np.clip(self._asset.sh_dc * SH_C0 + 0.5, 0.0, 1.0)
         else:
             colors = np.ones((self.gaussian_count, 3), dtype=np.float32)
 

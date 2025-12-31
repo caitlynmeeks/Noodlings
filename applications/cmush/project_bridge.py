@@ -166,7 +166,7 @@ class ProjectBridge:
                     "description": recipe_data.get("description", ""),
                     "facet_assembly": self._get_assembly_ref(noodling_path),
                     "checkpoint": recipe_data.get("checkpoint",
-                        "../../consilience_core/checkpoints_phase4/best_checkpoint.npz"),
+                        "../../models/checkpoints/best_checkpoint.npz"),
                     "config": {
                         "max_tokens": recipe_data.get("constraints", {}).get("max_tokens", 100),
                         "temperature": recipe_data.get("constraints", {}).get("temperature", 0.8),

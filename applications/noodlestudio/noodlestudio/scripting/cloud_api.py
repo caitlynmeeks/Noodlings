@@ -615,3 +615,190 @@ class CloudAPIJS:
     ) -> List[Dict]:
         """Browse asset store"""
         return self._run(self._api.browse_store(limit, offset, tag, search))
+
+    # === Backend Services (Inventory, Friends, Worlds, Teleport) ===
+
+    def getInventory(self, assetType: Optional[str] = None) -> List[Dict]:
+        """Get inventory items."""
+        from ..core.backend_services import get_backend_client, AssetType
+        client = get_backend_client()
+        asset_type = AssetType(assetType) if assetType else None
+        items = self._run(client.inventory.list_items(asset_type=asset_type))
+        return [
+            {
+                'id': i.id,
+                'type': i.asset_type.value,
+                'name': i.name,
+                'description': i.description,
+                'thumbnailUrl': i.thumbnail_url,
+                'assetUrl': i.asset_url,
+                'isEquipped': i.is_equipped,
+                'isFavorite': i.is_favorite,
+            }
+            for i in items
+        ]
+
+    def equipAvatar(self, itemId: str) -> bool:
+        """Equip an avatar from inventory."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        return self._run(client.inventory.equip_item(itemId))
+
+    def getEquippedAvatar(self) -> Optional[Dict]:
+        """Get currently equipped avatar."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        avatar = self._run(client.inventory.get_equipped_avatar())
+        if avatar:
+            return {
+                'id': avatar.id,
+                'name': avatar.name,
+                'assetUrl': avatar.asset_url,
+            }
+        return None
+
+    def getFriends(self, onlineOnly: bool = False) -> List[Dict]:
+        """Get friends list."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        if onlineOnly:
+            friends = self._run(client.friends.get_online_friends())
+        else:
+            friends = self._run(client.friends.list_friends())
+        return [
+            {
+                'userId': f.user_id,
+                'displayName': f.display_name,
+                'avatarUrl': f.avatar_url,
+                'onlineStatus': f.online_status.value,
+                'currentLocation': f.current_location,
+                'canTeleportTo': f.can_teleport_to,
+                'canSeeLocation': f.can_see_location,
+            }
+            for f in friends
+        ]
+
+    def sendFriendRequest(self, userId: str, message: str = "") -> bool:
+        """Send a friend request."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        return self._run(client.friends.send_request(userId, message))
+
+    def setOnlineStatus(self, status: str) -> bool:
+        """Set your online status (online, away, busy, invisible)."""
+        from ..core.backend_services import get_backend_client, OnlineStatus
+        client = get_backend_client()
+        return self._run(client.friends.set_online_status(OnlineStatus(status)))
+
+    def getWorlds(self, search: Optional[str] = None, limit: int = 50) -> List[Dict]:
+        """Get public worlds/stages."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        stages = self._run(client.worlds.list_stages(search=search, limit=limit))
+        return [
+            {
+                'id': s.id,
+                'name': s.name,
+                'description': s.description,
+                'ownerName': s.owner_name,
+                'thumbnailUrl': s.thumbnail_url,
+                'tags': s.tags,
+                'population': s.population,
+                'maxPopulation': s.max_population,
+                'isFeatured': s.is_featured,
+                'rating': s.rating,
+            }
+            for s in stages
+        ]
+
+    def getPopularWorlds(self, limit: int = 10) -> List[Dict]:
+        """Get most populated worlds."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        stages = self._run(client.worlds.get_popular(limit))
+        return [
+            {
+                'id': s.id,
+                'name': s.name,
+                'population': s.population,
+            }
+            for s in stages
+        ]
+
+    def sendTeleportInvite(
+        self,
+        toUserId: str,
+        stageId: str,
+        stageName: str = "",
+        position: Optional[List[float]] = None,
+        message: str = ""
+    ) -> str:
+        """Send a teleport invitation. Returns invitation ID."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        return self._run(client.teleport.send_invitation(
+            toUserId, stageId, stageName, position, message
+        ))
+
+    def getTeleportInvitations(self) -> List[Dict]:
+        """Get pending teleport invitations."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        invitations = self._run(client.teleport.get_invitations())
+        return [
+            {
+                'id': inv.id,
+                'fromUserId': inv.from_user_id,
+                'fromUserName': inv.from_user_name,
+                'destinationStageId': inv.destination_stage_id,
+                'destinationStageName': inv.destination_stage_name,
+                'destinationPosition': inv.destination_position,
+                'message': inv.message,
+                'status': inv.status.value,
+            }
+            for inv in invitations
+        ]
+
+    def acceptTeleport(self, invitationId: str) -> Dict:
+        """Accept a teleport invitation. Returns destination info."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        return self._run(client.teleport.accept_invitation(invitationId))
+
+    def declineTeleport(self, invitationId: str) -> bool:
+        """Decline a teleport invitation."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        return self._run(client.teleport.decline_invitation(invitationId))
+
+    def getAchievements(self, unlockedOnly: bool = False) -> List[Dict]:
+        """Get achievements."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        achievements = self._run(client.achievements.list_achievements(unlockedOnly))
+        return [
+            {
+                'id': a.id,
+                'name': a.name,
+                'description': a.description,
+                'iconUrl': a.icon_url,
+                'category': a.category,
+                'points': a.points,
+                'isUnlocked': a.is_unlocked,
+                'progress': a.progress,
+                'progressMax': a.progress_max,
+            }
+            for a in achievements
+        ]
+
+    def getAchievementPoints(self) -> int:
+        """Get total achievement points."""
+        from ..core.backend_services import get_backend_client
+        client = get_backend_client()
+        return self._run(client.achievements.get_total_points())
+
+    def uploadAsset(self, filePath: str, assetType: str) -> str:
+        """Upload an asset file. Returns the asset URL."""
+        from ..core.backend_services import get_backend_client, AssetType
+        client = get_backend_client()
+        return self._run(client.assets.upload_file(filePath, AssetType(assetType)))

@@ -1,12 +1,12 @@
 """
-Consilience Core API with Observer Loops - Enhanced Φ Version
+Noodlings API with Observer Loops - Enhanced Φ Version
 
 This is an enhanced version of the API that integrates observer loops
 for maximum integrated information (Φ).
 
 Drop-in replacement for the standard API with additional Φ-boosting features.
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: November 2025
 """
 
@@ -20,13 +20,13 @@ import os
 import sys
 
 # Noodlings imports (relative to package root)
-from .models.noodling_with_observers import NoodlingWithObservers as ConsilienceWithObservers
+from .models.noodling_with_observers import NoodlingWithObservers as NoodlingWithObservers
 from .memory.social_memory import SocialContext
 from .memory.hierarchical_memory import HierarchicalMemory
 from .memory.semantic_memory import SemanticMemorySystem
 
 
-class ConsilienceAgentWithObservers:
+class NoodlingAgentWithObservers:
     """
     Enhanced Consilience API with observer loops for maximum Φ.
 
@@ -42,7 +42,7 @@ class ConsilienceAgentWithObservers:
 
     Example:
         # Same API as ConsilienceAgent!
-        agent = ConsilienceAgentWithObservers(
+        agent = NoodlingAgentWithObservers(
             checkpoint_path="checkpoints/best.npz",
             config={
                 'use_observers': True,  # Enable observers
@@ -107,7 +107,7 @@ class ConsilienceAgentWithObservers:
 
         # Initialize model with or without observers
         if self.config['use_observers']:
-            self.model = ConsilienceWithObservers(
+            self.model = NoodlingWithObservers(
                 # Phase 1-4 params
                 affect_dim=5,
                 fast_hidden=16,

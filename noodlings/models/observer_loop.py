@@ -15,7 +15,7 @@ without destroying both past-future predictabilities → Φ grows dramatically.
 Computational Cost: ~5% FLOPs overhead
 Φ Benefit: 50-100% increase in integrated information
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: November 2025
 """
 

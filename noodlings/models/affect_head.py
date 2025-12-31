@@ -4,7 +4,7 @@ Affect Head - Continuous 5D Affect Prediction
 Predicts continuous affect vectors from phenomenal states.
 Trained via affect regression (Option B).
 
-Author: Noodlings Project
+Author: Caitlyn Meeks
 Date: November 24, 2025
 """
 

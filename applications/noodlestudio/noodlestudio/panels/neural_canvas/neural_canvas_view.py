@@ -1571,12 +1571,15 @@ class NeuralCanvasView(QGraphicsView):
         scene_pos = self.mapToScene(event.pos())
         items = self.scene.items(scene_pos)
 
-        # Check if clicking on a node
+        # Check if clicking on a node or connection
         clicked_node = None
+        clicked_connection = None
         for item in items:
             if isinstance(item, NodeGraphicsItem):
                 clicked_node = item
                 break
+            elif isinstance(item, ConnectionGraphicsItem):
+                clicked_connection = item
 
         # Build context menu
         menu = QMenu(self)
@@ -1590,6 +1593,30 @@ class NeuralCanvasView(QGraphicsView):
                 background: #4a4a4a;
             }
         """)
+
+        # Connection-specific context menu (wire disconnect)
+        if clicked_connection and not clicked_node:
+            conn = clicked_connection.connection
+            from_node = self.graph.nodes.get(conn.from_node)
+            to_node = self.graph.nodes.get(conn.to_node)
+
+            from_name = from_node.name if from_node else conn.from_node
+            to_name = to_node.name if to_node else conn.to_node
+
+            wire_label = f"{from_name}.{conn.from_port} -> {to_name}.{conn.to_port}"
+            info_action = menu.addAction(f"Connection: {wire_label}")
+            info_action.setEnabled(False)  # Just a label
+
+            menu.addSeparator()
+
+            delete_action = menu.addAction("Delete Connection")
+            delete_action.triggered.connect(
+                lambda: self.delete_connection_wire(clicked_connection)
+            )
+
+            menu.exec(event.globalPos())
+            event.accept()
+            return  # Early return for wire context menu
 
         # If clicking on empty space OR on a node, show full menu
         # (Blender shows menu everywhere, keeps selection intact)
@@ -2110,6 +2137,29 @@ class NeuralCanvasView(QGraphicsView):
         # Re-render connections
         self._render_connections()
         self.graph_modified.emit()
+
+    def delete_connection_wire(self, conn_item: 'ConnectionGraphicsItem'):
+        """
+        Delete a connection wire via context menu.
+
+        Uses undo command for proper undo/redo support.
+
+        Args:
+            conn_item: The ConnectionGraphicsItem to delete
+        """
+        if not conn_item or not self.graph:
+            return
+
+        conn = conn_item.connection
+
+        # Push undo command
+        from ...core.undo_manager import undo_manager
+        from ...core.commands import DeleteNeuralConnectionCommand
+
+        cmd = DeleteNeuralConnectionCommand(
+            self, conn.from_node, conn.from_port, conn.to_node, conn.to_port
+        )
+        undo_manager.push(cmd)
 
     def _render_connections(self):
         """Re-render all connection graphics."""

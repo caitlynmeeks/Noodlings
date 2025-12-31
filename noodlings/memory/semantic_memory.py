@@ -10,7 +10,7 @@ The explicit store provides interpretable facts.
 
 Together they form long-term knowledge about users.
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: October 2025
 """
 

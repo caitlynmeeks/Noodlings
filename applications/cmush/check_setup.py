@@ -82,11 +82,10 @@ def main():
     all_good &= check_file('auth.py', 'Authentication')
     all_good &= check_file('web/index.html', 'Web client')
 
-    # Consilience core
-    print("\n4. Consilience Core")
-    core_path = '../../consilience_core'
-    all_good &= check_file(f'{core_path}/api.py', 'API wrapper')
-    all_good &= check_file(f'{core_path}/consilience_phase4.py', 'Phase 4 model')
+    # Noodlings package
+    print("\n4. Noodlings Package")
+    all_good &= check_file('../../noodlings/api.py', 'Noodlings API')
+    all_good &= check_file('../../noodlings/models/noodling_phase4.py', 'Phase 4 model')
 
     # Directories
     print("\n5. Directories")
@@ -96,7 +95,7 @@ def main():
 
     # Checkpoint
     print("\n6. Model Checkpoint")
-    checkpoint_path = '../../consilience_core/checkpoints_phase4/best_checkpoint.npz'
+    checkpoint_path = '../../models/checkpoints/best_checkpoint.npz'
     checkpoint_exists = check_file(checkpoint_path, 'Phase 4 checkpoint')
     if not checkpoint_exists:
         print("   Note: Train Phase 4 model first or update config.yaml path")

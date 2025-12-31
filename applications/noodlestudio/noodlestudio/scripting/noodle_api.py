@@ -24,6 +24,9 @@ from .audio_api import AudioAPI, get_audio_api
 from .vision_api import VisionAPI, get_vision_api
 from .cloud_api import CloudAPI, CloudAPIJS, get_cloud_api
 from .world_api import WorldAPI, get_world_api
+from .affect_api import AffectAPI, get_affect_api
+from .pose_api import PoseAPI, get_pose_api
+from .radiance_api import RadianceAPI, get_radiance_api
 
 
 class NoodleAPI:
@@ -72,6 +75,9 @@ class NoodleAPI:
         self._vision_api = None  # Lazy init
         self._cloud_api = None  # Lazy init
         self._world_api = None  # Lazy init - per-noodling, set via set_world_api()
+        self._affect_api = None  # Lazy init - affect animation tracks
+        self._pose_api = None    # Lazy init - pose/body animation tracks
+        self._radiance_api = None  # Lazy init - Gaussian splat visuals
 
         # Manager references (lazy initialization)
         self._model_label_manager = model_label_manager
@@ -290,6 +296,152 @@ class NoodleAPI:
         return self._cloud_api
 
     @property
+    def affect(self) -> AffectAPI:
+        """
+        Access Affect Animation Track API.
+
+        Provides keyframeable emotional curves for ScriptedFacets:
+        - Load and play affect tracks (.affecttrack files)
+        - Control playback (play, pause, seek, speed)
+        - Sample affect values at any time
+        - Blend authored tracks with live CharmNetwork affect
+        - Emotional momentum handoff (Donald Duck problem)
+        - Arbitrary affect dimensions (PAD+BS default, extensible)
+
+        Returns:
+            AffectAPI instance
+
+        Example (JavaScript):
+            // Load and play a track
+            var track = context.noodle.affect.loadTrack("grief_reaction.affecttrack");
+            track.play();
+
+            // Control playback
+            track.pause();
+            track.seek(3.5);
+            track.speed = 0.5;
+
+            // Sample current affect
+            var state = context.noodle.affect.getState();
+            context.log("Valence: " + state.valence);
+
+            // Blend track with live CharmNetwork
+            context.noodle.affect.setBlendMode("weighted", {track: 0.7, live: 0.3});
+
+            // Listen for markers
+            track.onMarker("tears_start", function() {
+                context.noodle.events.emit("start_tears", {intensity: 0.6});
+            });
+
+            // Inject affect directly (momentum)
+            context.noodle.affect.inject({
+                valence: -0.5,
+                arousal: 0.8
+            }, "natural");
+
+            // Play with momentum handoff when track ends
+            track.play({
+                onComplete: "momentum",
+                transferScale: 0.9
+            });
+        """
+        if self._affect_api is None:
+            self._affect_api = get_affect_api()
+        return self._affect_api
+
+    @property
+    def pose(self) -> PoseAPI:
+        """
+        Access Pose Animation Track API.
+
+        Provides rig-agnostic body animation for ScriptedFacets:
+        - Load and play pose tracks (.posetrack files)
+        - Control playback (play, pause, seek, speed)
+        - Sample muscle values at any time
+        - Direct muscle control for procedural animation
+        - Mecanim-style muscle space (~47 standard muscles)
+        - Retargeting to any humanoid avatar
+
+        Returns:
+            PoseAPI instance
+
+        Example (JavaScript):
+            // Load and play a pose track
+            var wave = context.noodle.pose.loadTrack("wave.posetrack");
+            wave.play();
+
+            // Sample muscles at current time
+            var muscles = wave.getMuscles();
+            context.log("Arm: " + muscles["RightArm.DownUp"]);
+
+            // Direct muscle control (procedural)
+            context.noodle.pose.setMuscle("Head.NodDownUp", 0.5);
+
+            // Get bone rotations after retargeting
+            var bones = context.noodle.pose.getBoneRotations();
+
+            // Momentum handoff when track ends
+            wave.onComplete(function(finalPose) {
+                context.noodle.pose.setMomentum(finalPose.muscles, {
+                    decay: "spring",
+                    stiffness: 0.5
+                });
+            });
+        """
+        if self._pose_api is None:
+            self._pose_api = get_pose_api()
+        return self._pose_api
+
+    @property
+    def radiance(self) -> RadianceAPI:
+        """
+        Access Radiance API.
+
+        Provides Gaussian splat visual component control for ScriptedFacets:
+        - Load and manage RadianceComponents
+        - Entity-level material overrides (tint, emission, alpha)
+        - Region-level overrides (by body part)
+        - Per-Gaussian overrides (for FX like dissolve, damage)
+        - Spatial queries (raycast, radius search)
+        - Scene composition and lighting
+
+        Returns:
+            RadianceAPI instance
+
+        Example (JavaScript):
+            // Get entity's radiance component
+            var red = context.noodle.radiance.get("red_fire_anklebiter");
+
+            // Tint based on affect
+            var arousal = context.noodle.affect.getArousal();
+            red.set_tint(1.0, 0.5 + arousal * 0.5, 0.5);
+
+            // Make left arm glow when excited
+            if (arousal > 0.7) {
+                red.set_region_override("left_arm", {
+                    emission: {r: 0.3, g: 0, b: 0}
+                });
+            }
+
+            // Scene-wide raycast
+            var hit = context.noodle.radiance.scene.raycast(0, 1, 0, 0, 0, -1);
+            if (hit.hit) {
+                context.log("Looking at: " + hit.body_part + " of " + hit.entity_id);
+            }
+
+            // Per-Gaussian FX (damage decal)
+            var nearby = red.query_radius(impactX, impactY, impactZ, 0.1);
+            for (var i = 0; i < nearby.length; i++) {
+                red.set_gaussian_override(nearby[i], {
+                    tint: {r: 0.2, g: 0.2, b: 0.2}  // Burn mark
+                });
+            }
+        """
+        if self._radiance_api is None:
+            self._radiance_api = get_radiance_api()
+        return self._radiance_api
+
+    @property
     def world(self) -> WorldAPI:
         """
         Access World API.
@@ -414,7 +566,10 @@ class NoodleAPI:
             'quantum': self.quantum.to_dict(),
             'audio': self.audio.to_dict(),
             'vision': self.vision.to_dict(),
+            'affect': self.affect.to_dict(),
+            'pose': self.pose.to_dict(),
             'world': self.world.to_dict(),
+            'radiance': '__noodle_radiance__',  # Special handling for RadianceAPI
             'get_by_uuid': '__noodle_get_by_uuid__'
         }
 

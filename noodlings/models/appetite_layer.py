@@ -17,7 +17,7 @@ Sits alongside the slow layer and generates goals based on drives.
 Goals are generated when appetites reach high levels + opportunities appear.
 Conflicts arise when multiple goals compete for attention.
 
-Author: Noodlings Project
+Author: Caitlyn Meeks
 Date: November 2025
 """
 

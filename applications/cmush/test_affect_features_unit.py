@@ -11,8 +11,8 @@ import os
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-# Import the CMUSHConsilienceAgent class
-from agent_bridge import CMUSHConsilienceAgent
+# Import the CMUSHNoodlingAgent class
+from agent_bridge import CMUSHNoodlingAgent
 
 def test_name_based_memory_triggering():
     """Test _trigger_memories_by_names method"""
@@ -20,9 +20,9 @@ def test_name_based_memory_triggering():
     print("TEST 1: Name-Based Memory Triggering")
     print("=" * 70)
 
-    # Create a minimal CMUSHConsilienceAgent instance
+    # Create a minimal CMUSHNoodlingAgent instance
     # We'll manually set up conversation_context with memories
-    agent = CMUSHConsilienceAgent(agent_id="test_agent", checkpoint_path="dummy.npz")
+    agent = CMUSHNoodlingAgent(agent_id="test_agent", checkpoint_path="dummy.npz")
 
     # Create mock memories with names
     agent.conversation_context = [
@@ -81,7 +81,7 @@ def test_memory_affect_blending():
     print("TEST 2: Memory Affect Blending")
     print("=" * 70)
 
-    agent = CMUSHConsilienceAgent(agent_id="test_agent", checkpoint_path="dummy.npz")
+    agent = CMUSHNoodlingAgent(agent_id="test_agent", checkpoint_path="dummy.npz")
 
     # Current neutral affect
     current_affect = np.array([0.0, 0.3, 0.2, 0.2, 0.3])
@@ -126,7 +126,7 @@ def test_emotional_contagion():
     print("TEST 3: Emotional Contagion Detection")
     print("=" * 70)
 
-    agent = CMUSHConsilienceAgent(agent_id="test_agent", checkpoint_path="dummy.npz")
+    agent = CMUSHNoodlingAgent(agent_id="test_agent", checkpoint_path="dummy.npz")
 
     test_cases = [
         ("haha that's so funny!", "laughter", ["valence_boost", "arousal_boost"]),
@@ -164,7 +164,7 @@ def test_integration():
     print("TEST 4: Integration Test - All Features Together")
     print("=" * 70)
 
-    agent = CMUSHConsilienceAgent(agent_id="test_agent", checkpoint_path="dummy.npz")
+    agent = CMUSHNoodlingAgent(agent_id="test_agent", checkpoint_path="dummy.npz")
 
     # Set up memories with a sad memory about "Sam"
     agent.conversation_context = [

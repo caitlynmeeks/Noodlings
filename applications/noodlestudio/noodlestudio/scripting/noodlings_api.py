@@ -179,7 +179,7 @@ class Noodlings:
             if resp.status_code == 200:
                 data = resp.json()
                 return Prim(prim_id, data.get('type', 'prim'))
-        except:
+        except Exception:
             pass
 
         return None

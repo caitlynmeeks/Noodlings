@@ -24,8 +24,8 @@ facets:
     description: Raw incoming perception
     required: true
   position:
-    x: 92.58217821782176
-    y: 92.2283828382838
+    x: -33.41782178217824
+    y: 218.22838283828378
   color: '#76AF6A'
   enabled: true
   locked: false
@@ -67,8 +67,8 @@ facets:
     description: 40-D temporal memory (h_fast + h_medium + h_slow)
     required: true
   position:
-    x: 432.6521719643423
-    y: 270.1422031412203
+    x: 325.6521719643423
+    y: 242.1422031412203
   color: '#888888'
   enabled: true
   locked: true

@@ -8,5 +8,19 @@
     "created": "2025-12-04T15:10:31.084839",
     "last_seen": "2025-12-04T15:10:31.084843",
     "invisible": false
+  },
+  "user_17c1aa53-37f5-419f-9eba-72934c931eb7": {
+    "uid": "user_17c1aa53-37f5-419f-9eba-72934c931eb7",
+    "username": "CaitlynMeeks",
+    "password_hash": "CLOUD_AUTH",
+    "current_room": "room_000",
+    "inventory": [],
+    "created": "2025-12-28T16:24:24.587193",
+    "last_seen": "2025-12-28T16:24:24.587197",
+    "cloud_user_id": "604a5730-04fe-4dd5-bf40-39ab63b816ef",
+    "email": "caitsters@gmail.com",
+    "cloud_display_name": "Caitlyn Meeks",
+    "current_avatar_id": null,
+    "current_avatar_name": "Caity"
   }
 }

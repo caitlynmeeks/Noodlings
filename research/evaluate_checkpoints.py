@@ -10,8 +10,13 @@ Tests Theory of Mind and Relationships checkpoints against:
 
 Usage:
     python3 evaluate_checkpoints.py
+
+Environment variables (optional):
+    CONSILIENCE_PATH: Path to consilience training repo (default: ~/git/consilience)
+    NOODLINGS_TRAINING_PATH: Path to noodlings training data (default: ~/git/noodlings)
 """
 
+import os
 import sys
 sys.path.insert(0, '.')
 
@@ -25,14 +30,18 @@ from datetime import datetime
 from noodlings.metrics.temporal_metrics import TemporalMetrics
 from noodlings.models.noodling_phase4 import NoodlingModelPhase4
 
+# Configurable paths via environment variables
+_consilience_path = Path(os.environ.get('CONSILIENCE_PATH', os.path.expanduser('~/git/consilience')))
+_noodlings_training_path = Path(os.environ.get('NOODLINGS_TRAINING_PATH', os.path.expanduser('~/git/noodlings')))
+
 # Checkpoint paths
 CHECKPOINTS = {
-    'theory_of_mind': '/Users/thistlequell/git/consilience/training/checkpoints/theory_of_mind/best.npz',
-    'relationships': '/Users/thistlequell/git/consilience/training/checkpoints/relationships/best.npz',
+    'theory_of_mind': _consilience_path / 'training/checkpoints/theory_of_mind/best.npz',
+    'relationships': _consilience_path / 'training/checkpoints/relationships/best.npz',
 }
 
 # Test data paths
-TEST_DATA_DIR = Path('/Users/thistlequell/git/noodlings/training/data/cmush_real')
+TEST_DATA_DIR = _noodlings_training_path / 'training/data/cmush_real'
 
 
 def load_model_from_checkpoint(checkpoint_path: str) -> NoodlingModelPhase4:

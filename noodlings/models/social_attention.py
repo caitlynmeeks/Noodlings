@@ -14,7 +14,7 @@ Architecture:
 
 Parameters: ~20K (extended from Phase 3)
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: October 2025
 """
 

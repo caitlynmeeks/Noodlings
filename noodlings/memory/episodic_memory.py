@@ -8,7 +8,7 @@ Each memory entry stores:
 - Key vector (64-D learned representation for retrieval)
 - Metadata (timestamp, surprise, user text, attention weights)
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: October 2025
 """
 

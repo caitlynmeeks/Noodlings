@@ -45,6 +45,46 @@ except ImportError as e:
     SceneStateManager = None
     WorldAPI = None
 
+# Gaussian Adapter imports
+try:
+    from noodlestudio.core.semantic_world import (
+        GaussianAssetManager,
+        GaussianSceneCompositor,
+        GaussianGenerator,
+        GaussianScene,
+        compose_scene_from_packet,
+        init_gaussian_adapter,
+        get_asset_manager,
+        get_compositor,
+        get_generator,
+    )
+    GAUSSIAN_ADAPTER_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Gaussian Adapter not available: {e}")
+    GAUSSIAN_ADAPTER_AVAILABLE = False
+    GaussianAssetManager = None
+    GaussianSceneCompositor = None
+
+# Semantic Query imports (CLIP natural language queries on Gaussians)
+try:
+    from noodlestudio.core.semantic_world.semantic_query import (
+        SemanticQueryEngine,
+        CLIPEmbeddingGenerator,
+        populate_asset_embeddings,
+        SemanticSearchResult,
+        SplatHitInfo,
+    )
+    from noodlestudio.core.semantic_world.radiance_format import (
+        RadianceAsset,
+        load_radiance,
+    )
+    SEMANTIC_QUERY_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Semantic Query not available: {e}")
+    SEMANTIC_QUERY_AVAILABLE = False
+    SemanticQueryEngine = None
+    RadianceAsset = None
+
 
 # =============================================================================
 # Global State
@@ -52,6 +92,9 @@ except ImportError as e:
 
 _scene_state_manager: Optional['SceneStateManager'] = None
 _world_apis: Dict[str, 'WorldAPI'] = {}
+_gaussian_project_path: Optional[str] = None
+_semantic_query_engine: Optional['SemanticQueryEngine'] = None
+_entity_radiance_assets: Dict[str, 'RadianceAsset'] = {}  # entity_id -> RadianceAsset
 
 
 def get_scene_state_manager() -> Optional['SceneStateManager']:
@@ -475,12 +518,444 @@ def get_scene_packet_text() -> Optional[str]:
 
 
 # =============================================================================
+# Gaussian Scene Composition
+# =============================================================================
+
+def init_gaussian_scene_integration(project_path: str) -> bool:
+    """
+    Initialize the Gaussian adapter for scene composition.
+
+    Args:
+        project_path: Path to the NoodleStudio project
+
+    Returns:
+        True if initialization succeeded
+    """
+    global _gaussian_project_path
+
+    if not GAUSSIAN_ADAPTER_AVAILABLE:
+        logger.warning("[Gaussian] Adapter not available - skipping initialization")
+        return False
+
+    try:
+        _gaussian_project_path = project_path
+        init_gaussian_adapter(project_path)
+        asset_manager = get_asset_manager()
+        if asset_manager:
+            logger.info(f"[Gaussian] Initialized with {len(asset_manager.assets)} assets at {project_path}")
+            return True
+        else:
+            logger.warning("[Gaussian] Asset manager not created")
+            return False
+    except Exception as e:
+        logger.error(f"[Gaussian] Failed to initialize: {e}")
+        return False
+
+
+def compose_gaussian_scene() -> Optional['GaussianScene']:
+    """
+    Compose a Gaussian scene from the current SceneStateManager state.
+
+    This is the core wiring: ScenePacket -> GaussianScene.
+    Call this when you need the renderable Gaussian representation.
+
+    Returns:
+        GaussianScene or None if not available
+    """
+    if not _scene_state_manager:
+        logger.debug("[Gaussian] No SceneStateManager - cannot compose scene")
+        return None
+
+    if not GAUSSIAN_ADAPTER_AVAILABLE:
+        logger.debug("[Gaussian] Adapter not available - cannot compose scene")
+        return None
+
+    try:
+        # Generate current scene packet
+        packet = _scene_state_manager.generate_scene_packet()
+
+        # Compose Gaussian scene
+        scene = compose_scene_from_packet(packet)
+
+        if scene:
+            logger.debug(f"[Gaussian] Composed scene with {len(scene.instances)} instances")
+        return scene
+    except Exception as e:
+        logger.error(f"[Gaussian] Failed to compose scene: {e}")
+        return None
+
+
+def get_gaussian_scene_json(indent: int = 2) -> Optional[str]:
+    """
+    Get current Gaussian scene as JSON.
+
+    Useful for sending to external renderers.
+
+    Args:
+        indent: JSON indent level
+
+    Returns:
+        JSON string or None
+    """
+    import json
+    from dataclasses import asdict
+
+    scene = compose_gaussian_scene()
+    if not scene:
+        return None
+
+    try:
+        # Convert to serializable dict
+        scene_dict = {
+            "scene_id": scene.scene_id,
+            "stage_id": scene.stage_id,
+            "stage_name": scene.stage_name,
+            "instances": {},
+            "assets": {},
+            "camera": {
+                "position": [scene.camera_position.x, scene.camera_position.y, scene.camera_position.z],
+                "target": [scene.camera_target.x, scene.camera_target.y, scene.camera_target.z],
+                "fov": scene.camera_fov,
+            },
+            "lighting": {
+                "key_direction": [scene.key_light_direction.x, scene.key_light_direction.y, scene.key_light_direction.z],
+                "key_color": scene.key_light_color,
+                "key_intensity": scene.key_light_intensity,
+                "ambient_color": scene.ambient_color,
+            },
+            "environment_asset_id": scene.environment_asset_id,
+            "skybox_path": scene.skybox_path,
+        }
+
+        # Add instances
+        for inst_id, inst in scene.instances.items():
+            scene_dict["instances"][inst_id] = {
+                "instance_id": inst.instance_id,
+                "asset_id": inst.asset_id,
+                "transform": {
+                    "position": [inst.transform.position.x, inst.transform.position.y, inst.transform.position.z],
+                    "rotation": [inst.transform.rotation.x, inst.transform.rotation.y, inst.transform.rotation.z],
+                    "scale": [inst.transform.scale.x, inst.transform.scale.y, inst.transform.scale.z],
+                },
+                "zone_id": inst.zone_id,
+                "visible": inst.visible,
+                "opacity": inst.opacity,
+                "tint_color": inst.tint_color,
+                "entity_type": inst.entity_type,
+                "entity_id": inst.entity_id,
+            }
+
+        # Add asset metadata
+        for asset_id, asset in scene.assets.items():
+            scene_dict["assets"][asset_id] = {
+                "id": asset.id,
+                "name": asset.name,
+                "asset_type": asset.asset_type,
+                "ply_path": asset.ply_path,
+                "gaussian_count": asset.gaussian_count,
+                "file_size_mb": asset.file_size_mb,
+                "semantic_tags": asset.semantic_tags,
+                "noodling_id": asset.noodling_id,
+                "visual_form": asset.visual_form,
+            }
+
+        return json.dumps(scene_dict, indent=indent)
+    except Exception as e:
+        logger.error(f"[Gaussian] Failed to serialize scene: {e}")
+        return None
+
+
+def get_gaussian_asset_manager() -> Optional['GaussianAssetManager']:
+    """Get the Gaussian asset manager for direct asset operations."""
+    if GAUSSIAN_ADAPTER_AVAILABLE:
+        return get_asset_manager()
+    return None
+
+
+def get_gaussian_compositor() -> Optional['GaussianSceneCompositor']:
+    """Get the Gaussian scene compositor for custom composition."""
+    if GAUSSIAN_ADAPTER_AVAILABLE:
+        return get_compositor()
+    return None
+
+
+def get_gaussian_generator() -> Optional['GaussianGenerator']:
+    """Get the Gaussian generator for asset generation."""
+    if GAUSSIAN_ADAPTER_AVAILABLE:
+        return get_generator()
+    return None
+
+
+# =============================================================================
+# Semantic Query Integration (CLIP natural language queries)
+# =============================================================================
+
+def init_semantic_query_engine() -> bool:
+    """
+    Initialize the semantic query engine for CLIP-based queries.
+
+    Call this after loading radiance assets to enable natural language
+    queries like "where is Red's left hand?"
+
+    Returns:
+        True if initialization succeeded
+    """
+    global _semantic_query_engine
+
+    if not SEMANTIC_QUERY_AVAILABLE:
+        logger.warning("[Semantic] Query engine not available - missing dependencies")
+        return False
+
+    try:
+        _semantic_query_engine = SemanticQueryEngine(auto_generate_embeddings=True)
+        logger.info("[Semantic] Query engine initialized")
+        return True
+    except Exception as e:
+        logger.error(f"[Semantic] Failed to initialize query engine: {e}")
+        return False
+
+
+def get_semantic_query_engine() -> Optional['SemanticQueryEngine']:
+    """Get the semantic query engine."""
+    return _semantic_query_engine
+
+
+def register_entity_radiance(
+    entity_id: str,
+    radiance_path: str,
+    display_name: str = "",
+    entity_type: str = "noodling"
+) -> bool:
+    """
+    Register a radiance asset for an entity.
+
+    This loads the .radiance file and registers it with the semantic
+    query engine, enabling natural language queries on its body parts.
+
+    Args:
+        entity_id: Entity identifier (e.g., "red_fire_anklebiter")
+        radiance_path: Path to .radiance file
+        display_name: Human-readable name
+        entity_type: "noodling", "prim", "environment"
+
+    Returns:
+        True if registration succeeded
+    """
+    global _entity_radiance_assets
+
+    if not SEMANTIC_QUERY_AVAILABLE:
+        return False
+
+    if not _semantic_query_engine:
+        init_semantic_query_engine()
+
+    if not _semantic_query_engine:
+        return False
+
+    try:
+        # Load radiance asset
+        asset = load_radiance(radiance_path)
+        _entity_radiance_assets[entity_id] = asset
+
+        # Register with query engine (auto-generates CLIP embeddings)
+        _semantic_query_engine.register_entity(
+            entity_id,
+            asset,
+            display_name=display_name or entity_id,
+            entity_type=entity_type
+        )
+
+        logger.info(f"[Semantic] Registered entity: {entity_id} ({asset.gaussian_count} Gaussians)")
+        return True
+
+    except Exception as e:
+        logger.error(f"[Semantic] Failed to register {entity_id}: {e}")
+        return False
+
+
+def query_scene_semantic(query: str, top_k: int = 5) -> Optional[Dict[str, Any]]:
+    """
+    Query the scene using natural language.
+
+    Examples:
+        - "Red's left hand" -> finds Red's left hand Gaussians
+        - "the chair" -> finds chair prims
+        - "head" -> finds all head body parts
+
+    Args:
+        query: Natural language query
+        top_k: Number of results to return
+
+    Returns:
+        Dict with matches: [{"entity_id", "body_part", "similarity", "position"}, ...]
+    """
+    if not _semantic_query_engine:
+        return None
+
+    try:
+        result = _semantic_query_engine.query_text(query, top_k=top_k)
+
+        return {
+            "query": result.query,
+            "search_time_ms": result.search_time_ms,
+            "matches": [
+                {
+                    "entity_id": m.entity_id,
+                    "body_part": m.body_part,
+                    "similarity": m.similarity,
+                    "position": list(m.position) if m.position else None,
+                }
+                for m in result.matches
+            ]
+        }
+    except Exception as e:
+        logger.error(f"[Semantic] Query failed: {e}")
+        return None
+
+
+def raycast_scene(
+    ray_origin: List[float],
+    ray_direction: List[float]
+) -> Optional[Dict[str, Any]]:
+    """
+    Raycast into the scene and return what was hit.
+
+    Used for click-to-inspect in UI.
+
+    Args:
+        ray_origin: [x, y, z] ray start
+        ray_direction: [x, y, z] ray direction (normalized)
+
+    Returns:
+        Dict with hit info: {"hit", "entity_id", "body_part", "position", ...}
+    """
+    if not _semantic_query_engine:
+        return None
+
+    try:
+        import numpy as np
+        origin = np.array(ray_origin, dtype=np.float32)
+        direction = np.array(ray_direction, dtype=np.float32)
+
+        hit = _semantic_query_engine.raycast(origin, direction)
+
+        if hit and hit.hit:
+            return {
+                "hit": True,
+                "entity_id": hit.entity_id,
+                "body_part": hit.body_part,
+                "body_region": hit.body_region,
+                "position": list(hit.position),
+                "distance": hit.distance,
+                "gaussian_index": hit.gaussian_index,
+            }
+        else:
+            return {"hit": False}
+
+    except Exception as e:
+        logger.error(f"[Semantic] Raycast failed: {e}")
+        return {"hit": False, "error": str(e)}
+
+
+def get_entity_visible_body_parts(
+    perceiver_id: str,
+    target_id: str,
+    perceiver_pos: Optional[List[float]] = None,
+    perceiver_facing: Optional[List[float]] = None,
+    fov: float = 120.0
+) -> List[str]:
+    """
+    Get which body parts of target_id are visible to perceiver_id.
+
+    Uses Gaussian positions and perceiver FOV to determine visibility.
+
+    Args:
+        perceiver_id: Who is looking
+        target_id: Who is being looked at
+        perceiver_pos: Override position (uses scene state if None)
+        perceiver_facing: Override facing (uses scene state if None)
+        fov: Field of view in degrees
+
+    Returns:
+        List of visible body part labels
+    """
+    if target_id not in _entity_radiance_assets:
+        return []
+
+    if not _scene_state_manager:
+        return []
+
+    try:
+        import numpy as np
+        import math
+
+        # Get perceiver position/facing from scene state
+        if perceiver_pos is None or perceiver_facing is None:
+            perceiver = _scene_state_manager.noodlings.get(perceiver_id)
+            if not perceiver:
+                perceiver = _scene_state_manager.players.get(perceiver_id)
+            if not perceiver:
+                return []
+
+            perceiver_pos = [perceiver.position.x, perceiver.position.y, perceiver.position.z]
+            perceiver_facing = [perceiver.facing.x, perceiver.facing.y, perceiver.facing.z]
+
+        perceiver_pos = np.array(perceiver_pos, dtype=np.float32)
+        perceiver_facing = np.array(perceiver_facing, dtype=np.float32)
+        perceiver_facing = perceiver_facing / (np.linalg.norm(perceiver_facing) + 1e-8)
+
+        # Get target radiance asset
+        asset = _entity_radiance_assets[target_id]
+        if asset.positions is None or not asset.semantic_labels:
+            return []
+
+        # Get unique visible labels
+        visible_labels = set()
+        half_fov_rad = math.radians(fov / 2)
+
+        for i in range(asset.gaussian_count):
+            pos = asset.positions[i]
+            label = asset.semantic_labels[i] if i < len(asset.semantic_labels) else ""
+
+            if not label:
+                continue
+
+            # Direction to Gaussian
+            to_gaussian = pos - perceiver_pos
+            distance = np.linalg.norm(to_gaussian)
+            if distance < 0.01:
+                continue
+
+            to_gaussian_norm = to_gaussian / distance
+
+            # Angle check
+            dot = np.dot(perceiver_facing, to_gaussian_norm)
+            angle = math.acos(max(-1, min(1, dot)))
+
+            if angle <= half_fov_rad:
+                visible_labels.add(label)
+
+        return list(visible_labels)
+
+    except Exception as e:
+        logger.error(f"[Semantic] Failed to get visible body parts: {e}")
+        return []
+
+
+def get_entity_radiance_asset(entity_id: str) -> Optional['RadianceAsset']:
+    """Get the RadianceAsset for an entity if registered."""
+    return _entity_radiance_assets.get(entity_id)
+
+
+# =============================================================================
 # Exports
 # =============================================================================
 
 __all__ = [
     # Availability check
     "SCENE_PROTOCOL_AVAILABLE",
+    "GAUSSIAN_ADAPTER_AVAILABLE",
+    "SEMANTIC_QUERY_AVAILABLE",
 
     # Global state
     "get_scene_state_manager",
@@ -504,4 +979,21 @@ __all__ = [
     # Export
     "get_scene_packet_json",
     "get_scene_packet_text",
+
+    # Gaussian Scene Composition
+    "init_gaussian_scene_integration",
+    "compose_gaussian_scene",
+    "get_gaussian_scene_json",
+    "get_gaussian_asset_manager",
+    "get_gaussian_compositor",
+    "get_gaussian_generator",
+
+    # Semantic Query (CLIP natural language)
+    "init_semantic_query_engine",
+    "get_semantic_query_engine",
+    "register_entity_radiance",
+    "query_scene_semantic",
+    "raycast_scene",
+    "get_entity_visible_body_parts",
+    "get_entity_radiance_asset",
 ]

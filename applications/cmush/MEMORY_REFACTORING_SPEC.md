@@ -26,7 +26,7 @@ This spec defines complete refactoring to activate the existing sophisticated me
 ### What's Running (agent_bridge.py)
 
 ```python
-class CMUSHConsilienceAgent:
+class CMUSHNoodlingAgent:
     def __init__(...):
         self.conversation_context = []  # Simple Python list
 
@@ -82,7 +82,7 @@ class HierarchicalMemory:
 
 **1. Conscious Episodic Memory**
 ```python
-class CMUSHConsilienceAgent:
+class CMUSHNoodlingAgent:
     def __init__(...):
         self.hierarchical_memory = HierarchicalMemory(
             working_capacity=20,      # Last 20 interactions
@@ -93,7 +93,7 @@ class CMUSHConsilienceAgent:
 
 **2. Subconscious Symbolic Memory** (NEW)
 ```python
-class CMUSHConsilienceAgent:
+class CMUSHNoodlingAgent:
     def __init__(...):
         self.symbolic_memory = SubconsciousMemory(
             capacity=100,             # 100 symbolic encodings

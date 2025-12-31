@@ -9,7 +9,7 @@ import webbrowser
 from pathlib import Path
 from typing import Optional
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QIcon
@@ -63,7 +63,7 @@ class LoginDialog(QDialog):
         layout.addSpacing(16)
 
         # Google button
-        self.google_btn = QPushButton("Continue with Google")
+        self.google_btn = QPushButton("Sign in with Google")
         self.google_btn.setMinimumHeight(44)
         self.google_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.google_btn.setStyleSheet("""
@@ -86,7 +86,7 @@ class LoginDialog(QDialog):
         layout.addWidget(self.google_btn)
 
         # GitHub button
-        self.github_btn = QPushButton("Continue with GitHub")
+        self.github_btn = QPushButton("Sign in with GitHub")
         self.github_btn.setMinimumHeight(44)
         self.github_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.github_btn.setStyleSheet("""
@@ -109,7 +109,7 @@ class LoginDialog(QDialog):
         layout.addWidget(self.github_btn)
 
         # Apple button
-        self.apple_btn = QPushButton("Continue with Apple")
+        self.apple_btn = QPushButton("Sign in with Apple")
         self.apple_btn.setMinimumHeight(44)
         self.apple_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.apple_btn.setStyleSheet("""
@@ -132,7 +132,7 @@ class LoginDialog(QDialog):
         layout.addWidget(self.apple_btn)
 
         # Facebook button
-        self.facebook_btn = QPushButton("Continue with Facebook")
+        self.facebook_btn = QPushButton("Sign in with Facebook")
         self.facebook_btn.setMinimumHeight(44)
         self.facebook_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.facebook_btn.setStyleSheet("""
@@ -272,46 +272,6 @@ class AccountInfoDialog(QDialog):
         layout.addSpacing(24)
 
         # Credits section
-        credits_frame = QFrame()
-        credits_frame.setStyleSheet("""
-            QFrame {
-                background-color: #333;
-                border-radius: 8px;
-                padding: 16px;
-            }
-        """)
-        credits_layout = QVBoxLayout(credits_frame)
-
-        credits_title = QLabel("Credits Balance")
-        credits_title.setStyleSheet("color: #888; font-size: 12px;")
-        credits_layout.addWidget(credits_title)
-
-        credits_value = QLabel(f"{user.credits_balance:,}")
-        credits_value.setFont(QFont("SF Pro Display", 32, QFont.Weight.Bold))
-        credits_value.setStyleSheet("color: #76AF6A;")
-        credits_layout.addWidget(credits_value)
-
-        layout.addWidget(credits_frame)
-
-        # Buy credits button
-        buy_btn = QPushButton("Buy Credits")
-        buy_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #76AF6A;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 12px 24px;
-                font-size: 14px;
-                font-weight: 500;
-            }
-            QPushButton:hover {
-                background-color: #8BC37E;
-            }
-        """)
-        buy_btn.clicked.connect(self._buy_credits)
-        layout.addWidget(buy_btn)
-
         layout.addStretch()
 
         # Linked providers

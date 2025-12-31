@@ -50,7 +50,7 @@ agent:
    - Added `intuition_receiver` configuration
 
 2. **agent_bridge.py**
-   - Added `world` parameter to `CMUSHConsilienceAgent.__init__()`
+   - Added `world` parameter to `CMUSHNoodlingAgent.__init__()`
    - Added `_generate_intuition()` method
    - Integrated intuition generation in `perceive_event()`
    - Updated `AgentManager.create_agent()` to pass world reference

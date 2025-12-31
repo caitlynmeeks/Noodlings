@@ -7,7 +7,7 @@ Uses base Phase 4 architecture WITHOUT observer loops.
 Observers were removed after rigorous scientific testing showed
 they provide zero benefit (November 2025).
 
-Author: Noodlings Project
+Author: Caitlyn Meeks
 Date: November 2025
 """
 
@@ -32,7 +32,7 @@ class NoodlingAgent:
     """
     Noodlings API supporting Phase 4 (social cognition) and Phase 6 (appetites).
 
-    Provides hierarchical affective consciousness with:
+    Provides hierarchical affective charm with:
     - Multi-timescale predictive processing (fast/medium/slow)
     - Theory of Mind & social cognition
     - Episodic & semantic memory
@@ -540,5 +540,5 @@ class NoodlingAgent:
         self.model.appetite_layer.clear_goal_overrides(goal_name)
 
 
-# Alias for backward compatibility
+# DEPRECATED: Alias for backward compatibility - use NoodlingAgent instead
 ConsilienceAgent = NoodlingAgent

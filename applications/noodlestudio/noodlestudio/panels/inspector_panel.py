@@ -9,16 +9,24 @@ Shows and edits ALL properties of selected entity:
 
 Every atom of noodleMUSH exposed and editable!
 
+REFACTORED: Uses mixins for maintainability:
+- InspectorBaseMixin: Common utilities (create_property_group, add_text_field, etc.)
+- EntityInspectorMixin: Entity inspection (noodling, zone, prop, etc.)
+- AssetInspectorMixin: Asset panel inspection
+- NeuralInspectorMixin: Neural canvas node inspection
+
 Author: Caitlyn + Claude
 Date: November 17, 2025
+Refactored: December 30, 2025
 """
 
 from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QFormLayout, QHBoxLayout,
                              QLabel, QLineEdit, QTextEdit, QPushButton, QScrollArea,
                              QSpinBox, QDoubleSpinBox, QGroupBox, QProgressBar, QListWidget,
                              QFileDialog, QListWidgetItem, QApplication)
-from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QSize
+from PyQt6.QtCore import Qt, pyqtSlot, pyqtSignal, QTimer, QSize
 from PyQt6.QtGui import QFont, QPixmap, QIcon, QFontMetrics
+import os
 import requests
 import yaml
 from pathlib import Path
@@ -31,62 +39,35 @@ from ..core.property_binding import PropertyBindingManager, PropertyMeta, proper
 from ..core.undo_manager import UndoManager
 from ..core.commands.neural_commands import EditNeuralNodeParamCommand, RenameNeuralNodeCommand
 
-
-class ClickableTextEdit(QTextEdit):
-    """QTextEdit that opens floating editor on Cmd+Click."""
-
-    def __init__(self, field_name: str, on_apply_callback, parent=None):
-        super().__init__(parent)
-        self.field_name = field_name
-        self.on_apply_callback = on_apply_callback
-        self.floating_editor = None
-
-    def mousePressEvent(self, event):
-        """Detect Cmd+Click to open floating editor."""
-        if event.button() == Qt.MouseButton.LeftButton:
-            # Check for Cmd (macOS) or Ctrl (other platforms)
-            modifiers = event.modifiers()
-            if modifiers & Qt.KeyboardModifier.MetaModifier or modifiers & Qt.KeyboardModifier.ControlModifier:
-                # Cmd/Ctrl + Click - open floating editor
-                self.open_floating_editor()
-                return
-
-        # Normal click behavior
-        super().mousePressEvent(event)
-
-    def open_floating_editor(self):
-        """Open floating text editor for this field."""
-        if self.floating_editor and self.floating_editor.isVisible():
-            self.floating_editor.raise_()
-            self.floating_editor.activateWindow()
-            return
-
-        # Create floating editor
-        self.floating_editor = FloatingTextEditor(
-            field_name=self.field_name,
-            field_key=self.field_name,
-            initial_value=self.toPlainText(),
-            read_only=self.isReadOnly(),
-            parent=self.window()
-        )
-
-        # Connect apply signal
-        def on_text_applied(key, value):
-            self.setPlainText(value)
-            if self.on_apply_callback:
-                self.on_apply_callback(value)
-
-        self.floating_editor.textApplied.connect(on_text_applied)
-        self.floating_editor.show()
+# Import mixins
+from .inspector_base import InspectorBaseMixin, ClickableTextEdit
+from .inspector_entity import EntityInspectorMixin
+from .inspector_asset import AssetInspectorMixin
+from .inspector_neural import NeuralInspectorMixin
 
 
-class InspectorPanel(QWidget):
+class InspectorPanel(
+    InspectorBaseMixin,
+    EntityInspectorMixin,
+    AssetInspectorMixin,
+    NeuralInspectorMixin,
+    QWidget
+):
     """
     Component-based Inspector panel.
 
     Shows editable properties for selected entity.
     Every field is live-editable with instant save!
+
+    Inherits from mixins for modular code organization:
+    - InspectorBaseMixin: UI utilities
+    - EntityInspectorMixin: Entity loading
+    - AssetInspectorMixin: Asset loading
+    - NeuralInspectorMixin: Neural canvas node loading
     """
+
+    # Signal emitted when entity name is changed (entity_type, entity_id, new_name)
+    nameChanged = pyqtSignal(str, str, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -164,9 +145,6 @@ class InspectorPanel(QWidget):
 
     def clear_inspector(self):
         """Clear inspector when nothing is selected."""
-        print("[Inspector] clear_inspector() called")
-        import traceback
-        print(''.join(traceback.format_stack()[-5:]))
 
         self.current_entity = None
         self.current_agent_id = None
@@ -184,13 +162,15 @@ class InspectorPanel(QWidget):
 
         self.component_widgets.clear()
 
+    # ========== FACET LOADING (kept inline - complex interdependencies) ==========
+
     def load_facet(self, facet):
         """
         Load and display facet properties for editing.
 
         NEW BEHAVIOR (Dropdown Model):
-        - If agent loaded → Sync dropdown to selected facet
-        - If facet is None → Reset dropdown to "(none)"
+        - If agent loaded -> Sync dropdown to selected facet
+        - If facet is None -> Reset dropdown to "(none)"
         - Agent basics always stay visible
         - NEVER rebuild inspector if agent already loaded
 
@@ -468,371 +448,7 @@ class InspectorPanel(QWidget):
         )
         undo_manager.push(cmd)
 
-    # === Widget Factory Methods ===
-
-    def create_bound_spinbox(
-        self,
-        obj,
-        property_name: str,
-        minimum: int = 0,
-        maximum: int = 100,
-        display_name: str = None,
-        **kwargs
-    ) -> QSpinBox:
-        """
-        Create a QSpinBox bound to a property with automatic undo.
-
-        Args:
-            obj: Object containing the property
-            property_name: Name of property to bind
-            minimum: Minimum value
-            maximum: Maximum value
-            display_name: Label for undo text
-            **kwargs: Additional spinbox config
-
-        Returns:
-            Bound QSpinBox widget
-        """
-        widget = QSpinBox()
-        widget.setRange(minimum, maximum)
-        for key, val in kwargs.items():
-            if hasattr(widget, f'set{key.title()}'):
-                getattr(widget, f'set{key.title()}')(val)
-
-        # Set initial value
-        value = getattr(obj, property_name, 0) or 0
-        widget.setValue(value)
-
-        # Create binding
-        self._binding_manager.create_binding(
-            widget, obj, property_name,
-            display_name=display_name
-        )
-
-        return widget
-
-    def create_bound_double_spinbox(
-        self,
-        obj,
-        property_name: str,
-        minimum: float = 0.0,
-        maximum: float = 1.0,
-        step: float = 0.1,
-        decimals: int = 2,
-        display_name: str = None,
-        **kwargs
-    ) -> QDoubleSpinBox:
-        """
-        Create a QDoubleSpinBox bound to a property with automatic undo.
-
-        Args:
-            obj: Object containing the property
-            property_name: Name of property to bind
-            minimum: Minimum value
-            maximum: Maximum value
-            step: Single step value
-            decimals: Number of decimal places
-            display_name: Label for undo text
-
-        Returns:
-            Bound QDoubleSpinBox widget
-        """
-        widget = QDoubleSpinBox()
-        widget.setRange(minimum, maximum)
-        widget.setSingleStep(step)
-        widget.setDecimals(decimals)
-
-        # Set initial value
-        value = getattr(obj, property_name, 0.0) or 0.0
-        widget.setValue(value)
-
-        # Create binding
-        self._binding_manager.create_binding(
-            widget, obj, property_name,
-            display_name=display_name
-        )
-
-        return widget
-
-    def create_bound_combobox(
-        self,
-        obj,
-        property_name: str,
-        choices: list,
-        display_name: str = None,
-        transform_to_model=None,
-        transform_from_model=None,
-        **kwargs
-    ):
-        """
-        Create a QComboBox bound to a property with automatic undo.
-
-        Args:
-            obj: Object containing the property
-            property_name: Name of property to bind
-            choices: List of valid choices
-            display_name: Label for undo text
-            transform_to_model: Transform combo text to model value
-            transform_from_model: Transform model value to combo text
-
-        Returns:
-            Bound QComboBox widget
-        """
-        from PyQt6.QtWidgets import QComboBox
-
-        widget = QComboBox()
-        widget.addItems(choices)
-
-        # Set initial value
-        value = getattr(obj, property_name, None)
-        if value:
-            if transform_from_model:
-                value = transform_from_model(value)
-            index = widget.findText(str(value))
-            if index >= 0:
-                widget.setCurrentIndex(index)
-
-        # Create binding
-        self._binding_manager.create_binding(
-            widget, obj, property_name,
-            display_name=display_name,
-            transform_to_model=transform_to_model,
-            transform_from_model=transform_from_model
-        )
-
-        return widget
-
-    def create_bound_textedit(
-        self,
-        obj,
-        property_name: str,
-        max_height: int = 150,
-        display_name: str = None,
-        code_language: str = None,
-        **kwargs
-    ):
-        """
-        Create a text editor bound to a property with automatic undo.
-
-        Supports Cmd+Click floating editor for prompts and code.
-
-        Args:
-            obj: Object containing the property
-            property_name: Name of property to bind
-            max_height: Maximum widget height
-            display_name: Label for undo text
-            code_language: If set, style as code editor
-
-        Returns:
-            Bound ClickableTextEdit widget
-        """
-        obj_name = getattr(obj, 'name', '') or ''
-        field_name = f"{obj_name} - {display_name or property_name}"
-
-        # Create with floating editor callback that uses binding
-        widget = ClickableTextEdit(
-            field_name=field_name,
-            on_apply_callback=None  # Will be set after binding
-        )
-
-        # Set initial value
-        value = getattr(obj, property_name, '') or ''
-        widget.setPlainText(value)
-        widget.setMaximumHeight(max_height)
-
-        # Style based on code language
-        if code_language:
-            widget.setStyleSheet(
-                "background-color: #1E1E1E; color: #D2D2D2; "
-                "padding: 4px; font-family: 'Courier New';"
-            )
-        else:
-            widget.setStyleSheet(
-                "background-color: #1E1E1E; color: #D2D2D2; padding: 4px;"
-            )
-
-        # Create binding
-        binding = self._binding_manager.create_binding(
-            widget, obj, property_name,
-            display_name=display_name
-        )
-
-        # Connect floating editor to binding (applies through widget → binding)
-        widget.on_apply_callback = lambda text: widget.setPlainText(text)
-
-        return widget
-
-    def create_bound_checkbox(
-        self,
-        obj,
-        property_name: str,
-        display_name: str = None,
-        **kwargs
-    ):
-        """
-        Create a QCheckBox bound to a property with automatic undo.
-
-        Args:
-            obj: Object containing the property
-            property_name: Name of property to bind
-            display_name: Label for undo text
-
-        Returns:
-            Bound QCheckBox widget
-        """
-        from PyQt6.QtWidgets import QCheckBox
-
-        widget = QCheckBox()
-
-        # Set initial value
-        value = getattr(obj, property_name, False)
-        widget.setChecked(bool(value))
-
-        # Create binding
-        self._binding_manager.create_binding(
-            widget, obj, property_name,
-            display_name=display_name
-        )
-
-        return widget
-
-    def create_bound_lineedit(
-        self,
-        obj,
-        property_name: str,
-        display_name: str = None,
-        placeholder: str = "",
-        **kwargs
-    ):
-        """
-        Create a QLineEdit bound to a property with automatic undo.
-
-        Args:
-            obj: Object containing the property
-            property_name: Name of property to bind
-            display_name: Label for undo text
-            placeholder: Placeholder text
-
-        Returns:
-            Bound QLineEdit widget
-        """
-        widget = QLineEdit()
-        if placeholder:
-            widget.setPlaceholderText(placeholder)
-
-        # Set initial value
-        value = getattr(obj, property_name, '') or ''
-        widget.setText(str(value))
-
-        # Create binding
-        self._binding_manager.create_binding(
-            widget, obj, property_name,
-            display_name=display_name
-        )
-
-        return widget
-
-    def create_widget_for_property(self, obj, meta: PropertyMeta):
-        """
-        Create appropriate widget for a property based on its metadata.
-
-        This is the main factory method for auto-generating Inspector UI
-        from property metadata. Scripted components can use this to get
-        automatic undo support.
-
-        Args:
-            obj: Object containing the property
-            meta: PropertyMeta describing the property
-
-        Returns:
-            Bound widget appropriate for the property type
-        """
-        if meta.choices:
-            return self.create_bound_combobox(
-                obj, meta.name,
-                choices=meta.choices,
-                display_name=meta.display_name
-            )
-        elif meta.prop_type == bool:
-            return self.create_bound_checkbox(
-                obj, meta.name,
-                display_name=meta.display_name
-            )
-        elif meta.prop_type == int:
-            return self.create_bound_spinbox(
-                obj, meta.name,
-                minimum=int(meta.minimum or 0),
-                maximum=int(meta.maximum or 9999),
-                display_name=meta.display_name
-            )
-        elif meta.prop_type == float:
-            return self.create_bound_double_spinbox(
-                obj, meta.name,
-                minimum=meta.minimum or 0.0,
-                maximum=meta.maximum or 1.0,
-                step=meta.step or 0.1,
-                display_name=meta.display_name
-            )
-        elif meta.prop_type == str:
-            if meta.multiline or meta.code_language:
-                return self.create_bound_textedit(
-                    obj, meta.name,
-                    display_name=meta.display_name,
-                    code_language=meta.code_language
-                )
-            else:
-                return self.create_bound_lineedit(
-                    obj, meta.name,
-                    display_name=meta.display_name
-                )
-        else:
-            # Default to line edit for unknown types
-            return self.create_bound_lineedit(
-                obj, meta.name,
-                display_name=meta.display_name
-            )
-
-    def build_inspector_for_object(self, obj, layout, include_base: bool = False):
-        """
-        Auto-generate Inspector widgets for an object with editable properties.
-
-        Uses the PropertyRegistry to look up editable properties for the object's
-        type. Works with:
-        - Built-in facet types (LLMFacet, ScriptedFacet, etc.)
-        - Dynamically registered types from scripts
-        - Any class with _editable_properties attribute
-
-        Args:
-            obj: Object to inspect
-            layout: QFormLayout to add widgets to
-            include_base: If True, include base properties (name, enabled, locked)
-
-        Returns:
-            True if properties were added, False if none found
-        """
-        # First try the PropertyRegistry
-        editable = property_registry.get_properties_for(obj)
-
-        # Fall back to class attribute if registry has nothing
-        if not editable:
-            editable = getattr(obj.__class__, '_editable_properties', None)
-
-        if not editable:
-            return False
-
-        # Filter out base properties unless requested
-        if not include_base:
-            base_props = {'name', 'enabled', 'locked'}
-            editable = {k: v for k, v in editable.items() if k not in base_props}
-
-        if not editable:
-            return False
-
-        for prop_name, meta in editable.items():
-            widget = self.create_widget_for_property(obj, meta)
-            layout.addRow(f"{meta.display_name}:", widget)
-
-        return True
+    # ========== FACET DROPDOWN SYSTEM ==========
 
     def _get_agent_assembly(self, agent_id: str, agent_data: dict):
         """
@@ -887,12 +503,12 @@ class InspectorPanel(QWidget):
                 print(f"[Inspector] FALLBACK exists? {os.path.exists(assembly_path)}")
 
             if not os.path.exists(assembly_path):
-                print(f"[Inspector] ❌ RETURNING NONE - No facet assembly found for '{facet_assembly_ref}'")
+                print(f"[Inspector] No facet assembly found for '{facet_assembly_ref}'")
                 return None
 
-            print(f"[Inspector] ✅ Loading assembly from: {assembly_path}")
+            print(f"[Inspector] Loading assembly from: {assembly_path}")
             assembly = FacetAssembly.load_yaml(str(assembly_path))
-            print(f"[Inspector] ✅ SUCCESS - Loaded assembly '{assembly.name}' with {len(assembly.facets)} facets")
+            print(f"[Inspector] SUCCESS - Loaded assembly '{assembly.name}' with {len(assembly.facets)} facets")
             return assembly
 
         except Exception as e:
@@ -915,45 +531,34 @@ class InspectorPanel(QWidget):
         from PyQt6.QtWidgets import QFrame, QComboBox
 
         print(f"[Inspector] _add_facet_dropdown_selector called for agent: {agent_id}")
-        print(f"[Inspector] agent_data keys: {agent_data.keys() if isinstance(agent_data, dict) else 'NOT A DICT'}")
 
         # Load agent's facet assembly
         assembly = self._get_agent_assembly(agent_id, agent_data)
         if not assembly:
             print(f"[Inspector] ERROR: No assembly loaded, cannot create facet dropdown")
-            print(f"[Inspector] Returning early - facet dropdown will NOT be created")
             return
 
-        print(f"[Inspector] ✅ Assembly loaded: {assembly.name} with {len(assembly.facets)} facets")
-        print(f"[Inspector] About to add separator and dropdown widgets...")
+        print(f"[Inspector] Assembly loaded: {assembly.name} with {len(assembly.facets)} facets")
 
         # Store assembly reference for dropdown updates
         self.current_assembly = assembly
 
         # Add separator
-        print(f"[Inspector] Creating separator...")
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
         separator.setStyleSheet("background-color: #555555; max-height: 2px;")
         self.properties_layout.addWidget(separator)
-        print(f"[Inspector] ✅ Separator added to layout")
 
         # Facet selector section
-        print(f"[Inspector] Creating facet selector group...")
         facet_selector_group = self.create_property_group("Facet")
-        print(f"[Inspector] ✅ Facet selector group created")
 
         # Dropdown with facet names
-        print(f"[Inspector] Creating dropdown with {len(assembly.facets)} facets...")
         self.facet_dropdown = QComboBox()
         self.facet_dropdown.addItem("(none)", None)  # Default empty selection
 
         for facet in assembly.facets:
             self.facet_dropdown.addItem(facet.name, facet.id)
-            print(f"[Inspector]   - Added facet: {facet.name}")
-
-        print(f"[Inspector] ✅ Dropdown created with {self.facet_dropdown.count()} items")
 
         self.facet_dropdown.setStyleSheet("""
             QComboBox {
@@ -998,36 +603,23 @@ class InspectorPanel(QWidget):
                 facet = next((f for f in assembly.facets if f.id == facet_id), None)
                 if facet:
                     # Defer UI rebuild to allow selection highlight to paint first
-                    # This prevents the 0.5-1s lag when clicking facets in the graph
-                    from PyQt6.QtCore import QTimer
                     QTimer.singleShot(0, lambda: self._load_facet_properties_inline(facet))
             else:
                 # Clear facet properties
                 self._clear_facet_properties_inline()
 
-        print(f"[Inspector] Connecting dropdown signal...")
         self.facet_dropdown.currentIndexChanged.connect(on_facet_dropdown_changed)
-        print(f"[Inspector] Adding dropdown to facet_selector_group...")
         facet_selector_group.content.layout().addRow("Select:", self.facet_dropdown)
-        print(f"[Inspector] ✅ Dropdown added to group")
 
-        print(f"[Inspector] Adding facet_selector_group to properties_layout...")
         self.properties_layout.addWidget(facet_selector_group)
-        print(f"[Inspector] ✅ facet_selector_group added to layout")
 
         # Container for facet properties (populated when dropdown changes)
-        print(f"[Inspector] Creating facet_properties_container...")
         self.facet_properties_container = QWidget()
         self.facet_properties_layout = QVBoxLayout(self.facet_properties_container)
         self.facet_properties_layout.setContentsMargins(0, 0, 0, 0)
-        print(f"[Inspector] Adding facet_properties_container to layout...")
         self.properties_layout.addWidget(self.facet_properties_container)
-        print(f"[Inspector] ✅ facet_properties_container added to layout")
 
-        print(f"[Inspector] ✅✅✅ FACET DROPDOWN SETUP COMPLETE ✅✅✅")
-        print(f"[Inspector] Total items in dropdown: {self.facet_dropdown.count()}")
-        print(f"[Inspector] facet_dropdown exists: {hasattr(self, 'facet_dropdown')}")
-        print(f"[Inspector] Properties layout widget count: {self.properties_layout.count()}")
+        print(f"[Inspector] FACET DROPDOWN SETUP COMPLETE")
 
     def _load_facet_properties_inline(self, facet):
         """Load facet properties into the inline container (below dropdown)."""
@@ -1334,93 +926,7 @@ class InspectorPanel(QWidget):
         except Exception as e:
             print(f"[Inspector] Error clearing facet properties: {e}")
 
-    def _add_facets_section(self, agent_id: str, agent_data: dict):
-        """
-        Add FACETS section showing all facets as collapsible sections.
-
-        This creates the Unity component-style list where each facet
-        is a collapsible section that can be expanded to edit properties.
-
-        Args:
-            agent_id: Agent ID (UUID)
-            agent_data: Agent data dict with 'name' field
-        """
-        from PyQt6.QtWidgets import QFrame
-
-        # Load the agent's facet assembly
-        assembly = self._get_agent_assembly(agent_id, agent_data)
-        if not assembly:
-            return
-
-        # Add horizontal separator
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setStyleSheet("background-color: #555555; max-height: 2px;")
-        self.properties_layout.addWidget(separator)
-
-        # Add "FACETS" header label
-        facets_header = QLabel("FACETS")
-        facets_header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        facets_header.setStyleSheet("color: #888888; padding: 8px 4px 4px 4px;")
-        self.properties_layout.addWidget(facets_header)
-
-        # Create collapsible section for each facet
-        for facet in assembly.facets:
-            facet_section = self._create_facet_section(facet, agent_id)
-            self.properties_layout.addWidget(facet_section)
-
-    def _create_facet_section(self, facet, agent_id: str):
-        """
-        Create a CollapsibleSection for a single facet using PropertyBinding.
-
-        Uses the PropertyRegistry to auto-generate widgets with undo support.
-        Works with any facet type, including dynamically registered ones.
-
-        Args:
-            facet: Facet object from facet_system
-            agent_id: Agent ID for saving changes
-
-        Returns:
-            CollapsibleSection widget
-        """
-        # Create collapsible section with facet name
-        section = CollapsibleSection(facet.name)
-        section_form = QFormLayout()
-
-        # Store facet reference for later expansion
-        section.setProperty("facet_id", facet.id)
-
-        # Get properties for this facet type from registry
-        props = property_registry.get_properties(facet.facet_type, include_base=False)
-
-        if props:
-            # Auto-generate widgets with undo support
-            for prop_name, meta in props.items():
-                widget = self.create_widget_for_property(facet, meta)
-                section_form.addRow(f"{meta.display_name}:", widget)
-
-            # Add template variables hint for prompt fields
-            if 'prompt' in props:
-                vars_label = QLabel(
-                    "Variables: {incoming_data}, {observations}, "
-                    "{affect_valence:.2f}, {affect_arousal:.2f}, {affect_dominance:.2f}"
-                )
-                vars_label.setStyleSheet("color: #666666; font-size: 9px; padding: 2px;")
-                vars_label.setWordWrap(True)
-                section_form.addRow("", vars_label)
-        else:
-            # No properties registered - show type info
-            type_label = QLabel(f"Type: {facet.facet_type}")
-            type_label.setStyleSheet("color: #888888;")
-            section_form.addRow(type_label)
-
-        section.set_content_layout(section_form)
-
-        # Restore collapsed state (all start collapsed by default)
-        self._restore_collapsible_state(section)
-
-        return section
+    # ========== ENTITY LOADING DISPATCHER ==========
 
     @pyqtSlot(str, dict)
     def load_entity(self, entity_type: str, entity_data: dict):
@@ -1430,33 +936,15 @@ class InspectorPanel(QWidget):
             self.last_entity_type = entity_type
             self.last_entity_data = entity_data
 
-        # NEW BEHAVIOR (Unity Component Model):
-        # Always honor hierarchy selections - load agent with facets
-        # Facet selection just expands/collapses sections, doesn't block hierarchy
-        # (Old behavior blocked hierarchy when facet was selected)
-
         # CRITICAL: Prevent re-entrant loading (e.g., double-tap events)
         if self.is_loading:
             print(f"[DIAGNOSTIC] BLOCKING re-entrant load_entity call (is_loading=True)")
             return
 
         # Handle deselection (nothing selected)
-        # Empty string or empty dict means nothing selected
         if not entity_type or not entity_data:
             self.clear_inspector()
             return
-
-        # DIAGNOSTIC: Track ALL load_entity calls
-        import traceback
-        print(f"\n{'#'*80}")
-        print(f"[DIAGNOSTIC] load_entity() called")
-        print(f"[DIAGNOSTIC] entity_type={entity_type}, entity_id={entity_data.get('id', 'unknown')}")
-        print(f"[DIAGNOSTIC] is_saving={self.is_saving}, is_loading={self.is_loading}")
-        focused_widget = QApplication.focusWidget()
-        print(f"[DIAGNOSTIC] focused_widget={focused_widget} (type: {type(focused_widget).__name__ if focused_widget else 'None'})")
-        print(f"[DIAGNOSTIC] Call stack:")
-        print(''.join(traceback.format_stack()[-8:-1]))
-        print(f"{'#'*80}\n")
 
         # CRITICAL: Check if same entity - don't reload if it hasn't changed
         if self.current_entity:
@@ -1464,14 +952,14 @@ class InspectorPanel(QWidget):
             old_id = old_data.get('id') if old_data else None
             new_id = entity_data.get('id')
             if old_type == entity_type and old_id == new_id:
-                print(f"[DIAGNOSTIC] SKIPPING load_entity - same entity already loaded (no flash!)")
+                print(f"[DIAGNOSTIC] SKIPPING load_entity - same entity already loaded")
                 return
 
         self.current_entity = (entity_type, entity_data)
 
         # CRITICAL: Don't reload if a text widget has focus (user is editing)
+        focused_widget = QApplication.focusWidget()
         if focused_widget and (isinstance(focused_widget, QLineEdit) or isinstance(focused_widget, QTextEdit)):
-            # User is actively editing - skip reload to preserve their changes
             print(f"[DIAGNOSTIC] SKIPPING load_entity - text widget has focus")
             return
 
@@ -1479,8 +967,6 @@ class InspectorPanel(QWidget):
         if self.is_saving:
             print(f"[DIAGNOSTIC] SKIPPING load_entity - save in progress")
             return
-
-        print(f"[DIAGNOSTIC] PROCEEDING with load_entity - will destroy all widgets")
 
         # Set loading flag to prevent re-entrance
         self.is_loading = True
@@ -1538,487 +1024,15 @@ class InspectorPanel(QWidget):
                 self.entity_header.setText(asset_name)
                 self.load_radiance_properties(entity_data)
 
+            elif entity_type == 'asset':
+                # Asset from Assets panel - dispatch to sub-type handler
+                self.load_asset_properties(entity_data)
+
         finally:
             # ALWAYS clear loading flag, even on error
             self.is_loading = False
-            print(f"[DIAGNOSTIC] load_entity completed, is_loading cleared")
 
-    def load_stage_properties(self, entity_data):
-        """Show Stage properties (room metadata)."""
-        stage = entity_data.get('data', {})
-        stage_id = entity_data.get('id', '')
-
-        # Basic Info Component
-        basic_group = self.create_property_group("Basic Info")
-        self.add_text_field(basic_group, "Name", stage.get('name', ''))
-        self.add_text_field(basic_group, "Stage ID", stage_id)
-        self.properties_layout.addWidget(basic_group)
-
-        # Description Component
-        desc_group = self.create_property_group("Description")
-        desc_text = QTextEdit(stage.get('description', ''))
-        desc_text.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-        desc_text.setMaximumHeight(100)
-        desc_text.setTabChangesFocus(True)  # TAB moves focus instead of inserting tab
-        # Store reference to stage_id for auto-save
-        desc_text.setProperty("stage_id", stage_id)
-        # Auto-save on text change
-        desc_text.textChanged.connect(lambda: self.save_stage_description(desc_text))
-        # Install event filter for RETURN key handling
-        desc_text.installEventFilter(self)
-        desc_group.content.layout().addRow("Description:", desc_text)
-        self.properties_layout.addWidget(desc_group)
-
-        # Exits Component
-        exits_group = self.create_property_group("Exits")
-        exits = stage.get('exits', {})
-        if exits:
-            for direction, dest_id in exits.items():
-                exit_label = QLabel(f"{direction} → {dest_id}")
-                exit_label.setStyleSheet("color: #D2D2D2; padding: 4px;")
-                exits_group.content.layout().addRow(exit_label)
-        else:
-            no_exits = QLabel("No exits defined")
-            no_exits.setStyleSheet("color: #888; padding: 4px;")
-            exits_group.content.layout().addRow(no_exits)
-        self.properties_layout.addWidget(exits_group)
-
-        # Occupants Component (read-only)
-        occupants_group = self.create_property_group("Occupants")
-        occupants = stage.get('occupants', [])
-        if occupants:
-            for occ_id in occupants:
-                occ_label = QLabel(occ_id)
-                occ_label.setStyleSheet("color: #D2D2D2; padding: 2px;")
-                occupants_group.content.layout().addRow(occ_label)
-        else:
-            no_occ = QLabel("No occupants")
-            no_occ.setStyleSheet("color: #888; padding: 4px;")
-            occupants_group.content.layout().addRow(no_occ)
-        self.properties_layout.addWidget(occupants_group)
-
-        self.properties_layout.addStretch()
-
-    def load_zone_properties(self, zone_data):
-        """Show Zone properties from Spatial View."""
-        zone_id = zone_data.get('id', '')
-        zone_name = zone_data.get('name', zone_id)
-        file_path = zone_data.get('file_path', zone_data.get('path', ''))
-
-        # Clear property fields
-        self.property_fields = {}
-
-        # Zone Basics (Name + UUID) - similar to Noodling/Prop
-        basics_group = self.create_property_group("Zone")
-
-        # Name (editable)
-        self.property_fields['name'] = self.add_text_field(basics_group, "Name", zone_name)
-
-        # UUID (read-only) with copy button
-        display_id = zone_id
-        if len(display_id) > 20:
-            display_id = display_id[:8] + "..." + display_id[-4:]
-
-        uuid_widget = QLabel(f'<span style="color:#888888">{display_id}</span> '
-                            f'<a href="copy" style="color:#666666;text-decoration:none">[copy]</a>')
-        uuid_widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-        uuid_widget.linkActivated.connect(lambda: QApplication.clipboard().setText(zone_id))
-        uuid_widget.setToolTip(f"Full ID: {zone_id}\nClick [copy] to copy")
-        basics_group.content.layout().addRow("UUID:", uuid_widget)
-
-        self.properties_layout.addWidget(basics_group)
-
-        # Spatial Properties - compact layout
-        spatial_group = self.create_property_group("Spatial")
-        center = zone_data.get('center', [0, 0, 0])
-        self.add_vector3_field(spatial_group, "Center", center)
-
-        # Radius/Falloff on one row
-        size_row = QWidget()
-        size_layout = QHBoxLayout(size_row)
-        size_layout.setContentsMargins(0, 0, 0, 0)
-        size_layout.setSpacing(8)
-
-        radius_field = QDoubleSpinBox()
-        radius_field.setRange(0.1, 9999)
-        radius_field.setDecimals(1)
-        radius_field.setValue(float(zone_data.get('radius', 10)))
-        radius_field.setReadOnly(True)
-        radius_field.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-        radius_field.setFixedWidth(60)
-        radius_field.setStyleSheet("background-color: #1E1E1E; color: #888; border: 1px solid #3A3A3A; padding: 2px;")
-
-        falloff_field = QDoubleSpinBox()
-        falloff_field.setRange(0, 9999)
-        falloff_field.setDecimals(1)
-        falloff_field.setValue(float(zone_data.get('falloff', 5)))
-        falloff_field.setReadOnly(True)
-        falloff_field.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-        falloff_field.setFixedWidth(60)
-        falloff_field.setStyleSheet("background-color: #1E1E1E; color: #888; border: 1px solid #3A3A3A; padding: 2px;")
-
-        size_layout.addWidget(QLabel("R:"))
-        size_layout.addWidget(radius_field)
-        size_layout.addWidget(QLabel("Fall:"))
-        size_layout.addWidget(falloff_field)
-        size_layout.addStretch()
-        spatial_group.content.layout().addRow(size_row)
-
-        shape_label = QLabel(zone_data.get('shape', 'sphere'))
-        shape_label.setStyleSheet("color: #888; padding: 2px;")
-        spatial_group.content.layout().addRow("Shape:", shape_label)
-        self.properties_layout.addWidget(spatial_group)
-
-        # Description
-        desc_group = self.create_property_group("Description")
-        description = zone_data.get('description', '')
-        desc_text = QTextEdit(description)
-        desc_text.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-        desc_text.setMaximumHeight(120)
-        desc_text.setReadOnly(True)  # Read-only for now
-        desc_group.content.layout().addRow(desc_text)
-        self.properties_layout.addWidget(desc_group)
-
-        # Exits/Connections
-        exits_group = self.create_property_group("Connections")
-        exits = zone_data.get('exits', {})
-        if exits:
-            for direction, dest_id in exits.items():
-                exit_label = QLabel(f"{direction} -> {dest_id}")
-                exit_label.setStyleSheet("color: #D2D2D2; padding: 2px;")
-                exits_group.content.layout().addRow(exit_label)
-        else:
-            no_exits = QLabel("No connections")
-            no_exits.setStyleSheet("color: #888; padding: 4px;")
-            exits_group.content.layout().addRow(no_exits)
-        self.properties_layout.addWidget(exits_group)
-
-        # Perception
-        perception = zone_data.get('perception', {})
-        if perception:
-            perc_group = self.create_property_group("Perception")
-            self.add_text_field(perc_group, "Visibility", str(perception.get('visibility', 20)))
-            self.add_text_field(perc_group, "Audibility", str(perception.get('audibility', 20)))
-            self.add_text_field(perc_group, "Lighting", str(perception.get('lighting', 'natural')))
-            self.properties_layout.addWidget(perc_group)
-
-        # Ambient
-        ambient = zone_data.get('ambient', {})
-        if ambient:
-            amb_group = self.create_property_group("Ambient")
-            sounds = ambient.get('sounds', [])
-            self.add_text_field(amb_group, "Sounds", ', '.join(sounds) if sounds else '(none)')
-            self.add_text_field(amb_group, "Mood", str(ambient.get('mood', 'neutral')))
-            self.add_text_field(amb_group, "Temperature", str(ambient.get('temperature', 'pleasant')))
-            self.properties_layout.addWidget(amb_group)
-
-        # File Info
-        if file_path:
-            file_group = self.create_property_group("File")
-            file_label = QLabel(file_path)
-            file_label.setStyleSheet("color: #888; font-size: 10px; padding: 4px;")
-            file_label.setWordWrap(True)
-            file_group.content.layout().addRow(file_label)
-            self.properties_layout.addWidget(file_group)
-
-        self.properties_layout.addStretch()
-
-    def load_neural_node_properties(self, entity_data):
-        """
-        Show Neural Canvas node properties for editing.
-
-        Allows editing node params including comment text.
-        Changes are synced back to the canvas graph.
-        """
-        node_id = entity_data.get('id', '')
-        node_type = entity_data.get('type', 'UNKNOWN')
-        node_name = entity_data.get('name', 'Unknown')
-        params = entity_data.get('params', {})
-        weights = entity_data.get('weights', {})
-        inputs = entity_data.get('inputs', {})
-        outputs = entity_data.get('outputs', {})
-        position = entity_data.get('position', (0, 0))
-        description = entity_data.get('description', '')
-
-        # Store node_id for save operations
-        self._current_neural_node_id = node_id
-
-        # Track param widgets for live updates from canvas
-        self._neural_node_param_widgets = {}
-
-        # Basic Info Component
-        basic_group = self.create_property_group("Basic Info")
-
-        # Name (editable)
-        name_field = QLineEdit(node_name)
-        name_field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-        name_field.editingFinished.connect(lambda: self._save_neural_node_field('name', name_field.text()))
-        basic_group.content.layout().addRow("Name:", name_field)
-
-        # Type (read-only)
-        type_label = QLabel(node_type)
-        type_label.setStyleSheet("color: #888; padding: 4px;")
-        basic_group.content.layout().addRow("Type:", type_label)
-
-        # ID (read-only)
-        id_label = QLabel(node_id[:16] + "..." if len(node_id) > 16 else node_id)
-        id_label.setStyleSheet("color: #666; font-size: 10px; padding: 4px;")
-        id_label.setToolTip(node_id)
-        basic_group.content.layout().addRow("ID:", id_label)
-
-        # Position (read-only)
-        pos_label = QLabel(f"({position[0]}, {position[1]})")
-        pos_label.setStyleSheet("color: #888; padding: 4px;")
-        basic_group.content.layout().addRow("Position:", pos_label)
-
-        self.properties_layout.addWidget(basic_group)
-
-        # Parameters Component (editable)
-        if params:
-            params_group = self.create_property_group("Parameters")
-
-            for param_name, param_value in params.items():
-                if param_name == 'text':
-                    # Multi-line text field for COMMENT nodes
-                    text_edit = ClickableTextEdit(
-                        field_name=param_name,
-                        on_apply_callback=lambda val, pn=param_name: self._save_neural_node_param(pn, val)
-                    )
-                    text_edit.setPlainText(str(param_value))
-                    text_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-                    text_edit.setMinimumHeight(150)
-                    text_edit.setMaximumHeight(300)
-                    text_edit.textChanged.connect(
-                        lambda te=text_edit, pn=param_name: self._save_neural_node_param(pn, te.toPlainText())
-                    )
-                    params_group.content.layout().addRow("Text:", text_edit)
-                    self._neural_node_param_widgets[param_name] = text_edit
-
-                elif isinstance(param_value, bool):
-                    # Boolean as checkbox
-                    from PyQt6.QtWidgets import QCheckBox
-                    checkbox = QCheckBox()
-                    checkbox.setChecked(param_value)
-                    checkbox.stateChanged.connect(
-                        lambda state, pn=param_name: self._save_neural_node_param(pn, state == 2)
-                    )
-                    # Prettier labels for known params
-                    label_map = {
-                        'show_on_start': 'Show on Start',
-                    }
-                    label = label_map.get(param_name, param_name)
-                    params_group.content.layout().addRow(f"{label}:", checkbox)
-                    self._neural_node_param_widgets[param_name] = checkbox
-
-                elif isinstance(param_value, (int, float)):
-                    # Numeric field
-                    if isinstance(param_value, int):
-                        spin = QSpinBox()
-                        spin.setRange(-99999, 99999)
-                        spin.setValue(param_value)
-                        spin.valueChanged.connect(
-                            lambda val, pn=param_name: self._save_neural_node_param(pn, val)
-                        )
-                    else:
-                        spin = QDoubleSpinBox()
-                        spin.setRange(-99999.0, 99999.0)
-                        spin.setDecimals(3)
-                        spin.setValue(param_value)
-                        spin.valueChanged.connect(
-                            lambda val, pn=param_name: self._save_neural_node_param(pn, val)
-                        )
-                    spin.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 2px;")
-                    params_group.content.layout().addRow(f"{param_name}:", spin)
-                    self._neural_node_param_widgets[param_name] = spin
-
-                else:
-                    # String field
-                    field = QLineEdit(str(param_value))
-                    field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-                    field.editingFinished.connect(
-                        lambda f=field, pn=param_name: self._save_neural_node_param(pn, f.text())
-                    )
-                    params_group.content.layout().addRow(f"{param_name}:", field)
-                    self._neural_node_param_widgets[param_name] = field
-
-            self.properties_layout.addWidget(params_group)
-
-        # Weights Component (read-only)
-        if weights:
-            weights_group = self.create_property_group("Weights")
-            total_params = 0
-            for weight_name, weight_info in weights.items():
-                shape = weight_info.get('shape', [])
-                trainable = weight_info.get('trainable', True)
-                num_params = weight_info.get('num_params', 0)
-                total_params += num_params
-
-                shape_str = "x".join(str(d) for d in shape)
-                trainable_str = " (trainable)" if trainable else " (frozen)"
-                label = QLabel(f"{weight_name}: [{shape_str}] = {num_params} params{trainable_str}")
-                label.setStyleSheet("color: #888; padding: 2px;")
-                weights_group.content.layout().addRow(label)
-
-            total_label = QLabel(f"Total: {total_params} parameters")
-            total_label.setStyleSheet("color: #D2D2D2; font-weight: bold; padding: 4px;")
-            weights_group.content.layout().addRow(total_label)
-            self.properties_layout.addWidget(weights_group)
-
-        # Inputs/Outputs Component (read-only)
-        if inputs or outputs:
-            ports_group = self.create_property_group("Ports")
-
-            if inputs:
-                inputs_label = QLabel("Inputs:")
-                inputs_label.setStyleSheet("color: #D2D2D2; font-weight: bold; padding: 2px;")
-                ports_group.content.layout().addRow(inputs_label)
-                for port_name, port_info in inputs.items():
-                    port_label = QLabel(f"  {port_name}: {port_info}")
-                    port_label.setStyleSheet("color: #888; padding: 2px;")
-                    ports_group.content.layout().addRow(port_label)
-
-            if outputs:
-                outputs_label = QLabel("Outputs:")
-                outputs_label.setStyleSheet("color: #D2D2D2; font-weight: bold; padding: 2px;")
-                ports_group.content.layout().addRow(outputs_label)
-                for port_name, port_info in outputs.items():
-                    port_label = QLabel(f"  {port_name}: {port_info}")
-                    port_label.setStyleSheet("color: #888; padding: 2px;")
-                    ports_group.content.layout().addRow(port_label)
-
-            self.properties_layout.addWidget(ports_group)
-
-        # Description (if present)
-        if description:
-            desc_group = self.create_property_group("Description")
-            desc_label = QLabel(description)
-            desc_label.setStyleSheet("color: #888; padding: 4px;")
-            desc_label.setWordWrap(True)
-            desc_group.content.layout().addRow(desc_label)
-            self.properties_layout.addWidget(desc_group)
-
-        self.properties_layout.addStretch()
-
-    def _save_neural_node_field(self, field_name: str, value):
-        """Save a basic field (name) to the neural node with undo support."""
-        if not hasattr(self, '_current_neural_node_id'):
-            return
-
-        node_id = self._current_neural_node_id
-
-        # Get main window reference
-        main_window = self.window()
-        if not hasattr(main_window, 'neural_canvas'):
-            return
-
-        canvas_view = main_window.neural_canvas.canvas_view
-        node = main_window.neural_canvas.graph.get_node_by_id(node_id)
-        if not node:
-            return
-
-        if field_name == 'name':
-            old_name = node.name
-            # Skip if value hasn't changed
-            if old_name == value:
-                return
-
-            # Push undo command
-            cmd = RenameNeuralNodeCommand(
-                view=canvas_view,
-                node_id=node_id,
-                old_name=old_name,
-                new_name=value
-            )
-            UndoManager.instance().push(cmd)
-            print(f"[Inspector] Neural node name updated: {old_name} -> {value}")
-
-    def _save_neural_node_param(self, param_name: str, value):
-        """Save a parameter value to the neural node with undo support."""
-        # Guard against re-entrant calls (e.g., signal feedback loops)
-        if getattr(self, '_saving_neural_param', False):
-            return
-        self._saving_neural_param = True
-
-        try:
-            if not hasattr(self, '_current_neural_node_id'):
-                return  # finally will reset _saving_neural_param
-
-            node_id = self._current_neural_node_id
-
-            # Get main window reference
-            main_window = self.window()
-            if not hasattr(main_window, 'neural_canvas'):
-                return  # finally will reset _saving_neural_param
-
-            canvas_view = main_window.neural_canvas.canvas_view
-            node = main_window.neural_canvas.graph.get_node_by_id(node_id)
-            if not node:
-                return  # finally will reset _saving_neural_param
-
-            # Get old value
-            old_value = node.params.get(param_name)
-
-            # Skip if value hasn't changed
-            if old_value == value:
-                return  # finally will reset _saving_neural_param
-
-            # Special handling for show_on_start - only one COMMENT can have it
-            # Note: This is a side effect that won't be undone, but it's minor
-            if param_name == 'show_on_start' and value is True:
-                from ..core.neural_canvas.neural_node import NodeType
-                # Uncheck all other COMMENT nodes
-                for other_id, other_node in main_window.neural_canvas.graph.nodes.items():
-                    if other_id != node_id and other_node.type == NodeType.COMMENT:
-                        if other_node.params.get('show_on_start', False):
-                            other_node.params['show_on_start'] = False
-
-            # Push undo command
-            cmd = EditNeuralNodeParamCommand(
-                view=canvas_view,
-                node_id=node_id,
-                param_name=param_name,
-                old_value=old_value,
-                new_value=value,
-                node_name=node.name
-            )
-            UndoManager.instance().push(cmd)
-            print(f"[Inspector] Neural node param '{param_name}' updated")
-        except Exception as e:
-            import traceback
-            print(f"[Inspector] ERROR in _save_neural_node_param: {e}")
-            traceback.print_exc()
-        finally:
-            self._saving_neural_param = False
-
-    def update_neural_node_param(self, param_name: str, new_value):
-        """
-        Update a displayed param value in the Inspector (called externally).
-
-        Used when canvas slider changes to sync the Inspector's widget.
-        """
-        if not hasattr(self, '_neural_node_param_widgets'):
-            return
-
-        widget = self._neural_node_param_widgets.get(param_name)
-        if not widget:
-            return
-
-        # Block signals to prevent feedback loop
-        widget.blockSignals(True)
-        try:
-            from PyQt6.QtWidgets import QCheckBox
-            if isinstance(widget, QDoubleSpinBox):
-                widget.setValue(float(new_value))
-            elif isinstance(widget, QSpinBox):
-                widget.setValue(int(new_value))
-            elif isinstance(widget, QCheckBox):
-                widget.setChecked(bool(new_value))
-            elif isinstance(widget, QLineEdit):
-                widget.setText(str(new_value))
-            elif isinstance(widget, QTextEdit):
-                widget.setPlainText(str(new_value))
-        finally:
-            widget.blockSignals(False)
+    # ========== COLLAPSIBLE STATE MANAGEMENT ==========
 
     def _save_collapsible_states(self):
         """
@@ -2029,10 +1043,11 @@ class InspectorPanel(QWidget):
         """
         # Find all CollapsibleSection widgets in the properties layout
         for i in range(self.properties_layout.count()):
-            widget = self.properties_layout.itemAt(i).widget()
-            if isinstance(widget, CollapsibleSection):
-                self.collapsible_expanded_state[widget.title_text] = widget.is_expanded
-                print(f"[STATE] Saved '{widget.title_text}': expanded={widget.is_expanded}")
+            item = self.properties_layout.itemAt(i)
+            if item:
+                widget = item.widget()
+                if isinstance(widget, CollapsibleSection):
+                    self.collapsible_expanded_state[widget.title_text] = widget.is_expanded
 
     def _restore_collapsible_state(self, section: CollapsibleSection):
         """
@@ -2047,7 +1062,6 @@ class InspectorPanel(QWidget):
         if section.title_text in self.collapsible_expanded_state:
             saved_state = self.collapsible_expanded_state[section.title_text]
             section.set_expanded(saved_state)
-            print(f"[STATE] Restored '{section.title_text}': expanded={saved_state}")
 
     def _on_collapsible_toggled(self, title: str, expanded: bool):
         """
@@ -2061,7 +1075,6 @@ class InspectorPanel(QWidget):
             expanded: New expanded state
         """
         self.collapsible_expanded_state[title] = expanded
-        print(f"[STATE] User toggled '{title}': expanded={expanded}")
 
     def eventFilter(self, obj, event):
         """Handle keyboard events for text fields."""
@@ -2082,6 +1095,8 @@ class InspectorPanel(QWidget):
 
         return super().eventFilter(obj, event)
 
+    # ========== SAVE METHODS ==========
+
     def save_stage_description(self, text_widget: QTextEdit):
         """Auto-save stage description via API (updates both file and in-memory state)."""
         stage_id = text_widget.property("stage_id")
@@ -2100,634 +1115,6 @@ class InspectorPanel(QWidget):
 
         except Exception as e:
             print(f"Error saving stage description: {e}")
-
-    def load_noodling_properties(self, entity_data):
-        """Show Noodling properties - unified inspector view."""
-        if not entity_data:
-            print("[Inspector] ERROR: entity_data is None or empty")
-            return
-
-        agent = entity_data.get('data', {})
-        agent_id = entity_data.get('id', '')
-
-        if not agent_id:
-            print(f"[Inspector] ERROR: No agent_id in entity_data: {entity_data}")
-            return
-
-        # Store for facet dropdown updates
-        self.current_agent_id = agent_id
-        self.property_fields = {}
-
-        # Load full recipe data from YAML file
-        recipe_data = {}
-        try:
-            import os
-            # First check for noodling template reference (project-based)
-            noodling_ref = entity_data.get('noodling_ref') or agent.get('noodling', '')
-            instance_path = entity_data.get('path', '')
-
-            if noodling_ref and instance_path:
-                # Project mode: Load from Library/Noodlings/{noodling_ref}/recipe.yaml
-                # Instance path is like: .../Stages/xxx/Instances/uuid
-                # Library is at: .../Library/Noodlings/{noodling_ref}
-                project_root = os.path.dirname(os.path.dirname(os.path.dirname(instance_path)))
-                library_recipe = os.path.join(
-                    project_root, 'Library', 'Noodlings', noodling_ref, 'recipe.yaml'
-                )
-                if os.path.exists(library_recipe):
-                    with open(library_recipe, 'r') as f:
-                        recipe_data = yaml.safe_load(f) or {}
-                    print(f"[Inspector] Loaded library recipe: {library_recipe}")
-                else:
-                    # Fallback to app-wide library
-                    app_library = os.path.join(
-                        os.path.dirname(__file__), '..', 'library', 'noodlings', noodling_ref, 'recipe.yaml'
-                    )
-                    if os.path.exists(app_library):
-                        with open(app_library, 'r') as f:
-                            recipe_data = yaml.safe_load(f) or {}
-                        print(f"[Inspector] Loaded app library recipe: {app_library}")
-                    else:
-                        print(f"[Inspector] Recipe not found: {library_recipe} or {app_library}")
-
-            # Apply overrides from instance
-            overrides = agent.get('overrides', {})
-            if overrides:
-                # Merge overrides into recipe_data
-                for key, value in overrides.items():
-                    if value:  # Only override non-empty values
-                        recipe_data[key] = value
-
-        except Exception as e:
-            print(f"[Inspector] Error loading recipe: {e}")
-            import traceback
-            traceback.print_exc()
-
-        # ===== AGENT BASICS (always visible) =====
-        basics_group = self.create_property_group("Noodling")
-
-        # Name (editable)
-        self.property_fields['name'] = self.add_text_field(
-            basics_group, "Name",
-            recipe_data.get('name', agent.get('name', ''))
-        )
-
-        # UUID (read-only) - simple label on same row
-        # Use short display format but copy full ID
-        display_id = agent_id.replace('agent_', '')
-        if len(display_id) > 20:
-            display_id = display_id[:8] + "..." + display_id[-4:]
-
-        uuid_widget = QLabel(f'<span style="color:#888888">{display_id}</span> '
-                            f'<a href="copy" style="color:#666666;text-decoration:none">[copy]</a>')
-        uuid_widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-        uuid_widget.linkActivated.connect(lambda: QApplication.clipboard().setText(agent_id))
-        uuid_widget.setToolTip(f"Full ID: {agent_id}\nClick [copy] to copy")
-        basics_group.content.layout().addRow("UUID:", uuid_widget)
-
-        # Description (editable text area)
-        description = recipe_data.get('description', agent.get('description', 'An empty noodling...'))
-        print(f"[Inspector] Description loaded: {description[:50]}..." if description else "[Inspector] No description found")
-        self.property_fields['description'] = self.add_text_area(basics_group, "Description", description)
-
-        self.properties_layout.addWidget(basics_group)
-
-        # ===== FACET DROPDOWN SELECTOR =====
-        print(f"[Inspector] load_noodling_properties: About to call _add_facet_dropdown_selector...")
-        try:
-            # Pass entity_data which has 'name' at top level (from hierarchy)
-            # NOT agent which is entity_data['data']
-            self._add_facet_dropdown_selector(agent_id, entity_data)
-            print(f"[Inspector] load_noodling_properties: _add_facet_dropdown_selector returned successfully")
-        except Exception as e:
-            print(f"[Inspector] ERROR creating facet dropdown: {e}")
-            import traceback
-            traceback.print_exc()
-
-        print(f"[Inspector] load_noodling_properties: Adding stretch...")
-        self.properties_layout.addStretch()
-
-        print(f"[Inspector] ========================================")
-        print(f"[Inspector] load_noodling_properties COMPLETE")
-        print(f"[Inspector] Final layout widget count: {self.properties_layout.count()}")
-        print(f"[Inspector] facet_dropdown exists: {hasattr(self, 'facet_dropdown')}")
-        print(f"[Inspector] ========================================")
-
-    def load_user_properties(self, entity_data):
-        """Show user properties."""
-        self.property_fields = {}
-
-        user_group = self.create_property_group("User Info")
-        self.property_fields['username'] = self.add_text_field(user_group, "Username", "caity")
-        self.property_fields['type'] = self.add_text_field(user_group, "Type", "Noodler (human)")
-        self.property_fields['age'] = self.add_text_field(user_group, "Age", "9 years old")
-        self.property_fields['pronouns'] = self.add_text_field(user_group, "Pronouns", "she/her")
-        self.properties_layout.addWidget(user_group)
-
-        # Description
-        desc_group = self.create_property_group("Description")
-        desc_text = ("A nine-year-old girl in worn overalls with a shock of wild, curly brown hair "
-                    "and sparkling blue eyes. She has a wooden sword hanging from one of her belt loops "
-                    "and she's sucking a glowing, heart-shaped red hot atomic fireball candy.")
-        self.property_fields['description'] = self.add_text_area(desc_group, "Description", desc_text)
-        self.properties_layout.addWidget(desc_group)
-
-        inventory_group = self.create_property_group("Inventory")
-        self.property_fields['item1'] = self.add_text_field(inventory_group, "Item 1", "Wooden sword")
-        self.property_fields['item2'] = self.add_text_field(inventory_group, "Item 2", "Atomic fireball candy")
-        self.properties_layout.addWidget(inventory_group)
-
-        self.properties_layout.addStretch()
-
-    def load_object_properties(self, entity_data):
-        """Show object properties including physics settings."""
-        # Clear previous entity's fields
-        self.property_fields = {}
-
-        obj_id = entity_data.get('id', '')
-        obj_data = entity_data.get('data', {})
-
-        # Basic properties
-        obj_group = self.create_property_group("Object Properties")
-        self.add_text_field(obj_group, "ID", obj_id, read_only=True)  # UUID is immutable
-        self.property_fields['name'] = self.add_text_field(obj_group, "Name", obj_data.get('name', 'Unnamed'))
-        self.property_fields['description'] = self.add_text_area(obj_group, "Description", obj_data.get('description', 'An object in the world.'))
-        self.properties_layout.addWidget(obj_group)
-
-        # Physics Properties section
-        physics_group = self.create_property_group("Physics (SPE)")
-        self._create_physics_properties(physics_group, obj_data)
-        self.properties_layout.addWidget(physics_group)
-
-        # Arbitrary metadata editor
-        metadata_component = self.create_metadata_component(obj_id)
-        self.properties_layout.addWidget(metadata_component)
-
-        self.properties_layout.addStretch()
-
-    def _create_physics_properties(self, group, obj_data):
-        """Create physics property dropdowns for a prim."""
-        # Import material presets
-        try:
-            from noodlestudio.core.semantic_world import MATERIAL_PRESETS
-        except ImportError:
-            MATERIAL_PRESETS = {}
-
-        # Current values (with defaults)
-        current_material = obj_data.get('material', 'unknown')
-        current_mass = obj_data.get('mass', 'medium')
-        current_friction = obj_data.get('friction', 'medium')
-        current_elasticity = obj_data.get('elasticity', 'normal')
-        current_softness = obj_data.get('softness', 'normal')
-
-        # Material preset dropdown - sorted alphabetically with "(custom)" at top
-        material_options = ["(custom)"] + sorted(MATERIAL_PRESETS.keys())
-
-        def on_material_preset_change(material):
-            """Apply material preset to all physics fields."""
-            if material == "(custom)":
-                return  # Don't change anything for custom
-
-            preset = MATERIAL_PRESETS.get(material, {})
-            if not preset:
-                return
-
-            # Update the dropdowns to reflect preset values
-            if 'mass' in self.property_fields and 'mass' in preset:
-                self.property_fields['mass'].setCurrentText(preset['mass'])
-            if 'friction' in self.property_fields and 'friction' in preset:
-                self.property_fields['friction'].setCurrentText(preset['friction'])
-            if 'elasticity' in self.property_fields and 'elasticity' in preset:
-                self.property_fields['elasticity'].setCurrentText(preset['elasticity'])
-            if 'softness' in self.property_fields and 'softness' in preset:
-                self.property_fields['softness'].setCurrentText(preset['softness'])
-
-            # Trigger save
-            self.save_changes()
-
-        # Material dropdown with preset application
-        self.property_fields['material'] = self.add_dropdown_field(
-            group, "Material Preset", current_material, material_options,
-            on_change=on_material_preset_change
-        )
-
-        # Mass options (from light to immovable)
-        mass_options = ["negligible", "very_light", "light", "medium", "heavy", "very_heavy", "immovable"]
-        self.property_fields['mass'] = self.add_dropdown_field(
-            group, "Mass", current_mass, mass_options
-        )
-
-        # Friction options
-        friction_options = ["slippery", "low", "medium", "high", "sticky"]
-        self.property_fields['friction'] = self.add_dropdown_field(
-            group, "Friction", current_friction, friction_options
-        )
-
-        # Elasticity options
-        elasticity_options = ["none", "low", "normal", "high", "bouncy"]
-        self.property_fields['elasticity'] = self.add_dropdown_field(
-            group, "Elasticity", current_elasticity, elasticity_options
-        )
-
-        # Softness options
-        softness_options = ["rigid", "hard", "normal", "soft", "squishy"]
-        self.property_fields['softness'] = self.add_dropdown_field(
-            group, "Softness", current_softness, softness_options
-        )
-
-        # Help text
-        from PyQt6.QtWidgets import QLabel
-        help_label = QLabel("Select a material preset to auto-fill physics properties,\nor set each property individually.")
-        help_label.setStyleSheet("color: #808080; font-size: 10px; padding: 4px;")
-        help_label.setWordWrap(True)
-        group.content.layout().addRow("", help_label)
-
-    def load_exit_properties(self, entity_data):
-        """Show exit properties."""
-        exit_group = self.create_property_group("Exit Info")
-        self.add_text_field(exit_group, "Direction", entity_data.get('direction', ''))
-        self.add_text_field(exit_group, "Destination", entity_data.get('destination', ''))
-        self.properties_layout.addWidget(exit_group)
-
-        self.properties_layout.addStretch()
-
-    def load_radiance_properties(self, entity_data):
-        """Show RadianceComponent properties using RadianceInspector widget."""
-        from noodlestudio.panels.radiance_inspector import RadianceInspector
-
-        # Store reference to prevent garbage collection
-        if not hasattr(self, '_radiance_inspector'):
-            self._radiance_inspector = RadianceInspector()
-
-        # Get component and path from entity_data
-        component = entity_data.get('component')
-        path = entity_data.get('path', '')
-        on_change = entity_data.get('on_change')
-
-        # Configure inspector
-        self._radiance_inspector.set_component(component, path)
-        if on_change:
-            self._radiance_inspector.set_on_change_callback(on_change)
-
-        # Add to properties layout
-        self.properties_layout.addWidget(self._radiance_inspector)
-
-    def create_property_group(self, title: str) -> CollapsibleSection:
-        """
-        Create collapsible property group using CollapsibleSection (no bounce-back!).
-
-        Returns CollapsibleSection configured with QFormLayout.
-        To add fields, use: group.content.layout().addRow(label, widget)
-        """
-        section = CollapsibleSection(title)
-
-        # Replace default VBoxLayout with QFormLayout
-        form_layout = QFormLayout()
-        form_layout.setContentsMargins(12, 8, 12, 8)
-        form_layout.setSpacing(6)
-        section.set_content_layout(form_layout)
-
-        # Connect toggled signal to track state changes
-        section.toggled.connect(lambda expanded: self._on_collapsible_toggled(section.title_text, expanded))
-
-        # Restore previous expanded state (if any)
-        self._restore_collapsible_state(section)
-
-        return section
-
-    def on_group_toggled(self, group: QGroupBox, checked: bool):
-        """Handle group toggle - update triangle and visibility."""
-        # Use blockSignals to prevent signal loops
-        group.blockSignals(True)
-        try:
-            # Update triangle in title
-            original_title = group.property("original_title")
-            if checked:
-                group.setTitle(f"▼ {original_title}")
-            else:
-                group.setTitle(f"▶ {original_title}")
-
-            # Toggle visibility of contents
-            self.toggle_group_contents(group, checked)
-        finally:
-            # Delay unblocking to ensure Qt event queue clears
-            from PyQt6.QtCore import QTimer
-            # Safety: check widget still exists before accessing
-            def safely_unblock():
-                try:
-                    if group and not group.isHidden():  # Widget still valid
-                        group.blockSignals(False)
-                except RuntimeError:
-                    pass  # Widget was deleted, ignore
-            QTimer.singleShot(100, safely_unblock)
-
-    def toggle_group_contents(self, group: QGroupBox, visible: bool):
-        """Toggle visibility of group contents (collapsible sections)."""
-        # Hide/show all child widgets in the group's layout
-        layout = group.layout()
-        if layout:
-            for i in range(layout.count()):
-                item = layout.itemAt(i)
-                if item and item.widget():
-                    item.widget().setVisible(visible)
-
-    def add_text_field(self, group: QGroupBox, label: str, value: str, read_only: bool = False):
-        """Add text field to group (instant updates on change unless read_only)."""
-        field = QLineEdit(value)
-        if read_only:
-            field.setReadOnly(True)
-            field.setStyleSheet("background-color: #1A1A1A; color: #808080; padding: 4px;")
-        else:
-            field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-            # Use editingFinished for instant update when user finishes editing
-            field.editingFinished.connect(self.save_changes)
-        group.content.layout().addRow(f"{label}:", field)
-        return field
-
-    def add_vector3_field(self, group: QGroupBox, label: str, values: list, read_only: bool = True):
-        """Add compact XYZ vector field on single line."""
-        row = QWidget()
-        row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(4)
-
-        fields = []
-        for i, (axis, val) in enumerate(zip(['X', 'Y', 'Z'], values)):
-            field = QDoubleSpinBox()
-            field.setRange(-99999, 99999)
-            field.setDecimals(2)
-            field.setValue(float(val) if val else 0)
-            field.setReadOnly(read_only)
-            field.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-            field.setFixedWidth(65)
-            field.setStyleSheet("""
-                QDoubleSpinBox {
-                    background-color: #1E1E1E;
-                    color: #D2D2D2;
-                    border: 1px solid #3A3A3A;
-                    padding: 2px 4px;
-                }
-                QDoubleSpinBox:read-only {
-                    color: #888888;
-                }
-            """)
-            field.setToolTip(axis)
-            row_layout.addWidget(field)
-            fields.append(field)
-
-        row_layout.addStretch()
-        group.content.layout().addRow(f"{label}:", row)
-        return fields
-
-    def add_dropdown_field(self, group: QGroupBox, label: str, value: str, options: list, on_change=None):
-        """Add dropdown (combo box) field to group."""
-        from PyQt6.QtWidgets import QComboBox
-
-        combo = QComboBox()
-        combo.addItems(options)
-        combo.setStyleSheet("""
-            QComboBox {
-                background-color: #1E1E1E;
-                color: #D2D2D2;
-                padding: 4px;
-                border: 1px solid #3A3A3A;
-                border-radius: 2px;
-            }
-            QComboBox:hover {
-                border-color: #5A5A5A;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 6px solid #808080;
-                margin-right: 6px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #252525;
-                color: #D2D2D2;
-                selection-background-color: #3D5A80;
-            }
-        """)
-
-        # Set current value
-        if value:
-            index = combo.findText(str(value))
-            if index >= 0:
-                combo.setCurrentIndex(index)
-
-        # Connect change handler
-        if on_change:
-            combo.currentTextChanged.connect(on_change)
-        else:
-            combo.currentTextChanged.connect(lambda _: self.save_changes())
-
-        group.content.layout().addRow(f"{label}:", combo)
-        return combo
-
-    def add_text_area(self, group: QGroupBox, label: str, value: str):
-        """Add editable text area to group (instant updates on change)."""
-        field = QTextEdit()
-        field.setPlainText(value)
-        field.setMaximumHeight(100)
-        field.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
-
-        # Enable context menu for external editor
-        field.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        field.customContextMenuRequested.connect(lambda pos: self._show_text_editor_context_menu(field, pos))
-
-        # Text areas update when focus is lost (avoid spamming API)
-        # Use proper method instead of lambda to handle exceptions
-        original_focus_out = field.focusOutEvent
-        def safe_focus_out(event):
-            try:
-                original_focus_out(event)
-                self.save_changes()
-            except Exception as e:
-                print(f"Error in focusOutEvent: {e}")
-        field.focusOutEvent = safe_focus_out
-        group.content.layout().addRow(f"{label}:", field)
-        return field
-
-    def add_slider_field(self, group: QGroupBox, label: str, value: float, min_val: float, max_val: float):
-        """Add slider + numeric field (instant updates on change)."""
-        spin = QDoubleSpinBox()
-        spin.setRange(min_val, max_val)
-        spin.setValue(value)
-        spin.setSingleStep(0.05)
-        spin.setDecimals(2)
-        spin.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2;")
-        # Instant update when value changes
-        spin.valueChanged.connect(lambda: self.save_changes())
-        group.content.layout().addRow(f"{label}:", spin)
-        return spin
-
-    def save_changes(self):
-        """Save edited properties back to noodleMUSH."""
-        if not self.current_entity:
-            return
-
-        # Set flag to prevent refresh during save
-        self.is_saving = True
-
-        try:
-            entity_type, entity_data = self.current_entity
-
-            if entity_type == 'noodling':
-                # Build update payload
-                agent_id = entity_data.get('id', '')
-                updates = {}
-
-                # Collect field values
-                if 'name' in self.property_fields:
-                    updates['name'] = self.property_fields['name'].text()
-                if 'species' in self.property_fields:
-                    updates['species'] = self.property_fields['species'].text()
-                if 'description' in self.property_fields:
-                    # Description is a QTextEdit, use toPlainText()
-                    updates['description'] = self.property_fields['description'].toPlainText()
-                if 'llm_provider' in self.property_fields:
-                    updates['llm_provider'] = self.property_fields['llm_provider'].text()
-                if 'llm_model' in self.property_fields:
-                    updates['llm_model'] = self.property_fields['llm_model'].text()
-
-                # Save via API
-                try:
-                    url = f"{self.api_base}/agents/{agent_id}/update"
-                    payload = updates
-
-                    response = requests.post(url, json=payload, timeout=2)
-                    if response.status_code == 200:
-                        print(f"Saved changes for {agent_id}")
-                    else:
-                        print(f"Error saving: {response.json().get('error', 'Unknown error')}")
-
-                except Exception as e:
-                    print(f"Error saving: {e}")
-
-            elif entity_type in ('prim', 'prop'):
-                # Build update payload for prim/prop
-                updates = {}
-
-                # Collect basic field values
-                if 'name' in self.property_fields:
-                    updates['name'] = self.property_fields['name'].text()
-                if 'description' in self.property_fields:
-                    updates['description'] = self.property_fields['description'].toPlainText()
-
-                # Collect physics properties (from dropdowns)
-                physics_fields = ['material', 'mass', 'friction', 'elasticity', 'softness']
-                for field_name in physics_fields:
-                    if field_name in self.property_fields:
-                        widget = self.property_fields[field_name]
-                        # QComboBox - use currentText()
-                        if hasattr(widget, 'currentText'):
-                            value = widget.currentText()
-                            # Don't save "(custom)" as material - it's just a UI indicator
-                            if field_name == 'material' and value == "(custom)":
-                                continue
-                            updates[field_name] = value
-
-                # Save based on type
-                if entity_type == 'prop':
-                    # Project mode - save to prop.yaml
-                    self._save_prop_to_file(entity_data, updates)
-                else:
-                    # Legacy mode - save via API
-                    object_id = entity_data.get('id', '')
-                    try:
-                        url = f"{self.api_base}/objects/{object_id}/update"
-                        response = requests.post(url, json=updates, timeout=2)
-                        if response.status_code == 200:
-                            print(f"Saved prim {object_id}: {list(updates.keys())}")
-                        else:
-                            print(f"Error saving: {response.json().get('error', 'Unknown error')}")
-                    except Exception as e:
-                        print(f"Error saving prim: {e}")
-
-            elif entity_type == 'zone':
-                # Build update payload for zone
-                updates = {}
-                if 'name' in self.property_fields:
-                    updates['name'] = self.property_fields['name'].text()
-
-                # Save to zone.yaml file
-                self._save_zone_to_file(entity_data, updates)
-
-        finally:
-            # Clear flag after save completes (wait longer than refresh interval)
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(2500, lambda: setattr(self, 'is_saving', False))
-
-    def _save_prop_to_file(self, entity_data: dict, updates: dict):
-        """Save prop changes to prop.yaml file."""
-        import yaml
-        import os
-
-        prop_path = entity_data.get('path', '')
-        if not prop_path:
-            print("No path for prop - cannot save")
-            return
-
-        prop_yaml = os.path.join(prop_path, "prop.yaml")
-        if not os.path.exists(prop_yaml):
-            print(f"prop.yaml not found at {prop_yaml}")
-            return
-
-        try:
-            # Load existing data
-            with open(prop_yaml, 'r') as f:
-                prop_data = yaml.safe_load(f) or {}
-
-            # Update with new values
-            prop_data.update(updates)
-
-            # Save back
-            with open(prop_yaml, 'w') as f:
-                yaml.dump(prop_data, f, default_flow_style=False)
-
-            prop_name = updates.get('name', entity_data.get('name', 'prop'))
-            print(f"Saved prop {prop_name}: {list(updates.keys())}")
-
-        except Exception as e:
-            print(f"Error saving prop to file: {e}")
-
-    def _save_zone_to_file(self, entity_data: dict, updates: dict):
-        """Save zone changes to zone.yaml file."""
-        import yaml
-        import os
-
-        # Zone path IS the yaml file (unlike props which are directories)
-        zone_path = entity_data.get('path', '')
-        if not zone_path:
-            print("No path for zone - cannot save")
-            return
-
-        if not os.path.exists(zone_path):
-            print(f"Zone file not found at {zone_path}")
-            return
-
-        try:
-            # Load existing data
-            with open(zone_path, 'r') as f:
-                zone_data = yaml.safe_load(f) or {}
-
-            # Update with new values
-            zone_data.update(updates)
-
-            # Save back
-            with open(zone_path, 'w') as f:
-                yaml.dump(zone_data, f, default_flow_style=False)
-
-            zone_name = updates.get('name', entity_data.get('name', 'zone'))
-            print(f"Saved zone {zone_name}: {list(updates.keys())}")
-
-        except Exception as e:
-            print(f"Error saving zone to file: {e}")
 
     def save_component_changes(self, agent_id: str, component_id: str):
         """
@@ -2788,8 +1175,9 @@ class InspectorPanel(QWidget):
 
         finally:
             # Clear saving flag
-            from PyQt6.QtCore import QTimer
             QTimer.singleShot(2500, lambda: setattr(self, 'is_saving', False))
+
+    # ========== COMPONENTS (legacy system) ==========
 
     def create_components_section(self, agent_id: str) -> QWidget:
         """
@@ -2863,6 +1251,8 @@ class InspectorPanel(QWidget):
         Returns:
             CollapsibleSection widget with component details
         """
+        from PyQt6.QtWidgets import QCheckBox
+
         component_id = comp_data.get('component_id', '')
         component_type = comp_data.get('component_type', 'Unknown')
         description = comp_data.get('description', '')
@@ -2916,7 +1306,6 @@ class InspectorPanel(QWidget):
             section.add_widget(open_button)
 
         # Enabled checkbox
-        from PyQt6.QtWidgets import QCheckBox
         enabled_checkbox = QCheckBox("Enabled")
         enabled_checkbox.setChecked(enabled)
         enabled_checkbox.setStyleSheet("color: #FFFFFF;")
@@ -2958,7 +1347,6 @@ class InspectorPanel(QWidget):
             section.add_widget(params_label)
 
             # Create form layout for parameters
-            from PyQt6.QtWidgets import QFormLayout
             params_form = QFormLayout()
             params_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
             params_form.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
@@ -3042,1097 +1430,130 @@ class InspectorPanel(QWidget):
 
         affect_layout = QFormLayout()
 
-        # Create progress bars for each affect dimension
-        self.live_affect_labels['valence'] = self.create_affect_bar("Valence", -1.0, 1.0)
-        affect_layout.addRow("Valence:", self.live_affect_labels['valence'])
+        # Create live-updating labels for 5D affect
+        affect_dims = [
+            ('valence', 'Valence'),
+            ('arousal', 'Arousal'),
+            ('dominance', 'Dominance'),
+            ('boredom', 'Boredom'),
+            ('sorrow', 'Sorrow')
+        ]
 
-        self.live_affect_labels['arousal'] = self.create_affect_bar("Arousal", 0.0, 1.0)
-        affect_layout.addRow("Arousal:", self.live_affect_labels['arousal'])
+        for dim_key, dim_label in affect_dims:
+            value_label = QLabel("0.00")
+            value_label.setStyleSheet("color: #D2D2D2; padding: 2px;")
+            self.live_affect_labels[dim_key] = value_label
+            affect_layout.addRow(f"{dim_label}:", value_label)
 
-        self.live_affect_labels['dominance'] = self.create_affect_bar("Dominance", 0.0, 1.0)
-        affect_layout.addRow("Dominance:", self.live_affect_labels['dominance'])
+        affect_widget = QWidget()
+        affect_widget.setLayout(affect_layout)
+        layout.addWidget(affect_widget)
 
-        self.live_affect_labels['sorrow'] = self.create_affect_bar("Sorrow", 0.0, 1.0)
-        affect_layout.addRow("Sorrow:", self.live_affect_labels['sorrow'])
+        # Surprise (LIVE)
+        surprise_section = QLabel("Surprise Metric")
+        surprise_section.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 8px;")
+        layout.addWidget(surprise_section)
 
-        self.live_affect_labels['boredom'] = self.create_affect_bar("Boredom", 0.0, 1.0)
-        affect_layout.addRow("Boredom:", self.live_affect_labels['boredom'])
+        self.live_surprise_label = QLabel("0.00")
+        self.live_surprise_label.setStyleSheet("color: #D2D2D2; padding: 2px;")
+        layout.addWidget(self.live_surprise_label)
 
-        layout.addLayout(affect_layout)
-
-        # Surprise metric
-        surprise_layout = QFormLayout()
-        self.live_surprise_label = QLabel("0.000")
-        self.live_surprise_label.setStyleSheet("color: #D2D2D2; font-weight: bold;")
-        surprise_layout.addRow("Surprise:", self.live_surprise_label)
-        layout.addLayout(surprise_layout)
-
-        # Facet Assembly section (if agent uses facet system)
-        try:
-            resp = requests.get(f"{self.api_base}/agents/{agent_id}/components", timeout=1)
-            if resp.status_code == 200:
-                components_data = resp.json()
-                components = components_data.get('components', [])
-
-                # Check if first component is Facet Assembly
-                if components and components[0].get('component_id') == 'facet_assembly':
-                    facet_assembly_section = QLabel("Cognitive Architecture")
-                    facet_assembly_section.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 12px;")
-                    layout.addWidget(facet_assembly_section)
-
-                    facet_data = components[0]
-                    assembly_name = facet_data.get('parameters', {}).get('assembly_name', 'unknown')
-                    facet_count = facet_data.get('parameters', {}).get('facet_count', 0)
-
-                    assembly_info = QLabel(f"Assembly: {assembly_name}\nFacets: {facet_count}")
-                    assembly_info.setStyleSheet("color: #B0B0B0; font-size: 10pt;")
-                    layout.addWidget(assembly_info)
-
-                    # Open Editor button
-                    open_button = QPushButton("Open Facets Editor")
-                    open_button.setStyleSheet("""
-                        QPushButton {
-                            background-color: #4A4A4A;
-                            color: #FFFFFF;
-                            border: 1px solid #5A5A5A;
-                            border-radius: 3px;
-                            padding: 6px 12px;
-                            font-weight: bold;
-                        }
-                        QPushButton:hover {
-                            background-color: #5A5A5A;
-                        }
-                        QPushButton:pressed {
-                            background-color: #3A3A3A;
-                        }
-                    """)
-                    open_button.clicked.connect(lambda: self.open_facet_editor(agent_id))
-                    layout.addWidget(open_button)
-        except:
-            pass  # Silent fail if API unavailable
-
-        component.setLayout(layout)
         return component
-
-    def create_affect_bar(self, name: str, min_val: float, max_val: float) -> QWidget:
-        """Create a horizontal bar + value label for affect dimension."""
-        container = QWidget()
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        # Progress bar
-        bar = QProgressBar()
-        bar.setRange(int(min_val * 100), int(max_val * 100))
-        bar.setValue(0)
-        bar.setTextVisible(False)
-        bar.setMaximumHeight(12)
-        bar.setStyleSheet("""
-            QProgressBar {
-                border: 1px solid #555;
-                border-radius: 3px;
-                background: #2a2a2a;
-            }
-            QProgressBar::chunk {
-                background: #4CAF50;
-                border-radius: 2px;
-            }
-        """)
-        layout.addWidget(bar, stretch=3)
-
-        # Value label
-        value_label = QLabel("0.00")
-        value_label.setStyleSheet("color: #D2D2D2; font-family: 'Courier New';")
-        value_label.setMinimumWidth(45)
-        layout.addWidget(value_label)
-
-        container.setLayout(layout)
-
-        # Store references
-        container.bar = bar
-        container.value_label = value_label
-
-        return container
 
     def update_live_data(self):
-        """Update live Noodle Component data from API."""
-        if not self.current_entity:
+        """Update live data (affect, surprise) from agent state."""
+        if not self.current_agent_id:
             return
-
-        entity_type, entity_data = self.current_entity
-        if entity_type != 'noodling':
-            return
-
-        agent_id = self.current_agent_id if hasattr(self, 'current_agent_id') else entity_data.get('id')
 
         try:
-            # Fetch live state from API
-            resp = requests.get(f"{self.api_base}/agents/{agent_id}/state", timeout=1)
-            if resp.status_code == 200:
-                state = resp.json()
-
-                # Update 5-D Affect Vector
-                affect = state.get('affect', {})
-
-                # Monochromatic color mapping (Ordnung muss sein!)
-                # Brighter readable gray for affect bars
-                affect_color = '#BBBBBB'  # Light gray - more visible
-
-                for dim, widget in self.live_affect_labels.items():
-                    if dim in affect and widget and widget.bar and widget.value_label:
-                        value = affect[dim]
-                        # Update bar and label atomically to prevent flash
-                        widget.bar.setStyleSheet(f"""
-                            QProgressBar {{
-                                border: 1px solid #555;
-                                border-radius: 3px;
-                                background: #2a2a2a;
-                            }}
-                            QProgressBar::chunk {{
-                                background: {affect_color};
-                                border-radius: 2px;
-                            }}
-                        """)
-                        widget.bar.setValue(int(value * 100))
-                        widget.value_label.setText(f"{value:.2f}")
-
-                # Update Surprise (only if widget exists)
-                if hasattr(self, 'live_surprise_label') and self.live_surprise_label:
-                    surprise = state.get('surprise', 0.0)
-                    self.live_surprise_label.setText(f"{surprise:.3f}")
-
-        except requests.exceptions.RequestException:
-            # API not available, silently fail
-            pass
-        except Exception as e:
-            print(f"Error updating live data: {e}")
-
-    def add_artbook_component(self):
-        """
-        Add Artbook component to current entity.
-
-        Shows reference art from assets folder - like ArtStation for your character!
-        """
-        artbook = self.create_artbook_component()
-        self.properties_layout.addWidget(artbook)
-
-    def create_artbook_component(self) -> CollapsibleSection:
-        """
-        Create Artbook component (modular component).
-
-        Holds reference art, concept sketches, mood boards for the character.
-        """
-        # Create CollapsibleSection (no bounce-back!)
-        component = CollapsibleSection("Artbook Component")
-        component.toggled.connect(lambda expanded: self._on_collapsible_toggled(component.title_text, expanded))
-        self._restore_collapsible_state(component)
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(6)
-        component.set_content_layout(layout)
-
-        # Description
-        desc = QLabel("Reference art and concept images for this character")
-        desc.setStyleSheet("color: #B0B0B0; font-size: 10px; margin-bottom: 8px;")
-        desc.setWordWrap(True)
-        layout.addWidget(desc)
-
-        # Art gallery (thumbnail grid)
-        gallery_label = QLabel("Reference Gallery")
-        gallery_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 4px;")
-        layout.addWidget(gallery_label)
-
-        # List widget for art thumbnails
-        self.art_gallery = QListWidget()
-        self.art_gallery.setViewMode(QListWidget.ViewMode.IconMode)
-        self.art_gallery.setIconSize(QSize(80, 80))
-        self.art_gallery.setSpacing(8)
-        self.art_gallery.setMaximumHeight(200)
-        self.art_gallery.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.art_gallery.customContextMenuRequested.connect(self._show_image_context_menu)
-        self.art_gallery.setStyleSheet("""
-            QListWidget {
-                background: #2a2a2a;
-                border: 1px solid #555;
-                border-radius: 4px;
-            }
-            QListWidget::item {
-                background: #1a1a1a;
-                border: 1px solid #444;
-                border-radius: 4px;
-                padding: 4px;
-            }
-            QListWidget::item:hover {
-                background: #333;
-                border: 1px solid #666;
-            }
-            QListWidget::item:selected {
-                background: #444;
-                border: 1px solid #888;
-            }
-        """)
-        layout.addWidget(self.art_gallery)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-
-        add_art_btn = QPushButton("+ Add Art")
-        add_art_btn.clicked.connect(self.add_art_to_gallery)
-        add_art_btn.setStyleSheet("""
-            QPushButton {
-                background: #3a3a3a;
-                color: #D2D2D2;
-                padding: 6px 12px;
-                border-radius: 3px;
-                border: 1px solid #555;
-            }
-            QPushButton:hover {
-                background: #4a4a4a;
-            }
-        """)
-        button_layout.addWidget(add_art_btn)
-
-        remove_art_btn = QPushButton("− Remove")
-        remove_art_btn.clicked.connect(self.remove_art_from_gallery)
-        remove_art_btn.setStyleSheet("""
-            QPushButton {
-                background: #555;
-                color: white;
-                padding: 6px 12px;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background: #666;
-            }
-        """)
-        button_layout.addWidget(remove_art_btn)
-
-        layout.addLayout(button_layout)
-
-        # Art source info
-        source_label = QLabel("💡 Tip: Keep art in ~/.noodlestudio/assets/[character_name]/")
-        source_label.setStyleSheet("color: #888; font-size: 9px; margin-top: 8px;")
-        source_label.setWordWrap(True)
-        layout.addWidget(source_label)
-
-        component.setLayout(layout)
-
-        # Load existing art if any
-        self.load_artbook_gallery()
-
-        return component
-
-    def add_art_to_gallery(self):
-        """Add art file to the gallery."""
-        filenames, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Add Reference Art",
-            str(Path.home() / ".noodlestudio" / "assets"),
-            "Images (*.png *.jpg *.jpeg *.gif *.webp);;All Files (*)"
-        )
-
-        for filename in filenames:
-            if filename:
-                # Create thumbnail
-                pixmap = QPixmap(filename)
-                if not pixmap.isNull():
-                    # Scale to thumbnail size
-                    scaled = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio,
-                                          Qt.TransformationMode.SmoothTransformation)
-
-                    # Add to gallery
-                    item = QListWidgetItem()
-                    item.setIcon(QIcon(scaled))
-                    item.setToolTip(Path(filename).name)
-                    item.setData(Qt.ItemDataRole.UserRole, filename)  # Store full path
-                    self.art_gallery.addItem(item)
-
-        # Save gallery state
-        self.save_artbook_gallery()
-
-    def remove_art_from_gallery(self):
-        """Remove selected art from gallery."""
-        current = self.art_gallery.currentItem()
-        if current:
-            self.art_gallery.takeItem(self.art_gallery.row(current))
-            self.save_artbook_gallery()
-
-    def load_artbook_gallery(self):
-        """Load artbook gallery from saved state."""
-        if not self.current_entity:
-            return
-
-        entity_type, entity_data = self.current_entity
-        if entity_type != 'noodling':
-            return
-
-        agent_id = entity_data.get('id', '')
-
-        # Load from .noodlestudio/artbooks/{agent_id}.json
-        artbook_dir = Path.home() / ".noodlestudio" / "artbooks"
-        artbook_file = artbook_dir / f"{agent_id}.json"
-
-        if artbook_file.exists():
-            try:
-                import json
-                with open(artbook_file, 'r') as f:
-                    data = json.load(f)
-
-                for art_path in data.get('art_files', []):
-                    if Path(art_path).exists():
-                        pixmap = QPixmap(art_path)
-                        if not pixmap.isNull():
-                            scaled = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio,
-                                                  Qt.TransformationMode.SmoothTransformation)
-
-                            item = QListWidgetItem()
-                            item.setIcon(QIcon(scaled))
-                            item.setToolTip(Path(art_path).name)
-                            item.setData(Qt.ItemDataRole.UserRole, art_path)
-                            self.art_gallery.addItem(item)
-
-            except Exception as e:
-                print(f"Error loading artbook: {e}")
-
-    def save_artbook_gallery(self):
-        """Save artbook gallery state."""
-        if not self.current_entity:
-            return
-
-        entity_type, entity_data = self.current_entity
-        if entity_type != 'noodling':
-            return
-
-        agent_id = entity_data.get('id', '')
-
-        # Collect all art file paths
-        art_files = []
-        for i in range(self.art_gallery.count()):
-            item = self.art_gallery.item(i)
-            path = item.data(Qt.ItemDataRole.UserRole)
-            if path:
-                art_files.append(path)
-
-        # Save to .noodlestudio/artbooks/{agent_id}.json
-        artbook_dir = Path.home() / ".noodlestudio" / "artbooks"
-        artbook_dir.mkdir(parents=True, exist_ok=True)
-
-        artbook_file = artbook_dir / f"{agent_id}.json"
-
-        try:
-            import json
-            with open(artbook_file, 'w') as f:
-                json.dump({'art_files': art_files}, f, indent=2)
-        except Exception as e:
-            print(f"Error saving artbook: {e}")
-
-    def add_script_component(self):
-        """
-        Add Script component with code editor.
-
-        Event-driven scripting component!
-        """
-        script_comp = self.create_script_component()
-        self.properties_layout.addWidget(script_comp)
-
-    def create_script_component(self) -> QGroupBox:
-        """
-        Create Script component (modular scripting).
-
-        Shows code editor with syntax highlighting and compile button.
-        """
-        component = QGroupBox("📜 Script Component")
-        component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        component.setStyleSheet("""
-            QGroupBox {
-                color: #9C27B0;
-                border: 2px solid #9C27B0;
-                border-radius: 6px;
-                margin-top: 10px;
-                padding-top: 12px;
-                background: #1a1a1a;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 6px;
-            }
-        """)
-
-        layout = QVBoxLayout()
-
-        # Description
-        desc = QLabel("Python script for event-driven behavior (component-based API)")
-        desc.setStyleSheet("color: #B0B0B0; font-size: 10px; margin-bottom: 8px;")
-        desc.setWordWrap(True)
-        layout.addWidget(desc)
-
-        # Script editor widget
-        from ..widgets.script_editor import ScriptEditor
-        self.script_editor = ScriptEditor()
-        layout.addWidget(self.script_editor)
-
-        component.setLayout(layout)
-        return component
-
-    def create_mmcr_component(self, agent_id: str) -> CollapsibleSection:
-        """
-        Create MMCR (Multimodal Context Reference) component.
-
-        Holds arbitrary media that scripts can access via API:
-        - Images (concept art, reference photos, environment maps)
-        - Audio (voice clips, sound effects, music)
-        - Video (animations, cutscenes)
-        - Text (notes, dialogue snippets)
-
-        Unlike Artbook (which is for visual reference), MMCR is for
-        runtime-accessible context that affects behavior.
-        """
-        # Create CollapsibleSection (no bounce-back!)
-        component = CollapsibleSection("Multimodal Context Reference")
-        component.toggled.connect(lambda expanded: self._on_collapsible_toggled(component.title_text, expanded))
-        self._restore_collapsible_state(component)
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(6)
-        component.set_content_layout(layout)
-
-        # Description
-        desc = QLabel("Runtime-accessible media for scripts and LLM context")
-        desc.setStyleSheet("color: #B0B0B0; font-size: 10px; margin-bottom: 8px;")
-        desc.setWordWrap(True)
-        layout.addWidget(desc)
-
-        # Images section
-        images_label = QLabel("Images")
-        images_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 4px;")
-        layout.addWidget(images_label)
-
-        self.mmcr_images = QListWidget()
-        self.mmcr_images.setMaximumHeight(100)
-        self.mmcr_images.setStyleSheet("""
-            QListWidget {
-                background: #2a2a2a;
-                border: 1px solid #555;
-                border-radius: 4px;
-                color: #D2D2D2;
-                font-size: 10px;
-            }
-            QListWidget::item {
-                padding: 4px;
-            }
-        """)
-        layout.addWidget(self.mmcr_images)
-
-        # Audio section
-        audio_label = QLabel("Audio")
-        audio_label.setStyleSheet("color: #D2D2D2; font-weight: bold; margin-top: 8px;")
-        layout.addWidget(audio_label)
-
-        self.mmcr_audio = QListWidget()
-        self.mmcr_audio.setMaximumHeight(80)
-        self.mmcr_audio.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.mmcr_audio.customContextMenuRequested.connect(self._show_audio_context_menu)
-        self.mmcr_audio.setStyleSheet("""
-            QListWidget {
-                background: #2a2a2a;
-                border: 1px solid #555;
-                border-radius: 4px;
-                color: #D2D2D2;
-                font-size: 10px;
-            }
-            QListWidget::item {
-                padding: 4px;
-            }
-        """)
-        layout.addWidget(self.mmcr_audio)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-
-        add_media_btn = QPushButton("Add Media")
-        add_media_btn.clicked.connect(lambda: self.add_mmcr_media(agent_id))
-        add_media_btn.setStyleSheet("""
-            QPushButton {
-                background: #2196F3;
-                color: white;
-                padding: 6px 12px;
-                border-radius: 3px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background: #64B5F6;
-            }
-        """)
-        button_layout.addWidget(add_media_btn)
-
-        remove_media_btn = QPushButton("Remove")
-        remove_media_btn.clicked.connect(lambda: self.remove_mmcr_media())
-        remove_media_btn.setStyleSheet("""
-            QPushButton {
-                background: #555;
-                color: white;
-                padding: 6px 12px;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background: #666;
-            }
-        """)
-        button_layout.addWidget(remove_media_btn)
-
-        layout.addLayout(button_layout)
-
-        # API access info
-        info_label = QLabel("Scripts access via: noodlings.getComponent('mmcr').images[0]")
-        info_label.setStyleSheet("color: #888; font-size: 9px; margin-top: 8px;")
-        info_label.setWordWrap(True)
-        layout.addWidget(info_label)
-
-        component.setLayout(layout)
-
-        # Load existing MMCR data if any
-        self.load_mmcr_data(agent_id)
-
-        return component
-
-    def add_mmcr_media(self, agent_id: str):
-        """Add media files to MMCR component."""
-        from PyQt6.QtWidgets import QFileDialog
-        from pathlib import Path
-
-        filenames, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Add Media to MMCR",
-            str(Path.home()),
-            "Media Files (*.png *.jpg *.jpeg *.gif *.webp *.wav *.mp3 *.mp4 *.mov);;All Files (*)"
-        )
-
-        for filename in filenames:
-            if filename:
-                file_path = Path(filename)
-                ext = file_path.suffix.lower()
-
-                # Categorize by file type
-                if ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
-                    item = QListWidgetItem(file_path.name)
-                    item.setData(Qt.ItemDataRole.UserRole, filename)
-                    self.mmcr_images.addItem(item)
-                elif ext in ['.wav', '.mp3', '.ogg', '.m4a']:
-                    item = QListWidgetItem(file_path.name)
-                    item.setData(Qt.ItemDataRole.UserRole, filename)
-                    self.mmcr_audio.addItem(item)
-
-        # Save MMCR state
-        self.save_mmcr_data(agent_id)
-
-    def remove_mmcr_media(self):
-        """Remove selected media from MMCR."""
-        # Check images list
-        current = self.mmcr_images.currentItem()
-        if current:
-            self.mmcr_images.takeItem(self.mmcr_images.row(current))
-            return
-
-        # Check audio list
-        current = self.mmcr_audio.currentItem()
-        if current:
-            self.mmcr_audio.takeItem(self.mmcr_audio.row(current))
-
-    def load_mmcr_data(self, agent_id: str):
-        """Load MMCR data from storage."""
-        # TODO: Implement when components dict is added to world structure
-        # Would load from: agent_data['components']['mmcr']
-        pass
-
-    def save_mmcr_data(self, agent_id: str):
-        """Save MMCR data to storage."""
-        # Collect all media files
-        images = []
-        for i in range(self.mmcr_images.count()):
-            item = self.mmcr_images.item(i)
-            path = item.data(Qt.ItemDataRole.UserRole)
-            if path:
-                images.append(path)
-
-        audio = []
-        for i in range(self.mmcr_audio.count()):
-            item = self.mmcr_audio.item(i)
-            path = item.data(Qt.ItemDataRole.UserRole)
-            if path:
-                audio.append(path)
-
-        # TODO: Save via API to agent's components.mmcr
-        # POST /api/agents/{agent_id}/components/mmcr
-        print(f"MMCR data for {agent_id}:")
-        print(f"  Images: {images}")
-        print(f"  Audio: {audio}")
-
-    def create_metadata_component(self, entity_id: str) -> QGroupBox:
-        """
-        Create Metadata component for arbitrary key-value pairs.
-
-        Like USD custom attributes - author can add any field they want:
-        - asteroid.mass_kg = 8500000000
-        - asteroid.minerals = ["iron: 45%", "platinum: 0.02%"]
-        - asteroid.appearance_far = "A dark speck..."
-
-        Scripts access via: prim.metadata["mass_kg"]
-        """
-        component = QGroupBox("Custom Metadata")
-        component.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        component.setStyleSheet("""
-            QGroupBox {
-                color: #9E9E9E;
-                border: 2px solid #757575;
-                border-radius: 6px;
-                margin-top: 10px;
-                padding-top: 12px;
-                background: #1a1a1a;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 6px;
-            }
-        """)
-
-        layout = QVBoxLayout()
-
-        # Description
-        desc = QLabel("Arbitrary key-value pairs accessible to scripts and renderers")
-        desc.setStyleSheet("color: #B0B0B0; font-size: 10px; margin-bottom: 8px;")
-        desc.setWordWrap(True)
-        layout.addWidget(desc)
-
-        # Metadata list (shows key: value pairs)
-        self.metadata_list = QListWidget()
-        self.metadata_list.setMaximumHeight(150)
-        self.metadata_list.setStyleSheet("""
-            QListWidget {
-                background: #2a2a2a;
-                border: 1px solid #555;
-                border-radius: 4px;
-                color: #D2D2D2;
-                font-size: 10px;
-                font-family: 'Courier New';
-            }
-            QListWidget::item {
-                padding: 4px;
-            }
-            QListWidget::item:hover {
-                background: #333;
-            }
-            QListWidget::item:selected {
-                background: #555;
-            }
-        """)
-        layout.addWidget(self.metadata_list)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-
-        add_meta_btn = QPushButton("Add Field")
-        add_meta_btn.clicked.connect(lambda: self.add_metadata_field(entity_id))
-        add_meta_btn.setStyleSheet("""
-            QPushButton {
-                background: #757575;
-                color: white;
-                padding: 6px 12px;
-                border-radius: 3px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background: #9E9E9E;
-            }
-        """)
-        button_layout.addWidget(add_meta_btn)
-
-        edit_meta_btn = QPushButton("Edit")
-        edit_meta_btn.clicked.connect(lambda: self.edit_metadata_field(entity_id))
-        edit_meta_btn.setStyleSheet("""
-            QPushButton {
-                background: #555;
-                color: white;
-                padding: 6px 12px;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background: #666;
-            }
-        """)
-        button_layout.addWidget(edit_meta_btn)
-
-        remove_meta_btn = QPushButton("Remove")
-        remove_meta_btn.clicked.connect(lambda: self.remove_metadata_field(entity_id))
-        remove_meta_btn.setStyleSheet("""
-            QPushButton {
-                background: #555;
-                color: white;
-                padding: 6px 12px;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background: #666;
-            }
-        """)
-        button_layout.addWidget(remove_meta_btn)
-
-        layout.addLayout(button_layout)
-
-        # Access info
-        info_label = QLabel("Example: asteroid.metadata['mass_kg'] or asteroid.metadata['minerals']")
-        info_label.setStyleSheet("color: #888; font-size: 9px; margin-top: 8px;")
-        info_label.setWordWrap(True)
-        layout.addWidget(info_label)
-
-        component.setLayout(layout)
-
-        # Load existing metadata
-        self.load_metadata(entity_id)
-
-        return component
-
-    def add_metadata_field(self, entity_id: str):
-        """Add a new metadata field."""
-        from PyQt6.QtWidgets import QInputDialog
-
-        # Get field name
-        field_name, ok = QInputDialog.getText(
-            self,
-            "Add Metadata Field",
-            "Field name (e.g., 'mass_kg', 'minerals', 'velocity'):"
-        )
-
-        if ok and field_name:
-            # Get field value
-            field_value, ok = QInputDialog.getText(
-                self,
-                "Add Metadata Field",
-                f"Value for '{field_name}':"
+            # Fetch current agent state
+            response = requests.get(
+                f"{self.api_base}/agents/{self.current_agent_id}",
+                timeout=1
             )
 
-            if ok:
-                # Add to list
-                item = QListWidgetItem(f"{field_name}: {field_value}")
-                item.setData(Qt.ItemDataRole.UserRole, {'key': field_name, 'value': field_value})
-                self.metadata_list.addItem(item)
+            if response.status_code != 200:
+                return
 
-                # Save
-                self.save_metadata(entity_id)
+            agent_data = response.json()
+            state = agent_data.get('state', {})
 
-    def edit_metadata_field(self, entity_id: str):
-        """Edit selected metadata field."""
-        from PyQt6.QtWidgets import QInputDialog
+            # Update affect labels
+            affect = state.get('affect', {})
+            for dim_key, label in self.live_affect_labels.items():
+                value = affect.get(dim_key, 0.0)
+                label.setText(f"{value:.2f}")
 
-        current = self.metadata_list.currentItem()
-        if not current:
-            return
+            # Update surprise
+            surprise = state.get('surprise', 0.0)
+            if self.live_surprise_label:
+                self.live_surprise_label.setText(f"{surprise:.2f}")
 
-        data = current.data(Qt.ItemDataRole.UserRole)
-        field_name = data['key']
-        old_value = data['value']
-
-        # Get new value
-        new_value, ok = QInputDialog.getText(
-            self,
-            "Edit Metadata Field",
-            f"New value for '{field_name}':",
-            text=old_value
-        )
-
-        if ok:
-            # Update item
-            current.setText(f"{field_name}: {new_value}")
-            current.setData(Qt.ItemDataRole.UserRole, {'key': field_name, 'value': new_value})
-
-            # Save
-            self.save_metadata(entity_id)
-
-    def remove_metadata_field(self, entity_id: str):
-        """Remove selected metadata field."""
-        current = self.metadata_list.currentItem()
-        if current:
-            self.metadata_list.takeItem(self.metadata_list.row(current))
-            self.save_metadata(entity_id)
-
-    def load_metadata(self, entity_id: str):
-        """Load metadata from world state."""
-        # TODO: Load from world state when metadata dict is added
-        # For now, show example for demonstration
-        if entity_id.startswith('obj_'):
-            # Example metadata
-            examples = {
-                'type': 'vending_machine',
-                'portable': 'true',
-                'takeable': 'true'
-            }
-            for key, value in examples.items():
-                item = QListWidgetItem(f"{key}: {value}")
-                item.setData(Qt.ItemDataRole.UserRole, {'key': key, 'value': value})
-                self.metadata_list.addItem(item)
-
-    def save_metadata(self, entity_id: str):
-        """Save metadata to world state."""
-        # Collect all metadata fields
-        metadata = {}
-        for i in range(self.metadata_list.count()):
-            item = self.metadata_list.item(i)
-            data = item.data(Qt.ItemDataRole.UserRole)
-            if data:
-                metadata[data['key']] = data['value']
-
-        # TODO: Save via API
-        # POST /api/objects/{entity_id}/metadata
-        print(f"Metadata for {entity_id}:")
-        for key, value in metadata.items():
-            print(f"  {key}: {value}")
-
-    def _show_text_editor_context_menu(self, text_widget, pos):
-        """Show context menu with 'Open in External Editor' option."""
-        from PyQt6.QtWidgets import QMenu
-        from PyQt6.QtGui import QAction
-
-        menu = QMenu(text_widget)
-
-        # Add standard edit actions safely
-        try:
-            standard_menu = text_widget.createStandardContextMenu()
-            if standard_menu:
-                for action in standard_menu.actions():
-                    if action.text():
-                        menu.addAction(action)
-                menu.addSeparator()
-        except Exception as e:
-            print(f"Error creating standard context menu: {e}")
-
-        # External editor action
-        external_action = QAction("View in External Editor", menu)
-        external_action.triggered.connect(lambda: self._view_in_external_text_editor(text_widget))
-        menu.addAction(external_action)
-
-        menu.exec(text_widget.mapToGlobal(pos))
-
-    def _view_in_external_text_editor(self, text_widget):
-        """View text in external editor (read-only snapshot)."""
-        import tempfile
-        import subprocess
-        import json
-        from pathlib import Path
-
-        # Get external editor path from settings
-        settings_file = Path.home() / ".noodlestudio" / "settings.json"
-        editor_path = None
-
-        if settings_file.exists():
-            try:
-                with open(settings_file, 'r') as f:
-                    settings = json.load(f)
-                    editor_path = settings.get('external_apps', {}).get('text_editor')
-            except:
-                pass
-
-        if not editor_path or not Path(editor_path).exists():
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.warning(
-                self,
-                "No Text Editor Configured",
-                "Please configure a text editor in:\nSettings → External Applications"
-            )
-            return
-
-        # Create temp file with current text
-        temp_fd, temp_path = tempfile.mkstemp(suffix='.txt', prefix='noodlestudio_view_')
-        with open(temp_path, 'w') as f:
-            f.write(text_widget.toPlainText())
-
-        print(f"[ExternalEditor] Viewing in editor: {temp_path}")
-
-        # Open in external editor
-        try:
-            subprocess.Popen(['open', '-a', editor_path, temp_path])
-        except Exception as e:
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.critical(self, "Failed to Open Editor", f"Error: {e}")
-
-    def _show_image_context_menu(self, pos):
-        """Show context menu for images in gallery."""
-        from PyQt6.QtWidgets import QMenu
-        from PyQt6.QtGui import QAction
-
-        current_item = self.art_gallery.currentItem()
-        if not current_item:
-            return
-
-        menu = QMenu(self.art_gallery)
-
-        # Open in image editor
-        edit_action = QAction("Open in Image Editor", menu)
-        edit_action.triggered.connect(lambda: self._open_image_in_editor(current_item))
-        menu.addAction(edit_action)
-
-        menu.addSeparator()
-
-        # Remove from gallery
-        remove_action = QAction("Remove from Gallery", menu)
-        remove_action.triggered.connect(lambda: self.remove_art_from_gallery())
-        menu.addAction(remove_action)
-
-        menu.exec(self.art_gallery.mapToGlobal(pos))
-
-    def _open_image_in_editor(self, list_item):
-        """Open image in external editor, watch for changes."""
-        import subprocess
-        import json
-        from pathlib import Path
-        from PyQt6.QtCore import QFileSystemWatcher
-
-        # Get image path from item data
-        image_path = list_item.data(Qt.ItemDataRole.UserRole)
-        if not image_path or not Path(image_path).exists():
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.warning(self, "Image Not Found", f"Image file not found: {image_path}")
-            return
-
-        # Get external image editor from settings
-        settings_file = Path.home() / ".noodlestudio" / "settings.json"
-        editor_path = None
-
-        if settings_file.exists():
-            try:
-                with open(settings_file, 'r') as f:
-                    settings = json.load(f)
-                    editor_path = settings.get('external_apps', {}).get('image_editor')
-            except:
-                pass
-
-        if not editor_path or not Path(editor_path).exists():
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.warning(
-                self,
-                "No Image Editor Configured",
-                "Please configure an image editor in:\nSettings → External Applications"
-            )
-            return
-
-        # Open in external editor
-        try:
-            subprocess.Popen(['open', '-a', editor_path, image_path])
-        except Exception as e:
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.critical(self, "Failed to Open Editor", f"Error: {e}")
-            return
-
-        # Watch image file for changes
-        watcher = QFileSystemWatcher([image_path])
-
-        def on_image_changed(path):
-            """Reload thumbnail when image changes."""
-            try:
-                # Reload the pixmap
-                pixmap = QPixmap(path)
-                if not pixmap.isNull():
-                    icon = QIcon(pixmap)
-                    list_item.setIcon(icon)
-                    print(f"Image reloaded: {path}")
-            except Exception as e:
-                print(f"Error reloading image: {e}")
-
-        watcher.fileChanged.connect(on_image_changed)
-
-        # Keep watcher alive
-        if not hasattr(self, '_file_watchers'):
-            self._file_watchers = []
-        self._file_watchers.append((watcher, image_path))
-
-    def _show_audio_context_menu(self, pos):
-        """Show context menu for audio files."""
-        from PyQt6.QtWidgets import QMenu
-        from PyQt6.QtGui import QAction
-
-        current_item = self.mmcr_audio.currentItem()
-        if not current_item:
-            return
-
-        menu = QMenu(self.mmcr_audio)
-
-        # Open in audio editor
-        edit_action = QAction("Open in Audio Editor", menu)
-        edit_action.triggered.connect(lambda: self._open_audio_in_editor(current_item))
-        menu.addAction(edit_action)
-
-        menu.addSeparator()
-
-        # Remove from list
-        remove_action = QAction("Remove from List", menu)
-        remove_action.triggered.connect(lambda: self.remove_media_from_mmcr())
-        menu.addAction(remove_action)
-
-        menu.exec(self.mmcr_audio.mapToGlobal(pos))
-
-    def _open_audio_in_editor(self, list_item):
-        """Open audio file in external editor."""
-        import subprocess
-        import json
-        from pathlib import Path
-
-        # Get audio path from item text (for now - might need UserRole data)
-        audio_path = list_item.text()
-        if not Path(audio_path).exists():
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.warning(self, "Audio File Not Found", f"File not found: {audio_path}")
-            return
-
-        # Get external audio editor from settings
-        settings_file = Path.home() / ".noodlestudio" / "settings.json"
-        editor_path = None
-
-        if settings_file.exists():
-            try:
-                with open(settings_file, 'r') as f:
-                    settings = json.load(f)
-                    editor_path = settings.get('external_apps', {}).get('audio_editor')
-            except:
-                pass
-
-        if not editor_path or not Path(editor_path).exists():
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.warning(
-                self,
-                "No Audio Editor Configured",
-                "Please configure an audio editor in:\nSettings → External Applications"
-            )
-            return
-
-        # Open in external editor
-        try:
-            subprocess.Popen(['open', '-a', editor_path, audio_path])
-        except Exception as e:
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.critical(self, "Failed to Open Editor", f"Error: {e}")
-            return
-
-        # Note: Audio files don't need live reload like images do
-        # User will manually re-add if they want updated version
+        except Exception:
+            pass  # Silently ignore update failures
 
     def open_facet_editor(self, agent_id: str):
-        """
-        Open Facets Editor for agent's facet assembly.
-
-        Switches to Facets Editor tab and loads the agent's assembly.
-        """
-        # Emit signal to main window to switch tabs
-        # The main window will catch this and switch to Facets Editor
-        from PyQt6.QtCore import pyqtSignal
-
-        # Get parent main window
+        """Open Facets Editor tab with agent's assembly loaded."""
         main_window = self.window()
-        if hasattr(main_window, 'right_tabs'):
-            # Switch to Facets Editor tab (index 2: Inspector=0, Noodle Tuner=1, Facets Editor=2)
-            main_window.right_tabs.setCurrentIndex(2)
+        if hasattr(main_window, 'facets_editor'):
+            # Switch to Facets Editor tab
+            if hasattr(main_window, 'center_tabs'):
+                for i in range(main_window.center_tabs.count()):
+                    if 'Facets' in main_window.center_tabs.tabText(i):
+                        main_window.center_tabs.setCurrentIndex(i)
+                        break
+            # Load agent's assembly
+            main_window.facets_editor.load_agent_assembly(agent_id)
 
-            # Signal Facets Editor to load this agent
-            if hasattr(main_window, 'facets_editor_panel'):
-                main_window.facets_editor_panel.set_current_agent(agent_id)
+    def create_metadata_component(self, obj_id: str) -> CollapsibleSection:
+        """Create arbitrary metadata editor for prims."""
+        section = CollapsibleSection("Custom Properties")
 
+        # Connect toggled signal
+        section.toggled.connect(lambda expanded: self._on_collapsible_toggled(section.title_text, expanded))
+
+        # Restore previous state
+        self._restore_collapsible_state(section)
+
+        info_label = QLabel("Add custom key-value properties")
+        info_label.setStyleSheet("color: #808080; font-style: italic; padding: 4px;")
+        section.add_widget(info_label)
+
+        # TODO: Add key-value editor UI
+
+        return section
+
+    def _show_text_editor_context_menu(self, field: QTextEdit, pos):
+        """Show context menu for text fields with external editor option."""
+        from PyQt6.QtWidgets import QMenu
+
+        menu = QMenu(field)
+
+        # Standard edit actions
+        menu.addAction("Cut", field.cut)
+        menu.addAction("Copy", field.copy)
+        menu.addAction("Paste", field.paste)
+        menu.addSeparator()
+
+        # External editor action
+        edit_action = menu.addAction("Edit in External Editor...")
+        edit_action.triggered.connect(lambda: self._open_in_external_editor(field))
+
+        menu.exec(field.mapToGlobal(pos))
+
+    def _open_in_external_editor(self, field: QTextEdit):
+        """Open text field content in system's default text editor."""
+        import tempfile
+        import subprocess
+
+        content = field.toPlainText()
+
+        # Write to temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            f.write(content)
+            temp_path = f.name
+
+        # Open with system default
+        subprocess.run(['open', temp_path])
+
+        # TODO: Watch for file changes and reload

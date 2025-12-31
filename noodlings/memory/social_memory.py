@@ -12,7 +12,7 @@ This implements Theory of Mind computational substrate:
 - Infer others' mental states from observations
 - Model relationship patterns over time
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: October 2025
 """
 

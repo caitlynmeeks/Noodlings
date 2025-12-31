@@ -4,7 +4,7 @@
   "description": "Hierarchical temporal affect processor",
   "metadata": {
     "created": "2025-12-09T13:48:23.517342",
-    "modified": "2025-12-09T13:48:23.517443",
+    "modified": "2025-12-19T15:48:38.531135",
     "author": "Caity",
     "total_parameters": 5045
   },
@@ -89,7 +89,8 @@
             5
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "weight_hh": {
           "shape": [
@@ -97,21 +98,24 @@
             16
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "bias_ih": {
           "shape": [
             64
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "bias_hh": {
           "shape": [
             64
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         }
       },
       "collapsed": false,
@@ -172,7 +176,8 @@
             5
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "weight_hh": {
           "shape": [
@@ -180,21 +185,24 @@
             16
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "bias_ih": {
           "shape": [
             64
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "bias_hh": {
           "shape": [
             64
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         }
       },
       "collapsed": false,
@@ -207,8 +215,8 @@
       "type": "GRU",
       "name": "GRU",
       "position": [
-        973,
-        141
+        1000,
+        100
       ],
       "params": {
         "input_dim": 16,
@@ -244,7 +252,8 @@
             16
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "weight_hh": {
           "shape": [
@@ -252,21 +261,24 @@
             8
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "bias_ih": {
           "shape": [
             24
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "bias_hh": {
           "shape": [
             24
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         }
       },
       "collapsed": false,
@@ -279,7 +291,7 @@
       "type": "STATE_CONCAT",
       "name": "Phenomenal State",
       "position": [
-        1300,
+        1299,
         100
       ],
       "params": {},
@@ -381,14 +393,16 @@
             40
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "fc1_bias": {
           "shape": [
             32
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "fc2_weight": {
           "shape": [
@@ -396,14 +410,16 @@
             32
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "fc2_bias": {
           "shape": [
             5
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         }
       },
       "collapsed": false,
@@ -436,6 +452,27 @@
       "color": "#3A5A3A",
       "tags": [],
       "description": "Network exit point"
+    },
+    {
+      "id": "7128d713-4c15-4ecc-9f8f-688ec4fdc907",
+      "type": "COMMENT",
+      "name": "About this project",
+      "position": [
+        100,
+        280
+      ],
+      "params": {
+        "text": "This project teaches how to use NN's to build a NAND gate.",
+        "width": 313,
+        "height": null
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Floating explanatory text (functionally inert)"
     }
   ],
   "connections": [

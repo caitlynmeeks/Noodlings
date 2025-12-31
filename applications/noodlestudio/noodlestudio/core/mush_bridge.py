@@ -3,12 +3,16 @@ noodleMUSH Bridge
 
 WebSocket client for NoodleStudio to communicate with noodleMUSH server.
 Sends rez/derez commands and receives updates.
+
+Supports two authentication modes:
+1. Studio mode: Invisible admin connection for NoodleStudio operations
+2. User mode: Token-based auth with avatar selection for in-world presence
 """
 
 import asyncio
 import websockets
 import json
-from typing import Optional, Dict, Callable
+from typing import Optional, Dict, Callable, Any
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
 
@@ -21,11 +25,13 @@ class MUSHBridge(QObject):
     - Derezzing entities from Scene
     - Receiving world updates
     - Executing admin commands
+    - User authentication with avatar selection
     """
 
     connected = pyqtSignal()
     disconnected = pyqtSignal()
     world_updated = pyqtSignal(dict)  # Emitted when world state changes
+    user_authenticated = pyqtSignal(dict)  # Emitted on token auth success
     error = pyqtSignal(str)
 
     def __init__(self):
@@ -33,38 +39,98 @@ class MUSHBridge(QObject):
         self.ws: Optional[websockets.WebSocketClientProtocol] = None
         self.is_connected = False
         self.server_url = "ws://localhost:8765"
+        self.current_avatar_name: Optional[str] = None  # Display name in world
 
-    async def connect(self):
-        """Connect to noodleMUSH server."""
+    async def connect(self, use_token_auth: bool = False, token: str = None,
+                      avatar_id: str = None, avatar: Dict = None):
+        """
+        Connect to noodleMUSH server.
+
+        Args:
+            use_token_auth: If True, use cloud token authentication
+            token: NoodleStudio session token (required if use_token_auth=True)
+            avatar_id: Optional avatar ID to use
+            avatar: Optional avatar metadata dict
+        """
         try:
             self.ws = await websockets.connect(self.server_url)
 
-            # Login as admin (invisible mode)
-            login_msg = {
-                'type': 'login',
-                'username': 'studio',
-                'password': 'studio',  # Special studio user
-                'invisible': True
-            }
-
-            await self.ws.send(json.dumps(login_msg))
-
-            # Wait for login response
-            response = await self.ws.recv()
-            data = json.loads(response)
-
-            if data.get('type') == 'login_response' and data.get('success'):
-                self.is_connected = True
-                self.connected.emit()
-                print("NoodleStudio connected to noodleMUSH")
-                return True
+            if use_token_auth and token:
+                # Cloud token authentication with avatar
+                return await self._authenticate_with_token(token, avatar_id, avatar)
             else:
-                self.error.emit(f"Login failed: {data.get('message', 'Unknown error')}")
-                return False
+                # Fallback: Studio admin mode (invisible)
+                return await self._authenticate_studio_mode()
 
         except Exception as e:
             self.error.emit(f"Connection failed: {e}")
             return False
+
+    async def _authenticate_studio_mode(self) -> bool:
+        """Authenticate as invisible studio admin."""
+        login_msg = {
+            'type': 'login',
+            'username': 'studio',
+            'password': 'studio',
+            'invisible': True
+        }
+
+        await self.ws.send(json.dumps(login_msg))
+
+        response = await self.ws.recv()
+        data = json.loads(response)
+
+        if data.get('type') == 'login_response' and data.get('success'):
+            self.is_connected = True
+            self.connected.emit()
+            print("NoodleStudio connected to noodleMUSH (studio mode)")
+            return True
+        else:
+            self.error.emit(f"Login failed: {data.get('message', 'Unknown error')}")
+            return False
+
+    async def _authenticate_with_token(self, token: str, avatar_id: str = None,
+                                        avatar: Dict = None) -> bool:
+        """
+        Authenticate using NoodleStudio cloud token.
+
+        Args:
+            token: NoodleStudio session token
+            avatar_id: Optional avatar ID
+            avatar: Optional avatar metadata dict
+
+        Returns:
+            True if authentication succeeded
+        """
+        auth_msg = {
+            'type': 'token_auth',
+            'token': token,
+            'avatar_id': avatar_id,
+            'avatar': avatar or {}
+        }
+
+        await self.ws.send(json.dumps(auth_msg))
+
+        # Consume responses until we get the auth response
+        # (server sends history, welcome banner, etc. after auth)
+        while True:
+            response = await self.ws.recv()
+            data = json.loads(response)
+
+            if data.get('type') == 'token_auth_response':
+                if data.get('success'):
+                    self.is_connected = True
+                    self.current_avatar_name = data.get('avatar_name', 'Traveler')
+                    self.connected.emit()
+                    self.user_authenticated.emit(data)
+                    print(f"NoodleStudio connected to noodleMUSH as {self.current_avatar_name}")
+                    return True
+                else:
+                    self.error.emit(f"Token auth failed: {data.get('message', 'Unknown error')}")
+                    return False
+
+            # Skip other message types (history, welcome, etc.)
+            # TODO: Could emit these to a chat panel
 
     async def disconnect(self):
         """Disconnect from server."""

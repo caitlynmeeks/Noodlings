@@ -3,8 +3,13 @@
 Simple diagnostic test - send one message and see ALL responses.
 """
 import asyncio
+import os
 import sys
-sys.path.insert(0, '/Users/thistlequell/git/noodlings_clean/applications/cmush')
+
+# Add cmush directory to path
+_cmush_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _cmush_dir)
+
 from claude_testing import NoodleMUSHTestClient
 
 

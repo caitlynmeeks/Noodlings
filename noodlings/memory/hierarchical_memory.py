@@ -1,5 +1,5 @@
 """
-Hierarchical Memory System for Consilience
+Hierarchical Memory System for Noodlings
 
 Three-tier architecture:
 1. Working Memory: Recent interactions (20 slots, full detail)
@@ -8,7 +8,7 @@ Three-tier architecture:
 
 Inspired by cognitive neuroscience models of human memory.
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: October 2025
 """
 

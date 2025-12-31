@@ -260,7 +260,7 @@ class NoodlingComponent(ABC):
 ### Noodling Component Manager
 
 ```python
-class CMUSHConsilienceAgent:
+class CMUSHNoodlingAgent:
     def __init__(self, ...):
         # Component registry (instance-specific)
         self._components = {}  # component_type -> component_instance

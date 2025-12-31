@@ -27,7 +27,7 @@ Key Innovation: Characters now WANT things and pursue them based on internal
 drives, not just reacting to inputs. Mr. Toad crashes motor-cars because his
 novelty appetite is 0.95, not because we scripted it.
 
-Author: Noodlings Project
+Author: Caitlyn Meeks
 Date: November 2025
 """
 

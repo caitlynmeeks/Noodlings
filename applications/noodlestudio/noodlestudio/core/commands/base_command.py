@@ -49,11 +49,16 @@ class StudioCommand(QUndoCommand):
         Override _do() in subclasses for the actual operation.
         """
         if self.DEBUG:
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
             action = "Execute" if self._first_redo else "Redo"
-            print(f"[Undo] {action}: {self.text()}")
+            print(f"[{timestamp}] [StudioCommand.redo] {action}: {self.text()}")
 
         self._do()
         self._first_redo = False
+
+        if self.DEBUG:
+            print(f"[{timestamp}] [StudioCommand.redo] {action} complete")
 
     def undo(self):
         """
@@ -62,9 +67,14 @@ class StudioCommand(QUndoCommand):
         Override _undo() in subclasses for the actual operation.
         """
         if self.DEBUG:
-            print(f"[Undo] Undo: {self.text()}")
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            print(f"[{timestamp}] [StudioCommand.undo] Undo: {self.text()}")
 
         self._undo()
+
+        if self.DEBUG:
+            print(f"[{timestamp}] [StudioCommand.undo] Undo complete")
 
     def _do(self):
         """

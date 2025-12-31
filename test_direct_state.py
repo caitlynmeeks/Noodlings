@@ -4,8 +4,12 @@ Direct test of temporal model state retrieval.
 Bypasses all server infrastructure to test the core issue.
 """
 
+import os
 import sys
-sys.path.insert(0, '/Users/thistlequell/git/noodlings_clean')
+
+# Add project root to path
+_project_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _project_root)
 
 from noodlings.api import NoodlingAgent
 import mlx.core as mx
@@ -16,7 +20,7 @@ print("DIRECT STATE TEST")
 print("=" * 70)
 
 # Create agent with checkpoint
-checkpoint = "../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
+checkpoint = "models/checkpoints/best_checkpoint.npz"
 print(f"\nInitializing NoodlingAgent with checkpoint: {checkpoint}")
 
 agent = NoodlingAgent(

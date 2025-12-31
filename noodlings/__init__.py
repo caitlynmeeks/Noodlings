@@ -1,6 +1,6 @@
 """
 Noodlings: Hierarchical Temporal Affect Models
 
-Inspired by predictive processing, but makes no claims about genuine consciousness.
+Inspired by predictive processing. We explore functional correlates, not metaphysical claims.
 """
 __version__ = "0.1.0"

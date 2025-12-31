@@ -44,8 +44,8 @@
       "type": "QUANTUM_MICROTUBULE",
       "name": "Quantum Microtubule",
       "position": [
-        350,
-        150
+        287,
+        128
       ],
       "params": {
         "input_dim": 1,
@@ -124,14 +124,16 @@
             16
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         },
         "bias": {
           "shape": [
             32
           ],
           "path": null,
-          "trainable": true
+          "trainable": true,
+          "values": null
         }
       },
       "collapsed": false,
@@ -203,8 +205,8 @@
       "type": "COMMENT",
       "name": "Welcome",
       "position": [
-        50,
-        50
+        154,
+        419
       ],
       "params": {
         "text": "# Quantum Basics - Beyond Classical Bits\n\nWelcome to quantum computing! Here we explore qubits.\n\n## To Do and Notice\n\n1. **Superposition**: A qubit can be 0 AND 1 at the same time\n2. **Measurement**: Observing \"collapses\" the state\n3. **Probability**: Each state has an amplitude that determines likelihood\n\n## Classical vs Quantum\n\n- Classical bit: 0 OR 1\n- Qubit: a|0> + b|1> (superposition)\n\nThe magic happens when we use this to compute in parallel!\n\n**Challenge**: What happens when you measure multiple times?",

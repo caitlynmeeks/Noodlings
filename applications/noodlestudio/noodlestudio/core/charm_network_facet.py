@@ -262,6 +262,63 @@ class CharmNetworkFacet:
         self.h_slow = mx.array(state_dict['h_slow'])
         print("[Charm Network] State loaded from dict")
 
+    def inject_state(
+        self,
+        valence: float = 0.0,
+        arousal: float = 0.5,
+        dominance: float = 0.5,
+        boredom: float = 0.0,
+        sorrow: float = 0.0,
+        crossfade: float = 0.5
+    ):
+        """
+        Inject affect state into the CharmNetwork for emotional momentum.
+
+        When an affect animation track ends, it can hand off its final state
+        to the CharmNetwork. The network then lets it decay naturally through
+        its temporal dynamics (fast/medium/slow layers).
+
+        This is the "Donald Duck problem" solution - when Donald's anger
+        animation ends, he stays grumpy and naturally calms down over time.
+
+        Args:
+            valence: Pleasure dimension (-1 to +1)
+            arousal: Energy/activation (0 to 1)
+            dominance: Control/confidence (0 to 1)
+            boredom: Disengagement (0 to 1)
+            sorrow: Sadness (0 to 1)
+            crossfade: Duration to blend from current state (seconds)
+        """
+        # The injected affect will be used as input to the next processing cycle
+        # The temporal layers will then let it decay according to their time constants
+        self._injected_affect = [valence, arousal, dominance, boredom, sorrow]
+        self._inject_crossfade = crossfade
+        self._inject_start_time = time.time() if crossfade > 0 else 0
+
+        print(f"[Charm Network] Affect injected (momentum handoff): "
+              f"v={valence:.2f} a={arousal:.2f} d={dominance:.2f} "
+              f"b={boredom:.2f} s={sorrow:.2f}")
+
+    def get_injected_affect(self) -> Optional[List[float]]:
+        """
+        Get any injected affect state (from animation track momentum).
+
+        Returns:
+            5-element list [valence, arousal, dominance, boredom, sorrow] or None
+        """
+        if hasattr(self, '_injected_affect') and self._injected_affect:
+            # Apply crossfade decay
+            if hasattr(self, '_inject_crossfade') and self._inject_crossfade > 0:
+                elapsed = time.time() - getattr(self, '_inject_start_time', 0)
+                if elapsed > self._inject_crossfade:
+                    # Crossfade complete, clear injection
+                    affect = self._injected_affect
+                    self._injected_affect = None
+                    return affect
+
+            return self._injected_affect
+        return None
+
     def get_execution_stats(self) -> Dict[str, Any]:
         """
         Get execution statistics.
@@ -299,7 +356,7 @@ if __name__ == "__main__":
     """Test Charm Network facet."""
 
     # Test initialization
-    checkpoint = "../../../../consilience_core/checkpoints_phase4/best_checkpoint.npz"
+    checkpoint = "../../../../models/checkpoints/best_checkpoint.npz"
 
     if os.path.exists(checkpoint):
         charm = CharmNetworkFacet(checkpoint)

@@ -42,6 +42,11 @@ from .vision_facet import VisionFacet
 from .image_gen_facet import ImageGenFacet
 from .mcp_facet import MCPFacet
 from .utility_facets import UTILITY_FACET_TYPES, create_utility_facet
+from .affect_track import AffectTrackFacet
+from .physics_affect_bridge import PhysicsAffectFacet, get_physics_affect_bridge
+from .gaussian_training_facet import GaussianTrainingFacet, TrainingConfig
+from .skeleton_binding_facet import SkeletonBindingFacet, SkeletonBindingConfig
+from .auto_rigger_facet import AutoRiggerFacet, AutoRiggerConfig
 
 logger = logging.getLogger(__name__)
 
@@ -419,6 +424,112 @@ class FacetExecutor:
 
                 # Start processing loop
                 asyncio.create_task(gen_facet.start())
+
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "AffectTrackFacet":
+            # AFFECT TRACK: Singleton - maintains playback state
+            if facet.id not in self.singleton_facets:
+                # Parse config from facet properties
+                config = {}
+                if facet.prompt:
+                    for part in facet.prompt.split(','):
+                        if ':' in part:
+                            k, v = part.strip().split(':', 1)
+                            config[k.strip()] = v.strip()
+
+                # Check for track path in model field
+                if facet.model and facet.model not in ('SMALL', 'MEDIUM', 'LARGE'):
+                    config['track'] = facet.model
+
+                self.singleton_facets[facet.id] = AffectTrackFacet(config)
+
+                # Wire up CharmNetwork reference for momentum handoff
+                if 'charm_network' in self.singleton_facets:
+                    self.singleton_facets[facet.id].set_charm_network(
+                        self.singleton_facets['charm_network']
+                    )
+
+                logger.info(f"[FacetExecutor] Created singleton AffectTrackFacet (id={facet.id[:8]}, track={config.get('track')})")
+
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "PhysicsAffectFacet":
+            # PHYSICS → AFFECT: Singleton - bridges collision system to CharmNetwork
+            if facet.id not in self.singleton_facets:
+                # Parse config from facet properties
+                config = {
+                    'entity_id': context.get('agent_id', ''),
+                }
+                if facet.prompt:
+                    for part in facet.prompt.split(','):
+                        if ':' in part:
+                            k, v = part.strip().split(':', 1)
+                            config[k.strip()] = v.strip()
+
+                physics_facet = PhysicsAffectFacet(config)
+
+                # Get or create the global bridge
+                bridge = get_physics_affect_bridge()
+                if bridge:
+                    physics_facet.set_bridge(bridge)
+
+                # Wire to CharmNetworkFacet if available
+                if 'charm_network' in self.singleton_facets:
+                    physics_facet.set_charm_facet(self.singleton_facets['charm_network'])
+                    logger.info(f"[FacetExecutor] Wired PhysicsAffectFacet to CharmNetwork")
+
+                self.singleton_facets[facet.id] = physics_facet
+                logger.info(f"[FacetExecutor] Created singleton PhysicsAffectFacet (entity={config.get('entity_id')})")
+
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "GaussianTrainingFacet":
+            # GAUSSIAN TRAINING: Singleton - long-running training job
+            if facet.id not in self.singleton_facets:
+                # Parse config from facet properties
+                config = {}
+                if facet.prompt:
+                    for part in facet.prompt.split(','):
+                        if ':' in part:
+                            k, v = part.strip().split(':', 1)
+                            config[k.strip()] = v.strip()
+
+                training_config = TrainingConfig.from_dict(config)
+                self.singleton_facets[facet.id] = GaussianTrainingFacet(training_config)
+                logger.info(f"[FacetExecutor] Created singleton GaussianTrainingFacet (id={facet.id[:8]})")
+
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "SkeletonBindingFacet":
+            # SKELETON BINDING: Singleton - binds Gaussians to VRM skeleton
+            if facet.id not in self.singleton_facets:
+                config = {}
+                if facet.prompt:
+                    for part in facet.prompt.split(','):
+                        if ':' in part:
+                            k, v = part.strip().split(':', 1)
+                            config[k.strip()] = v.strip()
+
+                binding_config = SkeletonBindingConfig.from_dict(config)
+                self.singleton_facets[facet.id] = SkeletonBindingFacet(binding_config)
+                logger.info(f"[FacetExecutor] Created singleton SkeletonBindingFacet (id={facet.id[:8]})")
+
+            return self.singleton_facets[facet.id]
+
+        elif facet.facet_type == "AutoRiggerFacet":
+            # AUTO-RIGGER: Singleton - Mixamo-style automatic rigging
+            if facet.id not in self.singleton_facets:
+                config = {}
+                if facet.prompt:
+                    for part in facet.prompt.split(','):
+                        if ':' in part:
+                            k, v = part.strip().split(':', 1)
+                            config[k.strip()] = v.strip()
+
+                rigger_config = AutoRiggerConfig.from_dict(config)
+                self.singleton_facets[facet.id] = AutoRiggerFacet(rigger_config)
+                logger.info(f"[FacetExecutor] Created singleton AutoRiggerFacet (id={facet.id[:8]})")
 
             return self.singleton_facets[facet.id]
 
@@ -819,6 +930,15 @@ class FacetExecutor:
             }
             token_count = 0
 
+        elif facet.facet_type == "AffectTrackFacet":
+            # AFFECT TRACK: Keyframed emotional animation
+            outputs = await instance.process(inputs)
+            token_count = 0  # No LLM tokens
+
+            # Log playback state
+            if outputs.get('is_playing'):
+                logger.debug(f"[FacetExecutor] AffectTrack {facet.name} playing at t={outputs.get('current_time', 0):.2f}s")
+
         elif facet.facet_type == "MCPFacet":
             # MCP: Tool invocation via Model Context Protocol
             # instance is MCPFacet, process_async is async
@@ -830,6 +950,50 @@ class FacetExecutor:
                 logger.info(f"[FacetExecutor] MCP tool {facet.name} succeeded")
             else:
                 logger.warning(f"[FacetExecutor] MCP tool {facet.name} failed: {outputs.get('error')}")
+
+        elif facet.facet_type == "PhysicsAffectFacet":
+            # PHYSICS → AFFECT: Bridge touch events to emotional state
+            outputs = await instance.process(inputs)
+            token_count = 0  # No LLM tokens
+
+        elif facet.facet_type == "GaussianTrainingFacet":
+            # GAUSSIAN TRAINING: Long-running training job
+            # inputs should contain: dataset_path, output_path, iterations, etc.
+            result = await instance.train(TrainingConfig.from_dict(inputs))
+            outputs = result
+            token_count = 0  # No LLM tokens
+
+            # Log training result
+            if result.get('success'):
+                logger.info(f"[FacetExecutor] Gaussian training succeeded: {result.get('output_path')}")
+            else:
+                logger.warning(f"[FacetExecutor] Gaussian training failed: {result.get('message')}")
+
+        elif facet.facet_type == "SkeletonBindingFacet":
+            # SKELETON BINDING: Bind trained Gaussians to VRM skeleton
+            # inputs should contain: gaussian_ply_path, vrm_path, output_path, etc.
+            result = await instance.bind(SkeletonBindingConfig.from_dict(inputs))
+            outputs = result
+            token_count = 0  # No LLM tokens
+
+            # Log binding result
+            if result.get('success'):
+                logger.info(f"[FacetExecutor] Skeleton binding succeeded: {result.get('output_path')}")
+            else:
+                logger.warning(f"[FacetExecutor] Skeleton binding failed: {result.get('message')}")
+
+        elif facet.facet_type == "AutoRiggerFacet":
+            # AUTO-RIGGER: Mixamo-style automatic rigging for arbitrary meshes
+            # inputs should contain: mesh_path, output_path, auto_detect, etc.
+            result = await instance.rig(AutoRiggerConfig.from_dict(inputs))
+            outputs = result
+            token_count = 0  # No LLM tokens
+
+            # Log rigging result
+            if result.get('success'):
+                logger.info(f"[FacetExecutor] Auto-rigging succeeded: {result.get('output_path')}, {result.get('bone_count')} bones")
+            else:
+                logger.warning(f"[FacetExecutor] Auto-rigging failed: {result.get('message')}")
 
         elif facet.facet_type in UTILITY_FACET_TYPES:
             # UTILITY: Simple data transformation, no LLM calls

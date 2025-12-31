@@ -30,7 +30,7 @@ print("=" * 80)
 # Test 1: Check imports
 print("\n[1/5] Testing imports...")
 try:
-    from agent_bridge import CMUSHConsilienceAgent
+    from agent_bridge import CMUSHNoodlingAgent
     print(" agent_bridge imports successfully")
 except Exception as e:
     print(f" Import failed: {e}")
@@ -54,7 +54,7 @@ except Exception as e:
 # Test 3: Check API with observers module exists
 print("\n[3/5] Checking observer API...")
 try:
-    from consilience_core.api_with_observers import ConsilienceAgentWithObservers
+    from noodlings.api_with_observers import NoodlingAgentWithObservers
     print(" Observer API available")
 except Exception as e:
     print(f" Observer API not found: {e}")
@@ -79,7 +79,7 @@ try:
     # We're just testing that the code path works
     print("   Creating agent (may fail if no checkpoint - that's OK)...")
     try:
-        agent = CMUSHConsilienceAgent(
+        agent = CMUSHNoodlingAgent(
             agent_id='test_agent',
             checkpoint_path='../../models/test.npz',  # Likely doesn't exist
             llm=MockLLM(),
@@ -113,10 +113,10 @@ except Exception as e:
 # Test 5: Quick API test
 print("\n[5/5] Testing observer API directly...")
 try:
-    from consilience_core.api_with_observers import ConsilienceAgentWithObservers
+    from noodlings.api_with_observers import NoodlingAgentWithObservers
 
     # Create agent with observers
-    test_agent = ConsilienceAgentWithObservers(
+    test_agent = NoodlingAgentWithObservers(
         checkpoint_path=None,  # No checkpoint
         config={
             'use_observers': True,

@@ -14,7 +14,7 @@ This implements the computational correlate of:
 
 Total Parameters: ~49,320 (Phase 1/2: 9,272 + Phase 3 additions: 40,048)
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: October 2025
 """
 

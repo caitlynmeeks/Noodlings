@@ -10,7 +10,7 @@ Inspired by:
 - Body Action Coding System (BACS)
 - Mehrabian's nonverbal communication research
 
-Author: Consilience, Inc.
+Author: Caitlyn Meeks
 Date: November 16, 2025
 """
 

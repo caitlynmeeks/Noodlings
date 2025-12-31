@@ -720,6 +720,7 @@
         <div id="input-area">
             <div id="prompt">&gt;</div>
             <input type="text" id="input" placeholder="Type a command..." autocomplete="off" />
+            <div id="auth-status" style="font-size: 10px; color: #666; margin-left: 8px; white-space: nowrap;"></div>
         </div>
     </div>
 
@@ -1184,6 +1185,30 @@
         const expressionsCheckbox = document.getElementById('expressions-checkbox');
         const expressionsDisplay = document.getElementById('expressions-checkbox-display');
         const brainStatusBar = document.getElementById('brain-status-bar');
+        const authStatus = document.getElementById('auth-status');
+
+        // Update auth status indicator
+        function updateAuthStatus() {
+            if (!authStatus) return;
+            let wsState = 'NO WS';
+            try {
+                if (ws && typeof ws.readyState !== 'undefined') {
+                    wsState = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][ws.readyState] || 'UNKNOWN';
+                }
+            } catch (e) {
+                wsState = 'ERROR';
+            }
+            authStatus.textContent = authenticated ? 'READY' : `NOT AUTH (${wsState})`;
+            authStatus.style.color = authenticated ? '#00ff00' : '#ff6600';
+        }
+
+        // Ensure input focus when clicking anywhere in input area
+        document.getElementById('input-area').addEventListener('click', () => {
+            inputField.focus();
+        });
+
+        // Focus input on initial load (once, not repeatedly)
+        // Removed periodic focus - it was stealing focus from text selection
 
         // Cookie helpers
         function setCookie(name, value, days = 30) {
@@ -1460,6 +1485,34 @@
 
             ws.onopen = () => {
                 addLine('system', 'Connected to noodleMUSH server.');
+                updateAuthStatus();
+
+                // Check for token auth via URL params (NoodleStudio unified auth)
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                const avatarData = urlParams.get('avatar');
+
+                // Debug: show what URL params we have
+                addLine('system', `[Auth Debug] URL has token: ${token ? 'YES' : 'NO'}, avatar: ${avatarData ? 'YES' : 'NO'}`);
+
+                if (token) {
+                    // Hide login modal immediately - auth response will confirm or show error
+                    authModal.classList.add('hidden');
+                    inputField.focus();
+                    addLine('system', 'Authenticating via NoodleStudio...');
+                    try {
+                        const authMsg = {
+                            type: 'token_auth',
+                            token: token,
+                            avatar: avatarData ? JSON.parse(decodeURIComponent(avatarData)) : {}
+                        };
+                        ws.send(JSON.stringify(authMsg));
+                    } catch (e) {
+                        addLine('error', 'Failed to parse avatar data: ' + e.message);
+                        authModal.classList.remove('hidden');
+                    }
+                    return;
+                }
 
                 // Try auto-login with saved credentials (skip for Studio)
                 const isStudio = window.location.search.includes('studio=true');
@@ -1513,9 +1566,40 @@
                     }
                     break;
 
+                case 'token_auth_response':
+                    // NoodleStudio unified auth response
+                    console.log('[DEBUG] token_auth_response received:', data);
+                    if (data.success) {
+                        authenticated = true;
+                        console.log('[DEBUG] authenticated set to true');
+                        updateAuthStatus();
+                        authModal.classList.add('hidden');
+                        inputField.focus();
+
+                        const now = new Date();
+                        const timestamp = now.toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                        addLine('system', `─────── SESSION START: ${timestamp} ───────`);
+                        addLine('system', `Authenticated as ${data.avatar_name || 'Traveler'}`);
+
+                        // Subscribe to logs
+                        ws.send(JSON.stringify({ type: 'subscribe_logs' }));
+                    } else {
+                        addLine('error', `Authentication failed: ${data.message || 'Unknown error'}`);
+                        authModal.classList.remove('hidden');
+                    }
+                    break;
+
                 case 'login_response':
                     if (data.success) {
                         authenticated = true;
+                        updateAuthStatus();
                         authModal.classList.add('hidden');
                         inputField.focus();
 
@@ -1656,21 +1740,29 @@
             }
         }
 
-        // Add line to output (stores in history and redraws)
+        // Add line to output (stores in history and appends - no full redraw)
         function addLine(type, text) {
             // Store in message history
-            messageHistory.push({ type, text, timestamp: Date.now() });
+            const msg = { type, text, timestamp: Date.now() };
+            messageHistory.push(msg);
 
             // Limit history to 500 messages
             if (messageHistory.length > 500) {
                 messageHistory.shift();
+                // Only do full redraw when trimming history (rare)
+                redrawMessages();
+                return;
             }
 
             // Brain indicators now created from server's agent list on login
             // (Removed spawn detection to prevent duplicates)
 
-            // Redraw all messages
-            redrawMessages();
+            // Append single message (no full redraw - preserves selection)
+            const wasAtBottom = outputDiv.scrollHeight - outputDiv.scrollTop - outputDiv.clientHeight < 50;
+            renderMessage(msg);
+            if (wasAtBottom) {
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            }
         }
 
         // Redraw all messages from history with current telepathy state
@@ -2080,7 +2172,9 @@
 
         // Send command
         function sendCommand(command) {
+            console.log('[DEBUG] sendCommand called:', command, 'authenticated:', authenticated, 'ws:', ws ? 'exists' : 'null', 'readyState:', ws ? ws.readyState : 'N/A');
             if (!authenticated || !ws || ws.readyState !== WebSocket.OPEN) {
+                console.log('[DEBUG] sendCommand blocked: authenticated=' + authenticated + ' ws=' + (ws ? 'exists' : 'null') + ' readyState=' + (ws ? ws.readyState : 'N/A'));
                 return;
             }
 
@@ -2271,8 +2365,10 @@
         };
 
         inputField.addEventListener('keydown', (e) => {
+            console.log('[DEBUG] keydown:', e.key, 'authenticated:', authenticated, 'ws.readyState:', ws ? ws.readyState : 'no ws');
             if (e.key === 'Enter') {
                 const command = inputField.value.trim();
+                console.log('[DEBUG] Enter pressed, command:', command, 'authenticated:', authenticated);
                 if (command) {
                     // Reset tab completion
                     tabCompletionState.active = false;
@@ -2493,6 +2589,7 @@
 
         // Initial connection
         connect();
+        updateAuthStatus();
 
         // Welcome message with ASCII art
         addLine('tui-green', ':::.    :::.    ...         ...    :::::::-.   :::    .,::::::      .        :    ...    ::: .::::::.   ::   .:');
@@ -2502,13 +2599,14 @@
         addLine('tui-green', '  888    Y88"888,_ _,88P"888,_ _,88P 888_,o8P\'o88oo,.__888oo,__     888 Y88" 888o88    .d888 88b    dP 888   "88o');
         addLine('tui-green', '  MMM     YM  "YMMMMMP"   "YMMMMMP"  MMMMP"`  """"YUMMM""""YUMMM    MMM  M\'  "MMM "YmmMMMM""  "YMmMY"  MMM    YMM');
         addLine('system', '');
-        addLine('tui-green', 'Welcome, caity!');
+        addLine('tui-green', 'Welcome to noodleMUSH!');
         addLine('system', 'Noodlings Multi-User Shared Hallucination');
         addLine('system', '');
         addLine('system', 'A text-based world where experimental AI agents');
         addLine('system', 'explore the boundaries of machine phenomenology.');
         addLine('system', '');
-        addLine('system', 'Type "help" for commands.');
+        addLine('system', 'Use "Enter World" button in NoodleStudio to connect,');
+        addLine('system', 'or log in with the form above.');
         addLine('system', '');
     </script>
 </body>

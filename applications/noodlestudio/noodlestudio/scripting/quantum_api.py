@@ -238,7 +238,7 @@ class QuantumAPI:
                         if hasattr(reg_data, 'get_counts'):
                             counts_raw = reg_data.get_counts()
                             break
-                    except:
+                    except Exception:
                         pass
 
             if counts_raw is None:

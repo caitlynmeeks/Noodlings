@@ -9,7 +9,7 @@ Components:
 3. MultiHeadAttention: 4-head attention mechanism with specialization
 4. ContextIntegrator: Fuses current state with attended memories
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: October 2025
 """
 

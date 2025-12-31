@@ -92,6 +92,19 @@ class MainWindow(QMainWindow):
         # Start cmush activity bridge for LLM visualization
         QTimer.singleShot(600, self._start_activity_bridge)
 
+        # Auto-start MUSH server if setting is enabled (after project opens)
+        QTimer.singleShot(700, self._check_autostart_mush)
+
+    def _check_autostart_mush(self):
+        """Check if MUSH server should auto-start based on settings."""
+        from PyQt6.QtCore import QSettings
+        settings = QSettings("Noodlings", "NoodleStudio")
+        autostart = settings.value("autostart_mush", False, type=bool)
+
+        if autostart and not self.is_server_running():
+            # Trigger the server toggle
+            self.server_toggle.setChecked(True)
+
     def _start_activity_bridge(self):
         """Start the cmush activity bridge for real-time LLM activity visualization."""
         try:
@@ -132,6 +145,7 @@ class MainWindow(QMainWindow):
 
         # Save
         file_menu.addAction(self._create_action("&Save Project", "Ctrl+S", slot=self.save_project))
+        file_menu.addAction(self._create_action("Save Sta&ge", "Ctrl+Shift+S", slot=self.save_stage))
 
         # Import section
         file_menu.addSeparator()
@@ -285,8 +299,12 @@ class MainWindow(QMainWindow):
         account_menu.addAction(self._create_action("Sign In...", slot=self.show_login_dialog))
         account_menu.addAction(self._create_action("Account Info...", slot=self.show_account_info))
         account_menu.addSeparator()
+        self.enter_world_action = self._create_action("Enter World...", "Ctrl+W", slot=self.enter_world)
+        account_menu.addAction(self.enter_world_action)
+        account_menu.addAction(self._create_action("Manage Avatars...", slot=self.manage_avatars))
+        account_menu.addSeparator()
         account_menu.addAction(self._create_action("My Noodlings (Cloud)", slot=self.show_cloud_noodlings))
-        account_menu.addAction(self._create_action("Buy Credits...", slot=self.show_buy_credits))
+        # account_menu.addAction(self._create_action("Buy Credits...", slot=self.show_buy_credits))  # Hidden for now
         account_menu.addSeparator()
         account_menu.addAction(self._create_action("Sign Out", slot=self.sign_out))
 
@@ -307,43 +325,198 @@ class MainWindow(QMainWindow):
 
 
     def _setup_status_bar(self):
-        """Create status bar with server toggle and account status."""
-        from PyQt6.QtWidgets import QLabel, QWidget, QHBoxLayout
+        """Create status bar: [Username] [Avatar dropdown] [Enter World] [Server toggle]."""
+        from PyQt6.QtWidgets import QLabel, QWidget, QHBoxLayout, QComboBox, QPushButton
         from ..widgets.toggle_switch import ToggleSwitch
         from ..widgets.account_status_widget import AccountStatusWidget
+        from .account_manager import AccountManager
 
         status_bar = self.statusBar()
 
-        # Account status (leftmost permanent widget)
+        # Connection status (temporary messages - left side, non-permanent)
+        self.connection_label = QLabel()
+        status_bar.addWidget(self.connection_label)
+
+        # === RIGHT SIDE PERMANENT WIDGETS (in order) ===
+
+        # 1. Account status (username)
         self.account_status_widget = AccountStatusWidget()
         self.account_status_widget.sign_in_clicked.connect(self.show_login_dialog)
         status_bar.addPermanentWidget(self.account_status_widget)
 
-        # Server status section (more prominent!)
-        server_container = QWidget()
-        server_layout = QHBoxLayout()
-        server_layout.setContentsMargins(10, 0, 10, 0)
-        server_layout.setSpacing(10)
+        # 2. Avatar dropdown (fixed width, truncates long names)
+        self.avatar_dropdown = QComboBox()
+        self.avatar_dropdown.setFixedWidth(140)
+        self.avatar_dropdown.setStyleSheet("""
+            QComboBox {
+                background-color: #2a2a2a;
+                color: #D2D2D2;
+                border: 1px solid #555;
+                border-radius: 3px;
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+            QComboBox:hover {
+                border: 1px solid #666;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid #888;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #2a2a2a;
+                color: #D2D2D2;
+                selection-background-color: #555;
+                border: 1px solid #555;
+            }
+        """)
+        self._refresh_avatar_dropdown()
+        status_bar.addPermanentWidget(self.avatar_dropdown)
 
-        # Server status label
-        self.server_status_label = QLabel("noodleMUSH Server:")
-        self.server_status_label.setStyleSheet("color: #D2D2D2; font-weight: bold; font-size: 13px;")
+        # 3. Enter World button (monochromatic, disabled until server is on)
+        self.enter_world_btn = QPushButton("Enter World")
+        self.enter_world_btn.setFixedWidth(90)
+        self.enter_world_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4a4a4a;
+                color: #D2D2D2;
+                border: 1px solid #555;
+                border-radius: 3px;
+                padding: 5px 12px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #555;
+                color: #fff;
+            }
+            QPushButton:pressed {
+                background-color: #3a3a3a;
+            }
+            QPushButton:disabled {
+                background-color: #333;
+                color: #555;
+            }
+        """)
+        self.enter_world_btn.clicked.connect(self._on_enter_world_clicked)
+        self.enter_world_btn.setEnabled(self.is_server_running())  # Disabled until server on
+        status_bar.addPermanentWidget(self.enter_world_btn)
+
+        # 4. Server toggle section
+        server_container = QWidget()
+        server_container.setFixedWidth(100)
+        server_layout = QHBoxLayout()
+        server_layout.setContentsMargins(8, 0, 8, 0)
+        server_layout.setSpacing(6)
+
+        self.server_status_label = QLabel("Server:")
+        self.server_status_label.setStyleSheet("color: #888; font-size: 12px;")
         server_layout.addWidget(self.server_status_label)
 
-        # Toggle switch
         self.server_toggle = ToggleSwitch()
         self.server_toggle.setChecked(self.is_server_running())
         self.server_toggle.toggled.connect(self.on_server_toggled)
         server_layout.addWidget(self.server_toggle)
 
         server_container.setLayout(server_layout)
-        server_container.setStyleSheet("background: #3a3a3a; border-radius: 4px; padding: 4px;")
         status_bar.addPermanentWidget(server_container)
 
-        # Connection status
-        self.connection_label = QLabel()
+        # Now update connection status (after server_toggle exists)
         self.update_connection_status()
-        status_bar.addWidget(self.connection_label)
+
+        # Connect to account changes to refresh avatar dropdown
+        AccountManager.instance().avatars_changed.connect(self._refresh_avatar_dropdown)
+        AccountManager.instance().logged_in.connect(self._refresh_avatar_dropdown)
+        AccountManager.instance().logged_out.connect(self._refresh_avatar_dropdown)
+
+    def _refresh_avatar_dropdown(self):
+        """Refresh avatar dropdown with current user's avatars."""
+        from .account_manager import AccountManager
+
+        self.avatar_dropdown.clear()
+
+        account = AccountManager.instance()
+        if not account.is_logged_in:
+            self.avatar_dropdown.addItem("(Sign in first)")
+            self.avatar_dropdown.setEnabled(False)
+            self.avatar_dropdown.setToolTip("Sign in to select an avatar")
+            return
+
+        avatars = account.avatars
+        if not avatars:
+            self.avatar_dropdown.addItem("(No avatars)")
+            self.avatar_dropdown.setEnabled(True)
+            self.avatar_dropdown.setToolTip("Use Account > Manage Avatars to create one")
+            return
+
+        self.avatar_dropdown.setEnabled(True)
+
+        # Add avatars, marking default with tooltip for full name
+        default_idx = 0
+        for i, avatar in enumerate(avatars):
+            full_name = avatar.display_name or "Unnamed"
+            display = full_name
+            if avatar.is_default:
+                display = f"{display} *"
+                default_idx = i
+            self.avatar_dropdown.addItem(display, avatar)
+            # Set tooltip on item for long names
+            self.avatar_dropdown.setItemData(i, full_name, Qt.ItemDataRole.ToolTipRole)
+
+        self.avatar_dropdown.setCurrentIndex(default_idx)
+        # Update main tooltip to show current selection
+        self._update_avatar_tooltip()
+        self.avatar_dropdown.currentIndexChanged.connect(self._update_avatar_tooltip)
+
+    def _update_avatar_tooltip(self):
+        """Update avatar dropdown tooltip to show full name of selected avatar."""
+        avatar = self.avatar_dropdown.currentData()
+        if avatar and hasattr(avatar, 'display_name'):
+            self.avatar_dropdown.setToolTip(avatar.display_name or "Unnamed")
+
+    def _on_enter_world_clicked(self):
+        """Handle Enter World button click."""
+        from .account_manager import AccountManager
+
+        # Button should be disabled if server is off, but double-check
+        if not self.is_server_running():
+            return
+
+        account = AccountManager.instance()
+
+        # Get selected avatar
+        avatar = self.avatar_dropdown.currentData()
+
+        if avatar is None:
+            if not account.is_logged_in:
+                # Not logged in - offer to enter as guest
+                from ..dialogs.avatar_picker_dialog import AvatarPickerDialog
+                dialog = AvatarPickerDialog(self)
+                dialog.set_avatars([])
+                if dialog.exec():
+                    avatar = dialog.get_selected_avatar()
+                else:
+                    return
+            else:
+                # Logged in but no avatars - prompt to create
+                reply = QMessageBox.question(
+                    self,
+                    "No Avatar",
+                    "You don't have any avatars yet. Create one now?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.manage_avatars()
+                return
+
+        # Connect to world
+        self._connect_to_world(avatar, account)
 
     def is_server_running(self) -> bool:
         """Check if noodleMUSH server is running."""
@@ -354,6 +527,9 @@ class MainWindow(QMainWindow):
     def on_server_toggled(self, enabled: bool):
         """Handle server toggle switch."""
         import subprocess
+
+        # Disable Enter World while server state is changing
+        self.enter_world_btn.setEnabled(False)
 
         if enabled:
             # Build environment with project path if one is open
@@ -386,13 +562,21 @@ class MainWindow(QMainWindow):
         running = self.is_server_running()
 
         if running:
-            self.connection_label.setText("Server running on :8765")
-            self.connection_label.setStyleSheet("color: #76AF6A;")  # Green
-            self.server_toggle.setChecked(True)
+            if hasattr(self, 'connection_label'):
+                self.connection_label.setText("Server running on :8765")
+                self.connection_label.setStyleSheet("color: #76AF6A;")  # Green
+            if hasattr(self, 'server_toggle'):
+                self.server_toggle.setChecked(True)
         else:
-            self.connection_label.setText("Server offline")
-            self.connection_label.setStyleSheet("color: #999;")  # Gray
-            self.server_toggle.setChecked(False)
+            if hasattr(self, 'connection_label'):
+                self.connection_label.setText("Server offline")
+                self.connection_label.setStyleSheet("color: #999;")  # Gray
+            if hasattr(self, 'server_toggle'):
+                self.server_toggle.setChecked(False)
+
+        # Update Enter World button state
+        if hasattr(self, 'enter_world_btn'):
+            self.enter_world_btn.setEnabled(running)
 
         # Update World View
         if hasattr(self, 'world_view'):
@@ -446,7 +630,7 @@ class MainWindow(QMainWindow):
         self.hierarchy = SceneHierarchy(None)  # Not a dock widget anymore
         self.hierarchy.set_project_manager(self.project_manager)  # Wire up project structure support
         self.assets = AssetsPanel(None)
-        self.assets.project_manager = self.project_manager
+        self.assets.set_project_manager(self.project_manager)  # Unity-style filesystem browser
         self.assets.agentRezzed.connect(self.hierarchy.refresh_scene)
 
         # Connect GenerationsManager for AI-generated asset storage
@@ -494,6 +678,9 @@ class MainWindow(QMainWindow):
             # Set background color to match theme (prevents white flash)
             # Don't force dark mode - noodleMUSH has its own styling
             self.web_view.setStyleSheet("background-color: #1a1a1a;")
+
+            # Ensure web view can receive keyboard focus
+            self.web_view.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
             self.web_view.setUrl(QUrl("http://localhost:8080"))
             world_layout.addWidget(self.web_view)
@@ -785,6 +972,15 @@ class MainWindow(QMainWindow):
         # Connect Gaussian Viewer to Inspector
         self.gaussian_viewer.radianceLoaded.connect(self._on_radiance_loaded)
         self.gaussian_viewer.meshImported.connect(self._on_mesh_imported)
+
+        # Connect Inspector name changes to Stage View
+        self.inspector.nameChanged.connect(self._on_inspector_name_changed)
+
+        # Connect Assets Panel name changes
+        self.assets.assetRenamed.connect(self._on_asset_renamed)
+
+        # Connect Assets Panel selection to Inspector (asset-aware inspector)
+        self.assets.assetSelected.connect(self._on_asset_selected)
 
         # Check server state
         QTimer.singleShot(200, self.update_connection_status)
@@ -1832,40 +2028,46 @@ class MainWindow(QMainWindow):
 
     def on_project_opened(self, project_path: str):
         """Handle project opened event."""
-        # Stop server when switching projects
-        import subprocess
-        subprocess.run(['pkill', '-f', 'python.*server.py'])
+        try:
+            # Stop server when switching projects
+            import subprocess
+            subprocess.run(['pkill', '-f', 'python.*server.py'])
 
-        # Update window title
-        self.setWindowTitle(f"NoodleSTUDIO - {self.project_manager.current_project_name}")
+            # Update window title
+            self.setWindowTitle(f"NoodleSTUDIO - {self.project_manager.current_project_name}")
 
-        # Save to recent projects
-        self.add_to_recent_projects(project_path)
-        self.update_recent_projects_menu()
+            # Save to recent projects
+            self.add_to_recent_projects(project_path)
+            self.update_recent_projects_menu()
 
-        # Refresh assets panel
-        if hasattr(self, 'assets'):
-            self.assets.refresh()
+            # Refresh assets panel
+            if hasattr(self, 'assets'):
+                self.assets.refresh()
 
-        # Show offline card (server is stopped)
-        if hasattr(self, 'world_view'):
-            self.world_view.show_offline_card()
+            # Show offline card (server is stopped)
+            if hasattr(self, 'world_view'):
+                self.world_view.show_offline_card()
 
-        # Refresh hierarchy with new project structure
-        if hasattr(self, 'hierarchy'):
-            self.hierarchy.clear_for_project_change()  # Clear old project state
-            self.hierarchy.populate_stage_selector()
-            self.hierarchy.refresh_scene()
-            self.hierarchy.set_server_state(False)  # Gray out until server starts
+            # Refresh hierarchy with new project structure
+            if hasattr(self, 'hierarchy'):
+                self.hierarchy.clear_for_project_change()  # Clear old project state
+                self.hierarchy.populate_stage_selector()
+                self.hierarchy.refresh_scene()
+                self.hierarchy.set_server_state(False)  # Gray out until server starts
 
-        # Update toggle
-        QTimer.singleShot(500, self.update_connection_status)
+            # Update toggle
+            QTimer.singleShot(500, self.update_connection_status)
 
-        # Refresh spatial view with new project
-        if hasattr(self, 'spatial_view'):
-            self.spatial_view.set_project_manager(self.project_manager)
+            # Refresh spatial view with new project
+            if hasattr(self, 'spatial_view'):
+                self.spatial_view.set_project_manager(self.project_manager)
 
-        print(f"Project opened: {project_path}")
+            print(f"Project opened: {project_path}")
+
+        except Exception as e:
+            import traceback
+            print(f"[MainWindow] Error in on_project_opened: {e}")
+            traceback.print_exc()
 
     def _on_zone_selected(self, zone_id: str, zone_data: dict):
         """Handle zone selection from Spatial View panel."""
@@ -1928,14 +2130,34 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "No Project", "Please open a project first.")
             return
 
+        # Get existing stages to generate unique default name
+        existing_stages = set(self.project_manager.list_stages())
+
+        # Generate unique default name
+        default_name = "New Stage"
+        if default_name.lower().replace(' ', '_') in [s.lower() for s in existing_stages]:
+            counter = 1
+            while f"{default_name} ({counter})".lower().replace(' ', '_') in [s.lower() for s in existing_stages]:
+                counter += 1
+            default_name = f"{default_name} ({counter})"
+
         name, ok = QInputDialog.getText(
-            self, "New Stage", "Stage Name:", text="New Stage"
+            self, "New Stage", "Stage Name:", text=default_name
         )
         if not ok or not name:
             return
 
-        # No description popup - user can set it in inspector if they want
+        # Try to create, auto-increment if name exists
+        original_name = name
         path = self.project_manager.create_stage(name, "")
+        if not path:
+            # Name exists, try incrementing
+            counter = 1
+            while not path and counter < 100:
+                name = f"{original_name} ({counter})"
+                path = self.project_manager.create_stage(name, "")
+                counter += 1
+
         if path:
             self.statusBar().showMessage(f"Created stage: {name}", 3000)
             if hasattr(self, 'assets'):
@@ -1954,7 +2176,7 @@ class MainWindow(QMainWindow):
                         break
                 self.hierarchy.refresh_scene()
         else:
-            QMessageBox.warning(self, "Error", f"Failed to create stage. Name may already exist.")
+            QMessageBox.warning(self, "Error", "Failed to create stage.")
 
     def new_prim(self):
         """Create a new Prim template in the current project."""
@@ -1990,6 +2212,21 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Project saved", 3000)
         else:
             QMessageBox.warning(self, "Error", "Failed to save project.")
+
+    def save_stage(self):
+        """Save the current stage hierarchy."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "No project is open.")
+            return
+
+        # Get scene hierarchy panel and save
+        if hasattr(self, 'scene_hierarchy') and self.scene_hierarchy:
+            if self.scene_hierarchy.save_stage():
+                self.statusBar().showMessage("Stage saved", 3000)
+            else:
+                QMessageBox.warning(self, "Error", "Failed to save stage.")
+        else:
+            QMessageBox.warning(self, "Error", "Scene hierarchy not available.")
 
     def import_noodling_folder(self):
         """Import a noodling folder into the current project."""
@@ -2263,12 +2500,11 @@ class MainWindow(QMainWindow):
             agent_id = entity_data.get('id', '')
             if agent_id:
                 import os
+                import yaml
                 from ..core.facet_system import FacetAssembly
 
                 # Check if agent has facet_assembly reference
-                # entity_data structure: {'type': 'noodling', 'id': 'agent_xxx', 'data': {full agent data including config}}
-                # facet_assembly may be at: entity_data['data']['facet_assembly'], entity_data['facet_assembly'],
-                # or entity_data['data']['config']['facet_assembly']
+                # entity_data structure: {'type': 'noodling', 'id': 'agent_xxx', 'data': {...}, 'noodling_ref': 'empty_noodling'}
                 agent_full_data = entity_data.get('data', {})
 
                 # Try multiple locations where facet_assembly might be
@@ -2286,8 +2522,54 @@ class MainWindow(QMainWindow):
                     elif isinstance(facet_assembly_config, dict):
                         ref = facet_assembly_config.get('ref')
 
-                    if ref:
-                        print(f"[Facets Editor] Loading assembly from ref: {ref}")
+                # If not found in instance data, load from recipe.yaml
+                if not ref:
+                    noodling_ref = entity_data.get('noodling_ref') or agent_full_data.get('noodling', '')
+                    instance_path = entity_data.get('path', '')
+
+                    print(f"[Facets Editor] Looking for recipe:")
+                    print(f"[Facets Editor]   noodling_ref = '{noodling_ref}'")
+                    print(f"[Facets Editor]   instance_path = '{instance_path}'")
+                    print(f"[Facets Editor]   entity_data keys = {list(entity_data.keys())}")
+
+                    if noodling_ref and instance_path:
+                        # Project mode: instance_path is like Project/Stages/StageName/Instances/uuid
+                        # Need to go up 4 levels to get project root: uuid->Instances->StageName->Stages->Project
+                        project_root = instance_path
+                        for _ in range(4):
+                            project_root = os.path.dirname(project_root)
+
+                        library_recipe = os.path.join(
+                            project_root, 'Library', 'Noodlings', noodling_ref, 'recipe.yaml'
+                        )
+                        print(f"[Facets Editor] Looking for recipe at: {library_recipe}")
+
+                        recipe_path = None
+                        if os.path.exists(library_recipe):
+                            recipe_path = library_recipe
+                        else:
+                            # Fallback to app-wide library
+                            # Go up two levels: core/ -> noodlestudio/ -> applications/noodlestudio/
+                            app_library = os.path.join(
+                                os.path.dirname(__file__), '..', '..', 'library', 'noodlings', noodling_ref, 'recipe.yaml'
+                            )
+                            print(f"[Facets Editor] Project recipe not found, trying app library: {app_library}")
+                            if os.path.exists(app_library):
+                                recipe_path = app_library
+
+                        if recipe_path:
+                            try:
+                                with open(recipe_path, 'r') as f:
+                                    recipe_data = yaml.safe_load(f) or {}
+                                ref = recipe_data.get('facet_assembly')
+                                print(f"[Facets Editor] Found assembly ref '{ref}' in recipe: {recipe_path}")
+                            except Exception as e:
+                                print(f"[Facets Editor] Error loading recipe: {e}")
+                        else:
+                            print(f"[Facets Editor] Recipe not found at either location")
+
+                if ref:
+                    print(f"[Facets Editor] Loading assembly from ref: {ref}")
 
                 # Fallback to default if no reference
                 if not ref:
@@ -2453,6 +2735,44 @@ class MainWindow(QMainWindow):
             metadata = {'radiance_path': output_radiance_path}
             self.assets.add_loaded_mesh(source_path, mesh_type, metadata)
 
+    def _on_inspector_name_changed(self, entity_type: str, entity_id: str, new_name: str):
+        """Handle name change in Inspector - update Stage View tree item."""
+        print(f"[DEBUG] _on_inspector_name_changed: type={entity_type}, id={entity_id}, name={new_name}")
+        if hasattr(self, 'hierarchy') and self.hierarchy:
+            self.hierarchy.update_entity_name(entity_type, entity_id, new_name)
+        else:
+            print("[DEBUG] hierarchy not available")
+
+    def _on_asset_renamed(self, asset_type: str, asset_id: str, new_name: str):
+        """Handle name change in Assets Panel."""
+        # Currently just logs the change - could sync to Inspector if needed
+        print(f"[MainWindow] Asset renamed: {asset_type}/{asset_id} -> {new_name}")
+
+    def _on_asset_selected(self, asset_type: str, path: str):
+        """
+        Handle asset selection in Assets Panel - show properties in Inspector.
+
+        This enables the Unity-style asset inspection where selecting a file
+        in the Assets panel shows its properties in the Inspector.
+
+        Args:
+            asset_type: Type of asset ('folder', 'noodling', 'stage', 'radiance', etc.)
+            path: Full filesystem path to the asset
+        """
+        import os
+        print(f"[MainWindow] Asset selected: {asset_type} at {path}")
+
+        # Build entity_data for Inspector
+        entity_data = {
+            'asset_type': asset_type,
+            'path': path,
+            'name': os.path.basename(path)
+        }
+
+        # Load as 'asset' entity type in Inspector
+        if hasattr(self, 'inspector') and self.inspector:
+            self.inspector.load_entity('asset', entity_data)
+
     def show_credits(self):
         """Show demo scene style credits with music."""
         from ..panels.credits_panel import show_credits
@@ -2484,30 +2804,42 @@ class MainWindow(QMainWindow):
 
     def show_login_dialog(self):
         """Show the OAuth login dialog."""
-        from ..dialogs.login_dialog import LoginDialog
-        from .account_manager import AccountManager
+        try:
+            from ..dialogs.login_dialog import LoginDialog
+            from .account_manager import AccountManager
 
-        if AccountManager.instance().is_logged_in:
-            # Already logged in, show account info instead
-            self.show_account_info()
-            return
+            if AccountManager.instance().is_logged_in:
+                # Already logged in, show account info instead
+                self.show_account_info()
+                return
 
-        dialog = LoginDialog(self)
-        dialog.login_successful.connect(self._on_login_successful)
-        dialog.exec()
+            dialog = LoginDialog(self)
+            dialog.login_successful.connect(self._on_login_successful)
+            dialog.exec()
+        except Exception as e:
+            import traceback
+            print(f"[MainWindow] Error in show_login_dialog: {e}")
+            traceback.print_exc()
+            QMessageBox.warning(self, "Error", f"Failed to show login dialog: {e}")
 
     def show_account_info(self):
         """Show account information dialog."""
-        from ..dialogs.login_dialog import AccountInfoDialog
-        from .account_manager import AccountManager
+        try:
+            from ..dialogs.login_dialog import AccountInfoDialog
+            from .account_manager import AccountManager
 
-        if not AccountManager.instance().is_logged_in:
-            # Not logged in, show login dialog instead
-            self.show_login_dialog()
-            return
+            if not AccountManager.instance().is_logged_in:
+                # Not logged in, show login dialog instead
+                self.show_login_dialog()
+                return
 
-        dialog = AccountInfoDialog(self)
-        dialog.exec()
+            dialog = AccountInfoDialog(self)
+            dialog.exec()
+        except Exception as e:
+            import traceback
+            print(f"[MainWindow] Error in show_account_info: {e}")
+            traceback.print_exc()
+            QMessageBox.warning(self, "Error", f"Failed to show account info: {e}")
 
     def show_cloud_noodlings(self):
         """Show cloud noodlings browser."""
@@ -2562,6 +2894,242 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             AccountManager.instance().logout()
             self.statusBar().showMessage("Signed out", 3000)
+
+    def enter_world(self):
+        """Enter noodleMUSH world with avatar selection."""
+        from .account_manager import AccountManager
+        from ..dialogs.avatar_picker_dialog import AvatarPickerDialog
+        from .mush_bridge import get_bridge
+        import asyncio
+
+        account = AccountManager.instance()
+
+        # Check if server is running
+        if not self.is_server_running():
+            QMessageBox.warning(
+                self,
+                "Server Offline",
+                "noodleMUSH server is not running.\n\n"
+                "Turn on the server using the toggle in the status bar, "
+                "then try again."
+            )
+            return
+
+        # Show avatar picker
+        dialog = AvatarPickerDialog(self)
+
+        if account.is_logged_in:
+            # User is logged in - show their avatars
+            dialog.set_avatars(account.avatars)
+        else:
+            # Not logged in - show quick entry only
+            dialog.set_avatars([])
+
+        if dialog.exec():
+            avatar = dialog.get_selected_avatar()
+            if avatar:
+                self._connect_to_world(avatar, account)
+
+    def _connect_to_world(self, avatar, account):
+        """Connect to noodleMUSH with selected avatar via URL parameters."""
+        import json
+        from urllib.parse import quote
+
+        # Check we have a web view
+        if not hasattr(self, 'web_view') or not self.web_view:
+            QMessageBox.warning(self, "Error", "Text View not available")
+            return
+
+        # Build avatar data for URL
+        avatar_data = avatar.to_dict() if hasattr(avatar, 'to_dict') else {'display_name': avatar.display_name}
+
+        # Build URL with token auth parameters
+        base_url = "http://localhost:8080"
+        token = account.session_token
+        avatar_json = quote(json.dumps(avatar_data))
+
+        auth_url = f"{base_url}?token={token}&avatar={avatar_json}"
+
+        # Update status
+        self.statusBar().showMessage(f"Entering world as {avatar.display_name}...", 0)
+
+        # Switch to Text View tab
+        from PyQt6.QtCore import QSettings
+        settings = QSettings("Noodlings", "NoodleStudio")
+        auto_show_chat = settings.value("auto_show_chat", True, type=bool)
+
+        if auto_show_chat and hasattr(self, 'center_tabs'):
+            self.center_tabs.setCurrentIndex(0)
+
+        # Load web view with auth URL
+        self.web_view.setUrl(QUrl(auth_url))
+
+        # Update status after brief delay
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(2000, lambda: self.statusBar().showMessage(
+            f"Entered world as {avatar.display_name}", 5000
+        ))
+
+    def _on_connect_finished(self, success: bool):
+        """Handle connection result (called from worker thread signal)."""
+        # Re-enable button
+        self.enter_world_btn.setEnabled(True)
+        self.enter_world_btn.setText("Enter World")
+
+        avatar = getattr(self, '_pending_avatar', None)
+        avatar_name = avatar.display_name if avatar and hasattr(avatar, 'display_name') else "avatar"
+
+        if success:
+            self.statusBar().showMessage(f"Entered world as {avatar_name}", 5000)
+
+            # Check setting for auto-show chat (default True)
+            from PyQt6.QtCore import QSettings
+            settings = QSettings("Noodlings", "NoodleStudio")
+            auto_show_chat = settings.value("auto_show_chat", True, type=bool)
+
+            if auto_show_chat:
+                # Switch to Text View tab
+                if hasattr(self, 'center_tabs'):
+                    self.center_tabs.setCurrentIndex(0)
+
+            # Reload web view to refresh with new session
+            if hasattr(self, 'web_view') and self.web_view:
+                self.web_view.reload()
+        else:
+            self.statusBar().showMessage("Connection failed", 3000)
+            QMessageBox.warning(
+                self,
+                "Connection Failed",
+                "Failed to connect to noodleMUSH.\n\n"
+                "Check that the server is running and try again."
+            )
+
+    def manage_avatars(self):
+        """Open avatar management dialog."""
+        from .account_manager import AccountManager, AvatarMetadata, AvatarAssetLocation
+        from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QListWidget,
+                                      QListWidgetItem, QPushButton, QLineEdit, QLabel,
+                                      QTextEdit, QInputDialog, QMessageBox)
+
+        account = AccountManager.instance()
+
+        if not account.is_logged_in:
+            QMessageBox.information(
+                self,
+                "Sign In Required",
+                "Please sign in to manage your avatars."
+            )
+            self.show_login_dialog()
+            return
+
+        # Create avatar management dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Manage Avatars")
+        dialog.setMinimumSize(600, 400)
+
+        layout = QVBoxLayout(dialog)
+
+        # Avatar list
+        list_layout = QHBoxLayout()
+
+        avatar_list = QListWidget()
+        for av in account.avatars:
+            item = QListWidgetItem(av.display_name or "Unnamed")
+            if av.is_default:
+                item.setText(f"{av.display_name} (default)")
+            item.setData(Qt.ItemDataRole.UserRole, av)
+            avatar_list.addItem(item)
+        list_layout.addWidget(avatar_list)
+
+        # Buttons
+        btn_layout = QVBoxLayout()
+
+        add_btn = QPushButton("New Avatar")
+        def on_add():
+            name, ok = QInputDialog.getText(dialog, "New Avatar", "Display name:")
+            if ok and name:
+                new_avatar = AvatarMetadata(
+                    display_name=name,
+                    description="",
+                    asset_location=AvatarAssetLocation.LOCAL,
+                    asset_ref=""
+                )
+                account.add_avatar(new_avatar)
+                item = QListWidgetItem(name)
+                item.setData(Qt.ItemDataRole.UserRole, new_avatar)
+                avatar_list.addItem(item)
+        add_btn.clicked.connect(on_add)
+        btn_layout.addWidget(add_btn)
+
+        edit_btn = QPushButton("Edit...")
+        def on_edit():
+            current = avatar_list.currentItem()
+            if not current:
+                return
+            av = current.data(Qt.ItemDataRole.UserRole)
+            name, ok = QInputDialog.getText(dialog, "Edit Avatar", "Display name:", text=av.display_name)
+            if ok and name:
+                av.display_name = name
+                account.update_avatar(av)
+                current.setText(f"{name} (default)" if av.is_default else name)
+        edit_btn.clicked.connect(on_edit)
+        btn_layout.addWidget(edit_btn)
+
+        default_btn = QPushButton("Set Default")
+        def on_default():
+            current = avatar_list.currentItem()
+            if not current:
+                return
+            av = current.data(Qt.ItemDataRole.UserRole)
+            account.set_default_avatar(av.id)
+            # Update list display
+            for i in range(avatar_list.count()):
+                item = avatar_list.item(i)
+                item_av = item.data(Qt.ItemDataRole.UserRole)
+                if item_av.id == av.id:
+                    item.setText(f"{item_av.display_name} (default)")
+                else:
+                    item.setText(item_av.display_name)
+        default_btn.clicked.connect(on_default)
+        btn_layout.addWidget(default_btn)
+
+        delete_btn = QPushButton("Delete")
+        def on_delete():
+            current = avatar_list.currentItem()
+            if not current:
+                return
+            av = current.data(Qt.ItemDataRole.UserRole)
+            reply = QMessageBox.question(
+                dialog, "Delete Avatar",
+                f"Delete avatar '{av.display_name}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                account.delete_avatar(av.id)
+                avatar_list.takeItem(avatar_list.row(current))
+        delete_btn.clicked.connect(on_delete)
+        btn_layout.addWidget(delete_btn)
+
+        btn_layout.addStretch()
+        list_layout.addLayout(btn_layout)
+
+        layout.addLayout(list_layout)
+
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+
+        dialog.setStyleSheet("""
+            QDialog { background-color: #2D2D2D; }
+            QListWidget { background-color: #2A2A2A; color: #D2D2D2; border: 1px solid #555; }
+            QListWidget::item { padding: 8px; }
+            QListWidget::item:selected { background-color: #4A7CBA; }
+            QPushButton { background-color: #3A3A3A; color: #D2D2D2; border: 1px solid #555; padding: 8px; min-width: 80px; }
+            QPushButton:hover { background-color: #4A4A4A; }
+        """)
+
+        dialog.exec()
 
     def _on_login_successful(self):
         """Handle successful login."""

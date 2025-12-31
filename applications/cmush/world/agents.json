@@ -6,7 +6,7 @@
     "location": "room",
     "description": "A two-foot-tall imp of crimson flame, crackling and flickering with restless energy.",
     "facet_assembly": "red_fire_anklebiter",
-    "checkpoint": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "checkpoint": "../../models/checkpoints/best_checkpoint.npz",
     "config": {
       "max_tokens": 200,
       "temperature": 0.95,
@@ -39,7 +39,7 @@
     "location": "pond",
     "description": "A newly-formed Noodling, like a gingerbread cookie that just discovered it has legs.",
     "facet_assembly": "library/empty_noodling",
-    "checkpoint": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "checkpoint": "../../models/checkpoints/best_checkpoint.npz",
     "config": {
       "max_tokens": 100,
       "temperature": 0.8,
@@ -72,7 +72,7 @@
     "location": "pond",
     "description": "A newly-formed consciousness, fresh and wondering. Like a gingerbread cookie that just discovered it has legs.",
     "facet_assembly": "library/empty_noodling",
-    "checkpoint": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "checkpoint": "../../models/checkpoints/best_checkpoint.npz",
     "config": {
       "max_tokens": 100,
       "temperature": 0.8,
@@ -105,7 +105,7 @@
     "location": "pond",
     "description": "A newly-formed consciousness, fresh and wondering. Like a gingerbread cookie that just discovered it has legs.",
     "facet_assembly": "library/empty_noodling",
-    "checkpoint": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "checkpoint": "../../models/checkpoints/best_checkpoint.npz",
     "config": {
       "max_tokens": 100,
       "temperature": 0.8,
@@ -135,7 +135,7 @@
     "location": "pond",
     "description": "A newly-formed consciousness, fresh and wondering. Like a gingerbread cookie that just discovered it has legs.",
     "facet_assembly": "library/empty_noodling",
-    "checkpoint": "../../consilience_core/checkpoints_phase4/best_checkpoint.npz",
+    "checkpoint": "../../models/checkpoints/best_checkpoint.npz",
     "config": {
       "max_tokens": 100,
       "temperature": 0.8,

@@ -6,7 +6,7 @@ Maps Noodlings' 5-D affect vectors to FACS Action Units for facial animation.
 Based on Paul Ekman's Facial Action Coding System:
 https://en.wikipedia.org/wiki/Facial_Action_Coding_System
 
-Author: Consilience, Inc.
+Author: Caitlyn Meeks
 Date: November 2025
 """
 

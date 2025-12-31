@@ -9,7 +9,7 @@ Architecture:
 - Hidden: 64-D with ReLU
 - Output: 10-class softmax (fear, joy, sadness, anger, love, guilt, pride, shame, curiosity, boredom)
 
-Author: Noodlings Project
+Author: Caitlyn Meeks
 Date: November 2025
 """
 

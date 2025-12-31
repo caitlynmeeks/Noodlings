@@ -119,7 +119,7 @@ class ModelsAPI:
                 self._provider_manager.refresh_models(provider)
                 return config.available_models or []
             return []
-        except:
+        except Exception:
             return []
 
     def list_providers(self) -> List[Dict[str, str]]:
@@ -179,7 +179,7 @@ class ModelsAPI:
 
             self._provider_manager._save_provider(config)
             return True
-        except:
+        except Exception:
             return False
 
     def to_dict(self) -> Dict[str, Any]:

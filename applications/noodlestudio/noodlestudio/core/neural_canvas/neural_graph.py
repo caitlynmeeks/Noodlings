@@ -178,19 +178,30 @@ class NeuralGraph:
         """
         result = ValidationResult(valid=True)
 
-        # Check for entry points (INPUT or NUMBER_INPUT nodes)
+        # Check for entry points (INPUT, NUMBER_INPUT, PULSE_INPUT, TEXT_INPUT, TOKEN_INPUT, or TIME nodes)
         input_nodes = self.get_input_nodes()
         number_input_nodes = self.get_nodes_by_type(NodeType.NUMBER_INPUT)
-        entry_points = input_nodes + number_input_nodes
+        pulse_input_nodes = self.get_nodes_by_type(NodeType.PULSE_INPUT)
+        text_input_nodes = self.get_nodes_by_type(NodeType.TEXT_INPUT)
+        token_input_nodes = self.get_nodes_by_type(NodeType.TOKEN_INPUT)
+        time_nodes = self.get_nodes_by_type(NodeType.TIME)
+        entry_points = input_nodes + number_input_nodes + pulse_input_nodes + text_input_nodes + token_input_nodes + time_nodes
 
         if len(entry_points) == 0:
             result.valid = False
             result.errors.append("No entry point found (need INPUT or NUMBER_INPUT)")
 
-        # Check for exit points (OUTPUT or THRESHOLD_OUTPUT nodes)
+        # Check for exit points (OUTPUT, THRESHOLD_OUTPUT, OUTPUT_CHART, COUNTER_OUTPUT, AFFECT_VIS, TOKEN_OUTPUT, PROB_VIS, AUDIO_OUTPUT, SHADER_VIS)
         output_nodes = self.get_output_nodes()
         threshold_output_nodes = self.get_nodes_by_type(NodeType.THRESHOLD_OUTPUT)
-        exit_points = output_nodes + threshold_output_nodes
+        chart_output_nodes = self.get_nodes_by_type(NodeType.OUTPUT_CHART)
+        counter_output_nodes = self.get_nodes_by_type(NodeType.COUNTER_OUTPUT)
+        affect_vis_nodes = self.get_nodes_by_type(NodeType.AFFECT_VIS)
+        token_output_nodes = self.get_nodes_by_type(NodeType.TOKEN_OUTPUT)
+        prob_vis_nodes = self.get_nodes_by_type(NodeType.PROB_VIS)
+        audio_output_nodes = self.get_nodes_by_type(NodeType.AUDIO_OUTPUT)
+        shader_vis_nodes = self.get_nodes_by_type(NodeType.SHADER_VIS)
+        exit_points = output_nodes + threshold_output_nodes + chart_output_nodes + counter_output_nodes + affect_vis_nodes + token_output_nodes + prob_vis_nodes + audio_output_nodes + shader_vis_nodes
 
         if len(exit_points) == 0:
             result.valid = False
@@ -223,11 +234,12 @@ class NeuralGraph:
                             f"Node '{node.name}': required port '{port_name}' not connected"
                         )
 
-        # Check for unused nodes (except entry/exit points)
-        entry_exit_types = (NodeType.INPUT, NodeType.OUTPUT,
-                           NodeType.NUMBER_INPUT, NodeType.THRESHOLD_OUTPUT)
+        # Check for unused nodes (except entry/exit points and annotation nodes)
+        skip_types = (NodeType.INPUT, NodeType.OUTPUT,
+                      NodeType.NUMBER_INPUT, NodeType.THRESHOLD_OUTPUT,
+                      NodeType.COMMENT)  # COMMENT nodes are decorative
         for node in self.nodes.values():
-            if node.type in entry_exit_types:
+            if node.type in skip_types:
                 continue
 
             has_incoming = any(conn.to_node == node.id for conn in self.connections)

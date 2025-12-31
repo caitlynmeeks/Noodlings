@@ -108,8 +108,8 @@
       "type": "COMMENT",
       "name": "Welcome",
       "position": [
-        50,
-        50
+        434,
+        384
       ],
       "params": {
         "text": "# Schrodinger's Cat - Quantum Superposition\n\nThe famous thought experiment: a cat both alive AND dead!\n\n## To Do and Notice\n\n1. **The setup**: Radioactive decay triggers poison\n2. **Superposition**: Before measurement, both states exist\n3. **Collapse**: Opening the box \"chooses\" the outcome\n\n## In Noodlings\n\nWe use REAL quantum hardware (IBM Quantum) to decide!\nThe cat's fate is determined by actual quantum collapse.\n\n**Challenge**: Run multiple times. Is it truly random?",

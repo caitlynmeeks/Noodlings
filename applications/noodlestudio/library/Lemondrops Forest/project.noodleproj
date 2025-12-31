@@ -7,11 +7,16 @@
   "noodlestudio_version": "0.2.0",
   "description": "A whimsical island with curvy airports, hamburger buildings, and alligator submarines",
   "author": "caitlyn",
-  "tags": ["whimsical", "forest", "island"],
+  "tags": [
+    "whimsical",
+    "forest",
+    "island"
+  ],
   "default_stage": "the_island",
   "cloud": {
     "project_id": null,
     "last_sync": null,
     "sync_enabled": false
-  }
+  },
+  "last_opened": "2025-12-28T16:04:33.821397"
 }

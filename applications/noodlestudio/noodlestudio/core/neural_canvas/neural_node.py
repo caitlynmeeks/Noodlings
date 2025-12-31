@@ -32,6 +32,8 @@ class NodeType(Enum):
     # Attention
     ATTENTION = "ATTENTION"
     MULTI_HEAD_ATTENTION = "MULTI_HEAD_ATTENTION"
+    TRANSFORMER_BLOCK = "TRANSFORMER_BLOCK"  # Complete encoder block (production)
+    POSITIONAL_ENCODING = "POSITIONAL_ENCODING"  # Add position info to embeddings
 
     # Activation functions
     TANH = "TANH"
@@ -60,10 +62,45 @@ class NodeType(Enum):
     # Asset nodes
     CHECKPOINT = "CHECKPOINT"  # Trained weight checkpoint (.npz file)
 
+    # Annotation nodes
+    COMMENT = "COMMENT"  # Floating explanatory text (functionally inert)
+
+    # Math/Signal nodes
+    SINE = "SINE"  # Sine wave generator (input -> sin(input * freq))
+    NOISE = "NOISE"  # Random/Perlin noise generator
+    TIME = "TIME"  # Current time for animations (no input, outputs elapsed seconds)
+    MULTIPLY = "MULTIPLY"  # Element-wise multiply two tensors
+    ADD = "ADD"  # Element-wise add two tensors
+
+    # Audio nodes
+    OSCILLATOR = "OSCILLATOR"  # Generate audio waveform (sine, saw, square, triangle)
+    AUDIO_OUTPUT = "AUDIO_OUTPUT"  # Play audio to speakers
+    AUDIO_FILE = "AUDIO_FILE"  # Load audio file (wav/mp3) as buffer
+    AUDIO_TRIGGER = "AUDIO_TRIGGER"  # Play audio when input crosses threshold
+
+    # Scripting nodes
+    SCRIPTED_NODE = "SCRIPTED_NODE"  # User-defined JavaScript logic
+
+    # Visual nodes
+    SHADER_VIS = "SHADER_VIS"  # GLSL shader visualization with uniform inputs
+
     # Tutorial/Interactive nodes
     NUMBER_INPUT = "NUMBER_INPUT"  # Interactive scalar input with slider
+    PULSE_INPUT = "PULSE_INPUT"  # Button sends 1.0 on click, 0.0 otherwise
+    TEXT_INPUT = "TEXT_INPUT"  # Single line text entry
+    TOKEN_INPUT = "TOKEN_INPUT"  # Token ID input (dropdown or number)
+    SIMPLE_EMBED = "SIMPLE_EMBED"  # Bag-of-words text encoder
+    EMBEDDING = "EMBEDDING"  # Token embedding lookup table
+    SAMPLING = "SAMPLING"  # Temperature-controlled sampling from logits
     THRESHOLD_OUTPUT = "THRESHOLD_OUTPUT"  # ON/OFF display at threshold
+    OUTPUT_CHART = "OUTPUT_CHART"  # Time series line chart
+    COUNTER_OUTPUT = "COUNTER_OUTPUT"  # Integer display
+    TOKEN_OUTPUT = "TOKEN_OUTPUT"  # Displays sampled token as text
+    PROB_VIS = "PROB_VIS"  # Probability distribution bar chart
+    AFFECT_VIS = "AFFECT_VIS"  # 5D affect pentagon/radar chart
+    ATTENTION_VIS = "ATTENTION_VIS"  # Heatmap of attention weights
     CONCAT = "CONCAT"  # Concatenate two tensors
+    STACK = "STACK"  # Stack tensors along sequence dimension (for transformers)
 
 
 class DataType(Enum):
@@ -114,6 +151,7 @@ class WeightInfo:
     shape: Tuple[int, ...]
     path: Optional[str] = None  # Path to .npy file (if pretrained)
     trainable: bool = True
+    values: Optional[Any] = None  # Initial weight values (list/nested list)
 
     def num_parameters(self) -> int:
         """Calculate number of parameters."""
@@ -286,7 +324,8 @@ class NeuralNode:
                 name: {
                     'shape': list(info.shape),
                     'path': info.path,
-                    'trainable': info.trainable
+                    'trainable': info.trainable,
+                    'values': info.values
                 }
                 for name, info in self.weights.items()
             },
@@ -336,7 +375,8 @@ class NeuralNode:
                 name=name,
                 shape=tuple(weight_data['shape']),
                 path=weight_data.get('path'),
-                trainable=weight_data.get('trainable', True)
+                trainable=weight_data.get('trainable', True),
+                values=weight_data.get('values')
             )
 
         return node

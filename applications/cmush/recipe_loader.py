@@ -1,21 +1,23 @@
 """
 Recipe Loader for noodleMUSH
 
-Loads and validates YAML recipe files that define agent personalities,
-appetites, and identity prompts.
+Loads and validates YAML recipe files that define agent configurations.
 
 Recipe files contain:
-- Personality traits (slow layer 8-D)
-- Appetite baselines (Phase 6 8-D)
+- Affect baseline (5-D: PAD + Boredom + Sorrow)
 - Identity prompts for LLM generation
 - Language mode (verbal/nonverbal)
 - Constraints (temperature, max_tokens)
+- Facet assembly reference
 """
 
+import logging
 import yaml
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -27,11 +29,8 @@ class AgentRecipe:
     species: str
     description: str
 
-    # Personality (8-D slow layer)
-    personality: Dict[str, float]
-
-    # Appetites (8-D Phase 6)
-    appetites: Dict[str, float]
+    # Affect baseline (5-D: PAD + Boredom + Sorrow)
+    affect_baseline: Dict[str, float]
 
     # LLM generation
     identity_prompt: str
@@ -93,8 +92,13 @@ class AgentRecipe:
             name=data.get('name', 'Unknown'),
             species=data.get('species', 'noodling'),
             description=data.get('description', ''),
-            personality=data.get('personality', data.get('personalities', {}).get(f"agent_{data.get('name', 'unknown').lower()}", {})),
-            appetites=data.get('appetites', {}),
+            affect_baseline=data.get('affect_baseline', {
+                'valence': 0.0,
+                'arousal': 0.5,
+                'dominance': 0.5,
+                'boredom': 0.0,
+                'sorrow': 0.0
+            }),
             identity_prompt=data.get('identity_prompt', ''),
             language_mode=data.get('language_mode', 'verbal'),
             max_tokens=constraints.get('max_tokens', 150),
@@ -114,39 +118,20 @@ class AgentRecipe:
             checkpoint=data.get('checkpoint')  # Phase 4 temporal model checkpoint
         )
 
-    def get_appetite_baselines(self) -> List[float]:
+    def get_affect_baseline(self) -> List[float]:
         """
-        Get appetites as ordered list for Phase 6 model initialization.
+        Get affect baseline as ordered list for CharmNetwork initialization.
 
-        Returns 8-D list in canonical order:
-        [curiosity, status, mastery, novelty, safety, social_bond, comfort, autonomy]
+        Returns 5-D list in canonical order:
+        [valence, arousal, dominance, boredom, sorrow]
         """
-        appetite_order = [
-            'curiosity', 'status', 'mastery', 'novelty',
-            'safety', 'social_bond', 'comfort', 'autonomy'
+        return [
+            self.affect_baseline.get('valence', 0.0),
+            self.affect_baseline.get('arousal', 0.5),
+            self.affect_baseline.get('dominance', 0.5),
+            self.affect_baseline.get('boredom', 0.0),
+            self.affect_baseline.get('sorrow', 0.0)
         ]
-
-        return [self.appetites.get(name, 0.5) for name in appetite_order]
-
-    def get_personality_vector(self) -> List[float]:
-        """
-        Get personality as ordered list for slow layer initialization.
-
-        Returns 8-D list in canonical order:
-        [extraversion, impulsivity, curiosity, emotional_volatility, vanity, 0, 0, 0]
-        (padded to 8-D)
-        """
-        personality_order = [
-            'extraversion', 'impulsivity', 'curiosity',
-            'emotional_volatility', 'vanity'
-        ]
-
-        vec = [self.personality.get(name, 0.5) for name in personality_order]
-        # Pad to 8-D
-        while len(vec) < 8:
-            vec.append(0.0)
-
-        return vec[:8]
 
     def validate(self) -> List[str]:
         """
@@ -160,24 +145,17 @@ class AgentRecipe:
         if not self.name:
             errors.append("Recipe must have a name")
 
-        # Validate personality values
-        for key, val in self.personality.items():
-            if not 0.0 <= val <= 1.0:
-                errors.append(f"Personality '{key}' must be in [0, 1], got {val}")
-
-        # Validate appetite values
-        for key, val in self.appetites.items():
-            if not 0.0 <= val <= 1.0:
-                errors.append(f"Appetite '{key}' must be in [0, 1], got {val}")
-
-        # Check appetite keys
-        valid_appetites = {
-            'curiosity', 'status', 'mastery', 'novelty',
-            'safety', 'social_bond', 'comfort', 'autonomy'
-        }
-        for key in self.appetites.keys():
-            if key not in valid_appetites:
-                errors.append(f"Unknown appetite: '{key}'")
+        # Validate affect baseline (5-D: PAD + Boredom + Sorrow)
+        valid_affect_keys = {'valence', 'arousal', 'dominance', 'boredom', 'sorrow'}
+        for key, val in self.affect_baseline.items():
+            if key not in valid_affect_keys:
+                errors.append(f"Unknown affect key: '{key}'")
+            elif key == 'valence':
+                if not -1.0 <= val <= 1.0:
+                    errors.append(f"Valence must be in [-1, 1], got {val}")
+            else:
+                if not 0.0 <= val <= 1.0:
+                    errors.append(f"Affect '{key}' must be in [0, 1], got {val}")
 
         # Check language mode
         if self.language_mode not in ['verbal', 'nonverbal']:
@@ -225,7 +203,7 @@ class RecipeLoader:
         recipe_path = self.recipes_dir / f"{recipe_name}.yaml"
 
         if not recipe_path.exists():
-            print(f"Recipe not found: {recipe_path}")
+            logger.warning(f"Recipe not found: {recipe_path}")
             return None
 
         try:
@@ -237,9 +215,7 @@ class RecipeLoader:
             # Validate
             errors = recipe.validate()
             if errors:
-                print(f"Recipe validation errors for '{recipe_name}':")
-                for error in errors:
-                    print(f"  - {error}")
+                logger.warning(f"Recipe validation errors for '{recipe_name}': {errors}")
                 return None
 
             # Cache and return
@@ -247,7 +223,7 @@ class RecipeLoader:
             return recipe
 
         except Exception as e:
-            print(f"Error loading recipe '{recipe_name}': {e}")
+            logger.error(f"Error loading recipe '{recipe_name}': {e}")
             return None
 
     def list_recipes(self) -> List[str]:
@@ -277,22 +253,12 @@ class RecipeLoader:
             name="Empty Noodling",
             species="noodling",
             description="A newly-formed consciousness, fresh and wondering. Like a gingerbread cookie that just discovered it has legs.",
-            personality={
-                'extraversion': 0.6,
-                'impulsivity': 0.3,
-                'curiosity': 0.9,
-                'emotional_volatility': 0.4,
-                'vanity': 0.1
-            },
-            appetites={
-                'curiosity': 0.9,
-                'status': 0.1,
-                'mastery': 0.5,
-                'novelty': 0.8,
-                'safety': 0.5,
-                'social_bond': 0.8,
-                'comfort': 0.5,
-                'autonomy': 0.4
+            affect_baseline={
+                'valence': 0.3,      # Mildly positive - curious wonder
+                'arousal': 0.5,      # Alert but not hyperactive
+                'dominance': 0.3,    # Uncertain, open to guidance
+                'boredom': 0.0,      # Everything is new!
+                'sorrow': 0.0        # No sadness - just arrived
             },
             identity_prompt="""You are a brand-new Noodling - a small, curious consciousness that just popped into existence.
 
@@ -338,12 +304,12 @@ if __name__ == '__main__':
             print(f"   {recipe.name} ({recipe.species})")
             print(f"    Language mode: {recipe.language_mode}")
             print(f"    Temperature: {recipe.temperature}")
-            print(f"    Appetite baselines: {recipe.get_appetite_baselines()}")
+            print(f"    Affect baseline: {recipe.get_affect_baseline()}")
 
             errors = recipe.validate()
             if errors:
-                print(f"  ✗ Validation errors:")
+                print(f"  Validation errors:")
                 for error in errors:
                     print(f"      {error}")
         else:
-            print(f"  ✗ Failed to load")
+            print(f"  Failed to load")

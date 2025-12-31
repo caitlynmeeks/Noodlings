@@ -31,7 +31,7 @@ Architecture Flow:
 Key Innovation: The agent can now model what others are thinking/feeling,
 track relationship dynamics, and use social context to inform predictions.
 
-Author: Consilience Project
+Author: Caitlyn Meeks
 Date: October 2025
 """
 

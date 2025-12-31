@@ -10,9 +10,12 @@ falling back to encrypted file storage.
 import os
 import json
 import logging
+import uuid
 from pathlib import Path
-from typing import Optional, Dict, Any
-from dataclasses import dataclass
+from typing import Optional, Dict, Any, List
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
 from PyQt6.QtCore import QObject, pyqtSignal, QSettings
 
 logger = logging.getLogger(__name__)
@@ -32,6 +35,85 @@ class UserProfile:
     providers: list  # OAuth providers linked to account
 
 
+class AvatarAssetLocation(Enum):
+    """Where the avatar's visual asset lives."""
+    LOCAL = "local"           # Local .radiance file path
+    CLOUD = "cloud"           # Uploaded to backend (URL or asset_id)
+    LIBRARY = "library"       # Built-in library avatar
+
+
+@dataclass
+class AvatarMetadata:
+    """
+    A user's in-world persona/presentation.
+
+    One user can have multiple avatars (like Second Life).
+    This is SEPARATE from UserProfile (account-level data).
+
+    The display_name and description are PUBLIC - visible to other users
+    in shared worlds. Think of it like an SL profile.
+    """
+
+    # Identity
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    owner_id: str = ""  # UserProfile.id
+
+    # Presentation (PUBLIC - visible to other users)
+    display_name: str = ""              # "Red Fire Anklebiter"
+    description: str = ""               # "A mischievous fire imp who loves chaos"
+    pronouns: Optional[str] = None      # "they/them", "she/her", etc.
+    tags: List[str] = field(default_factory=list)  # ["fire", "imp", "chaotic"]
+
+    # Visual asset reference
+    asset_location: AvatarAssetLocation = AvatarAssetLocation.LOCAL
+    asset_ref: str = ""                 # Path, URL, or asset_id depending on location
+    thumbnail_url: Optional[str] = None # Preview image for avatar picker
+
+    # State
+    is_default: bool = False            # Use this avatar when entering worlds
+    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    # Future: runtime customization (doesn't require re-uploading asset)
+    # tint: Optional[Tuple[float, float, float]] = None
+    # scale: float = 1.0
+
+    def to_dict(self) -> dict:
+        """Serialize for API/storage."""
+        return {
+            "id": self.id,
+            "owner_id": self.owner_id,
+            "display_name": self.display_name,
+            "description": self.description,
+            "pronouns": self.pronouns,
+            "tags": self.tags,
+            "asset_location": self.asset_location.value,
+            "asset_ref": self.asset_ref,
+            "thumbnail_url": self.thumbnail_url,
+            "is_default": self.is_default,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'AvatarMetadata':
+        """Deserialize from API/storage."""
+        return cls(
+            id=data.get("id", str(uuid.uuid4())),
+            owner_id=data.get("owner_id", ""),
+            display_name=data.get("display_name", ""),
+            description=data.get("description", ""),
+            pronouns=data.get("pronouns"),
+            tags=data.get("tags", []),
+            asset_location=AvatarAssetLocation(data.get("asset_location", "local")),
+            asset_ref=data.get("asset_ref", ""),
+            thumbnail_url=data.get("thumbnail_url"),
+            is_default=data.get("is_default", False),
+            created_at=data.get("created_at", datetime.utcnow().isoformat()),
+            updated_at=data.get("updated_at", datetime.utcnow().isoformat()),
+        )
+
+
 class AccountManager(QObject):
     """
     Manages user authentication state for NoodleStudio.
@@ -41,12 +123,14 @@ class AccountManager(QObject):
         logged_out: Emitted when user logs out
         credits_updated: Emitted when credit balance changes
         login_failed: Emitted when login fails (str: error message)
+        avatars_changed: Emitted when avatar list changes
     """
 
     logged_in = pyqtSignal(object)  # UserProfile
     logged_out = pyqtSignal()
     credits_updated = pyqtSignal(int)  # new balance
     login_failed = pyqtSignal(str)  # error message
+    avatars_changed = pyqtSignal()  # avatar list modified
 
     # Singleton instance
     _instance: Optional['AccountManager'] = None
@@ -62,10 +146,12 @@ class AccountManager(QObject):
         super().__init__()
         self._session_token: Optional[str] = None
         self._user: Optional[UserProfile] = None
+        self._avatars: List[AvatarMetadata] = []
         self._settings = QSettings('Noodlings', 'NoodleStudio')
 
         # Try to restore session on init
         self._restore_session()
+        self._load_avatars()
 
     @property
     def is_logged_in(self) -> bool:
@@ -86,6 +172,117 @@ class AccountManager(QObject):
     def credits_balance(self) -> int:
         """Get current credit balance."""
         return self._user.credits_balance if self._user else 0
+
+    @property
+    def avatars(self) -> List[AvatarMetadata]:
+        """Get list of user's avatars."""
+        return self._avatars.copy()
+
+    @property
+    def default_avatar(self) -> Optional[AvatarMetadata]:
+        """Get the default avatar, or first avatar if none marked default."""
+        for avatar in self._avatars:
+            if avatar.is_default:
+                return avatar
+        return self._avatars[0] if self._avatars else None
+
+    # -------------------------------------------------------------------------
+    # Avatar Management
+    # -------------------------------------------------------------------------
+
+    def add_avatar(self, avatar: AvatarMetadata) -> None:
+        """Add a new avatar."""
+        avatar.owner_id = self._user.id if self._user else ""
+        avatar.updated_at = datetime.utcnow().isoformat()
+
+        # If this is the first avatar, make it default
+        if not self._avatars:
+            avatar.is_default = True
+
+        self._avatars.append(avatar)
+        self._save_avatars()
+        self.avatars_changed.emit()
+        logger.info(f"Added avatar: {avatar.display_name} ({avatar.id})")
+
+    def update_avatar(self, avatar: AvatarMetadata) -> None:
+        """Update an existing avatar."""
+        for i, existing in enumerate(self._avatars):
+            if existing.id == avatar.id:
+                avatar.updated_at = datetime.utcnow().isoformat()
+                self._avatars[i] = avatar
+                self._save_avatars()
+                self.avatars_changed.emit()
+                logger.info(f"Updated avatar: {avatar.display_name}")
+                return
+        logger.warning(f"Avatar not found for update: {avatar.id}")
+
+    def delete_avatar(self, avatar_id: str) -> bool:
+        """Delete an avatar by ID. Returns True if deleted."""
+        for i, avatar in enumerate(self._avatars):
+            if avatar.id == avatar_id:
+                was_default = avatar.is_default
+                del self._avatars[i]
+
+                # If we deleted the default, make first remaining avatar default
+                if was_default and self._avatars:
+                    self._avatars[0].is_default = True
+
+                self._save_avatars()
+                self.avatars_changed.emit()
+                logger.info(f"Deleted avatar: {avatar_id}")
+                return True
+        return False
+
+    def set_default_avatar(self, avatar_id: str) -> None:
+        """Set an avatar as the default."""
+        for avatar in self._avatars:
+            avatar.is_default = (avatar.id == avatar_id)
+        self._save_avatars()
+        self.avatars_changed.emit()
+
+    def get_avatar(self, avatar_id: str) -> Optional[AvatarMetadata]:
+        """Get avatar by ID."""
+        for avatar in self._avatars:
+            if avatar.id == avatar_id:
+                return avatar
+        return None
+
+    def _avatars_file_path(self) -> Path:
+        """Get path to local avatars storage file."""
+        # Store in user's app data directory
+        app_data = Path.home() / '.noodlings'
+        app_data.mkdir(exist_ok=True)
+        return app_data / 'avatars.json'
+
+    def _load_avatars(self) -> None:
+        """Load avatars from local storage."""
+        path = self._avatars_file_path()
+        if path.exists():
+            try:
+                with open(path, 'r') as f:
+                    data = json.load(f)
+                self._avatars = [AvatarMetadata.from_dict(a) for a in data]
+                logger.debug(f"Loaded {len(self._avatars)} avatars from {path}")
+            except Exception as e:
+                logger.error(f"Failed to load avatars: {e}")
+                self._avatars = []
+        else:
+            self._avatars = []
+
+    def _save_avatars(self) -> None:
+        """Save avatars to local storage."""
+        path = self._avatars_file_path()
+        try:
+            with open(path, 'w') as f:
+                json.dump([a.to_dict() for a in self._avatars], f, indent=2)
+            logger.debug(f"Saved {len(self._avatars)} avatars to {path}")
+        except Exception as e:
+            logger.error(f"Failed to save avatars: {e}")
+
+    # TODO: Cloud sync methods (future)
+    # def sync_avatars_to_cloud(self) -> None:
+    # def sync_avatars_from_cloud(self) -> None:
+    # def upload_avatar_asset(self, avatar_id: str) -> str:  # Returns cloud asset_id
 
     def get_login_url(self, provider: str) -> str:
         """Get OAuth login URL for a provider."""
@@ -206,7 +403,13 @@ class AccountManager(QObject):
         logger.debug("Session saved to settings")
 
     def _restore_session(self):
-        """Restore session from storage."""
+        """Restore session from storage if auto-login is enabled."""
+        # Check auto-login setting
+        auto_login = self._settings.value('auto_login', False, type=bool)
+        if not auto_login:
+            logger.debug("Auto-login disabled, skipping session restore")
+            return
+
         # Try keychain first
         token = self._load_from_keychain()
 

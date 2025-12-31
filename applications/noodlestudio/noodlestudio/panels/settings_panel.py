@@ -66,6 +66,13 @@ class GeneralSettingsWidget(QWidget):
         self.autostart_mush.stateChanged.connect(self._save_settings)
         startup_layout.addWidget(self.autostart_mush)
 
+        # Auto-login as last account
+        self.auto_login = QCheckBox("Log in automatically as last account")
+        self.auto_login.setStyleSheet("color: #D2D2D2;")
+        self.auto_login.setToolTip("Automatically sign in with your last used account on startup")
+        self.auto_login.stateChanged.connect(self._save_settings)
+        startup_layout.addWidget(self.auto_login)
+
         # Launch on system startup
         self.launch_on_startup = QCheckBox("Launch NoodleSTUDIO on system startup")
         self.launch_on_startup.setStyleSheet("color: #D2D2D2;")
@@ -74,6 +81,35 @@ class GeneralSettingsWidget(QWidget):
 
         startup_group.setLayout(startup_layout)
         layout.addWidget(startup_group)
+
+        # World Entry Options Group
+        world_group = QGroupBox("World Entry")
+        world_group.setStyleSheet("""
+            QGroupBox {
+                background: #2e2e2e;
+                border: 1px solid #3e3e3e;
+                border-radius: 4px;
+                margin-top: 8px;
+                padding-top: 8px;
+                color: #D2D2D2;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 4px 8px;
+            }
+        """)
+        world_layout = QVBoxLayout()
+
+        # Auto-show Text View on world entry
+        self.auto_show_chat = QCheckBox("Show Text View when entering world")
+        self.auto_show_chat.setStyleSheet("color: #D2D2D2;")
+        self.auto_show_chat.setToolTip("Automatically switch to the Text View tab after entering the world")
+        self.auto_show_chat.stateChanged.connect(self._save_settings)
+        world_layout.addWidget(self.auto_show_chat)
+
+        world_group.setLayout(world_layout)
+        layout.addWidget(world_group)
 
         # Degoosification Group
         goose_group = QGroupBox("Gooseware")
@@ -393,12 +429,17 @@ class GeneralSettingsWidget(QWidget):
     def _load_settings(self):
         """Load general settings from QSettings."""
         self.autostart_mush.setChecked(self.settings.value("autostart_mush", False, type=bool))
+        self.auto_login.setChecked(self.settings.value("auto_login", False, type=bool))
         self.launch_on_startup.setChecked(self.settings.value("launch_on_startup", False, type=bool))
+        # Default to True - show chat when entering world (user-friendly default)
+        self.auto_show_chat.setChecked(self.settings.value("auto_show_chat", True, type=bool))
 
     def _save_settings(self):
         """Save general settings to QSettings."""
         self.settings.setValue("autostart_mush", self.autostart_mush.isChecked())
+        self.settings.setValue("auto_login", self.auto_login.isChecked())
         self.settings.setValue("launch_on_startup", self.launch_on_startup.isChecked())
+        self.settings.setValue("auto_show_chat", self.auto_show_chat.isChecked())
 
 
 class ExternalAppsWidget(QWidget):
