@@ -23,9 +23,21 @@ Desktop IDE for designing cognitive architectures and building worlds.
 |--------------|---------|
 | Run the server | [NoodleMUSH Quickstart](noodlemush/quickstart.md) |
 | Create a character | [Recipe Format](noodlings/recipe-format.md) |
+| Understand facet assemblies | [Facet System](noodlestudio/facets.md) |
 | Design cognition visually | [Neural Canvas](noodlestudio/neural-canvas.md) |
 | Write scripted facets | [Scripting API](noodlestudio/scripting.md) |
+| Run and write tests | [Testing Guide](noodlestudio/testing.md) |
 | Understand file formats | [Formats Reference](formats/) |
+
+---
+
+## Development
+
+| I want to... | Go here |
+|--------------|---------|
+| Set up CI/CD | [CI/CD Guide](development/ci-cd.md) |
+| Release a version | [Releasing Guide](development/releasing.md) |
+| Understand the workflow | [Development Overview](development/overview.md) |
 
 ---
 

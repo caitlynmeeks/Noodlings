@@ -123,12 +123,13 @@ class InspectorPanel(
 
     def init_ui(self, widget):
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setContentsMargins(8, 8, 16, 8)  # Extra right margin
 
-        # Header
+        # Header (hidden - redundant with Name field in properties)
         self.entity_header = QLabel("No entity selected")
         self.entity_header.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         self.entity_header.setStyleSheet("color: #D2D2D2; padding: 8px;")
+        self.entity_header.hide()  # Name is shown in properties section
         layout.addWidget(self.entity_header)
 
         # Scrollable properties area
@@ -932,9 +933,10 @@ class InspectorPanel(
     def load_entity(self, entity_type: str, entity_data: dict):
         """Load entity properties into inspector."""
         # Save for later restore when facet is deselected
+        # CRITICAL: Store a COPY to avoid reference mutation issues
         if entity_type and entity_data:
             self.last_entity_type = entity_type
-            self.last_entity_data = entity_data
+            self.last_entity_data = entity_data.copy()
 
         # CRITICAL: Prevent re-entrant loading (e.g., double-tap events)
         if self.is_loading:
@@ -947,15 +949,21 @@ class InspectorPanel(
             return
 
         # CRITICAL: Check if same entity - don't reload if it hasn't changed
+        # But DO reload if the name changed (from inline rename)
         if self.current_entity:
             old_type, old_data = self.current_entity
             old_id = old_data.get('id') if old_data else None
             new_id = entity_data.get('id')
-            if old_type == entity_type and old_id == new_id:
+            old_name = old_data.get('name') if old_data else None
+            new_name = entity_data.get('name')
+            if old_type == entity_type and old_id == new_id and old_name == new_name:
                 print(f"[DIAGNOSTIC] SKIPPING load_entity - same entity already loaded")
                 return
 
-        self.current_entity = (entity_type, entity_data)
+        # CRITICAL: Store a COPY of entity_data to avoid reference mutation
+        # (Stage View modifies entity_data dict before emitting, which would
+        # corrupt our comparison on next load if we held a reference)
+        self.current_entity = (entity_type, entity_data.copy())
 
         # CRITICAL: Don't reload if a text widget has focus (user is editing)
         focused_widget = QApplication.focusWidget()

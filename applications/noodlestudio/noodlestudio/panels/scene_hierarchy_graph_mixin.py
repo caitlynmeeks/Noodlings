@@ -59,7 +59,7 @@ class SceneHierarchyGraphMixin:
     def update_entity_name(self, entity_type: str, entity_id: str, new_name: str):
         """Update tree item name when changed from Inspector."""
         print(f"[DEBUG] update_entity_name: type={entity_type}, id={entity_id}, name={new_name}")
-        print(f"[DEBUG] tree has {self.tree.topLevelItemCount()} top-level items")
+
         # Find the tree item by entity_id
         found = False
         for i in range(self.tree.topLevelItemCount()):
@@ -67,25 +67,17 @@ class SceneHierarchyGraphMixin:
             if item:
                 found = True
                 entity_data = item.data(0, Qt.ItemDataRole.UserRole)
-                print(f"[DEBUG] Found item! entity_data={entity_data}")
                 if entity_data:
-                    # Update the display text (preserve status icons for noodlings)
-                    if entity_type == 'noodling':
-                        # Rebuild display with status
-                        is_paused = self.get_agent_pause_state(entity_id)
-                        status_text = "[paused]" if is_paused else ""
-                        pause_icon = "[>]" if is_paused else "[||]"
-                        display_text = f"{new_name:<20} {status_text:<20} {pause_icon}"
-                        item.setText(0, display_text)
-                        print(f"[DEBUG] Set noodling text to: {display_text}")
-                    elif entity_type == 'zone':
-                        # Rebuild display with radius/falloff
+                    # Update display text in column 0 (name only, pause button is in column 1)
+                    if entity_type == 'zone':
+                        # Zones show radius/falloff in name
                         data = entity_data.get('data', {})
                         radius = data.get('radius', 10)
                         falloff = data.get('falloff', 5)
                         display_text = f"{new_name} (r={radius}, f={falloff})"
                         item.setText(0, display_text)
                     else:
+                        # Noodlings, props, etc - just the name (button in column 1)
                         item.setText(0, new_name)
 
                     # Update entity_data

@@ -2,7 +2,7 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: December 30, 2025
+**Last Updated**: January 1, 2026
 
 **FOR NEXT CLAUDE: START HERE!**
 
@@ -700,17 +700,33 @@ let result = await context.noodle.rigger.rig({
 - `sorrow` (0 to 1)
 
 ### Facet System
-Visual node-based cognitive architecture:
+
+**Facets ARE the cognitive components.** Every Noodling has a Facet Assembly - a visual
+node graph that defines how it thinks. This replaced the earlier "Cognitive Transistor"
+system (CulturalTransistor, PersonalityTransistor, etc.) which is now deprecated.
+
 ```
 INCOMING -> CHARM_NET -> CONTEXT_INTELLIGENCE -> Cognitive facets -> OUTGOING
 ```
 
-**Types:** LLMFacet, ScriptedFacet, CharmNetworkFacet, ContextIntelligenceFacet, ConvergenceFacet
+**Facet Types:**
+- `LLMFacet` - Language model processing (configurable model per facet)
+- `ScriptedFacet` - Custom JavaScript logic
+- `CharmNetworkFacet` - Temporal affect model (LSTM/GRU hierarchy)
+- `ContextIntelligenceFacet` - Memory and context management
+- `ConvergenceFacet` - Multi-input synthesis (waits for all inputs)
+- `TickerFacet`, `BranchFacet`, `CacheFacet`, `RateLimiterFacet` - Flow control
+
+**Inspector shows:**
+- "Noodle Component" - Live affect/surprise telemetry (automatic for all Noodlings)
+- "Facet" dropdown - Select and edit individual facet properties
 
 **Key files:**
-- `facet_system.py` - Data model
-- `facet_executor.py` - Execution engine
-- `facets_editor_panel.py` - Visual editor
+- `facet_system.py` - Data model and YAML serialization
+- `facet_executor.py` - Parallel execution engine
+- `facets_editor_panel.py` - Visual node editor
+
+**Documentation:** See `docs/noodlestudio/facets.md` for full specification.
 
 ### CharmNetwork
 MLX-based temporal hierarchy (~54K params, ~2-3ms inference):
@@ -744,6 +760,100 @@ Noodlings/
     └── Assets/
         └── reference.png
 ```
+
+---
+
+## Testing
+
+### Test Infrastructure
+- **Framework:** pytest + pytest-qt
+- **Config:** `applications/noodlestudio/pytest.ini`
+- **Fixtures:** `applications/noodlestudio/tests/conftest.py`
+- **Test count:** 103 tests (as of Jan 1, 2026)
+
+### Running Tests
+```bash
+cd applications/noodlestudio
+PYTHONPATH=.:../.. pytest                    # Run all tests
+PYTHONPATH=.:../.. pytest -v                 # Verbose output
+PYTHONPATH=.:../.. pytest tests/test_panel_wiring.py  # Single file
+PYTHONPATH=.:../.. pytest -k "test_undo"     # By name pattern
+PYTHONPATH=.:../.. pytest -m "not slow"      # Skip slow tests
+```
+
+### Test Categories (Markers)
+| Marker | Description | When to Run |
+|--------|-------------|-------------|
+| `@pytest.mark.unit` | Fast, no external deps | Every commit |
+| `@pytest.mark.gui` | Requires Qt/pytest-qt | Before merges |
+| `@pytest.mark.slow` | Training, rendering | Manual/nightly |
+| `@pytest.mark.integration` | Server required | Before release |
+
+### Development Workflow
+
+**BEFORE starting feature work:**
+```bash
+cd applications/noodlestudio
+PYTHONPATH=.:../.. pytest --tb=short
+```
+Note any existing failures. Don't fix unrelated issues mid-feature.
+
+**DURING development:**
+- Write tests for new code in `tests/` folder
+- Run affected tests frequently
+- Use fixtures from `conftest.py` (don't reinvent)
+
+**BEFORE committing:**
+```bash
+PYTHONPATH=.:../.. pytest -v
+```
+ALL tests must pass (or have documented `@pytest.mark.skip` reasons).
+
+### Key Test Files
+| File | Tests | Coverage |
+|------|-------|----------|
+| `test_agentic_system.py` | 68 | Facets, MCP, Player, proxies |
+| `test_panel_wiring.py` | 17 | Qt signals, Inspector, Stage View |
+| `test_radiance_component.py` | 10 | Gaussians, rendering, spatial queries |
+| `test_clip_queries.py` | 3 | Semantic search |
+| `test_gaussian_adapter.py` | 1 | Asset creation |
+
+### Writing New Tests
+```python
+# Use fixtures from conftest.py
+def test_something(main_window, qtbot):
+    """Test description."""
+    # Arrange
+    main_window.hierarchy.entitySelected.emit('noodling', mock_data)
+
+    # Act
+    qtbot.wait(50)  # Allow signal propagation
+
+    # Assert
+    assert main_window.inspector.current_mode == 'noodling'
+
+# For radiance/gaussian tests
+def test_radiance_thing(loaded_radiance_component):
+    """Test radiance operations."""
+    component = loaded_radiance_component
+    assert component.gaussian_count > 0
+```
+
+### Available Fixtures (conftest.py)
+- `qapp` - QApplication singleton
+- `main_window` - Full MainWindow instance
+- `qtbot` - pytest-qt interaction helper
+- `radiance_component` - Synthetic test component
+- `loaded_radiance_component` - Real or synthetic asset
+- `mock_noodling_data`, `mock_prop_data`, `mock_zone_data`
+- `empty_facet_assembly`, `simple_facet_assembly`
+- `temp_project_dir`, `temp_stage_dir`
+
+### CI Reminder for Claude
+When the user finishes a feature or asks to commit:
+1. Proactively suggest running tests
+2. If tests fail, help fix them before committing
+3. For new features, ask: "Should I add tests for this?"
 
 ---
 

@@ -9,7 +9,7 @@ Date: December 2025
 """
 
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QTreeWidget, QLabel, QComboBox
+    QVBoxLayout, QHBoxLayout, QTreeWidget, QLabel, QComboBox, QHeaderView
 )
 from PyQt6.QtCore import Qt
 
@@ -71,10 +71,48 @@ class SceneHierarchyUISetupMixin:
         self.status_label.hide()  # Hidden by default
         layout.addWidget(self.status_label)
 
-        # Tree widget
+        # Tree widget with 2 columns: Name (stretch) + Status button (fixed)
         self.tree = QTreeWidget()
+        self.tree.setColumnCount(2)
         self.tree.setHeaderHidden(True)
         self.tree.setIndentation(16)
+
+        # Style the tree widget and inline editor
+        self.tree.setStyleSheet("""
+            QTreeWidget {
+                background-color: #1E1E1E;
+                color: #D2D2D2;
+                border: none;
+            }
+            QTreeWidget::item {
+                padding: 4px 2px;
+                min-height: 22px;
+            }
+            QTreeWidget::item:selected {
+                background-color: #2D5A88;
+            }
+            QTreeWidget::item:hover {
+                background-color: #2A2A2A;
+            }
+            /* Inline editor styling */
+            QTreeWidget QLineEdit {
+                background-color: #2A2A2A;
+                color: #FFFFFF;
+                border: 1px solid #4A90D9;
+                border-radius: 2px;
+                padding: 2px 4px;
+                min-height: 18px;
+                selection-background-color: #4A90D9;
+            }
+        """)
+
+        # Column 0 stretches for name, column 1 fixed width for status button
+        header = self.tree.header()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        header.resizeSection(1, 28)  # Fixed width for pause button
+        # Right-align column 1 content
+        header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft)  # Default for col 0
 
         # Prevent auto-collapse: set animation to false
         self.tree.setAnimated(False)

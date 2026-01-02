@@ -27,7 +27,17 @@ class MainWindowStatusBarMixin:
         status_bar = self.statusBar()
 
         # Connection status (temporary messages - left side, non-permanent)
+        # Styled as pill to match annotation overlay
         self.connection_label = QLabel()
+        self.connection_label.setStyleSheet("""
+            QLabel {
+                background-color: #282828;
+                color: #76AF6A;
+                border-radius: 4px;
+                padding: 3px 8px;
+                font-size: 12px;
+            }
+        """)
         status_bar.addWidget(self.connection_label)
 
         # === RIGHT SIDE PERMANENT WIDGETS (in order) ===
@@ -52,6 +62,11 @@ class MainWindowStatusBarMixin:
             QComboBox:hover {
                 border: 1px solid #666;
             }
+            QComboBox:disabled {
+                background-color: #252525;
+                color: #666;
+                border: 1px solid #3a3a3a;
+            }
             QComboBox::drop-down {
                 border: none;
                 width: 20px;
@@ -62,6 +77,9 @@ class MainWindowStatusBarMixin:
                 border-right: 4px solid transparent;
                 border-top: 5px solid #888;
                 margin-right: 5px;
+            }
+            QComboBox::down-arrow:disabled {
+                border-top: 5px solid #555;
             }
             QComboBox QAbstractItemView {
                 background-color: #2a2a2a;

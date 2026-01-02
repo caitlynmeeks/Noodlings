@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-qt PyQt6
+          # Install project dependencies
+          if [ -f applications/noodlestudio/requirements.txt ]; then
+            pip install -r applications/noodlestudio/requirements.txt
+          fi
+
+      - name: Run NoodleStudio tests
+        working-directory: applications/noodlestudio
+        env:
+          PYTHONPATH: .:../..
+          TOKENIZERS_PARALLELISM: false
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python -m pytest tests/ -v --tb=short

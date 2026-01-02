@@ -62,13 +62,29 @@ class MainWindowServerMixin:
         if running:
             if hasattr(self, 'connection_label'):
                 self.connection_label.setText("Server running on :8765")
-                self.connection_label.setStyleSheet("color: #76AF6A;")
+                self.connection_label.setStyleSheet("""
+                    QLabel {
+                        background-color: #282828;
+                        color: #76AF6A;
+                        border-radius: 4px;
+                        padding: 3px 8px;
+                        font-size: 12px;
+                    }
+                """)
             if hasattr(self, 'server_toggle'):
                 self.server_toggle.setChecked(True)
         else:
             if hasattr(self, 'connection_label'):
                 self.connection_label.setText("Server offline")
-                self.connection_label.setStyleSheet("color: #999;")
+                self.connection_label.setStyleSheet("""
+                    QLabel {
+                        background-color: #282828;
+                        color: #666;
+                        border-radius: 4px;
+                        padding: 3px 8px;
+                        font-size: 12px;
+                    }
+                """)
             if hasattr(self, 'server_toggle'):
                 self.server_toggle.setChecked(False)
 
@@ -88,6 +104,11 @@ class MainWindowServerMixin:
         if hasattr(self, 'console'):
             if running and not self.console.connected:
                 self.console.reconnect()
+
+        # Update server-dependent menu actions
+        if hasattr(self, '_server_dependent_actions'):
+            for action in self._server_dependent_actions:
+                action.setEnabled(running)
 
     def _check_autostart_mush(self):
         """Check if MUSH server should auto-start based on settings."""

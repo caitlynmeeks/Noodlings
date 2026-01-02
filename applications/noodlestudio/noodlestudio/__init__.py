@@ -1,9 +1,9 @@
 """
-NoodleSTUDIO - Professional IDE for Noodlings Consciousness Agents
+NoodleSTUDIO - Visual IDE for Cognitive Architecture Design
 
-Version: 1.0.0-alpha
-Author: Consilience, Inc.
+Version: 0.1.0-alpha
+Author: Noodlings.ai
 """
 
-__version__ = "1.0.0-alpha"
+__version__ = "0.1.0-alpha"
 __author__ = "Caitlyn Meeks"

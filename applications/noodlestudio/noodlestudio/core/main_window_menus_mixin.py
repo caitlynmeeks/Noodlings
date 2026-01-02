@@ -18,6 +18,9 @@ class MainWindowMenusMixin:
         """Create menu bar."""
         menu_bar = self.menuBar()
 
+        # Track server-dependent actions for enable/disable
+        self._server_dependent_actions = []
+
         # File Menu
         file_menu = menu_bar.addMenu("&File")
 
@@ -31,10 +34,10 @@ class MainWindowMenusMixin:
 
         file_menu.addSeparator()
 
-        # Create new assets (per PROJECT_SPEC.md)
-        file_menu.addAction(self._create_action("New &Noodling...", "Ctrl+N", slot=self.new_noodling))
-        file_menu.addAction(self._create_action("New &Stage...", "Ctrl+Shift+N", slot=self.new_stage))
-        file_menu.addAction(self._create_action("New &Prim...", slot=self.new_prim))
+        # Create new stage (requires server)
+        self.new_stage_action = self._create_action("New &Stage...", "Ctrl+Shift+N", slot=self.new_stage, enabled=False)
+        file_menu.addAction(self.new_stage_action)
+        self._server_dependent_actions.append(self.new_stage_action)
 
         file_menu.addSeparator()
 
@@ -82,70 +85,12 @@ class MainWindowMenusMixin:
         edit_menu.addAction(self._create_action("&Paste", "Ctrl+V"))
         edit_menu.addAction(self._create_action("&Delete", "Delete"))
 
-        # ===== REZ MENU (instantiate entities) =====
-        create_menu = menu_bar.addMenu("&Rez")
-
-        # Noodling submenu
-        noodling_menu = create_menu.addMenu("Noodling")
-        noodling_menu.addAction(self._create_action("Empty Noodling", slot=self.create_empty_noodling))
-        noodling_menu.addSeparator()
-        noodling_menu.addAction(self._create_action("Kitten Noodling", slot=lambda: self.create_specialized_noodling("kitten")))
-        noodling_menu.addAction(self._create_action("Robot Noodling", slot=lambda: self.create_specialized_noodling("robot")))
-        noodling_menu.addAction(self._create_action("Dragon Noodling", slot=lambda: self.create_specialized_noodling("dragon")))
-        noodling_menu.addSeparator()
-        noodling_menu.addAction(self._create_action("Empty Ensemble", slot=self.create_empty_ensemble))
-        noodling_menu.addAction(self._create_action("Import Ensemble (.ens)...", slot=self.import_ensemble))
-
-        # Object submenu
-        object_menu = create_menu.addMenu("Object")
-        object_menu.addAction(self._create_action("Empty Object", slot=self.create_empty_object))
-        object_menu.addSeparator()
-        object_menu.addAction(self._create_action("Prop (Holdable)", slot=lambda: self.create_specialized_object("prop")))
-        object_menu.addAction(self._create_action("Furniture (Sittable)", slot=lambda: self.create_specialized_object("furniture")))
-        object_menu.addAction(self._create_action("Container (Openable)", slot=lambda: self.create_specialized_object("container")))
-
-        create_menu.addSeparator()
-        create_menu.addAction(self._create_action("Empty Room", slot=self.create_empty_room))
-        create_menu.addAction(self._create_action("Empty Prim", slot=self.create_empty_prim))
-
         # ===== VIEW MENU =====
         view_menu = menu_bar.addMenu("&View")
         # Layout is locked - panels always visible
 
-        # ===== ENTITIES MENU (create/manage entities) =====
-        entities_menu = menu_bar.addMenu("&Entities")
-        entities_menu.addAction(self._create_action("Add Noodling...", "Ctrl+Shift+N", slot=self.add_noodling))
-        entities_menu.addAction(self._create_action("Add Object...", "Ctrl+Shift+O", slot=self.add_object))
-        entities_menu.addAction(self._create_action("Add Room...", slot=self.add_room))
-        entities_menu.addSeparator()
-        entities_menu.addAction(self._create_action("Remove Selected", "Delete"))
-        entities_menu.addSeparator()
-        entities_menu.addAction(self._create_action("Toggle Enlightenment", "Ctrl+E"))
-        entities_menu.addAction(self._create_action("Reset All States"))
-
-        # ===== COMPONENT MENU (modular component system) =====
+        # ===== COMPONENT MENU =====
         component_menu = menu_bar.addMenu("&Component")
-
-        # Charm components
-        charm_menu = component_menu.addMenu("Charm")
-        charm_menu.addAction(self._create_action("Noodle", slot=lambda: self.add_component("noodle")))
-        charm_menu.addAction(self._create_action("Memory Bank", slot=lambda: self.add_component("memory")))
-        charm_menu.addAction(self._create_action("Relationship Graph", slot=lambda: self.add_component("relationships")))
-
-        # Art & Reference components
-        art_menu = component_menu.addMenu("Art & Reference")
-        art_menu.addAction(self._create_action("Artbook", slot=lambda: self.add_component("artbook")))
-        art_menu.addAction(self._create_action("Mood Board", slot=lambda: self.add_component("moodboard")))
-        art_menu.addAction(self._create_action("Voice Reference", slot=lambda: self.add_component("voiceref")))
-
-        # Behavior components
-        behavior_menu = component_menu.addMenu("Behavior")
-        behavior_menu.addAction(self._create_action("Dialogue Tree", slot=lambda: self.add_component("dialogue")))
-        behavior_menu.addAction(self._create_action("Quest Giver", slot=lambda: self.add_component("quests")))
-        behavior_menu.addAction(self._create_action("Vendor", slot=lambda: self.add_component("vendor")))
-
-        # Custom component
-        component_menu.addSeparator()
         component_menu.addAction(self._create_action("Add Script...", slot=lambda: self.add_component("custom")))
 
         # ===== WINDOW MENU =====
@@ -153,13 +98,6 @@ class MainWindowMenusMixin:
         window_menu.addAction(self._create_action("Minimize", "Ctrl+M", self.showMinimized))
         window_menu.addAction(self._create_action("Zoom", slot=self.showMaximized))
         window_menu.addSeparator()
-
-        # ===== SETTINGS MENU =====
-        settings_menu = menu_bar.addMenu("&Settings")
-        settings_menu.addAction(self._create_action("Open Settings...", "Cmd+,", slot=self._open_settings_tab))
-        settings_menu.addSeparator()
-        settings_menu.addAction(self._create_action("MCP Servers...", slot=self.show_mcp_settings))
-        settings_menu.addAction(self._create_action("Entropy Service...", slot=self.show_rng_settings))
 
         # ===== ACCOUNT MENU =====
         account_menu = menu_bar.addMenu("&Account")

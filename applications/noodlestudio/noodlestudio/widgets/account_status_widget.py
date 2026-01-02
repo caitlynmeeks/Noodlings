@@ -40,15 +40,16 @@ class AccountStatusWidget(QWidget):
         self.info_label.setStyleSheet("color: #D2D2D2; font-size: 12px;")
         layout.addWidget(self.info_label)
 
-        # Make clickable
+        # Make clickable - styled like Enter World button
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.setStyleSheet("""
             QWidget {
-                background-color: #3a3a3a;
-                border-radius: 4px;
+                background-color: #4a4a4a;
+                border: 1px solid #555;
+                border-radius: 3px;
             }
             QWidget:hover {
-                background-color: #444444;
+                background-color: #555;
             }
         """)
 

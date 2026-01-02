@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QApplication, QSplashScreen, QLabel
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap, QPainter, QFont, QColor
 
-from .core.main_window import MainWindow
+# NOTE: MainWindow imported AFTER QApplication is created
 from .core.studio_acronyms import get_random_acronym
 
 
@@ -19,6 +19,9 @@ def main():
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
+
+    # Required for WebEngine to work - must be set BEFORE QApplication is created
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
 
     # macOS: Set process name BEFORE creating QApplication
     import platform
@@ -43,6 +46,10 @@ def main():
     splash = create_splash_screen()
     splash.show()
     app.processEvents()
+
+    # Import MainWindow AFTER QApplication is created
+    # (WebEngine on macOS requires QApplication to exist before import)
+    from .core.main_window import MainWindow
 
     # Create main window (takes a moment to load)
     window = MainWindow()

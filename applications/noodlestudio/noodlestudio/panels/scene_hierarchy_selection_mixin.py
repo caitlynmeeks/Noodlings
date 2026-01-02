@@ -14,7 +14,7 @@ Date: December 2025
 
 import os
 
-from PyQt6.QtWidgets import QTreeWidgetItem
+from PyQt6.QtWidgets import QTreeWidgetItem, QLineEdit
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6 import sip
 
@@ -24,6 +24,9 @@ class SceneHierarchySelectionMixin:
 
     def on_selection_changed(self):
         """Handle entity selection (doesn't interfere with expand/collapse)."""
+        # Don't interfere with inline editing
+        if getattr(self, '_editing_item', None):
+            return
         try:
             print("[HIERARCHY] on_selection_changed() called")
             items = self.tree.selectedItems()
@@ -101,7 +104,22 @@ class SceneHierarchySelectionMixin:
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                 self.tree.blockSignals(False)
 
-                self.tree.editItem(item, 0)
+                # Use openPersistentEditor for better text selection support
+                index = self.tree.indexFromItem(item, 0)
+                self.tree.openPersistentEditor(item, 0)
+
+                # Focus the editor and select all text
+                def focus_editor():
+                    # Find the editor widget
+                    editor = self.tree.itemWidget(item, 0)
+                    if not editor:
+                        # Try to find QLineEdit child
+                        for child in self.tree.findChildren(QLineEdit):
+                            if child.isVisible():
+                                child.setFocus()
+                                child.selectAll()
+                                break
+                QTimer.singleShot(50, focus_editor)
         except Exception as e:
             print(f"[HIERARCHY] Error in on_item_double_clicked: {e}")
             import traceback
@@ -111,6 +129,8 @@ class SceneHierarchySelectionMixin:
 
     def _on_item_renamed(self, item: QTreeWidgetItem, column: int):
         """Handle inline rename completion."""
+        print(f"[HIERARCHY] _on_item_renamed called! column={column}")
+
         # Re-enable refresh now that editing is done
         self._suppress_refresh = False
         self._editing_item = None
@@ -118,20 +138,22 @@ class SceneHierarchySelectionMixin:
         # Safety check - ensure item is valid
         try:
             if sip.isdeleted(item):
+                print("[HIERARCHY] Item was deleted, returning")
                 return
         except RuntimeError:
+            print("[HIERARCHY] RuntimeError checking item, returning")
             return
 
-        # Make item non-editable again - MUST defer to avoid Qt crash
-        # (can't call setFlags inside itemChanged signal handler)
-        # Also check if item is still valid before accessing it
-        def clear_editable():
+        # Close persistent editor and make item non-editable again
+        # MUST defer to avoid Qt crash (can't call setFlags inside itemChanged signal handler)
+        def cleanup_editor():
             try:
                 if not sip.isdeleted(item):
+                    self.tree.closePersistentEditor(item, 0)
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             except RuntimeError:
                 pass  # Item was deleted
-        QTimer.singleShot(0, clear_editable)
+        QTimer.singleShot(0, cleanup_editor)
 
         try:
             new_name = item.text(0).strip()
@@ -142,22 +164,28 @@ class SceneHierarchySelectionMixin:
             if not entity_data or not isinstance(entity_data, dict):
                 return
 
+            old_name = entity_data.get('name', '')
+            if new_name == old_name:
+                return  # No change
+
+            # Always update entity_data with new name
+            entity_data['name'] = new_name
+            item.setData(0, Qt.ItemDataRole.UserRole, entity_data)
+
             node_id = entity_data.get('node_id')
             if node_id:
                 # Update scene graph
                 node = self.scene_graph.get_node(node_id)
-                if node and node.name != new_name:
+                if node:
                     self.scene_graph.rename_node(node_id, new_name)
-                    # Update entity_data
-                    entity_data['name'] = new_name
-                    item.setData(0, Qt.ItemDataRole.UserRole, entity_data)
                     self._save_hierarchy()
-                    print(f"Renamed to: {new_name}")
 
             # Also update prop/noodling/zone on disk if it has a path
             prop_path = entity_data.get('path')
             if prop_path:
                 self._rename_on_disk(entity_data, new_name)
+
+            print(f"Renamed '{old_name}' to '{new_name}'")
 
             # Re-emit entitySelected to update Inspector with new name
             entity_type = entity_data.get('type', 'unknown')
@@ -182,7 +210,8 @@ class SceneHierarchySelectionMixin:
 
         if entity_type == 'prop':
             yaml_file = os.path.join(prop_path, 'prop.yaml')
-        elif entity_type == 'instance':
+        elif entity_type in ('instance', 'noodling'):
+            # Noodling instances store name in instance.yaml under overrides.name
             yaml_file = os.path.join(prop_path, 'instance.yaml')
             name_key = 'overrides.name'  # Nested key
         elif entity_type == 'zone':
@@ -212,6 +241,9 @@ class SceneHierarchySelectionMixin:
         Clicking text on items with children will expand/collapse them.
         Leaf items (no children) are unaffected - only selection occurs.
         """
+        # Don't interfere with inline editing
+        if getattr(self, '_editing_item', None):
+            return
         if item.childCount() > 0:
             # Item has children - toggle expanded state
             item.setExpanded(not item.isExpanded())

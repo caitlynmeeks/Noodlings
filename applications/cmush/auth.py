@@ -332,7 +332,8 @@ class AuthManager:
                 # No rooms exist - create a default one
                 spawn_room = self.world.create_room(
                     name="The Nexus",
-                    description="A cozy campfire with crackling logs. Welcome to the world!"
+                    description="A cozy campfire with crackling logs. Welcome to the world!",
+                    owner="system"  # System-owned default room
                 )
 
             # Create user without password (cloud-only auth)

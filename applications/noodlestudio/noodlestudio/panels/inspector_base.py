@@ -152,6 +152,14 @@ class InspectorBaseMixin:
             if not read_only else
             "background-color: #2A2A2A; color: #888888; padding: 4px;"
         )
+
+        # Auto-save on editing finished (Enter key or focus out) for editable fields
+        if not read_only:
+            def on_editing_finished():
+                if hasattr(self, 'save_changes') and not getattr(self, 'is_loading', False):
+                    self.save_changes()
+            field.editingFinished.connect(on_editing_finished)
+
         group.content.layout().addRow(f"{label}:", field)
         return field
 

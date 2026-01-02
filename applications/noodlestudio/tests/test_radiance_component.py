@@ -103,9 +103,9 @@ def test_synthetic_component():
     return component
 
 
-def test_region_overrides(component):
+def test_region_overrides(loaded_radiance_component):
     """Test region-level overrides."""
-    print("\n=== Test 2: Region Overrides ===\n")
+    component = loaded_radiance_component
 
     from noodlestudio.core.radiance_component import RegionOverride, Color
 
@@ -133,9 +133,9 @@ def test_region_overrides(component):
     return True
 
 
-def test_gaussian_overrides(component):
+def test_gaussian_overrides(loaded_radiance_component):
     """Test per-Gaussian overrides."""
-    print("\n=== Test 3: Per-Gaussian Overrides ===\n")
+    component = loaded_radiance_component
 
     from noodlestudio.core.radiance_component import GaussianOverride, Color
 
@@ -159,9 +159,9 @@ def test_gaussian_overrides(component):
     return True
 
 
-def test_spatial_queries(component):
+def test_spatial_queries(loaded_radiance_component):
     """Test spatial query methods."""
-    print("\n=== Test 4: Spatial Queries ===\n")
+    component = loaded_radiance_component
 
     # Query radius
     center = (0.0, 1.0, 0.0)
@@ -188,9 +188,9 @@ def test_spatial_queries(component):
     return True
 
 
-def test_render_data(component):
+def test_render_data(loaded_radiance_component):
     """Test render data export."""
-    print("\n=== Test 5: Render Data Export ===\n")
+    component = loaded_radiance_component
 
     render_data = component.get_render_data()
 

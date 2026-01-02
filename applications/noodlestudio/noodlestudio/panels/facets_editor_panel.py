@@ -161,9 +161,10 @@ class FacetsEditorPanel(
         # Toolbar
         toolbar = QHBoxLayout()
 
-        # Assembly info
+        # Assembly info (hidden - takes up space without value)
         self.assembly_label = QLabel("No assembly loaded")
         self.assembly_label.setStyleSheet("color: #CCCCCC; font-size: 11pt; font-weight: bold;")
+        self.assembly_label.hide()  # Not shown - assembly name is redundant
         toolbar.addWidget(self.assembly_label)
 
         toolbar.addStretch()

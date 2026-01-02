@@ -13,7 +13,7 @@ Date: December 2025
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTabWidget, QSplitter
 )
-from PyQt6.QtCore import Qt, QTimer, QUrl
+from PyQt6.QtCore import Qt, QTimer, QUrl, QEvent
 
 
 class MainWindowPanelsMixin:
@@ -87,10 +87,21 @@ class MainWindowPanelsMixin:
             self.web_view.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
             self.web_view.setUrl(QUrl("http://localhost:8080"))
             world_layout.addWidget(self.web_view)
-        except ImportError:
+        except ImportError as e:
+            print(f"[WebView] ImportError: {e}")
             placeholder = QLabel("WebEngine not available\nInstall: pip install PyQt6-WebEngine")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             placeholder.setStyleSheet("color: #999; font-size: 14px;")
+            world_layout.addWidget(placeholder)
+            self.web_view = None
+        except Exception as e:
+            print(f"[WebView] Unexpected error initializing WebEngine: {e}")
+            import traceback
+            traceback.print_exc()
+            placeholder = QLabel(f"WebEngine error:\n{e}")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.setStyleSheet("color: #FF6666; font-size: 12px;")
+            placeholder.setWordWrap(True)
             world_layout.addWidget(placeholder)
             self.web_view = None
 
@@ -210,6 +221,9 @@ class MainWindowPanelsMixin:
 
         # Connect signals
         self._connect_panel_signals()
+
+        # Setup annotation overlay for screenshot debugging
+        self._setup_annotation_overlay()
 
         # Check server state
         QTimer.singleShot(200, self.update_connection_status)
@@ -331,6 +345,56 @@ class MainWindowPanelsMixin:
         self.assets.assetRenamed.connect(self._on_asset_renamed)
         self.assets.assetSelected.connect(self._on_asset_selected)
 
+    def _setup_annotation_overlay(self):
+        """Setup the annotation overlay for screenshot debugging with Claude."""
+        from .annotation_overlay import AnnotationOverlay
+
+        self.annotation_overlay = AnnotationOverlay(self)
+        self.annotation_overlay.setGeometry(self.rect())
+        self.annotation_overlay.show()
+        self.annotation_overlay.raise_()
+
+        # Start in passthrough mode (not intercepting clicks)
+        self.annotation_overlay.toggle_edit_mode()  # Turns off edit mode
+
+        # Install event filter to resize overlay with window
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        """Handle window resize to keep annotation overlay sized correctly."""
+        if obj == self and event.type() == QEvent.Type.Resize:
+            if hasattr(self, 'annotation_overlay'):
+                self.annotation_overlay.setGeometry(self.rect())
+        return super().eventFilter(obj, event)
+
+    def _toggle_annotation_overlay(self):
+        """Toggle annotation overlay visibility and edit mode (Shift+Tab)."""
+        if not hasattr(self, 'annotation_overlay'):
+            return
+
+        # If annotations are hidden, show them and enter edit mode
+        if not self.annotation_overlay.visible_annotations:
+            self.annotation_overlay.visible_annotations = True
+            self.annotation_overlay.edit_mode = True
+            self.annotation_overlay.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents, False
+            )
+            self.annotation_overlay.raise_()
+            self.annotation_overlay.setFocus()
+            self.statusBar().showMessage("Annotations: EDIT MODE (right-click for tools)", 3000)
+        # If in edit mode, switch to view-only (passthrough)
+        elif self.annotation_overlay.edit_mode:
+            self.annotation_overlay.edit_mode = False
+            self.annotation_overlay.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
+            )
+            self.statusBar().showMessage("Annotations: VIEW ONLY (Shift+Tab to edit/hide)", 3000)
+        # If view-only, hide annotations
+        else:
+            self.annotation_overlay.visible_annotations = False
+            self.annotation_overlay.update()
+            self.statusBar().showMessage("Annotations: HIDDEN (Shift+Tab to show)", 3000)
+
     def _setup_shortcuts(self):
         """Setup keyboard shortcuts."""
         from PyQt6.QtGui import QShortcut, QKeySequence
@@ -350,6 +414,173 @@ class MainWindowPanelsMixin:
         # Cmd/Ctrl+Shift+G - SUMMON THE GOOSE
         goose_shortcut = QShortcut(QKeySequence("Ctrl+Shift+G"), self)
         goose_shortcut.activated.connect(self._summon_goose)
+
+        # Cmd+Option+S - Screenshot for debugging with Claude
+        screenshot_shortcut = QShortcut(QKeySequence("Ctrl+Alt+S"), self)
+        screenshot_shortcut.activated.connect(self._take_debug_screenshot)
+
+        # Shift+Tab - Toggle annotation overlay for screenshot markup
+        annotation_shortcut = QShortcut(QKeySequence("Shift+Tab"), self)
+        annotation_shortcut.activated.connect(self._toggle_annotation_overlay)
+
+    def _take_debug_screenshot(self):
+        """
+        Capture a screenshot of the main window for debugging with Claude.
+
+        Screenshots are saved to: ~/.noodlestudio/screenshots/
+        Filename format: screenshot_YYYY-MM-DD_HH-MM-SS.png
+        """
+        from datetime import datetime
+        from pathlib import Path
+
+        try:
+            # Create screenshots directory
+            screenshots_dir = Path.home() / ".noodlestudio" / "screenshots"
+            screenshots_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generate timestamp filename
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            filename = f"screenshot_{timestamp}.png"
+            filepath = screenshots_dir / filename
+
+            # Capture the window using QWidget.grab() - no permissions needed
+            pixmap = self.grab()
+
+            if not pixmap.isNull() and pixmap.save(str(filepath)):
+                print(f"[Screenshot] Saved: {filepath}")
+                self._show_screenshot_confirmation(str(filepath), filename)
+            else:
+                self._show_screenshot_error("Failed to save screenshot")
+                print(f"[Screenshot] ERROR: Failed to save to {filepath}")
+
+        except Exception as e:
+            self._show_screenshot_error(str(e))
+            print(f"[Screenshot] ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _show_screenshot_confirmation(self, filepath: str, filename: str):
+        """Show a popup confirming screenshot was saved with copy button."""
+        from PyQt6.QtWidgets import (
+            QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+        )
+        from PyQt6.QtCore import Qt
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Screenshot Saved")
+        dialog.setFixedWidth(420)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #2D2D2D;
+                border: 1px solid #555;
+            }
+            QLabel {
+                color: #CCCCCC;
+            }
+            QLabel#title {
+                color: #44FF88;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QLabel#path {
+                color: #888888;
+                font-size: 11px;
+                font-family: monospace;
+            }
+            QPushButton {
+                background-color: #3E3E3E;
+                color: #CCCCCC;
+                border: 1px solid #555;
+                padding: 6px 12px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #4E4E4E;
+            }
+            QPushButton#copy {
+                background-color: #2D5A2D;
+            }
+            QPushButton#copy:hover {
+                background-color: #3D6A3D;
+            }
+        """)
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+
+        # Title
+        title = QLabel("Screenshot Saved")
+        title.setObjectName("title")
+        layout.addWidget(title)
+
+        # Filename
+        name_label = QLabel(f"File: {filename}")
+        layout.addWidget(name_label)
+
+        # Full path
+        path_label = QLabel(filepath)
+        path_label.setObjectName("path")
+        path_label.setWordWrap(True)
+        path_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(path_label)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(8)
+
+        copy_btn = QPushButton("Copy Path")
+        copy_btn.setObjectName("copy")
+        copy_btn.clicked.connect(lambda checked, btn=copy_btn: self._copy_to_clipboard(filepath, btn))
+        button_layout.addWidget(copy_btn)
+
+        open_btn = QPushButton("Open in Preview")
+        open_btn.clicked.connect(lambda: self._open_in_default_viewer(filepath))
+        button_layout.addWidget(open_btn)
+
+        button_layout.addStretch()
+
+        ok_btn = QPushButton("OK")
+        ok_btn.clicked.connect(dialog.accept)
+        ok_btn.setDefault(True)
+        button_layout.addWidget(ok_btn)
+
+        layout.addLayout(button_layout)
+
+        # Auto-close after 5 seconds
+        QTimer.singleShot(5000, dialog.accept)
+
+        dialog.exec()
+
+    def _copy_to_clipboard(self, text: str, copy_btn):
+        """Copy text to clipboard and update button."""
+        from PyQt6.QtWidgets import QApplication
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
+        # Update the button text
+        try:
+            copy_btn.setText("Copied!")
+        except RuntimeError:
+            pass  # Button may have been deleted
+
+    def _open_in_default_viewer(self, filepath: str):
+        """Open file in system default viewer (Preview.app on macOS)."""
+        import subprocess
+        import sys
+        try:
+            if sys.platform == 'darwin':  # macOS
+                subprocess.run(['open', filepath])
+            elif sys.platform == 'win32':  # Windows
+                subprocess.run(['start', '', filepath], shell=True)
+            else:  # Linux
+                subprocess.run(['xdg-open', filepath])
+        except Exception as e:
+            print(f"[Screenshot] Error opening file: {e}")
+
+    def _show_screenshot_error(self, message: str):
+        """Show error popup for screenshot failure."""
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.warning(self, "Screenshot Failed", message)
 
     def _toggle_panel(self, panel):
         """Toggle panel visibility (show/hide)."""

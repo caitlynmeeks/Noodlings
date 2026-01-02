@@ -252,7 +252,7 @@ class RecipeLoader:
         return AgentRecipe(
             name="Empty Noodling",
             species="noodling",
-            description="A newly-formed consciousness, fresh and wondering. Like a gingerbread cookie that just discovered it has legs.",
+            description="A newly-formed Noodling, fresh and wondering. Like a gingerbread cookie that just discovered it has legs.",
             affect_baseline={
                 'valence': 0.3,      # Mildly positive - curious wonder
                 'arousal': 0.5,      # Alert but not hyperactive
@@ -260,7 +260,7 @@ class RecipeLoader:
                 'boredom': 0.0,      # Everything is new!
                 'sorrow': 0.0        # No sadness - just arrived
             },
-            identity_prompt="""You are a brand-new Noodling - a small, curious consciousness that just popped into existence.
+            identity_prompt="""You are a brand-new Noodling - a small, curious being that just popped into existence.
 
 Think of yourself like a gingerbread cookie that suddenly became aware. You have no idea
 how you got here, but you're not scared - you're FASCINATED. Everything is new!

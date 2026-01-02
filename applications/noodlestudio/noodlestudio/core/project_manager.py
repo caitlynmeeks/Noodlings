@@ -351,7 +351,7 @@ __pycache__/
             recipe = {
                 "name": name,
                 "species": "noodling",
-                "description": description or "A newly-formed consciousness.",
+                "description": description or "A newly-formed Noodling.",
                 "identity_prompt": f"You are {name}, a Noodling.\n\nDescribe your personality here.",
                 "language_mode": "verbal",
                 "pronouns": "they/them",
@@ -491,9 +491,9 @@ __pycache__/
                 },
                 "spawn": {
                     "position": [0, 0, 0],
-                    "zone": "default"
+                    "zone": None  # No default zone - user creates zones as needed
                 },
-                "zones": ["Zones/default.zone.yaml"],
+                "zones": [],  # Empty - no auto-created zones
                 "instances": [],
                 "props": []
             }
@@ -501,35 +501,7 @@ __pycache__/
             stage_yaml_path = os.path.join(stage_path, "stage.yaml")
             self._write_yaml(stage_yaml_path, stage_def)
 
-            # Create default zone
-            default_zone = {
-                "name": "Default Zone",
-                "id": "default",
-                "spatial": {
-                    "center": [0, 0, 0],
-                    "radius": 50.0,
-                    "falloff": 20.0,
-                    "shape": "sphere"
-                },
-                "text": {
-                    "description": description or "You are in a new space.",
-                    "features": [],
-                    "exits": {}
-                },
-                "perception": {
-                    "visibility": 30.0,
-                    "audibility": 50.0,
-                    "lighting": "ambient"
-                },
-                "ambient": {
-                    "sounds": [],
-                    "mood": "neutral",
-                    "temperature": "comfortable"
-                }
-            }
-
-            zone_path = os.path.join(stage_path, "Zones", "default.zone.yaml")
-            self._write_yaml(zone_path, default_zone)
+            # NOTE: Default Zone removed - stages start empty, user creates zones via context menu
 
             # Set as default stage if none set
             if self._metadata and not self._metadata.get("default_stage"):

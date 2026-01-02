@@ -57,6 +57,8 @@ MyProject/
 
 ## Next
 
+- [Facet System](facets.md) - Cognitive architecture explained
 - [Panels Reference](panels.md) - All panels explained
 - [Scripting](scripting.md) - JavaScript API
 - [Neural Canvas](neural-canvas.md) - Visual programming
+- [Testing](testing.md) - Running and writing tests

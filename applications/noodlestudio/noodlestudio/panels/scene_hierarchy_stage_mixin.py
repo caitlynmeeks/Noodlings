@@ -120,6 +120,8 @@ class SceneHierarchyStageMixin:
             self.current_stage = new_id
             self._dirty = False  # Reset dirty flag for new stage
             self.refresh_scene()
+            # Clear Inspector - no entity selected after stage switch
+            self.entitySelected.emit("", {})
         else:
             # Legacy mode - using rooms
             if new_id == self.current_room:

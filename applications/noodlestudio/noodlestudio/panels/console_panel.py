@@ -257,31 +257,9 @@ class ConsolePanel(QWidget):
             }
         """)
         self.search_field.textChanged.connect(self.on_search_changed)
+        # Enable built-in clear button (X appears inside field on right when text present)
+        self.search_field.setClearButtonEnabled(True)
         toolbar.addWidget(self.search_field)
-
-        # Clear search button
-        self.clear_search_btn = QPushButton("✕")
-        self.clear_search_btn.setFixedSize(24, 24)
-        self.clear_search_btn.setToolTip("Clear search filter")
-        self.clear_search_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #3a3a3a;
-                color: #888888;
-                border: 1px solid #555;
-                border-radius: 2px;
-                font-size: 14pt;
-                padding: 0px;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-                color: #AAAAAA;
-            }
-            QPushButton:pressed {
-                background-color: #2a2a2a;
-            }
-        """)
-        self.clear_search_btn.clicked.connect(self.clear_search)
-        toolbar.addWidget(self.clear_search_btn)
 
         # Regex toggle checkbox
         self.cb_regex = QCheckBox("Regex")

@@ -14,7 +14,7 @@ Date: December 2025
 
 import os
 
-from PyQt6.QtWidgets import QTreeWidgetItem
+from PyQt6.QtWidgets import QTreeWidgetItem, QPushButton
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
@@ -94,7 +94,7 @@ class SceneHierarchyRefreshMixin:
                 self.current_stage = stages[0]
             else:
                 # No stages - show empty
-                empty_item = QTreeWidgetItem(["No stages in project"])
+                empty_item = QTreeWidgetItem(["No stages in project", ""])
                 empty_item.setForeground(0, Qt.GlobalColor.gray)
                 self.tree.addTopLevelItem(empty_item)
                 return
@@ -184,7 +184,7 @@ class SceneHierarchyRefreshMixin:
             folder_node.is_expanded = folder_info.get('is_expanded', True)
 
             # Create tree item
-            folder_item = QTreeWidgetItem([folder_info['name']])
+            folder_item = QTreeWidgetItem([folder_info['name'], ""])
             folder_item.setForeground(0, Qt.GlobalColor.gray)
             folder_item.setData(0, Qt.ItemDataRole.UserRole, {
                 'type': 'folder',
@@ -273,24 +273,8 @@ class SceneHierarchyRefreshMixin:
         """Recursively add a node and its children to the tree."""
         import yaml
 
-        # Determine display text (may include status icons for noodlings)
-        display_text = node.name
-
-        # Style based on node type
-        if node.node_type == SceneNodeType.FOLDER:
-            pass  # Gray set below
-        elif node.node_type == SceneNodeType.BONE:
-            pass  # Cyan set below
-        elif node.node_type == SceneNodeType.NOODLING and node.asset_path:
-            # Add pause icon for noodlings
-            agent_id = f"agent_{os.path.basename(node.asset_path)}"
-            is_paused = self.get_agent_pause_state(agent_id)
-            pause_icon = "[>]" if is_paused else "[||]"
-            status_text = "[paused]" if is_paused else ""
-            display_text = f"{node.name:<20} {status_text:<20} {pause_icon}"
-
-        # Create tree item
-        item = QTreeWidgetItem([display_text])
+        # Create tree item with name in column 0
+        item = QTreeWidgetItem([node.name, ""])
 
         # Style based on node type
         if node.node_type == SceneNodeType.FOLDER:
@@ -326,6 +310,10 @@ class SceneHierarchyRefreshMixin:
             parent_item.addChild(item)
         else:
             self.tree.addTopLevelItem(item)
+
+        # Add pause button for noodlings (must be after item is in tree)
+        if node.node_type == SceneNodeType.NOODLING:
+            self._add_pause_button(item, entity_data)
 
         # Set expanded state
         item.setExpanded(node.is_expanded)
@@ -416,7 +404,7 @@ class SceneHierarchyRefreshMixin:
                         falloff = zone_data.get('falloff', 5)
 
                         display_text = f"{zone_name} (r={radius}, f={falloff})"
-                        zone_item = QTreeWidgetItem([display_text])
+                        zone_item = QTreeWidgetItem([display_text, ""])  # Two columns
 
                         # Add to scene graph as root (parent_id=None)
                         zone_node = self.scene_graph.create_node(
@@ -458,26 +446,14 @@ class SceneHierarchyRefreshMixin:
                     display_name = overrides.get('name', inst_name)
                     noodling_ref = inst_data.get('noodling', '')
                     zone = overrides.get('zone', 'default')
-
-                    # Check pause state
                     agent_id = f"agent_{inst_name}"
-                    is_paused = self.get_agent_pause_state(agent_id)
-
-                    # Build status text
-                    status_parts = []
-                    if is_paused:
-                        status_parts.append("paused")
-                    status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
-                    pause_icon = "[>]" if is_paused else "[||]"
-
-                    display_text = f"{display_name:<20} {status_text:<20} {pause_icon}"
 
                     # Add to scene graph as root (parent_id=None)
                     inst_node = self.scene_graph.create_node(
                         display_name, SceneNodeType.NOODLING, None, inst_path)
 
-                    inst_item = QTreeWidgetItem([display_text])
-                    inst_item.setData(0, Qt.ItemDataRole.UserRole, {
+                    inst_item = QTreeWidgetItem([display_name, ""])  # Two columns
+                    entity_data = {
                         'type': 'noodling',
                         'id': agent_id,
                         'name': display_name,
@@ -486,8 +462,12 @@ class SceneHierarchyRefreshMixin:
                         'zone': zone,
                         'data': inst_data,
                         'node_id': inst_node.id
-                    })
+                    }
+                    inst_item.setData(0, Qt.ItemDataRole.UserRole, entity_data)
                     self.tree.addTopLevelItem(inst_item)
+
+                    # Add pause button after item is in tree
+                    self._add_pause_button(inst_item, entity_data)
 
                     self._item_id_to_node_id[id(inst_item)] = inst_node.id
                     self._node_id_to_item[inst_node.id] = inst_item
@@ -517,13 +497,12 @@ class SceneHierarchyRefreshMixin:
                     is_locked = prop_data.get('locked', False)
 
                     lock_icon = "[L]" if is_locked else ""
-                    display_text = f"{display_name:<20}                     {lock_icon}"
 
                     # Add to scene graph as root (parent_id=None)
                     prop_node = self.scene_graph.create_node(
                         display_name, SceneNodeType.PROP, None, prop_path)
 
-                    prop_item = QTreeWidgetItem([display_text])
+                    prop_item = QTreeWidgetItem([display_name, lock_icon])  # Two columns
                     prop_item.setData(0, Qt.ItemDataRole.UserRole, {
                         'type': 'prop',
                         'id': f"prop_{prop_name}",
@@ -547,7 +526,7 @@ class SceneHierarchyRefreshMixin:
         zone_graph = stage_data.get('zone_graph', {})
         for from_zone, connections in zone_graph.items():
             for to_zone in connections:
-                exit_item = QTreeWidgetItem([f"{from_zone} -> {to_zone}"])
+                exit_item = QTreeWidgetItem([f"{from_zone} -> {to_zone}", ""])  # Two columns
                 exit_item.setData(0, Qt.ItemDataRole.UserRole, {
                     'type': 'zone_connection',
                     'from': from_zone,
@@ -587,7 +566,7 @@ class SceneHierarchyRefreshMixin:
         except:
             rooms_data = {}
 
-        room_item = QTreeWidgetItem([f"Stage: {stage_name}"])
+        room_item = QTreeWidgetItem([f"Stage: {stage_name}", ""])
         room_item.setFont(0, QFont("Arial", 12, QFont.Weight.Bold))
         room_item.setForeground(0, Qt.GlobalColor.white)
         room_item.setData(0, Qt.ItemDataRole.UserRole, {
@@ -599,16 +578,16 @@ class SceneHierarchyRefreshMixin:
         room_item.setExpanded(True)
 
         # Connected Users folder
-        users_folder = QTreeWidgetItem(["Connected Users"])
+        users_folder = QTreeWidgetItem(["Connected Users", ""])
         users_folder.setForeground(0, Qt.GlobalColor.gray)
         room_item.addChild(users_folder)
 
-        user_item = QTreeWidgetItem(["caity [Noodler, 9yo, she/her]"])
+        user_item = QTreeWidgetItem(["caity [Noodler, 9yo, she/her]", ""])
         user_item.setData(0, Qt.ItemDataRole.UserRole, {'type': 'user', 'id': 'user_caity'})
         users_folder.addChild(user_item)
 
         # Noodlings folder
-        noodlings_folder = QTreeWidgetItem(["Noodlings"])
+        noodlings_folder = QTreeWidgetItem(["Noodlings", ""])
         noodlings_folder.setForeground(0, Qt.GlobalColor.gray)
         room_item.addChild(noodlings_folder)
 
@@ -622,31 +601,22 @@ class SceneHierarchyRefreshMixin:
             agent_id = agent.get('id')
             is_locked = agent.get('locked', False)
 
-            is_paused = self.get_agent_pause_state(agent_id)
-            status_parts = []
-            if is_paused:
-                status_parts.append("paused")
-            if is_locked:
-                status_parts.append("locked")
-            status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
-
-            pause_icon = ">" if is_paused else "||"
-            lock_icon = "[L]" if is_locked else ""
-
-            display_text = f"{name:<20} {status_text:<20} {pause_icon} {lock_icon}"
-
-            noodling_item = QTreeWidgetItem([display_text])
-            noodling_item.setData(0, Qt.ItemDataRole.UserRole, {
+            entity_data = {
                 'type': 'noodling',
                 'id': agent_id,
                 'name': name,
                 'locked': is_locked,
                 'data': agent
-            })
+            }
+            noodling_item = QTreeWidgetItem([name, ""])
+            noodling_item.setData(0, Qt.ItemDataRole.UserRole, entity_data)
             noodlings_folder.addChild(noodling_item)
 
+            # Add pause button after item is in tree
+            self._add_pause_button(noodling_item, entity_data)
+
         # Prims folder
-        prims_folder = QTreeWidgetItem(["Prims"])
+        prims_folder = QTreeWidgetItem(["Prims", ""])
         prims_folder.setForeground(0, Qt.GlobalColor.gray)
         room_item.addChild(prims_folder)
 
@@ -664,17 +634,9 @@ class SceneHierarchyRefreshMixin:
                     is_locked = obj_data.get('locked', False)
                     is_disabled = obj_data.get('disabled', False)
 
-                    status_parts = []
-                    if is_disabled:
-                        status_parts.append("disabled")
-                    if is_locked:
-                        status_parts.append("locked")
-                    status_text = f"[{', '.join(status_parts)}]" if status_parts else ""
+                    status_icon = "[L]" if is_locked else ""
 
-                    lock_icon = "[L]" if is_locked else ""
-                    display_text = f"{prim_name:<20} {status_text:<20}    {lock_icon}"
-
-                    prim_item = QTreeWidgetItem([display_text])
+                    prim_item = QTreeWidgetItem([prim_name, status_icon])
                     prim_item.setData(0, Qt.ItemDataRole.UserRole, {
                         'type': 'prim',
                         'id': obj_id,
@@ -688,7 +650,7 @@ class SceneHierarchyRefreshMixin:
             print(f"Error loading prims: {e}")
 
         # Exits folder
-        exits_folder = QTreeWidgetItem(["Exits"])
+        exits_folder = QTreeWidgetItem(["Exits", ""])
         exits_folder.setForeground(0, Qt.GlobalColor.gray)
         room_item.addChild(exits_folder)
 
@@ -699,7 +661,7 @@ class SceneHierarchyRefreshMixin:
 
                 for direction, dest_room_id in exits.items():
                     dest_name = rooms_data.get(dest_room_id, {}).get('name', dest_room_id)
-                    exit_item = QTreeWidgetItem([f"{direction} -> {dest_name}"])
+                    exit_item = QTreeWidgetItem([f"{direction} -> {dest_name}", ""])
                     exit_item.setData(0, Qt.ItemDataRole.UserRole, {
                         'type': 'exit',
                         'direction': direction,
@@ -711,3 +673,97 @@ class SceneHierarchyRefreshMixin:
             print(f"Error loading exits: {e}")
             # Make sure signals are unblocked even on error
             self.tree.blockSignals(False)
+
+    def _add_pause_button(self, item: QTreeWidgetItem, entity_data: dict):
+        """Add a pause/play toggle button to column 1 for noodlings."""
+        from PyQt6.QtWidgets import QWidget, QHBoxLayout
+
+        agent_id = entity_data.get('id', '')
+
+        # Create container with right alignment
+        container = QWidget()
+        container.setStyleSheet("background: transparent;")
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addStretch()  # Push button to right
+
+        # Create small pause button
+        pause_btn = QPushButton()
+        pause_btn.setFixedSize(24, 20)
+        pause_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        pause_btn.setProperty('agent_id', agent_id)
+        pause_btn.setProperty('paused', False)
+
+        # Style the button
+        pause_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #888;
+                font-size: 11px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                color: #FFF;
+                background-color: #333;
+                border-radius: 3px;
+            }
+        """)
+        pause_btn.setText("||")  # Pause icon
+
+        # Connect click handler
+        pause_btn.clicked.connect(lambda: self._toggle_pause(pause_btn))
+
+        layout.addWidget(pause_btn)
+
+        # Add container to column 1
+        self.tree.setItemWidget(item, 1, container)
+
+    def _toggle_pause(self, btn: QPushButton):
+        """Toggle pause state for a noodling."""
+        agent_id = btn.property('agent_id')
+        is_paused = btn.property('paused')
+
+        # Toggle state
+        new_paused = not is_paused
+        btn.setProperty('paused', new_paused)
+
+        # Update button appearance
+        if new_paused:
+            btn.setText(">")  # Play icon (currently paused, click to play)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    border: none;
+                    color: #D9A641;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    color: #FFF;
+                    background-color: #333;
+                    border-radius: 3px;
+                }
+            """)
+        else:
+            btn.setText("||")  # Pause icon (currently running, click to pause)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    border: none;
+                    color: #888;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    color: #FFF;
+                    background-color: #333;
+                    border-radius: 3px;
+                }
+            """)
+
+        # Emit signal for facet executor to handle
+        if hasattr(self, 'pauseToggled'):
+            self.pauseToggled.emit(agent_id, new_paused)
+        print(f"[SceneHierarchy] {'Paused' if new_paused else 'Resumed'} cognition for {agent_id}")

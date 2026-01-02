@@ -65,10 +65,10 @@ class EntityInspectorMixin:
         # ===== NOODLING PROPERTIES (always visible) =====
         basics_group = self.create_property_group("Noodling")
 
-        # Name (editable)
+        # Name (editable) - prefer entity_data['name'] (set by Stage View rename)
+        name = entity_data.get('name') or recipe_data.get('name', agent.get('name', ''))
         self.property_fields['name'] = self.add_text_field(
-            basics_group, "Name",
-            recipe_data.get('name', agent.get('name', ''))
+            basics_group, "Name", name
         )
 
         # UUID (read-only) with copy button
@@ -91,17 +91,7 @@ class EntityInspectorMixin:
             self.add_text_field(affect_group, "Sorrow", f"{affect.get('sorrow', 0.0):.2f}", read_only=True)
             self.properties_layout.addWidget(affect_group)
 
-        # ===== LLM CONFIGURATION =====
-        llm_config = recipe_data.get('llm', {})
-        model = llm_config.get('model', recipe_data.get('model', recipe_data.get('llm_model', '')))
-        provider = llm_config.get('provider', recipe_data.get('provider', ''))
-        if model or provider:
-            model_group = self.create_property_group("LLM Configuration")
-            if provider:
-                self.add_text_field(model_group, "Provider", provider, read_only=True)
-            if model:
-                self.add_text_field(model_group, "Model", model, read_only=True)
-            self.properties_layout.addWidget(model_group)
+        # NOTE: LLM Configuration removed - models are now per-facet in assemblies
 
         # ===== FACET DROPDOWN SELECTOR =====
         if hasattr(self, '_add_facet_dropdown_selector'):
@@ -502,17 +492,20 @@ class EntityInspectorMixin:
         if 'description' in self.property_fields:
             updates['description'] = self.property_fields['description'].toPlainText()
 
+        # Emit signal immediately for UI sync (regardless of server state)
+        if 'name' in updates:
+            self.nameChanged.emit('noodling', agent_id, updates['name'])
+
+        # Then try to persist to server
         try:
             url = f"{self.api_base}/agents/{agent_id}/update"
             response = requests.post(url, json=updates, timeout=2)
             if response.status_code == 200:
                 print(f"Saved changes for {agent_id}")
-                if 'name' in updates:
-                    self.nameChanged.emit('noodling', agent_id, updates['name'])
             else:
-                print(f"Error saving: {response.json().get('error', 'Unknown error')}")
+                print(f"Error saving to server: {response.json().get('error', 'Unknown error')}")
         except Exception as e:
-            print(f"Error saving: {e}")
+            print(f"Server offline - changes saved locally: {e}")
 
     def _save_prop_changes(self, entity_type, entity_data):
         """Save prop/prim property changes."""
@@ -533,6 +526,11 @@ class EntityInspectorMixin:
                         continue
                     updates[field_name] = value
 
+        # Emit signal immediately for UI sync
+        if 'name' in updates:
+            prop_id = entity_data.get('id', '')
+            self.nameChanged.emit('prop', prop_id, updates['name'])
+
         if entity_type == 'prop':
             self._save_prop_to_file(entity_data, updates)
         else:
@@ -550,6 +548,12 @@ class EntityInspectorMixin:
         updates = {}
         if 'name' in self.property_fields:
             updates['name'] = self.property_fields['name'].text()
+
+        # Emit signal immediately for UI sync
+        if 'name' in updates:
+            zone_id = entity_data.get('id', '')
+            self.nameChanged.emit('zone', zone_id, updates['name'])
+
         self._save_zone_to_file(entity_data, updates)
 
     def _save_prop_to_file(self, entity_data: dict, updates: dict):
@@ -571,9 +575,7 @@ class EntityInspectorMixin:
             with open(prop_yaml, 'w') as f:
                 yaml.dump(prop_data, f, default_flow_style=False)
 
-            if 'name' in updates:
-                prop_id = entity_data.get('id', '')
-                self.nameChanged.emit('prop', prop_id, updates['name'])
+            print(f"Saved prop to file: {prop_yaml}")
 
         except Exception as e:
             print(f"Error saving prop to file: {e}")
@@ -593,9 +595,7 @@ class EntityInspectorMixin:
             with open(zone_path, 'w') as f:
                 yaml.dump(zone_data, f, default_flow_style=False)
 
-            if 'name' in updates:
-                zone_id = entity_data.get('id', '')
-                self.nameChanged.emit('zone', zone_id, updates['name'])
+            print(f"Saved zone to file: {zone_path}")
 
         except Exception as e:
             print(f"Error saving zone to file: {e}")
@@ -603,15 +603,34 @@ class EntityInspectorMixin:
     # ========== HELPER METHODS ==========
 
     def _add_uuid_field(self, group, entity_id: str, prefix: str = ''):
-        """Add a UUID field with copy button."""
+        """Add a UUID field with copy button - properly aligned."""
+        from PyQt6.QtWidgets import QSizePolicy
+
         display_id = entity_id.replace(prefix, '') if prefix else entity_id
         if len(display_id) > 20:
             display_id = display_id[:8] + "..." + display_id[-4:]
 
-        uuid_widget = QLabel(f'{display_id} <a href="#" style="color: #888;">[copy]</a>')
-        uuid_widget.setStyleSheet("color: #888;")
-        uuid_widget.setWordWrap(False)
-        uuid_widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-        uuid_widget.linkActivated.connect(lambda: QApplication.clipboard().setText(entity_id))
-        uuid_widget.setToolTip(f"Full ID: {entity_id}\nClick [copy] to copy")
-        group.content.layout().addRow("UUID:", uuid_widget)
+        # Use HBox container with fixed height to prevent QFormLayout alignment issues
+        uuid_container = QWidget()
+        uuid_container.setFixedHeight(20)  # Match typical label height
+        uuid_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+        uuid_layout = QHBoxLayout(uuid_container)
+        uuid_layout.setContentsMargins(0, 0, 0, 0)
+        uuid_layout.setSpacing(4)
+        uuid_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
+        uuid_text = QLabel(display_id)
+        uuid_text.setStyleSheet("color: #888;")
+        uuid_layout.addWidget(uuid_text)
+
+        # Plain text copy button (no HTML to avoid baseline issues)
+        copy_btn = QLabel("[copy]")
+        copy_btn.setStyleSheet("color: #666;")
+        copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        copy_btn.setToolTip(f"Copy full ID: {entity_id}")
+        copy_btn.mousePressEvent = lambda e: QApplication.clipboard().setText(entity_id)
+        uuid_layout.addWidget(copy_btn)
+
+        uuid_layout.addStretch()
+        group.content.layout().addRow("UUID:", uuid_container)
