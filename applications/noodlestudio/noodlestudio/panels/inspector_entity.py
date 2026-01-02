@@ -59,6 +59,9 @@ class EntityInspectorMixin:
         self.current_agent_id = agent_id
         self.property_fields = {}
 
+        # Initialize component collection for this entity
+        self._init_component_collection(agent_id, entity_data)
+
         # Load full recipe data from YAML file
         recipe_data = self._load_noodling_recipe(entity_data, agent)
 
@@ -99,6 +102,15 @@ class EntityInspectorMixin:
                 self._add_facet_dropdown_selector(agent_id, entity_data)
             except Exception as e:
                 print(f"[Inspector] ERROR creating facet dropdown: {e}")
+
+        # ===== COMPONENTS SECTION =====
+        if hasattr(self, 'create_components_section_new') and hasattr(self, '_current_components'):
+            try:
+                components_widget = self.create_components_section_new(self._current_components)
+                if components_widget:
+                    self.properties_layout.addWidget(components_widget)
+            except Exception as e:
+                print(f"[Inspector] ERROR creating components section: {e}")
 
         self.properties_layout.addStretch()
 
@@ -634,3 +646,85 @@ class EntityInspectorMixin:
 
         uuid_layout.addStretch()
         group.content.layout().addRow("UUID:", uuid_container)
+
+    # ========== COMPONENT COLLECTION ==========
+
+    def _init_component_collection(self, entity_id: str, entity_data: dict):
+        """
+        Initialize ComponentCollection for an entity.
+
+        Loads components from entity's YAML if present, otherwise creates
+        an empty collection ready for components to be added.
+
+        Args:
+            entity_id: Entity identifier
+            entity_data: Entity data dict (may contain 'path' to YAML location)
+        """
+        from noodlestudio.core.component_collection import ComponentCollection
+        from noodlestudio.core.component_base import component_registry
+
+        # Ensure components package is loaded (triggers @register_component decorators)
+        try:
+            import noodlestudio.core.components  # noqa: F401
+        except ImportError:
+            pass
+
+        # Create collection for this entity
+        collection = ComponentCollection(entity_id=entity_id)
+
+        # Try to load from entity's components.yaml if it exists
+        entity_path = entity_data.get('path', '')
+        if entity_path:
+            import os
+            components_file = os.path.join(os.path.dirname(entity_path), 'components.yaml')
+            if os.path.exists(components_file):
+                try:
+                    with open(components_file, 'r') as f:
+                        components_data = yaml.safe_load(f) or {}
+                    collection.from_dict(components_data)
+                    print(f"[Inspector] Loaded {len(collection)} components from {components_file}")
+                except Exception as e:
+                    print(f"[Inspector] Error loading components: {e}")
+
+        # Store on the inspector
+        self._current_components = collection
+
+    def _save_component_changes(self, component):
+        """
+        Save component changes to disk.
+
+        Called when a component property is modified via Inspector.
+        """
+        if not self._current_components:
+            return
+
+        entity_data = self.current_entity[1] if self.current_entity else {}
+        entity_path = entity_data.get('path', '')
+
+        if entity_path:
+            import os
+            components_file = os.path.join(os.path.dirname(entity_path), 'components.yaml')
+            try:
+                data = self._current_components.to_dict()
+                with open(components_file, 'w') as f:
+                    yaml.dump(data, f, default_flow_style=False)
+                print(f"[Inspector] Saved components to {components_file}")
+            except Exception as e:
+                print(f"[Inspector] Error saving components: {e}")
+
+    def _refresh_components_display(self):
+        """Refresh the Inspector to show updated components."""
+        # Re-load current entity to refresh display
+        if self.current_entity:
+            entity_type, entity_data = self.current_entity
+            if entity_type == 'noodling':
+                # Clear and reload
+                self.clear_inspector()
+                self.load_noodling_properties(entity_data)
+
+    def _remove_component_from_entity(self, component):
+        """Remove a component from the current entity."""
+        if self._current_components:
+            self._current_components.remove(component.component_type)
+            self._save_component_changes(component)
+            self._refresh_components_display()

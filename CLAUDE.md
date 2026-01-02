@@ -745,9 +745,53 @@ let result = await context.noodle.rigger.rig({
 - `boredom` (0 to 1)
 - `sorrow` (0 to 1)
 
+### Component System (NEW - Jan 2026)
+
+**Unity-style component architecture for NoodleStudio.** Entities (Noodlings, Props, etc.)
+can have multiple components attached. Each component is a modular, inspectable unit.
+
+**Key Files:**
+- `core/component_base.py` - ComponentBase, ComponentRegistry, PropertySpec
+- `core/component_collection.py` - ComponentCollection (manages components per entity)
+- `core/components/` - Concrete component implementations
+
+**Built-in Components:**
+- `ArtbookComponent` - Reference art collection (category: art)
+- `RadianceComponent` - Gaussian splat visuals (category: rendering)
+- `FacetAssembly` - Cognitive architecture (category: charm) - see below
+
+**Categories (with Inspector border colors):**
+- `charm` (green) - Core consciousness components
+- `art` (orange) - Visual references
+- `behavior` (blue) - Game mechanics
+- `rendering` (cyan) - Visual presentation
+- `audio` (purple) - Sound/voice
+- `custom` (gray) - User scripts
+
+**Usage:**
+```python
+from noodlestudio.core.component_collection import ComponentCollection
+from noodlestudio.core.component_base import component_registry
+
+# Create collection for entity
+coll = ComponentCollection(entity_id="red_fire_anklebiter")
+
+# Add components
+artbook = coll.add("artbook")
+artbook.add_art("/path/to/concept.png", note="Main character design")
+
+# Serialize for YAML storage
+data = coll.to_dict()
+
+# Access components
+artbook = coll.get("artbook")
+```
+
+**Test count:** 25 tests in `tests/test_component_system.py`
+
 ### Facet System
 
-**Facets ARE the cognitive components.** Every Noodling has a Facet Assembly - a visual
+**Facet Assembly is a component type.** Every Noodling has a Facet Assembly - a visual
 node graph that defines how it thinks. This replaced the earlier "Cognitive Transistor"
 system (CulturalTransistor, PersonalityTransistor, etc.) which is now deprecated.
 
@@ -815,7 +859,7 @@ Noodlings/
 - **Framework:** pytest + pytest-qt
 - **Config:** `applications/noodlestudio/pytest.ini`
 - **Fixtures:** `applications/noodlestudio/tests/conftest.py`
-- **Test count:** 103 tests (as of Jan 1, 2026)
+- **Test count:** 128 tests (as of Jan 2, 2026)
 
 ### Running Tests
 ```bash
@@ -859,6 +903,7 @@ ALL tests must pass (or have documented `@pytest.mark.skip` reasons).
 | File | Tests | Coverage |
 |------|-------|----------|
 | `test_agentic_system.py` | 68 | Facets, MCP, Player, proxies |
+| `test_component_system.py` | 25 | ComponentBase, Registry, Collection, Artbook |
 | `test_panel_wiring.py` | 17 | Qt signals, Inspector, Stage View |
 | `test_radiance_component.py` | 10 | Gaussians, rendering, spatial queries |
 | `test_clip_queries.py` | 3 | Semantic search |
@@ -1003,6 +1048,8 @@ Not Agile. Not a startup. Experimental architecture.
 
 | What | Where |
 |------|-------|
+| **Component system** | `core/component_base.py`, `core/component_collection.py` |
+| **ArtbookComponent** | `core/components/artbook_component.py` |
 | **Gaussian viewer** | `panels/gaussian_viewer_panel.py` |
 | **Radiance inspector** | `panels/radiance_inspector.py` |
 | **GPU renderer** | `core/gaussian_renderer.py` |

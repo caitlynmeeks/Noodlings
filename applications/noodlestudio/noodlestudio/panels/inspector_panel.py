@@ -44,6 +44,7 @@ from .inspector_base import InspectorBaseMixin, ClickableTextEdit
 from .inspector_entity import EntityInspectorMixin
 from .inspector_asset import AssetInspectorMixin
 from .inspector_neural import NeuralInspectorMixin
+from .inspector_components import ComponentInspectorMixin
 
 
 class InspectorPanel(
@@ -51,6 +52,7 @@ class InspectorPanel(
     EntityInspectorMixin,
     AssetInspectorMixin,
     NeuralInspectorMixin,
+    ComponentInspectorMixin,
     QWidget
 ):
     """
@@ -64,6 +66,7 @@ class InspectorPanel(
     - EntityInspectorMixin: Entity loading
     - AssetInspectorMixin: Asset loading
     - NeuralInspectorMixin: Neural canvas node loading
+    - ComponentInspectorMixin: Component system display
     """
 
     # Signal emitted when entity name is changed (entity_type, entity_id, new_name)
@@ -97,6 +100,9 @@ class InspectorPanel(
         # Track CollapsibleSection expanded state (like SceneHierarchy does)
         # Structure: {section_title: bool}
         self.collapsible_expanded_state = {}
+
+        # Current entity's component collection
+        self._current_components = None
 
         # Initialize facet dropdown and container (set to None until agent loaded)
         self.facet_dropdown = None
