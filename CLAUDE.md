@@ -46,6 +46,27 @@ npx wrangler pages deploy .svelte-kit/cloudflare --project-name=noodlings-admin 
 
 ---
 
+## COMPLETED: Crash Recovery System (Jan 2, 2026)
+
+### What Was Done
+- **Sentinel file** (`~/.noodlestudio/.running`) detects crashes that bypass Python exception handling
+- **Recovery dialog** on startup offers to send crash report
+- **Bug report endpoint** working (GitHub token refreshed)
+
+### How It Works
+1. Startup creates sentinel file (PID, timestamp, version)
+2. Clean exit removes sentinel
+3. Next launch checks for stale sentinel = crash detected
+4. Recovery dialog shows with crash context from logs
+5. User can send report or dismiss
+
+### Key Files
+- `main.py` - `create_sentinel()`, `check_for_crash()`, `show_crash_recovery_dialog()`
+- `dialogs/bug_report_dialog.py` - Report UI
+- `docs/development/bug-reporting.md` - Full documentation
+
+---
+
 ## NEXT SESSION: Pick from Backlog
 
 Suggested priorities:

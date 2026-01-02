@@ -38,6 +38,17 @@ When an unhandled exception occurs:
 3. User can add context and submit
 4. Stack trace and system info included automatically
 
+### Post-Crash Recovery
+
+For crashes that bypass the exception hook (segfaults, force quit, system crashes):
+
+1. **Sentinel file** (`~/.noodlestudio/.running`) created on startup
+2. If sentinel exists on next launch, previous session crashed
+3. **Recovery dialog** offers to send a crash report
+4. Crash details extracted from sentinel and last log file
+
+This catches crashes that Python's exception handling cannot detect.
+
 ### View Known Issues
 
 **Help > View Known Issues...**
@@ -66,6 +77,32 @@ NoodleStudio                    Cloudflare Worker              GitHub
 - Rate limiting and validation at edge
 - Works offline (falls back to clipboard)
 
+### Crash Detection Flow
+
+```
+Session 1 (crashes)                    Session 2 (recovery)
+┌─────────────────────┐               ┌─────────────────────┐
+│ Startup             │               │ Startup             │
+│  └─ create_sentinel │               │  └─ check_for_crash │
+│       (.running)    │               │       ↓             │
+│         ↓           │               │   Sentinel found!   │
+│    [App Running]    │               │       ↓             │
+│         ↓           │               │  Save crash info    │
+│   CRASH / SEGFAULT  │               │  Remove sentinel    │
+│         ↓           │               │       ↓             │
+│  Sentinel remains   │               │  Recovery dialog    │
+└─────────────────────┘               └─────────────────────┘
+```
+
+The sentinel file contains:
+- Process ID
+- Start timestamp
+- NoodleStudio version
+
+On crash detection, crash info is saved including:
+- Last 100 lines from most recent log file
+- Sentinel contents (session that crashed)
+
 ---
 
 ## Key Files
@@ -75,9 +112,16 @@ NoodleStudio                    Cloudflare Worker              GitHub
 | File | Purpose |
 |------|---------|
 | `dialogs/bug_report_dialog.py` | Dialog UI and submission |
-| `main.py` | Crash reporter hook (`sys.excepthook`) |
+| `main.py` | Crash reporter hook, sentinel file system, recovery dialog |
 | `core/main_window_settings_mixin.py` | Menu handlers |
 | `core/main_window_menus_mixin.py` | Help menu items |
+
+### Sentinel Files
+
+| File | Purpose |
+|------|---------|
+| `~/.noodlestudio/.running` | Sentinel file (PID, timestamp, version) |
+| `~/.noodlestudio/.last_crash` | Crash info from previous session |
 
 ### Backend
 
