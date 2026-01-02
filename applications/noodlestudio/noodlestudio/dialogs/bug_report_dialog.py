@@ -68,6 +68,54 @@ class SystemInfoCollector:
             except:
                 pass
 
+        # Get RAM
+        try:
+            import psutil
+            ram_gb = psutil.virtual_memory().total / (1024 ** 3)
+            info["ram_gb"] = f"{ram_gb:.1f} GB"
+        except ImportError:
+            # Fallback for macOS without psutil
+            if platform.system() == "Darwin":
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ["sysctl", "-n", "hw.memsize"],
+                        capture_output=True, text=True, timeout=5
+                    )
+                    if result.returncode == 0:
+                        ram_bytes = int(result.stdout.strip())
+                        ram_gb = ram_bytes / (1024 ** 3)
+                        info["ram_gb"] = f"{ram_gb:.0f} GB"
+                except:
+                    pass
+
+        # ML framework versions
+        try:
+            import torch
+            info["pytorch"] = torch.__version__
+            if torch.backends.mps.is_available():
+                info["pytorch_mps"] = "available"
+        except ImportError:
+            pass
+
+        try:
+            import mlx.core as mx
+            info["mlx"] = mx.__version__
+        except ImportError:
+            pass
+
+        try:
+            import numpy
+            info["numpy"] = numpy.__version__
+        except ImportError:
+            pass
+
+        try:
+            import transformers
+            info["transformers"] = transformers.__version__
+        except ImportError:
+            pass
+
         return info
 
     @staticmethod
@@ -82,6 +130,17 @@ class SystemInfoCollector:
             lines.append(f"Qt: {info['qt_version']}")
         if "gpu" in info:
             lines.append(f"GPU: {info['gpu']}")
+        if "ram_gb" in info:
+            lines.append(f"RAM: {info['ram_gb']}")
+        # ML frameworks
+        ml_parts = []
+        if "pytorch" in info:
+            mps = " (MPS)" if info.get("pytorch_mps") else ""
+            ml_parts.append(f"PyTorch {info['pytorch']}{mps}")
+        if "mlx" in info:
+            ml_parts.append(f"MLX {info['mlx']}")
+        if ml_parts:
+            lines.append(f"ML: {', '.join(ml_parts)}")
         return "\n".join(lines)
 
 
