@@ -2,13 +2,52 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: January 1, 2026
+**Last Updated**: January 2, 2026
 
 **FOR NEXT CLAUDE: START HERE!**
 
 ---
 
-## NEXT SESSION: Asset-Aware Inspector
+## NEXT SESSION: Admin Web Dashboard (Phase 3)
+
+### Context
+Phase 1 of admin dashboard is COMPLETE (Jan 1, 2026):
+- Schema: Added `is_admin`, `is_banned`, `banned_at`, `banned_reason` to users table
+- Backend: Created `middleware/admin.ts` and `routes/admin.ts` with full admin API
+- Deployed to Cloudflare Workers
+- `caitsters@gmail.com` set as admin
+
+**IMPORTANT ARCHITECTURE DECISION**: Skip Phase 2 (NoodleStudio admin panel).
+Keep admin UI ONLY in web dashboard to avoid leaking backend internals into public repo.
+NoodleStudio is public; backend/ is private (gitignored).
+
+### Phase 3: Web Dashboard
+Location: `backend/admin-dashboard/` (private, gitignored)
+Deploy to: `admin.noodlings.ai` (Cloudflare Pages)
+Tech: SvelteKit + Tailwind CSS
+
+### Admin API Endpoints (LIVE)
+```
+GET  /admin/health              - System health
+GET  /admin/stats/summary       - Dashboard overview
+GET  /admin/stats/live          - Real-time metrics
+GET  /admin/users               - List users
+GET  /admin/users/:id           - User detail
+PATCH /admin/users/:id          - Edit user
+POST /admin/users/:id/credits   - Credit adjustment
+DELETE /admin/users/:id/sessions - Invalidate sessions
+GET  /admin/noodlings           - List noodlings
+PATCH /admin/noodlings/:id      - Moderate
+GET  /admin/credits/transactions - Transaction log
+GET  /admin/llm/usage           - LLM stats
+```
+
+### Plan File
+Full plan at: `~/.claude/plans/stateless-tinkering-nova.md`
+
+---
+
+## BACKLOG: Asset-Aware Inspector
 
 ### The Goal
 When selecting an asset in the Assets panel, the Inspector should show contextual information based on asset type (like Unity's Project window → Inspector relationship).
