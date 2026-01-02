@@ -5,12 +5,52 @@ Entry point for the NoodleSTUDIO IDE.
 """
 
 import sys
-from PyQt6.QtWidgets import QApplication, QSplashScreen, QLabel
+import traceback
+from PyQt6.QtWidgets import QApplication, QSplashScreen, QLabel, QMessageBox
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap, QPainter, QFont, QColor
 
 # NOTE: MainWindow imported AFTER QApplication is created
 from .core.studio_acronyms import get_random_acronym
+from . import __version__
+
+
+# Global reference to main window for crash reporter
+_main_window = None
+
+
+def install_crash_reporter():
+    """Install global exception handler for crash reporting."""
+    original_hook = sys.excepthook
+
+    def crash_handler(exc_type, exc_value, exc_tb):
+        """Handle uncaught exceptions by offering to report them."""
+        # Don't catch KeyboardInterrupt
+        if issubclass(exc_type, KeyboardInterrupt):
+            original_hook(exc_type, exc_value, exc_tb)
+            return
+
+        # Print to console first
+        traceback.print_exception(exc_type, exc_value, exc_tb)
+
+        # Try to show crash dialog
+        try:
+            from .dialogs.bug_report_dialog import show_crash_report_dialog
+            show_crash_report_dialog(_main_window, exc_type, exc_value, exc_tb)
+        except Exception as e:
+            # If crash dialog fails, show simple message
+            print(f"Could not show crash dialog: {e}")
+            try:
+                QMessageBox.critical(
+                    _main_window,
+                    "NoodleStudio Crashed",
+                    f"An unexpected error occurred:\n\n{exc_type.__name__}: {exc_value}\n\n"
+                    "Please report this issue on GitHub."
+                )
+            except:
+                pass
+
+    sys.excepthook = crash_handler
 
 
 def main():
@@ -38,9 +78,12 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("NoodleStudio")
-    app.setApplicationVersion("1.0.0-alpha")
-    app.setOrganizationName("Consilience")
+    app.setApplicationVersion(__version__)
+    app.setOrganizationName("Noodlings")
     app.setOrganizationDomain("noodlings.ai")
+
+    # Install crash reporter
+    install_crash_reporter()
 
     # Create splash screen with random acronym
     splash = create_splash_screen()
@@ -52,7 +95,9 @@ def main():
     from .core.main_window import MainWindow
 
     # Create main window (takes a moment to load)
+    global _main_window
     window = MainWindow()
+    _main_window = window
 
     # Keep splash visible for 7 seconds
     import time
@@ -120,7 +165,7 @@ def create_splash_screen():
     painter.setPen(QColor(80, 80, 80))  # Dark gray
     painter.drawText(pixmap.rect().adjusted(40, 470, -40, -40),  # Moved up: 500 → 470
                      Qt.AlignmentFlag.AlignCenter,
-                     "v1.0.0-alpha")
+                     f"v{__version__}")
 
     painter.end()
 

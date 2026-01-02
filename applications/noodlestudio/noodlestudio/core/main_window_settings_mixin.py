@@ -216,20 +216,37 @@ class MainWindowSettingsMixin:
 
     def show_about(self):
         """Show About dialog."""
+        from .. import __version__
         about_text = (
-            "NoodleSTUDIO v1.0.0-alpha\n\n"
+            f"NoodleSTUDIO v{__version__}\n\n"
             "Symbiosis of Tendrils:\n"
             "Unfurling, Developing,\n"
             "Interconnected Organisms\n\n"
-            "IDE for Noodlings\n"
-            "Built with PyQt6"
+            "Visual IDE for Cognitive Architecture Design\n"
+            "Built with PyQt6\n\n"
+            "noodlings.ai"
         )
         QMessageBox.about(self, "About NoodleSTUDIO", about_text)
 
-    def report_issue(self):
+    def show_bug_report_dialog(self):
+        """Show the bug report dialog."""
+        from ..dialogs.bug_report_dialog import BugReportDialog
+        dialog = BugReportDialog(self)
+        dialog.exec()
+
+    def open_github_issues(self):
         """Open GitHub issues page in browser."""
         import webbrowser
-        webbrowser.open("https://github.com/caitlynmeeks/noodlings/issues")
+        webbrowser.open("https://github.com/noodlings-ai/noodlings/issues")
+
+    def open_documentation(self):
+        """Open documentation in browser."""
+        import webbrowser
+        webbrowser.open("https://docs.noodlings.ai")
+
+    def report_issue(self):
+        """Legacy: Redirects to bug report dialog."""
+        self.show_bug_report_dialog()
 
     def show_credits(self):
         """Show demo scene style credits with music."""

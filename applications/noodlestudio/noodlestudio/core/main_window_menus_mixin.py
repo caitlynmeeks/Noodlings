@@ -115,8 +115,11 @@ class MainWindowMenusMixin:
         # ===== HELP MENU =====
         help_menu = menu_bar.addMenu("&Help")
         help_menu.addAction(self._create_action("Scripting API Reference", "F1", slot=self.open_scripting_api))
+        help_menu.addAction(self._create_action("Documentation...", slot=self.open_documentation))
         help_menu.addSeparator()
-        help_menu.addAction(self._create_action("Report Issue...", slot=self.report_issue))
+        help_menu.addAction(self._create_action("Report a Bug...", slot=self.show_bug_report_dialog))
+        help_menu.addAction(self._create_action("View Known Issues...", slot=self.open_github_issues))
+        help_menu.addSeparator()
         help_menu.addAction(self._create_action("About NoodleStudio", slot=self.show_about))
 
     def _setup_tool_bar(self):

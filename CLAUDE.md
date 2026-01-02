@@ -857,6 +857,46 @@ When the user finishes a feature or asks to commit:
 
 ---
 
+## Bug Tracking
+
+### GitHub Issues
+All bugs are tracked in GitHub Issues. Claude can access via `gh` CLI:
+
+```bash
+# List all bugs
+gh issue list --label bug
+
+# List crashes (high priority)
+gh issue list --label severity:crash
+
+# View specific issue
+gh issue view 42
+
+# Search
+gh issue list --search "crash facet"
+
+# Create issue (when asked)
+gh issue create --title "Bug: description" --label bug
+```
+
+### NoodleStudio Integration
+- **Help > Report a Bug...** - Manual bug report dialog
+- **Crash Reporter** - Automatic on unhandled exceptions
+- Reports submit to GitHub via Cloudflare Worker proxy
+
+### Bug Report Flow
+```
+User reports bug -> Cloudflare Worker -> GitHub Issue
+                    (validates, formats)   (auto-labeled)
+```
+
+### Key Files
+- `dialogs/bug_report_dialog.py` - Report dialog UI
+- `main.py` - Crash reporter hook
+- `backend/noodlings-api/src/routes/bugs.ts` - API endpoint
+
+---
+
 ## Development
 
 ### Running NoodleStudio

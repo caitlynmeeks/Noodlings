@@ -20,6 +20,7 @@ Systems should catch mistakes automatically, not require perfect memory or metic
 |----------|---------|
 | [CI/CD](ci-cd.md) | Continuous integration, GitHub Actions |
 | [Releasing](releasing.md) | Version bumps, changelog, release process |
+| [Bug Reporting](bug-reporting.md) | Crash detection, issue submission |
 | [Testing](../noodlestudio/testing.md) | Running and writing tests |
 
 ---

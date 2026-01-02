@@ -37,6 +37,7 @@ Desktop IDE for designing cognitive architectures and building worlds.
 |--------------|---------|
 | Set up CI/CD | [CI/CD Guide](development/ci-cd.md) |
 | Release a version | [Releasing Guide](development/releasing.md) |
+| Report or track bugs | [Bug Reporting](development/bug-reporting.md) |
 | Understand the workflow | [Development Overview](development/overview.md) |
 
 ---
