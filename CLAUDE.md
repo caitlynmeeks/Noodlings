@@ -8,42 +8,49 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
-## NEXT SESSION: Admin Web Dashboard (Phase 3)
+## COMPLETED: Admin Dashboard Deployed to Production (Jan 2, 2026)
 
-### Context
-Phase 1 of admin dashboard is COMPLETE (Jan 1, 2026):
-- Schema: Added `is_admin`, `is_banned`, `banned_at`, `banned_reason` to users table
-- Backend: Created `middleware/admin.ts` and `routes/admin.ts` with full admin API
-- Deployed to Cloudflare Workers
-- `caitsters@gmail.com` set as admin
+### Live URLs
+| Service | URL |
+|---------|-----|
+| Admin Dashboard | `https://admin.noodlings.ai` |
+| API | `https://api.noodlings.ai` |
 
-**IMPORTANT ARCHITECTURE DECISION**: Skip Phase 2 (NoodleStudio admin panel).
-Keep admin UI ONLY in web dashboard to avoid leaking backend internals into public repo.
-NoodleStudio is public; backend/ is private (gitignored).
+### What Was Done
+- Deployed admin dashboard to Cloudflare Pages
+- Added custom domain `admin.noodlings.ai`
+- Fixed CORS to allow admin dashboard origin
+- Added Release Health section with GitHub Issues integration
+- Google OAuth login working in production
 
-### Phase 3: Web Dashboard
-Location: `backend/admin-dashboard/` (private, gitignored)
-Deploy to: `admin.noodlings.ai` (Cloudflare Pages)
-Tech: SvelteKit + Tailwind CSS
+### Features
+- **Overview**: System health, live stats, summary metrics
+- **Release Health**: GitHub issues counts (crashes, bugs, features) + recent issues list
+- **Users**: List, search, edit, ban, credit adjustments
+- **Noodlings**: List, moderate visibility
+- **Credits**: Transaction history
+- **LLM Usage**: Usage by model, by day, top users
 
-### Admin API Endpoints (LIVE)
-```
-GET  /admin/health              - System health
-GET  /admin/stats/summary       - Dashboard overview
-GET  /admin/stats/live          - Real-time metrics
-GET  /admin/users               - List users
-GET  /admin/users/:id           - User detail
-PATCH /admin/users/:id          - Edit user
-POST /admin/users/:id/credits   - Credit adjustment
-DELETE /admin/users/:id/sessions - Invalidate sessions
-GET  /admin/noodlings           - List noodlings
-PATCH /admin/noodlings/:id      - Moderate
-GET  /admin/credits/transactions - Transaction log
-GET  /admin/llm/usage           - LLM stats
+### Local Dev
+```bash
+cd backend/admin-dashboard
+npm run dev -- --port 5174
 ```
 
-### Plan File
-Full plan at: `~/.claude/plans/stateless-tinkering-nova.md`
+### Deployment
+```bash
+cd backend/admin-dashboard
+npm run build
+npx wrangler pages deploy .svelte-kit/cloudflare --project-name=noodlings-admin --branch=main
+```
+
+---
+
+## NEXT SESSION: Pick from Backlog
+
+Suggested priorities:
+1. **Asset-Aware Inspector** - Show contextual info when selecting assets
+2. **Create test issues** - Add sample bug/crash/feature issues to test Release Health display
 
 ---
 

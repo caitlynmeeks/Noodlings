@@ -31,6 +31,18 @@ Desktop IDE for designing cognitive architectures and building worlds.
 
 ---
 
+## Backend (Private)
+
+| I want to... | Go here |
+|--------------|---------|
+| Understand cloud services | [Backend Overview](backend/overview.md) |
+| Use the admin dashboard | [Admin Dashboard](backend/admin-dashboard.md) |
+| Call the API | [API Reference](backend/api-reference.md) |
+
+*Backend code is gitignored from the public repo.*
+
+---
+
 ## Development
 
 | I want to... | Go here |
