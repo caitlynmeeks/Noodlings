@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QComboBox, QLineEdit, QCheckBox, QWidget,
     QGroupBox, QFormLayout, QMessageBox, QApplication
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QThread
+from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QThread
 from PyQt6.QtGui import QFont
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
@@ -26,7 +26,7 @@ from .. import __version__
 
 
 # Bug report submission endpoint
-BUG_REPORT_ENDPOINT = "https://noodlings-auth.noodlings.workers.dev/api/bug-report"
+BUG_REPORT_ENDPOINT = "https://noodlings-api.caitsters.workers.dev/api/bug-report"
 
 
 class SystemInfoCollector:
@@ -353,7 +353,7 @@ class BugReportDialog(QDialog):
 
         # Create request
         request = QNetworkRequest()
-        request.setUrl(Qt.QUrl(BUG_REPORT_ENDPOINT))
+        request.setUrl(QUrl(BUG_REPORT_ENDPOINT))
         request.setHeader(
             QNetworkRequest.KnownHeaders.ContentTypeHeader,
             "application/json"
