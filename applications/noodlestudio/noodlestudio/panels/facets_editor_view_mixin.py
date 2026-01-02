@@ -329,7 +329,10 @@ class FacetsEditorViewMixin:
             self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
             self.view.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
         else:
-            super().keyPressEvent(event)
+            # Safely call parent - MRO may not include keyPressEvent in next mixin
+            parent_method = getattr(super(), 'keyPressEvent', None)
+            if parent_method:
+                parent_method(event)
 
     def keyReleaseEvent(self, event):
         """Handle key release events."""
@@ -339,4 +342,7 @@ class FacetsEditorViewMixin:
             self.view.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
             self.view.viewport().setCursor(Qt.CursorShape.ArrowCursor)
         else:
-            super().keyReleaseEvent(event)
+            # Safely call parent - MRO may not include keyReleaseEvent in next mixin
+            parent_method = getattr(super(), 'keyReleaseEvent', None)
+            if parent_method:
+                parent_method(event)
