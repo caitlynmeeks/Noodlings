@@ -5,6 +5,7 @@ Usage:
     python -m noodlestudio.runtime path/to/project
     python -m noodlestudio.runtime --assembly path/to/assembly.yaml
     python -m noodlestudio.runtime path/to/project --interactive
+    python -m noodlestudio.runtime path/to/project --gui
 
 Author: Caitlyn + Claude
 Date: January 3, 2026
@@ -16,6 +17,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
 
 from .app import NoodleApp, NoodleAppConfig
 
@@ -40,6 +42,9 @@ def create_parser() -> argparse.ArgumentParser:
 Examples:
   # Run project interactively
   python -m noodlestudio.runtime path/to/project --interactive
+
+  # Run project with GUI window
+  python -m noodlestudio.runtime path/to/project --gui
 
   # Run assembly with single input
   python -m noodlestudio.runtime --assembly agent.yaml --input "Hello"
@@ -84,6 +89,24 @@ Environment Variables:
         '--interactive', '-I',
         action='store_true',
         help='Run in interactive REPL mode'
+    )
+
+    parser.add_argument(
+        '--gui', '-g',
+        action='store_true',
+        help='Run with GUI window (renders ui.yaml canvas)'
+    )
+
+    parser.add_argument(
+        '--ui',
+        default='',
+        help='Path to ui.yaml file (default: project/ui.yaml)'
+    )
+
+    parser.add_argument(
+        '--window-size', '-w',
+        default='1024x768',
+        help='Window size as WxH (default: 1024x768)'
     )
 
     # LLM configuration
@@ -142,6 +165,81 @@ Environment Variables:
     return parser
 
 
+def run_gui(args: argparse.Namespace) -> int:
+    """
+    Run the GUI application.
+
+    Args:
+        args: Parsed command-line arguments
+
+    Returns:
+        Exit code (0 for success)
+    """
+    try:
+        from PyQt6.QtWidgets import QApplication, QMainWindow
+        from PyQt6.QtCore import Qt
+    except ImportError:
+        print("Error: PyQt6 is required for GUI mode", file=sys.stderr)
+        return 1
+
+    from .ui import load_ui, create_default_ui, QtWidgetRenderer, AnchoredWidget
+
+    # Parse window size
+    try:
+        width, height = map(int, args.window_size.lower().split('x'))
+    except ValueError:
+        print(f"Error: Invalid window size format: {args.window_size}", file=sys.stderr)
+        print("Expected format: WIDTHxHEIGHT (e.g., 1024x768)", file=sys.stderr)
+        return 1
+
+    # Determine UI file path
+    if args.ui:
+        ui_path = Path(args.ui)
+    elif args.project:
+        ui_path = Path(args.project) / 'ui.yaml'
+    else:
+        ui_path = None
+
+    # Load or create UI
+    if ui_path and ui_path.exists():
+        try:
+            root = load_ui(ui_path)
+            if not args.quiet:
+                print(f"Loaded UI: {ui_path}", file=sys.stderr)
+        except Exception as e:
+            print(f"Error loading UI: {e}", file=sys.stderr)
+            return 1
+    else:
+        root = create_default_ui()
+        if not args.quiet:
+            print("Using default UI", file=sys.stderr)
+
+    # Create Qt application
+    app = QApplication(sys.argv)
+    app.setApplicationName("NoodleStudio Runtime")
+
+    # Create main window
+    window = QMainWindow()
+    window.setWindowTitle("NoodleStudio Runtime")
+    window.resize(width, height)
+
+    # Render UI components
+    renderer = QtWidgetRenderer()
+
+    # Use AnchoredWidget for proper resize handling
+    anchored_widget = AnchoredWidget(root, renderer)
+    window.setCentralWidget(anchored_widget)
+
+    # Show window
+    window.show()
+
+    if not args.quiet:
+        print(f"Window: {width}x{height}", file=sys.stderr)
+
+    # Run event loop
+    return app.exec()
+
+
 async def run_cli(args: argparse.Namespace) -> int:
     """
     Run the CLI with parsed arguments.
@@ -152,6 +250,10 @@ async def run_cli(args: argparse.Namespace) -> int:
     Returns:
         Exit code (0 for success)
     """
+    # Handle GUI mode
+    if args.gui:
+        return run_gui(args)
+
     # Validate arguments
     if not args.project and not args.assembly:
         print("Error: Either project path or --assembly must be provided", file=sys.stderr)

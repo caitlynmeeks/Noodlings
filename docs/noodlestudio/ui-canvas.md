@@ -1,6 +1,6 @@
 # UI Canvas System
 
-**Status**: Planning
+**Status**: Implementation Phase 3a
 **Last Updated**: January 3, 2026
 **Authors**: Caitlyn + Claude
 **Inspiration**: Borland Delphi Form Designer
@@ -12,6 +12,10 @@
 NoodleStudio needs a visual UI designer for building application interfaces. This follows the classic Delphi pattern: drag components onto a canvas, set properties, wire up events.
 
 The UI Canvas is distinct from Neural Canvas (cognitive architecture) - this is for designing the end-user interface of built applications.
+
+### Core Principle
+
+**The canvas IS the application.** A Gaussian viewport is just another component you place on it, like a Button or Label. A "3D game" is simply a canvas with a fullscreen RadianceViewport. A "chat app" has no viewport at all. This unifies all application types under one paradigm.
 
 ### Why Delphi?
 
@@ -356,27 +360,44 @@ settings:
 
 ## Implementation Phases
 
-### Phase 1: Runtime Renderer
-- [ ] UI component base class
-- [ ] Core components (Panel, Label, Button, Input)
-- [ ] Anchor/layout system
-- [ ] YAML loader
-- [ ] Basic event dispatch
+### Phase 3a: Canvas Infrastructure (Current)
+- [ ] Create `runtime/ui/` module structure
+- [ ] `UIComponent` base class with properties
+- [ ] `Anchors` dataclass and layout calculation
+- [ ] `UILoader` - YAML to component tree
+- [ ] `QtWidgetRenderer` - component tree to Qt widgets
 
-### Phase 2: Designer Panel
+### Phase 3b: Foundation Components
+- [ ] `Panel` - container with background
+- [ ] `Label` - static text
+- [ ] `Button` - clickable with events
+- [ ] `TextInput` - single-line input
+
+### Phase 3c: RadianceViewport
+- [ ] Embed GaussianRenderer in QOpenGLWidget
+- [ ] Camera controls (orbit, pan, zoom)
+- [ ] Stage loading integration
+- [ ] Noodling rendering
+
+### Phase 3d: Chat Components
+- [ ] `ChatHistory` - scrolling message list
+- [ ] `ChatInput` - input with send button
+- [ ] Message styling (user vs noodling)
+
+### Phase 3e: Event Wiring
+- [ ] Event dispatch system
+- [ ] `send_to_noodling` action
+- [ ] `call_script` action
+- [ ] Component value binding
+
+### Phase 4: Designer Panel (Future)
 - [ ] New panel: UI Canvas Editor
 - [ ] Component palette
 - [ ] Drag-drop placement
 - [ ] Selection and resize handles
 - [ ] Property editing in Inspector
 
-### Phase 3: Noodle Components
-- [ ] ChatHistory component
-- [ ] ChatInput component
-- [ ] RadianceViewport embedding
-- [ ] Event-to-noodling wiring
-
-### Phase 4: Advanced
+### Phase 5: Advanced (Future)
 - [ ] Custom component creation
 - [ ] Theming system
 - [ ] Animation/transitions
@@ -384,18 +405,39 @@ settings:
 
 ---
 
-## Questions to Resolve
+## Architecture Decisions (Finalized Jan 3, 2026)
+
+### Renderer Abstraction Layer
+
+```
+ui.yaml (user's design - stable contract)
+    ↓
+UIComponent classes (our API - what users see)
+    ↓
+Renderer backend (swappable implementation)
+    ├── QtWidgetRenderer (v1 - desktop)
+    └── WebGLRenderer (future - browser)
+```
+
+Users interact with **Panel**, **Button**, **RadianceViewport** - they never see Qt, QML, or any implementation detail. The `ui.yaml` format is the stable contract that survives renderer changes.
 
 ### Q1: Technology for Runtime UI?
 
 | Option | Pros | Cons |
 |--------|------|------|
-| **Qt Widgets** | Already using, native | Desktop only |
+| **Qt Widgets** | Already using, native, robust | Desktop only |
 | **Qt QML** | Modern, declarative | Learning curve |
-| **Custom OpenGL** | Full control | Lots of work |
+| **Custom OpenGL** | Full control, web-ready | Months of work (text, input, focus) |
 | **Web (Electron)** | HTML/CSS familiar | Heavy runtime |
 
-**Decision**: **Qt Widgets** for v1 (already using, well-understood). Consider QML later if needed.
+**Decision**: **Qt Widgets for v1** with abstraction layer.
+
+**Rationale**:
+- Fast to implement (weeks, not months)
+- Production quality out of the box (text input, focus, scrolling, accessibility)
+- Users don't know or care - they see our component names
+- The `ui.yaml` abstraction lets us add WebGL renderer later without changing user projects
+- RadianceViewport embeds as QOpenGLWidget (already proven in NoodleStudio)
 
 ### Q2: Live Preview?
 
@@ -408,6 +450,26 @@ Should the designer show live noodling responses while editing?
 The Neural Canvas already has a node editor. Should UI Canvas share that infrastructure?
 
 **Decision**: Different tools. Neural Canvas = data flow graphs. UI Canvas = spatial layout. Different interaction patterns.
+
+### Q4: Default Project Template?
+
+**Decision**: New projects ship with a minimal `ui.yaml`:
+
+```yaml
+# Default ui.yaml - fullscreen viewport
+version: 1
+root:
+  type: Panel
+  name: "root"
+  background: "#1a1a1a"
+  children:
+    - type: RadianceViewport
+      name: "viewport"
+      anchors: [left, right, top, bottom]
+      stage: "main_stage"
+```
+
+A "3D game" is just this default. Not a special case - just a canvas with one fullscreen viewport component.
 
 ---
 
@@ -424,3 +486,4 @@ The Neural Canvas already has a node editor. Should UI Canvas share that infrast
 | Date | Changes |
 |------|---------|
 | 2026-01-03 | Initial planning document |
+| 2026-01-03 | Architecture decisions finalized: Qt Widgets v1 with abstraction layer, renderer-agnostic ui.yaml contract |

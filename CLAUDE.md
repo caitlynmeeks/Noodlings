@@ -8,6 +8,65 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
+## COMPLETED: Phase 3a UI Canvas Infrastructure (Jan 3, 2026)
+
+### What Was Done
+Created the Delphi-style UI canvas system for building application interfaces.
+The canvas IS the application - a "3D game" is just a canvas with a fullscreen
+RadianceViewport component.
+
+### Architecture
+```
+ui.yaml (user's design - stable contract)
+    ↓
+UIComponent classes (our API)
+    ↓
+QtWidgetRenderer (v1 desktop renderer)
+```
+
+Users see Panel, Button, Label, RadianceViewport - never Qt internals.
+
+### Module Structure
+```
+noodlestudio/runtime/ui/
+├── __init__.py         # Public API exports
+├── component.py        # UIComponent base, Anchors, EventBinding
+├── loader.py           # YAML loader
+├── renderer.py         # QtWidgetRenderer
+└── components/
+    ├── panel.py        # Container with background
+    ├── label.py        # Static text
+    ├── button.py       # Clickable button
+    ├── text_input.py   # Single-line input
+    └── radiance_viewport.py  # 3D Gaussian renderer
+```
+
+### Usage
+```bash
+# Run with GUI (loads ui.yaml from project)
+python -m noodlestudio.runtime path/to/project --gui
+
+# Run with custom UI file
+python -m noodlestudio.runtime --gui --ui path/to/ui.yaml
+
+# Custom window size
+python -m noodlestudio.runtime --gui -w 1280x720
+```
+
+### Programmatic
+```python
+from noodlestudio.runtime.ui import load_ui, QtWidgetRenderer
+
+root = load_ui("ui.yaml")
+renderer = QtWidgetRenderer()
+widget = renderer.render(root)
+```
+
+### Documentation
+- `docs/noodlestudio/ui-canvas.md` - Full specification
+
+---
+
 ## COMPLETED: Admin Dashboard Deployed to Production (Jan 2, 2026)
 
 ### Live URLs
@@ -214,24 +273,34 @@ print(result['response'])
    - Direct Anthropic provider integration
    - Token counting + billing (deduct credits)
    - `noodlings` provider added to runtime
-   - **DEPLOY REQUIRED**: `wrangler secret put ANTHROPIC_API_KEY`
+   - Anthropic API key deployed to Cloudflare
 
-3. **Phase 3: GUI Window** - NEXT
-   - Add 3D viewport window to runtime
-   - `--gui` flag for CLI
-   - Chat overlay or panel
+3. **Phase 3a: UI Canvas Infrastructure** - DONE (Jan 3)
+   - Created `noodlestudio/runtime/ui/` module (Delphi-style canvas)
+   - UIComponent base class with anchor system
+   - Panel, Label, Button, TextInput components
+   - RadianceViewport component (embeds GaussianRenderer)
+   - QtWidgetRenderer (component tree to Qt widgets)
+   - YAML loader for `ui.yaml` files
+   - `--gui` flag added to runtime CLI
+   - Test: `python -m noodlestudio.runtime --gui --ui path/to/ui.yaml`
 
-4. **Phase 4: Build System**
+4. **Phase 3b: Chat Components** - NEXT
+   - ChatHistory component (scrolling message list)
+   - ChatInput component (input + send button)
+   - Event wiring to noodlings (send_to_noodling action)
+   - Message styling (user vs noodling bubbles)
+
+5. **Phase 4: Build System**
    - Asset packaging (copy/filter project files)
    - macOS .app bundler (py2app)
    - "File > Build Application..." menu item
 
-5. **Phase 5: UI Canvas** (later)
-   - UI component runtime renderer
+6. **Phase 5: UI Canvas Designer** (later)
    - Designer panel in editor
-   - Event wiring to noodlings
+   - Drag-drop component palette
 
-6. **Phase 6: Admin Dashboard Extensions**
+7. **Phase 6: Admin Dashboard Extensions**
    - LLM routing management pages
    - Provider keys, pricing, analytics
    - Org management UI
