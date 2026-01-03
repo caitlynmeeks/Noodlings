@@ -67,6 +67,63 @@ npx wrangler pages deploy .svelte-kit/cloudflare --project-name=noodlings-admin 
 
 ---
 
+## COMPLETED: Phase 1 Runtime Foundation (Jan 3, 2026)
+
+### What Was Done
+Created the headless runtime module for executing NoodleStudio projects without the editor GUI.
+
+### Module Structure
+```
+noodlestudio/runtime/
+├── __init__.py      # Public API exports
+├── __main__.py      # Module entry point (python -m)
+├── app.py           # NoodleApp - core runtime class
+├── cli.py           # Command-line interface
+└── llm_client.py    # HeadlessLLMClient (no Qt dependencies)
+```
+
+### Usage
+
+```bash
+# Run project interactively
+python -m noodlestudio.runtime path/to/project --interactive
+
+# Run assembly with single input
+python -m noodlestudio.runtime --assembly agent.yaml --input "Hello"
+
+# Run with specific provider
+python -m noodlestudio.runtime path/to/project \
+    --provider anthropic --model claude-3-5-sonnet-20241022
+```
+
+### Programmatic Usage
+
+```python
+from noodlestudio.runtime import NoodleApp
+
+app = NoodleApp()
+app.load_project("/path/to/project")
+result = await app.run("Hello, world!")
+print(result['response'])
+```
+
+### Supported LLM Providers
+- `ollama` - Local Ollama server (default)
+- `anthropic` - Anthropic Claude API
+- `openai` - OpenAI API
+- `openrouter` - OpenRouter aggregated API
+
+### Environment Variables
+- `NOODLE_LLM_PROVIDER` - Provider selection
+- `NOODLE_LLM_MODEL` - Default model
+- `NOODLE_LLM_BASE_URL` - Custom API URL
+- `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`
+
+### Test Assets
+- `facet_assemblies/simple_echo.yaml` - Minimal test assembly
+
+---
+
 ## NEXT SESSION: Build System + LLM Routing
 
 **Planning documents** (all decisions finalized Jan 3, 2026):
@@ -92,11 +149,11 @@ npx wrangler pages deploy .svelte-kit/cloudflare --project-name=noodlings-admin 
 | **Margin** | 20% on LLM provider costs |
 | **Asset Revenue** | 70% creator / 30% Noodlings |
 
-### Implementation Order
-1. **Phase 1: Runtime Foundation**
-   - Create `noodlestudio/runtime/` module (refactor from player.py)
-   - Get `python -m noodlestudio.runtime path/to/project` working
-   - Test: Run `toy_claude_code.yaml` assembly headless
+### Implementation Order (Phase 1 COMPLETE)
+1. **Phase 1: Runtime Foundation** - DONE
+   - Created `noodlestudio/runtime/` module
+   - CLI working: `python -m noodlestudio.runtime`
+   - Tested with `simple_echo.yaml` assembly
 
 2. **Phase 2: LLM Routing API**
    - `/v1/chat/completions` endpoint on Cloudflare Workers

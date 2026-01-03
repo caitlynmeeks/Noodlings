@@ -1,0 +1,71 @@
+# Simple Echo Assembly - Minimal test for runtime
+#
+# A trivial assembly that just echoes the input through an LLM.
+# Used for testing the runtime execution pipeline.
+#
+# Author: Caitlyn + Claude
+# Date: January 3, 2026
+
+name: "Simple Echo"
+description: "Minimal test assembly for runtime validation"
+version: "1.0.0"
+
+facets:
+  - id: "incoming"
+    name: "INCOMING"
+    type: "SpecialNode"
+    prompt: ""
+    model: ""
+    temperature: 0.7
+    max_tokens: 100
+    position: {x: 50, y: 200}
+    inputs: []
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "User input"
+
+  - id: "echo_facet"
+    name: "Echo"
+    type: "LLMFacet"
+    model: "SMALL"
+    temperature: 0.7
+    max_tokens: 200
+    prompt: |
+      You are a simple echo assistant. Respond briefly to the user's message.
+
+      User: {in}
+
+      Your response (1-2 sentences):
+    position: {x: 250, y: 200}
+    inputs:
+      - name: "in"
+        type: "input"
+        description: "User input"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "Echo response"
+
+  - id: "outgoing"
+    name: "OUTGOING"
+    type: "SpecialNode"
+    prompt: ""
+    model: ""
+    temperature: 0.7
+    max_tokens: 100
+    position: {x: 450, y: 200}
+    inputs:
+      - name: "in"
+        type: "input"
+        description: "Final response"
+    outputs:
+      - name: "out"
+        type: "output"
+        description: "Output to user"
+
+connections:
+  - from: "incoming.out"
+    to: "echo_facet.in"
+  - from: "echo_facet.out"
+    to: "outgoing.in"
