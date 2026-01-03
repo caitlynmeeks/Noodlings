@@ -111,6 +111,16 @@ def save_crash_info(exc_type, exc_value, exc_tb):
             'traceback': ''.join(traceback.format_exception(exc_type, exc_value, exc_tb)) if exc_tb else '',
             'version': __version__,
         }
+
+        # Include recent UI actions if recorder is available
+        try:
+            from .core.ui_action_recorder import get_ui_action_recorder
+            recorder = get_ui_action_recorder()
+            if recorder.is_recording():
+                crash_info['ui_actions'] = recorder.get_crash_report_data()
+        except Exception as e:
+            crash_info['ui_actions_error'] = str(e)
+
         with open(CRASH_INFO_FILE, 'w') as f:
             import json
             json.dump(crash_info, f, indent=2)
@@ -191,6 +201,11 @@ def main():
     install_crash_reporter()
     create_sentinel()
 
+    # Install UI action recorder for crash debugging
+    from .core.ui_action_recorder import get_ui_action_recorder
+    ui_recorder = get_ui_action_recorder()
+    ui_recorder.install(app)
+
     # Register cleanup on exit
     atexit.register(remove_sentinel)
 
@@ -225,6 +240,12 @@ def main():
     # Show crash recovery dialog if previous session crashed
     if previous_crash:
         show_crash_recovery_dialog(window)
+
+    # Check for soft restart state and restore
+    from .core.soft_restart import load_restart_state, restore_state
+    restart_state = load_restart_state()
+    if restart_state:
+        restore_state(window, restart_state)
 
     sys.exit(app.exec())
 

@@ -134,6 +134,9 @@ __pycache__/
             with open(gitignore_path, 'w') as f:
                 f.write(gitignore_content)
 
+            # Create NOODLE_CODE.md for AI assistant context
+            self._create_noodle_code_md(project_path, project_name, description)
+
             # Open the new project
             self.open_project(project_path)
 
@@ -142,6 +145,100 @@ __pycache__/
         except Exception as e:
             print(f"Error creating project: {e}")
             return False
+
+    def _create_noodle_code_md(self, project_path: str, project_name: str, description: str = ""):
+        """
+        Create NOODLE_CODE.md knowledge base file for the AI assistant.
+
+        This file provides project context to Noodle Code, similar to how
+        CLAUDE.md works for Claude Code.
+        """
+        noodle_code_content = f'''# NOODLE_CODE.md
+
+Project knowledge base for Noodle Code AI assistant.
+
+---
+
+## Project Info
+
+**Name:** {project_name}
+**Description:** {description or "A NoodleStudio project"}
+**Created:** {self._get_timestamp()}
+
+---
+
+## Project Structure
+
+```
+{project_name}/
+  Noodlings/     # AI characters (recipe.yaml + assembly.yaml)
+  Stages/        # Scenes and levels
+  Prims/         # Reusable prop templates
+  Generations/   # AI-generated content
+  SharedAssets/  # Skyboxes, music, sound effects
+  Library/       # Local cache (not synced)
+```
+
+---
+
+## Project-Specific Context
+
+<!-- Customize this section for your project -->
+
+### Current Focus
+(What are you currently working on?)
+
+### Key Files
+(Important files for current work)
+
+### Conventions
+(Project-specific coding conventions)
+
+### Known Issues
+(Current bugs or limitations)
+
+---
+
+## Quick Reference
+
+### Creating a Noodling
+1. Right-click Assets > New > Noodling
+2. Edit recipe.yaml for personality
+3. Edit assembly.yaml for cognitive facets
+
+### Creating a Stage
+1. Right-click Assets > New > Stage
+2. Add zones, props, and Noodling instances
+3. Configure stage.yaml for settings
+
+### Scripting API
+```javascript
+// In ScriptedFacets:
+context.noodle.models.complete({{ label: "Medium", prompt: "..." }})
+context.noodle.affect.current  // Get affect state
+context.noodle.scene.findByType("noodling")  // Query entities
+```
+
+---
+
+## Tips for Noodle Code
+
+1. **Read before editing** - Always use read_file before edit_file
+2. **Search first** - Use glob and grep to understand patterns
+3. **Small edits** - Prefer targeted edit_file over full write_file
+4. **Use screenshots** - computer_use(action="screenshot") to see UI
+5. **Hot reload** - Use hot_reload for quick iteration on tool code
+
+---
+
+*This file is loaded by Noodle Code on project open. Keep it updated!*
+'''
+        noodle_code_path = os.path.join(project_path, "NOODLE_CODE.md")
+        try:
+            with open(noodle_code_path, 'w') as f:
+                f.write(noodle_code_content)
+        except Exception as e:
+            print(f"Warning: Could not create NOODLE_CODE.md: {e}")
 
     def open_project(self, project_path: str) -> bool:
         """

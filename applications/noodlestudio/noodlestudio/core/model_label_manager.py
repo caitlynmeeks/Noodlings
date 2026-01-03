@@ -37,6 +37,9 @@ class ModelLabelManager(QObject):
         self.settings = QSettings("Noodlings", "ModelLabelManager")
         self._ensure_defaults()
 
+    # System labels that cannot be deleted
+    PROTECTED_LABELS = ["Small", "Medium", "Large", "Noodle Code", "Computer Use"]
+
     def _ensure_defaults(self):
         """Ensure default labels exist with DeepSeek R1 models on Ollama."""
         defaults = {
@@ -56,6 +59,11 @@ class ModelLabelManager(QObject):
         # Multimodal labels - created unassigned so user can configure
         multimodal_labels = ["VISION", "AUDIO_IN", "AUDIO_OUT", "IMAGE_GEN", "VIDEO_IN"]
 
+        # System labels for NoodleStudio features (unassigned by default)
+        # Noodle Code: AI assistant in the Noodle Code panel (needs smart model)
+        # Computer Use: Vision+action loop for UI automation (needs computer_use capability)
+        system_labels = ["Noodle Code", "Computer Use"]
+
         # Only set if not already configured
         for label, (provider, model) in defaults.items():
             existing = self.get_model_for_label(label)
@@ -64,6 +72,11 @@ class ModelLabelManager(QObject):
 
         # Create multimodal labels (unassigned - user configures in Model Manager)
         for label in multimodal_labels:
+            if label not in self.get_all_labels():
+                self.create_label(label)
+
+        # Create system labels (unassigned - user configures in Model Manager)
+        for label in system_labels:
             if label not in self.get_all_labels():
                 self.create_label(label)
 
@@ -186,7 +199,7 @@ class ModelLabelManager(QObject):
 
     def delete_label(self, label: str) -> bool:
         """
-        Delete a custom label. Cannot delete default labels.
+        Delete a custom label. Cannot delete protected/system labels.
 
         Args:
             label: Label name to delete
@@ -194,8 +207,8 @@ class ModelLabelManager(QObject):
         Returns:
             True if deleted, False if protected or doesn't exist
         """
-        # Protect default labels
-        if label in ["Small", "Medium", "Large"]:
+        # Protect system labels
+        if label in self.PROTECTED_LABELS:
             return False
 
         if label not in self.get_all_labels():
@@ -205,6 +218,29 @@ class ModelLabelManager(QObject):
         self.settings.sync()
         self.mappingsChanged.emit()
         return True
+
+    def is_protected_label(self, label: str) -> bool:
+        """Check if a label is protected (cannot be deleted)."""
+        return label in self.PROTECTED_LABELS
+
+    def get_noodle_code_model(self) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Get the model configured for Noodle Code (AI assistant).
+
+        Returns:
+            Tuple of (provider_id, model_name) or (None, None) if not configured.
+        """
+        return self.get_model_for_label("Noodle Code")
+
+    def get_computer_use_model(self) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Get the model configured for Computer Use (vision + action).
+
+        Returns:
+            Tuple of (provider_id, model_name) or (None, None) if not configured.
+            Should be a model with 'computer_use' capability.
+        """
+        return self.get_model_for_label("Computer Use")
 
     def get_all_mappings(self) -> Dict[str, Tuple[str, str]]:
         """

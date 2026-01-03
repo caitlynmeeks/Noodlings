@@ -61,6 +61,14 @@ class MainWindowMenusMixin:
         file_menu.addSeparator()
         file_menu.addAction(self._create_action("Migrate Legacy Data...", slot=self.migrate_legacy_data))
 
+        # Developer tools
+        file_menu.addSeparator()
+        file_menu.addAction(self._create_action(
+            "Soft Restart...",
+            "Ctrl+Shift+R",
+            slot=self._soft_restart
+        ))
+
         file_menu.addSeparator()
         file_menu.addAction(self._create_action("&Quit", "Ctrl+Q", self.close))
 
@@ -167,3 +175,13 @@ class MainWindowMenusMixin:
         action.setEnabled(enabled)
 
         return action
+
+    def _soft_restart(self):
+        """
+        Perform a soft restart of NoodleStudio.
+
+        Saves current state (project, tabs, selection) and restarts.
+        Used to apply code changes that require restart.
+        """
+        from .soft_restart import request_soft_restart
+        request_soft_restart(self, "Apply code changes")

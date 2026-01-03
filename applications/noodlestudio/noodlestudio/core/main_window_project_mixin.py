@@ -100,6 +100,11 @@ class MainWindowProjectMixin:
             if hasattr(self, 'spatial_view'):
                 self.spatial_view.set_project_manager(self.project_manager)
 
+            # Update Noodle Code with project path
+            if hasattr(self, 'noodle_code_engine'):
+                from pathlib import Path
+                self.noodle_code_engine.set_project_path(Path(project_path))
+
             print(f"Project opened: {project_path}")
 
         except Exception as e:

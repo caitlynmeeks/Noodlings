@@ -110,6 +110,15 @@ class MainWindow(
         # Auto-start MUSH server if setting is enabled
         QTimer.singleShot(700, self._check_autostart_mush)
 
+        # Initialize Computer Use controller for Claude integration
+        QTimer.singleShot(800, self._init_computer_use)
+
+    def _init_computer_use(self):
+        """Initialize Computer Use controller for Claude to see and interact with UI."""
+        from .computer_use_controller import get_computer_use_controller
+        controller = get_computer_use_controller()
+        controller.set_main_window(self)
+
     def _setup_ui(self):
         """Build UI components."""
         # Central widget will be World View (main viewport)

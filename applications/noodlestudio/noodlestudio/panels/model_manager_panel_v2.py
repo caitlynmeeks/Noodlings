@@ -420,7 +420,7 @@ class ModelRow(QFrame):
         name_label.setMinimumWidth(200)
         layout.addWidget(name_label)
 
-        # Metadata: context, size, capabilities (horizontal, compact)
+        # Metadata: context, size (horizontal, compact)
         metadata_parts = []
 
         # Context length
@@ -436,16 +436,6 @@ class ModelRow(QFrame):
         if size and size != 'Unknown':
             metadata_parts.append(size)
 
-        # Capabilities
-        params = self.model_data.get('supported_parameters', [])
-        caps = []
-        if 'tools' in params:
-            caps.append('tools')
-        if 'thinking' in params or 'o1' in self.model_name or 'o3' in self.model_name or 'deepseek-r1' in self.model_name:
-            caps.append('think')
-        if caps:
-            metadata_parts.append(' '.join(caps))
-
         # Pricing (OpenRouter only)
         pricing = self.model_data.get('pricing', {})
         if pricing and pricing.get('prompt'):
@@ -455,8 +445,60 @@ class ModelRow(QFrame):
 
         if metadata_parts:
             metadata_label = QLabel(' • '.join(metadata_parts))
-            metadata_label.setStyleSheet("color: #B8B8B8; font-size: 13px;")
+            metadata_label.setStyleSheet("color: #B8B8B8; font-size: 11px;")
             layout.addWidget(metadata_label)
+
+        # Capability badges (from explicit capabilities or inferred)
+        capabilities = self.model_data.get('capabilities', [])
+
+        # Also infer from supported_parameters or model name (for other providers)
+        params = self.model_data.get('supported_parameters', [])
+        if 'tools' in params and 'tools' not in capabilities:
+            capabilities = list(capabilities) + ['tools']
+
+        # Infer thinking from model name
+        if any(x in self.model_name.lower() for x in ['o1', 'o3', 'deepseek-r1', 'thinking']):
+            if 'thinking' not in capabilities:
+                capabilities = list(capabilities) + ['thinking']
+
+        # Capability badge colors (monochromatic with subtle variation)
+        cap_colors = {
+            'vision': '#4a6a4a',      # Muted green - image input
+            'tools': '#4a5a6a',       # Muted blue - function calling
+            'computer_use': '#6a5a4a', # Muted orange - computer use
+            'thinking': '#5a4a6a',    # Muted purple - extended thinking
+            'pdf': '#5a5a5a',         # Gray - document input
+        }
+
+        cap_labels = {
+            'vision': 'vision',
+            'tools': 'tools',
+            'computer_use': 'computer',
+            'thinking': 'thinking',
+            'pdf': 'pdf',
+        }
+
+        for cap in capabilities:
+            if cap in cap_colors:
+                badge = QLabel(cap_labels.get(cap, cap))
+                badge.setStyleSheet(f"""
+                    QLabel {{
+                        background: {cap_colors[cap]};
+                        color: #d0d0d0;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-size: 10px;
+                        font-weight: bold;
+                    }}
+                """)
+                badge.setToolTip({
+                    'vision': 'Accepts image input',
+                    'tools': 'Function calling / tool use',
+                    'computer_use': 'Computer Use (screenshot + click)',
+                    'thinking': 'Extended thinking / reasoning',
+                    'pdf': 'PDF document input',
+                }.get(cap, cap))
+                layout.addWidget(badge)
 
         # Description (truncated, on same line)
         desc = self.model_data.get('description', '')
@@ -1298,12 +1340,12 @@ class ModelManagerPanel(QWidget):
         """Rename a label."""
         from PyQt6.QtWidgets import QInputDialog
 
-        # Don't allow renaming default labels
-        if old_label in ["Small", "Medium", "Large"]:
+        # Don't allow renaming protected/system labels
+        if self.label_manager.is_protected_label(old_label):
             QMessageBox.information(
                 self,
                 "Cannot Rename",
-                f"The default label '{old_label}' cannot be renamed."
+                f"The system label '{old_label}' cannot be renamed."
             )
             return
 
@@ -1470,8 +1512,8 @@ class ModelManagerPanel(QWidget):
             activity_indicator = ActivityIndicatorWidget(label)
             row_layout.addWidget(activity_indicator)
 
-            # Delete button (only for custom labels, not defaults)
-            if label not in ["Small", "Medium", "Large"]:
+            # Delete button (only for custom labels, not protected/system labels)
+            if not self.label_manager.is_protected_label(label):
                 delete_btn = QPushButton("×")
                 delete_btn.setFixedSize(20, 20)
                 delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)

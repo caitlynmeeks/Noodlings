@@ -313,17 +313,68 @@ class ProviderManager(QObject):
 
     def _fetch_anthropic_models(self, provider: ProviderConfig) -> List[Dict]:
         """Return known Anthropic models with metadata (no discovery API)."""
-        # Known Anthropic models with their specs
+        # Known Anthropic models with their actual API IDs and capabilities
+        # Reference: https://docs.anthropic.com/en/docs/about-claude/models
         models_data = [
-            {"id": "claude-opus-4.5", "name": "Claude Opus 4.5", "context": 200000, "desc": "Most capable model, best for complex tasks"},
-            {"id": "claude-sonnet-4.5", "name": "Claude Sonnet 4.5", "context": 200000, "desc": "Balanced intelligence and speed"},
-            {"id": "claude-sonnet-4", "name": "Claude Sonnet 4", "context": 200000, "desc": "Strong intelligence, fast responses"},
-            {"id": "claude-sonnet-3.7", "name": "Claude Sonnet 3.7", "context": 200000, "desc": "Enhanced version of 3.5"},
-            {"id": "claude-sonnet-3.5", "name": "Claude Sonnet 3.5", "context": 200000, "desc": "Excellent balance of capability"},
-            {"id": "claude-haiku-3.5", "name": "Claude Haiku 3.5", "context": 200000, "desc": "Fastest model, near-instant responses"},
-            {"id": "claude-opus-3", "name": "Claude Opus 3", "context": 200000, "desc": "Previous flagship model"},
-            {"id": "claude-sonnet-3", "name": "Claude Sonnet 3", "context": 200000, "desc": "Previous balanced model"},
-            {"id": "claude-haiku-3", "name": "Claude Haiku 3", "context": 200000, "desc": "Previous fast model"},
+            # Claude 4 family (latest)
+            {
+                "id": "claude-opus-4-5-20251101",
+                "name": "Claude Opus 4.5",
+                "context": 200000,
+                "desc": "Most capable model, best for complex tasks",
+                "capabilities": ["vision", "tools", "thinking", "pdf"],
+            },
+            {
+                "id": "claude-sonnet-4-20250514",
+                "name": "Claude Sonnet 4",
+                "context": 200000,
+                "desc": "Excellent balance, computer use support",
+                "capabilities": ["vision", "tools", "computer_use", "pdf"],
+            },
+            # Claude 3.5 family
+            {
+                "id": "claude-3-5-sonnet-20241022",
+                "name": "Claude 3.5 Sonnet (Oct 2024)",
+                "context": 200000,
+                "desc": "Computer use enabled, excellent coding",
+                "capabilities": ["vision", "tools", "computer_use", "pdf"],
+            },
+            {
+                "id": "claude-3-5-sonnet-20240620",
+                "name": "Claude 3.5 Sonnet (Jun 2024)",
+                "context": 200000,
+                "desc": "Original 3.5 Sonnet, strong general use",
+                "capabilities": ["vision", "tools", "pdf"],
+            },
+            {
+                "id": "claude-3-5-haiku-20241022",
+                "name": "Claude 3.5 Haiku",
+                "context": 200000,
+                "desc": "Fast and efficient, great for high-volume",
+                "capabilities": ["vision", "tools", "pdf"],
+            },
+            # Claude 3 family (previous gen)
+            {
+                "id": "claude-3-opus-20240229",
+                "name": "Claude 3 Opus",
+                "context": 200000,
+                "desc": "Previous flagship, strong reasoning",
+                "capabilities": ["vision", "tools"],
+            },
+            {
+                "id": "claude-3-sonnet-20240229",
+                "name": "Claude 3 Sonnet",
+                "context": 200000,
+                "desc": "Previous balanced model",
+                "capabilities": ["vision", "tools"],
+            },
+            {
+                "id": "claude-3-haiku-20240307",
+                "name": "Claude 3 Haiku",
+                "context": 200000,
+                "desc": "Previous fast model",
+                "capabilities": ["vision", "tools"],
+            },
         ]
 
         return [{
@@ -332,19 +383,70 @@ class ProviderManager(QObject):
             'description': m['desc'],
             'context_length': m['context'],
             'architecture': {'modality': 'text+image->text'},
+            'capabilities': m.get('capabilities', []),
             'supported_parameters': ['temperature', 'max_tokens', 'top_p', 'top_k', 'tools'],
         } for m in models_data]
 
     def _fetch_openai_models(self, provider: ProviderConfig) -> List[Dict]:
         """Fetch models from OpenAI API with metadata."""
-        # Known OpenAI models with specs (fallback if no API key)
+        # Known OpenAI models with specs and capabilities (fallback if no API key)
         known_models = [
-            {"id": "gpt-4-turbo", "name": "GPT-4 Turbo", "context": 128000, "desc": "Most capable GPT-4 model"},
-            {"id": "gpt-4", "name": "GPT-4", "context": 8192, "desc": "Original GPT-4 model"},
-            {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "context": 16385, "desc": "Fast, cost-effective model"},
-            {"id": "o1", "name": "O1", "context": 200000, "desc": "Reasoning model with extended thinking"},
-            {"id": "o1-mini", "name": "O1 Mini", "context": 128000, "desc": "Faster reasoning model"},
-            {"id": "o3-mini", "name": "O3 Mini", "context": 200000, "desc": "Latest reasoning model"},
+            {
+                "id": "gpt-4-turbo",
+                "name": "GPT-4 Turbo",
+                "context": 128000,
+                "desc": "Most capable GPT-4 model",
+                "capabilities": ["vision", "tools"],
+            },
+            {
+                "id": "gpt-4o",
+                "name": "GPT-4o",
+                "context": 128000,
+                "desc": "Multimodal flagship model",
+                "capabilities": ["vision", "tools"],
+            },
+            {
+                "id": "gpt-4o-mini",
+                "name": "GPT-4o Mini",
+                "context": 128000,
+                "desc": "Fast, affordable multimodal",
+                "capabilities": ["vision", "tools"],
+            },
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "context": 8192,
+                "desc": "Original GPT-4 model",
+                "capabilities": ["tools"],
+            },
+            {
+                "id": "gpt-3.5-turbo",
+                "name": "GPT-3.5 Turbo",
+                "context": 16385,
+                "desc": "Fast, cost-effective model",
+                "capabilities": ["tools"],
+            },
+            {
+                "id": "o1",
+                "name": "O1",
+                "context": 200000,
+                "desc": "Reasoning model with extended thinking",
+                "capabilities": ["thinking", "vision"],
+            },
+            {
+                "id": "o1-mini",
+                "name": "O1 Mini",
+                "context": 128000,
+                "desc": "Faster reasoning model",
+                "capabilities": ["thinking"],
+            },
+            {
+                "id": "o3-mini",
+                "name": "O3 Mini",
+                "context": 200000,
+                "desc": "Latest reasoning model",
+                "capabilities": ["thinking"],
+            },
         ]
 
         if not provider.api_key:
@@ -355,6 +457,7 @@ class ProviderManager(QObject):
                 'description': m['desc'],
                 'context_length': m['context'],
                 'architecture': {'modality': 'text->text'},
+                'capabilities': m.get('capabilities', []),
                 'supported_parameters': ['temperature', 'max_tokens', 'top_p', 'tools'],
             } for m in known_models]
 
@@ -378,6 +481,7 @@ class ProviderManager(QObject):
                         'description': known['desc'] if known else 'OpenAI model',
                         'context_length': known['context'] if known else 0,
                         'architecture': {'modality': 'text->text'},
+                        'capabilities': known.get('capabilities', []) if known else [],
                         'supported_parameters': ['temperature', 'max_tokens', 'top_p', 'tools'],
                         'created': model.get('created', 0),
                     }

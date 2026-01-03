@@ -11,9 +11,72 @@ Date: December 2025
 """
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QTabWidget, QSplitter
+    QWidget, QVBoxLayout, QLabel, QTabWidget, QSplitter, QTabBar
 )
 from PyQt6.QtCore import Qt, QTimer, QUrl, QEvent
+
+
+class MaximizableCenterTabs(QTabWidget):
+    """
+    QTabWidget with double-click header to maximize/restore the center panel.
+
+    Double-clicking the tab bar toggles between normal view and maximized
+    center pane (hides left, right, and bottom panels).
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._maximized = False
+        self._saved_sizes = {}
+        self._main_splitter = None
+        self._top_splitter = None
+
+        # Install event filter on tab bar for double-click detection
+        self.tabBar().installEventFilter(self)
+
+    def set_splitters(self, main_splitter: QSplitter, top_splitter: QSplitter):
+        """Set references to the splitters for maximize/restore."""
+        self._main_splitter = main_splitter
+        self._top_splitter = top_splitter
+
+    def eventFilter(self, obj, event):
+        """Detect double-click on tab bar."""
+        if obj == self.tabBar() and event.type() == QEvent.Type.MouseButtonDblClick:
+            self.toggle_maximize()
+            return True
+        return super().eventFilter(obj, event)
+
+    def toggle_maximize(self):
+        """Toggle between maximized and normal center panel view."""
+        if not self._main_splitter or not self._top_splitter:
+            return
+
+        if self._maximized:
+            # Restore saved sizes
+            if 'main' in self._saved_sizes:
+                self._main_splitter.setSizes(self._saved_sizes['main'])
+            if 'top' in self._saved_sizes:
+                self._top_splitter.setSizes(self._saved_sizes['top'])
+            self._maximized = False
+        else:
+            # Save current sizes
+            self._saved_sizes['main'] = self._main_splitter.sizes()
+            self._saved_sizes['top'] = self._top_splitter.sizes()
+
+            # Maximize center: give nearly all space to center, minimal to others
+            total_h = sum(self._top_splitter.sizes())
+            total_v = sum(self._main_splitter.sizes())
+
+            # Left=0, Center=max, Right=0
+            self._top_splitter.setSizes([0, total_h, 0])
+            # Top=max, Bottom=0
+            self._main_splitter.setSizes([total_v, 0])
+
+            self._maximized = True
+
+    @property
+    def is_maximized(self) -> bool:
+        return self._maximized
 
 
 class MainWindowPanelsMixin:
@@ -29,6 +92,8 @@ class MainWindowPanelsMixin:
         from ..panels.cognitive_cycles_panel import CognitiveCyclesPanel
         from ..panels.gaussian_viewer_panel import GaussianViewerPanel
         from ..panels.settings_panel import SettingsPanel
+        from ..panels.noodle_code_panel import NoodleCodePanel
+        from .noodle_code_engine import NoodleCodeEngine
 
         # LEFT COLUMN: Tabbed widget for Hierarchy + Assets
         left_tabs = QTabWidget()
@@ -61,7 +126,8 @@ class MainWindowPanelsMixin:
         left_tabs.addTab(self.assets, "Assets")
 
         # CENTER: Tabbed widget for World View + Facets Editor + etc.
-        center_tabs = QTabWidget()
+        # Uses MaximizableCenterTabs for double-click maximize feature
+        center_tabs = MaximizableCenterTabs()
         center_tabs.setTabPosition(QTabWidget.TabPosition.North)
         center_tabs.setDocumentMode(True)
         center_tabs.setStyleSheet("""
@@ -187,6 +253,22 @@ class MainWindowPanelsMixin:
         self.cognitive_cycles = CognitiveCyclesPanel(None)
         bottom_tabs.addTab(self.cognitive_cycles, "Cognitive Cycles")
 
+        # Noodle Code AI assistant panel - goes in CENTER pane (leftmost)
+        from .model_label_manager import get_model_label_manager
+        from .provider_manager import get_provider_manager
+        from pathlib import Path
+        self.noodle_code_panel = NoodleCodePanel(None)
+        project_path = None
+        if self.project_manager and self.project_manager.current_project_path:
+            project_path = Path(self.project_manager.current_project_path)
+        self.noodle_code_engine = NoodleCodeEngine(
+            model_label_manager=get_model_label_manager(),
+            provider_manager=get_provider_manager(),
+            project_path=project_path
+        )
+        self.noodle_code_panel.set_engine(self.noodle_code_engine)
+        center_tabs.insertTab(0, self.noodle_code_panel, "Noodle Code")  # Leftmost
+
         # Create splitters
         top_splitter = QSplitter(Qt.Orientation.Horizontal)
         top_splitter.addWidget(left_tabs)
@@ -205,6 +287,9 @@ class MainWindowPanelsMixin:
         main_splitter.setStretchFactor(1, 0)
         main_splitter.setSizes([600, 180])
         main_splitter.setChildrenCollapsible(False)
+
+        # Connect center_tabs to splitters for double-click maximize
+        center_tabs.set_splitters(main_splitter, top_splitter)
 
         # Style splitter handles
         splitter_style = """
