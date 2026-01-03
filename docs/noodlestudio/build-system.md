@@ -192,6 +192,22 @@ The built app should have a first-run experience: "Enter your Anthropic API key 
 
 ---
 
+### Q4b: LLM Provider Configuration
+
+Built apps need LLM access. Three options available to end users:
+
+| Provider | Description | Setup |
+|----------|-------------|-------|
+| `noodlings` | Our cloud routing | Sign in with Noodlings account |
+| `ollama` / `lmstudio` | Local inference | Free, requires local install |
+| Own keys | Direct to Anthropic/OpenAI | User provides API keys |
+
+The build creator specifies the default/recommended provider in `build.yaml`. End user can override at runtime.
+
+**First-run dialog**: Built apps show a provider selection dialog on first launch. See `docs/noodlestudio/llm-routing-service.md` for mockup.
+
+---
+
 ### Q5: Project Structure for Builds
 
 What does the user's project need to specify for building?
@@ -244,6 +260,14 @@ settings:
   window_size: [1280, 720]
   fullscreen: false
   resizable: true
+
+# LLM provider configuration
+llm:
+  default_provider: noodlings  # noodlings, ollama, anthropic, openai
+  allow_local: true            # Show "Local AI" option in first-run
+  allow_own_keys: true         # Show "Own API Keys" option
+  # If noodlings is default, app uses api.noodlings.ai/v1/chat/completions
+  # User signs in with Noodlings account, we bill their credits
 ```
 
 That's it. Simple. The stage contains everything - zones, noodlings, props. The stage IS the scene. No need to specify individual noodlings.

@@ -5,10 +5,14 @@ For use in the NoodleStudio runtime (standalone applications).
 Provides the interface expected by FacetExecutor.
 
 Supported providers:
+- noodlings: Noodlings cloud routing service (api.noodlings.ai)
 - ollama: Local Ollama server
-- anthropic: Anthropic Claude API
-- openai: OpenAI API
+- anthropic: Anthropic Claude API (direct, own key)
+- openai: OpenAI API (direct, own key)
 - openrouter: OpenRouter aggregated API
+
+The 'noodlings' provider is the recommended option for built applications.
+It routes through our cloud service, billing the user's Noodlings account.
 
 Author: Caitlyn + Claude
 Date: January 3, 2026
@@ -28,7 +32,7 @@ logger = logging.getLogger(__name__)
 class LLMConfig:
     """Configuration for headless LLM client."""
 
-    provider: str = "ollama"  # ollama, anthropic, openai, openrouter
+    provider: str = "ollama"  # noodlings, ollama, anthropic, openai, openrouter
     model: str = ""  # Model name (provider-specific)
     api_key: str = ""  # API key (from env or config)
     base_url: str = ""  # Custom base URL
@@ -44,7 +48,9 @@ class LLMConfig:
 
         # Set defaults based on provider
         if not self.base_url:
-            if self.provider == "ollama":
+            if self.provider == "noodlings":
+                self.base_url = "https://api.noodlings.ai/v1"
+            elif self.provider == "ollama":
                 self.base_url = "http://localhost:11434/v1"
             elif self.provider == "anthropic":
                 self.base_url = "https://api.anthropic.com/v1"
@@ -56,6 +62,7 @@ class LLMConfig:
         # Get API key from environment if not provided
         if not self.api_key:
             env_map = {
+                "noodlings": "NOODLINGS_API_KEY",  # User's Noodlings account token
                 "anthropic": "ANTHROPIC_API_KEY",
                 "openai": "OPENAI_API_KEY",
                 "openrouter": "OPENROUTER_API_KEY",
@@ -120,6 +127,7 @@ class HeadlessLLMClient:
     def _default_model(self) -> str:
         """Get default model for provider."""
         defaults = {
+            "noodlings": "anthropic/claude-3.5-sonnet",  # Our routing uses provider/model format
             "ollama": "llama3.2",
             "anthropic": "claude-3-5-sonnet-20241022",
             "openai": "gpt-4o-mini",
@@ -157,6 +165,11 @@ class HeadlessLLMClient:
         # Route to provider-specific implementation
         if self.config.provider == "anthropic":
             return await self._generate_anthropic(
+                prompt, system_prompt, resolved_model, temperature, max_tokens
+            )
+        elif self.config.provider == "noodlings":
+            # Noodlings cloud uses OpenAI-compatible format
+            return await self._generate_noodlings(
                 prompt, system_prompt, resolved_model, temperature, max_tokens
             )
         else:
@@ -288,6 +301,78 @@ class HeadlessLLMClient:
                     token_count = usage.get('input_tokens', 0) + usage.get('output_tokens', 0)
 
                     logger.debug(f"Anthropic response ({token_count} tokens): {response_text[:100]}...")
+
+                    return response_text, token_count
+
+            except aiohttp.ClientError as e:
+                logger.error(f"HTTP request failed: {e}")
+                raise
+
+    async def _generate_noodlings(
+        self,
+        prompt: str,
+        system_prompt: str,
+        model: str,
+        temperature: float,
+        max_tokens: int
+    ) -> Tuple[str, int]:
+        """
+        Generate using Noodlings cloud routing service.
+
+        Uses OpenAI-compatible format at api.noodlings.ai/v1/chat/completions.
+        Bills the user's Noodlings account via credits.
+        """
+        async with self._semaphore:
+            url = f"{self.config.base_url}/chat/completions"
+
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.config.api_key}",
+            }
+
+            # Use model format: provider/model-name (e.g., anthropic/claude-3.5-sonnet)
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "stream": False,  # Streaming not yet supported
+            }
+
+            logger.debug(f"Noodlings request to {model}: {prompt[:100]}...")
+
+            try:
+                async with self.session.post(
+                    url,
+                    json=payload,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=self.config.timeout)
+                ) as resp:
+                    if resp.status == 402:
+                        # Insufficient credits
+                        data = await resp.json()
+                        error_msg = data.get('error', {}).get('message', 'Insufficient credits')
+                        logger.error(f"Noodlings billing error: {error_msg}")
+                        raise Exception(f"Billing error: {error_msg}")
+
+                    if resp.status != 200:
+                        text = await resp.text()
+                        logger.error(f"Noodlings API error {resp.status}: {text}")
+                        raise Exception(f"Noodlings API error {resp.status}: {text}")
+
+                    data = await resp.json()
+
+                    # OpenAI-compatible response format
+                    response_text = data['choices'][0]['message']['content']
+                    token_count = data.get('usage', {}).get('total_tokens', 0)
+
+                    # Strip thinking tags if present
+                    response_text = self._strip_thinking_tags(response_text)
+
+                    logger.debug(f"Noodlings response ({token_count} tokens): {response_text[:100]}...")
 
                     return response_text, token_count
 

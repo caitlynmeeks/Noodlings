@@ -1,15 +1,87 @@
 # LLM Routing Service
 
-**Status**: Planning
+**Status**: Phase 2 COMPLETE - Deployed to Production
 **Last Updated**: January 3, 2026
 **Authors**: Caitlyn + Claude
 **Inspiration**: OpenRouter
 
 ---
 
+## Implementation Status
+
+| Phase | Status | Date |
+|-------|--------|------|
+| Phase 1: Core Routing (Anthropic) | COMPLETE | Jan 3, 2026 |
+| Phase 2: Admin Dashboard | Not Started | - |
+| Phase 3: Multi-Provider (OpenAI, Google) | Not Started | - |
+| Phase 4: Advanced (Rate limiting, Caching) | Not Started | - |
+
+### What's Live
+
+**Endpoint**: `https://api.noodlings.ai/v1/chat/completions`
+
+```bash
+# Example request
+curl -X POST https://api.noodlings.ai/v1/chat/completions \
+  -H "Authorization: Bearer <user_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "anthropic/claude-3.5-haiku",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "max_tokens": 100
+  }'
+```
+
+**Tested**: Jan 3, 2026
+- Authentication: Working
+- Credit checking: Working (402 when insufficient)
+- Anthropic routing: Working
+- Token counting: Working
+- Billing: Working (credits deducted correctly)
+- OpenAI-compatible response format: Working
+
+### Supported Models (Production)
+
+| Model ID | Input/1M | Output/1M |
+|----------|----------|-----------|
+| `anthropic/claude-opus-4-5` | $18.00 | $90.00 |
+| `anthropic/claude-sonnet-4` | $3.60 | $18.00 |
+| `anthropic/claude-3.5-sonnet` | $3.60 | $18.00 |
+| `anthropic/claude-3.5-haiku` | $0.96 | $4.80 |
+| `anthropic/claude-3-opus` | $18.00 | $90.00 |
+| `anthropic/claude-3-sonnet` | $3.60 | $18.00 |
+| `anthropic/claude-3-haiku` | $0.30 | $1.50 |
+
+All prices include 20% margin over provider cost.
+
+---
+
 ## Overview
 
 Instead of requiring users to configure their own API keys for built applications, Noodlings provides a unified LLM routing service. Built apps connect to `api.noodlings.ai`, we route to providers (Anthropic, OpenAI, etc.), and bill users with a small service fee.
+
+---
+
+## Architecture Decision: Parallel Systems
+
+**CRITICAL**: The new `/v1/chat/completions` endpoint is **completely separate** from the existing `/llm/*` routes.
+
+```
+EXISTING (DO NOT TOUCH):
+  /llm/generate         -> OpenRouter -> Providers
+  /llm/generate/stream  -> OpenRouter -> Providers
+  Used by: NoodleStudio internal operations (may be phased out later)
+
+NEW (for built apps):
+  /v1/chat/completions  -> Direct to Anthropic/OpenAI/Google
+  Used by: Built applications, external consumers
+```
+
+The existing `/llm/*` routes continue working exactly as they do now. They use OpenRouter as a convenience layer. The new `/v1/chat/completions` endpoint routes **directly** to providers using our API keys, giving us:
+- No OpenRouter middleman fees
+- Direct control over provider keys
+- Better error handling and rate limit management
+- Foundation for smart multi-provider routing
 
 ### Why This Model?
 
@@ -369,6 +441,87 @@ def process_request(user_id, model, input_tokens, output_tokens):
 
 ---
 
+## Runtime LLM Provider Architecture
+
+### The Three Paths
+
+Built applications (and the headless runtime) support three LLM provider paths:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Built Application                            │
+│                                                                 │
+│  LLM Provider Selection (user chooses one):                     │
+│                                                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
+│  │  noodlings  │  │    local    │  │  own_keys   │             │
+│  │   (cloud)   │  │  (ollama)   │  │  (byok)     │             │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘             │
+│         │                │                │                     │
+└─────────┼────────────────┼────────────────┼─────────────────────┘
+          │                │                │
+          v                v                v
+   api.noodlings.ai   localhost:11434   api.anthropic.com
+   /v1/chat/completions                 api.openai.com
+   (we bill user)     (free, local)     (user's keys)
+```
+
+| Provider | Description | API Key Needed | Billing |
+|----------|-------------|----------------|---------|
+| `noodlings` | Our cloud routing service | User's Noodlings account token | Credits deducted |
+| `ollama` / `lmstudio` | Local inference | None | Free |
+| `anthropic` / `openai` / etc. | Direct to provider | User provides own | User pays provider |
+
+### HeadlessLLMClient Configuration
+
+The `noodlestudio/runtime/llm_client.py` supports these providers:
+
+```python
+# Environment variables for runtime configuration
+NOODLE_LLM_PROVIDER=noodlings       # Use our cloud service
+NOODLE_LLM_PROVIDER=ollama          # Use local Ollama
+NOODLE_LLM_PROVIDER=anthropic       # Use own Anthropic key
+
+# For noodlings provider, also need:
+NOODLINGS_API_KEY=nood_xxxxx        # User's API key from account
+
+# For own keys:
+ANTHROPIC_API_KEY=sk-ant-xxxxx
+OPENAI_API_KEY=sk-xxxxx
+```
+
+### First-Run Experience
+
+Built apps using `noodlings` provider show a first-run dialog:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│                    Welcome to Red's World                       │
+│                                                                 │
+│  This app uses AI powered by Noodlings.                         │
+│                                                                 │
+│  Choose how to connect:                                         │
+│                                                                 │
+│  ○ Noodlings Cloud (Recommended)                                │
+│    Sign in with your Noodlings account                          │
+│    Uses your credit balance for AI requests                     │
+│    [Sign In] [Create Account]                                   │
+│                                                                 │
+│  ○ Local AI (Ollama)                                            │
+│    Free, runs on your computer                                  │
+│    Requires Ollama installed                                    │
+│    [Use Local AI]                                               │
+│                                                                 │
+│  ○ Own API Keys                                                 │
+│    Use your own Anthropic/OpenAI keys                           │
+│    [Configure Keys]                                             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Built App Integration
 
 ### How Built Apps Connect
@@ -724,8 +877,58 @@ Should some models require higher account tier?
 
 ---
 
+## Regression Testing
+
+### Manual Test Checklist
+
+Before deploying changes to `/v1/chat/completions`:
+
+```bash
+# 1. Models endpoint (no auth)
+curl -s https://api.noodlings.ai/v1/models | jq '.data | length'
+# Expected: 7 (or more as models are added)
+
+# 2. Auth required
+curl -s -X POST https://api.noodlings.ai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "anthropic/claude-3.5-haiku", "messages": []}' | jq '.error'
+# Expected: "Unauthorized" or similar
+
+# 3. Credit check (with auth, 0 credits)
+# Expected: 402 with "Insufficient credits"
+
+# 4. Successful completion (with auth, >0 credits)
+curl -s -X POST https://api.noodlings.ai/v1/chat/completions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "anthropic/claude-3.5-haiku", "messages": [{"role": "user", "content": "Say hi"}], "max_tokens": 10}' | jq '.choices[0].message.content'
+# Expected: Non-empty string response
+
+# 5. Credit deduction
+# Check balance before and after - should decrease
+```
+
+### Automated Tests (TODO)
+
+Need to add to `backend/noodlings-api/`:
+- `tests/v1.test.ts` - Unit tests for `/v1/*` routes
+- Mock Anthropic API responses
+- Test credit deduction logic
+- Test error handling (invalid model, provider errors)
+
+### Integration Tests
+
+For runtime `noodlings` provider:
+- `applications/noodlestudio/tests/test_noodlings_provider.py`
+- Test `HeadlessLLMClient` with `provider="noodlings"`
+- Mock API responses for offline testing
+
+---
+
 ## Revision History
 
 | Date | Changes |
 |------|---------|
 | 2026-01-03 | Initial planning document |
+| 2026-01-03 | Added Architecture Decision (parallel systems), Runtime LLM Provider Architecture |
+| 2026-01-03 | Phase 1 COMPLETE: Deployed `/v1/chat/completions` with Anthropic routing |

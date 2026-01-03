@@ -343,3 +343,85 @@ When adding new features:
 3. Add new fixtures to `conftest.py` if reusable
 4. Mark appropriately (`@pytest.mark.slow`, etc.)
 5. Run full suite before committing
+
+---
+
+## Backend API Testing
+
+The Cloudflare Workers backend (`backend/noodlings-api/`) also requires testing.
+
+### Current State
+
+Backend testing is currently **manual** via curl. Automated tests planned.
+
+### Manual Test Checklist
+
+See `docs/noodlestudio/llm-routing-service.md` for the `/v1/chat/completions` test checklist.
+
+### Planned: Automated Backend Tests
+
+```
+backend/noodlings-api/
+├── tests/
+│   ├── auth.test.ts      # OAuth, session management
+│   ├── credits.test.ts   # Credit transactions, Stripe webhooks
+│   ├── v1.test.ts        # LLM routing API
+│   └── admin.test.ts     # Admin dashboard API
+```
+
+**Framework**: Vitest (recommended for Cloudflare Workers)
+
+**Mock Strategy**:
+- Mock D1 database with in-memory SQLite
+- Mock external APIs (Anthropic, Stripe, OAuth providers)
+- Mock R2 storage
+
+### Runtime Provider Tests
+
+Test the `noodlings` provider in `HeadlessLLMClient`:
+
+```python
+# tests/test_noodlings_provider.py
+import pytest
+from unittest.mock import AsyncMock, patch
+
+@pytest.mark.asyncio
+async def test_noodlings_provider_success():
+    """Test successful call to Noodlings cloud API."""
+    from noodlestudio.runtime.llm_client import HeadlessLLMClient, LLMConfig
+
+    config = LLMConfig(
+        provider="noodlings",
+        api_key="test_token"
+    )
+    client = HeadlessLLMClient(config)
+
+    mock_response = {
+        "choices": [{"message": {"content": "Hello!"}}],
+        "usage": {"total_tokens": 10}
+    }
+
+    with patch.object(client, 'session') as mock_session:
+        mock_session.post.return_value.__aenter__.return_value.status = 200
+        mock_session.post.return_value.__aenter__.return_value.json = AsyncMock(return_value=mock_response)
+
+        result, tokens = await client.generate_with_tokens("Hi", model="anthropic/claude-3.5-haiku")
+
+        assert result == "Hello!"
+        assert tokens == 10
+
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_noodlings_provider_insufficient_credits():
+    """Test 402 response when user has insufficient credits."""
+    # ... test 402 handling
+```
+
+### CI Integration (TODO)
+
+Add to GitHub Actions:
+- Run NoodleStudio Python tests on PR
+- Run backend TypeScript tests on PR
+- Block merge if tests fail

@@ -67,6 +67,60 @@ npx wrangler pages deploy .svelte-kit/cloudflare --project-name=noodlings-admin 
 
 ---
 
+## COMPLETED: Phase 2 LLM Routing API (Jan 3, 2026)
+
+### What Was Done
+Created the direct-to-provider LLM routing endpoint for built applications.
+
+### Architecture Decision
+The new `/v1/chat/completions` is **completely separate** from existing `/llm/*` routes:
+- **Existing `/llm/*`**: Uses OpenRouter, unchanged, for NoodleStudio internal use
+- **New `/v1/*`**: Direct to providers (Anthropic first), for built apps
+
+### Backend Files Created/Modified
+| File | Description |
+|------|-------------|
+| `routes/v1.ts` | NEW - OpenAI-compatible `/v1/chat/completions` endpoint |
+| `types.ts` | Added `ANTHROPIC_API_KEY`, `DIRECT_MODEL_PRICING`, `MODEL_ID_MAP` |
+| `index.ts` | Wired up `/v1` route |
+| `wrangler.toml` | Documented new secrets |
+
+### Runtime Files Modified
+| File | Description |
+|------|-------------|
+| `runtime/llm_client.py` | Added `noodlings` provider for cloud routing |
+
+### Endpoint
+```bash
+POST https://api.noodlings.ai/v1/chat/completions
+Authorization: Bearer <user_token>
+
+{
+  "model": "anthropic/claude-3.5-sonnet",
+  "messages": [{"role": "user", "content": "Hello"}],
+  "max_tokens": 1024
+}
+```
+
+### Provider Options for Built Apps
+| Provider | Description | Config |
+|----------|-------------|--------|
+| `noodlings` | Our cloud service | `NOODLINGS_API_KEY` |
+| `ollama` | Local inference | Free, no key |
+| `anthropic` | Direct to Anthropic | User's own key |
+
+### Deployment Required
+```bash
+# Set the Anthropic API key secret
+wrangler secret put ANTHROPIC_API_KEY
+```
+
+### Documentation
+- `docs/noodlestudio/llm-routing-service.md` - Full specification
+- `docs/noodlestudio/build-system.md` - LLM config in build.yaml
+
+---
+
 ## COMPLETED: Phase 1 Runtime Foundation (Jan 3, 2026)
 
 ### What Was Done
@@ -124,7 +178,7 @@ print(result['response'])
 
 ---
 
-## NEXT SESSION: Build System + LLM Routing
+## NEXT SESSION: GUI Window + Build System
 
 **Planning documents** (all decisions finalized Jan 3, 2026):
 - `docs/noodlestudio/build-system.md` - Unity-style build system
@@ -149,19 +203,20 @@ print(result['response'])
 | **Margin** | 20% on LLM provider costs |
 | **Asset Revenue** | 70% creator / 30% Noodlings |
 
-### Implementation Order (Phase 1 COMPLETE)
-1. **Phase 1: Runtime Foundation** - DONE
+### Implementation Order
+1. **Phase 1: Runtime Foundation** - DONE (Jan 3)
    - Created `noodlestudio/runtime/` module
    - CLI working: `python -m noodlestudio.runtime`
    - Tested with `simple_echo.yaml` assembly
 
-2. **Phase 2: LLM Routing API**
-   - `/v1/chat/completions` endpoint on Cloudflare Workers
-   - Anthropic provider integration first
+2. **Phase 2: LLM Routing API** - DONE (Jan 3)
+   - `/v1/chat/completions` endpoint created
+   - Direct Anthropic provider integration
    - Token counting + billing (deduct credits)
-   - Usage logging
+   - `noodlings` provider added to runtime
+   - **DEPLOY REQUIRED**: `wrangler secret put ANTHROPIC_API_KEY`
 
-3. **Phase 3: GUI Window**
+3. **Phase 3: GUI Window** - NEXT
    - Add 3D viewport window to runtime
    - `--gui` flag for CLI
    - Chat overlay or panel
@@ -176,10 +231,31 @@ print(result['response'])
    - Designer panel in editor
    - Event wiring to noodlings
 
-6. **Phase 6: Admin Dashboard**
+6. **Phase 6: Admin Dashboard Extensions**
    - LLM routing management pages
    - Provider keys, pricing, analytics
    - Org management UI
+
+---
+
+## BACKLOG: Admin Dashboard - Issue Credits UI
+
+### The Goal
+Add a UI in the admin dashboard to issue/adjust credits for users without using curl.
+
+### Current State
+- API endpoint exists: `POST /admin/users/:id/credits`
+- Works via curl (tested Jan 3, 2026)
+- No UI in admin dashboard
+
+### Implementation
+- Add "Adjust Credits" button on user detail page
+- Modal with: amount (+/-), reason (required)
+- Show transaction history on user page
+- Confirmation before large adjustments (>1000 credits)
+
+### Files to Modify
+- `backend/admin-dashboard/src/routes/users/[id]/+page.svelte`
 
 ---
 
