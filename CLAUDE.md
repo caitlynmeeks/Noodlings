@@ -2,7 +2,7 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: January 2, 2026
+**Last Updated**: January 3, 2026
 
 **FOR NEXT CLAUDE: START HERE!**
 
@@ -67,11 +67,52 @@ npx wrangler pages deploy .svelte-kit/cloudflare --project-name=noodlings-admin 
 
 ---
 
-## NEXT SESSION: Pick from Backlog
+## NEXT SESSION: Build System + LLM Routing
 
-Suggested priorities:
-1. **Asset-Aware Inspector** - Show contextual info when selecting assets
-2. **Create test issues** - Add sample bug/crash/feature issues to test Release Health display
+**Planning documents**:
+- `docs/noodlestudio/build-system.md` - Unity-style build system
+- `docs/noodlestudio/ui-canvas.md` - Delphi-style UI designer
+- `docs/noodlestudio/llm-routing-service.md` - OpenRouter-style LLM routing
+
+### Three Major Features Planned
+
+#### 1. Build System (Unity-style)
+- "File > Build Application..." creates standalone .app
+- Bundle Python runtime via py2app
+- Package project assets (stages, noodlings, radiances)
+
+#### 2. UI Canvas (Delphi-style)
+- Visual drag-drop UI designer
+- Components: Panel, Button, Label, Input, ChatHistory, RadianceViewport
+- Anchor system for responsive layouts
+- Event wiring to noodlings (onClick -> send message)
+
+#### 3. LLM Routing Service (OpenRouter-style)
+- Built apps connect to `api.noodlings.ai`
+- We route to Anthropic/OpenAI using OUR keys
+- Bill users: provider cost + 20% margin
+- Admin dashboard manages pricing, keys, analytics
+
+### Build Modes
+| Mode | Description |
+|------|-------------|
+| **3D Only** | Full RadianceViewport (Unity-style) |
+| **2D Only** | UI Canvas with components (Delphi-style) |
+| **Hybrid** | UI layout with embedded 3D viewport |
+
+### Implementation Order
+1. Create `noodlestudio/runtime/` module (refactor from player.py)
+2. Get `python -m noodlestudio.runtime path/to/project` working
+3. LLM routing endpoint (`/v1/chat/completions`)
+4. UI component system (runtime renderer)
+5. Add GUI window (viewport + UI canvas rendering)
+6. UI Canvas designer panel in editor
+7. Build system: asset packaging + py2app bundling
+8. "File > Build Application..." menu item
+9. Admin dashboard: LLM routing management pages
+
+### Test Case
+Run `toy_claude_code.yaml` assembly headless as validation.
 
 ---
 
