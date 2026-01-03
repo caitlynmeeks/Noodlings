@@ -454,6 +454,231 @@ At scale, we could negotiate volume discounts with providers, increasing effecti
 
 ---
 
+## Institutional Accounts
+
+### Overview
+
+Organizations (schools, companies, labs) can manage billing for their members:
+- Org admin invites members (by email)
+- Org sets per-member monthly credit limits
+- Usage bills to org, not individual
+- Members toggle between personal/institutional billing
+- Org admin audits usage by member
+
+### User Experience
+
+**For Members:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Account > Billing                                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Billing Source:                                            │
+│  ○ Personal Credits (142 credits remaining)                │
+│  ● Stanford AI Lab (Institutional)                          │
+│     Monthly limit: 5,000 credits                            │
+│     Used this month: 1,234 credits                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**For Org Admins:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Stanford AI Lab > Members                         [Invite] │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Member              Limit     This Month    Status         │
+│  ─────────────────────────────────────────────────────────  │
+│  alice@stanford.edu  5,000     1,234         Active         │
+│  bob@stanford.edu    5,000     4,891         Near Limit     │
+│  carol@stanford.edu  10,000    2,100         Active         │
+│                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│  Total This Month: 8,225 credits ($82.25)                   │
+│                                                             │
+│  [Download Usage Report]                                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Database Schema
+
+```sql
+-- Organizations
+CREATE TABLE organizations (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,                -- "Stanford AI Lab"
+  billing_email TEXT NOT NULL,
+  stripe_customer_id TEXT,           -- For invoicing
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Org membership
+CREATE TABLE org_members (
+  id TEXT PRIMARY KEY,
+  org_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  role TEXT DEFAULT 'member',        -- 'admin' or 'member'
+  monthly_limit INTEGER DEFAULT 5000, -- Credits per month
+  invited_by TEXT,
+  joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (org_id) REFERENCES organizations(id),
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  UNIQUE(org_id, user_id)
+);
+
+-- Track which billing source user is using
+-- (stored in users table or session)
+ALTER TABLE users ADD COLUMN active_billing TEXT DEFAULT 'personal';
+-- 'personal' or org_id
+```
+
+### Billing Flow
+
+```python
+def get_billing_source(user_id):
+    user = get_user(user_id)
+
+    if user.active_billing == 'personal':
+        return {'type': 'personal', 'credits': user.credits}
+
+    # Institutional billing
+    org_id = user.active_billing
+    membership = get_org_membership(user_id, org_id)
+
+    if not membership:
+        # Org removed them, fall back to personal
+        return {'type': 'personal', 'credits': user.credits}
+
+    month_start = get_month_start()
+    used_this_month = get_user_org_usage(user_id, org_id, since=month_start)
+    remaining = membership.monthly_limit - used_this_month
+
+    return {
+        'type': 'institutional',
+        'org_id': org_id,
+        'org_name': membership.org.name,
+        'monthly_limit': membership.monthly_limit,
+        'remaining': remaining
+    }
+
+def process_request(user_id, model, tokens):
+    billing = get_billing_source(user_id)
+    cost = calculate_cost(model, tokens)
+
+    if billing['type'] == 'personal':
+        deduct_credits(user_id, cost)
+    else:
+        # Log to org, check limit
+        if cost > billing['remaining']:
+            raise InsufficientCreditsError("Monthly institutional limit reached")
+        log_org_usage(user_id, billing['org_id'], cost)
+```
+
+### Admin Dashboard Pages
+
+**Organizations List** (super-admin view):
+- List all orgs
+- Total members, monthly spend
+- Create new org
+
+**Org Detail** (org admin view):
+- Member list with usage
+- Invite members
+- Set per-member limits
+- Download usage CSV
+- Billing settings (payment method, invoices)
+
+### Invite Flow
+
+1. Org admin enters email
+2. System sends invite email with link
+3. User clicks link:
+   - If existing account: Add to org
+   - If new: Create account, add to org
+4. User can now switch billing source to org
+
+### Audit/Reporting
+
+Org admins can:
+- View real-time usage by member
+- Download CSV reports (date range, by member, by model)
+- Set up usage alerts (email when member hits 80% of limit)
+
+### Implementation Priority
+
+| Feature | Priority | Notes |
+|---------|----------|-------|
+| Org creation | P1 | Manual via admin dashboard first |
+| Member management | P1 | Invite, remove, set limits |
+| Billing source toggle | P1 | Users switch personal/org |
+| Usage tracking by org | P1 | Required for billing |
+| Usage reports/CSV | P2 | Audit requirement |
+| Stripe invoicing | P2 | Start with prepaid credits |
+| Usage alerts | P3 | Nice to have |
+
+---
+
+## Unified Credits Economy
+
+### One Currency, Multiple Uses
+
+The credits system powers everything:
+
+| Use Case | How Credits Work |
+|----------|------------------|
+| **LLM Routing** | Deducted per request (token-based) |
+| **Asset Store** | Purchase noodlings, stages, radiances |
+| **Premium Features** | Unlock advanced capabilities |
+
+### Asset Store Integration
+
+Same `credits` and `credit_transactions` tables:
+
+```sql
+-- Asset Store purchases use same credits
+INSERT INTO credit_transactions (user_id, amount, type, description)
+VALUES ('user123', -500, 'asset_purchase', 'Red Fire Anklebiter by @caitlyn');
+
+-- Creators earn credits (revenue share)
+INSERT INTO credit_transactions (user_id, amount, type, description)
+VALUES ('creator456', 350, 'asset_sale', 'Red Fire Anklebiter sold to @user123');
+```
+
+### Institutional + Asset Store
+
+Orgs can control asset purchases too:
+- "Members can purchase assets up to 100 credits each"
+- "All purchases require admin approval"
+- "Block marketplace entirely (internal assets only)"
+
+```sql
+ALTER TABLE org_members ADD COLUMN asset_purchase_limit INTEGER DEFAULT 0;
+-- 0 = no limit, >0 = max per purchase, -1 = blocked
+```
+
+### Revenue Flow
+
+```
+User buys asset (500 credits)
+       │
+       ├── Creator gets 70% (350 credits)
+       ├── Noodlings gets 30% (150 credits)
+       │
+       └── If institutional billing:
+           └── Charged to org's account
+```
+
+### Creator Payouts
+
+Creators accumulate credits from sales:
+- Can use credits for their own LLM usage
+- Can request payout (credits → USD via Stripe)
+- Min payout threshold: 1000 credits ($10)
+
+---
+
 ## Questions to Resolve
 
 ### Q1: Prepaid vs Usage-Based?
