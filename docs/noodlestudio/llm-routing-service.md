@@ -653,6 +653,25 @@ Orgs can control asset purchases too:
 - "All purchases require admin approval"
 - "Block marketplace entirely (internal assets only)"
 
+**Org-Owned Assets**: Assets purchased with org billing belong to the org, shared with all members:
+
+```sql
+-- Assets can belong to user OR org
+ALTER TABLE asset_purchases ADD COLUMN owner_type TEXT DEFAULT 'user';
+-- 'user' or 'org'
+ALTER TABLE asset_purchases ADD COLUMN owner_id TEXT NOT NULL;
+-- user_id or org_id depending on owner_type
+
+-- Check if user has access to asset
+-- True if: they bought it personally OR their org bought it
+```
+
+**Institutional Licensing** (future consideration):
+- Some assets may have "institutional license" option
+- Higher price, but shared across all org members
+- vs. personal license per user
+- Creator sets whether institutional license is available
+
 ```sql
 ALTER TABLE org_members ADD COLUMN asset_purchase_limit INTEGER DEFAULT 0;
 -- 0 = no limit, >0 = max per purchase, -1 = blocked
