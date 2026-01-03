@@ -395,19 +395,19 @@ settings:
 | **Custom OpenGL** | Full control | Lots of work |
 | **Web (Electron)** | HTML/CSS familiar | Heavy runtime |
 
-**Current thinking**: Qt Widgets for v1 (we know it), consider QML later.
+**Decision**: **Qt Widgets** for v1 (already using, well-understood). Consider QML later if needed.
 
 ### Q2: Live Preview?
 
 Should the designer show live noodling responses while editing?
 
-**Current thinking**: No for v1. Design is static, test via Play button.
+**Decision**: No for v1. Design is static, test via Play button.
 
 ### Q3: Relation to Neural Canvas?
 
 The Neural Canvas already has a node editor. Should UI Canvas share that infrastructure?
 
-**Current thinking**: Different tools. Neural Canvas = data flow graphs. UI Canvas = spatial layout. Different interaction patterns.
+**Decision**: Different tools. Neural Canvas = data flow graphs. UI Canvas = spatial layout. Different interaction patterns.
 
 ---
 

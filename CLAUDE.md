@@ -69,50 +69,60 @@ npx wrangler pages deploy .svelte-kit/cloudflare --project-name=noodlings-admin 
 
 ## NEXT SESSION: Build System + LLM Routing
 
-**Planning documents**:
+**Planning documents** (all decisions finalized Jan 3, 2026):
 - `docs/noodlestudio/build-system.md` - Unity-style build system
 - `docs/noodlestudio/ui-canvas.md` - Delphi-style UI designer
 - `docs/noodlestudio/llm-routing-service.md` - OpenRouter-style LLM routing
 
-### Three Major Features Planned
+### Design Decisions Summary
 
-#### 1. Build System (Unity-style)
-- "File > Build Application..." creates standalone .app
-- Bundle Python runtime via py2app
-- Package project assets (stages, noodlings, radiances)
-
-#### 2. UI Canvas (Delphi-style)
-- Visual drag-drop UI designer
-- Components: Panel, Button, Label, Input, ChatHistory, RadianceViewport
-- Anchor system for responsive layouts
-- Event wiring to noodlings (onClick -> send message)
-
-#### 3. LLM Routing Service (OpenRouter-style)
-- Built apps connect to `api.noodlings.ai`
-- We route to Anthropic/OpenAI using OUR keys
-- Bill users: provider cost + 20% margin
-- Admin dashboard manages pricing, keys, analytics
-
-### Build Modes
-| Mode | Description |
-|------|-------------|
-| **3D Only** | Full RadianceViewport (Unity-style) |
-| **2D Only** | UI Canvas with components (Delphi-style) |
-| **Hybrid** | UI layout with embedded 3D viewport |
+| Area | Decision |
+|------|----------|
+| **Runtime UI** | Full 3D viewport default, headless as build option |
+| **Server** | No server for standalone (direct execution); embedded for multiplayer |
+| **Build Target** | macOS .app first (py2app), then Windows/Linux |
+| **Packaging** | Bundle Python runtime, CharmNetwork weights; MLX on demand |
+| **Config** | Simple `build.yaml` with `main_stage` reference |
+| **UI Technology** | Qt Widgets for v1 |
+| **Billing** | Prepaid credits with auto-topup (Anthropic-style) |
+| **Free Tier** | 1000 credits ($10) on signup |
+| **Model Tiers** | None for v1 - all models available |
+| **Org Creation** | Self-service (users create their own orgs) |
+| **API Key Format** | `nood_` prefix + 32 random chars |
+| **Margin** | 20% on LLM provider costs |
+| **Asset Revenue** | 70% creator / 30% Noodlings |
 
 ### Implementation Order
-1. Create `noodlestudio/runtime/` module (refactor from player.py)
-2. Get `python -m noodlestudio.runtime path/to/project` working
-3. LLM routing endpoint (`/v1/chat/completions`)
-4. UI component system (runtime renderer)
-5. Add GUI window (viewport + UI canvas rendering)
-6. UI Canvas designer panel in editor
-7. Build system: asset packaging + py2app bundling
-8. "File > Build Application..." menu item
-9. Admin dashboard: LLM routing management pages
+1. **Phase 1: Runtime Foundation**
+   - Create `noodlestudio/runtime/` module (refactor from player.py)
+   - Get `python -m noodlestudio.runtime path/to/project` working
+   - Test: Run `toy_claude_code.yaml` assembly headless
 
-### Test Case
-Run `toy_claude_code.yaml` assembly headless as validation.
+2. **Phase 2: LLM Routing API**
+   - `/v1/chat/completions` endpoint on Cloudflare Workers
+   - Anthropic provider integration first
+   - Token counting + billing (deduct credits)
+   - Usage logging
+
+3. **Phase 3: GUI Window**
+   - Add 3D viewport window to runtime
+   - `--gui` flag for CLI
+   - Chat overlay or panel
+
+4. **Phase 4: Build System**
+   - Asset packaging (copy/filter project files)
+   - macOS .app bundler (py2app)
+   - "File > Build Application..." menu item
+
+5. **Phase 5: UI Canvas** (later)
+   - UI component runtime renderer
+   - Designer panel in editor
+   - Event wiring to noodlings
+
+6. **Phase 6: Admin Dashboard**
+   - LLM routing management pages
+   - Provider keys, pricing, analytics
+   - Org management UI
 
 ---
 

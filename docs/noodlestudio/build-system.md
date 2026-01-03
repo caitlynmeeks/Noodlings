@@ -79,7 +79,7 @@ Unity's player IS the 3D viewport - that's the whole point. The game runs in a w
 
 The headless option is for server deployments, but the PRIMARY build target should be visual.
 
-**Decision**: _TBD_
+**Decision**: **C (Full 3D viewport)** as default, with headless as a build option.
 
 ---
 
@@ -108,7 +108,7 @@ Build options:
 - **Standalone App**: Direct execution, no server (default)
 - **Multiplayer/Web**: Embedded server + web client files
 
-**Decision**: _TBD_
+**Decision**: **D (No server, direct execution)** for standalone; **A (Embedded)** for multiplayer builds.
 
 ---
 
@@ -137,7 +137,7 @@ Unity's approach:
 
 We should mirror this. The build dialog shows target options, user picks one, we build for that.
 
-**Decision**: _TBD_
+**Decision**: **macOS .app first**, then Windows/Linux/Docker incrementally.
 
 ---
 
@@ -188,7 +188,7 @@ A built application needs:
 
 The built app should have a first-run experience: "Enter your Anthropic API key to enable cloud AI" with option to skip (use local Ollama only).
 
-**Decision**: _TBD_
+**Decision**: **py2app** for macOS, **PyInstaller** for cross-platform. Bundle Python runtime. CharmNetwork always included. MLX models download on demand.
 
 ---
 
@@ -250,7 +250,7 @@ That's it. Simple. The stage contains everything - zones, noodlings, props. The 
 
 If someone wants a "single noodling chat app" (no 3D), that's just a stage with one noodling and no radiances - the renderer auto-excludes itself.
 
-**Decision**: _TBD_
+**Decision**: Simple `build.yaml` with `main_stage` reference. Stage contains everything.
 
 ---
 

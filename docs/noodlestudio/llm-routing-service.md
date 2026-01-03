@@ -610,7 +610,7 @@ Org admins can:
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| Org creation | P1 | Manual via admin dashboard first |
+| Org creation | P1 | **Self-service** - users create their own orgs |
 | Member management | P1 | Invite, remove, set limits |
 | Billing source toggle | P1 | Users switch personal/org |
 | Usage tracking by org | P1 | Required for billing |
@@ -708,19 +708,19 @@ Creators accumulate credits from sales:
 | **Usage-based billing** | Pay-as-you-go | Need Stripe subscriptions |
 | **Hybrid** | Flexibility | More complex |
 
-**Current thinking**: Start with prepaid credits (already have this). Add usage-based later.
+**Decision**: **Prepaid with auto-topup** (like Anthropic Console). Users set a threshold, card charged automatically when credits run low.
 
 ### Q2: Free Tier?
 
 Should new users get free credits to try?
 
-**Current thinking**: Yes. 1000 free credits ($10 worth) on signup. Good for demos.
+**Decision**: Yes. **1000 free credits** ($10 worth) on signup. Good for demos.
 
 ### Q3: Model Access Tiers?
 
 Should some models require higher account tier?
 
-**Current thinking**: No tiers for v1. All models available to all users. Revisit if needed.
+**Decision**: No tiers for v1. All models available to all users. Revisit if needed.
 
 ---
 
