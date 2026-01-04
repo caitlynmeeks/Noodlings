@@ -224,8 +224,10 @@ class TestRadianceViewport:
 
         vp = RadianceViewport(name="main")
         assert vp.component_type == "RadianceViewport"
-        assert vp.stage is None
         assert vp.interactive is True
+        assert vp.background == "#000000"
+        # RadianceViewport is a focused renderer - it doesn't know about stages
+        # Content is added via set_component(), add_component(), or load_file()
 
     def test_viewport_camera_config(self):
         """Test RadianceViewport camera configuration."""

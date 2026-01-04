@@ -1,6 +1,6 @@
 # UI Canvas System
 
-**Status**: Implementation Phase 3b Complete
+**Status**: Implementation Phase 3c Complete
 **Last Updated**: January 3, 2026
 **Authors**: Caitlyn + Claude
 **Inspiration**: Borland Delphi Form Designer
@@ -378,15 +378,21 @@ settings:
 - [x] `send_to_noodling` action with chat_history integration
 - [x] Message roles: USER, NOODLING, SYSTEM
 
-### Phase 3c: RadianceViewport - NEXT
-- [ ] Embed GaussianRenderer in RadianceViewportWidget
-- [ ] Camera controls (orbit, pan, zoom)
-- [ ] Stage loading integration
-- [ ] Noodling rendering
+### Phase 3c: RadianceViewport - COMPLETE (Jan 3, 2026)
+- [x] Embed GaussianRenderer in RadianceViewportWidget
+- [x] Camera controls (orbit, pan, zoom)
+- [x] Multi-component scene rendering via RadianceSceneBuilder
+- [x] Clean API: `set_component()`, `add_component()`, `load_file()`
+- [x] Semantic query passthrough: `raycast()`, `query_at_world_position()`
+- [x] Focus controls: `set_camera()`, `focus_on()`, `frame_all()`
 
-### Phase 3d: Event Wiring Extensions
+**Design Principle**: The viewport is a **focused renderer only**. It renders
+RadianceComponents. It doesn't know what a "noodling" or "prop" is. Whatever
+system needs to display Gaussians creates RadianceComponents and sends them
+to the viewport. Separation of concerns.
+
+### Phase 3d: Event Wiring Extensions - NEXT
 - [ ] `call_script` action
-- [ ] `set_value`, `show`, `hide`, `toggle_visible` actions
 - [ ] Component value binding
 
 ### Phase 4: Designer Panel (Future)
@@ -488,3 +494,4 @@ A "3D game" is just this default. Not a special case - just a canvas with one fu
 | 2026-01-03 | Architecture decisions finalized: Qt Widgets v1 with abstraction layer, renderer-agnostic ui.yaml contract |
 | 2026-01-03 | Phase 3a COMPLETE: Canvas infrastructure, base components, anchor system |
 | 2026-01-03 | Phase 3b COMPLETE: ChatHistory, ChatInput, UIEventDispatcher, send_to_noodling action |
+| 2026-01-03 | Phase 3c COMPLETE: RadianceViewport - focused Gaussian renderer with clean API |

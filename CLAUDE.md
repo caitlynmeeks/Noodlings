@@ -112,6 +112,54 @@ PYTHONPATH=.:../.. python3 noodlestudio/runtime/ui/test_chat_demo.py
 
 ---
 
+## COMPLETED: Phase 3c RadianceViewport (Jan 3, 2026)
+
+### What Was Done
+Implemented the RadianceViewport as a **focused Gaussian renderer**.
+
+### Design Principle
+The viewport ONLY renders RadianceComponents. It doesn't know what a "noodling"
+or "prop" is. Whatever system needs to display Gaussians creates RadianceComponents
+and sends them here. Clean separation of concerns.
+
+### Public API
+```python
+# Content Management
+viewport.set_component(component)  # Set single RadianceComponent
+viewport.add_component(component)  # Add to multi-component scene
+viewport.remove_component(id)      # Remove by entity ID
+viewport.clear()                   # Clear all
+viewport.load_file(path, id)       # Load .radiance/.ply directly
+
+# Scene Info
+viewport.get_stats()               # {component_count, total_gaussians}
+viewport.get_component(id)         # Get component by ID
+
+# Camera
+viewport.set_camera(distance, elevation, azimuth, target, fov)
+viewport.focus_on(position, distance)
+viewport.frame_all()
+
+# Semantic Queries
+viewport.raycast(screen_x, screen_y)  # Hit test at screen position
+viewport.query_at_world_position(pos, radius)  # Find Gaussians near point
+```
+
+### Signals
+- `componentLoaded(entity_id, gaussian_count)` - When component is added
+- `renderComplete(info)` - After each render with stats
+
+### Demo
+```bash
+cd applications/noodlestudio
+PYTHONPATH=.:../.. python3 noodlestudio/runtime/ui/test_stage_demo.py
+```
+
+### Documentation
+- `docs/noodlestudio/ui-canvas.md` - Updated with Phase 3c
+
+---
+
 ## COMPLETED: Admin Dashboard Deployed to Production (Jan 2, 2026)
 
 ### Live URLs
@@ -282,7 +330,7 @@ print(result['response'])
 
 ---
 
-## NEXT SESSION: GUI Window + Build System
+## NEXT SESSION: Event Wiring + Build System
 
 **Planning documents** (all decisions finalized Jan 3, 2026):
 - `docs/noodlestudio/build-system.md` - Unity-style build system
@@ -338,21 +386,28 @@ print(result['response'])
    - Message roles: USER, NOODLING, SYSTEM
    - Demo: `python3 noodlestudio/runtime/ui/test_chat_demo.py`
 
-5. **Phase 3c: RadianceViewport** - NEXT
-   - Embed GaussianRenderer in RadianceViewportWidget
-   - Camera controls (orbit, pan, zoom)
-   - Stage loading integration
+5. **Phase 3c: RadianceViewport** - DONE (Jan 3)
+   - Focused renderer: `set_component()`, `add_component()`, `load_file()`
+   - Camera controls (orbit, pan, zoom, focus_on, frame_all)
+   - Multi-component scene rendering via RadianceSceneBuilder
+   - Semantic query passthrough: `raycast()`, `query_at_world_position()`
+   - Clean design: viewport doesn't know about noodlings/stages/recipes
+   - Demo: `python3 noodlestudio/runtime/ui/test_stage_demo.py`
 
-6. **Phase 4: Build System**
+6. **Phase 3d: Event Wiring Extensions** - NEXT
+   - `call_script` action
+   - Component value binding
+
+8. **Phase 4: Build System**
    - Asset packaging (copy/filter project files)
    - macOS .app bundler (py2app)
    - "File > Build Application..." menu item
 
-6. **Phase 5: UI Canvas Designer** (later)
+9. **Phase 5: UI Canvas Designer** (later)
    - Designer panel in editor
    - Drag-drop component palette
 
-7. **Phase 6: Admin Dashboard Extensions**
+10. **Phase 6: Admin Dashboard Extensions**
    - LLM routing management pages
    - Provider keys, pricing, analytics
    - Org management UI
