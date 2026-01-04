@@ -105,20 +105,14 @@ class RadianceViewport(UIComponent):
         """Deserialize from dictionary."""
         viewport = cls(name=data.get("name", ""))
 
-        # Base properties
-        viewport.geometry.x = data.get("x", 0)
-        viewport.geometry.y = data.get("y", 0)
+        # Apply base properties (geometry, anchors, events, bindings)
+        viewport._apply_base_properties(data)
+
+        # Override geometry defaults for viewport
         viewport.geometry.width = data.get("width", 512)
         viewport.geometry.height = data.get("height", 512)
 
-        if "anchors" in data:
-            from ..component import Anchors
-            viewport.anchors = Anchors.from_list(data["anchors"])
-
-        viewport.visible = data.get("visible", True)
-        viewport.enabled = data.get("enabled", True)
-
-        # RadianceViewport-specific
+        # RadianceViewport-specific properties
         if "camera" in data:
             viewport.camera = CameraConfig.from_dict(data["camera"])
         viewport.background = data.get("background", "#000000")

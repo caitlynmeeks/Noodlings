@@ -86,20 +86,25 @@ class EventBinding:
 
     Actions:
     - send_to_noodling: Send message to a noodling
-    - call_script: Execute a script function
+    - call_script: Execute inline JavaScript or script file
     - set_value: Set another component's value
+    - show/hide/toggle_visible: Control component visibility
 
     Attributes:
         action: The action type to perform
         target: Target name (noodling, script, or component)
         message_source: Component to get message text from
         chat_history: Component name for chat history display (for send_to_noodling)
+        script: Inline JavaScript code (for call_script action)
+        script_file: Path to JavaScript file (for call_script action)
         params: Additional parameters
     """
     action: str
     target: Optional[str] = None
     message_source: Optional[str] = None
     chat_history: Optional[str] = None
+    script: Optional[str] = None
+    script_file: Optional[str] = None
     params: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -127,6 +132,10 @@ class UIComponent:
 
         # Event bindings: event_name -> EventBinding
         self.events: Dict[str, EventBinding] = {}
+
+        # Property bindings: target_property -> source_expression
+        # e.g., {"text": "input.value", "visible": "checkbox.checked"}
+        self.bindings: Dict[str, str] = {}
 
         # Runtime callbacks (set by renderer)
         self._event_callbacks: Dict[str, List[Callable]] = {}
@@ -222,10 +231,16 @@ class UIComponent:
                     **({"target": binding.target} if binding.target else {}),
                     **({"message_source": binding.message_source} if binding.message_source else {}),
                     **({"chat_history": binding.chat_history} if binding.chat_history else {}),
+                    **({"script": binding.script} if binding.script else {}),
+                    **({"script_file": binding.script_file} if binding.script_file else {}),
                     **({"params": binding.params} if binding.params else {}),
                 }
                 for name, binding in self.events.items()
             }
+
+        # Property bindings
+        if self.bindings:
+            data["bindings"] = self.bindings.copy()
 
         # Children
         if self.children:
@@ -266,8 +281,14 @@ class UIComponent:
                     target=event_data.get("target"),
                     message_source=event_data.get("message_source"),
                     chat_history=event_data.get("chat_history"),
+                    script=event_data.get("script"),
+                    script_file=event_data.get("script_file"),
                     params=event_data.get("params", {}),
                 )
+
+        # Property bindings
+        if "bindings" in data:
+            self.bindings = data["bindings"].copy()
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UIComponent':

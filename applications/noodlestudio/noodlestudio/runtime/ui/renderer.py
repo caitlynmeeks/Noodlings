@@ -58,6 +58,16 @@ class QtWidgetRenderer:
         # Event dispatcher callback
         self._event_dispatcher: Optional[Callable] = None
 
+        # Binding manager (lazy-initialized)
+        self._binding_manager: Optional['BindingManager'] = None
+
+    def _get_binding_manager(self) -> 'BindingManager':
+        """Get or create the binding manager."""
+        if self._binding_manager is None:
+            from .bindings import BindingManager
+            self._binding_manager = BindingManager(self)
+        return self._binding_manager
+
     def set_event_dispatcher(self, dispatcher: Callable) -> None:
         """
         Set the callback for handling UI events.
@@ -79,7 +89,40 @@ class QtWidgetRenderer:
             Root QWidget
         """
         widget = self._render_component(component, parent)
+
+        # Set up bindings after all components are rendered
+        self._setup_bindings(component)
+
+        # Evaluate all bindings to set initial values
+        if self._binding_manager:
+            self._binding_manager.evaluate_all()
+
         return widget
+
+    def _setup_bindings(self, component: UIComponent) -> None:
+        """Set up bindings for a component and its children."""
+        # Add component's bindings to the manager
+        if component.bindings and component.name:
+            manager = self._get_binding_manager()
+            for target_property, source_expression in component.bindings.items():
+                manager.add_binding(
+                    target_component=component.name,
+                    target_property=target_property,
+                    source_expression=source_expression
+                )
+
+        # Recurse to children
+        for child in component.children:
+            self._setup_bindings(child)
+
+    def notify_binding_change(self, component_name: str, property_name: str = 'value') -> None:
+        """
+        Notify the binding manager of a value change.
+
+        Call this when a component's value changes to update any bound targets.
+        """
+        if self._binding_manager:
+            self._binding_manager.notify_change(component_name, property_name)
 
     def _render_component(self, component: UIComponent, parent: Optional[QWidget]) -> QWidget:
         """Render a single component based on its type."""
@@ -275,12 +318,10 @@ class QtWidgetRenderer:
         """
         line_edit.setStyleSheet(style)
 
-        # Connect events
-        if "onChange" in component.events and self._event_dispatcher:
-            binding = component.events["onChange"]
-            line_edit.textChanged.connect(
-                lambda text: self._handle_text_change(component, text, binding)
-            )
+        # Connect events - always track text changes for bindings
+        line_edit.textChanged.connect(
+            lambda text: self._handle_text_input_change(component, text)
+        )
 
         if "onSubmit" in component.events and self._event_dispatcher:
             binding = component.events["onSubmit"]
@@ -290,10 +331,17 @@ class QtWidgetRenderer:
 
         return line_edit
 
-    def _handle_text_change(self, component: 'TextInput', text: str, binding) -> None:
-        """Handle text input changes."""
+    def _handle_text_input_change(self, component: 'TextInput', text: str) -> None:
+        """Handle text input changes (for bindings and events)."""
         component.value = text  # Update component state
-        if self._event_dispatcher:
+
+        # Notify binding manager
+        if component.name:
+            self.notify_binding_change(component.name, 'value')
+
+        # Fire onChange event if configured
+        if "onChange" in component.events and self._event_dispatcher:
+            binding = component.events["onChange"]
             self._event_dispatcher("onChange", component, binding)
 
     def _render_radiance_viewport(self, component: 'RadianceViewport', parent: Optional[QWidget]) -> QWidget:
@@ -790,6 +838,10 @@ class ChatInputWidget(QFrame):
     def _on_text_change(self, text: str) -> None:
         """Handle text changes."""
         self.component.value = text
+
+        # Notify binding manager
+        if self.component.name:
+            self.renderer.notify_binding_change(self.component.name, 'value')
 
         # Fire event through dispatcher
         if "onChange" in self.component.events and self.renderer._event_dispatcher:

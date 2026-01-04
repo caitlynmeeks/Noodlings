@@ -1,6 +1,6 @@
 # UI Canvas System
 
-**Status**: Implementation Phase 3c Complete
+**Status**: Implementation Phase 3d Complete
 **Last Updated**: January 3, 2026
 **Authors**: Caitlyn + Claude
 **Inspiration**: Borland Delphi Form Designer
@@ -198,6 +198,62 @@ Button:
       script: "on_generate_clicked"
 ```
 
+### Inline Scripts
+
+For simple logic, embed JavaScript directly in the event binding:
+
+```yaml
+Button:
+  name: "toggleButton"
+  text: "Toggle"
+  events:
+    onClick:
+      action: "call_script"
+      script: |
+        let panel = ui.get('detailsPanel');
+        if (panel.visible) {
+          ui.hide('detailsPanel');
+        } else {
+          ui.show('detailsPanel');
+        }
+```
+
+Or reference an external script file:
+
+```yaml
+Button:
+  name: "processButton"
+  text: "Process"
+  events:
+    onClick:
+      action: "call_script"
+      script_file: "scripts/process_handler.js"
+```
+
+### Script API
+
+Scripts executed via `call_script` have access to these APIs:
+
+| Object | Methods | Description |
+|--------|---------|-------------|
+| `ui` | `get(name)`, `set(name, prop, value)` | Component access |
+| `ui` | `show(name)`, `hide(name)` | Visibility control |
+| `event` | `source`, `type`, `value` | Event context |
+| `console` | `log()`, `warn()`, `error()` | Debug output |
+
+Example:
+
+```javascript
+// Get the value from an input field
+let inputValue = ui.get('questionInput').value;
+
+// Set a label's text
+ui.set('statusLabel', 'text', 'Processing...');
+
+// Access event info
+console.log('Event from:', event.source, 'Type:', event.type);
+```
+
 ### Event Types
 
 | Event | Triggers When |
@@ -210,6 +266,68 @@ Button:
 | `onBlur` | Component loses focus |
 | `onHover` | Mouse enters component |
 | `onLeave` | Mouse leaves component |
+
+---
+
+## Component Value Binding
+
+Bind component properties together for reactive updates (like Delphi's data binding):
+
+```yaml
+Label:
+  name: "charCountLabel"
+  text: "0 characters"
+  bindings:
+    text: "messageInput.value.length + ' characters'"
+
+TextInput:
+  name: "messageInput"
+  placeholder: "Type a message..."
+```
+
+When `messageInput.value` changes, `charCountLabel.text` automatically updates.
+
+### Binding Expressions
+
+Bindings are JavaScript expressions that reference other components:
+
+```yaml
+# Simple property reference
+bindings:
+  text: "sourceComponent.value"
+
+# Computed value
+bindings:
+  text: "userInput.value.toUpperCase()"
+
+# Conditional
+bindings:
+  visible: "statusInput.value.length > 0"
+
+# Arithmetic
+bindings:
+  width: "containerPanel.width * 0.5"
+```
+
+### Binding Manager
+
+The runtime's `BindingManager` tracks dependencies and updates targets when sources change:
+
+```python
+from noodlestudio.runtime.ui import BindingManager
+
+manager = BindingManager()
+manager.add_binding(
+    target_component="charCountLabel",
+    target_property="text",
+    expression="messageInput.value.length + ' characters'",
+    source_components=["messageInput"]
+)
+
+# Called when messageInput changes
+manager.notify_change("messageInput", "value", "Hello")
+# charCountLabel.text is now "5 characters"
+```
 
 ---
 
@@ -391,9 +509,12 @@ RadianceComponents. It doesn't know what a "noodling" or "prop" is. Whatever
 system needs to display Gaussians creates RadianceComponents and sends them
 to the viewport. Separation of concerns.
 
-### Phase 3d: Event Wiring Extensions - NEXT
-- [ ] `call_script` action
-- [ ] Component value binding
+### Phase 3d: Event Wiring Extensions - COMPLETE (Jan 3, 2026)
+- [x] `call_script` action with inline scripts and external script files
+- [x] `UIScriptExecutor` - lightweight JavaScript sandbox (QuickJS) for UI events
+- [x] Component value binding system (`BindingManager`)
+- [x] Script API: `ui.get()`, `ui.set()`, `ui.show()`, `ui.hide()`, `event`, `console`
+- [x] Binding expressions with automatic dependency tracking
 
 ### Phase 4: Designer Panel (Future)
 - [ ] New panel: UI Canvas Editor
@@ -495,3 +616,4 @@ A "3D game" is just this default. Not a special case - just a canvas with one fu
 | 2026-01-03 | Phase 3a COMPLETE: Canvas infrastructure, base components, anchor system |
 | 2026-01-03 | Phase 3b COMPLETE: ChatHistory, ChatInput, UIEventDispatcher, send_to_noodling action |
 | 2026-01-03 | Phase 3c COMPLETE: RadianceViewport - focused Gaussian renderer with clean API |
+| 2026-01-03 | Phase 3d COMPLETE: call_script action, UIScriptExecutor, component value bindings |

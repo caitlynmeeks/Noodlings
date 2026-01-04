@@ -47,20 +47,14 @@ class Panel(UIComponent):
         """Deserialize from dictionary."""
         panel = cls(name=data.get("name", ""))
 
-        # Base properties
-        panel.geometry.x = data.get("x", 0)
-        panel.geometry.y = data.get("y", 0)
+        # Apply base properties (geometry, anchors, events, bindings)
+        panel._apply_base_properties(data)
+
+        # Override geometry defaults for panels
         panel.geometry.width = data.get("width", 100)
         panel.geometry.height = data.get("height", 100)
 
-        if "anchors" in data:
-            from ..component import Anchors
-            panel.anchors = Anchors.from_list(data["anchors"])
-
-        panel.visible = data.get("visible", True)
-        panel.enabled = data.get("enabled", True)
-
-        # Panel-specific
+        # Panel-specific properties
         panel.background = data.get("background", "#2a2a2a")
         panel.border_color = data.get("border_color")
         panel.border_width = data.get("border_width", 0)

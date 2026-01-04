@@ -52,6 +52,12 @@ from .renderer import (
 # Event dispatcher
 from .event_dispatcher import UIEventDispatcher
 
+# Script executor
+from .script_executor import UIScriptExecutor
+
+# Bindings
+from .bindings import Binding, BindingManager, parse_bindings_from_yaml
+
 # Components (importing ensures registration)
 from .components import (
     Panel,
@@ -86,6 +92,12 @@ __all__ = [
     'ChatInputWidget',
     # Event dispatcher
     'UIEventDispatcher',
+    # Script executor
+    'UIScriptExecutor',
+    # Bindings
+    'Binding',
+    'BindingManager',
+    'parse_bindings_from_yaml',
     # Components
     'Panel',
     'Label',

@@ -70,36 +70,19 @@ class Button(UIComponent):
             text=data.get("text", "Button")
         )
 
-        # Base properties
-        button.geometry.x = data.get("x", 0)
-        button.geometry.y = data.get("y", 0)
+        # Apply base properties (geometry, anchors, events, bindings)
+        button._apply_base_properties(data)
+
+        # Override geometry defaults for buttons
         button.geometry.width = data.get("width", 80)
         button.geometry.height = data.get("height", 32)
 
-        if "anchors" in data:
-            from ..component import Anchors
-            button.anchors = Anchors.from_list(data["anchors"])
-
-        button.visible = data.get("visible", True)
-        button.enabled = data.get("enabled", True)
-
-        # Button-specific
+        # Button-specific properties
         button.text_color = data.get("text_color", "#ffffff")
         button.background = data.get("background", "#3b82f6")
         button.hover_background = data.get("hover_background")
         button.pressed_background = data.get("pressed_background")
         button.font_size = data.get("font_size", 14)
         button.border_radius = data.get("border_radius", 4)
-
-        # Events are handled by base class
-        if "events" in data:
-            from ..component import EventBinding
-            for event_name, event_data in data["events"].items():
-                button.events[event_name] = EventBinding(
-                    action=event_data.get("action", ""),
-                    target=event_data.get("target"),
-                    message_source=event_data.get("message_source"),
-                    params=event_data.get("params", {}),
-                )
 
         return button

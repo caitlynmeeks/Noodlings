@@ -160,6 +160,68 @@ PYTHONPATH=.:../.. python3 noodlestudio/runtime/ui/test_stage_demo.py
 
 ---
 
+## COMPLETED: Phase 3d Event Wiring Extensions (Jan 3, 2026)
+
+### What Was Done
+Extended the UI event system with scripting and data binding capabilities.
+
+### call_script Action
+Execute JavaScript when UI events fire:
+
+```yaml
+Button:
+  name: "toggleButton"
+  events:
+    onClick:
+      action: "call_script"
+      script: |
+        let panel = ui.get('detailsPanel');
+        if (panel.visible) {
+          ui.hide('detailsPanel');
+        } else {
+          ui.show('detailsPanel');
+        }
+```
+
+Or reference external script files:
+```yaml
+events:
+  onClick:
+    action: "call_script"
+    script_file: "scripts/handler.js"
+```
+
+### Script API
+| Object | Methods | Description |
+|--------|---------|-------------|
+| `ui` | `get(name)`, `set(name, prop, value)` | Component access |
+| `ui` | `show(name)`, `hide(name)` | Visibility control |
+| `event` | `source`, `type`, `value` | Event context |
+| `console` | `log()`, `warn()`, `error()` | Debug output |
+
+### Component Value Binding
+Reactive property binding between components:
+
+```yaml
+Label:
+  name: "charCount"
+  bindings:
+    text: "messageInput.value.length + ' characters'"
+```
+
+### New Files
+```
+noodlestudio/runtime/ui/
+├── script_executor.py  # NEW - UIScriptExecutor (QuickJS sandbox)
+└── bindings.py         # NEW - BindingManager, Binding dataclass
+```
+
+### Tests
+- 64 tests in `tests/test_ui_canvas.py` (all passing)
+- New test classes: `TestEventBindingScript`, `TestUIScriptExecutor`, `TestBindingManager`
+
+---
+
 ## COMPLETED: Admin Dashboard Deployed to Production (Jan 2, 2026)
 
 ### Live URLs
@@ -330,7 +392,9 @@ print(result['response'])
 
 ---
 
-## NEXT SESSION: Event Wiring + Build System
+## NEXT SESSION: Build System (Phase 4)
+
+**Phase 3 (UI Canvas) is complete!** Next up is Phase 4: Build System.
 
 **Planning documents** (all decisions finalized Jan 3, 2026):
 - `docs/noodlestudio/build-system.md` - Unity-style build system
@@ -394,20 +458,23 @@ print(result['response'])
    - Clean design: viewport doesn't know about noodlings/stages/recipes
    - Demo: `python3 noodlestudio/runtime/ui/test_stage_demo.py`
 
-6. **Phase 3d: Event Wiring Extensions** - NEXT
-   - `call_script` action
-   - Component value binding
+6. **Phase 3d: Event Wiring Extensions** - DONE (Jan 3)
+   - `call_script` action with inline scripts and external script files
+   - `UIScriptExecutor` - lightweight JavaScript sandbox (QuickJS) for UI events
+   - Component value binding system (`BindingManager`)
+   - Script API: `ui.get()`, `ui.set()`, `ui.show()`, `ui.hide()`, `event`, `console`
+   - 64 tests passing in test_ui_canvas.py
 
-8. **Phase 4: Build System**
+7. **Phase 4: Build System** - NEXT
    - Asset packaging (copy/filter project files)
    - macOS .app bundler (py2app)
    - "File > Build Application..." menu item
 
-9. **Phase 5: UI Canvas Designer** (later)
+8. **Phase 5: UI Canvas Designer** (later)
    - Designer panel in editor
    - Drag-drop component palette
 
-10. **Phase 6: Admin Dashboard Extensions**
+9. **Phase 6: Admin Dashboard Extensions**
    - LLM routing management pages
    - Provider keys, pricing, analytics
    - Org management UI

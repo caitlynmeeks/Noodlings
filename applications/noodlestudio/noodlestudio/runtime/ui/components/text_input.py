@@ -88,20 +88,14 @@ class TextInput(UIComponent):
             placeholder=data.get("placeholder", "")
         )
 
-        # Base properties
-        text_input.geometry.x = data.get("x", 0)
-        text_input.geometry.y = data.get("y", 0)
+        # Apply base properties (geometry, anchors, events, bindings)
+        text_input._apply_base_properties(data)
+
+        # Override geometry defaults for text inputs
         text_input.geometry.width = data.get("width", 200)
         text_input.geometry.height = data.get("height", 32)
 
-        if "anchors" in data:
-            from ..component import Anchors
-            text_input.anchors = Anchors.from_list(data["anchors"])
-
-        text_input.visible = data.get("visible", True)
-        text_input.enabled = data.get("enabled", True)
-
-        # TextInput-specific
+        # TextInput-specific properties
         text_input.value = data.get("value", "")
         text_input.text_color = data.get("text_color", "#ffffff")
         text_input.background = data.get("background", "#1a1a1a")
@@ -112,16 +106,5 @@ class TextInput(UIComponent):
         text_input.border_radius = data.get("border_radius", 4)
         text_input.max_length = data.get("max_length", 0)
         text_input.read_only = data.get("read_only", False)
-
-        # Events
-        if "events" in data:
-            from ..component import EventBinding
-            for event_name, event_data in data["events"].items():
-                text_input.events[event_name] = EventBinding(
-                    action=event_data.get("action", ""),
-                    target=event_data.get("target"),
-                    message_source=event_data.get("message_source"),
-                    params=event_data.get("params", {}),
-                )
 
         return text_input

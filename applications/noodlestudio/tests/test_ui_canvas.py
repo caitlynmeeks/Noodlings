@@ -819,3 +819,378 @@ class TestChatQtRenderer:
         # Check message was added to widget
         assert chat.component_type == "ChatHistory"
         assert len(chat.messages) == 1
+
+
+# ============================================================================
+# Phase 3d Tests - Event Wiring Extensions
+# ============================================================================
+
+class TestEventBindingScript:
+    """Test script-related EventBinding features."""
+
+    def test_event_binding_with_script(self):
+        """Test creating event binding with inline script."""
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        binding = EventBinding(
+            action="call_script",
+            script="ui.set('output', 'clicked!');"
+        )
+
+        assert binding.action == "call_script"
+        assert binding.script == "ui.set('output', 'clicked!');"
+        assert binding.script_file is None
+
+    def test_event_binding_with_script_file(self):
+        """Test creating event binding with script file."""
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        binding = EventBinding(
+            action="call_script",
+            script_file="scripts/on_click.js"
+        )
+
+        assert binding.action == "call_script"
+        assert binding.script is None
+        assert binding.script_file == "scripts/on_click.js"
+
+    def test_event_binding_script_serialization(self):
+        """Test script binding serializes correctly."""
+        from noodlestudio.runtime.ui import Button, EventBinding
+
+        btn = Button(name="test", text="Click")
+        btn.bind_event("onClick", EventBinding(
+            action="call_script",
+            script="console.log('clicked');",
+        ))
+
+        data = btn.to_dict()
+
+        assert "events" in data
+        assert "onClick" in data["events"]
+        assert data["events"]["onClick"]["action"] == "call_script"
+        assert data["events"]["onClick"]["script"] == "console.log('clicked');"
+
+    def test_load_script_binding_from_yaml(self):
+        """Test loading script binding from YAML."""
+        from noodlestudio.runtime.ui import UILoader
+        import tempfile
+
+        yaml_content = """
+version: 1
+root:
+  type: Panel
+  name: "root"
+  children:
+    - type: Button
+      name: "btn"
+      text: "Click Me"
+      events:
+        onClick:
+          action: call_script
+          script: |
+            ui.set('output', 'clicked!');
+            console.log('Button clicked');
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+
+            loader = UILoader()
+            root = loader.load_file(f.name)
+
+            btn = root.find_by_name("btn")
+            assert "onClick" in btn.events
+            assert btn.events["onClick"].action == "call_script"
+            assert "ui.set('output', 'clicked!')" in btn.events["onClick"].script
+
+
+class TestUIScriptExecutor:
+    """Test UIScriptExecutor."""
+
+    @pytest.fixture
+    def qapp(self):
+        """Create QApplication for tests."""
+        from PyQt6.QtWidgets import QApplication
+        import sys
+
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        yield app
+
+    def test_script_executor_creation(self, qapp):
+        """Test creating script executor."""
+        from noodlestudio.runtime.ui import QtWidgetRenderer, UIScriptExecutor
+
+        renderer = QtWidgetRenderer()
+        executor = UIScriptExecutor(renderer)
+
+        assert executor.renderer == renderer
+        assert executor.execution_count == 0
+
+    def test_execute_simple_script(self, qapp):
+        """Test executing a simple script."""
+        from noodlestudio.runtime.ui import Panel, Label, QtWidgetRenderer, UIScriptExecutor
+
+        # Create UI
+        root = Panel(name="root")
+        label = Label(name="output", text="Initial")
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        # Execute script
+        executor = UIScriptExecutor(renderer)
+        result = executor.execute(
+            script="ui.set('output', 'Changed!');",
+            event_type="onClick",
+            source_component="root"
+        )
+
+        assert result['success'] is True
+        # Check value was updated
+        output = renderer.get_component('output')
+        assert output.text == "Changed!"
+
+    def test_execute_script_with_console(self, qapp):
+        """Test script console.log output."""
+        from noodlestudio.runtime.ui import Panel, QtWidgetRenderer, UIScriptExecutor
+
+        root = Panel(name="root")
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        executor = UIScriptExecutor(renderer)
+        result = executor.execute(
+            script="console.log('Hello'); console.warn('Warning');",
+            event_type="onClick"
+        )
+
+        assert result['success'] is True
+        logs = result['logs']
+        assert len(logs) >= 2
+        assert any('Hello' in l['message'] for l in logs)
+
+    def test_execute_script_error_handling(self, qapp):
+        """Test script error handling."""
+        from noodlestudio.runtime.ui import Panel, QtWidgetRenderer, UIScriptExecutor
+
+        root = Panel(name="root")
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        executor = UIScriptExecutor(renderer)
+        result = executor.execute(
+            script="undefined_function();",
+            event_type="onClick"
+        )
+
+        assert result['success'] is False
+        assert result['error'] is not None
+
+    def test_execute_script_with_event_value(self, qapp):
+        """Test script access to event.value."""
+        from noodlestudio.runtime.ui import Panel, Label, QtWidgetRenderer, UIScriptExecutor
+
+        root = Panel(name="root")
+        label = Label(name="output", text="")
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        executor = UIScriptExecutor(renderer)
+        result = executor.execute(
+            script="ui.set('output', 'Value: ' + event.value);",
+            event_type="onChange",
+            source_component="input",
+            event_value="test_value"
+        )
+
+        assert result['success'] is True
+        output = renderer.get_component('output')
+        assert output.text == "Value: test_value"
+
+
+class TestBindingManager:
+    """Test BindingManager."""
+
+    @pytest.fixture
+    def qapp(self):
+        """Create QApplication for tests."""
+        from PyQt6.QtWidgets import QApplication
+        import sys
+
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        yield app
+
+    def test_binding_manager_creation(self):
+        """Test creating binding manager."""
+        from noodlestudio.runtime.ui import BindingManager
+
+        manager = BindingManager()
+        assert manager._bindings == []
+
+    def test_add_binding(self, qapp):
+        """Test adding a binding."""
+        from noodlestudio.runtime.ui import QtWidgetRenderer, BindingManager
+
+        renderer = QtWidgetRenderer()
+        manager = BindingManager(renderer)
+
+        binding = manager.add_binding(
+            target_component="output",
+            target_property="text",
+            source_expression="input.value"
+        )
+
+        assert binding.target_component == "output"
+        assert binding.target_property == "text"
+        assert binding.source_expression == "input.value"
+        assert len(manager._bindings) == 1
+
+    def test_binding_evaluate(self, qapp):
+        """Test evaluating bindings."""
+        from noodlestudio.runtime.ui import Panel, Label, TextInput, QtWidgetRenderer, BindingManager
+
+        # Create UI
+        root = Panel(name="root")
+        inp = TextInput(name="input", placeholder="Type...")
+        inp.value = "Hello"
+        label = Label(name="output", text="")
+        root.add_child(inp)
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        # Set up binding
+        manager = BindingManager(renderer)
+        manager.add_binding("output", "text", "input.value")
+        manager.evaluate_all()
+
+        # Check binding was applied
+        output = renderer.get_component("output")
+        assert output.text == "Hello"
+
+    def test_binding_notify_change(self, qapp):
+        """Test binding updates on source change."""
+        from noodlestudio.runtime.ui import Panel, Label, TextInput, QtWidgetRenderer, BindingManager
+
+        # Create UI
+        root = Panel(name="root")
+        inp = TextInput(name="input", placeholder="Type...")
+        inp.value = "Initial"
+        label = Label(name="output", text="")
+        root.add_child(inp)
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        # Set up binding
+        manager = BindingManager(renderer)
+        manager.add_binding("output", "text", "input.value")
+        manager.evaluate_all()
+
+        # Change source value
+        inp.value = "Updated"
+        manager.notify_change("input", "value")
+
+        # Check binding was updated
+        output = renderer.get_component("output")
+        assert output.text == "Updated"
+
+
+class TestComponentBindings:
+    """Test component-level bindings property."""
+
+    def test_component_bindings_property(self):
+        """Test bindings property on UIComponent."""
+        from noodlestudio.runtime.ui import Label
+
+        label = Label(name="output", text="")
+        label.bindings = {"text": "input.value", "visible": "toggle.checked"}
+
+        assert "text" in label.bindings
+        assert label.bindings["text"] == "input.value"
+        assert label.bindings["visible"] == "toggle.checked"
+
+    def test_bindings_serialization(self):
+        """Test bindings serialize to dict."""
+        from noodlestudio.runtime.ui import Label
+
+        label = Label(name="output", text="")
+        label.bindings = {"text": "input.value"}
+
+        data = label.to_dict()
+
+        assert "bindings" in data
+        assert data["bindings"]["text"] == "input.value"
+
+    def test_bindings_from_yaml(self):
+        """Test loading bindings from YAML."""
+        from noodlestudio.runtime.ui import UILoader
+        import tempfile
+
+        yaml_content = """
+version: 1
+root:
+  type: Panel
+  name: "root"
+  children:
+    - type: TextInput
+      name: "input"
+      placeholder: "Type..."
+    - type: Label
+      name: "output"
+      text: ""
+      bindings:
+        text: "input.value"
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+
+            loader = UILoader()
+            root = loader.load_file(f.name)
+
+            output = root.find_by_name("output")
+            assert "text" in output.bindings
+            assert output.bindings["text"] == "input.value"
+
+    @pytest.fixture
+    def qapp(self):
+        """Create QApplication for tests."""
+        from PyQt6.QtWidgets import QApplication
+        import sys
+
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        yield app
+
+    def test_renderer_sets_up_bindings(self, qapp):
+        """Test renderer automatically sets up bindings."""
+        from noodlestudio.runtime.ui import Panel, Label, TextInput, QtWidgetRenderer
+
+        # Create UI with bindings
+        root = Panel(name="root")
+        inp = TextInput(name="input", placeholder="Type...")
+        inp.value = "Test"
+        label = Label(name="output", text="")
+        label.bindings = {"text": "input.value"}
+
+        root.add_child(inp)
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        # Bindings should be set up and evaluated
+        output = renderer.get_component("output")
+        assert output.text == "Test"

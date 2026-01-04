@@ -84,20 +84,14 @@ class Label(UIComponent):
             text=data.get("text", "")
         )
 
-        # Base properties
-        label.geometry.x = data.get("x", 0)
-        label.geometry.y = data.get("y", 0)
+        # Apply base properties (geometry, anchors, events, bindings)
+        label._apply_base_properties(data)
+
+        # Override geometry defaults for labels
         label.geometry.width = data.get("width", 100)
         label.geometry.height = data.get("height", 24)
 
-        if "anchors" in data:
-            from ..component import Anchors
-            label.anchors = Anchors.from_list(data["anchors"])
-
-        label.visible = data.get("visible", True)
-        label.enabled = data.get("enabled", True)
-
-        # Label-specific
+        # Label-specific properties
         label.text_color = data.get("text_color", "#ffffff")
         label.font_size = data.get("font_size", 14)
         label.font_weight = data.get("font_weight", "normal")

@@ -1,7 +1,7 @@
 """
 UI Event Dispatcher
 
-Routes UI events to noodlings and handles responses.
+Routes UI events to noodlings, scripts, and handles responses.
 """
 
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
@@ -12,18 +12,20 @@ if TYPE_CHECKING:
     from .component import UIComponent, EventBinding
     from .renderer import QtWidgetRenderer
     from .components.chat_history import ChatHistory, MessageRole
+    from .script_executor import UIScriptExecutor
 
 logger = logging.getLogger(__name__)
 
 
 class UIEventDispatcher:
     """
-    Dispatches UI events to noodlings and external handlers.
+    Dispatches UI events to noodlings, scripts, and external handlers.
 
     Supported actions:
         - send_to_noodling: Send message to a noodling and get response
+        - call_script: Execute inline JavaScript or script file
         - set_value: Set a component's value
-        - show/hide: Control component visibility
+        - show/hide/toggle_visible: Control component visibility
         - custom: Call a custom handler function
 
     Usage:
@@ -48,9 +50,29 @@ class UIEventDispatcher:
         # Default chat history component name (for automatic response display)
         self.default_chat_history: str = "chat_history"
 
+        # Script executor (lazy-initialized)
+        self._script_executor: Optional['UIScriptExecutor'] = None
+
+        # Project path for resolving script files
+        self.project_path: Optional[str] = None
+
+    def _get_script_executor(self) -> 'UIScriptExecutor':
+        """Get or create the script executor."""
+        if self._script_executor is None:
+            from .script_executor import UIScriptExecutor
+            self._script_executor = UIScriptExecutor(self.renderer, self.app)
+        return self._script_executor
+
     def set_app(self, app: Any) -> None:
         """Set the NoodleApp instance for noodling communication."""
         self.app = app
+        # Update script executor if it exists
+        if self._script_executor:
+            self._script_executor.app = app
+
+    def set_project_path(self, path: str) -> None:
+        """Set project path for resolving script files."""
+        self.project_path = path
 
     def register_handler(self, action: str, handler: Callable) -> None:
         """
@@ -77,6 +99,8 @@ class UIEventDispatcher:
 
         if action == "send_to_noodling":
             self._handle_send_to_noodling(component, binding)
+        elif action == "call_script":
+            self._handle_call_script(component, binding, event_name)
         elif action == "set_value":
             self._handle_set_value(binding)
         elif action == "show":
@@ -182,6 +206,56 @@ class UIEventDispatcher:
                     role=MessageRole.SYSTEM,
                     content=f"Error: {str(e)}"
                 )
+
+    def _handle_call_script(
+        self,
+        component: 'UIComponent',
+        binding: 'EventBinding',
+        event_name: str
+    ) -> None:
+        """
+        Execute a script in response to a UI event.
+
+        Binding parameters:
+            script: Inline JavaScript code
+            script_file: Path to JavaScript file (relative to project)
+
+        Scripts have access to:
+            - ui: Component value access (get, set, show, hide)
+            - event: Event info (type, source, value)
+            - console: Logging functions
+        """
+        executor = self._get_script_executor()
+
+        # Get component value for the event
+        event_value = None
+        if hasattr(component, 'value'):
+            event_value = component.value
+        elif hasattr(component, 'text'):
+            event_value = component.text
+
+        # Execute inline script or file
+        if binding.script:
+            result = executor.execute(
+                script=binding.script,
+                event_type=event_name,
+                source_component=component.name,
+                event_value=event_value
+            )
+        elif binding.script_file:
+            result = executor.execute_file(
+                file_path=binding.script_file,
+                event_type=event_name,
+                source_component=component.name,
+                event_value=event_value,
+                project_path=self.project_path
+            )
+        else:
+            logger.warning("call_script action requires 'script' or 'script_file'")
+            return
+
+        if not result.get('success'):
+            logger.error(f"Script execution failed: {result.get('error')}")
 
     def _handle_set_value(self, binding: 'EventBinding') -> None:
         """Set a component's value."""
