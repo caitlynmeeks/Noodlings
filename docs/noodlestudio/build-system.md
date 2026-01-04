@@ -1,6 +1,6 @@
 # Build System Architecture
 
-**Status**: Planning
+**Status**: Phase 4 Implemented
 **Last Updated**: January 3, 2026
 **Authors**: Caitlyn + Claude
 
@@ -307,7 +307,7 @@ applications/
 │   ├── main.py                # Editor entry point
 │   ├── player.py              # Existing headless player (refactor into runtime/)
 │   │
-│   └── build/                 # NEW - build system
+│   └── appbuilder/            # NEW - build system (named to avoid .gitignore)
 │       ├── __init__.py
 │       ├── builder.py         # Main build orchestration
 │       ├── packager.py        # Asset packaging
@@ -352,39 +352,66 @@ This means:
 
 ## Implementation Phases
 
-### Phase 0: Preparation (This Document)
-- [ ] Answer open questions above
-- [ ] Get alignment on architecture
-- [ ] Identify any core/ refactoring needed first
+### Phase 0: Preparation (This Document) - COMPLETE
+- [x] Answer open questions above
+- [x] Get alignment on architecture
+- [x] Identify any core/ refactoring needed first
 
-### Phase 1: Runtime Foundation
-- [ ] Create `noodlestudio/runtime/` module
-- [ ] Refactor `player.py` into `runtime/app.py`
-- [ ] Implement CLI interface (`python -m noodlestudio.runtime`)
-- [ ] Test: Can run a project headless from command line
+### Phase 1: Runtime Foundation - COMPLETE (Jan 3, 2026)
+- [x] Create `noodlestudio/runtime/` module
+- [x] Refactor `player.py` into `runtime/app.py`
+- [x] Implement CLI interface (`python -m noodlestudio.runtime`)
+- [x] Test: Can run a project headless from command line
 
-### Phase 2: Optional GUI Window
-- [ ] Create minimal `app_window.py` (chat-style interface)
-- [ ] Add `--gui` flag to CLI
-- [ ] Test: Can interact with noodling via window
+### Phase 2: LLM Routing API - COMPLETE (Jan 3, 2026)
+- [x] `/v1/chat/completions` endpoint at api.noodlings.ai
+- [x] Direct Anthropic routing (no OpenRouter middleman)
+- [x] Token counting + credit billing
+- [x] `noodlings` provider in runtime
 
-### Phase 3: Build System
-- [ ] Create `build/builder.py` orchestration
-- [ ] Implement asset packaging (copy/filter project files)
-- [ ] Create macOS .app bundler
-- [ ] Add "File > Build Application..." menu item
-- [ ] Test: Can build and run a simple project
+### Phase 3: UI Canvas System - COMPLETE (Jan 3, 2026)
+- [x] Create `noodlestudio/runtime/ui/` module
+- [x] Delphi-style component system
+- [x] Components: Panel, Label, Button, TextInput, ChatHistory, ChatInput, RadianceViewport
+- [x] Event system with `send_to_noodling`, `call_script`, bindings
+- [x] Add `--gui` flag to CLI
+- [x] Test: Can interact with noodling via window
 
-### Phase 4: Polish
-- [ ] Add build progress dialog
-- [ ] Icon customization
-- [ ] Build settings UI
-- [ ] Error handling and user feedback
+### Phase 4: Build System - COMPLETE (Jan 3, 2026)
+- [x] Create `appbuilder/builder.py` orchestration
+- [x] Create `appbuilder/packager.py` for asset collection/filtering
+- [x] Create `appbuilder/bundler_macos.py` for .app bundles
+- [x] Add "File > Build Application..." menu item (Ctrl+B)
+- [x] Add build progress dialog
+- [x] Icon customization (PNG to ICNS conversion)
+- [x] Error handling and user feedback
+- [x] Test: Can build and run a simple project
 
-### Phase 5: Additional Targets
-- [ ] Windows .exe bundler
+### Phase 5: Python Bundling (py2app) - FUTURE
+**Priority: High** - Required for true standalone apps.
+
+Currently, built .apps use a shell launcher that calls system Python. Users need Python 3.10+ with PyQt6 installed. For true "double-click and run" experience:
+
+- [ ] Create setup.py for py2app configuration
+- [ ] Bundle Python runtime into .app
+- [ ] Handle PyQt6 plugins (tricky - Qt has many hidden dependencies)
+- [ ] Handle numpy, yaml, and other deps
+- [ ] Test on clean Mac without Python installed
+- [ ] Add checkbox in build dialog: "Bundle Python runtime"
+
+**Tools:**
+- **py2app** - Native macOS bundler, recommended
+- **PyInstaller** - Cross-platform alternative
+
+### Phase 6: Additional Targets - FUTURE
+- [ ] Windows .exe bundler (PyInstaller)
 - [ ] Linux binary
 - [ ] Docker container generation
+
+### Phase 7: UI Canvas Designer - FUTURE
+- [ ] Visual designer panel in editor
+- [ ] Drag-drop component palette
+- [ ] Property editor for components
 
 ---
 
@@ -438,8 +465,23 @@ When we return to implement this:
 
 ---
 
+## Current Limitations (v1)
+
+Built applications currently have these requirements:
+
+1. **Python 3.10+ required** - User must have Python installed
+2. **PyQt6 required** - User must have `pip install PyQt6`
+3. **macOS only** - Windows/Linux bundlers not yet implemented
+4. **No bundled LLMs** - Requires Ollama or cloud API keys
+
+These will be addressed in Phase 5 (py2app bundling).
+
+---
+
 ## Revision History
 
 | Date | Changes |
 |------|---------|
+| 2026-01-03 | Phase 4 implemented: builder.py, packager.py, bundler_macos.py |
+| 2026-01-03 | Added Phase 5 (py2app) as high priority future work |
 | 2026-01-03 | Initial planning document |

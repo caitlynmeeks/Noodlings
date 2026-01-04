@@ -57,6 +57,11 @@ class MainWindowMenusMixin:
         file_menu.addAction(self._create_action("Export Noodling...", slot=self.export_noodling))
         file_menu.addAction(self._create_action("Export Stage to USD (.usda)...", slot=self.export_stage_to_usd))
 
+        # Build section
+        file_menu.addSeparator()
+        file_menu.addSection("Build")
+        file_menu.addAction(self._create_action("Build Application...", "Ctrl+B", slot=self.build_application))
+
         # Migration tool
         file_menu.addSeparator()
         file_menu.addAction(self._create_action("Migrate Legacy Data...", slot=self.migrate_legacy_data))

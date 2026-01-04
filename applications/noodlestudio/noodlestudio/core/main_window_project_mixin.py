@@ -328,6 +328,145 @@ class MainWindowProjectMixin:
         shutil.copytree(source, target)
         self.statusBar().showMessage(f"Exported noodling to: {target}", 3000)
 
+    def build_application(self):
+        """Build a standalone application from the current project."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Please open a project first.")
+            return
+
+        project_path = Path(self.project_manager.current_project_path)
+
+        # Check for build.yaml or create one
+        build_yaml = project_path / "build.yaml"
+        if not build_yaml.exists():
+            reply = QMessageBox.question(
+                self, "No Build Configuration",
+                "This project doesn't have a build.yaml file.\n\n"
+                "Create a default build configuration?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            # Create default build.yaml
+            from ..appbuilder.builder import create_default_build_yaml
+            create_default_build_yaml(project_path, self.project_manager.current_project_name)
+            self.statusBar().showMessage("Created build.yaml - please edit and try again", 5000)
+
+            # Refresh assets to show the new file
+            if hasattr(self, 'assets'):
+                self.assets.refresh()
+            return
+
+        # Get output location
+        default_name = f"{self.project_manager.current_project_name}.app"
+        desktop = os.path.expanduser("~/Desktop")
+        output_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Build Application",
+            os.path.join(desktop, default_name),
+            "macOS Application (*.app)"
+        )
+        if not output_path:
+            return
+
+        # Run build
+        self._run_build(project_path, Path(output_path))
+
+    def _run_build(self, project_path: Path, output_path: Path):
+        """Execute the build process with progress dialog."""
+        from PyQt6.QtWidgets import QProgressDialog, QApplication
+        from PyQt6.QtCore import Qt
+
+        # Create progress dialog
+        progress = QProgressDialog(
+            "Preparing build...", "Cancel", 0, 100, self
+        )
+        progress.setWindowTitle("Building Application")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
+        progress.show()
+        QApplication.processEvents()
+
+        cancelled = False
+
+        def on_progress(percent: int, message: str):
+            nonlocal cancelled
+            if progress.wasCanceled():
+                cancelled = True
+                return
+            progress.setValue(percent)
+            progress.setLabelText(message)
+            QApplication.processEvents()
+
+        try:
+            from ..appbuilder import Builder, BuildConfig
+
+            # Load config
+            config = BuildConfig.load(project_path)
+            builder = Builder(config)
+            builder.on_progress(on_progress)
+
+            # Run build
+            result = builder.build(str(output_path))
+
+            progress.close()
+
+            if cancelled:
+                # Clean up partial build
+                if output_path.exists():
+                    import shutil
+                    shutil.rmtree(output_path)
+                self.statusBar().showMessage("Build cancelled", 3000)
+                return
+
+            if result.success:
+                # Format size
+                size_mb = result.total_size_bytes / (1024 * 1024)
+                time_s = result.build_time_seconds
+
+                QMessageBox.information(
+                    self, "Build Complete",
+                    f"Application built successfully!\n\n"
+                    f"Location: {output_path}\n"
+                    f"Size: {size_mb:.1f} MB\n"
+                    f"Time: {time_s:.1f} seconds\n"
+                    f"Files: {result.total_files}"
+                )
+
+                # Offer to reveal in Finder
+                reply = QMessageBox.question(
+                    self, "Reveal in Finder",
+                    "Would you like to reveal the application in Finder?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    import subprocess
+                    subprocess.run(['open', '-R', str(output_path)])
+
+            else:
+                error_text = "\n".join(result.errors) if result.errors else "Unknown error"
+                QMessageBox.critical(
+                    self, "Build Failed",
+                    f"Failed to build application.\n\n{error_text}"
+                )
+
+        except FileNotFoundError as e:
+            progress.close()
+            QMessageBox.critical(
+                self, "Build Error",
+                f"Build configuration error:\n\n{str(e)}"
+            )
+        except Exception as e:
+            progress.close()
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self, "Build Error",
+                f"Unexpected error during build:\n\n{str(e)}"
+            )
+
     def migrate_legacy_data(self):
         """Run the migration tool to convert legacy data."""
         from PyQt6.QtWidgets import QApplication
