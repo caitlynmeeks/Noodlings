@@ -8,7 +8,7 @@
 
 NoodleStudio uses pytest with pytest-qt for automated testing. The test suite covers facet execution, Qt signal wiring, Gaussian rendering, and more.
 
-**Current test count:** 128 tests
+**Current test count:** 314 tests
 
 ---
 
@@ -111,11 +111,15 @@ PYTHONPATH=.:../.. pytest -v
 | File | Tests | Coverage |
 |------|-------|----------|
 | `test_agentic_system.py` | 68 | Utility facets, MCP, Player, proxy APIs |
+| `test_ui_canvas.py` | 74 | Runtime UI components, rendering, events, bindings, dispatcher |
+| `test_noodle_code.py` | 54 | Noodle Code engine, profiles, tools |
+| `test_computer_use.py` | 40 | Computer use controller, ghost cursor |
 | `test_component_system.py` | 25 | ComponentBase, Registry, Collection, Artbook |
+| `test_crash_detection.py` | 18 | Sentinel files, crash recovery dialog |
 | `test_panel_wiring.py` | 17 | Qt signals, Inspector, Stage View, undo/redo |
-| `test_radiance_component.py` | 10 | Gaussian rendering, spatial queries, scene builder |
+| `test_radiance_component.py` | 9 | Gaussian rendering, spatial queries, scene builder |
+| `test_gaussian_adapter.py` | 6 | Asset creation, format conversion |
 | `test_clip_queries.py` | 3 | Semantic embedding search |
-| `test_gaussian_adapter.py` | 1 | Asset creation |
 
 ---
 

@@ -1194,3 +1194,350 @@ root:
         # Bindings should be set up and evaluated
         output = renderer.get_component("output")
         assert output.text == "Test"
+
+
+class TestUIEventDispatcher:
+    """Test UIEventDispatcher event routing."""
+
+    @pytest.fixture
+    def qapp(self):
+        """Create QApplication for tests."""
+        from PyQt6.QtWidgets import QApplication
+        import sys
+
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        yield app
+
+    def test_dispatcher_creation(self, qapp):
+        """Test creating event dispatcher."""
+        from noodlestudio.runtime.ui import QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+
+        renderer = QtWidgetRenderer()
+        dispatcher = UIEventDispatcher(renderer)
+
+        assert dispatcher.renderer == renderer
+        assert dispatcher.app is None
+        assert dispatcher.default_chat_history == "chat_history"
+
+    def test_dispatcher_set_value_action(self, qapp):
+        """Test set_value action updates component."""
+        from noodlestudio.runtime.ui import Panel, TextInput, Button, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        # Create UI - use TextInput which has .value property
+        root = Panel(name="root")
+        button = Button(name="btn", text="Click")
+        text_input = TextInput(name="output", placeholder="Type...")
+        text_input.value = "Initial"
+        root.add_child(button)
+        root.add_child(text_input)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        dispatcher = UIEventDispatcher(renderer)
+
+        # Create binding for set_value
+        binding = EventBinding(action="set_value", target="output")
+        binding.value = "Updated!"
+
+        # Dispatch event
+        dispatcher.dispatch("onClick", button, binding)
+
+        # Check value was set
+        output = renderer.get_component("output")
+        assert output.value == "Updated!"
+
+    def test_dispatcher_show_action(self, qapp):
+        """Test show action makes component visible."""
+        from noodlestudio.runtime.ui import Panel, Label, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        # Create UI with hidden label
+        root = Panel(name="root")
+        label = Label(name="target", text="Hidden")
+        label.visible = False
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        # Hide the widget initially
+        widget = renderer.get_widget("target")
+        widget.hide()
+
+        dispatcher = UIEventDispatcher(renderer)
+        binding = EventBinding(action="show", target="target")
+
+        # Dispatch show event
+        dispatcher.dispatch("onClick", root, binding)
+
+        # Check visibility
+        assert renderer.get_component("target").visible is True
+        assert widget.isVisible() is True
+
+    def test_dispatcher_hide_action(self, qapp):
+        """Test hide action hides component."""
+        from noodlestudio.runtime.ui import Panel, Label, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        # Create UI with visible label
+        root = Panel(name="root")
+        label = Label(name="target", text="Visible")
+        label.visible = True
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        dispatcher = UIEventDispatcher(renderer)
+        binding = EventBinding(action="hide", target="target")
+
+        # Dispatch hide event
+        dispatcher.dispatch("onClick", root, binding)
+
+        # Check hidden
+        assert renderer.get_component("target").visible is False
+        widget = renderer.get_widget("target")
+        assert widget.isVisible() is False
+
+    def test_dispatcher_toggle_visible_action(self, qapp):
+        """Test toggle_visible action toggles visibility."""
+        from noodlestudio.runtime.ui import Panel, Label, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        # Create UI
+        root = Panel(name="root")
+        label = Label(name="target", text="Toggle me")
+        label.visible = True
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        dispatcher = UIEventDispatcher(renderer)
+        binding = EventBinding(action="toggle_visible", target="target")
+
+        # Toggle off
+        dispatcher.dispatch("onClick", root, binding)
+        assert renderer.get_component("target").visible is False
+
+        # Toggle on
+        dispatcher.dispatch("onClick", root, binding)
+        assert renderer.get_component("target").visible is True
+
+    def test_dispatcher_custom_handler(self, qapp):
+        """Test registering and calling custom handler."""
+        from noodlestudio.runtime.ui import Panel, Button, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        # Create UI
+        root = Panel(name="root")
+        button = Button(name="btn", text="Custom")
+        root.add_child(button)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        dispatcher = UIEventDispatcher(renderer)
+
+        # Track custom handler calls
+        calls = []
+
+        def custom_handler(component, binding):
+            calls.append((component.name, binding.target))
+
+        dispatcher.register_handler("my_custom_action", custom_handler)
+
+        binding = EventBinding(action="my_custom_action", target="some_target")
+        dispatcher.dispatch("onClick", button, binding)
+
+        assert len(calls) == 1
+        assert calls[0] == ("btn", "some_target")
+
+    def test_dispatcher_call_script_action(self, qapp):
+        """Test call_script action executes script."""
+        from noodlestudio.runtime.ui import Panel, Button, Label, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        # Create UI
+        root = Panel(name="root")
+        button = Button(name="btn", text="Run Script")
+        label = Label(name="output", text="Initial")
+        root.add_child(button)
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        dispatcher = UIEventDispatcher(renderer)
+
+        binding = EventBinding(
+            action="call_script",
+            script="ui.set('output', 'Script ran!');"
+        )
+
+        dispatcher.dispatch("onClick", button, binding)
+
+        output = renderer.get_component("output")
+        assert output.text == "Script ran!"
+
+
+class TestUIIntegration:
+    """Integration tests for full UI event flow."""
+
+    @pytest.fixture
+    def qapp(self):
+        """Create QApplication for tests."""
+        from PyQt6.QtWidgets import QApplication
+        import sys
+
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        yield app
+
+    def test_button_click_updates_label(self, qapp):
+        """Integration: Load YAML, click button, verify label updates."""
+        from noodlestudio.runtime.ui import UILoader, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        import tempfile
+
+        yaml_content = """
+version: 1
+root:
+  type: Panel
+  name: "root"
+  children:
+    - type: Button
+      name: "clickMe"
+      text: "Click Me"
+      events:
+        onClick:
+          action: call_script
+          script: "ui.set('result', 'Clicked!');"
+    - type: Label
+      name: "result"
+      text: "Not clicked"
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+
+            # Load UI
+            loader = UILoader()
+            root = loader.load_file(f.name)
+
+            # Render
+            renderer = QtWidgetRenderer()
+            widget = renderer.render(root)
+
+            # Set up dispatcher
+            dispatcher = UIEventDispatcher(renderer)
+            renderer.set_event_dispatcher(dispatcher.dispatch)
+
+            # Verify initial state
+            result = renderer.get_component("result")
+            assert result.text == "Not clicked"
+
+            # Simulate button click by triggering the event directly
+            button = renderer.get_component("clickMe")
+            binding = button.events["onClick"]
+            dispatcher.dispatch("onClick", button, binding)
+
+            # Verify label updated
+            assert result.text == "Clicked!"
+
+    def test_toggle_panel_visibility(self, qapp):
+        """Integration: Toggle panel visibility via button."""
+        from noodlestudio.runtime.ui import UILoader, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        import tempfile
+
+        yaml_content = """
+version: 1
+root:
+  type: Panel
+  name: "root"
+  children:
+    - type: Button
+      name: "toggleBtn"
+      text: "Toggle"
+      events:
+        onClick:
+          action: toggle_visible
+          target: details
+    - type: Panel
+      name: "details"
+      background: "#333333"
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+
+            loader = UILoader()
+            root = loader.load_file(f.name)
+
+            renderer = QtWidgetRenderer()
+            renderer.render(root)
+
+            dispatcher = UIEventDispatcher(renderer)
+            renderer.set_event_dispatcher(dispatcher.dispatch)
+
+            # Initial: visible
+            details = renderer.get_component("details")
+            assert details.visible is True
+
+            # Click toggle
+            button = renderer.get_component("toggleBtn")
+            binding = button.events["onClick"]
+            dispatcher.dispatch("onClick", button, binding)
+
+            # Now hidden
+            assert details.visible is False
+
+            # Click again
+            dispatcher.dispatch("onClick", button, binding)
+
+            # Visible again
+            assert details.visible is True
+
+    def test_binding_updates_on_input(self, qapp):
+        """Integration: Text input binding updates label."""
+        from noodlestudio.runtime.ui import Panel, Label, TextInput, QtWidgetRenderer
+
+        # Create UI with bindings programmatically
+        root = Panel(name="root")
+        inp = TextInput(name="nameInput", placeholder="Enter name")
+        inp.value = "Alice"
+        label = Label(name="greeting", text="")
+        label.bindings = {"text": "nameInput.value"}  # Simple binding
+
+        root.add_child(inp)
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        # Bindings should be evaluated on render
+        greeting = renderer.get_component("greeting")
+        assert greeting.text == "Alice"
+
+        # Simulate input change
+        name_input = renderer.get_component("nameInput")
+        name_input.value = "Bob"
+
+        # Notify binding manager
+        renderer.notify_binding_change("nameInput", "value")
+
+        # Check label updated
+        assert greeting.text == "Bob"

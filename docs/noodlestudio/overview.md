@@ -27,6 +27,23 @@ Think of it as Unity or Blender, but for cognition.
 | **Chat** | Talk to the world |
 | **Gaussian Viewer** | 3D radiance preview |
 
+## Runtime UI System
+
+NoodleStudio includes a Delphi-style UI runtime for building standalone applications:
+
+- **Component-based**: Panel, Button, Label, TextInput, ChatHistory, RadianceViewport
+- **Anchor system**: Components resize intelligently with the window
+- **Event wiring**: Connect UI events to noodlings or scripts
+- **Value binding**: Reactive property binding between components
+
+Define interfaces in `ui.yaml` and run with:
+
+```bash
+python -m noodlestudio.runtime --gui --ui path/to/ui.yaml
+```
+
+See [UI Canvas](ui-canvas.md) for full documentation.
+
 ## Requirements
 
 - macOS 13+ (Apple Silicon recommended)
