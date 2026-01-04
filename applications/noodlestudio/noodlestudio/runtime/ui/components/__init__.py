@@ -10,6 +10,8 @@ from .label import Label
 from .button import Button
 from .text_input import TextInput
 from .radiance_viewport import RadianceViewport
+from .chat_history import ChatHistory, ChatMessage, MessageRole
+from .chat_input import ChatInput
 
 __all__ = [
     'Panel',
@@ -17,4 +19,8 @@ __all__ = [
     'Button',
     'TextInput',
     'RadianceViewport',
+    'ChatHistory',
+    'ChatMessage',
+    'MessageRole',
+    'ChatInput',
 ]

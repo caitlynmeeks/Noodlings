@@ -1,0 +1,56 @@
+version: 1
+root:
+  type: Panel
+  name: "root"
+  background: "#1a1a1a"
+  children:
+    # Header
+    - type: Panel
+      name: "header"
+      background: "#252525"
+      x: 0
+      y: 0
+      height: 50
+      anchors: [left, right, top]
+      children:
+        - type: Label
+          name: "title"
+          text: "Chat with Red"
+          font_size: 18
+          font_weight: bold
+          text_color: "#ffffff"
+          x: 16
+          y: 12
+          width: 200
+          height: 28
+
+    # Chat history area
+    - type: ChatHistory
+      name: "chat_history"
+      x: 0
+      y: 50
+      height: 350
+      anchors: [left, right, top, bottom]
+      background: "#1a1a1a"
+      show_sender_names: true
+      show_timestamps: false
+      message_spacing: 12
+      bubble_radius: 16
+      user_bubble_color: "#3b82f6"
+      noodling_bubble_color: "#374151"
+
+    # Input area
+    - type: ChatInput
+      name: "chat_input"
+      y: 10
+      height: 56
+      anchors: [left, right, bottom]
+      background: "#252525"
+      placeholder: "Type a message..."
+      send_button_text: "Send"
+      events:
+        onSubmit:
+          action: send_to_noodling
+          target: red
+          message_source: self
+          chat_history: chat_history

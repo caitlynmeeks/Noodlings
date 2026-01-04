@@ -521,3 +521,299 @@ class TestQtRenderer:
         assert renderer.get_widget("title") is not None
         assert renderer.get_widget("action") is not None
         assert renderer.get_widget("nonexistent") is None
+
+
+# ============================================================================
+# Chat Component Tests (Phase 3b)
+# ============================================================================
+
+class TestChatHistory:
+    """Test ChatHistory component."""
+
+    def test_chat_history_creation(self):
+        """Test basic ChatHistory creation."""
+        from noodlestudio.runtime.ui import ChatHistory
+
+        chat = ChatHistory(name="chat")
+        assert chat.component_type == "ChatHistory"
+        assert chat.name == "chat"
+        assert len(chat.messages) == 0
+
+    def test_add_message(self):
+        """Test adding messages."""
+        from noodlestudio.runtime.ui import ChatHistory, MessageRole
+
+        chat = ChatHistory(name="chat")
+        msg = chat.add_message(MessageRole.USER, "Hello!", sender_name="User")
+
+        assert len(chat.messages) == 1
+        assert msg.content == "Hello!"
+        assert msg.role == MessageRole.USER
+        assert msg.sender_name == "User"
+
+    def test_multiple_messages(self):
+        """Test adding multiple messages."""
+        from noodlestudio.runtime.ui import ChatHistory, MessageRole
+
+        chat = ChatHistory(name="chat")
+        chat.add_message(MessageRole.USER, "Hello")
+        chat.add_message(MessageRole.NOODLING, "Hi there!", sender_name="Red")
+        chat.add_message(MessageRole.SYSTEM, "Connected")
+
+        assert len(chat.messages) == 3
+        assert chat.messages[0].role == MessageRole.USER
+        assert chat.messages[1].role == MessageRole.NOODLING
+        assert chat.messages[2].role == MessageRole.SYSTEM
+
+    def test_clear_messages(self):
+        """Test clearing messages."""
+        from noodlestudio.runtime.ui import ChatHistory, MessageRole
+
+        chat = ChatHistory(name="chat")
+        chat.add_message(MessageRole.USER, "Test")
+        chat.add_message(MessageRole.USER, "Test 2")
+        chat.clear_messages()
+
+        assert len(chat.messages) == 0
+
+    def test_chat_history_serialization(self):
+        """Test ChatHistory serializes correctly."""
+        from noodlestudio.runtime.ui import ChatHistory, MessageRole
+
+        chat = ChatHistory(name="chat")
+        chat.user_bubble_color = "#ff0000"
+        chat.add_message(MessageRole.USER, "Test message")
+
+        data = chat.to_dict()
+
+        assert data["type"] == "ChatHistory"
+        assert data["name"] == "chat"
+        assert data["user_bubble_color"] == "#ff0000"
+        assert len(data["messages"]) == 1
+
+    def test_chat_message_serialization(self):
+        """Test ChatMessage serializes correctly."""
+        from noodlestudio.runtime.ui import ChatMessage, MessageRole
+        from datetime import datetime
+
+        msg = ChatMessage(
+            role=MessageRole.NOODLING,
+            content="Hello!",
+            sender_name="Red",
+            timestamp=datetime(2026, 1, 3, 12, 0, 0)
+        )
+
+        data = msg.to_dict()
+        assert data["role"] == "noodling"
+        assert data["content"] == "Hello!"
+        assert data["sender_name"] == "Red"
+
+        # Round-trip
+        restored = ChatMessage.from_dict(data)
+        assert restored.role == MessageRole.NOODLING
+        assert restored.content == "Hello!"
+
+
+class TestChatInput:
+    """Test ChatInput component."""
+
+    def test_chat_input_creation(self):
+        """Test basic ChatInput creation."""
+        from noodlestudio.runtime.ui import ChatInput
+
+        inp = ChatInput(name="input", placeholder="Type here...")
+        assert inp.component_type == "ChatInput"
+        assert inp.name == "input"
+        assert inp.placeholder == "Type here..."
+        assert inp.value == ""
+
+    def test_chat_input_properties(self):
+        """Test ChatInput properties."""
+        from noodlestudio.runtime.ui import ChatInput
+
+        inp = ChatInput(name="input")
+        inp.button_background = "#ff0000"
+        inp.send_button_text = "Go"
+        inp.clear_on_submit = False
+
+        assert inp.button_background == "#ff0000"
+        assert inp.send_button_text == "Go"
+        assert inp.clear_on_submit is False
+
+    def test_chat_input_serialization(self):
+        """Test ChatInput serializes correctly."""
+        from noodlestudio.runtime.ui import ChatInput
+
+        inp = ChatInput(name="input", placeholder="Message...")
+        inp.send_button_text = "Submit"
+
+        data = inp.to_dict()
+
+        assert data["type"] == "ChatInput"
+        assert data["placeholder"] == "Message..."
+        assert data["send_button_text"] == "Submit"
+
+
+class TestChatComponents:
+    """Integration tests for chat components."""
+
+    def test_chat_components_registered(self):
+        """Test chat components are in registry."""
+        from noodlestudio.runtime.ui import list_component_types
+
+        types = list_component_types()
+
+        assert "ChatHistory" in types
+        assert "ChatInput" in types
+
+    def test_load_chat_ui(self):
+        """Test loading UI with chat components."""
+        from noodlestudio.runtime.ui import UILoader, ChatHistory, ChatInput
+        import tempfile
+
+        yaml_content = """
+version: 1
+root:
+  type: Panel
+  name: "root"
+  children:
+    - type: ChatHistory
+      name: "history"
+      x: 0
+      y: 0
+      height: 300
+      anchors: [left, right, top]
+    - type: ChatInput
+      name: "input"
+      y: 310
+      height: 50
+      anchors: [left, right, bottom]
+      placeholder: "Type..."
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+
+            loader = UILoader()
+            root = loader.load_file(f.name)
+
+            history = root.find_by_name("history")
+            inp = root.find_by_name("input")
+
+            assert isinstance(history, ChatHistory)
+            assert isinstance(inp, ChatInput)
+            assert inp.placeholder == "Type..."
+
+
+class TestEventBinding:
+    """Test event binding system."""
+
+    def test_event_binding_creation(self):
+        """Test creating event bindings."""
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        binding = EventBinding(
+            action="send_to_noodling",
+            target="red",
+            message_source="input",
+            chat_history="history"
+        )
+
+        assert binding.action == "send_to_noodling"
+        assert binding.target == "red"
+        assert binding.message_source == "input"
+        assert binding.chat_history == "history"
+
+    def test_event_binding_from_yaml(self):
+        """Test loading event binding from YAML."""
+        from noodlestudio.runtime.ui import UILoader, ChatInput
+        import tempfile
+
+        yaml_content = """
+version: 1
+root:
+  type: Panel
+  name: "root"
+  children:
+    - type: ChatInput
+      name: "input"
+      events:
+        onSubmit:
+          action: send_to_noodling
+          target: red
+          message_source: self
+          chat_history: chat
+"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+
+            loader = UILoader()
+            root = loader.load_file(f.name)
+
+            inp = root.find_by_name("input")
+            assert "onSubmit" in inp.events
+
+            binding = inp.events["onSubmit"]
+            assert binding.action == "send_to_noodling"
+            assert binding.target == "red"
+            assert binding.chat_history == "chat"
+
+
+class TestChatQtRenderer:
+    """Test Qt rendering of chat components."""
+
+    @pytest.fixture
+    def qapp(self):
+        """Create QApplication for tests."""
+        from PyQt6.QtWidgets import QApplication
+        import sys
+
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        yield app
+
+    def test_render_chat_history(self, qapp):
+        """Test rendering ChatHistory to widget."""
+        from noodlestudio.runtime.ui import ChatHistory, QtWidgetRenderer, ChatHistoryWidget
+
+        chat = ChatHistory(name="chat")
+        chat.set_geometry(0, 0, 400, 300)
+
+        renderer = QtWidgetRenderer()
+        widget = renderer.render(chat)
+
+        assert isinstance(widget, ChatHistoryWidget)
+        assert widget.objectName() == "chat"
+
+    def test_render_chat_input(self, qapp):
+        """Test rendering ChatInput to widget."""
+        from noodlestudio.runtime.ui import ChatInput, QtWidgetRenderer, ChatInputWidget
+
+        inp = ChatInput(name="input", placeholder="Type...")
+        inp.set_geometry(0, 0, 400, 50)
+
+        renderer = QtWidgetRenderer()
+        widget = renderer.render(inp)
+
+        assert isinstance(widget, ChatInputWidget)
+        assert widget.objectName() == "input"
+        assert widget.input_field.placeholderText() == "Type..."
+
+    def test_chat_history_add_message_widget(self, qapp):
+        """Test adding message updates widget."""
+        from noodlestudio.runtime.ui import ChatHistory, MessageRole, QtWidgetRenderer
+
+        chat = ChatHistory(name="chat")
+        chat.set_geometry(0, 0, 400, 300)
+
+        renderer = QtWidgetRenderer()
+        widget = renderer.render(chat)
+
+        # Add message after rendering
+        chat.add_message(MessageRole.USER, "Hello!", sender_name="User")
+
+        # Check message was added to widget
+        assert chat.component_type == "ChatHistory"
+        assert len(chat.messages) == 1

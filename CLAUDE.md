@@ -67,6 +67,51 @@ widget = renderer.render(root)
 
 ---
 
+## COMPLETED: Phase 3b Chat Components (Jan 3, 2026)
+
+### What Was Done
+Added chat UI components and event wiring system for noodling interaction.
+
+### New Components
+| Component | Description |
+|-----------|-------------|
+| `ChatHistory` | Scrolling message list with styled bubbles |
+| `ChatInput` | Compound input field + send button |
+| `ChatMessage` | Message data model (role, content, sender, timestamp) |
+| `MessageRole` | Enum: USER, NOODLING, SYSTEM |
+
+### Event System
+| Class | Description |
+|-------|-------------|
+| `UIEventDispatcher` | Routes UI events to noodlings |
+| `EventBinding` | Declarative event-to-action mapping |
+
+### Supported Actions
+- `send_to_noodling` - Send message to a noodling, show response in ChatHistory
+- `set_value` - Set component value
+- `show` / `hide` / `toggle_visible` - Control visibility
+
+### Module Updates
+```
+noodlestudio/runtime/ui/
+├── event_dispatcher.py    # NEW - UIEventDispatcher
+├── components/
+│   ├── chat_history.py    # NEW - ChatHistory, ChatMessage, MessageRole
+│   └── chat_input.py      # NEW - ChatInput
+└── demo_chat.yaml         # Demo UI for testing
+```
+
+### Demo
+```bash
+cd applications/noodlestudio
+PYTHONPATH=.:../.. python3 noodlestudio/runtime/ui/test_chat_demo.py
+```
+
+### Tests
+- 16 new tests in `tests/test_ui_canvas.py` (47 total, all passing)
+
+---
+
 ## COMPLETED: Admin Dashboard Deployed to Production (Jan 2, 2026)
 
 ### Live URLs
@@ -285,13 +330,20 @@ print(result['response'])
    - `--gui` flag added to runtime CLI
    - Test: `python -m noodlestudio.runtime --gui --ui path/to/ui.yaml`
 
-4. **Phase 3b: Chat Components** - NEXT
-   - ChatHistory component (scrolling message list)
+4. **Phase 3b: Chat Components** - DONE (Jan 3)
+   - ChatHistory component (scrolling message list with styled bubbles)
    - ChatInput component (input + send button)
-   - Event wiring to noodlings (send_to_noodling action)
-   - Message styling (user vs noodling bubbles)
+   - UIEventDispatcher for event routing
+   - `send_to_noodling` action with chat_history integration
+   - Message roles: USER, NOODLING, SYSTEM
+   - Demo: `python3 noodlestudio/runtime/ui/test_chat_demo.py`
 
-5. **Phase 4: Build System**
+5. **Phase 3c: RadianceViewport** - NEXT
+   - Embed GaussianRenderer in RadianceViewportWidget
+   - Camera controls (orbit, pan, zoom)
+   - Stage loading integration
+
+6. **Phase 4: Build System**
    - Asset packaging (copy/filter project files)
    - macOS .app bundler (py2app)
    - "File > Build Application..." menu item

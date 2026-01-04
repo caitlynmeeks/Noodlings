@@ -45,7 +45,12 @@ from .loader import (
 from .renderer import (
     QtWidgetRenderer,
     AnchoredWidget,
+    ChatHistoryWidget,
+    ChatInputWidget,
 )
+
+# Event dispatcher
+from .event_dispatcher import UIEventDispatcher
 
 # Components (importing ensures registration)
 from .components import (
@@ -54,6 +59,10 @@ from .components import (
     Button,
     TextInput,
     RadianceViewport,
+    ChatHistory,
+    ChatMessage,
+    MessageRole,
+    ChatInput,
 )
 
 __all__ = [
@@ -73,10 +82,18 @@ __all__ = [
     # Renderer
     'QtWidgetRenderer',
     'AnchoredWidget',
+    'ChatHistoryWidget',
+    'ChatInputWidget',
+    # Event dispatcher
+    'UIEventDispatcher',
     # Components
     'Panel',
     'Label',
     'Button',
     'TextInput',
     'RadianceViewport',
+    'ChatHistory',
+    'ChatMessage',
+    'MessageRole',
+    'ChatInput',
 ]

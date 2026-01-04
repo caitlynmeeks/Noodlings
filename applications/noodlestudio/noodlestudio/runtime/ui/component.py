@@ -88,10 +88,18 @@ class EventBinding:
     - send_to_noodling: Send message to a noodling
     - call_script: Execute a script function
     - set_value: Set another component's value
+
+    Attributes:
+        action: The action type to perform
+        target: Target name (noodling, script, or component)
+        message_source: Component to get message text from
+        chat_history: Component name for chat history display (for send_to_noodling)
+        params: Additional parameters
     """
     action: str
-    target: Optional[str] = None  # Noodling name, script name, or component name
-    message_source: Optional[str] = None  # Component to get message text from
+    target: Optional[str] = None
+    message_source: Optional[str] = None
+    chat_history: Optional[str] = None
     params: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -213,6 +221,7 @@ class UIComponent:
                     "action": binding.action,
                     **({"target": binding.target} if binding.target else {}),
                     **({"message_source": binding.message_source} if binding.message_source else {}),
+                    **({"chat_history": binding.chat_history} if binding.chat_history else {}),
                     **({"params": binding.params} if binding.params else {}),
                 }
                 for name, binding in self.events.items()
@@ -231,6 +240,35 @@ class UIComponent:
         """Override in subclasses to add component-specific properties."""
         pass
 
+    def _apply_base_properties(self, data: Dict[str, Any]) -> None:
+        """
+        Apply base properties from a dictionary.
+
+        Helper method for subclasses to apply base UIComponent properties
+        during deserialization.
+        """
+        self.geometry.x = data.get("x", 0)
+        self.geometry.y = data.get("y", 0)
+        self.geometry.width = data.get("width", self.geometry.width)
+        self.geometry.height = data.get("height", self.geometry.height)
+
+        if "anchors" in data:
+            self.anchors = Anchors.from_list(data["anchors"])
+
+        self.visible = data.get("visible", True)
+        self.enabled = data.get("enabled", True)
+
+        # Events
+        if "events" in data:
+            for event_name, event_data in data["events"].items():
+                self.events[event_name] = EventBinding(
+                    action=event_data.get("action", ""),
+                    target=event_data.get("target"),
+                    message_source=event_data.get("message_source"),
+                    chat_history=event_data.get("chat_history"),
+                    params=event_data.get("params", {}),
+                )
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UIComponent':
         """
@@ -240,29 +278,7 @@ class UIComponent:
         registry to create the correct subclass.
         """
         component = cls(name=data.get("name", ""))
-        component.geometry = Geometry(
-            x=data.get("x", 0),
-            y=data.get("y", 0),
-            width=data.get("width", 100),
-            height=data.get("height", 32),
-        )
-
-        if "anchors" in data:
-            component.anchors = Anchors.from_list(data["anchors"])
-
-        component.visible = data.get("visible", True)
-        component.enabled = data.get("enabled", True)
-
-        # Events
-        if "events" in data:
-            for event_name, event_data in data["events"].items():
-                component.events[event_name] = EventBinding(
-                    action=event_data.get("action", ""),
-                    target=event_data.get("target"),
-                    message_source=event_data.get("message_source"),
-                    params=event_data.get("params", {}),
-                )
-
+        component._apply_base_properties(data)
         return component
 
     def __repr__(self) -> str:

@@ -12,9 +12,10 @@ from typing import Any, Callable, Dict, Optional
 
 from PyQt6.QtWidgets import (
     QWidget, QFrame, QLabel, QPushButton, QLineEdit,
-    QVBoxLayout, QHBoxLayout, QSizePolicy
+    QVBoxLayout, QHBoxLayout, QSizePolicy, QScrollArea,
+    QSpacerItem
 )
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 from .component import UIComponent, Anchors
@@ -87,6 +88,8 @@ class QtWidgetRenderer:
         from .components.button import Button
         from .components.text_input import TextInput
         from .components.radiance_viewport import RadianceViewport
+        from .components.chat_history import ChatHistory
+        from .components.chat_input import ChatInput
 
         if isinstance(component, Panel):
             widget = self._render_panel(component, parent)
@@ -98,6 +101,10 @@ class QtWidgetRenderer:
             widget = self._render_text_input(component, parent)
         elif isinstance(component, RadianceViewport):
             widget = self._render_radiance_viewport(component, parent)
+        elif isinstance(component, ChatHistory):
+            widget = self._render_chat_history(component, parent)
+        elif isinstance(component, ChatInput):
+            widget = self._render_chat_input(component, parent)
         else:
             # Fallback: render as simple frame
             widget = self._render_frame(component, parent)
@@ -298,6 +305,16 @@ class QtWidgetRenderer:
 
         return viewport_widget
 
+    def _render_chat_history(self, component: 'ChatHistory', parent: Optional[QWidget]) -> QWidget:
+        """Render a ChatHistory component."""
+        widget = ChatHistoryWidget(component, self, parent)
+        return widget
+
+    def _render_chat_input(self, component: 'ChatInput', parent: Optional[QWidget]) -> QWidget:
+        """Render a ChatInput component."""
+        widget = ChatInputWidget(component, self, parent)
+        return widget
+
     def _apply_geometry(self, widget: QWidget, component: UIComponent, parent: Optional[QWidget]) -> None:
         """Apply geometry and anchor constraints."""
         geom = component.geometry
@@ -455,3 +472,326 @@ class AnchoredWidget(QWidget):
             # Recurse for nested children using the child's actual rendered size
             if child.children:
                 self._update_anchored_children(child, int(width), int(height))
+
+
+class ChatHistoryWidget(QFrame):
+    """
+    Qt widget for rendering ChatHistory component.
+
+    Displays messages in a scrollable container with different
+    styling for user messages (right-aligned) and noodling
+    messages (left-aligned).
+    """
+
+    def __init__(self, component: 'ChatHistory', renderer: QtWidgetRenderer, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        from .components.chat_history import ChatHistory, MessageRole
+
+        self.component = component
+        self.renderer = renderer
+
+        self.setObjectName(component.name or "chat_history")
+
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # Scroll area
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: {component.background};
+                border: none;
+            }}
+            QScrollBar:vertical {{
+                background: {component.background};
+                width: 8px;
+                margin: 0;
+            }}
+            QScrollBar::handle:vertical {{
+                background: #3a3a3a;
+                min-height: 20px;
+                border-radius: 4px;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+            }}
+        """)
+        main_layout.addWidget(self.scroll_area)
+
+        # Container for messages
+        self.messages_container = QWidget()
+        self.messages_container.setStyleSheet(f"background-color: {component.background};")
+        self.messages_layout = QVBoxLayout(self.messages_container)
+        self.messages_layout.setContentsMargins(8, 8, 8, 8)
+        self.messages_layout.setSpacing(component.message_spacing)
+        self.messages_layout.addStretch()  # Push messages to top
+
+        self.scroll_area.setWidget(self.messages_container)
+
+        # Background style
+        self.setStyleSheet(f"QFrame#{self.objectName()} {{ background-color: {component.background}; }}")
+
+        # Render existing messages
+        for msg in component.messages:
+            self._add_message_widget(msg)
+
+    def add_message(self, message: 'ChatMessage') -> None:
+        """Add a new message widget."""
+        self._add_message_widget(message)
+
+        # Auto-scroll to bottom
+        if self.component.auto_scroll:
+            self.scroll_area.verticalScrollBar().setValue(
+                self.scroll_area.verticalScrollBar().maximum()
+            )
+
+    def _add_message_widget(self, message: 'ChatMessage') -> None:
+        """Create and add a message bubble widget."""
+        from .components.chat_history import MessageRole
+
+        # Insert before the stretch spacer
+        insert_index = self.messages_layout.count() - 1
+
+        # Create message bubble
+        bubble = QFrame()
+        bubble_layout = QVBoxLayout(bubble)
+        bubble_layout.setContentsMargins(
+            self.component.bubble_padding,
+            self.component.bubble_padding,
+            self.component.bubble_padding,
+            self.component.bubble_padding
+        )
+        bubble_layout.setSpacing(4)
+
+        # Determine styling based on role
+        if message.role == MessageRole.USER:
+            bg_color = self.component.user_bubble_color
+            text_color = self.component.user_text_color
+            align = Qt.AlignmentFlag.AlignRight
+        elif message.role == MessageRole.NOODLING:
+            bg_color = self.component.noodling_bubble_color
+            text_color = self.component.noodling_text_color
+            align = Qt.AlignmentFlag.AlignLeft
+        else:  # SYSTEM
+            bg_color = "transparent"
+            text_color = self.component.system_color
+            align = Qt.AlignmentFlag.AlignCenter
+
+        # Sender name (if shown)
+        if self.component.show_sender_names and message.sender_name and message.role != MessageRole.SYSTEM:
+            name_label = QLabel(message.sender_name)
+            name_font = QFont()
+            name_font.setPointSize(self.component.font_size - 2)
+            name_font.setBold(True)
+            name_label.setFont(name_font)
+            name_label.setStyleSheet(f"color: {text_color}; background: transparent;")
+            bubble_layout.addWidget(name_label)
+
+        # Message content
+        content_label = QLabel(message.content)
+        content_label.setWordWrap(True)
+        content_font = QFont()
+        content_font.setPointSize(self.component.font_size)
+        content_label.setFont(content_font)
+        content_label.setStyleSheet(f"color: {text_color}; background: transparent;")
+        bubble_layout.addWidget(content_label)
+
+        # Timestamp (if shown)
+        if self.component.show_timestamps and message.timestamp:
+            time_str = message.timestamp.strftime("%H:%M")
+            time_label = QLabel(time_str)
+            time_font = QFont()
+            time_font.setPointSize(self.component.font_size - 3)
+            time_label.setFont(time_font)
+            time_label.setStyleSheet(f"color: {text_color}; opacity: 0.7; background: transparent;")
+            time_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+            bubble_layout.addWidget(time_label)
+
+        # Style the bubble
+        bubble.setStyleSheet(f"""
+            QFrame {{
+                background-color: {bg_color};
+                border-radius: {self.component.bubble_radius}px;
+            }}
+        """)
+
+        # Set maximum width for bubbles (70% of container)
+        bubble.setMaximumWidth(400)
+
+        # Create container for alignment
+        container = QWidget()
+        container_layout = QHBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+
+        if align == Qt.AlignmentFlag.AlignRight:
+            container_layout.addStretch()
+            container_layout.addWidget(bubble)
+        elif align == Qt.AlignmentFlag.AlignLeft:
+            container_layout.addWidget(bubble)
+            container_layout.addStretch()
+        else:  # Center
+            container_layout.addStretch()
+            container_layout.addWidget(bubble)
+            container_layout.addStretch()
+
+        container.setStyleSheet("background: transparent;")
+
+        self.messages_layout.insertWidget(insert_index, container)
+
+    def clear(self) -> None:
+        """Clear all messages."""
+        # Remove all message widgets (keep the stretch spacer)
+        while self.messages_layout.count() > 1:
+            item = self.messages_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+
+class ChatInputWidget(QFrame):
+    """
+    Qt widget for rendering ChatInput component.
+
+    A compound widget containing a text input and send button.
+    """
+
+    submitted = pyqtSignal(str)  # Emits the message text
+
+    def __init__(self, component: 'ChatInput', renderer: QtWidgetRenderer, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+
+        self.component = component
+        self.renderer = renderer
+
+        self.setObjectName(component.name or "chat_input")
+
+        # Main layout
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(
+            component.padding,
+            component.padding,
+            component.padding,
+            component.padding
+        )
+        layout.setSpacing(component.spacing)
+
+        # Text input
+        self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText(component.placeholder)
+        self.input_field.setText(component.value)
+        if component.max_length > 0:
+            self.input_field.setMaxLength(component.max_length)
+
+        # Input font
+        input_font = QFont()
+        input_font.setPointSize(component.font_size)
+        self.input_field.setFont(input_font)
+
+        # Input style
+        self.input_field.setStyleSheet(f"""
+            QLineEdit {{
+                color: {component.text_color};
+                background-color: {component.input_background};
+                border: 1px solid {component.border_color};
+                border-radius: {component.input_border_radius}px;
+                padding: 8px 12px;
+            }}
+            QLineEdit:focus {{
+                border-color: #3b82f6;
+            }}
+            QLineEdit::placeholder {{
+                color: {component.placeholder_color};
+            }}
+        """)
+
+        layout.addWidget(self.input_field, 1)  # Stretch to fill
+
+        # Send button
+        self.send_button = QPushButton(component.send_button_text)
+
+        # Button font
+        btn_font = QFont()
+        btn_font.setPointSize(component.font_size)
+        self.send_button.setFont(btn_font)
+
+        # Button style
+        hover_bg = hex_to_qcolor(component.button_background)
+        h, s, l, a = hover_bg.getHsl()
+        l = min(255, l + 25)
+        hover_bg.setHsl(h, s, l, a)
+
+        pressed_bg = hex_to_qcolor(component.button_background)
+        h, s, l, a = pressed_bg.getHsl()
+        l = max(0, l - 15)
+        pressed_bg.setHsl(h, s, l, a)
+
+        self.send_button.setStyleSheet(f"""
+            QPushButton {{
+                color: {component.button_text_color};
+                background-color: {component.button_background};
+                border: none;
+                border-radius: {component.button_border_radius}px;
+                padding: 8px 16px;
+                min-width: 60px;
+            }}
+            QPushButton:hover {{
+                background-color: {hover_bg.name()};
+            }}
+            QPushButton:pressed {{
+                background-color: {pressed_bg.name()};
+            }}
+            QPushButton:disabled {{
+                background-color: #3a3a3a;
+                color: #666666;
+            }}
+        """)
+
+        layout.addWidget(self.send_button)
+
+        # Container style
+        self.setStyleSheet(f"""
+            QFrame#{self.objectName()} {{
+                background-color: {component.background};
+                border-radius: {component.border_radius}px;
+            }}
+        """)
+
+        # Connect events
+        self.input_field.returnPressed.connect(self._on_submit)
+        self.send_button.clicked.connect(self._on_submit)
+        self.input_field.textChanged.connect(self._on_text_change)
+
+    def _on_submit(self) -> None:
+        """Handle submit (Enter key or button click)."""
+        text = self.input_field.text().strip()
+        if not text:
+            return
+
+        # Update component value
+        self.component.value = text
+
+        # Clear input if configured
+        if self.component.clear_on_submit:
+            self.input_field.clear()
+            self.component.value = ""
+
+        # Emit signal
+        self.submitted.emit(text)
+
+        # Fire event through dispatcher
+        if "onSubmit" in self.component.events and self.renderer._event_dispatcher:
+            binding = self.component.events["onSubmit"]
+            self.renderer._event_dispatcher("onSubmit", self.component, binding)
+
+    def _on_text_change(self, text: str) -> None:
+        """Handle text changes."""
+        self.component.value = text
+
+        # Fire event through dispatcher
+        if "onChange" in self.component.events and self.renderer._event_dispatcher:
+            binding = self.component.events["onChange"]
+            self.renderer._event_dispatcher("onChange", self.component, binding)

@@ -1,6 +1,6 @@
 # UI Canvas System
 
-**Status**: Implementation Phase 3a
+**Status**: Implementation Phase 3b Complete
 **Last Updated**: January 3, 2026
 **Authors**: Caitlyn + Claude
 **Inspiration**: Borland Delphi Form Designer
@@ -360,34 +360,33 @@ settings:
 
 ## Implementation Phases
 
-### Phase 3a: Canvas Infrastructure (Current)
-- [ ] Create `runtime/ui/` module structure
-- [ ] `UIComponent` base class with properties
-- [ ] `Anchors` dataclass and layout calculation
-- [ ] `UILoader` - YAML to component tree
-- [ ] `QtWidgetRenderer` - component tree to Qt widgets
+### Phase 3a: Canvas Infrastructure - COMPLETE (Jan 3, 2026)
+- [x] Create `runtime/ui/` module structure
+- [x] `UIComponent` base class with properties
+- [x] `Anchors` dataclass and layout calculation
+- [x] `UILoader` - YAML to component tree
+- [x] `QtWidgetRenderer` - component tree to Qt widgets
 
-### Phase 3b: Foundation Components
-- [ ] `Panel` - container with background
-- [ ] `Label` - static text
-- [ ] `Button` - clickable with events
-- [ ] `TextInput` - single-line input
+### Phase 3b: Chat Components - COMPLETE (Jan 3, 2026)
+- [x] `Panel` - container with background
+- [x] `Label` - static text
+- [x] `Button` - clickable with events
+- [x] `TextInput` - single-line input
+- [x] `ChatHistory` - scrolling message list with styled bubbles
+- [x] `ChatInput` - compound input + send button
+- [x] Event dispatch system (`UIEventDispatcher`)
+- [x] `send_to_noodling` action with chat_history integration
+- [x] Message roles: USER, NOODLING, SYSTEM
 
-### Phase 3c: RadianceViewport
-- [ ] Embed GaussianRenderer in QOpenGLWidget
+### Phase 3c: RadianceViewport - NEXT
+- [ ] Embed GaussianRenderer in RadianceViewportWidget
 - [ ] Camera controls (orbit, pan, zoom)
 - [ ] Stage loading integration
 - [ ] Noodling rendering
 
-### Phase 3d: Chat Components
-- [ ] `ChatHistory` - scrolling message list
-- [ ] `ChatInput` - input with send button
-- [ ] Message styling (user vs noodling)
-
-### Phase 3e: Event Wiring
-- [ ] Event dispatch system
-- [ ] `send_to_noodling` action
+### Phase 3d: Event Wiring Extensions
 - [ ] `call_script` action
+- [ ] `set_value`, `show`, `hide`, `toggle_visible` actions
 - [ ] Component value binding
 
 ### Phase 4: Designer Panel (Future)
@@ -487,3 +486,5 @@ A "3D game" is just this default. Not a special case - just a canvas with one fu
 |------|---------|
 | 2026-01-03 | Initial planning document |
 | 2026-01-03 | Architecture decisions finalized: Qt Widgets v1 with abstraction layer, renderer-agnostic ui.yaml contract |
+| 2026-01-03 | Phase 3a COMPLETE: Canvas infrastructure, base components, anchor system |
+| 2026-01-03 | Phase 3b COMPLETE: ChatHistory, ChatInput, UIEventDispatcher, send_to_noodling action |
