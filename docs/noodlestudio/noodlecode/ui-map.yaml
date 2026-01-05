@@ -1,0 +1,214 @@
+# NoodleStudio UI Element Map
+# NoodleCODE reads this for precise element locations
+
+application:
+  title: "NoodleStudio"
+
+menu_bar:
+  location: "top of window"
+  menus:
+    file:
+      items:
+        - label: "New Project"
+          shortcut: "Cmd+N"
+          action: "Opens new project dialog"
+        - label: "Open Project..."
+          shortcut: "Cmd+O"
+          action: "Opens file browser"
+        - label: "Save"
+          shortcut: "Cmd+S"
+          action: "Saves current project"
+        - label: "Build Application"
+          shortcut: "Cmd+B"
+          action: "Opens build dialog"
+        - label: "Import Thing..."
+          action: "Opens import dialog"
+        - label: "Export Thing..."
+          action: "Opens export dialog"
+
+    edit:
+      items:
+        - label: "Undo"
+          shortcut: "Cmd+Z"
+        - label: "Redo"
+          shortcut: "Cmd+Shift+Z"
+        - label: "Cut"
+          shortcut: "Cmd+X"
+        - label: "Copy"
+          shortcut: "Cmd+C"
+        - label: "Paste"
+          shortcut: "Cmd+V"
+        - label: "Delete"
+          shortcut: "Backspace"
+
+    thing:
+      items:
+        - label: "Rez Thing"
+          shortcut: "Cmd+Shift+T"
+          action: "Creates new Thing in current stage"
+        - label: "Rez Zone"
+          action: "Creates new Zone"
+        - label: "Add Component"
+          submenu:
+            - "UI Canvas"
+            - "Facet Assembly"
+            - "Radiance Component"
+
+    build:
+      items:
+        - label: "Build macOS App"
+          shortcut: "Cmd+B"
+        - label: "Build Settings..."
+          action: "Opens build configuration"
+        - label: "Run"
+          shortcut: "Cmd+R"
+          action: "Runs project in preview mode"
+
+panels:
+  stage:
+    location: "left side"
+    width: "~200px"
+    purpose: "Scene hierarchy - shows all Things, Zones, folders"
+    interactions:
+      right_click_empty:
+        - "Rez Thing"
+        - "Rez Zone"
+        - "New Folder"
+      right_click_thing:
+        - "Rename"
+        - "Duplicate"
+        - "De-Rez"
+        - "Add Component"
+      double_click: "Rename item"
+      drag: "Reorder or reparent"
+
+  inspector:
+    location: "right side"
+    width: "~300px"
+    purpose: "Edit properties of selected item"
+    sections:
+      transform:
+        fields: ["Position X/Y/Z", "Rotation X/Y/Z", "Scale X/Y/Z"]
+      components:
+        header: "Components"
+        add_button: "+ Add Component"
+        component_types:
+          - "UI Canvas"
+          - "Facet Assembly"
+          - "Radiance Component"
+      ui_canvas:
+        visible_when: "UI Canvas component selected"
+        shows: "Component tree, properties, event wiring"
+
+  viewport:
+    location: "center"
+    purpose: "Visual preview of stage"
+    modes:
+      - "3D View"
+      - "UI Canvas Edit"
+    interactions:
+      click: "Select object"
+      drag: "Move object / pan view"
+      scroll: "Zoom"
+
+  bottom_tabs:
+    location: "bottom"
+    tabs:
+      facets_editor:
+        label: "Facets"
+        purpose: "Visual facet assembly editor"
+        palette_location: "left side of tab"
+        canvas_location: "center"
+        interactions:
+          drag_from_palette: "Add facet node"
+          drag_between_ports: "Connect facets"
+          double_click_node: "Edit node properties"
+
+      neural_canvas:
+        label: "Neural"
+        purpose: "Visual neural network designer"
+
+      cognitive_cycles:
+        label: "Cognitive"
+        purpose: "Monitor running assemblies"
+        shows: "All Things with cognitive assemblies, phase indicators"
+
+      console:
+        label: "Console"
+        purpose: "Log output, errors, debug info"
+
+dialogs:
+  new_project:
+    trigger: "File > New Project or Cmd+N"
+    fields:
+      - label: "Project Name"
+        type: "text input"
+      - label: "Location"
+        type: "folder picker"
+    buttons: ["Cancel", "Create"]
+
+  build:
+    trigger: "File > Build or Cmd+B"
+    fields:
+      - label: "App Name"
+        type: "text input"
+      - label: "Output Folder"
+        type: "folder picker"
+      - label: "Platform"
+        type: "dropdown"
+        options: ["macOS"]
+    buttons: ["Cancel", "Build"]
+
+ui_canvas_editor:
+  when_active: "When UI Canvas component is selected in Inspector"
+  component_palette:
+    location: "left side of viewport or inspector"
+    components:
+      - name: "Panel"
+        icon: "rectangle"
+        drag_to: "canvas"
+      - name: "Button"
+        icon: "button"
+      - name: "Label"
+        icon: "T"
+      - name: "TextField"
+        icon: "text input"
+      - name: "ImageDisplay"
+        icon: "image"
+      - name: "ChatHistory"
+        icon: "messages"
+      - name: "ChatInput"
+        icon: "input + send"
+      - name: "Checkbox"
+        icon: "checkmark"
+      - name: "Dropdown"
+        icon: "dropdown arrow"
+      - name: "Slider"
+        icon: "slider track"
+      - name: "RadioGroup"
+        icon: "radio circles"
+      - name: "RadianceViewport"
+        icon: "3D cube"
+      - name: "WebView"
+        icon: "globe"
+
+  canvas_interactions:
+    click_component: "Select for editing in Inspector"
+    drag_component: "Move"
+    drag_handles: "Resize"
+    double_click_label: "Edit text"
+    keyboard:
+      f_key: "Focus on selection"
+      a_key: "Frame all"
+      home_key: "Reset view"
+      delete: "Remove component"
+
+  inspector_when_component_selected:
+    sections:
+      properties:
+        varies_by_component: true
+      events:
+        header: "Events"
+        example:
+          - event: "On Click"
+            action_dropdown: ["Run Assembly", "Call Script", "Set Value", "Show", "Hide"]

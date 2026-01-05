@@ -8,15 +8,87 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ## NEXT: Facets as Universal Components - Phase 3
 
-**Goal:** Cognition Manager integration and UI Canvas Designer.
+**Goal:** UI Canvas Designer integration.
 
 **Remaining Tasks:**
-1. Cognition Manager integration
-   - Register continuous assemblies with central manager
-   - Performance monitoring dashboard
-2. UI Canvas Designer integration
+1. UI Canvas Designer integration
    - Add "Facet Assembly" to component palette (for UI-attached assemblies)
    - Visual assembly picker dialog
+
+---
+
+## COMPLETED: Cognitive Cycles Panel v2 + Integration (Jan 5, 2026)
+
+**Hierarchical assembly monitoring** - upgraded from "one row per agent" to "Things containing multiple Assemblies."
+
+**Visual Design:**
+```
++-- Cognitive Cycles ----------------------------------------[Expand All][Pause All]
+|
+| [v] chester                                                    [3] [2/3 active] [||][>|]
+|     |-- emotional-processing    [####..] FACET    "valence: 0.7"     [||][>|]
+|     |-- language-generation     [##....] PRECOG   "gathering context" [||][>|]
+|     |-- social-modeling         [#####.] POSTCOG  "updated: alice"    [||][>|]
+|
+| [>] mysterious_door                                            [1] Idle          [||][>|]
+|
++--------------------------------------------------------------------[1 thing, 4 assemblies]
+```
+
+**Key Features:**
+- **Hierarchical layout**: Things (Noodlings, Prims) contain Assemblies
+- **Collapsible rows**: Compact by default, expand to see assemblies
+- **Architecture-agnostic**: Assemblies publish free-form `status_text` strings
+- **Granular controls**: Pause/Step per-assembly, per-Thing, or globally
+- **Backward compatible**: Works with old flat agent format
+- **Dual data source**: Reads from both local CognitionMonitor (in-process) AND HTTP API (cmush agents)
+
+**CognitionMonitor Integration:**
+
+FacetAssemblyComponent now reports status to CognitionMonitor during execution:
+
+```python
+# Automatic reporting in FacetAssemblyComponent.run():
+# - Reports FACET phase at start
+# - Reports POSTCOG with output summary
+# - Reports IDLE when complete
+# - Reports errors with truncated message
+
+# Cognition loop also reports:
+# - "continuous mode started" when loop begins
+# - "stopped" when loop ends
+```
+
+**Panel Data Flow:**
+1. Local CognitionMonitor singleton (in-process assemblies)
+2. HTTP API at localhost:8081/api/cycle_phases (cmush agents)
+3. Both sources merged - local takes precedence for same thing_id
+
+**Files Created/Modified:**
+- `panels/cognitive_cycles_panel_v2.py` - New hierarchical panel UI with dual data sources
+- `core/cognition_monitor.py` - Central status registry singleton
+- `core/facet_assembly_component.py` - Added CognitionMonitor reporting
+- `core/main_window_panels_mixin.py` - Updated import to v2 panel
+
+**API Format (hierarchical):**
+```json
+{
+  "things": {
+    "chester-uuid": {
+      "name": "chester",
+      "assemblies": {
+        "emotional-processing": {
+          "phase": "FACET",
+          "status_text": "valence: 0.7",
+          "activity": 0.8
+        }
+      }
+    }
+  }
+}
+```
+
+**Tests:** All 414 passing (no regressions)
 
 ---
 
@@ -745,6 +817,8 @@ tail -f applications/noodlestudio/logs/noodlestudio_*.log
 | **Runtime module** | `noodlestudio/runtime/` |
 | **Facet editor** | `panels/facets_editor_panel.py` |
 | **Scene hierarchy** | `panels/scene_hierarchy.py` |
+| **Cognitive Cycles Panel v2** | `panels/cognitive_cycles_panel_v2.py` |
+| **Cognition Monitor** | `core/cognition_monitor.py` |
 
 ---
 

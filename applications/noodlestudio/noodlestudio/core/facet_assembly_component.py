@@ -34,6 +34,7 @@ from .component_base import (
     register_component,
 )
 from .facet_system import FacetAssembly
+from .cognition_monitor import get_cognition_monitor, CyclePhase
 
 logger = logging.getLogger(__name__)
 
@@ -411,6 +412,17 @@ class FacetAssemblyComponent(ComponentBase):
         self._is_running = True
         start_time = time.time()
 
+        # Report status to CognitionMonitor
+        monitor = get_cognition_monitor()
+        monitor.report_status(
+            thing_id=self._entity_id,
+            assembly_id=self._assembly_name or self.id,
+            phase=CyclePhase.FACET,
+            current_facet="executing",
+            status_text=f"starting",
+            activity=1.0
+        )
+
         try:
             # Build context
             exec_context = {
@@ -421,6 +433,16 @@ class FacetAssemblyComponent(ComponentBase):
 
             # Resolve input bindings
             resolved_inputs = self._resolve_input_bindings(inputs)
+
+            # Update status
+            monitor.report_status(
+                thing_id=self._entity_id,
+                assembly_id=self._assembly_name or self.id,
+                phase=CyclePhase.FACET,
+                current_facet=self._assembly_name,
+                status_text="running assembly",
+                activity=1.0
+            )
 
             # Execute assembly
             result = await self._executor.execute(
@@ -439,6 +461,17 @@ class FacetAssemblyComponent(ComponentBase):
             # Apply output bindings
             self._apply_output_bindings(result.facet_outputs)
 
+            # Report completion status
+            output_summary = str(result.response)[:50] if result.response else "done"
+            monitor.report_status(
+                thing_id=self._entity_id,
+                assembly_id=self._assembly_name or self.id,
+                phase=CyclePhase.POSTCOG,
+                current_facet=self._assembly_name,
+                status_text=f"{output_summary}",
+                activity=0.5
+            )
+
             # Emit completion event
             self._events.emit(AssemblyEvent('complete', self.id, {
                 'response': result.response,
@@ -456,11 +489,30 @@ class FacetAssemblyComponent(ComponentBase):
         except Exception as e:
             logger.error(f"Assembly execution error: {e}")
             self._last_error = str(e)
+            # Report error status
+            monitor.report_status(
+                thing_id=self._entity_id,
+                assembly_id=self._assembly_name or self.id,
+                phase=CyclePhase.IDLE,
+                current_facet="",
+                status_text=f"error: {str(e)[:30]}",
+                activity=0.0
+            )
             self._events.emit(AssemblyEvent('error', self.id, {'error': str(e)}))
             return {'error': str(e), 'success': False}
 
         finally:
             self._is_running = False
+            # Report idle status if not in continuous mode
+            if not self._run_in_cognition_loop:
+                monitor.report_status(
+                    thing_id=self._entity_id,
+                    assembly_id=self._assembly_name or self.id,
+                    phase=CyclePhase.IDLE,
+                    current_facet="",
+                    status_text="idle",
+                    activity=0.0
+                )
 
     def _resolve_input_bindings(self, inputs: Dict[str, Any]) -> Any:
         """Resolve input bindings to get actual values."""
@@ -487,12 +539,34 @@ class FacetAssemblyComponent(ComponentBase):
         self._cognition_task = asyncio.create_task(self._cognition_loop())
         logger.info(f"Started cognition loop for assembly: {self._assembly_name}")
 
+        # Report to CognitionMonitor
+        monitor = get_cognition_monitor()
+        monitor.report_status(
+            thing_id=self._entity_id,
+            assembly_id=self._assembly_name or self.id,
+            phase=CyclePhase.IDLE,
+            current_facet="",
+            status_text="continuous mode started",
+            activity=0.1
+        )
+
     def _stop_cognition_loop(self) -> None:
         """Stop continuous cognition loop."""
         if self._cognition_task:
             self._cognition_task.cancel()
             self._cognition_task = None
             logger.info(f"Stopped cognition loop for assembly: {self._assembly_name}")
+
+            # Report to CognitionMonitor
+            monitor = get_cognition_monitor()
+            monitor.report_status(
+                thing_id=self._entity_id,
+                assembly_id=self._assembly_name or self.id,
+                phase=CyclePhase.IDLE,
+                current_facet="",
+                status_text="stopped",
+                activity=0.0
+            )
 
     async def _cognition_loop(self) -> None:
         """Main cognition loop - runs assembly at tick_rate."""

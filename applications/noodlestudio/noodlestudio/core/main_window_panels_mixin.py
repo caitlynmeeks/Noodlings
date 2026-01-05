@@ -89,7 +89,7 @@ class MainWindowPanelsMixin:
         from ..panels.inspector_panel import InspectorPanel
         from ..panels.console_panel import ConsolePanel
         from ..panels.profiler_panel import ProfilerPanel
-        from ..panels.cognitive_cycles_panel import CognitiveCyclesPanel
+        from ..panels.cognitive_cycles_panel_v2 import CognitiveCyclesPanel
         from ..panels.gaussian_viewer_panel import GaussianViewerPanel
         from ..panels.settings_panel import SettingsPanel
         from ..panels.noodle_code_panel import NoodleCodePanel
