@@ -351,6 +351,11 @@ class UICanvasView(QGraphicsView):
         self.panning = False
         self.last_pan_pos = QPointF()
 
+        # Focus state (F key toggle)
+        self.is_focused = False
+        self.pre_focus_transform: Optional[QTransform] = None
+        self.focused_component_ids: Optional[tuple] = None
+
         # Component tracking
         self.component_items: Dict[str, ComponentGraphicsItem] = {}
         self.root_component: Optional[UIComponent] = None
@@ -507,8 +512,10 @@ class UICanvasView(QGraphicsView):
         loader.save_file(self.root_component, self.ui_file_path)
 
     def frame_all(self):
-        """Fit all components in view."""
+        """Fit all components in view (A key)."""
         if not self.component_items:
+            # No components - reset to origin
+            self.resetTransform()
             self.centerOn(0, 0)
             return
 
@@ -521,9 +528,79 @@ class UICanvasView(QGraphicsView):
             else:
                 rect = rect.united(item_rect)
 
-        if rect:
-            rect = rect.adjusted(-50, -50, 50, 50)  # Add padding
+        if rect and rect.width() > 0 and rect.height() > 0:
+            # Reset transform first to avoid accumulation issues
+            self.resetTransform()
+            # Add generous padding
+            padding = max(rect.width(), rect.height()) * 0.2
+            rect = rect.adjusted(-padding, -padding, padding, padding)
             self.fitInView(rect, Qt.AspectRatioMode.KeepAspectRatio)
+        else:
+            # Fallback: reset to origin
+            self.resetTransform()
+            self.centerOn(0, 0)
+
+    def reset_view(self):
+        """Reset view to default zoom and center (Home key)."""
+        self.resetTransform()
+        self.centerOn(0, 0)
+        # Clear focus state
+        self.is_focused = False
+        self.pre_focus_transform = None
+        self.focused_component_ids = None
+
+    def focus_selection(self):
+        """
+        Toggle focus on selected components (F key).
+
+        First press: Zooms to selection, saves view state
+        Second press: Restores pre-focus view state
+        """
+        selected_items = self.canvas_scene.selectedItems()
+        selected_components = [
+            item for item in selected_items
+            if isinstance(item, ComponentGraphicsItem)
+        ]
+
+        if not selected_components:
+            return
+
+        # Create selection ID for toggle tracking
+        selection_ids = tuple(sorted(item.component.name for item in selected_components))
+
+        # Check if toggling focus on same selection
+        if self.is_focused and self.focused_component_ids == selection_ids:
+            # RESTORE: Pop back to pre-focus view
+            if self.pre_focus_transform:
+                self.setTransform(self.pre_focus_transform)
+            self.is_focused = False
+            self.focused_component_ids = None
+            self.pre_focus_transform = None
+        else:
+            # FOCUS: Save current view and zoom to selection
+            self.pre_focus_transform = self.transform()
+            self.focused_component_ids = selection_ids
+            self.is_focused = True
+
+            # Frame selected components
+            self._frame_items(selected_components, padding_factor=0.1)
+
+    def _frame_items(self, items: List[ComponentGraphicsItem], padding_factor: float = 0.1):
+        """Frame given items in view with padding."""
+        if not items:
+            return
+
+        # Get bounding rect of all items
+        rect = items[0].sceneBoundingRect()
+        for item in items[1:]:
+            rect = rect.united(item.sceneBoundingRect())
+
+        # Add padding
+        padding = max(rect.width(), rect.height()) * padding_factor
+        rect = rect.adjusted(-padding, -padding, padding, padding)
+
+        # Fit in view
+        self.fitInView(rect, Qt.AspectRatioMode.KeepAspectRatio)
 
     def _on_selection_changed(self):
         """Handle selection changes."""
@@ -543,12 +620,40 @@ class UICanvasView(QGraphicsView):
     # --- Input handling ---
 
     def wheelEvent(self, event: QWheelEvent):
-        """Zoom with mouse wheel."""
+        """Zoom with mouse wheel (with limits)."""
         zoom_factor = 1.15
         if event.angleDelta().y() > 0:
-            self.scale(zoom_factor, zoom_factor)
+            self._zoom_view(zoom_factor)
         else:
-            self.scale(1 / zoom_factor, 1 / zoom_factor)
+            self._zoom_view(1 / zoom_factor)
+
+    def _zoom_view(self, factor: float):
+        """Zoom the view by given factor with limits."""
+        current_scale = self.transform().m11()
+        new_scale = current_scale * factor
+
+        # Calculate max zoom based on content
+        max_zoom = 3.0  # Default max
+        min_zoom = 0.1  # Reasonable minimum
+
+        all_items = list(self.component_items.values())
+        if all_items:
+            # Calculate bounding rect of all items
+            bounding_rect = all_items[0].sceneBoundingRect()
+            for item in all_items[1:]:
+                bounding_rect = bounding_rect.united(item.sceneBoundingRect())
+
+            # Calculate what zoom would frame all items
+            view_rect = self.viewport().rect()
+            if bounding_rect.width() > 0 and view_rect.width() > 0:
+                frame_all_scale = view_rect.width() / bounding_rect.width()
+                max_zoom = max(frame_all_scale * 3.0, 3.0)
+
+        # Clamp to limits
+        if new_scale < min_zoom or new_scale > max_zoom:
+            return
+
+        self.scale(factor, factor)
 
     def keyPressEvent(self, event: QKeyEvent):
         """Handle key press."""
@@ -560,6 +665,10 @@ class UICanvasView(QGraphicsView):
             self.delete_selected()
         elif event.key() == Qt.Key.Key_A:
             self.frame_all()
+        elif event.key() == Qt.Key.Key_F:
+            self.focus_selection()
+        elif event.key() == Qt.Key.Key_Home:
+            self.reset_view()
         else:
             super().keyPressEvent(event)
 
@@ -682,14 +791,6 @@ class UICanvasEditorPanel(QWidget):
             }
         """)
 
-        # Frame all button
-        frame_btn = QToolButton()
-        frame_btn.setText("Frame All")
-        frame_btn.clicked.connect(self._on_frame_all)
-        toolbar.addWidget(frame_btn)
-
-        toolbar.addSeparator()
-
         # Grid snap toggle
         self.grid_snap_cb = QCheckBox("Grid Snap")
         self.grid_snap_cb.setChecked(True)
@@ -746,10 +847,6 @@ class UICanvasEditorPanel(QWidget):
         self.view.save_ui()
         self.canvas_modified.emit()
 
-    def _on_frame_all(self):
-        """Frame all components in view."""
-        self.view.frame_all()
-
     def reload_ui(self):
         """Reload ui.yaml from disk."""
         if self.view.ui_file_path and self.view.ui_file_path.exists():
@@ -782,16 +879,28 @@ class UICanvasEditorPanel(QWidget):
 
         menu = QMenu(self)
 
-        # Add component submenu
+        # Add component submenu - organized by category
         add_menu = menu.addMenu("Add")
+
+        # Basic components
         add_menu.addAction("Panel", lambda: self._add_component_at_cursor("Panel", pos))
         add_menu.addAction("Label", lambda: self._add_component_at_cursor("Label", pos))
         add_menu.addAction("Button", lambda: self._add_component_at_cursor("Button", pos))
         add_menu.addAction("TextInput", lambda: self._add_component_at_cursor("TextInput", pos))
         add_menu.addSeparator()
+
+        # Form controls
+        add_menu.addAction("Checkbox", lambda: self._add_component_at_cursor("Checkbox", pos))
+        add_menu.addAction("Dropdown", lambda: self._add_component_at_cursor("Dropdown", pos))
+        add_menu.addAction("Slider", lambda: self._add_component_at_cursor("Slider", pos))
+        add_menu.addAction("RadioGroup", lambda: self._add_component_at_cursor("RadioGroup", pos))
+        add_menu.addSeparator()
+
+        # Advanced components
         add_menu.addAction("ChatHistory", lambda: self._add_component_at_cursor("ChatHistory", pos))
         add_menu.addAction("ChatInput", lambda: self._add_component_at_cursor("ChatInput", pos))
         add_menu.addAction("RadianceViewport", lambda: self._add_component_at_cursor("RadianceViewport", pos))
+        add_menu.addAction("WebView", lambda: self._add_component_at_cursor("WebView", pos))
 
         menu.addSeparator()
 
@@ -801,7 +910,7 @@ class UICanvasEditorPanel(QWidget):
             menu.addAction(f"Delete {len(selected)} Selected", self.view.delete_selected)
 
         menu.addSeparator()
-        menu.addAction("Frame All", self._on_frame_all)
+        menu.addAction("Frame All (A)", self.view.frame_all)
 
         menu.exec(self.view.mapToGlobal(pos))
 

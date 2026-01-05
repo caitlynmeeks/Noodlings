@@ -13,7 +13,8 @@ from typing import Any, Callable, Dict, Optional
 from PyQt6.QtWidgets import (
     QWidget, QFrame, QLabel, QPushButton, QLineEdit,
     QVBoxLayout, QHBoxLayout, QSizePolicy, QScrollArea,
-    QSpacerItem
+    QSpacerItem, QCheckBox, QComboBox, QSlider, QRadioButton,
+    QButtonGroup
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QFont, QColor, QPalette
@@ -139,6 +140,11 @@ class QtWidgetRenderer:
         from .components.radiance_viewport import RadianceViewport
         from .components.chat_history import ChatHistory
         from .components.chat_input import ChatInput
+        from .components.checkbox import Checkbox
+        from .components.dropdown import Dropdown
+        from .components.slider import Slider
+        from .components.radio import RadioButton, RadioGroup
+        from .components.webview import WebView
 
         if isinstance(component, Panel):
             widget = self._render_panel(component, parent)
@@ -154,6 +160,18 @@ class QtWidgetRenderer:
             widget = self._render_chat_history(component, parent)
         elif isinstance(component, ChatInput):
             widget = self._render_chat_input(component, parent)
+        elif isinstance(component, Checkbox):
+            widget = self._render_checkbox(component, parent)
+        elif isinstance(component, Dropdown):
+            widget = self._render_dropdown(component, parent)
+        elif isinstance(component, Slider):
+            widget = self._render_slider(component, parent)
+        elif isinstance(component, RadioButton):
+            widget = self._render_radio_button(component, parent)
+        elif isinstance(component, RadioGroup):
+            widget = self._render_radio_group(component, parent)
+        elif isinstance(component, WebView):
+            widget = self._render_webview(component, parent)
         else:
             # Fallback: render as simple frame
             widget = self._render_frame(component, parent)
@@ -396,6 +414,366 @@ class QtWidgetRenderer:
     def _render_chat_input(self, component: 'ChatInput', parent: Optional[QWidget]) -> QWidget:
         """Render a ChatInput component."""
         widget = ChatInputWidget(component, self, parent)
+        return widget
+
+    def _render_checkbox(self, component: 'Checkbox', parent: Optional[QWidget]) -> QCheckBox:
+        """Render a Checkbox component."""
+        from .components.checkbox import Checkbox
+
+        checkbox = QCheckBox(component.text, parent)
+        checkbox.setObjectName(component.name or "checkbox")
+        checkbox.setChecked(component.checked)
+
+        # Font
+        font = QFont()
+        font.setPointSize(component.font_size)
+        checkbox.setFont(font)
+
+        # Style
+        checkbox.setStyleSheet(f"""
+            QCheckBox {{
+                color: {component.text_color};
+                spacing: {component.spacing}px;
+            }}
+            QCheckBox::indicator {{
+                width: {component.box_size}px;
+                height: {component.box_size}px;
+                border: 2px solid {component.box_color};
+                border-radius: 3px;
+                background-color: transparent;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {component.check_color};
+                border-color: {component.check_color};
+            }}
+            QCheckBox::indicator:hover {{
+                border-color: {component.check_color};
+            }}
+        """)
+
+        # Connect events
+        def on_state_changed(state):
+            component.checked = (state == Qt.CheckState.Checked.value)
+            if component.name:
+                self.notify_binding_change(component.name, 'checked')
+                self.notify_binding_change(component.name, 'value')
+            if EVENT_CHANGE in component.events and self._event_dispatcher:
+                binding = component.events[EVENT_CHANGE]
+                self._event_dispatcher(
+                    EVENT_CHANGE,
+                    component,
+                    binding,
+                    UIEventData.value_change(component.name, component.checked, not component.checked)
+                )
+
+        checkbox.stateChanged.connect(on_state_changed)
+
+        return checkbox
+
+    def _render_dropdown(self, component: 'Dropdown', parent: Optional[QWidget]) -> QComboBox:
+        """Render a Dropdown component."""
+        from .components.dropdown import Dropdown
+
+        combo = QComboBox(parent)
+        combo.setObjectName(component.name or "dropdown")
+        combo.setEditable(component.editable)
+
+        # Add placeholder as first item if set
+        if component.placeholder:
+            combo.addItem(component.placeholder)
+            combo.setItemData(0, False, Qt.ItemDataRole.UserRole)  # Mark as placeholder
+
+        # Add options
+        for opt in component.options:
+            combo.addItem(opt)
+
+        # Set selection
+        if component.selected_index >= 0:
+            # Account for placeholder offset
+            idx = component.selected_index + (1 if component.placeholder else 0)
+            combo.setCurrentIndex(idx)
+        elif component.placeholder:
+            combo.setCurrentIndex(0)
+
+        # Font
+        font = QFont()
+        font.setPointSize(component.font_size)
+        combo.setFont(font)
+
+        # Style
+        combo.setStyleSheet(f"""
+            QComboBox {{
+                color: {component.text_color};
+                background-color: {component.background};
+                border: 1px solid {component.border_color};
+                border-radius: {component.border_radius}px;
+                padding: 4px 8px;
+                padding-right: 24px;
+            }}
+            QComboBox:hover {{
+                background-color: {component.hover_background};
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 6px solid {component.text_color};
+                margin-right: 8px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {component.dropdown_background};
+                color: {component.text_color};
+                selection-background-color: {component.item_hover_background};
+                border: 1px solid {component.border_color};
+            }}
+        """)
+
+        # Connect events
+        def on_index_changed(index):
+            # Calculate actual index (accounting for placeholder)
+            offset = 1 if component.placeholder else 0
+            actual_index = index - offset
+            if actual_index >= 0:
+                old_value = component.value
+                component.selected_index = actual_index
+                if component.name:
+                    self.notify_binding_change(component.name, 'value')
+                    self.notify_binding_change(component.name, 'selected_index')
+                if EVENT_CHANGE in component.events and self._event_dispatcher:
+                    binding = component.events[EVENT_CHANGE]
+                    self._event_dispatcher(
+                        EVENT_CHANGE,
+                        component,
+                        binding,
+                        UIEventData.value_change(component.name, component.value, old_value)
+                    )
+
+        combo.currentIndexChanged.connect(on_index_changed)
+
+        return combo
+
+    def _render_slider(self, component: 'Slider', parent: Optional[QWidget]) -> QWidget:
+        """Render a Slider component."""
+        from .components.slider import Slider
+
+        # Create container for slider + optional value label
+        container = QWidget(parent)
+        container.setObjectName(component.name or "slider")
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        # Create slider
+        slider = QSlider(Qt.Orientation.Horizontal)
+
+        # Qt sliders use integers, so we scale to get float precision
+        scale = 1000  # 3 decimal places
+        slider.setMinimum(int(component.min_value * scale))
+        slider.setMaximum(int(component.max_value * scale))
+        slider.setValue(int(component.value * scale))
+
+        if component.step > 0:
+            slider.setSingleStep(int(component.step * scale))
+            slider.setPageStep(int(component.step * scale * 10))
+
+        # Style
+        slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                height: {component.track_height}px;
+                background: {component.track_color};
+                border-radius: {component.track_height // 2}px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: {component.track_fill_color};
+                border-radius: {component.track_height // 2}px;
+            }}
+            QSlider::handle:horizontal {{
+                width: {component.handle_size}px;
+                height: {component.handle_size}px;
+                margin: -{(component.handle_size - component.track_height) // 2}px 0;
+                background: {component.handle_color};
+                border-radius: {component.handle_size // 2}px;
+            }}
+            QSlider::handle:horizontal:hover {{
+                background: {component.handle_hover_color};
+            }}
+        """)
+
+        layout.addWidget(slider, 1)
+
+        # Value label (optional)
+        value_label = None
+        if component.show_value:
+            value_label = QLabel(component.formatted_value)
+            value_label.setStyleSheet("color: #cccccc; min-width: 40px;")
+            value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            layout.addWidget(value_label)
+
+        # Store slider reference for value updates
+        container._slider = slider
+        container._value_label = value_label
+        container._scale = scale
+
+        # Connect events
+        def on_value_changed(scaled_value):
+            old_value = component.value
+            component.value = scaled_value / scale
+            if value_label:
+                value_label.setText(component.formatted_value)
+            if component.name:
+                self.notify_binding_change(component.name, 'value')
+            if EVENT_CHANGE in component.events and self._event_dispatcher:
+                binding = component.events[EVENT_CHANGE]
+                self._event_dispatcher(
+                    EVENT_CHANGE,
+                    component,
+                    binding,
+                    UIEventData.value_change(component.name, component.value, old_value)
+                )
+
+        slider.valueChanged.connect(on_value_changed)
+
+        return container
+
+    def _render_radio_button(self, component: 'RadioButton', parent: Optional[QWidget]) -> QRadioButton:
+        """Render a standalone RadioButton component."""
+        from .components.radio import RadioButton
+
+        radio = QRadioButton(component.text, parent)
+        radio.setObjectName(component.name or "radio")
+        radio.setChecked(component.checked)
+
+        # Font
+        font = QFont()
+        font.setPointSize(component.font_size)
+        radio.setFont(font)
+
+        # Style
+        radio.setStyleSheet(f"""
+            QRadioButton {{
+                color: {component.text_color};
+                spacing: {component.spacing}px;
+            }}
+            QRadioButton::indicator {{
+                width: {component.radio_size}px;
+                height: {component.radio_size}px;
+                border: 2px solid {component.radio_color};
+                border-radius: {component.radio_size // 2}px;
+                background-color: transparent;
+            }}
+            QRadioButton::indicator:checked {{
+                background-color: {component.checked_color};
+                border-color: {component.checked_color};
+            }}
+            QRadioButton::indicator:hover {{
+                border-color: {component.checked_color};
+            }}
+        """)
+
+        # Connect events
+        def on_toggled(checked):
+            component.checked = checked
+            if component.name:
+                self.notify_binding_change(component.name, 'checked')
+            if checked and EVENT_CHANGE in component.events and self._event_dispatcher:
+                binding = component.events[EVENT_CHANGE]
+                self._event_dispatcher(
+                    EVENT_CHANGE,
+                    component,
+                    binding,
+                    UIEventData.value_change(component.name, component.option_value, None)
+                )
+
+        radio.toggled.connect(on_toggled)
+
+        return radio
+
+    def _render_radio_group(self, component: 'RadioGroup', parent: Optional[QWidget]) -> QWidget:
+        """Render a RadioGroup component."""
+        from .components.radio import RadioGroup
+
+        container = QWidget(parent)
+        container.setObjectName(component.name or "radio_group")
+
+        # Layout based on orientation
+        if component.orientation == "horizontal":
+            layout = QHBoxLayout(container)
+        else:
+            layout = QVBoxLayout(container)
+
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(component.spacing)
+
+        # Button group for mutual exclusion
+        button_group = QButtonGroup(container)
+
+        # Create radio buttons for each option
+        for i, option in enumerate(component.options):
+            radio = QRadioButton(option)
+            radio.setChecked(i == component.selected_index)
+
+            # Font
+            font = QFont()
+            font.setPointSize(component.font_size)
+            radio.setFont(font)
+
+            # Style
+            radio.setStyleSheet(f"""
+                QRadioButton {{
+                    color: {component.text_color};
+                    spacing: 8px;
+                }}
+                QRadioButton::indicator {{
+                    width: {component.radio_size}px;
+                    height: {component.radio_size}px;
+                    border: 2px solid {component.radio_color};
+                    border-radius: {component.radio_size // 2}px;
+                    background-color: transparent;
+                }}
+                QRadioButton::indicator:checked {{
+                    background-color: {component.checked_color};
+                    border-color: {component.checked_color};
+                }}
+                QRadioButton::indicator:hover {{
+                    border-color: {component.checked_color};
+                }}
+            """)
+
+            button_group.addButton(radio, i)
+            layout.addWidget(radio)
+
+        # Store reference
+        container._button_group = button_group
+
+        # Connect events
+        def on_button_clicked(button_id):
+            old_value = component.value
+            component.selected_index = button_id
+            if component.name:
+                self.notify_binding_change(component.name, 'value')
+                self.notify_binding_change(component.name, 'selected_index')
+            if EVENT_CHANGE in component.events and self._event_dispatcher:
+                binding = component.events[EVENT_CHANGE]
+                self._event_dispatcher(
+                    EVENT_CHANGE,
+                    component,
+                    binding,
+                    UIEventData.value_change(component.name, component.value, old_value)
+                )
+
+        button_group.idClicked.connect(on_button_clicked)
+
+        layout.addStretch()
+        return container
+
+    def _render_webview(self, component: 'WebView', parent: Optional[QWidget]) -> QWidget:
+        """Render a WebView component."""
+        widget = WebViewWidget(component, self, parent)
+        widget.setObjectName(component.name or "webview")
         return widget
 
     def _apply_geometry(self, widget: QWidget, component: UIComponent, parent: Optional[QWidget]) -> None:
@@ -882,3 +1260,72 @@ class ChatInputWidget(QFrame):
         if "onChange" in self.component.events and self.renderer._event_dispatcher:
             binding = self.component.events["onChange"]
             self.renderer._event_dispatcher("onChange", self.component, binding)
+
+
+class WebViewWidget(QWidget):
+    """Qt widget wrapper for WebView component using QWebEngineView."""
+
+    def __init__(self, component: 'WebView', renderer: 'QtWidgetRenderer', parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        self.component = component
+        self.renderer = renderer
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Try to import QWebEngineView
+        try:
+            from PyQt6.QtWebEngineWidgets import QWebEngineView
+            from PyQt6.QtCore import QUrl
+
+            self.web_view = QWebEngineView()
+            self.web_view.setStyleSheet(f"background-color: {component.background};")
+
+            # Set zoom
+            self.web_view.setZoomFactor(component.zoom_factor)
+
+            # Load content
+            if component.html:
+                base_url = QUrl(component.url) if component.url else QUrl()
+                self.web_view.setHtml(component.html, base_url)
+            elif component.url:
+                self.web_view.setUrl(QUrl(component.url))
+
+            # Connect signals
+            self.web_view.loadFinished.connect(self._on_load_finished)
+            self.web_view.urlChanged.connect(self._on_url_changed)
+
+            layout.addWidget(self.web_view)
+
+        except ImportError:
+            # QWebEngineView not available - show placeholder
+            placeholder = QLabel("WebView requires PyQt6-WebEngine\n\npip install PyQt6-WebEngine")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.setStyleSheet(f"""
+                QLabel {{
+                    background-color: {component.background};
+                    color: #888888;
+                    border: 1px dashed #555555;
+                    padding: 20px;
+                }}
+            """)
+            layout.addWidget(placeholder)
+            self.web_view = None
+
+    def _on_load_finished(self, ok: bool):
+        """Handle page load completion."""
+        if ok:
+            if "onLoad" in self.component.events and self.renderer._event_dispatcher:
+                binding = self.component.events["onLoad"]
+                self.renderer._event_dispatcher("onLoad", self.component, binding)
+        else:
+            if "onError" in self.component.events and self.renderer._event_dispatcher:
+                binding = self.component.events["onError"]
+                self.renderer._event_dispatcher("onError", self.component, binding)
+
+    def _on_url_changed(self, url):
+        """Handle URL changes."""
+        self.component.url = url.toString()
+        if "onUrlChanged" in self.component.events and self.renderer._event_dispatcher:
+            binding = self.component.events["onUrlChanged"]
+            self.renderer._event_dispatcher("onUrlChanged", self.component, binding)

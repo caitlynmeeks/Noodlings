@@ -140,9 +140,15 @@ class SceneHierarchyContextMenuMixin:
                     add_ui_menu.addAction("Button", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Button')))
                     add_ui_menu.addAction("TextInput", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'TextInput')))
                     add_ui_menu.addSeparator()
+                    add_ui_menu.addAction("Checkbox", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Checkbox')))
+                    add_ui_menu.addAction("Dropdown", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Dropdown')))
+                    add_ui_menu.addAction("Slider", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Slider')))
+                    add_ui_menu.addAction("RadioGroup", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'RadioGroup')))
+                    add_ui_menu.addSeparator()
                     add_ui_menu.addAction("ChatHistory", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'ChatHistory')))
                     add_ui_menu.addAction("ChatInput", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'ChatInput')))
                     add_ui_menu.addAction("RadianceViewport", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'RadianceViewport')))
+                    add_ui_menu.addAction("WebView", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'WebView')))
 
                 elif entity_type == 'ui_component':
                     # UI Component - can add children (if it's a Panel) and delete
@@ -154,9 +160,15 @@ class SceneHierarchyContextMenuMixin:
                         add_ui_menu.addAction("Button", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Button')))
                         add_ui_menu.addAction("TextInput", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'TextInput')))
                         add_ui_menu.addSeparator()
+                        add_ui_menu.addAction("Checkbox", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Checkbox')))
+                        add_ui_menu.addAction("Dropdown", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Dropdown')))
+                        add_ui_menu.addAction("Slider", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Slider')))
+                        add_ui_menu.addAction("RadioGroup", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'RadioGroup')))
+                        add_ui_menu.addSeparator()
                         add_ui_menu.addAction("ChatHistory", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'ChatHistory')))
                         add_ui_menu.addAction("ChatInput", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'ChatInput')))
                         add_ui_menu.addAction("RadianceViewport", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'RadianceViewport')))
+                        add_ui_menu.addAction("WebView", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'WebView')))
                         menu.addSeparator()
                     menu.addAction("Delete", _safe_callback(lambda d=entity_data: self._delete_ui_component(d)))
 

@@ -115,9 +115,15 @@ class SceneHierarchyUIMixin:
             "Label": (100, 24),
             "Button": (80, 32),
             "TextInput": (200, 32),
+            "Checkbox": (150, 24),
+            "Dropdown": (180, 32),
+            "Slider": (200, 32),
+            "RadioButton": (150, 24),
+            "RadioGroup": (200, 100),
             "ChatHistory": (300, 200),
             "ChatInput": (300, 48),
             "RadianceViewport": (400, 300),
+            "WebView": (400, 300),
         }
         w, h = default_sizes.get(component_type, (100, 32))
         new_component.geometry.width = w
@@ -203,3 +209,118 @@ class SceneHierarchyUIMixin:
 
         collect_names(root)
         return names
+
+    def select_ui_component_by_name(self, component_name: str) -> bool:
+        """
+        Programmatically select a UI component in the tree by name.
+
+        Used to sync selection from UI Canvas Editor -> Stage hierarchy.
+
+        Args:
+            component_name: Name of the component to select
+
+        Returns:
+            True if component was found and selected, False otherwise
+        """
+        if not component_name:
+            return False
+
+        def find_item_recursive(parent_item, name: str):
+            """Recursively search for an item with matching UI component name."""
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                entity_data = child.data(0, Qt.ItemDataRole.UserRole)
+
+                if isinstance(entity_data, dict):
+                    entity_type = entity_data.get('type', '')
+                    if entity_type == 'ui_component':
+                        component = entity_data.get('component')
+                        if component and component.name == name:
+                            return child
+
+                # Recurse into children
+                found = find_item_recursive(child, name)
+                if found:
+                    return found
+
+            return None
+
+        # Search from tree root
+        root = self.tree.invisibleRootItem()
+        item = find_item_recursive(root, component_name)
+
+        if item:
+            # Block signals to prevent re-emitting entitySelected (avoid loops)
+            self.tree.blockSignals(True)
+            self.tree.clearSelection()
+            item.setSelected(True)
+            self.tree.scrollToItem(item)
+            self.tree.blockSignals(False)
+            return True
+
+        return False
+
+    def clear_ui_selection(self):
+        """Clear the current selection in the tree (for Canvas deselect sync)."""
+        self.tree.blockSignals(True)
+        self.tree.clearSelection()
+        self.tree.blockSignals(False)
+
+    def _reparent_ui_component(self, child_data: dict, new_parent_data: dict):
+        """
+        Reparent a UI component to a new parent Panel.
+
+        Called from dropEvent when dragging a UI component onto a Panel.
+        """
+        from ..runtime.ui.loader import UILoader
+        from pathlib import Path
+
+        child_component = child_data.get('component')
+        new_parent_component = new_parent_data.get('component')
+        ui_path = child_data.get('path')
+
+        if not child_component or not new_parent_component or not ui_path:
+            print("[SceneHierarchy] Cannot reparent: missing component or path")
+            return
+
+        # Don't allow dropping on self or on a descendant
+        if child_component == new_parent_component:
+            return
+
+        # Check if new_parent is a descendant of child (would create cycle)
+        def is_descendant(parent, potential_child):
+            for c in parent.children:
+                if c == potential_child or is_descendant(c, potential_child):
+                    return True
+            return False
+
+        if is_descendant(child_component, new_parent_component):
+            print("[SceneHierarchy] Cannot reparent: would create cycle")
+            return
+
+        # Remove from old parent
+        old_parent = child_component.parent
+        if old_parent:
+            old_parent.children.remove(child_component)
+
+        # Add to new parent
+        child_component.parent = new_parent_component
+        new_parent_component.children.append(child_component)
+
+        # Save to disk
+        loader = UILoader()
+        # Find root
+        root = new_parent_component
+        while root.parent:
+            root = root.parent
+        loader.save_file(root, Path(ui_path))
+
+        # Refresh the tree
+        self.refresh_scene()
+
+        # Notify UI Canvas Editor
+        main_window = self.window() if hasattr(self, 'window') else None
+        if main_window and hasattr(main_window, 'ui_canvas_editor'):
+            main_window.ui_canvas_editor.reload_ui()
+
+        print(f"[SceneHierarchy] Reparented '{child_component.name}' to '{new_parent_component.name}'")

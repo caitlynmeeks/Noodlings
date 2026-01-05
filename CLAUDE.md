@@ -6,49 +6,152 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
-## NEXT: Phase 7B - Inspector Event Wiring UI (Jan 4, 2026)
+## NEXT: Phase 7D - Custom Component System
 
-**Goal:** Visual UI in Inspector for configuring event bindings - the Delphi Object Inspector's Events tab.
+**Goal:** Allow users to create reusable custom components.
 
-**Design:**
+**Three ways to create custom components:**
+
+**1. Composite Components (YAML):**
+```yaml
+# components/login_form.yaml
+type: CompositeComponent
+name: LoginForm
+properties:
+  - name: title
+    type: string
+    default: "Login"
+
+template:
+  type: Panel
+  children:
+    - type: Label
+      text: "${title}"
+    - type: TextInput
+      name: "usernameInput"
+```
+
+**2. Python Components:**
+```python
+@register_component
+class ColorPicker(UIComponent):
+    component_type = "ColorPicker"
+    PROPERTIES = {'value': {'type': 'color', 'default': '#ffffff'}}
+```
+
+**Key Files:**
+- `runtime/ui/composite_loader.py` - NEW: Load composite components
+- `runtime/ui/component.py` - Add PROPERTIES/EVENTS class attributes
+
+---
+
+## COMPLETED: UI Polish and New Components (Jan 4, 2026)
+
+Session work on Inspector UX, navigation consistency, and new components.
+
+**Inspector Improvements:**
+- Tightened padding throughout (margins, spacing, input fields)
+- Added `ColorFieldWidget` with Procreate-style color picker popup
+- Color wheel (HSV) + saturation/value square
+- 25-color palette + recent colors
+- Hex input field
+
+**Navigation Consistency (Facets/Neural Canvas/UI Canvas):**
+- Added F key focus toggle to UI Canvas (zoom to selection, press again to restore)
+- Added zoom limits to UI Canvas
+- Removed redundant "Frame All" toolbar button (A key works)
+
+**New Components:**
+- `WebView` - Embedded web browser (requires PyQt6-WebEngine)
+
+**Context Menu Sync:**
+- UI Canvas and Stage View now have identical component lists
+- All 13 components available: Panel, Label, Button, TextInput, Checkbox, Dropdown, Slider, RadioGroup, ChatHistory, ChatInput, RadianceViewport, WebView
+
+**Stage Hierarchy Fixes:**
+- Text no longer truncated (ElideNone + horizontal scrollbar)
+- Tooltips on UI component items
+- Bidirectional selection sync (Canvas <-> Stage hierarchy)
+- Drag-drop reparenting for UI components (drag Button onto Panel)
+
+**Files Created:**
+- `widgets/color_picker_widget.py`
+- `runtime/ui/components/webview.py`
+
+---
+
+## COMPLETED: Phase 7C - More Components (Jan 4, 2026)
+
+Standard Delphi-style components added to expand the component palette.
+
+**New Components:**
+| Component | Description |
+|-----------|-------------|
+| `Checkbox` | Boolean toggle with label, toggle() method |
+| `Dropdown` | ComboBox/select with placeholder, add/remove options |
+| `Slider` | Numeric range with step snapping, percentage, formatted value |
+| `RadioButton` | Single radio with value property |
+| `RadioGroup` | Container with options, orientation (vertical/horizontal) |
+
+**Files Created:**
+- `runtime/ui/components/checkbox.py`
+- `runtime/ui/components/dropdown.py`
+- `runtime/ui/components/slider.py`
+- `runtime/ui/components/radio.py` (RadioButton + RadioGroup)
+
+**Files Modified:**
+- `runtime/ui/components/__init__.py` - Export new components
+- `runtime/ui/renderer.py` - Render methods for all 5 components
+
+**Features:**
+- Full YAML serialization/deserialization
+- onChange event firing with UIEventData
+- Binding manager integration (value changes propagate)
+- Styled to match monochromatic dark theme
+
+**Tests:** 26 new tests (136 total), all passing.
+
+---
+
+## COMPLETED: Phase 7B - Inspector Event Wiring UI (Jan 4, 2026)
+
+Visual UI in Inspector for configuring event bindings - the Delphi Object Inspector's Events tab.
+
+**Implemented:**
 ```
 +-- Events ----------------------------------+
-| onClick         [send_to_noodling v]       |
+| onClick         [send_to_noodling v]  [x]  |
 |                 Target: [red        v]     |
 |                 Message: [input     v]     |
 | [+ Add Event]                              |
 +--------------------------------------------+
-| onMouseEnter    [call_script v]            |
-|                 [Edit Script...]           |
-+--------------------------------------------+
 ```
 
-**Implementation:**
-1. Add "Events" collapsible section in `inspector_ui_canvas.py`
-2. Create `EventBindingWidget` - row for each event type
-3. Action dropdown: send_to_noodling, call_script, set_value, show, hide, toggle_visible
-4. Dynamic parameter fields based on action type
-5. "Edit Script..." button opens inline script editor dialog
-6. "[+ Add Event]" shows event type picker
-7. Changes auto-save to ui.yaml
+**Features:**
+- `EventBindingWidget` - Individual event row with action dropdown
+- Action types: send_to_noodling, call_script, set_value, show, hide, toggle_visible
+- Dynamic parameter fields based on action type
+- "Edit Script..." opens `ScriptEditorDialog` with JS syntax highlighting
+- "[+ Add Event]" menu with common events + "More Events..."
+- Delete button (x) removes event binding
+- Changes auto-save to ui.yaml via canvas_modified signal
 
-**Files to create/modify:**
-- `panels/inspector_ui_canvas.py` - Add events section
-- `dialogs/event_binding_dialog.py` - NEW: Event configuration dialog
-- `dialogs/script_editor_dialog.py` - NEW: Inline script editor
-- `widgets/event_binding_widget.py` - NEW: Single event row widget
+**Files Created:**
+- `widgets/event_binding_widget.py` - Event row widget
+- `dialogs/script_editor_dialog.py` - JavaScript script editor with API reference
 
-**Previous work (Phase 7A COMPLETE):**
-- UIEventData with 15 event types
-- EventEmittingMixin for Qt widgets
-- Full event data passed to scripts
-- 92 tests passing
+**Files Modified:**
+- `panels/inspector_ui_canvas.py` - Interactive Events section
+
+**Tests:** 18 new tests (110 total), all passing.
+
+---
 
 ### Current State
 
 | Layer | Status | Details |
 |-------|--------|---------|
-| **Components** | 7 built | Panel, Label, Button, TextInput, ChatHistory, ChatInput, RadianceViewport |
+| **Components** | 12 built | Panel, Label, Button, TextInput, ChatHistory, ChatInput, RadianceViewport, Checkbox, Dropdown, Slider, RadioButton, RadioGroup |
 | **Events** | 15 wired | onClick, onDoubleClick, onMouseDown/Up/Move, onMouseEnter/Leave, onMouseWheel, onContextMenu, onKeyDown/Up, onFocus/Blur, onChange, onSubmit |
 | **Actions** | 5 built | send_to_noodling, call_script, set_value, show, hide, toggle_visible |
 | **Bindings** | Working | One-way reactive `{text: "input.value"}` |
@@ -398,15 +501,21 @@ Delphi-style canvas at `noodlestudio/runtime/ui/`:
 - `UIScriptExecutor` - QuickJS sandbox
 - `BindingManager` - Reactive property bindings
 
-**Tests:** 64 tests in `test_ui_canvas.py`
+**Tests:** 136 tests in `test_ui_canvas.py`
 
 ---
 
 ## BACKLOG
 
+### Dashboard UI Widgets
+Research existing Qt gauge/meter libraries before building from scratch.
+Goal: Professional instrumentation widgets (gauges, meters, LEDs, seven-segment displays)
+for building science-fair style AI dashboards driven by facets/scripts.
+- Look into: PyQtGraph, qt-material, QML gauge components
+- Mercedes-style dashboard aesthetic
+
 ### Inspector UX
 - Unity-style numeric drag-to-scroll on labels
-- Drag-to-reparent UI components in Stage
 
 ### Undo/Redo for UI Edits
 - `AddUIComponentCommand`, `DeleteUIComponentCommand`
@@ -518,6 +627,8 @@ tail -f applications/noodlestudio/logs/noodlestudio_*.log
 | **UI Components** | `runtime/ui/components/` |
 | **UI Canvas Designer** | `panels/ui_canvas_editor_panel.py` |
 | **UI Inspector Mixin** | `panels/inspector_ui_canvas.py` |
+| **Event Binding Widget** | `widgets/event_binding_widget.py` |
+| **Script Editor Dialog** | `dialogs/script_editor_dialog.py` |
 | **Build system** | `noodlestudio/appbuilder/` |
 | **Runtime module** | `noodlestudio/runtime/` |
 | **Facet editor** | `panels/facets_editor_panel.py` |
@@ -537,6 +648,9 @@ tail -f applications/noodlestudio/logs/noodlestudio_*.log
 
 ## Completed Systems
 
+- **More Components** - Checkbox, Dropdown, Slider, RadioButton, RadioGroup (Phase 7C)
+- **Inspector Event Wiring UI** - Delphi Object Inspector Events tab (Phase 7B)
+- **Full Event Model** - UIEventData, EventEmitting widgets (Phase 7A)
 - **UI Canvas System** - Delphi-style components, events, bindings (Phase 3)
 - **UI Canvas Designer** - Visual drag-drop editor, Stage integration (Phase 4/6)
 - **UI Hierarchy Fix** - Duplicate component display resolved

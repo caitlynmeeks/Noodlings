@@ -261,9 +261,21 @@ class MainWindowSignalsMixin:
 
     def _on_ui_component_selected(self, component):
         """Handle UI component selection from UI Canvas Editor."""
+        # Update Inspector
         if hasattr(self, 'inspector') and self.inspector:
             if hasattr(self.inspector, 'load_ui_component'):
                 self.inspector.load_ui_component(component)
+
+        # Sync selection to Stage hierarchy (bidirectional)
+        if hasattr(self, 'scene_hierarchy') and self.scene_hierarchy:
+            if component:
+                # Select the matching item in Stage hierarchy
+                if hasattr(self.scene_hierarchy, 'select_ui_component_by_name'):
+                    self.scene_hierarchy.select_ui_component_by_name(component.name)
+            else:
+                # Clear selection when nothing selected in Canvas
+                if hasattr(self.scene_hierarchy, 'clear_ui_selection'):
+                    self.scene_hierarchy.clear_ui_selection()
 
     def _on_ui_entity_selected_for_canvas_editor(self, entity_type, entity_data):
         """Handle UI entity selection from Stage hierarchy - load into canvas editor."""

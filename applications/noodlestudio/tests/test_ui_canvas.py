@@ -1938,3 +1938,656 @@ class TestUIEventDataWithDispatcher:
         assert "Key: Enter" in output.text
         assert "Shift: true" in output.text
         assert "Ctrl: true" in output.text
+
+
+# ============================================================================
+# Phase 7B: Event Wiring UI Tests
+# ============================================================================
+
+class TestEventBindingWidget:
+    """Test EventBindingWidget for Inspector event wiring."""
+
+    def test_widget_creation(self, qapp):
+        """Test basic widget creation."""
+        from noodlestudio.widgets.event_binding_widget import EventBindingWidget
+
+        widget = EventBindingWidget(event_name="onClick")
+        assert widget.event_name == "onClick"
+        assert widget.event_label.text() == "onClick"
+
+    def test_widget_with_binding_data(self, qapp):
+        """Test widget initialized with binding data."""
+        from noodlestudio.widgets.event_binding_widget import EventBindingWidget
+
+        binding_data = {
+            "action": "send_to_noodling",
+            "target": "red",
+            "message_source": "input",
+        }
+
+        widget = EventBindingWidget(
+            event_name="onSubmit",
+            binding_data=binding_data
+        )
+
+        data = widget.get_binding_data()
+        assert data["action"] == "send_to_noodling"
+        assert data["target"] == "red"
+        assert data["message_source"] == "input"
+
+    def test_widget_action_change(self, qapp):
+        """Test changing action type."""
+        from noodlestudio.widgets.event_binding_widget import EventBindingWidget
+
+        widget = EventBindingWidget(event_name="onClick")
+
+        # Default is send_to_noodling
+        data = widget.get_binding_data()
+        assert data["action"] == "send_to_noodling"
+
+        # Change to call_script
+        for i in range(widget.action_combo.count()):
+            if widget.action_combo.itemData(i) == "call_script":
+                widget.action_combo.setCurrentIndex(i)
+                break
+
+        data = widget.get_binding_data()
+        assert data["action"] == "call_script"
+
+    def test_widget_delete_signal(self, qapp):
+        """Test delete button emits signal."""
+        from noodlestudio.widgets.event_binding_widget import EventBindingWidget
+
+        widget = EventBindingWidget(event_name="onClick")
+
+        delete_called = []
+        widget.delete_requested.connect(lambda: delete_called.append(True))
+
+        widget.delete_btn.click()
+
+        assert len(delete_called) == 1
+
+    def test_widget_changed_signal(self, qapp):
+        """Test that changes emit changed signal."""
+        from noodlestudio.widgets.event_binding_widget import EventBindingWidget
+
+        widget = EventBindingWidget(
+            event_name="onClick",
+            available_noodlings=["red", "blue"]
+        )
+
+        changed_count = []
+        widget.changed.connect(lambda: changed_count.append(True))
+
+        # Change target
+        widget.target_combo.setCurrentText("blue")
+
+        assert len(changed_count) >= 1
+
+    def test_widget_script_content(self, qapp):
+        """Test setting script content."""
+        from noodlestudio.widgets.event_binding_widget import EventBindingWidget
+
+        binding_data = {
+            "action": "call_script",
+            "script": "console.log('test');"
+        }
+
+        widget = EventBindingWidget(
+            event_name="onClick",
+            binding_data=binding_data
+        )
+
+        # Set new script
+        widget.set_script_content("ui.set('label', 'clicked');")
+
+        data = widget.get_binding_data()
+        assert data["script"] == "ui.set('label', 'clicked');"
+
+    def test_widget_available_components(self, qapp):
+        """Test setting available components for dropdown."""
+        from noodlestudio.widgets.event_binding_widget import EventBindingWidget
+
+        widget = EventBindingWidget(
+            event_name="onClick",
+            available_components=["panel1", "button1", "label1"]
+        )
+
+        # Switch to show action (which shows components in target)
+        for i in range(widget.action_combo.count()):
+            if widget.action_combo.itemData(i) == "show":
+                widget.action_combo.setCurrentIndex(i)
+                break
+
+        # Check components are in target dropdown
+        targets = [widget.target_combo.itemText(i) for i in range(widget.target_combo.count())]
+        assert "panel1" in targets
+        assert "button1" in targets
+        assert "label1" in targets
+
+
+class TestScriptEditorDialog:
+    """Test ScriptEditorDialog for inline JavaScript editing."""
+
+    def test_dialog_creation(self, qapp):
+        """Test basic dialog creation."""
+        from noodlestudio.dialogs.script_editor_dialog import ScriptEditorDialog
+
+        dialog = ScriptEditorDialog(
+            script_content="console.log('hello');",
+            event_name="onClick"
+        )
+
+        assert dialog.event_name == "onClick"
+        assert "hello" in dialog.code_editor.toPlainText()
+
+    def test_syntax_highlighter(self, qapp):
+        """Test JavaScript syntax highlighter exists."""
+        from noodlestudio.dialogs.script_editor_dialog import ScriptEditorDialog
+
+        dialog = ScriptEditorDialog(
+            script_content="function test() { return true; }",
+            event_name="onClick"
+        )
+
+        # Highlighter should be attached
+        assert dialog.highlighter is not None
+        assert dialog.highlighter.document() == dialog.code_editor.document()
+
+    def test_validation_balanced_braces(self, qapp):
+        """Test validation catches unbalanced braces."""
+        from noodlestudio.dialogs.script_editor_dialog import ScriptEditorDialog
+
+        dialog = ScriptEditorDialog(event_name="onClick")
+
+        # Unbalanced braces
+        error = dialog._validate_script("function test() {")
+        assert error is not None
+        assert "brace" in error.lower()
+
+        # Balanced braces
+        error = dialog._validate_script("function test() { return 1; }")
+        assert error is None
+
+    def test_validation_balanced_parens(self, qapp):
+        """Test validation catches unbalanced parentheses."""
+        from noodlestudio.dialogs.script_editor_dialog import ScriptEditorDialog
+
+        dialog = ScriptEditorDialog(event_name="onClick")
+
+        # Unbalanced parens
+        error = dialog._validate_script("console.log('test'")
+        assert error is not None
+        assert "parenthes" in error.lower()
+
+        # Balanced parens
+        error = dialog._validate_script("console.log('test');")
+        assert error is None
+
+    def test_validation_unclosed_string(self, qapp):
+        """Test validation catches unclosed strings."""
+        from noodlestudio.dialogs.script_editor_dialog import ScriptEditorDialog
+
+        dialog = ScriptEditorDialog(event_name="onClick")
+
+        # Unclosed string
+        error = dialog._validate_script('var x = "hello')
+        assert error is not None
+        assert "string" in error.lower()
+
+        # Closed string
+        error = dialog._validate_script('var x = "hello";')
+        assert error is None
+
+    def test_validation_empty_script_valid(self, qapp):
+        """Test empty script is considered valid (clears binding)."""
+        from noodlestudio.dialogs.script_editor_dialog import ScriptEditorDialog
+
+        dialog = ScriptEditorDialog(event_name="onClick")
+
+        error = dialog._validate_script("")
+        assert error is None
+
+        error = dialog._validate_script("   ")
+        assert error is None
+
+    def test_get_script(self, qapp):
+        """Test getting script content after edit."""
+        from noodlestudio.dialogs.script_editor_dialog import ScriptEditorDialog
+
+        dialog = ScriptEditorDialog(
+            script_content="initial",
+            event_name="onClick"
+        )
+
+        dialog.code_editor.setPlainText("modified")
+        dialog._result_script = dialog.code_editor.toPlainText()
+
+        assert dialog.get_script() == "modified"
+
+    def test_api_tree_exists(self, qapp):
+        """Test API reference tree is populated."""
+        from noodlestudio.dialogs.script_editor_dialog import ScriptEditorDialog
+
+        dialog = ScriptEditorDialog(event_name="onClick")
+
+        # Should have top-level items for ui, event, console
+        root = dialog.api_tree.invisibleRootItem()
+        top_level_texts = [root.child(i).text(0) for i in range(root.childCount())]
+
+        assert "ui" in top_level_texts
+        assert "event" in top_level_texts
+        assert "console" in top_level_texts
+
+
+class TestJavaScriptHighlighter:
+    """Test JavaScript syntax highlighter."""
+
+    def test_highlighter_creation(self, qapp):
+        """Test highlighter creation."""
+        from noodlestudio.dialogs.script_editor_dialog import JavaScriptHighlighter
+        from PyQt6.QtWidgets import QTextEdit
+
+        editor = QTextEdit()
+        highlighter = JavaScriptHighlighter(editor.document())
+
+        assert highlighter is not None
+        assert highlighter.document() == editor.document()
+
+    def test_keywords_defined(self, qapp):
+        """Test keywords list is populated."""
+        from noodlestudio.dialogs.script_editor_dialog import JavaScriptHighlighter
+        from PyQt6.QtWidgets import QTextEdit
+
+        editor = QTextEdit()
+        highlighter = JavaScriptHighlighter(editor.document())
+
+        assert "function" in highlighter.keywords
+        assert "var" in highlighter.keywords
+        assert "const" in highlighter.keywords
+        assert "return" in highlighter.keywords
+
+    def test_api_objects_defined(self, qapp):
+        """Test API objects list is populated."""
+        from noodlestudio.dialogs.script_editor_dialog import JavaScriptHighlighter
+        from PyQt6.QtWidgets import QTextEdit
+
+        editor = QTextEdit()
+        highlighter = JavaScriptHighlighter(editor.document())
+
+        assert "ui" in highlighter.api_objects
+        assert "event" in highlighter.api_objects
+        assert "console" in highlighter.api_objects
+
+
+# ============================================================================
+# Phase 7C: New Component Tests
+# ============================================================================
+
+class TestCheckboxComponent:
+    """Test Checkbox component."""
+
+    def test_checkbox_creation(self):
+        """Test basic checkbox creation."""
+        from noodlestudio.runtime.ui.components import Checkbox
+
+        cb = Checkbox(name="test_cb", text="Enable Feature", checked=True)
+        assert cb.name == "test_cb"
+        assert cb.text == "Enable Feature"
+        assert cb.checked is True
+        assert cb.value is True  # Alias
+
+    def test_checkbox_toggle(self):
+        """Test checkbox toggle method."""
+        from noodlestudio.runtime.ui.components import Checkbox
+
+        cb = Checkbox(checked=False)
+        assert cb.checked is False
+
+        result = cb.toggle()
+        assert result is True
+        assert cb.checked is True
+
+        result = cb.toggle()
+        assert result is False
+        assert cb.checked is False
+
+    def test_checkbox_serialization(self):
+        """Test checkbox serialization."""
+        from noodlestudio.runtime.ui.components import Checkbox
+
+        cb = Checkbox(name="my_checkbox", text="Accept Terms", checked=True)
+        cb.check_color = "#ff0000"
+
+        data = cb.to_dict()
+        assert data["name"] == "my_checkbox"
+        assert data["text"] == "Accept Terms"
+        assert data["checked"] is True
+        assert data["check_color"] == "#ff0000"
+
+    def test_checkbox_deserialization(self):
+        """Test checkbox deserialization."""
+        from noodlestudio.runtime.ui.components import Checkbox
+
+        data = {
+            "name": "loaded_cb",
+            "text": "Remember Me",
+            "checked": True,
+            "box_size": 20
+        }
+
+        cb = Checkbox.from_dict(data)
+        assert cb.name == "loaded_cb"
+        assert cb.text == "Remember Me"
+        assert cb.checked is True
+        assert cb.box_size == 20
+
+    def test_checkbox_render(self, qapp):
+        """Test checkbox Qt rendering."""
+        from noodlestudio.runtime.ui.components import Panel, Checkbox
+        from noodlestudio.runtime.ui import QtWidgetRenderer
+
+        root = Panel(name="root")
+        cb = Checkbox(name="cb", text="Test", checked=True)
+        root.add_child(cb)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        widget = renderer.get_widget("cb")
+        assert widget is not None
+        assert widget.isChecked() is True
+
+
+class TestDropdownComponent:
+    """Test Dropdown component."""
+
+    def test_dropdown_creation(self):
+        """Test basic dropdown creation."""
+        from noodlestudio.runtime.ui.components import Dropdown
+
+        dd = Dropdown(
+            name="color_select",
+            options=["Red", "Green", "Blue"],
+            selected_index=1
+        )
+        assert dd.name == "color_select"
+        assert dd.options == ["Red", "Green", "Blue"]
+        assert dd.selected_index == 1
+        assert dd.value == "Green"
+
+    def test_dropdown_value_property(self):
+        """Test setting value by string."""
+        from noodlestudio.runtime.ui.components import Dropdown
+
+        dd = Dropdown(options=["A", "B", "C"])
+        dd.value = "C"
+        assert dd.selected_index == 2
+        assert dd.value == "C"
+
+        dd.value = "NotInList"
+        assert dd.selected_index == -1
+        assert dd.value is None
+
+    def test_dropdown_add_remove_options(self):
+        """Test adding and removing options."""
+        from noodlestudio.runtime.ui.components import Dropdown
+
+        dd = Dropdown()
+        assert len(dd.options) == 0
+
+        idx = dd.add_option("First")
+        assert idx == 0
+        assert "First" in dd.options
+
+        dd.add_option("Second")
+        dd.selected_index = 1
+
+        dd.remove_option("First")
+        assert dd.selected_index == 0  # Adjusted
+        assert dd.value == "Second"
+
+    def test_dropdown_serialization(self):
+        """Test dropdown serialization."""
+        from noodlestudio.runtime.ui.components import Dropdown
+
+        dd = Dropdown(name="dd", options=["X", "Y"], selected_index=0)
+        data = dd.to_dict()
+
+        assert data["options"] == ["X", "Y"]
+        assert data["selected_index"] == 0
+
+    def test_dropdown_render(self, qapp):
+        """Test dropdown Qt rendering."""
+        from noodlestudio.runtime.ui.components import Panel, Dropdown
+        from noodlestudio.runtime.ui import QtWidgetRenderer
+
+        root = Panel(name="root")
+        dd = Dropdown(name="dd", options=["One", "Two"], selected_index=1)
+        root.add_child(dd)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        widget = renderer.get_widget("dd")
+        assert widget is not None
+
+
+class TestSliderComponent:
+    """Test Slider component."""
+
+    def test_slider_creation(self):
+        """Test basic slider creation."""
+        from noodlestudio.runtime.ui.components import Slider
+
+        slider = Slider(name="volume", value=50, min_value=0, max_value=100)
+        assert slider.name == "volume"
+        assert slider.value == 50
+        assert slider.min_value == 0
+        assert slider.max_value == 100
+
+    def test_slider_value_clamping(self):
+        """Test value is clamped to range."""
+        from noodlestudio.runtime.ui.components import Slider
+
+        slider = Slider(min_value=0, max_value=100)
+
+        slider.value = 150
+        assert slider.value == 100
+
+        slider.value = -50
+        assert slider.value == 0
+
+    def test_slider_percentage(self):
+        """Test percentage property."""
+        from noodlestudio.runtime.ui.components import Slider
+
+        slider = Slider(min_value=0, max_value=100, value=25)
+        assert slider.percentage == 0.25
+
+        slider.percentage = 0.5
+        assert slider.value == 50
+
+    def test_slider_step(self):
+        """Test step snapping."""
+        from noodlestudio.runtime.ui.components import Slider
+
+        slider = Slider(min_value=0, max_value=100)
+        slider.step = 10
+
+        slider.value = 23
+        assert slider.value == 20  # Snapped to nearest step
+
+        slider.value = 27
+        assert slider.value == 30
+
+    def test_slider_formatted_value(self):
+        """Test formatted value display."""
+        from noodlestudio.runtime.ui.components import Slider
+
+        slider = Slider(value=33.333)
+        slider.value_format = "{:.1f}%"
+
+        assert slider.formatted_value == "33.3%"
+
+    def test_slider_serialization(self):
+        """Test slider serialization."""
+        from noodlestudio.runtime.ui.components import Slider
+
+        slider = Slider(name="s", value=50, min_value=0, max_value=100)
+        slider.step = 5
+        data = slider.to_dict()
+
+        assert data["value"] == 50
+        assert data["min_value"] == 0
+        assert data["max_value"] == 100
+        assert data["step"] == 5
+
+    def test_slider_render(self, qapp):
+        """Test slider Qt rendering."""
+        from noodlestudio.runtime.ui.components import Panel, Slider
+        from noodlestudio.runtime.ui import QtWidgetRenderer
+
+        root = Panel(name="root")
+        slider = Slider(name="slider", value=50)
+        slider.show_value = True
+        root.add_child(slider)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        widget = renderer.get_widget("slider")
+        assert widget is not None
+
+
+class TestRadioComponents:
+    """Test RadioButton and RadioGroup components."""
+
+    def test_radio_button_creation(self):
+        """Test basic radio button creation."""
+        from noodlestudio.runtime.ui.components import RadioButton
+
+        rb = RadioButton(name="opt1", text="Option 1", value="opt1_value", checked=True)
+        assert rb.name == "opt1"
+        assert rb.text == "Option 1"
+        assert rb.option_value == "opt1_value"
+        assert rb.checked is True
+
+    def test_radio_group_creation(self):
+        """Test radio group creation."""
+        from noodlestudio.runtime.ui.components import RadioGroup
+
+        rg = RadioGroup(name="size", options=["Small", "Medium", "Large"])
+        assert rg.name == "size"
+        assert rg.options == ["Small", "Medium", "Large"]
+        assert rg.selected_index == -1
+        assert rg.value is None
+
+    def test_radio_group_selection(self):
+        """Test radio group selection."""
+        from noodlestudio.runtime.ui.components import RadioGroup
+
+        rg = RadioGroup(options=["A", "B", "C"])
+
+        rg.selected_index = 1
+        assert rg.value == "B"
+
+        rg.value = "C"
+        assert rg.selected_index == 2
+
+    def test_radio_group_select_method(self):
+        """Test select method returns change status."""
+        from noodlestudio.runtime.ui.components import RadioGroup
+
+        rg = RadioGroup(options=["X", "Y"])
+
+        changed = rg.select(0)
+        assert changed is True
+        assert rg.selected_index == 0
+
+        changed = rg.select(0)  # Same selection
+        assert changed is False
+
+        changed = rg.select(99)  # Invalid index
+        assert changed is False
+
+    def test_radio_group_serialization(self):
+        """Test radio group serialization."""
+        from noodlestudio.runtime.ui.components import RadioGroup
+
+        rg = RadioGroup(name="rg", options=["Opt1", "Opt2"])
+        rg.selected_index = 1
+        rg.orientation = "horizontal"
+
+        data = rg.to_dict()
+        assert data["options"] == ["Opt1", "Opt2"]
+        assert data["selected_index"] == 1
+        assert data["orientation"] == "horizontal"
+
+    def test_radio_group_render(self, qapp):
+        """Test radio group Qt rendering."""
+        from noodlestudio.runtime.ui.components import Panel, RadioGroup
+        from noodlestudio.runtime.ui import QtWidgetRenderer
+
+        root = Panel(name="root")
+        rg = RadioGroup(name="rg", options=["Yes", "No"])
+        rg.selected_index = 0
+        root.add_child(rg)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        widget = renderer.get_widget("rg")
+        assert widget is not None
+
+
+class TestNewComponentsInYAML:
+    """Test new components can be loaded from YAML."""
+
+    def test_checkbox_yaml_round_trip(self):
+        """Test checkbox survives YAML serialization."""
+        import yaml
+        from noodlestudio.runtime.ui.components import Checkbox
+
+        cb = Checkbox(name="yaml_cb", text="YAML Test", checked=True)
+        data = cb.to_dict()
+
+        yaml_str = yaml.dump(data)
+        loaded_data = yaml.safe_load(yaml_str)
+
+        cb2 = Checkbox.from_dict(loaded_data)
+        assert cb2.name == "yaml_cb"
+        assert cb2.text == "YAML Test"
+        assert cb2.checked is True
+
+    def test_dropdown_yaml_round_trip(self):
+        """Test dropdown survives YAML serialization."""
+        import yaml
+        from noodlestudio.runtime.ui.components import Dropdown
+
+        dd = Dropdown(name="dd", options=["A", "B", "C"], selected_index=2)
+        data = dd.to_dict()
+
+        yaml_str = yaml.dump(data)
+        loaded_data = yaml.safe_load(yaml_str)
+
+        dd2 = Dropdown.from_dict(loaded_data)
+        assert dd2.options == ["A", "B", "C"]
+        assert dd2.selected_index == 2
+        assert dd2.value == "C"
+
+    def test_slider_yaml_round_trip(self):
+        """Test slider survives YAML serialization."""
+        import yaml
+        from noodlestudio.runtime.ui.components import Slider
+
+        slider = Slider(name="s", value=75, min_value=0, max_value=100)
+        slider.step = 25
+        data = slider.to_dict()
+
+        yaml_str = yaml.dump(data)
+        loaded_data = yaml.safe_load(yaml_str)
+
+        slider2 = Slider.from_dict(loaded_data)
+        assert slider2.value == 75
+        assert slider2.step == 25

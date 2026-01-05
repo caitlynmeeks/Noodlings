@@ -882,6 +882,8 @@ class SceneHierarchyRefreshMixin:
             'node_id': node_id,
             'component': component
         })
+        # Add tooltip for long names
+        comp_item.setToolTip(0, display_name)
         parent_item.addChild(comp_item)
 
         if create_graph_nodes:

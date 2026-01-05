@@ -114,6 +114,13 @@ class SceneHierarchyUISetupMixin:
         # Right-align column 1 content
         header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft)  # Default for col 0
 
+        # Don't elide text - show full names (users can expand panel if needed)
+        header.setStretchLastSection(False)
+        self.tree.setTextElideMode(Qt.TextElideMode.ElideNone)
+
+        # Enable horizontal scrollbar for long names
+        self.tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
         # Prevent auto-collapse: set animation to false
         self.tree.setAnimated(False)
 
@@ -134,13 +141,13 @@ class SceneHierarchyUISetupMixin:
         # Double-click to unpack ensembles or inspect entities
         self.tree.itemDoubleClicked.connect(self.on_item_double_clicked)
 
-        # Stage View: Accept drops from Assets panel (for rezzing) but no internal reparenting
-        # Folder organization is done in Assets panel, not Stage View
-        self.tree.setDragEnabled(False)  # Can't drag scene entities
+        # Stage View: Accept drops from Assets panel (for rezzing)
+        # Also enable internal move for UI component reparenting
+        self.tree.setDragEnabled(True)   # Enable drag for UI component reparenting
         self.tree.setAcceptDrops(True)   # Can receive drops from Assets panel
         self.tree.setDropIndicatorShown(True)
-        self.tree.setDragDropMode(QTreeWidget.DragDropMode.DropOnly)
-        self.tree.setDefaultDropAction(Qt.DropAction.CopyAction)
+        self.tree.setDragDropMode(QTreeWidget.DragDropMode.DragDrop)
+        self.tree.setDefaultDropAction(Qt.DropAction.MoveAction)
 
         # Context menu
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)

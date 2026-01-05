@@ -264,16 +264,41 @@ class SceneHierarchyUtilsMixin:
     # =========================================================================
 
     def dropEvent(self, event):
-        """Handle drop from Assets panel - automatically unpack ensembles."""
-        # Get the mime data
+        """Handle drop - supports Assets panel drops and UI component reparenting."""
+        from PyQt6.QtCore import Qt
+
+        # Check if this is an internal drag (UI component reparenting)
+        source = event.source()
+        if source == self.tree:
+            # Internal drag-drop - check if UI component reparenting
+            drop_target = self.tree.itemAt(event.position().toPoint())
+            selected_items = self.tree.selectedItems()
+
+            if selected_items and drop_target:
+                dragged_item = selected_items[0]
+                dragged_data = dragged_item.data(0, Qt.ItemDataRole.UserRole)
+                target_data = drop_target.data(0, Qt.ItemDataRole.UserRole)
+
+                # Check if dragging UI component onto a Panel
+                if (isinstance(dragged_data, dict) and isinstance(target_data, dict) and
+                    dragged_data.get('type') == 'ui_component' and
+                    (target_data.get('type') == 'ui_component' or target_data.get('type') == 'ui')):
+
+                    target_component = target_data.get('component')
+                    # Target must be a Panel (or root which is a Panel)
+                    if target_component and target_component.component_type == 'Panel':
+                        self._reparent_ui_component(dragged_data, target_data)
+                        event.accept()
+                        return
+
+            # Don't allow other internal moves
+            event.ignore()
+            return
+
+        # External drop (from Assets panel)
         mime = event.mimeData()
-
-        # Check if this is from our Assets panel
         if mime.hasText():
-            # The dropped item should have data attached
-            # For now, just accept the drop and let parent handle it
             super().dropEvent(event)
-
             # After drop, check if an ensemble was dropped and unpack it
             QTimer.singleShot(100, self.check_and_unpack_dropped_ensembles)
 
