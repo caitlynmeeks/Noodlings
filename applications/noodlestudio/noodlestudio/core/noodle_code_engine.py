@@ -75,7 +75,7 @@ class NoodleCodeEngine:
 - Delphi-style form designer
 - Components: Panel, Button, Label, TextField, ImageDisplay, ChatHistory, ChatInput, etc.
 - Event wiring: On Click -> Run Assembly, Call Script, Set Value, etc.
-- Property bindings: `{component.property}` syntax
+- Property bindings: `{{component.property}}` syntax
 
 ### Build System
 - File > Build Application (Cmd+B)
