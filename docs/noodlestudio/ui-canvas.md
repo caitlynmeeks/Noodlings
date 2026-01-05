@@ -1,7 +1,7 @@
 # UI Canvas System
 
-**Status**: Implementation Phase 7A Complete
-**Last Updated**: January 4, 2026
+**Status**: Implementation Phase 7B Complete + run_assembly Action
+**Last Updated**: January 5, 2026
 **Authors**: Caitlyn + Claude
 **Inspiration**: Borland Delphi Form Designer
 
@@ -197,6 +197,37 @@ Button:
       action: "call_script"
       script: "on_generate_clicked"
 ```
+
+### Running Facet Assemblies
+
+**NEW**: The `run_assembly` action executes a facet assembly one-shot:
+
+```yaml
+Button:
+  name: "analyzeButton"
+  text: "Analyze Sentiment"
+  events:
+    onClick:
+      action: "run_assembly"
+      assembly: "assemblies/sentiment-analysis.yaml"
+      inputs:
+        text: "{textField.value}"
+      outputs:
+        result: "resultLabel.text"
+        sentiment: "moodIndicator.color"
+```
+
+This is THE key integration between UI Canvas and the Facet system. Any assembly can be triggered from a button click, form submission, or any UI event.
+
+**Input Bindings:**
+- `"{component.property}"` - Get value from UI component
+- `"{event.value}"` - Get value from triggering event
+- `"literal string"` - Static value
+
+**Output Bindings:**
+- `"component.property"` - Apply result to UI component
+
+See [Facet Assembly Component](facet-assembly-component.md) for full documentation.
 
 ### Inline Scripts
 
@@ -764,3 +795,4 @@ A "3D game" is just this default. Not a special case - just a canvas with one fu
 | 2026-01-03 | Phase 3d COMPLETE: call_script action, UIScriptExecutor, component value bindings |
 | 2026-01-03 | Phase 4 COMPLETE: UI Canvas Designer - visual drag-drop editor, component palette, inspector integration |
 | 2026-01-04 | Phase 7A COMPLETE: Full event model - UIEventData, EventEmittingMixin, comprehensive mouse/keyboard/focus events |
+| 2026-01-05 | Added `run_assembly` action - Facet assemblies can be triggered from UI events |

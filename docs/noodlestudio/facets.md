@@ -232,8 +232,26 @@ See [Scripting API](scripting.md) for full API reference.
 
 ---
 
+---
+
+## Facets as Universal Components
+
+**NEW in January 2026**: Facet Assemblies can now be attached to ANY entity as components, not just Noodlings!
+
+See [Facet Assembly Component](facet-assembly-component.md) for:
+- Attaching assemblies to Prims, Props, and UI elements
+- The "Run in cognition loop" checkbox (continuous vs one-shot)
+- Input/output bindings to UI components
+- The `run_assembly` UI action for button triggers
+
+This architectural unification makes Facets THE visual programming language for everything in NoodleStudio.
+
+---
+
 ## See Also
 
+- [Facet Assembly Component](facet-assembly-component.md) - Universal attachable assemblies
 - [Neural Canvas](neural-canvas.md) - For designing neural network components
 - [Scripting API](scripting.md) - For ScriptedFacet development
+- [UI Canvas](ui-canvas.md) - Visual UI with `run_assembly` action
 - [Panels Reference](panels.md) - UI overview

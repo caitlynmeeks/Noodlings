@@ -89,6 +89,7 @@ class EventBinding:
     - call_script: Execute inline JavaScript or script file
     - set_value: Set another component's value
     - show/hide/toggle_visible: Control component visibility
+    - run_assembly: Execute a facet assembly one-shot
 
     Attributes:
         action: The action type to perform
@@ -97,6 +98,9 @@ class EventBinding:
         chat_history: Component name for chat history display (for send_to_noodling)
         script: Inline JavaScript code (for call_script action)
         script_file: Path to JavaScript file (for call_script action)
+        assembly: Path to assembly YAML file (for run_assembly action)
+        inputs: Input bindings for assembly (for run_assembly action)
+        outputs: Output bindings for assembly (for run_assembly action)
         params: Additional parameters
     """
     action: str
@@ -105,6 +109,9 @@ class EventBinding:
     chat_history: Optional[str] = None
     script: Optional[str] = None
     script_file: Optional[str] = None
+    assembly: Optional[str] = None  # For run_assembly
+    inputs: Dict[str, Any] = field(default_factory=dict)  # For run_assembly
+    outputs: Dict[str, str] = field(default_factory=dict)  # For run_assembly
     params: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -233,6 +240,9 @@ class UIComponent:
                     **({"chat_history": binding.chat_history} if binding.chat_history else {}),
                     **({"script": binding.script} if binding.script else {}),
                     **({"script_file": binding.script_file} if binding.script_file else {}),
+                    **({"assembly": binding.assembly} if binding.assembly else {}),
+                    **({"inputs": binding.inputs} if binding.inputs else {}),
+                    **({"outputs": binding.outputs} if binding.outputs else {}),
                     **({"params": binding.params} if binding.params else {}),
                 }
                 for name, binding in self.events.items()
@@ -283,6 +293,9 @@ class UIComponent:
                     chat_history=event_data.get("chat_history"),
                     script=event_data.get("script"),
                     script_file=event_data.get("script_file"),
+                    assembly=event_data.get("assembly"),
+                    inputs=event_data.get("inputs", {}),
+                    outputs=event_data.get("outputs", {}),
                     params=event_data.get("params", {}),
                 )
 

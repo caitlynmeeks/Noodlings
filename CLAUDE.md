@@ -2,7 +2,119 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: January 4, 2026
+**Last Updated**: January 5, 2026
+
+---
+
+## NEXT: Facets as Universal Components - Phase 3
+
+**Goal:** Cognition Manager integration and UI Canvas Designer.
+
+**Remaining Tasks:**
+1. Cognition Manager integration
+   - Register continuous assemblies with central manager
+   - Performance monitoring dashboard
+2. UI Canvas Designer integration
+   - Add "Facet Assembly" to component palette (for UI-attached assemblies)
+   - Visual assembly picker dialog
+
+---
+
+## COMPLETED: Facets as Universal Components - Phase 2 (Jan 5, 2026)
+
+**Inspector UI for FacetAssemblyComponent** - Full Delphi Object Inspector experience.
+
+**What Was Built:**
+```
++-- Facet Assembly: sentiment-analysis ------+
+| Assembly:    [sentiment-analysis.yaml] [R] |  <- PropertySpec (file picker)
+| [x] Run in cognition loop                  |  <- PropertySpec (checkbox)
+| Tick Rate:   [0.1    ] seconds             |  <- PropertySpec (float)
++-- Input Bindings --------------------------+
+| out:         [{text_field.value}     ] [x] |  <- Binding row
++-- Output Bindings -------------------------+
+| in:          [result_label.text      ] [x] |  <- Binding row
++-- Statistics ------------------------------+
+| Executions: 42  |  Total Tokens: 12,450    |
+| Last Run: 0.23s |  Avg Tokens: 296         |
+| Status: Idle                               |
++-- Actions ---------------------------------+
+| [Run Once]  [Refresh]                      |
++--------------------------------------------+
+```
+
+**Features:**
+- Input/output binding UI with pad names from assembly
+- Statistics display (executions, tokens, timing)
+- "Run Once" button for testing one-shot execution
+- "Refresh" button for stats update
+- Status indicator (Idle/Running/Continuous)
+
+**Files Modified:**
+- `panels/inspector_components.py` - Added `_create_facet_assembly_ui` method
+
+**Tests:** 411 passing (no regressions)
+
+---
+
+## COMPLETED: Facets as Universal Components - Phase 1 (Jan 5, 2026)
+
+**THE KEY ARCHITECTURAL UNIFICATION**: Facet Assemblies are now attachable components that work on ANY entity (Noodling, Prim, UI element). This makes Facets the universal visual logic language for everything in NoodleStudio.
+
+**Core Innovation:**
+- Multiple assemblies per entity (singleton = False)
+- Two execution modes controlled by checkbox:
+  - **CHECKED** (Continuous): Runs in cognition loop every tick_rate seconds
+  - **UNCHECKED** (One-shot): Runs on-demand via events/scripts
+
+**FacetAssemblyComponent** (`core/facet_assembly_component.py`):
+```python
+# Get assembly from entity
+assembly = entity.GetComponent("facet_assembly", "translate-chinese")
+
+# Run one-shot
+result = await assembly.run({"text": "Hello world"})
+
+# Listen for events
+assembly.add_listener('complete', on_complete_handler)
+```
+
+**Properties:**
+- `assembly_path`: Path to .yaml assembly file
+- `run_in_cognition_loop`: THE checkbox - continuous vs one-shot
+- `tick_rate`: Seconds between cognitive ticks (0.01-60s)
+- `auto_run_on_attach`: Run once when component added
+
+**Events:**
+- `OnComplete`: Fires after one-shot execution
+- `OnStateChange`: Fires when continuous assembly state changes
+- `OnError`: Fires on execution error
+
+**New UI Canvas Action: run_assembly**
+
+```yaml
+Button:
+  name: analyze_button
+  events:
+    onClick:
+      action: run_assembly
+      assembly: assemblies/sentiment-analysis.yaml
+      inputs:
+        text: "{text_field.value}"
+      outputs:
+        result: result_label.text
+        sentiment: mood_indicator.color
+```
+
+**Files Created:**
+- `core/facet_assembly_component.py` - Core component class
+- `tests/test_facet_assembly_component.py` - 38 tests
+
+**Files Modified:**
+- `runtime/ui/event_dispatcher.py` - Added run_assembly action
+- `runtime/ui/component.py` - EventBinding supports assembly/inputs/outputs
+
+**Tests:** 411 passing (38 new for FacetAssemblyComponent)
 
 ---
 

@@ -315,6 +315,10 @@ class ComponentInspectorMixin:
         if component.component_type == 'artbook':
             return self._create_artbook_gallery(component)
 
+        # Check for FacetAssemblyComponent
+        if component.component_type == 'facet_assembly':
+            return self._create_facet_assembly_ui(component)
+
         return None
 
     def _create_artbook_gallery(self, artbook: 'ArtbookComponent') -> QWidget:
@@ -431,6 +435,344 @@ class ComponentInspectorMixin:
         layout.addWidget(btn_row)
 
         return container
+
+    def _create_facet_assembly_ui(self, assembly_component: 'FacetAssemblyComponent') -> QWidget:
+        """
+        Create custom UI for FacetAssemblyComponent.
+
+        Shows:
+        - Assembly file picker with reload button
+        - Input/output pad bindings
+        - Execution statistics
+
+        Args:
+            assembly_component: FacetAssemblyComponent to display
+
+        Returns:
+            Custom widget with assembly controls
+        """
+        from pathlib import Path
+
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 8, 0, 0)
+        layout.setSpacing(8)
+
+        # Store references for updates
+        self._assembly_component = assembly_component
+        self._assembly_stats_labels = {}
+
+        # --- Bindings Section ---
+        if assembly_component.assembly:
+            # Input Bindings
+            input_pads = assembly_component.input_pads
+            if input_pads:
+                inputs_label = QLabel("Input Bindings")
+                inputs_label.setStyleSheet("color: #AAAAAA; font-weight: bold; margin-top: 8px;")
+                layout.addWidget(inputs_label)
+
+                for pad_name in input_pads:
+                    row = self._create_binding_row(
+                        assembly_component,
+                        pad_name,
+                        assembly_component._input_bindings.get(pad_name, ''),
+                        is_input=True
+                    )
+                    layout.addWidget(row)
+
+            # Output Bindings
+            output_pads = assembly_component.output_pads
+            if output_pads:
+                outputs_label = QLabel("Output Bindings")
+                outputs_label.setStyleSheet("color: #AAAAAA; font-weight: bold; margin-top: 8px;")
+                layout.addWidget(outputs_label)
+
+                for pad_name in output_pads:
+                    row = self._create_binding_row(
+                        assembly_component,
+                        pad_name,
+                        assembly_component._output_bindings.get(pad_name, ''),
+                        is_input=False
+                    )
+                    layout.addWidget(row)
+
+        # --- Statistics Section ---
+        stats_label = QLabel("Statistics")
+        stats_label.setStyleSheet("color: #AAAAAA; font-weight: bold; margin-top: 8px;")
+        layout.addWidget(stats_label)
+
+        stats_container = QWidget()
+        stats_container.setStyleSheet("""
+            QWidget {
+                background-color: #2A2A2A;
+                border: 1px solid #3A3A3A;
+                border-radius: 4px;
+                padding: 8px;
+            }
+        """)
+        stats_layout = QFormLayout(stats_container)
+        stats_layout.setContentsMargins(8, 8, 8, 8)
+        stats_layout.setSpacing(4)
+
+        stats = assembly_component.get_statistics()
+
+        # Executions
+        exec_label = QLabel(str(stats.get('execution_count', 0)))
+        exec_label.setStyleSheet("color: #D2D2D2;")
+        stats_layout.addRow("Executions:", exec_label)
+        self._assembly_stats_labels['executions'] = exec_label
+
+        # Total Tokens
+        tokens_label = QLabel(f"{stats.get('total_tokens', 0):,}")
+        tokens_label.setStyleSheet("color: #D2D2D2;")
+        stats_layout.addRow("Total Tokens:", tokens_label)
+        self._assembly_stats_labels['tokens'] = tokens_label
+
+        # Last Execution Time
+        last_time = stats.get('last_execution_time', 0)
+        time_label = QLabel(f"{last_time:.3f}s" if last_time > 0 else "-")
+        time_label.setStyleSheet("color: #D2D2D2;")
+        stats_layout.addRow("Last Run:", time_label)
+        self._assembly_stats_labels['last_time'] = time_label
+
+        # Average Tokens
+        avg_tokens = stats.get('avg_tokens', 0)
+        avg_label = QLabel(f"{avg_tokens:.0f}" if avg_tokens > 0 else "-")
+        avg_label.setStyleSheet("color: #D2D2D2;")
+        stats_layout.addRow("Avg Tokens:", avg_label)
+        self._assembly_stats_labels['avg_tokens'] = avg_label
+
+        # Running status
+        status_text = "Running" if stats.get('is_running') else "Idle"
+        if stats.get('run_in_cognition_loop'):
+            status_text = "Continuous" if stats.get('is_running') else "Continuous (paused)"
+        status_label = QLabel(status_text)
+        status_label.setStyleSheet(
+            "color: #4CAF50;" if stats.get('is_running') else "color: #888888;"
+        )
+        stats_layout.addRow("Status:", status_label)
+        self._assembly_stats_labels['status'] = status_label
+
+        layout.addWidget(stats_container)
+
+        # --- Action Buttons ---
+        btn_row = QWidget()
+        btn_layout = QHBoxLayout(btn_row)
+        btn_layout.setContentsMargins(0, 8, 0, 0)
+        btn_layout.setSpacing(8)
+
+        # Run Once button (for one-shot testing)
+        run_btn = QPushButton("Run Once")
+        run_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3A5A3A;
+                color: #CCCCCC;
+                border: 1px solid #4A6A4A;
+                border-radius: 3px;
+                padding: 6px 16px;
+            }
+            QPushButton:hover {
+                background-color: #4A6A4A;
+                color: #FFFFFF;
+            }
+            QPushButton:disabled {
+                background-color: #2A2A2A;
+                color: #666666;
+            }
+        """)
+        run_btn.setToolTip("Execute assembly once with current inputs")
+        run_btn.clicked.connect(lambda: self._run_assembly_once(assembly_component))
+        run_btn.setEnabled(assembly_component.assembly is not None)
+        btn_layout.addWidget(run_btn)
+
+        # Refresh Stats button
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A;
+                color: #AAAAAA;
+                border: 1px solid #4A4A4A;
+                border-radius: 3px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover {
+                background-color: #4A4A4A;
+                color: #CCCCCC;
+            }
+        """)
+        refresh_btn.setToolTip("Refresh statistics")
+        refresh_btn.clicked.connect(lambda: self._refresh_assembly_stats(assembly_component))
+        btn_layout.addWidget(refresh_btn)
+
+        btn_layout.addStretch()
+        layout.addWidget(btn_row)
+
+        return container
+
+    def _create_binding_row(
+        self,
+        assembly_component: 'FacetAssemblyComponent',
+        pad_name: str,
+        current_binding: str,
+        is_input: bool
+    ) -> QWidget:
+        """
+        Create a row for input/output binding.
+
+        Args:
+            assembly_component: The component
+            pad_name: Name of the pad
+            current_binding: Current binding expression
+            is_input: True for input binding, False for output
+
+        Returns:
+            Row widget with label, text field, and clear button
+        """
+        row = QWidget()
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 2, 0, 2)
+        row_layout.setSpacing(4)
+
+        # Pad name label
+        label = QLabel(f"{pad_name}:")
+        label.setStyleSheet("color: #AAAAAA;")
+        label.setFixedWidth(80)
+        row_layout.addWidget(label)
+
+        # Binding field
+        binding_field = QLineEdit(current_binding)
+        binding_field.setPlaceholderText("{component.property}" if is_input else "component.property")
+        binding_field.setStyleSheet("""
+            QLineEdit {
+                background-color: #2A2A2A;
+                color: #D2D2D2;
+                border: 1px solid #3A3A3A;
+                border-radius: 3px;
+                padding: 4px;
+            }
+            QLineEdit:focus {
+                border-color: #5A5A5A;
+            }
+        """)
+        binding_field.editingFinished.connect(
+            lambda: self._on_binding_changed(
+                assembly_component, pad_name, binding_field.text(), is_input
+            )
+        )
+        row_layout.addWidget(binding_field, 1)
+
+        # Clear button
+        clear_btn = QPushButton("x")
+        clear_btn.setFixedSize(20, 20)
+        clear_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #AA5555;
+                border: none;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                color: #FF6666;
+            }
+        """)
+        clear_btn.setToolTip("Clear binding")
+        clear_btn.clicked.connect(
+            lambda: self._clear_binding(assembly_component, pad_name, binding_field, is_input)
+        )
+        row_layout.addWidget(clear_btn)
+
+        return row
+
+    def _on_binding_changed(
+        self,
+        assembly_component: 'FacetAssemblyComponent',
+        pad_name: str,
+        value: str,
+        is_input: bool
+    ):
+        """Handle binding change."""
+        if is_input:
+            if value:
+                assembly_component.bind_input(pad_name, value)
+            else:
+                assembly_component.unbind_input(pad_name)
+        else:
+            if value:
+                assembly_component.bind_output(pad_name, value)
+            else:
+                assembly_component.unbind_output(pad_name)
+
+        logger.debug(f"{'Input' if is_input else 'Output'} binding {pad_name} = {value}")
+
+    def _clear_binding(
+        self,
+        assembly_component: 'FacetAssemblyComponent',
+        pad_name: str,
+        field: QLineEdit,
+        is_input: bool
+    ):
+        """Clear a binding."""
+        field.setText("")
+        if is_input:
+            assembly_component.unbind_input(pad_name)
+        else:
+            assembly_component.unbind_output(pad_name)
+
+    def _run_assembly_once(self, assembly_component: 'FacetAssemblyComponent'):
+        """Run the assembly once (for testing)."""
+        import asyncio
+
+        if not assembly_component.assembly:
+            return
+
+        async def run():
+            result = await assembly_component.run({})
+            # Refresh stats after run
+            self._refresh_assembly_stats(assembly_component)
+            return result
+
+        # Try to get running loop or create new one
+        try:
+            loop = asyncio.get_running_loop()
+            asyncio.create_task(run())
+        except RuntimeError:
+            # No running loop - use Qt's event loop integration
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(0, lambda: asyncio.run(run()))
+
+    def _refresh_assembly_stats(self, assembly_component: 'FacetAssemblyComponent'):
+        """Refresh the statistics display."""
+        if not hasattr(self, '_assembly_stats_labels'):
+            return
+
+        stats = assembly_component.get_statistics()
+
+        if 'executions' in self._assembly_stats_labels:
+            self._assembly_stats_labels['executions'].setText(str(stats.get('execution_count', 0)))
+
+        if 'tokens' in self._assembly_stats_labels:
+            self._assembly_stats_labels['tokens'].setText(f"{stats.get('total_tokens', 0):,}")
+
+        if 'last_time' in self._assembly_stats_labels:
+            last_time = stats.get('last_execution_time', 0)
+            self._assembly_stats_labels['last_time'].setText(
+                f"{last_time:.3f}s" if last_time > 0 else "-"
+            )
+
+        if 'avg_tokens' in self._assembly_stats_labels:
+            avg_tokens = stats.get('avg_tokens', 0)
+            self._assembly_stats_labels['avg_tokens'].setText(
+                f"{avg_tokens:.0f}" if avg_tokens > 0 else "-"
+            )
+
+        if 'status' in self._assembly_stats_labels:
+            status_text = "Running" if stats.get('is_running') else "Idle"
+            if stats.get('run_in_cognition_loop'):
+                status_text = "Continuous" if stats.get('is_running') else "Continuous (paused)"
+            self._assembly_stats_labels['status'].setText(status_text)
+            self._assembly_stats_labels['status'].setStyleSheet(
+                "color: #4CAF50;" if stats.get('is_running') else "color: #888888;"
+            )
 
     # ==========================================================================
     # Event handlers

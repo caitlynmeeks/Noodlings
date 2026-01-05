@@ -1,7 +1,14 @@
 """
 UI Event Dispatcher
 
-Routes UI events to noodlings, scripts, and handles responses.
+Routes UI events to noodlings, scripts, assemblies, and handles responses.
+
+Supported actions:
+    - send_to_noodling: Send message to a noodling
+    - call_script: Execute JavaScript code
+    - set_value: Set a component's value
+    - show/hide/toggle_visible: Control visibility
+    - run_assembly: Execute a facet assembly (NEW!)
 """
 
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
@@ -20,13 +27,14 @@ logger = logging.getLogger(__name__)
 
 class UIEventDispatcher:
     """
-    Dispatches UI events to noodlings, scripts, and external handlers.
+    Dispatches UI events to noodlings, scripts, assemblies, and external handlers.
 
     Supported actions:
         - send_to_noodling: Send message to a noodling and get response
         - call_script: Execute inline JavaScript or script file
         - set_value: Set a component's value
         - show/hide/toggle_visible: Control component visibility
+        - run_assembly: Execute a facet assembly one-shot
         - custom: Call a custom handler function
 
     Usage:
@@ -57,6 +65,12 @@ class UIEventDispatcher:
         # Project path for resolving script files
         self.project_path: Optional[str] = None
 
+        # Facet executor for run_assembly action
+        self._facet_executor = None
+
+        # Assembly cache (path -> FacetAssembly)
+        self._assembly_cache: Dict[str, Any] = {}
+
     def _get_script_executor(self) -> 'UIScriptExecutor':
         """Get or create the script executor."""
         if self._script_executor is None:
@@ -74,6 +88,10 @@ class UIEventDispatcher:
     def set_project_path(self, path: str) -> None:
         """Set project path for resolving script files."""
         self.project_path = path
+
+    def set_facet_executor(self, executor) -> None:
+        """Set the FacetExecutor instance for run_assembly action."""
+        self._facet_executor = executor
 
     def register_handler(self, action: str, handler: Callable) -> None:
         """
@@ -131,6 +149,8 @@ class UIEventDispatcher:
             self._handle_hide(binding)
         elif action == "toggle_visible":
             self._handle_toggle_visible(binding)
+        elif action == "run_assembly":
+            self._handle_run_assembly(component, binding, event_data)
         elif action in self._custom_handlers:
             self._custom_handlers[action](component, binding)
         else:
@@ -317,3 +337,207 @@ class UIEventDispatcher:
             else:
                 widget.show()
                 component.visible = True
+
+    def _handle_run_assembly(
+        self,
+        component: 'UIComponent',
+        binding: 'EventBinding',
+        event_data: 'UIEventData'
+    ) -> None:
+        """
+        Run a facet assembly one-shot.
+
+        Binding parameters:
+            assembly: Path to assembly YAML file (relative to project)
+            inputs: Dict mapping input pad names to values or component references
+            outputs: Dict mapping output pad names to target component properties
+
+        Input binding syntax:
+            - Static value: {"text": "Hello world"}
+            - Component reference: {"text": "{input_field.value}"}
+            - Event value: {"text": "{event.value}"}
+
+        Output binding syntax:
+            - {"result": "result_label.text"}
+            - {"sentiment": "mood_indicator.color"}
+
+        Example binding:
+            onClick:
+              action: run_assembly
+              assembly: assemblies/sentiment-analysis.yaml
+              inputs:
+                text: "{text_field.value}"
+              outputs:
+                result: result_label.text
+                sentiment: mood_indicator.color
+        """
+        from pathlib import Path
+
+        # Get assembly path
+        assembly_path = getattr(binding, 'assembly', None)
+        if not assembly_path:
+            logger.warning("run_assembly action requires 'assembly' parameter")
+            return
+
+        # Resolve relative path
+        if self.project_path and not Path(assembly_path).is_absolute():
+            assembly_path = str(Path(self.project_path) / assembly_path)
+
+        # Check executor
+        if not self._facet_executor:
+            logger.warning("No facet executor available for run_assembly action")
+            return
+
+        # Load assembly (with caching)
+        assembly = self._get_or_load_assembly(assembly_path)
+        if not assembly:
+            logger.error(f"Failed to load assembly: {assembly_path}")
+            return
+
+        # Resolve input bindings
+        inputs = self._resolve_assembly_inputs(binding, component, event_data)
+
+        # Get output bindings
+        output_bindings = getattr(binding, 'outputs', {})
+
+        # Execute asynchronously
+        asyncio.create_task(
+            self._run_assembly_and_bind(
+                assembly, inputs, output_bindings, component
+            )
+        )
+
+    def _get_or_load_assembly(self, assembly_path: str):
+        """Load assembly from cache or disk."""
+        if assembly_path in self._assembly_cache:
+            return self._assembly_cache[assembly_path]
+
+        try:
+            from ...core.facet_system import FacetAssembly
+            assembly = FacetAssembly.load_yaml(assembly_path)
+            self._assembly_cache[assembly_path] = assembly
+            logger.info(f"Loaded assembly for UI: {assembly.name}")
+            return assembly
+        except Exception as e:
+            logger.error(f"Failed to load assembly {assembly_path}: {e}")
+            return None
+
+    def _resolve_assembly_inputs(
+        self,
+        binding: 'EventBinding',
+        component: 'UIComponent',
+        event_data: 'UIEventData'
+    ) -> Any:
+        """
+        Resolve input bindings to actual values.
+
+        Supports:
+            - Static values: "Hello"
+            - Component references: "{input_field.value}"
+            - Event references: "{event.value}"
+        """
+        inputs = getattr(binding, 'inputs', {})
+        resolved = {}
+
+        for pad_name, value in inputs.items():
+            if isinstance(value, str) and value.startswith('{') and value.endswith('}'):
+                # Resolve reference
+                ref = value[1:-1]  # Remove braces
+
+                if ref.startswith('event.'):
+                    # Event reference
+                    attr = ref[6:]  # Remove "event."
+                    resolved[pad_name] = getattr(event_data, attr, None)
+                else:
+                    # Component reference: "component_name.property"
+                    parts = ref.split('.', 1)
+                    if len(parts) == 2:
+                        comp_name, prop_name = parts
+                        comp = self.renderer.get_component(comp_name)
+                        if comp:
+                            resolved[pad_name] = getattr(comp, prop_name, None)
+                        else:
+                            logger.warning(f"Component not found: {comp_name}")
+                            resolved[pad_name] = None
+                    else:
+                        resolved[pad_name] = value
+            else:
+                # Static value
+                resolved[pad_name] = value
+
+        # If only one input, return it directly (for INCOMING node)
+        if len(resolved) == 1:
+            return list(resolved.values())[0]
+        return resolved
+
+    async def _run_assembly_and_bind(
+        self,
+        assembly,
+        inputs: Any,
+        output_bindings: Dict[str, str],
+        source_component: 'UIComponent'
+    ) -> None:
+        """
+        Execute assembly and bind outputs to components.
+
+        Args:
+            assembly: Loaded FacetAssembly
+            inputs: Input values for INCOMING node
+            output_bindings: Map of output pad -> "component.property"
+            source_component: The component that triggered the event
+        """
+        try:
+            # Execute assembly
+            result = await self._facet_executor.execute(
+                assembly,
+                inputs,
+                context={
+                    'source_component': source_component.name,
+                    'ui_event': True
+                }
+            )
+
+            # Apply output bindings
+            for pad_name, target in output_bindings.items():
+                # Find output value
+                output_value = None
+
+                # Check OUTGOING outputs first
+                for facet_id, outputs in result.facet_outputs.items():
+                    if pad_name in outputs:
+                        output_value = outputs[pad_name]
+                        break
+
+                # Fallback to response
+                if output_value is None and pad_name == 'result':
+                    output_value = result.response
+
+                if output_value is None:
+                    continue
+
+                # Parse target: "component_name.property"
+                parts = target.split('.', 1)
+                if len(parts) != 2:
+                    logger.warning(f"Invalid output binding format: {target}")
+                    continue
+
+                comp_name, prop_name = parts
+                target_comp = self.renderer.get_component(comp_name)
+                target_widget = self.renderer.get_widget(comp_name)
+
+                if target_comp:
+                    # Set component property
+                    if hasattr(target_comp, prop_name):
+                        setattr(target_comp, prop_name, output_value)
+
+                    # Update widget if applicable
+                    if target_widget:
+                        if prop_name == 'text' and hasattr(target_widget, 'setText'):
+                            target_widget.setText(str(output_value))
+                        elif prop_name == 'value' and hasattr(target_widget, 'setValue'):
+                            target_widget.setValue(output_value)
+
+            logger.debug(f"Assembly {assembly.name} completed, outputs bound")
+
+        except Exception as e:
+            logger.error(f"Assembly execution error: {e}")
