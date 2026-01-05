@@ -1541,3 +1541,400 @@ root:
 
         # Check label updated
         assert greeting.text == "Bob"
+
+
+# ============================================================================
+# Phase 7A: UIEventData Tests
+# ============================================================================
+
+class TestUIEventData:
+    """Test UIEventData dataclass and factory methods."""
+
+    def test_event_data_creation(self):
+        """Test basic UIEventData creation."""
+        from noodlestudio.runtime.ui import UIEventData, MouseButton
+
+        event = UIEventData(
+            type="onClick",
+            source="myButton",
+            x=100,
+            y=50,
+            button=MouseButton.LEFT
+        )
+
+        assert event.type == "onClick"
+        assert event.source == "myButton"
+        assert event.x == 100
+        assert event.y == 50
+        assert event.button == MouseButton.LEFT
+        assert event.timestamp > 0
+
+    def test_event_data_modifiers(self):
+        """Test Modifiers dataclass."""
+        from noodlestudio.runtime.ui import Modifiers
+
+        mods = Modifiers(shift=True, ctrl=False, alt=True, meta=False)
+
+        assert mods.shift is True
+        assert mods.ctrl is False
+        assert mods.alt is True
+        assert mods.meta is False
+
+        d = mods.to_dict()
+        assert d["shift"] is True
+        assert d["ctrl"] is False
+        assert d["alt"] is True
+        assert d["meta"] is False
+
+    def test_event_data_to_dict(self):
+        """Test UIEventData.to_dict() for script access."""
+        from noodlestudio.runtime.ui import UIEventData, MouseButton, Modifiers
+
+        event = UIEventData(
+            type="onMouseDown",
+            source="panel",
+            x=10,
+            y=20,
+            global_x=110,
+            global_y=220,
+            button=MouseButton.RIGHT,
+            modifiers=Modifiers(shift=True)
+        )
+
+        d = event.to_dict()
+
+        assert d["type"] == "onMouseDown"
+        assert d["source"] == "panel"
+        assert d["x"] == 10
+        assert d["y"] == 20
+        assert d["globalX"] == 110
+        assert d["globalY"] == 220
+        assert d["button"] == "right"
+        assert d["modifiers"]["shift"] is True
+
+    def test_event_data_click_factory(self):
+        """Test UIEventData.click() factory method."""
+        from noodlestudio.runtime.ui import UIEventData, MouseButton
+
+        event = UIEventData.click("submitBtn")
+
+        assert event.type == "onClick"
+        assert event.source == "submitBtn"
+        assert event.button == MouseButton.LEFT
+
+    def test_event_data_value_change_factory(self):
+        """Test UIEventData.value_change() factory method."""
+        from noodlestudio.runtime.ui import UIEventData
+
+        event = UIEventData.value_change("inputField", "new text", "old text")
+
+        assert event.type == "onChange"
+        assert event.source == "inputField"
+        assert event.value == "new text"
+        assert event.previous_value == "old text"
+
+    def test_event_data_submit_factory(self):
+        """Test UIEventData.submit() factory method."""
+        from noodlestudio.runtime.ui import UIEventData
+
+        event = UIEventData.submit("form", {"username": "test"})
+
+        assert event.type == "onSubmit"
+        assert event.source == "form"
+        assert event.value == {"username": "test"}
+
+    def test_event_data_focus_factory(self):
+        """Test UIEventData.focus() factory method."""
+        from noodlestudio.runtime.ui import UIEventData
+
+        focus_event = UIEventData.focus("onFocus", "inputField")
+        blur_event = UIEventData.focus("onBlur", "inputField")
+
+        assert focus_event.type == "onFocus"
+        assert focus_event.source == "inputField"
+        assert blur_event.type == "onBlur"
+
+    def test_event_data_keyboard_fields(self):
+        """Test keyboard event fields."""
+        from noodlestudio.runtime.ui import UIEventData, Modifiers
+
+        event = UIEventData(
+            type="onKeyDown",
+            source="textInput",
+            key="Enter",
+            key_code=13,
+            text="",
+            modifiers=Modifiers(ctrl=True)
+        )
+
+        d = event.to_dict()
+
+        assert d["key"] == "Enter"
+        assert d["keyCode"] == 13
+        assert d["modifiers"]["ctrl"] is True
+
+    def test_event_data_wheel_fields(self):
+        """Test mouse wheel event fields."""
+        from noodlestudio.runtime.ui import UIEventData
+
+        event = UIEventData(
+            type="onMouseWheel",
+            source="scrollPanel",
+            x=50,
+            y=50,
+            delta_x=0.0,
+            delta_y=-3.0
+        )
+
+        d = event.to_dict()
+
+        assert d["type"] == "onMouseWheel"
+        assert d["deltaY"] == -3.0
+
+    def test_event_data_3d_fields(self):
+        """Test RadianceViewport 3D event fields."""
+        from noodlestudio.runtime.ui import UIEventData
+
+        event = UIEventData(
+            type="onGaussianClick",
+            source="viewport",
+            hit_position=(1.0, 2.0, 3.0),
+            hit_entity="noodling_red",
+            hit_semantics={"body_part": "head", "emotion": "happy"}
+        )
+
+        d = event.to_dict()
+
+        assert d["hitPosition"]["x"] == 1.0
+        assert d["hitPosition"]["y"] == 2.0
+        assert d["hitPosition"]["z"] == 3.0
+        assert d["hitEntity"] == "noodling_red"
+        assert d["hitSemantics"]["body_part"] == "head"
+
+    def test_event_data_propagation_control(self):
+        """Test stop_propagation and prevent_default."""
+        from noodlestudio.runtime.ui import UIEventData
+
+        event = UIEventData(type="onClick", source="btn")
+
+        assert event.stopped is False
+        assert event.prevented is False
+
+        event.stop_propagation()
+        assert event.stopped is True
+
+        event.prevent_default()
+        assert event.prevented is True
+
+
+class TestEventConstants:
+    """Test event type constants."""
+
+    def test_event_constants_defined(self):
+        """Test all event constants are defined."""
+        from noodlestudio.runtime.ui import (
+            EVENT_CLICK,
+            EVENT_DOUBLE_CLICK,
+            EVENT_MOUSE_DOWN,
+            EVENT_MOUSE_UP,
+            EVENT_MOUSE_MOVE,
+            EVENT_MOUSE_ENTER,
+            EVENT_MOUSE_LEAVE,
+            EVENT_MOUSE_WHEEL,
+            EVENT_CONTEXT_MENU,
+            EVENT_KEY_DOWN,
+            EVENT_KEY_UP,
+            EVENT_FOCUS,
+            EVENT_BLUR,
+            EVENT_CHANGE,
+            EVENT_SUBMIT,
+            ALL_EVENT_TYPES,
+        )
+
+        assert EVENT_CLICK == "onClick"
+        assert EVENT_DOUBLE_CLICK == "onDoubleClick"
+        assert EVENT_MOUSE_DOWN == "onMouseDown"
+        assert EVENT_KEY_DOWN == "onKeyDown"
+        assert EVENT_FOCUS == "onFocus"
+        assert EVENT_CHANGE == "onChange"
+
+        # All constants should be in ALL_EVENT_TYPES
+        assert EVENT_CLICK in ALL_EVENT_TYPES
+        assert EVENT_KEY_DOWN in ALL_EVENT_TYPES
+        assert EVENT_SUBMIT in ALL_EVENT_TYPES
+
+
+class TestEventEmittingWidgets:
+    """Test EventEmitting widget mixins."""
+
+    @pytest.fixture
+    def qapp(self):
+        """Create QApplication for tests."""
+        from PyQt6.QtWidgets import QApplication
+        import sys
+
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        yield app
+
+    def test_event_emitting_frame_creation(self, qapp):
+        """Test creating EventEmittingFrame."""
+        from noodlestudio.runtime.ui import Panel, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_widgets import EventEmittingFrame
+
+        panel = Panel(name="testPanel")
+        renderer = QtWidgetRenderer()
+
+        frame = EventEmittingFrame(panel, renderer)
+
+        assert frame._ui_component == panel
+        assert frame._ui_renderer == renderer
+
+    def test_event_emitting_button_creation(self, qapp):
+        """Test creating EventEmittingButton."""
+        from noodlestudio.runtime.ui import Button, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_widgets import EventEmittingButton
+
+        button = Button(name="testBtn", text="Click")
+        renderer = QtWidgetRenderer()
+
+        widget = EventEmittingButton(button, renderer, "Click")
+
+        assert widget._ui_component == button
+        assert widget.text() == "Click"
+
+    def test_event_emitting_line_edit_creation(self, qapp):
+        """Test creating EventEmittingLineEdit."""
+        from noodlestudio.runtime.ui import TextInput, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_widgets import EventEmittingLineEdit
+
+        text_input = TextInput(name="testInput")
+        renderer = QtWidgetRenderer()
+
+        widget = EventEmittingLineEdit(text_input, renderer)
+
+        assert widget._ui_component == text_input
+
+
+class TestUIEventDataWithDispatcher:
+    """Test UIEventData integration with event dispatcher."""
+
+    @pytest.fixture
+    def qapp(self):
+        """Create QApplication for tests."""
+        from PyQt6.QtWidgets import QApplication
+        import sys
+
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        yield app
+
+    def test_dispatcher_receives_event_data(self, qapp):
+        """Test dispatcher receives and uses UIEventData."""
+        from noodlestudio.runtime.ui import Panel, Button, Label, QtWidgetRenderer, UIEventData
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        # Create UI
+        root = Panel(name="root")
+        button = Button(name="btn", text="Click")
+        label = Label(name="output", text="")
+        root.add_child(button)
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        dispatcher = UIEventDispatcher(renderer)
+
+        # Create binding for call_script that uses event data
+        binding = EventBinding(
+            action="call_script",
+            script="ui.set('output', 'Clicked at ' + event.x + ',' + event.y);"
+        )
+
+        # Create event data with position
+        event_data = UIEventData(
+            type="onClick",
+            source="btn",
+            x=100,
+            y=50
+        )
+
+        # Dispatch with event data
+        dispatcher.dispatch("onClick", button, binding, event_data)
+
+        # Check script received event data
+        output = renderer.get_component("output")
+        assert output.text == "Clicked at 100,50"
+
+    def test_dispatcher_creates_default_event_data(self, qapp):
+        """Test dispatcher creates basic event data if none provided."""
+        from noodlestudio.runtime.ui import Panel, Button, Label, QtWidgetRenderer
+        from noodlestudio.runtime.ui.event_dispatcher import UIEventDispatcher
+        from noodlestudio.runtime.ui.component import EventBinding
+
+        # Create UI
+        root = Panel(name="root")
+        button = Button(name="btn", text="Click")
+        label = Label(name="output", text="")
+        root.add_child(button)
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        dispatcher = UIEventDispatcher(renderer)
+
+        # Create binding
+        binding = EventBinding(
+            action="call_script",
+            script="ui.set('output', event.type + ' from ' + event.source);"
+        )
+
+        # Dispatch WITHOUT event data - should create default
+        dispatcher.dispatch("onClick", button, binding)
+
+        # Check script received basic event data
+        output = renderer.get_component("output")
+        assert output.text == "onClick from btn"
+
+    def test_script_executor_with_full_event_data(self, qapp):
+        """Test script executor receives full UIEventData."""
+        from noodlestudio.runtime.ui import Panel, Label, QtWidgetRenderer, UIScriptExecutor, UIEventData, Modifiers
+
+        root = Panel(name="root")
+        label = Label(name="output", text="")
+        root.add_child(label)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        executor = UIScriptExecutor(renderer)
+
+        # Create rich event data
+        event_data = UIEventData(
+            type="onKeyDown",
+            source="input",
+            key="Enter",
+            key_code=13,
+            modifiers=Modifiers(shift=True, ctrl=True)
+        )
+
+        result = executor.execute(
+            script="""
+            var msg = 'Key: ' + event.key;
+            msg += ', Shift: ' + event.modifiers.shift;
+            msg += ', Ctrl: ' + event.modifiers.ctrl;
+            ui.set('output', msg);
+            """,
+            event_data=event_data
+        )
+
+        assert result['success'] is True
+        output = renderer.get_component('output')
+        assert "Key: Enter" in output.text
+        assert "Shift: true" in output.text
+        assert "Ctrl: true" in output.text

@@ -19,6 +19,12 @@ from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 from .component import UIComponent, Anchors
+from .event_data import UIEventData, EVENT_CLICK, EVENT_CHANGE, EVENT_SUBMIT
+from .event_widgets import (
+    EventEmittingFrame,
+    EventEmittingButton,
+    EventEmittingLineEdit,
+)
 
 
 def hex_to_qcolor(hex_color: str) -> QColor:
@@ -179,7 +185,8 @@ class QtWidgetRenderer:
         """Render a Panel component."""
         from .components.panel import Panel
 
-        frame = QFrame(parent)
+        # Use event-emitting frame for full event support
+        frame = EventEmittingFrame(component, self, parent)
         frame.setObjectName(component.name or "panel")
 
         # Build stylesheet
@@ -238,7 +245,8 @@ class QtWidgetRenderer:
         """Render a Button component."""
         from .components.button import Button
 
-        button = QPushButton(component.text, parent)
+        # Use event-emitting button for full event support
+        button = EventEmittingButton(component, self, component.text, parent)
         button.setObjectName(component.name or "button")
 
         # Font
@@ -273,11 +281,16 @@ class QtWidgetRenderer:
         """
         button.setStyleSheet(style)
 
-        # Connect click event
-        if "onClick" in component.events and self._event_dispatcher:
-            binding = component.events["onClick"]
+        # Connect click event via Qt signal (provides UIEventData through mixin)
+        if EVENT_CLICK in component.events and self._event_dispatcher:
+            binding = component.events[EVENT_CLICK]
             button.clicked.connect(
-                lambda: self._event_dispatcher("onClick", component, binding)
+                lambda: self._event_dispatcher(
+                    EVENT_CLICK,
+                    component,
+                    binding,
+                    UIEventData.click(component.name)
+                )
             )
 
         return button
@@ -286,7 +299,8 @@ class QtWidgetRenderer:
         """Render a TextInput component."""
         from .components.text_input import TextInput
 
-        line_edit = QLineEdit(parent)
+        # Use event-emitting line edit for full event support
+        line_edit = EventEmittingLineEdit(component, self, parent)
         line_edit.setObjectName(component.name or "text_input")
         line_edit.setText(component.value)
         line_edit.setPlaceholderText(component.placeholder)
@@ -318,31 +332,52 @@ class QtWidgetRenderer:
         """
         line_edit.setStyleSheet(style)
 
+        # Track previous value for change events
+        self._previous_values = getattr(self, '_previous_values', {})
+        self._previous_values[component.name] = component.value
+
         # Connect events - always track text changes for bindings
         line_edit.textChanged.connect(
             lambda text: self._handle_text_input_change(component, text)
         )
 
-        if "onSubmit" in component.events and self._event_dispatcher:
-            binding = component.events["onSubmit"]
+        if EVENT_SUBMIT in component.events and self._event_dispatcher:
+            binding = component.events[EVENT_SUBMIT]
             line_edit.returnPressed.connect(
-                lambda: self._event_dispatcher("onSubmit", component, binding)
+                lambda: self._event_dispatcher(
+                    EVENT_SUBMIT,
+                    component,
+                    binding,
+                    UIEventData.submit(component.name, component.value)
+                )
             )
 
         return line_edit
 
     def _handle_text_input_change(self, component: 'TextInput', text: str) -> None:
         """Handle text input changes (for bindings and events)."""
+        # Get previous value for event data
+        previous_values = getattr(self, '_previous_values', {})
+        previous_value = previous_values.get(component.name)
+
         component.value = text  # Update component state
+
+        # Update tracked previous value
+        previous_values[component.name] = text
 
         # Notify binding manager
         if component.name:
             self.notify_binding_change(component.name, 'value')
 
         # Fire onChange event if configured
-        if "onChange" in component.events and self._event_dispatcher:
-            binding = component.events["onChange"]
-            self._event_dispatcher("onChange", component, binding)
+        if EVENT_CHANGE in component.events and self._event_dispatcher:
+            binding = component.events[EVENT_CHANGE]
+            self._event_dispatcher(
+                EVENT_CHANGE,
+                component,
+                binding,
+                UIEventData.value_change(component.name, text, previous_value)
+            )
 
     def _render_radiance_viewport(self, component: 'RadianceViewport', parent: Optional[QWidget]) -> QWidget:
         """Render a RadianceViewport component."""

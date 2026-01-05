@@ -10,6 +10,7 @@ import logging
 
 if TYPE_CHECKING:
     from .component import UIComponent, EventBinding
+    from .event_data import UIEventData
     from .renderer import QtWidgetRenderer
     from .components.chat_history import ChatHistory, MessageRole
     from .script_executor import UIScriptExecutor
@@ -84,7 +85,13 @@ class UIEventDispatcher:
         """
         self._custom_handlers[action] = handler
 
-    def dispatch(self, event_name: str, component: 'UIComponent', binding: 'EventBinding') -> None:
+    def dispatch(
+        self,
+        event_name: str,
+        component: 'UIComponent',
+        binding: 'EventBinding',
+        event_data: Optional['UIEventData'] = None
+    ) -> None:
         """
         Dispatch a UI event based on its binding.
 
@@ -92,7 +99,22 @@ class UIEventDispatcher:
             event_name: Name of the event (onClick, onSubmit, etc.)
             component: The component that triggered the event
             binding: Event binding with action and parameters
+            event_data: Rich event metadata (mouse position, keys, etc.)
         """
+        # Create basic event data if none provided (backward compatibility)
+        if event_data is None:
+            from .event_data import UIEventData
+            event_value = None
+            if hasattr(component, 'value'):
+                event_value = component.value
+            elif hasattr(component, 'text'):
+                event_value = component.text
+            event_data = UIEventData(
+                type=event_name,
+                source=component.name,
+                value=event_value,
+            )
+
         action = binding.action
 
         logger.debug(f"Dispatching event: {event_name} -> {action} (target: {binding.target})")
@@ -100,7 +122,7 @@ class UIEventDispatcher:
         if action == "send_to_noodling":
             self._handle_send_to_noodling(component, binding)
         elif action == "call_script":
-            self._handle_call_script(component, binding, event_name)
+            self._handle_call_script(component, binding, event_data)
         elif action == "set_value":
             self._handle_set_value(binding)
         elif action == "show":
@@ -211,7 +233,7 @@ class UIEventDispatcher:
         self,
         component: 'UIComponent',
         binding: 'EventBinding',
-        event_name: str
+        event_data: 'UIEventData'
     ) -> None:
         """
         Execute a script in response to a UI event.
@@ -222,32 +244,21 @@ class UIEventDispatcher:
 
         Scripts have access to:
             - ui: Component value access (get, set, show, hide)
-            - event: Event info (type, source, value)
+            - event: Rich event data (type, source, value, x, y, key, modifiers, etc.)
             - console: Logging functions
         """
         executor = self._get_script_executor()
-
-        # Get component value for the event
-        event_value = None
-        if hasattr(component, 'value'):
-            event_value = component.value
-        elif hasattr(component, 'text'):
-            event_value = component.text
 
         # Execute inline script or file
         if binding.script:
             result = executor.execute(
                 script=binding.script,
-                event_type=event_name,
-                source_component=component.name,
-                event_value=event_value
+                event_data=event_data
             )
         elif binding.script_file:
             result = executor.execute_file(
                 file_path=binding.script_file,
-                event_type=event_name,
-                source_component=component.name,
-                event_value=event_value,
+                event_data=event_data,
                 project_path=self.project_path
             )
         else:

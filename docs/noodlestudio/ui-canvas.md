@@ -1,7 +1,7 @@
 # UI Canvas System
 
-**Status**: Implementation Phase 3d Complete
-**Last Updated**: January 3, 2026
+**Status**: Implementation Phase 7A Complete
+**Last Updated**: January 4, 2026
 **Authors**: Caitlyn + Claude
 **Inspiration**: Borland Delphi Form Designer
 
@@ -256,16 +256,118 @@ console.log('Event from:', event.source, 'Type:', event.type);
 
 ### Event Types
 
+**Phase 7A (Jan 4, 2026)** expanded the event system with comprehensive UIEventData.
+
+#### Mouse Events
+
+| Event | Triggers When | UIEventData Fields |
+|-------|---------------|-------------------|
+| `onClick` | Component clicked | x, y, button, modifiers |
+| `onDoubleClick` | Component double-clicked | x, y, button, modifiers |
+| `onMouseDown` | Mouse button pressed | x, y, button, modifiers |
+| `onMouseUp` | Mouse button released | x, y, button, modifiers |
+| `onMouseMove` | Mouse moves over component | x, y, modifiers |
+| `onMouseEnter` | Mouse enters component | x, y |
+| `onMouseLeave` | Mouse leaves component | - |
+| `onMouseWheel` | Mouse wheel scrolled | x, y, deltaX, deltaY, modifiers |
+| `onContextMenu` | Right-click context menu | x, y, globalX, globalY |
+
+#### Keyboard Events
+
+| Event | Triggers When | UIEventData Fields |
+|-------|---------------|-------------------|
+| `onKeyDown` | Key pressed | key, keyCode, text, modifiers |
+| `onKeyUp` | Key released | key, keyCode, text, modifiers |
+
+#### Focus Events
+
+| Event | Triggers When | UIEventData Fields |
+|-------|---------------|-------------------|
+| `onFocus` | Component gains focus | - |
+| `onBlur` | Component loses focus | - |
+
+#### Value Events
+
+| Event | Triggers When | UIEventData Fields |
+|-------|---------------|-------------------|
+| `onChange` | Value changes (inputs, sliders) | value, previousValue |
+| `onSubmit` | Enter pressed in input | value |
+
+#### Drag Events (Future)
+
 | Event | Triggers When |
 |-------|---------------|
-| `onClick` | Component clicked |
-| `onDoubleClick` | Component double-clicked |
-| `onChange` | Value changes (inputs, sliders) |
-| `onSubmit` | Enter pressed in input |
-| `onFocus` | Component gains focus |
-| `onBlur` | Component loses focus |
-| `onHover` | Mouse enters component |
-| `onLeave` | Mouse leaves component |
+| `onDragStart` | Drag begins |
+| `onDrag` | During drag |
+| `onDragEnter` | Dragged item enters |
+| `onDragOver` | Dragged item over |
+| `onDragLeave` | Dragged item leaves |
+| `onDrop` | Item dropped |
+| `onDragEnd` | Drag completed |
+
+#### RadianceViewport Events (Future)
+
+| Event | Triggers When | UIEventData Fields |
+|-------|---------------|-------------------|
+| `onGaussianClick` | Gaussian clicked in viewport | hitPosition, hitEntity, hitSemantics |
+| `onGaussianHover` | Gaussian hovered | hitPosition, hitEntity, hitSemantics |
+| `onCameraMove` | Camera position changed | - |
+| `onLoad` | Radiance loaded | - |
+
+### UIEventData
+
+Rich event metadata available to all event handlers:
+
+```python
+from noodlestudio.runtime.ui import UIEventData, MouseButton, Modifiers
+
+# Event data is passed to handlers automatically
+# In scripts, access via the 'event' object:
+#   event.type     - "onClick", "onKeyDown", etc.
+#   event.source   - Component name
+#   event.x, event.y - Mouse position
+#   event.key      - Key name for keyboard events
+#   event.value    - Current value for onChange/onSubmit
+#   event.modifiers - {shift, ctrl, alt, meta}
+```
+
+#### UIEventData Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | str | Event type ("onClick", "onKeyDown", etc.) |
+| `source` | str | Component name that triggered event |
+| `timestamp` | float | Unix timestamp |
+| `x`, `y` | int | Mouse position relative to component |
+| `globalX`, `globalY` | int | Mouse position relative to window |
+| `button` | str | "left", "right", or "middle" |
+| `modifiers` | dict | {shift, ctrl, alt, meta} booleans |
+| `key` | str | Key name ("Enter", "Escape", "a") |
+| `keyCode` | int | Numeric key code |
+| `text` | str | Text input from key press |
+| `value` | any | Current value (for value events) |
+| `previousValue` | any | Previous value before change |
+| `deltaX`, `deltaY` | float | Scroll amount (for wheel events) |
+| `hitPosition` | tuple | 3D position for viewport events |
+| `hitEntity` | str | Entity ID for viewport events |
+| `hitSemantics` | dict | Semantic data for viewport events |
+
+#### Script Access
+
+```javascript
+// In call_script handlers, access full event data:
+events:
+  onMouseDown:
+    action: call_script
+    script: |
+      console.log('Click at:', event.x, event.y);
+      console.log('Button:', event.button);
+      console.log('Shift held:', event.modifiers.shift);
+
+      if (event.button === 'right') {
+        ui.show('contextMenu');
+      }
+```
 
 ---
 
@@ -536,7 +638,30 @@ to the viewport. Separation of concerns.
 | `panels/component_palette_panel.py` | Draggable component list |
 | `panels/inspector_ui_canvas.py` | Inspector mixin for component properties |
 
-### Phase 5: Undo/Redo for UI Edits (Next)
+### Phase 7A: Full Event Model - COMPLETE (Jan 4, 2026)
+- [x] `UIEventData` dataclass with comprehensive event metadata
+- [x] Mouse events: onClick, onDoubleClick, onMouseDown, onMouseUp, onMouseMove, onMouseEnter, onMouseLeave, onMouseWheel, onContextMenu
+- [x] Keyboard events: onKeyDown, onKeyUp
+- [x] Focus events: onFocus, onBlur
+- [x] `EventEmittingMixin` for Qt widgets
+- [x] `EventEmittingFrame`, `EventEmittingButton`, `EventEmittingLineEdit` widget classes
+- [x] Qt event conversion: `from_qt_mouse_event()`, `from_qt_key_event()`, `from_qt_wheel_event()`
+- [x] Factory methods: `UIEventData.click()`, `.value_change()`, `.submit()`, `.focus()`
+- [x] Full event data passed to scripts via `event.*` object
+
+**Files Created:**
+| File | Purpose |
+|------|---------|
+| `runtime/ui/event_data.py` | UIEventData, Modifiers, MouseButton, event constants |
+| `runtime/ui/event_widgets.py` | EventEmittingMixin and concrete widget classes |
+
+### Phase 7B: Inspector Event Wiring UI (Next)
+- [ ] Events section in Inspector for UI components
+- [ ] Action dropdown (send_to_noodling, call_script, set_value, etc.)
+- [ ] Inline script editor dialog
+- [ ] Event binding configuration dialog
+
+### Phase 5: Undo/Redo for UI Edits (Backlog)
 - [ ] `AddUIComponentCommand`
 - [ ] `DeleteUIComponentCommand`
 - [ ] `MoveUIComponentCommand`
@@ -638,3 +763,4 @@ A "3D game" is just this default. Not a special case - just a canvas with one fu
 | 2026-01-03 | Phase 3c COMPLETE: RadianceViewport - focused Gaussian renderer with clean API |
 | 2026-01-03 | Phase 3d COMPLETE: call_script action, UIScriptExecutor, component value bindings |
 | 2026-01-03 | Phase 4 COMPLETE: UI Canvas Designer - visual drag-drop editor, component palette, inspector integration |
+| 2026-01-04 | Phase 7A COMPLETE: Full event model - UIEventData, EventEmittingMixin, comprehensive mouse/keyboard/focus events |

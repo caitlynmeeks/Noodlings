@@ -49,6 +49,31 @@ from .renderer import (
     ChatInputWidget,
 )
 
+# Event data
+from .event_data import (
+    UIEventData,
+    Modifiers,
+    MouseButton,
+    # Event type constants
+    EVENT_CLICK,
+    EVENT_DOUBLE_CLICK,
+    EVENT_MOUSE_DOWN,
+    EVENT_MOUSE_UP,
+    EVENT_MOUSE_MOVE,
+    EVENT_MOUSE_ENTER,
+    EVENT_MOUSE_LEAVE,
+    EVENT_MOUSE_WHEEL,
+    EVENT_CONTEXT_MENU,
+    EVENT_KEY_DOWN,
+    EVENT_KEY_UP,
+    EVENT_KEY_PRESS,
+    EVENT_FOCUS,
+    EVENT_BLUR,
+    EVENT_CHANGE,
+    EVENT_SUBMIT,
+    ALL_EVENT_TYPES,
+)
+
 # Event dispatcher
 from .event_dispatcher import UIEventDispatcher
 
@@ -90,6 +115,27 @@ __all__ = [
     'AnchoredWidget',
     'ChatHistoryWidget',
     'ChatInputWidget',
+    # Event data
+    'UIEventData',
+    'Modifiers',
+    'MouseButton',
+    'EVENT_CLICK',
+    'EVENT_DOUBLE_CLICK',
+    'EVENT_MOUSE_DOWN',
+    'EVENT_MOUSE_UP',
+    'EVENT_MOUSE_MOVE',
+    'EVENT_MOUSE_ENTER',
+    'EVENT_MOUSE_LEAVE',
+    'EVENT_MOUSE_WHEEL',
+    'EVENT_CONTEXT_MENU',
+    'EVENT_KEY_DOWN',
+    'EVENT_KEY_UP',
+    'EVENT_KEY_PRESS',
+    'EVENT_FOCUS',
+    'EVENT_BLUR',
+    'EVENT_CHANGE',
+    'EVENT_SUBMIT',
+    'ALL_EVENT_TYPES',
     # Event dispatcher
     'UIEventDispatcher',
     # Script executor

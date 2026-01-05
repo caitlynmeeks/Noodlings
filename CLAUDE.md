@@ -6,25 +6,88 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
-## NEXT: Peak Delphi UI System (Jan 4, 2026)
+## NEXT: Phase 7B - Inspector Event Wiring UI (Jan 4, 2026)
 
-**Goal:** Complete the UI system to match peak Borland Delphi capabilities - full event model, custom components, Inspector event wiring, and complex component integration.
+**Goal:** Visual UI in Inspector for configuring event bindings - the Delphi Object Inspector's Events tab.
+
+**Design:**
+```
++-- Events ----------------------------------+
+| onClick         [send_to_noodling v]       |
+|                 Target: [red        v]     |
+|                 Message: [input     v]     |
+| [+ Add Event]                              |
++--------------------------------------------+
+| onMouseEnter    [call_script v]            |
+|                 [Edit Script...]           |
++--------------------------------------------+
+```
+
+**Implementation:**
+1. Add "Events" collapsible section in `inspector_ui_canvas.py`
+2. Create `EventBindingWidget` - row for each event type
+3. Action dropdown: send_to_noodling, call_script, set_value, show, hide, toggle_visible
+4. Dynamic parameter fields based on action type
+5. "Edit Script..." button opens inline script editor dialog
+6. "[+ Add Event]" shows event type picker
+7. Changes auto-save to ui.yaml
+
+**Files to create/modify:**
+- `panels/inspector_ui_canvas.py` - Add events section
+- `dialogs/event_binding_dialog.py` - NEW: Event configuration dialog
+- `dialogs/script_editor_dialog.py` - NEW: Inline script editor
+- `widgets/event_binding_widget.py` - NEW: Single event row widget
+
+**Previous work (Phase 7A COMPLETE):**
+- UIEventData with 15 event types
+- EventEmittingMixin for Qt widgets
+- Full event data passed to scripts
+- 92 tests passing
 
 ### Current State
 
 | Layer | Status | Details |
 |-------|--------|---------|
 | **Components** | 7 built | Panel, Label, Button, TextInput, ChatHistory, ChatInput, RadianceViewport |
-| **Events** | 3 wired | onClick, onChange, onSubmit |
+| **Events** | 15 wired | onClick, onDoubleClick, onMouseDown/Up/Move, onMouseEnter/Leave, onMouseWheel, onContextMenu, onKeyDown/Up, onFocus/Blur, onChange, onSubmit |
 | **Actions** | 5 built | send_to_noodling, call_script, set_value, show, hide, toggle_visible |
 | **Bindings** | Working | One-way reactive `{text: "input.value"}` |
-| **Scripts** | Working | QuickJS sandbox with `ui.*` API |
+| **Scripts** | Working | QuickJS sandbox with `ui.*` API, full UIEventData access |
 
 ### Implementation Phases
 
-#### Phase 7A: Full Event Model (START HERE)
+#### Phase 7A: Full Event Model - COMPLETE (Jan 4, 2026)
 
-Expand event wiring in `runtime/ui/renderer.py` and component classes.
+Full event model with comprehensive UIEventData and Qt widget integration.
+
+**UIEventData** (`runtime/ui/event_data.py`):
+- Mouse position (x, y, global_x, global_y)
+- Mouse button (MouseButton enum: LEFT, RIGHT, MIDDLE)
+- Keyboard modifiers (Modifiers dataclass: shift, ctrl, alt, meta)
+- Keyboard key info (key name, key code, text)
+- Value changes (value, previous_value)
+- Drag data and drop effect
+- 3D hit info (position, entity, semantics)
+- Scroll deltas
+- Propagation control (stop_propagation, prevent_default)
+- Factory methods: `click()`, `value_change()`, `submit()`, `focus()`
+- Qt conversion: `from_qt_mouse_event()`, `from_qt_key_event()`, `from_qt_wheel_event()`
+- Event type constants (EVENT_CLICK, EVENT_KEY_DOWN, etc.)
+
+**EventEmitting Widgets** (`runtime/ui/event_widgets.py`):
+- `EventEmittingMixin` - Adds event emission to any QWidget
+- `EventEmittingFrame` - Panel with full events
+- `EventEmittingButton` - Button with full events
+- `EventEmittingLineEdit` - TextInput with full events
+
+**Integration**:
+- `event_dispatcher.py` - Updated to accept UIEventData
+- `script_executor.py` - Full event data passed to scripts
+- `renderer.py` - Uses EventEmitting widgets
+
+**Tests**: 18 new tests (92 total), all passing.
+
+**Events Wired**:
 
 **Mouse Events:**
 ```
@@ -67,34 +130,8 @@ onValidate, onError
 onLoad, onCameraMove, onGaussianClick, onGaussianHover
 ```
 
-**UIEventData Class:**
-```python
-@dataclass
-class UIEventData:
-    type: str                    # "onClick", "onKeyDown", etc.
-    source: str                  # Component name
-    timestamp: float
-    # Mouse
-    x: Optional[int] = None
-    y: Optional[int] = None
-    button: Optional[str] = None  # "left", "right", "middle"
-    modifiers: Optional[Dict] = None  # {shift, ctrl, alt, meta}
-    # Keyboard
-    key: Optional[str] = None
-    keyCode: Optional[int] = None
-    # Value
-    value: Any = None
-    previousValue: Any = None
-    # Drag
-    dragData: Any = None
-    # 3D (RadianceViewport)
-    hitPosition: Optional[Tuple] = None
-    hitEntity: Optional[str] = None
-    hitSemantics: Optional[Dict] = None
-```
-
 **Key Files:**
-- `runtime/ui/event_data.py` - NEW: UIEventData class
+- `runtime/ui/event_data.py` - DONE: UIEventData class
 - `runtime/ui/renderer.py` - Wire events to all components
 - `runtime/ui/components/*.py` - Add event emission
 
@@ -473,6 +510,8 @@ tail -f applications/noodlestudio/logs/noodlestudio_*.log
 | What | Where |
 |------|-------|
 | **UI Canvas (runtime)** | `noodlestudio/runtime/ui/` |
+| **UIEventData** | `runtime/ui/event_data.py` |
+| **EventEmitting widgets** | `runtime/ui/event_widgets.py` |
 | **UI Event Dispatcher** | `runtime/ui/event_dispatcher.py` |
 | **UI Script Executor** | `runtime/ui/script_executor.py` |
 | **UI Bindings** | `runtime/ui/bindings.py` |

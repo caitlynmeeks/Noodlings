@@ -6,18 +6,19 @@ without the full ScriptedFacet overhead. Provides a UI-focused API.
 
 Scripts have access to:
     - ui: Component value access (get, set, show, hide)
-    - event: Event information (type, source)
+    - event: Rich event data (type, source, value, x, y, key, modifiers, etc.)
     - app: NoodleApp instance (if available)
     - console: Logging functions
 
 Author: Caitlyn + Claude
 Date: January 3, 2026
+Updated: January 4, 2026 - Added UIEventData support (Phase 7A)
 """
 
 import time
 import json
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, Union, TYPE_CHECKING
 from pathlib import Path
 
 # JavaScript execution via QuickJS
@@ -30,6 +31,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from .renderer import QtWidgetRenderer
+    from .event_data import UIEventData
 
 logger = logging.getLogger(__name__)
 
@@ -213,6 +215,8 @@ class UIScriptExecutor:
     def execute(
         self,
         script: str,
+        event_data: Optional['UIEventData'] = None,
+        # Legacy parameters for backward compatibility
         event_type: str = "onClick",
         source_component: str = "",
         event_value: Any = None
@@ -222,9 +226,10 @@ class UIScriptExecutor:
 
         Args:
             script: JavaScript code to execute
-            event_type: Type of event that triggered this (onClick, onChange, etc.)
-            source_component: Name of component that triggered the event
-            event_value: Value associated with the event (e.g., input value)
+            event_data: Rich event data (UIEventData) - preferred
+            event_type: (Legacy) Type of event that triggered this
+            source_component: (Legacy) Name of component that triggered the event
+            event_value: (Legacy) Value associated with the event
 
         Returns:
             Dict with execution results:
@@ -273,14 +278,18 @@ class UIScriptExecutor:
                 f"__component_enabled__ = {json.dumps(component_enabled)};"
             )
 
-            # Set up event object
-            event_data = {
-                'type': event_type,
-                'source': source_component,
-                'value': event_value,
-                'timestamp': start_time
-            }
-            self._js_context.eval(f"event = {json.dumps(event_data)};")
+            # Set up event object - use UIEventData if provided, else build from legacy params
+            if event_data is not None:
+                js_event_data = event_data.to_dict()
+            else:
+                # Legacy fallback
+                js_event_data = {
+                    'type': event_type,
+                    'source': source_component,
+                    'value': event_value,
+                    'timestamp': start_time
+                }
+            self._js_context.eval(f"event = {json.dumps(js_event_data)};")
 
             # Execute the script
             self._js_context.eval(script)
@@ -373,20 +382,23 @@ class UIScriptExecutor:
     def execute_file(
         self,
         file_path: str,
+        event_data: Optional['UIEventData'] = None,
+        project_path: Optional[str] = None,
+        # Legacy parameters for backward compatibility
         event_type: str = "onClick",
         source_component: str = "",
-        event_value: Any = None,
-        project_path: Optional[str] = None
+        event_value: Any = None
     ) -> Dict[str, Any]:
         """
         Execute a script from a file.
 
         Args:
             file_path: Path to JavaScript file (relative to project or absolute)
-            event_type: Event type that triggered this
-            source_component: Component that triggered the event
-            event_value: Value associated with event
+            event_data: Rich event data (UIEventData) - preferred
             project_path: Base project path for resolving relative paths
+            event_type: (Legacy) Event type that triggered this
+            source_component: (Legacy) Component that triggered the event
+            event_value: (Legacy) Value associated with event
 
         Returns:
             Execution results (same as execute())
@@ -417,6 +429,7 @@ class UIScriptExecutor:
 
         return self.execute(
             script=self._script_cache[cache_key],
+            event_data=event_data,
             event_type=event_type,
             source_component=source_component,
             event_value=event_value
