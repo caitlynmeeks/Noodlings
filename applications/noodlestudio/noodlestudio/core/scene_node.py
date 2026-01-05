@@ -30,6 +30,8 @@ class SceneNodeType(Enum):
     PROP = "prop"              # World object
     BONE = "bone"              # Virtual node from skeleton
     ZONE = "zone"              # Spatial region
+    UI = "ui"                  # UI Canvas (ui.yaml root)
+    UI_COMPONENT = "ui_component"  # UI component (Panel, Button, etc.)
 
 
 @dataclass

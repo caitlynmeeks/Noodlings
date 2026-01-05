@@ -324,6 +324,20 @@ class SceneHierarchyGraphMixin:
                                 print(f"[SceneHierarchy] Added new prop: {display_name}")
                             except Exception as e:
                                 print(f"[SceneHierarchy] Error adding prop {prop_name}: {e}")
+
+            # Check for new UI canvases (ui.yaml and *.ui.yaml)
+            for filename in os.listdir(stage_path):
+                if filename == 'ui.yaml' or filename.endswith('.ui.yaml'):
+                    ui_path = os.path.join(stage_path, filename)
+                    if ui_path not in existing_paths:
+                        # Determine display name
+                        if filename == 'ui.yaml':
+                            display_name = "UI"
+                        else:
+                            display_name = f"UI: {filename.replace('.ui.yaml', '')}"
+                        self.scene_graph.create_node(
+                            display_name, SceneNodeType.UI, None, ui_path)
+                        print(f"[SceneHierarchy] Added new UI canvas: {display_name}", flush=True)
         finally:
             self._suppress_refresh = False
 

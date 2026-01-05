@@ -94,6 +94,7 @@ class MainWindowPanelsMixin:
         from ..panels.settings_panel import SettingsPanel
         from ..panels.noodle_code_panel import NoodleCodePanel
         from .noodle_code_engine import NoodleCodeEngine
+        from ..panels.ui_canvas_editor_panel import UICanvasEditorPanel
 
         # LEFT COLUMN: Tabbed widget for Hierarchy + Assets
         left_tabs = QTabWidget()
@@ -124,6 +125,8 @@ class MainWindowPanelsMixin:
 
         left_tabs.addTab(self.hierarchy, "Stage")
         left_tabs.addTab(self.assets, "Assets")
+        # Note: Components palette removed - UI components now shown in Stage hierarchy
+        # Users right-click on UI node to add components (Unity-style)
 
         # CENTER: Tabbed widget for World View + Facets Editor + etc.
         # Uses MaximizableCenterTabs for double-click maximize feature
@@ -197,6 +200,11 @@ class MainWindowPanelsMixin:
         # Settings tab
         self.settings_panel = SettingsPanel()
         center_tabs.addTab(self.settings_panel, "Settings")
+
+        # UI Canvas Editor tab
+        self.ui_canvas_editor = UICanvasEditorPanel()
+        self.ui_canvas_editor.set_project_manager(self.project_manager)
+        center_tabs.addTab(self.ui_canvas_editor, "UI Canvas")
 
         # Keep reference to model manager for backward compatibility
         self.model_manager = self.settings_panel.get_model_manager_panel()
@@ -429,6 +437,20 @@ class MainWindowPanelsMixin:
         # Assets Panel connections
         self.assets.assetRenamed.connect(self._on_asset_renamed)
         self.assets.assetSelected.connect(self._on_asset_selected)
+
+        # UI Canvas Editor connections
+        self.ui_canvas_editor.component_selected.connect(self._on_ui_component_selected)
+
+        # UI entity selection from Stage -> Canvas Editor
+        def safe_ui_canvas_select(entity_type, entity_data):
+            try:
+                self._on_ui_entity_selected_for_canvas_editor(entity_type, entity_data)
+            except Exception as e:
+                import traceback
+                print(f"[SAFE WRAPPER] ERROR in _on_ui_entity_selected_for_canvas_editor: {e}")
+                traceback.print_exc()
+
+        self.hierarchy.entitySelected.connect(safe_ui_canvas_select)
 
     def _setup_annotation_overlay(self):
         """Setup the annotation overlay for screenshot debugging with Claude."""

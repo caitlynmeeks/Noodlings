@@ -516,14 +516,34 @@ to the viewport. Separation of concerns.
 - [x] Script API: `ui.get()`, `ui.set()`, `ui.show()`, `ui.hide()`, `event`, `console`
 - [x] Binding expressions with automatic dependency tracking
 
-### Phase 4: Designer Panel (Future)
-- [ ] New panel: UI Canvas Editor
-- [ ] Component palette
-- [ ] Drag-drop placement
-- [ ] Selection and resize handles
-- [ ] Property editing in Inspector
+### Phase 4: Designer Panel - COMPLETE (Jan 3, 2026)
+- [x] New panel: `UICanvasEditorPanel` in center tabs
+- [x] Component palette: `ComponentPalettePanel` in left tabs (Stage/Assets/Components)
+- [x] Drag-drop placement from palette to canvas
+- [x] 8-point selection and resize handles (Delphi-style)
+- [x] Property editing in Inspector via `UICanvasInspectorMixin`
+- [x] Grid snap (8px)
+- [x] Zoom/pan (wheel, space+drag, middle mouse)
+- [x] Rubber-band multi-select
+- [x] Auto-save to `ui.yaml` on every change
+- [x] Delete selected (Delete/Backspace key)
+- [x] Frame all (A key)
 
-### Phase 5: Advanced (Future)
+**Files Created:**
+| File | Purpose |
+|------|---------|
+| `panels/ui_canvas_editor_panel.py` | Design surface with QGraphicsView |
+| `panels/component_palette_panel.py` | Draggable component list |
+| `panels/inspector_ui_canvas.py` | Inspector mixin for component properties |
+
+### Phase 5: Undo/Redo for UI Edits (Next)
+- [ ] `AddUIComponentCommand`
+- [ ] `DeleteUIComponentCommand`
+- [ ] `MoveUIComponentCommand`
+- [ ] `ResizeUIComponentCommand`
+- [ ] `EditUIPropertyCommand`
+
+### Phase 6: Advanced (Future)
 - [ ] Custom component creation
 - [ ] Theming system
 - [ ] Animation/transitions
@@ -617,3 +637,4 @@ A "3D game" is just this default. Not a special case - just a canvas with one fu
 | 2026-01-03 | Phase 3b COMPLETE: ChatHistory, ChatInput, UIEventDispatcher, send_to_noodling action |
 | 2026-01-03 | Phase 3c COMPLETE: RadianceViewport - focused Gaussian renderer with clean API |
 | 2026-01-03 | Phase 3d COMPLETE: call_script action, UIScriptExecutor, component value bindings |
+| 2026-01-03 | Phase 4 COMPLETE: UI Canvas Designer - visual drag-drop editor, component palette, inspector integration |

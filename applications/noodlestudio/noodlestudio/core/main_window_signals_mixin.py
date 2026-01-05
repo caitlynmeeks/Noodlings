@@ -258,3 +258,49 @@ class MainWindowSignalsMixin:
 
         if hasattr(self, 'inspector'):
             self.inspector.load_entity('zone', zone_data)
+
+    def _on_ui_component_selected(self, component):
+        """Handle UI component selection from UI Canvas Editor."""
+        if hasattr(self, 'inspector') and self.inspector:
+            if hasattr(self.inspector, 'load_ui_component'):
+                self.inspector.load_ui_component(component)
+
+    def _on_ui_entity_selected_for_canvas_editor(self, entity_type, entity_data):
+        """Handle UI entity selection from Stage hierarchy - load into canvas editor."""
+        from pathlib import Path
+
+        if entity_type == 'ui':
+            # Load the UI canvas file into the editor
+            ui_path = entity_data.get('path')
+            if ui_path and hasattr(self, 'ui_canvas_editor'):
+                self.ui_canvas_editor.load_ui_file(Path(ui_path))
+                # Switch to UI Canvas tab
+                if hasattr(self, 'center_tabs'):
+                    for i in range(self.center_tabs.count()):
+                        if self.center_tabs.tabText(i) == "UI Canvas":
+                            self.center_tabs.setCurrentIndex(i)
+                            break
+        elif entity_type == 'ui_component':
+            # Load parent canvas if not already loaded, then select component
+            ui_path = entity_data.get('path')
+            component = entity_data.get('component')
+            if ui_path and hasattr(self, 'ui_canvas_editor'):
+                # Load the canvas if not already showing this file
+                current_path = getattr(self.ui_canvas_editor.view, 'ui_file_path', None)
+                if current_path is None or str(current_path) != str(ui_path):
+                    self.ui_canvas_editor.load_ui_file(Path(ui_path))
+
+                # Select the component in the canvas view
+                if component and hasattr(self.ui_canvas_editor.view, 'component_items'):
+                    comp_name = component.name
+                    if comp_name in self.ui_canvas_editor.view.component_items:
+                        self.ui_canvas_editor.view.canvas_scene.clearSelection()
+                        item = self.ui_canvas_editor.view.component_items[comp_name]
+                        item.setSelected(True)
+
+                # Switch to UI Canvas tab
+                if hasattr(self, 'center_tabs'):
+                    for i in range(self.center_tabs.count()):
+                        if self.center_tabs.tabText(i) == "UI Canvas":
+                            self.center_tabs.setCurrentIndex(i)
+                            break

@@ -281,6 +281,8 @@ class SceneHierarchyRefreshMixin:
             item.setForeground(0, Qt.GlobalColor.gray)
         elif node.node_type == SceneNodeType.BONE:
             item.setForeground(0, Qt.GlobalColor.cyan)
+        elif node.node_type == SceneNodeType.UI:
+            item.setForeground(0, Qt.GlobalColor.lightGray)  # Monochromatic palette
 
         # Store node data - load full entity data from disk for inspector
         entity_data = {
@@ -318,10 +320,18 @@ class SceneHierarchyRefreshMixin:
         # Set expanded state
         item.setExpanded(node.is_expanded)
 
-        # Add children recursively
+        # For UI nodes, add component children from the loaded component tree
+        if node.node_type == SceneNodeType.UI and 'component' in entity_data:
+            root_component = entity_data['component']
+            # Don't create graph nodes - we're rebuilding from existing graph
+            self._add_ui_component_to_tree(root_component, item, node.id, node.asset_path,
+                                          create_graph_nodes=False)
+            item.setExpanded(True)
+
+        # Add children recursively (skip UI_COMPONENT - handled by _add_ui_component_to_tree)
         for child_id in node.children_ids:
             child_node = self.scene_graph.get_node(child_id)
-            if child_node:
+            if child_node and child_node.node_type != SceneNodeType.UI_COMPONENT:
                 self._add_node_to_tree(child_node, item)
 
     def _load_entity_data_from_disk(self, node: SceneNode, entity_data: dict):
@@ -366,6 +376,17 @@ class SceneHierarchyRefreshMixin:
                     entity_data['falloff'] = zone_data.get('falloff', 5)
                 except Exception as e:
                     print(f"[SceneHierarchy] Error loading zone data: {e}")
+
+        elif node.node_type == SceneNodeType.UI:
+            # UI canvas - load component tree
+            if os.path.exists(node.asset_path):
+                try:
+                    from ..runtime.ui.loader import UILoader
+                    loader = UILoader()
+                    root_component = loader.load_file(node.asset_path)
+                    entity_data['component'] = root_component
+                except Exception as e:
+                    print(f"[SceneHierarchy] Error loading UI canvas data: {e}")
 
     def _build_tree_from_files(self, stage_path: str):
         """Build tree from file structure (legacy mode)."""
@@ -521,6 +542,9 @@ class SceneHierarchyRefreshMixin:
 
                 except Exception as e:
                     print(f"Error loading prop {prop_name}: {e}")
+
+        # Load UI canvases from *.ui.yaml files at stage root
+        self._load_ui_canvases(stage_path)
 
         # Zone connections shown as top-level items
         zone_graph = stage_data.get('zone_graph', {})
@@ -767,3 +791,103 @@ class SceneHierarchyRefreshMixin:
         if hasattr(self, 'pauseToggled'):
             self.pauseToggled.emit(agent_id, new_paused)
         print(f"[SceneHierarchy] {'Paused' if new_paused else 'Resumed'} cognition for {agent_id}")
+
+    def _load_ui_canvases(self, stage_path: str):
+        """Load UI canvas files (ui.yaml or *.ui.yaml) into hierarchy."""
+        import yaml
+
+        # Look for ui.yaml at stage root, also any *.ui.yaml files
+        ui_files = []
+
+        # Check for main ui.yaml
+        main_ui = os.path.join(stage_path, "ui.yaml")
+        if os.path.exists(main_ui):
+            ui_files.append(("UI", main_ui))
+
+        # Check for additional *.ui.yaml files
+        for filename in os.listdir(stage_path):
+            if filename.endswith('.ui.yaml') and filename != 'ui.yaml':
+                name = filename.replace('.ui.yaml', '')
+                ui_files.append((f"UI: {name}", os.path.join(stage_path, filename)))
+
+        # Load each UI canvas
+        for display_name, ui_path in ui_files:
+            try:
+                # Load the UI component tree
+                from ..runtime.ui.loader import UILoader
+                loader = UILoader()
+                root_component = loader.load_file(ui_path)
+
+                # Create UI root node
+                ui_node = self.scene_graph.create_node(
+                    display_name, SceneNodeType.UI, None, ui_path)
+
+                ui_item = QTreeWidgetItem([display_name, ""])
+                ui_item.setForeground(0, Qt.GlobalColor.lightGray)  # Monochromatic palette
+                ui_item.setData(0, Qt.ItemDataRole.UserRole, {
+                    'type': 'ui',
+                    'name': display_name,
+                    'path': ui_path,
+                    'node_id': ui_node.id,
+                    'component': root_component
+                })
+                self.tree.addTopLevelItem(ui_item)
+
+                self._item_id_to_node_id[id(ui_item)] = ui_node.id
+                self._node_id_to_item[ui_node.id] = ui_item
+
+                # Add UI components as children recursively
+                self._add_ui_component_to_tree(root_component, ui_item, ui_node.id, ui_path)
+
+                ui_item.setExpanded(True)
+
+            except Exception as e:
+                print(f"[SceneHierarchy] Error loading UI canvas {ui_path}: {e}")
+                import traceback
+                traceback.print_exc()
+
+    def _add_ui_component_to_tree(self, component, parent_item: QTreeWidgetItem,
+                                   parent_node_id: str, ui_path: str,
+                                   create_graph_nodes: bool = True):
+        """Recursively add UI component and its children to the tree.
+
+        Args:
+            component: The UIComponent to add
+            parent_item: Parent tree widget item
+            parent_node_id: Parent node ID in scene graph
+            ui_path: Path to the ui.yaml file
+            create_graph_nodes: If True, create scene graph nodes. False when
+                               rebuilding from existing graph to avoid duplicates.
+        """
+        # Create display name with type
+        display_name = f"{component.name} ({component.component_type})"
+
+        # Create scene node for this component (only if requested)
+        if create_graph_nodes:
+            comp_node = self.scene_graph.create_node(
+                component.name, SceneNodeType.UI_COMPONENT, parent_node_id, ui_path)
+            comp_node.metadata['component_type'] = component.component_type
+            node_id = comp_node.id
+        else:
+            # Generate a temporary ID for tree item tracking (not in scene graph)
+            node_id = f"ui_comp_{component.name}_{id(component)}"
+
+        # Create tree item
+        comp_item = QTreeWidgetItem([display_name, ""])
+        comp_item.setData(0, Qt.ItemDataRole.UserRole, {
+            'type': 'ui_component',
+            'name': component.name,
+            'component_type': component.component_type,
+            'path': ui_path,
+            'node_id': node_id,
+            'component': component
+        })
+        parent_item.addChild(comp_item)
+
+        if create_graph_nodes:
+            self._item_id_to_node_id[id(comp_item)] = node_id
+            self._node_id_to_item[node_id] = comp_item
+
+        # Recursively add children
+        for child in component.children:
+            self._add_ui_component_to_tree(child, comp_item, node_id, ui_path, create_graph_nodes)

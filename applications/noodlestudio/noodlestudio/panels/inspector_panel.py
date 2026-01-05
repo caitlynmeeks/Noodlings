@@ -45,6 +45,7 @@ from .inspector_entity import EntityInspectorMixin
 from .inspector_asset import AssetInspectorMixin
 from .inspector_neural import NeuralInspectorMixin
 from .inspector_components import ComponentInspectorMixin
+from .inspector_ui_canvas import UICanvasInspectorMixin
 
 
 class InspectorPanel(
@@ -53,6 +54,7 @@ class InspectorPanel(
     AssetInspectorMixin,
     NeuralInspectorMixin,
     ComponentInspectorMixin,
+    UICanvasInspectorMixin,
     QWidget
 ):
     """
@@ -67,6 +69,7 @@ class InspectorPanel(
     - AssetInspectorMixin: Asset loading
     - NeuralInspectorMixin: Neural canvas node loading
     - ComponentInspectorMixin: Component system display
+    - UICanvasInspectorMixin: UI canvas component editing
     """
 
     # Signal emitted when entity name is changed (entity_type, entity_id, new_name)
@@ -112,6 +115,9 @@ class InspectorPanel(
 
         # Property binding manager for automatic undo support
         self._binding_manager = PropertyBindingManager(self)
+
+        # Initialize UI Canvas inspector mixin
+        self.init_ui_canvas_inspector()
 
         # Initialize UI directly on this widget
         self.init_ui(self)
@@ -1041,6 +1047,14 @@ class InspectorPanel(
             elif entity_type == 'asset':
                 # Asset from Assets panel - dispatch to sub-type handler
                 self.load_asset_properties(entity_data)
+
+            elif entity_type in ('ui', 'ui_component'):
+                # UI Canvas or UI Component - use UICanvasInspectorMixin
+                component = entity_data.get('component')
+                if component:
+                    comp_name = entity_data.get('name', 'UI')
+                    self.entity_header.setText(comp_name)
+                    self.load_ui_component(component)
 
         finally:
             # ALWAYS clear loading flag, even on error

@@ -30,6 +30,7 @@ from .scene_hierarchy_export_mixin import SceneHierarchyExportMixin
 from .scene_hierarchy_create_mixin import SceneHierarchyCreateMixin
 from .scene_hierarchy_derez_mixin import SceneHierarchyDerezMixin
 from .scene_hierarchy_utils_mixin import SceneHierarchyUtilsMixin
+from .scene_hierarchy_ui_mixin import SceneHierarchyUIMixin
 
 
 class SceneHierarchy(
@@ -43,6 +44,7 @@ class SceneHierarchy(
     SceneHierarchyCreateMixin,
     SceneHierarchyDerezMixin,
     SceneHierarchyUtilsMixin,
+    SceneHierarchyUIMixin,
     QWidget
 ):
     """

@@ -132,8 +132,36 @@ class SceneHierarchyContextMenuMixin:
                     menu.addAction("Edit Exit", _safe_callback(lambda d=entity_data: self.edit_exit_data(d)))
                     menu.addAction("De-Rez Exit", _safe_callback(lambda d=entity_data: self.delete_prim_data(d)))
 
+                elif entity_type == 'ui':
+                    # UI Canvas root - can add child components
+                    add_ui_menu = menu.addMenu("Add")
+                    add_ui_menu.addAction("Panel", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Panel')))
+                    add_ui_menu.addAction("Label", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Label')))
+                    add_ui_menu.addAction("Button", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Button')))
+                    add_ui_menu.addAction("TextInput", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'TextInput')))
+                    add_ui_menu.addSeparator()
+                    add_ui_menu.addAction("ChatHistory", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'ChatHistory')))
+                    add_ui_menu.addAction("ChatInput", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'ChatInput')))
+                    add_ui_menu.addAction("RadianceViewport", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'RadianceViewport')))
+
+                elif entity_type == 'ui_component':
+                    # UI Component - can add children (if it's a Panel) and delete
+                    component = entity_data.get('component')
+                    if component and component.component_type == 'Panel':
+                        add_ui_menu = menu.addMenu("Add Child")
+                        add_ui_menu.addAction("Panel", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Panel')))
+                        add_ui_menu.addAction("Label", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Label')))
+                        add_ui_menu.addAction("Button", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'Button')))
+                        add_ui_menu.addAction("TextInput", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'TextInput')))
+                        add_ui_menu.addSeparator()
+                        add_ui_menu.addAction("ChatHistory", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'ChatHistory')))
+                        add_ui_menu.addAction("ChatInput", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'ChatInput')))
+                        add_ui_menu.addAction("RadianceViewport", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'RadianceViewport')))
+                        menu.addSeparator()
+                    menu.addAction("Delete", _safe_callback(lambda d=entity_data: self._delete_ui_component(d)))
+
                 # Note: Folders are for Assets panel, not Stage View
-                # Stage View shows scene entities only (zones, noodlings, props)
+                # Stage View shows scene entities only (zones, noodlings, props, ui)
         else:
             # Empty space - show rez options only if project is open AND server is running
             if self.project_manager and self.project_manager.is_project_open():
@@ -142,6 +170,8 @@ class SceneHierarchyContextMenuMixin:
                     create_menu.addAction("New Noodling", _safe_callback(lambda: self.create_empty_noodling()))
                     create_menu.addAction("New Prim", _safe_callback(lambda: self.create_empty_prim()))
                     create_menu.addAction("New Zone", _safe_callback(lambda: self.create_empty_zone()))
+                    create_menu.addSeparator()
+                    create_menu.addAction("New UI Canvas", _safe_callback(lambda: self._create_ui_canvas()))
 
                     menu.addSeparator()
                     menu.addAction("Import Prim...", _safe_callback(lambda: self.import_prim()))
