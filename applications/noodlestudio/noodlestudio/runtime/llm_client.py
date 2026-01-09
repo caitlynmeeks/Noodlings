@@ -1,22 +1,36 @@
-"""
-Headless LLM Client - Multi-provider LLM interface without Qt dependencies
-
-For use in the NoodleStudio runtime (standalone applications).
-Provides the interface expected by FacetExecutor.
-
-Supported providers:
-- noodlings: Noodlings cloud routing service (api.noodlings.ai)
-- ollama: Local Ollama server
-- anthropic: Anthropic Claude API (direct, own key)
-- openai: OpenAI API (direct, own key)
-- openrouter: OpenRouter aggregated API
-
-The 'noodlings' provider is the recommended option for built applications.
-It routes through our cloud service, billing the user's Noodlings account.
-
-Author: Caitlyn + Claude
-Date: January 3, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Headless LLM Client - Multi-provider LLM interface without Qt dependencies
+#
+#   For use in the NoodleStudio runtime (standalone applicati...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.llm_client
+# PURPOSE:  Llm Client
+# LAYER:    Studio / Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   LLMConfig, HeadlessLLMClient, create_llm_client_from_env()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import aiohttp
 import asyncio
@@ -32,7 +46,7 @@ logger = logging.getLogger(__name__)
 class LLMConfig:
     """Configuration for headless LLM client."""
 
-    provider: str = "ollama"  # noodlings, ollama, anthropic, openai, openrouter
+    provider: str = "ollama"  # noodlerouter, ollama, anthropic, openai, openrouter
     model: str = ""  # Model name (provider-specific)
     api_key: str = ""  # API key (from env or config)
     base_url: str = ""  # Custom base URL
@@ -48,7 +62,7 @@ class LLMConfig:
 
         # Set defaults based on provider
         if not self.base_url:
-            if self.provider == "noodlings":
+            if self.provider == "noodlerouter":
                 self.base_url = "https://api.noodlings.ai/v1"
             elif self.provider == "ollama":
                 self.base_url = "http://localhost:11434/v1"
@@ -62,7 +76,7 @@ class LLMConfig:
         # Get API key from environment if not provided
         if not self.api_key:
             env_map = {
-                "noodlings": "NOODLINGS_API_KEY",  # User's Noodlings account token
+                "noodlerouter": "NOODLEROUTER_API_KEY",  # User's Noodlings account token
                 "anthropic": "ANTHROPIC_API_KEY",
                 "openai": "OPENAI_API_KEY",
                 "openrouter": "OPENROUTER_API_KEY",
@@ -90,12 +104,36 @@ class HeadlessLLMClient:
         """
         self.config = config or LLMConfig()
         self.session: Optional[aiohttp.ClientSession] = None
+        self._session_loop: Optional[asyncio.AbstractEventLoop] = None  # Track which loop owns session
         self._semaphore = asyncio.Semaphore(self.config.max_concurrent)
 
     async def _ensure_session(self):
-        """Ensure aiohttp session is created."""
+        """Ensure aiohttp session is created and valid for current event loop."""
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+
+        # Check if session exists and is still valid
+        needs_new_session = False
+
         if self.session is None:
+            needs_new_session = True
+        elif self.session.closed:
+            needs_new_session = True
+            self.session = None
+        elif self._session_loop is not current_loop:
+            # Session was created in a different event loop - it's now invalid
+            # Don't try to close it (that would fail in the wrong loop)
+            # Just abandon it and create a new one
+            logger.debug(f"Session loop mismatch: creating new session for current loop")
+            self.session = None
+            needs_new_session = True
+
+        if needs_new_session:
             self.session = aiohttp.ClientSession()
+            self._session_loop = current_loop
+            logger.debug(f"Created new aiohttp session for loop {id(current_loop)}")
 
     async def close(self):
         """Close the HTTP session."""
@@ -127,7 +165,7 @@ class HeadlessLLMClient:
     def _default_model(self) -> str:
         """Get default model for provider."""
         defaults = {
-            "noodlings": "anthropic/claude-3.5-sonnet",  # Our routing uses provider/model format
+            "noodlerouter": "anthropic/claude-3.5-sonnet",  # NoodleROUTER uses provider/model format
             "ollama": "llama3.2",
             "anthropic": "claude-3-5-sonnet-20241022",
             "openai": "gpt-4o-mini",
@@ -167,9 +205,9 @@ class HeadlessLLMClient:
             return await self._generate_anthropic(
                 prompt, system_prompt, resolved_model, temperature, max_tokens
             )
-        elif self.config.provider == "noodlings":
-            # Noodlings cloud uses OpenAI-compatible format
-            return await self._generate_noodlings(
+        elif self.config.provider == "noodlerouter":
+            # NoodleROUTER uses OpenAI-compatible format
+            return await self._generate_noodlerouter(
                 prompt, system_prompt, resolved_model, temperature, max_tokens
             )
         else:
@@ -308,7 +346,7 @@ class HeadlessLLMClient:
                 logger.error(f"HTTP request failed: {e}")
                 raise
 
-    async def _generate_noodlings(
+    async def _generate_noodlerouter(
         self,
         prompt: str,
         system_prompt: str,
@@ -317,7 +355,7 @@ class HeadlessLLMClient:
         max_tokens: int
     ) -> Tuple[str, int]:
         """
-        Generate using Noodlings cloud routing service.
+        Generate using NoodleROUTER cloud routing service.
 
         Uses OpenAI-compatible format at api.noodlings.ai/v1/chat/completions.
         Bills the user's Noodlings account via credits.
@@ -342,7 +380,7 @@ class HeadlessLLMClient:
                 "stream": False,  # Streaming not yet supported
             }
 
-            logger.debug(f"Noodlings request to {model}: {prompt[:100]}...")
+            logger.debug(f"NoodleROUTER request to {model}: {prompt[:100]}...")
 
             try:
                 async with self.session.post(
@@ -355,13 +393,13 @@ class HeadlessLLMClient:
                         # Insufficient credits
                         data = await resp.json()
                         error_msg = data.get('error', {}).get('message', 'Insufficient credits')
-                        logger.error(f"Noodlings billing error: {error_msg}")
+                        logger.error(f"NoodleROUTER billing error: {error_msg}")
                         raise Exception(f"Billing error: {error_msg}")
 
                     if resp.status != 200:
                         text = await resp.text()
-                        logger.error(f"Noodlings API error {resp.status}: {text}")
-                        raise Exception(f"Noodlings API error {resp.status}: {text}")
+                        logger.error(f"NoodleROUTER API error {resp.status}: {text}")
+                        raise Exception(f"NoodleROUTER API error {resp.status}: {text}")
 
                     data = await resp.json()
 
@@ -372,7 +410,7 @@ class HeadlessLLMClient:
                     # Strip thinking tags if present
                     response_text = self._strip_thinking_tags(response_text)
 
-                    logger.debug(f"Noodlings response ({token_count} tokens): {response_text[:100]}...")
+                    logger.debug(f"NoodleROUTER response ({token_count} tokens): {response_text[:100]}...")
 
                     return response_text, token_count
 
@@ -456,3 +494,7 @@ def create_llm_client_from_env() -> HeadlessLLMClient:
     )
 
     return HeadlessLLMClient(config)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026
