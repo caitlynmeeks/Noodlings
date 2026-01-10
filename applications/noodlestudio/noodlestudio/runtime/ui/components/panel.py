@@ -1,9 +1,36 @@
-"""
-Panel Component
-
-Container component with background color. Equivalent to Delphi's TPanel.
-Can hold child components.
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Panel Component
+#
+#   Container component with background color. Equivalent to ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.components.panel
+# PURPOSE:  Panel Component
+# LAYER:    Studio / UI Components
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   Panel
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Any, Dict, Optional
 
@@ -61,3 +88,7 @@ class Panel(UIComponent):
         panel.border_radius = data.get("border_radius", 0)
 
         return panel
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

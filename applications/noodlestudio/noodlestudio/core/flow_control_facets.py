@@ -1,19 +1,36 @@
-"""
-Flow Control Facets - Logic gates and timing controls
-
-Special facet types that control execution flow rather than transforming data:
-- TickerGateFacet: Execute downstream every N cycles
-- ConditionalBranchFacet: Route based on boolean expression
-- RateLimiterFacet: Throttle execution by time
-- CacheFacet: Cache outputs to avoid recomputation
-- PrioritySwitchFacet: Route to first matching priority
-- AccumulatorFacet: Collect inputs over time window
-
-These allow users to optimize performance and implement complex logic flows.
-
-Author: Commander Spock + Cadet Caity
-Date: November 28, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Flow Control Facets - Logic gates and timing controls
+#
+#   Special facet types that control execution flow rather th...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.flow_control_facets
+# PURPOSE:  flow control facets facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   FlowControlMode, FlowControlOutput, TickerGateFacet, ConditionalBranchFacet, RateLimiterFacet
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import time
 from typing import Dict, Any, Optional, List, Callable
@@ -636,3 +653,7 @@ if __name__ == "__main__":
         print(f"Input {i}: accumulated={result['accumulated']}, full={result['window_full']}")
 
     print("\n=== All tests complete ===")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

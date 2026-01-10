@@ -1,11 +1,36 @@
-"""
-Neural Graph - Complete neural network topology representation.
-
-Manages nodes, connections, validation, and serialization.
-
-Author: Commander Spock + Cadet Caity
-Date: December 8, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Neural Graph - Complete neural network topology representation.
+#
+#   Manages nodes, connections, validation, and serialization.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.neural_canvas.neural_graph
+# PURPOSE:  Neural Graph
+# LAYER:    Studio / Neural Canvas
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ValidationResult, NeuralGraph
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Set, Tuple, Optional
@@ -454,3 +479,7 @@ class NeuralGraph:
                 f"{len(self.nodes)} nodes, "
                 f"{len(self.connections)} connections, "
                 f"{self.compute_total_parameters()} params)")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,24 +1,36 @@
-"""
-Pose Track - Keyframeable body animation using muscle space
-
-Rig-agnostic body animation inspired by Unity's Mecanim muscle system.
-Muscles are normalized values [-1, 1] that map to bone rotations.
-The same pose track can play on any humanoid avatar.
-
-"What Maya did for motion, what Mecanim did for retargeting -
- we unify with affect for complete character animation."
-
-File formats:
-- .posetrack (YAML) - Human-readable, editor-friendly
-- .noodletrack (combined) - Affect + pose + blendshapes
-
-Author: Caitlyn + Claude
-Date: December 21, 2025
-
-Sources:
-- Unity Mecanim: https://unity.com/blog/engine-platform/mecanim-humanoids
-- Unity HumanTrait: https://docs.unity3d.com/ScriptReference/HumanTrait.html
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Pose Track - Keyframeable body animation using muscle space
+#
+#   Rig-agnostic body animation inspired by Unity's Mecanim m...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.pose_track
+# PURPOSE:  Pose Track
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   InterpolationType, TrackCompletionBehavior, Keyframe, MuscleChannel, BlendShapeChannel
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import math
 import time
@@ -966,3 +978,7 @@ if __name__ == "__main__":
         print(f"  {bone}: ({rot[0]:.1f}, {rot[1]:.1f}, {rot[2]:.1f}) degrees")
 
     print("\nPose Track system working!")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

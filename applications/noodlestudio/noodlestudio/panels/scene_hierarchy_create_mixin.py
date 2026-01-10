@@ -1,18 +1,36 @@
-"""
-Scene Hierarchy Create Mixin - Entity creation (noodlings, props, zones, folders)
-
-Contains:
-- create_folder_under: Create folder in hierarchy
-- rename_node: Rename via dialog
-- delete_folder: Delete folder
-- create_empty_noodling: Create new noodling instance
-- create_empty_prim: Create new prop
-- create_empty_zone: Create new zone
-- _generate_unique_name: Generate unique names
-
-Author: Noodlings Project
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Scene Hierarchy Create Mixin - Entity creation (noodlings, props, zones, folders)
+#
+#   Contains: - create_folder_under: Create folder in hierarc...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.scene_hierarchy_create_mixin
+# PURPOSE:  Scene Hierarchy Create Mixin
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SceneHierarchyCreateMixin
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import uuid
@@ -381,3 +399,7 @@ class SceneHierarchyCreateMixin:
             print(f"Creating custom prim: {name}")
             # TODO: Send to noodleMUSH API
             self.refresh_scene()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

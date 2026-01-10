@@ -1,26 +1,36 @@
-"""
-Scene Packet - The Noodlings Scene Protocol Data Structures
-
-A Scene Packet is a complete snapshot of semantic truth that can be
-projected to any output modality:
-    - Text (MUD descriptions)
-    - 2D illustrated maps (NoodleStudio editor)
-    - 3D generative video (Genie/Mirage)
-    - Traditional 3D render (USD pipeline)
-
-The Scene Packet provides everything a stateless renderer needs:
-    - Spatial truth (zones, positions, connections)
-    - Entity state (noodlings, players, prims)
-    - Visual references (per-form reference images)
-    - Narrative context (recent events, mood, tension)
-    - Camera directive (cinematography instructions)
-
-Genie is stateless. Noodlings is stateful.
-We are the persistent brain and heart.
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Scene Packet - The Noodlings Scene Protocol Data Structures
+#
+#   A Scene Packet is a complete snapshot of semantic truth t...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.scene_packet
+# PURPOSE:  Scene Packet
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PacketType, CameraMode, Framing, CameraAngle, CameraMovement
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -1077,3 +1087,7 @@ __all__ = [
     "PacketHeader",
     "ScenePacket",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

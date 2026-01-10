@@ -1,16 +1,36 @@
-"""
-Test script for Noodle API Phase 1 implementation.
-
-Tests:
-1. ScriptContext includes noodle property
-2. ModelsAPI accessible via context.noodle.models
-3. NeuralAPI accessible via context.noodle.neural
-4. AgentsAPI accessible via context.noodle.agents
-5. API methods callable from Python
-
-Author: Commander Spock + Cadet Caity
-Date: December 10, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Test script for Noodle API Phase 1 implementation.
+#
+#   Tests: 1. ScriptContext includes noodle property 2. Model...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.test_noodle_api
+# PURPOSE:  Test script for Noodle API Phase 1 implementation.
+# LAYER:    Studio / Application
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   test_script_context_has_noodle_api(), test_models_api_accessible(), test_neural_api_accessible()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import sys
 import time
@@ -211,3 +231,7 @@ def run_all_tests():
 if __name__ == "__main__":
     success = run_all_tests()
     sys.exit(0 if success else 1)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

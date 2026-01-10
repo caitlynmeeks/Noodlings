@@ -1,35 +1,36 @@
-"""
-Auto-Rigger - Mixamo-style automatic rigging for arbitrary meshes.
-
-Takes an unskinned mesh and produces a rigged Gaussian avatar by:
-1. User places markers (or auto-detect extremities)
-2. Fit humanoid skeleton template to markers
-3. Sample Gaussians from mesh surface
-4. Weight Gaussians directly to bones (skip mesh skinning)
-
-This is cleaner than traditional rigging because we never create
-intermediate mesh skinning - Gaussians get bone weights directly.
-
-Usage:
-    rigger = AutoRigger()
-    rigger.load_mesh('/path/to/conker.obj')
-
-    # Option A: Auto-detect markers
-    markers = rigger.auto_detect_markers()
-
-    # Option B: Manual markers (from UI)
-    markers = MarkerSet()
-    markers.hips = (0, 1.0, 0)
-    markers.head = (0, 1.8, 0)
-    # ... etc
-
-    # Fit and rig
-    result = rigger.rig(markers)
-    # -> Writes .radiance with skeleton
-
-Author: Caitlyn + Claude
-Date: December 24, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Auto-Rigger - Mixamo-style automatic rigging for arbitrary meshes.
+#
+#   Takes an unskinned mesh and produces a rigged Gaussian av...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tools.auto_rigger
+# PURPOSE:  Auto Rigger
+# LAYER:    Studio / Tools
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MarkerSet, BoneTemplate, FittedBone, SkeletonFitter, DirectGaussianSkinner
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 from dataclasses import dataclass, field
@@ -1089,3 +1090,7 @@ if __name__ == '__main__':
         print(f"  Bones: {result['bone_count']}")
     else:
         print(f"Failed: {result['message']}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

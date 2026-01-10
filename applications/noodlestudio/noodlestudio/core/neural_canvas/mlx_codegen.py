@@ -1,11 +1,36 @@
-"""
-MLX Code Generator - Generate Python code from NeuralGraph.
-
-Converts visual topology to executable MLX nn.Module code.
-
-Author: Commander Spock + Cadet Caity
-Date: December 8, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   MLX Code Generator - Generate Python code from NeuralGraph.
+#
+#   Converts visual topology to executable MLX nn.Module code.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.neural_canvas.mlx_codegen
+# PURPOSE:  Mlx Codegen
+# LAYER:    Studio / Neural Canvas
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MLXCodeGenerator, generate_mlx_code()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, List, Set
 from .neural_graph import NeuralGraph
@@ -389,3 +414,7 @@ def generate_mlx_code(graph: NeuralGraph) -> str:
     """
     generator = MLXCodeGenerator(graph)
     return generator.generate()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

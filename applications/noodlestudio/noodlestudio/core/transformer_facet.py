@@ -1,26 +1,36 @@
-"""
-Transformer Facet - Attention-based context processor for cognitive architectures.
-
-Unlike CharmNetwork (LSTM/GRU for temporal affect), TransformerFacet uses
-self-attention to process context where RELATIONSHIPS matter more than ORDER.
-
-Use cases in cognitive architectures:
-- Social context parsing (who said what, to whom, about whom)
-- Intent detection (what does the user want)
-- Pronoun/reference resolution ("it", "they", "that thing")
-- Multi-party conversation tracking
-- Scene understanding (which entities are relevant)
-
-The key insight: Attention lets the model CHOOSE what to focus on,
-rather than processing everything sequentially like LSTM.
-
-"The cat sat on the mat because it was tired"
-Attention can directly connect "it" to "cat" without processing
-every word in between.
-
-Author: Commander Spock + Cadet Caity
-Date: December 19, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Transformer Facet - Attention-based context processor for cognitive architectures.
+#
+#   Unlike CharmNetwork (LSTM/GRU for temporal affect), Trans...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.transformer_facet
+# PURPOSE:  transformer facet facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TransformerOutput, TransformerFacet, SocialContextFacet, IntentDetectionFacet, ReferenceResolutionFacet
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import time
@@ -515,3 +525,7 @@ if __name__ == "__main__":
         print(facet.get_execution_stats())
 
     asyncio.run(test())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

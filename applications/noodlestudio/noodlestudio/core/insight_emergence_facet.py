@@ -1,15 +1,36 @@
-"""
-Insight Emergence Facet - Safety-gated release of subconscious content
-
-Pulls from latent memory pool and surfaces symbolic insights as conscious thoughts
-ONLY when defenses are low (low arousal, low denial salience).
-
-This models how trauma survivors gradually access buried insights as they
-feel safer - introspection emerges when the nervous system downregulates.
-
-Author: NinaK + Caity
-Date: December 3, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Insight Emergence Facet - Safety-gated release of subconscious content
+#
+#   Pulls from latent memory pool and surfaces symbolic insig...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.insight_emergence_facet
+# PURPOSE:  insight emergence facet facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   InsightEmergenceFacet
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, Any, Optional, List
 import logging
@@ -197,3 +218,7 @@ function sigmoid(x, midpoint, steepness) {
     return 1 / (1 + Math.exp(-steepness * (x - midpoint)));
 }
 """
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

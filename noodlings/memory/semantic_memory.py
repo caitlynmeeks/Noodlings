@@ -1,3 +1,70 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Semantic Memory
+#
+#   This is where an AI builds up knowledge about the people it
+#   talks to - not individual conversations, but patterns over time.
+#
+#   Imagine you have a friend. You don't remember every single thing
+#   they've ever said, but you know things about them: they're
+#   usually cheerful, they love talking about their dog, they get
+#   anxious about work. That's semantic memory - facts distilled
+#   from many experiences.
+#
+#   This code does two things:
+#
+#     1. Keeps an "implicit" sense of each person - a gut feeling
+#        encoded as numbers, built up through experience
+#
+#     2. Extracts "explicit" facts - things like "often discusses
+#        technology" or "tends to be optimistic" - that the AI can
+#        actually look at and use
+#
+#   Over time, it notices patterns: if someone is usually happy when
+#   talking about AI, it learns "enjoys discussing AI." If someone
+#   often mentions work stress, it learns "anxious about work."
+#
+#   The facts that don't get reinforced slowly fade - just like how
+#   you might forget details about someone you haven't seen in years.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.memory.semantic_memory
+# PURPOSE:  Long-term knowledge about users (facts, traits, patterns)
+# LAYER:    Core / Memory
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SemanticMemorySystem  Manages profiles for all users
+#   UserSemanticProfile   Complete profile for one person
+#   SemanticFact          Single fact (preference, habit, trait)
+#
+# DEPENDENCIES:
+#   mlx.core              Apple Silicon tensor operations
+#   numpy                 Statistics
+#   json                  Profile serialization
+#
+# RELATED:
+#   hierarchical_memory.py  Where facts get extracted from
+#   episodic_memory.py      Individual moments (before consolidation)
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Semantic Memory System for Consilience
 
@@ -9,9 +76,6 @@ The slow layer provides dense compressed patterns.
 The explicit store provides interpretable facts.
 
 Together they form long-term knowledge about users.
-
-Author: Caitlyn Meeks
-Date: October 2025
 """
 
 import mlx.core as mx
@@ -148,7 +212,7 @@ class SemanticMemorySystem:
         Args:
             max_users: Maximum users to track
             fact_extraction_threshold: Min interactions before fact extraction
-            consolidation_interval: How often to consolidate episodic → semantic
+            consolidation_interval: How often to consolidate episodic -> semantic
         """
         self.max_users = max_users
         self.fact_extraction_threshold = fact_extraction_threshold
@@ -252,9 +316,9 @@ class SemanticMemorySystem:
         Extract personality traits from affect patterns.
 
         Example:
-        - If valence is often negative → trait: 'pessimistic'
-        - If arousal is often high → trait: 'energetic'
-        - If fear is often elevated → trait: 'anxious'
+        - If valence is often negative -> trait: 'pessimistic'
+        - If arousal is often high -> trait: 'energetic'
+        - If fear is often elevated -> trait: 'anxious'
         """
         if not memories:
             return
@@ -308,8 +372,8 @@ class SemanticMemorySystem:
         Extract habitual patterns from temporal data.
 
         Example:
-        - If user greets every morning → habit: "morning greeter"
-        - If user often discusses work → habit: "work-focused"
+        - If user greets every morning -> habit: "morning greeter"
+        - If user often discusses work -> habit: "work-focused"
         """
         # Count topic frequencies (simplified - would use NLP in practice)
         topic_counts = defaultdict(int)
@@ -353,8 +417,8 @@ class SemanticMemorySystem:
         Extract preferences from positive/negative affect patterns.
 
         Example:
-        - High valence when discussing AI → preference: "interested in AI"
-        - Low valence when discussing politics → preference: "dislikes politics"
+        - High valence when discussing AI -> preference: "interested in AI"
+        - Low valence when discussing politics -> preference: "dislikes politics"
         """
         # Group memories by topic and compute average affect
         topic_affects = defaultdict(list)
@@ -404,7 +468,7 @@ class SemanticMemorySystem:
                     profile.preferences.append(fact)
 
     def should_consolidate(self) -> bool:
-        """Check if it's time to consolidate episodic → semantic."""
+        """Check if it's time to consolidate episodic -> semantic."""
         return self.interactions_since_consolidation >= self.consolidation_interval
 
     def reset_consolidation_counter(self):
@@ -567,3 +631,8 @@ class SemanticMemorySystem:
                 p.total_interactions for p in self.profiles.values()
             ])
         }
+
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# Made with love. Use with love.
+# Caitlyn Meeks 2026 જ⁀➴ ♡

@@ -1,20 +1,36 @@
-"""
-Ensemble Format (.ens) - Prefab system for Noodling groups
-
-.ens files are JSON-based prefabs containing:
-- Multiple Noodling archetypes
-- Relationship dynamics
-- Scene suggestions
-- World building metadata
-
-Like Unity prefabs, but for consciousness ensembles!
-
-File format: JSON with .ens extension
-Location: ~/.noodlestudio/ensembles/
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Ensemble Format (.ens) - Prefab system for Noodling groups
+#
+#   .ens files are JSON-based prefabs containing: - Multiple ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.data.ensemble_format
+# PURPOSE:  Ensemble Format
+# LAYER:    Studio / Data Layer
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   EnsembleFormat, EnsembleRezzer
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from pathlib import Path
 from typing import Dict, List, Any
@@ -299,3 +315,7 @@ class EnsembleRezzer:
 
 # Alias for backwards compatibility
 EnsembleSpawner = EnsembleRezzer
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

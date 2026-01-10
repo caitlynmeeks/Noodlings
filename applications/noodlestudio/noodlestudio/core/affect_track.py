@@ -1,20 +1,36 @@
-"""
-Affect Track - Keyframeable emotional animation curves
-
-"What Maya did for motion, we do for emotion."
-
-Animators can author affect curves (PAD + boredom + sorrow) with
-bezier/linear/step interpolation. When track playback ends, the
-final affect state can hand off to CharmNetwork for natural decay
-(emotional momentum).
-
-File formats:
-- .affecttrack (YAML) - Human-readable, editor-friendly
-- .affectbin (binary) - Runtime efficient (future)
-
-Author: Commander Spock + Cadet Caity
-Date: December 21, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Affect Track - Keyframeable emotional animation curves
+#
+#   "What Maya did for motion, we do for emotion." Animators ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.affect_track
+# PURPOSE:  Affect Track
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   InterpolationType, TrackCompletionBehavior, Keyframe, AffectChannel, Marker
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import math
 import time
@@ -1024,3 +1040,7 @@ if __name__ == "__main__":
         time.sleep(0.1)
 
     print("\nAffect Track system working!")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

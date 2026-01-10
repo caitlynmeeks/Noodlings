@@ -1,22 +1,36 @@
-"""
-Perception System - Filters Scene Packets by Entity Perception
-
-A Perception Slice is a filtered Scene Packet representing what a specific
-entity perceives. Used as cognitive input for Noodling facet assemblies.
-
-Key principles:
-    - Entities only know what they can perceive
-    - Can't see entities behind them
-    - Can't hear whispered conversations across the room
-    - Don't know other entities' internal states (unless expressed)
-    - Only remember events they witnessed
-
-This creates realistic information asymmetry and emergent social dynamics.
-Secrets, surprises, misunderstandings - all arise naturally.
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Perception System - Filters Scene Packets by Entity Perception
+#
+#   A Perception Slice is a filtered Scene Packet representin...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.perception
+# PURPOSE:  Perception
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PerceivedEntity, PerceivedEvent, SpatialAwareness, PerceptionSlice, PerceptionCalculator
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, List, Any, Tuple
@@ -759,3 +773,7 @@ __all__ = [
     "get_perception_generator",
     "generate_perception_slice",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

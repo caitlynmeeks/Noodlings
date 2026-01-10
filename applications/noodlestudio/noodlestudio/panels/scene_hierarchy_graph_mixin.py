@@ -1,16 +1,36 @@
-"""
-Scene Hierarchy Graph Mixin - SceneGraph signal handlers and hierarchy persistence
-
-Contains:
-- SceneGraph signal handlers (_on_graph_changed, _on_node_reparented, _on_node_renamed)
-- Hierarchy save/load (_save_hierarchy, _load_hierarchy)
-- Drag/drop handling (_handle_tree_drop)
-- Expanded state management (save_expanded_state, restore_expanded_state)
-- Entity name sync (update_entity_name, _find_item_by_id)
-
-Author: Noodlings Project
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Scene Hierarchy Graph Mixin - SceneGraph signal handlers and hierarchy persistence
+#
+#   Contains: - SceneGraph signal handlers (_on_graph_changed...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.scene_hierarchy_graph_mixin
+# PURPOSE:  Scene Hierarchy Graph Mixin
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SceneHierarchyGraphMixin
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 
@@ -401,3 +421,7 @@ class SceneHierarchyGraphMixin:
 
         for i in range(self.tree.topLevelItemCount()):
             restore_item(self.tree.topLevelItem(i))
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

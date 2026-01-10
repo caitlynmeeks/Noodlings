@@ -1,17 +1,36 @@
-"""
-Entity Inspector Mixin - Scene entity loading (noodling, zone, prop, etc)
-
-Handles inspection of scene entities selected from Stage View:
-- Noodlings (AI characters)
-- Zones (spatial regions)
-- Props (world objects)
-- Stages (rooms)
-- Users
-- Exits
-
-Author: Caitlyn + Claude
-Date: December 30, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Entity Inspector Mixin - Scene entity loading (noodling, zone, prop, etc)
+#
+#   Handles inspection of scene entities selected from Stage ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.inspector_entity
+# PURPOSE:  Inspector Entity
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   EntityInspectorMixin
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
@@ -728,3 +747,7 @@ class EntityInspectorMixin:
             self._current_components.remove(component.component_type)
             self._save_component_changes(component)
             self._refresh_components_display()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

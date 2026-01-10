@@ -1,12 +1,36 @@
-"""
-Radiance Inspector - Import settings and properties for Gaussian splat assets.
-
-Shows in the Inspector panel when a RadianceComponent is selected.
-Like Unity's Model Importer inspector.
-
-Author: Caitlyn + Claude (NinaK)
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Radiance Inspector - Import settings and properties for Gaussian splat assets.
+#
+#   Shows in the Inspector panel when a RadianceComponent is ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.radiance_inspector
+# PURPOSE:  Radiance Inspector
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   RadianceInspector
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import logging
@@ -660,3 +684,7 @@ class RadianceInspector(QWidget):
             self.bone_children_label.setText(", ".join(children[:3]) + ("..." if len(children) > 3 else ""))
         else:
             self.bone_children_label.setText("(none)")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

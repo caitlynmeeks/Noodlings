@@ -1,26 +1,36 @@
-"""
-NoodleStudio UI Canvas System
-
-Delphi-style visual UI components for building application interfaces.
-
-Architecture:
-    ui.yaml (user's design - stable contract)
-        ↓
-    UIComponent classes (this module)
-        ↓
-    Renderer backend (QtWidgetRenderer for v1)
-
-Usage:
-    from noodlestudio.runtime.ui import load_ui, QtWidgetRenderer
-
-    # Load UI definition
-    root = load_ui("path/to/ui.yaml")
-
-    # Render to Qt widgets
-    renderer = QtWidgetRenderer()
-    widget = renderer.render(root)
-    widget.show()
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   NoodleStudio UI Canvas System
+#
+#   Delphi-style visual UI components for building applicatio...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.__init__
+# PURPOSE:  NoodleStudio UI Canvas System
+# LAYER:    Studio / UI Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   (none)
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 # Core classes
 from .component import (
@@ -83,6 +93,9 @@ from .script_executor import UIScriptExecutor
 # Bindings
 from .bindings import Binding, BindingManager, parse_bindings_from_yaml
 
+# Overlay
+from .overlay import CharacterOverlayWindow
+
 # Components (importing ensures registration)
 from .components import (
     Panel,
@@ -144,6 +157,8 @@ __all__ = [
     'Binding',
     'BindingManager',
     'parse_bindings_from_yaml',
+    # Overlay
+    'CharacterOverlayWindow',
     # Components
     'Panel',
     'Label',
@@ -155,3 +170,7 @@ __all__ = [
     'MessageRole',
     'ChatInput',
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

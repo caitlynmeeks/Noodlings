@@ -1,15 +1,36 @@
-"""
-Main Window Status Bar Mixin - Status bar setup and avatar dropdown
-
-Contains:
-- _setup_status_bar: Create status bar with account, avatar, server toggle
-- _refresh_avatar_dropdown: Update avatar dropdown
-- _update_avatar_tooltip: Update tooltip for avatar selection
-- _on_enter_world_clicked: Handle Enter World button
-
-Author: Noodlings Project
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Main Window Status Bar Mixin - Status bar setup and avatar dropdown
+#
+#   Contains: - _setup_status_bar: Create status bar with acc...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.main_window_statusbar_mixin
+# PURPOSE:  Main Window Statusbar Mixin
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MainWindowStatusBarMixin
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import QLabel, QWidget, QHBoxLayout, QComboBox, QPushButton, QMessageBox
 from PyQt6.QtCore import Qt
@@ -226,3 +247,7 @@ class MainWindowStatusBarMixin:
 
         # Connect to world
         self._connect_to_world(avatar, account)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

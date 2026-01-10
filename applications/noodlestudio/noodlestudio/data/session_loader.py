@@ -1,12 +1,36 @@
-"""
-Session Data Loader - The Krugerrand Profiler Backend
-
-Loads session profiler data from JSON files or live API.
-Designed for Logic Pro-style timeline visualization in Qt.
-
-Author: Caitlyn + Claude
-Date: November 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Session Data Loader - The Krugerrand Profiler Backend
+#
+#   Loads session profiler data from JSON files or live API. ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.data.session_loader
+# PURPOSE:  Session Loader
+# LAYER:    Studio / Data Layer
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TimelineEvent, SessionData, SessionLoader
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import json
 import requests
@@ -224,3 +248,7 @@ class SessionLoader:
             return []
 
         return sorted(sessions_dir.glob("cmush_session_*.json"), reverse=True)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

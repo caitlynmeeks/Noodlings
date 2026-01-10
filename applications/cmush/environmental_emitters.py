@@ -1,3 +1,46 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Environmental Emitters
+#
+#   Objects in the world can emit physical signals - a campfire
+#   radiates heat and light, a bakery emits delicious bread scent,
+#   a radioactive barrel glows with danger. This module defines
+#   all the emitter types that can affect agents. Each emitter
+#   broadcasts its signal with distance-based falloff, so a
+#   character standing near a fire feels it more intensely.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.environmental_emitters
+# PURPOSE:  Physical signal sources (heat, light, scent, radiation)
+# LAYER:    Backend / Semantic Physics
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   EnvironmentalEmitter   Base class for all emitter types
+#   HeatEmitter            Radiates thermal energy
+#   LightEmitter           Emits illumination
+#   ScentEmitter           Broadcasts olfactory signals
+#   RadioactiveEmitter     Emits ionizing radiation
+#   LiquidEmitter          Produces fluid flow
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Environmental Emitters - Complete Implementation
 
@@ -12,7 +55,7 @@ All emitter types for noodleMUSH Semantic Physics Engine:
 - Vibration (seismic)
 - Magnetic/Electric (field)
 
-Author: Commander Spock + Lieutenant Caitlyn
+Author: Caitlyn + Claude
 Date: November 22, 2025
 """
 
@@ -394,3 +437,7 @@ if __name__ == '__main__':
         print(f"  {dist}m away: {intensity:.2f} intensity")
         if intensity > 0.3:
             print(f"    → *sniff* Mmm! Fresh bread!")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

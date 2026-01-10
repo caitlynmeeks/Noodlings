@@ -1,3 +1,45 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Noodling Cognitive Components
+#
+#   Think of an AI character's mind as a series of processing
+#   stages - like an assembly line for thoughts. This module
+#   breaks down that pipeline into individual components you can
+#   inspect and tweak in NoodleStudio's Inspector panel. Each
+#   component (intuition, social awareness, character voice) has
+#   its own prompt and parameters that you can adjust live.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.noodling_components
+# PURPOSE:  Modular cognitive processing components for inspection
+# LAYER:    Backend / Cognition
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodlingComponent              Base class for all cognitive components
+#   CharacterVoiceComponent        Speech pattern translation
+#   IntuitionReceiverComponent     Contextual awareness generation
+#   SocialExpectationDetectorComponent  Response expectation analysis
+#   ComponentRegistry              Manages all components for an agent
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Noodling Cognitive Components System
 
@@ -12,7 +54,7 @@ cognitive processing stage is represented as a component with:
 
 Components can be viewed and modified in NoodleStudio's Inspector panel.
 
-Author: Noodlings Project
+Author: Caitlyn + Claude
 Date: November 2025
 """
 
@@ -495,3 +537,7 @@ class ComponentRegistry:
             'agent_name': self.agent_name,
             'components': self.list_components()
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

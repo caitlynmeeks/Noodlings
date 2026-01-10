@@ -1,16 +1,36 @@
-"""
-Goose Widget - The legendary gooseware overlay.
-
-Features:
-- Sprite-based animation (walk, flap, honk)
-- Positional audio (honking gets louder as goose approaches)
-- Random wandering behavior
-- Triggered by: Konami code, Ctrl+Shift+G, or degoosification button
-- Defeated by: Valid degoosification code
-
-Origin Story: This is where Noodlings began - a year ago with ChatGPT conversation
-downloader and a React nightmare. The goose persists. The goose endures.
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Goose Widget - The legendary gooseware overlay.
+#
+#   Features: - Sprite-based animation (walk, flap, honk) - P...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.widgets.goose_widget
+# PURPOSE:  Goose Widget - The legendary gooseware overlay.
+# LAYER:    Studio / Widgets
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   GooseWidget, KonamiCodeDetector
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import random
 from pathlib import Path
@@ -250,3 +270,7 @@ class KonamiCodeDetector(QObject):
     def _reset(self):
         """Reset the key sequence."""
         self.sequence = []
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

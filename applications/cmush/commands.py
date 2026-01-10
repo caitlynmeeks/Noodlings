@@ -1,3 +1,49 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Command Parser
+#
+#   When you type something like "say Hello!" or "@rez chester"
+#   in noodleMUSH, this module figures out what you're trying to
+#   do and makes it happen.
+#
+#   Commands are organized into categories:
+#   - Moving around (go north, enter cafe)
+#   - Talking (say, whisper, emote)
+#   - Looking at things (look, examine)
+#   - Working with objects (take, drop, give)
+#   - Building the world (create rooms, link exits)
+#   - Managing Noodlings (rez, reset, configure)
+#
+#   Each category lives in its own "mixin" file so this main
+#   file doesn't get too overwhelming.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands
+# PURPOSE:  Parse user input and dispatch to command handlers
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CommandParser    Routes commands to appropriate handlers
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Command Parser for cMUSH
 
@@ -13,7 +59,7 @@ Handles all user commands organized into mixins:
 - Cognition: Cognition control
 - Utility: Help, quit, shutdown
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025 (Refactored December 2025)
 """
 
@@ -390,3 +436,7 @@ class CommandParser(
             logger.info(f"Config saved to {self.config_path}")
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

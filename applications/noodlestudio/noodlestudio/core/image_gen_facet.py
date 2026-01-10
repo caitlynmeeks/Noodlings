@@ -1,30 +1,36 @@
-"""
-Image Generation Facet - Text-to-image output for cognitive architectures.
-
-Generates images from text prompts using DALL-E, Flux, or Stable Diffusion.
-Integrates with the facet execution cycle for agent-driven image creation.
-
-Features:
-- Text-to-image generation
-- Multiple backend support
-- Generation queue for batch processing
-- Output caching
-- Style presets
-
-Events:
-- image_generated: New image generated
-- generation_started: Generation began
-- generation_failed: Generation failed
-
-Scripting API (context.noodle.image):
-    - generate(prompt) -> GeneratedImage
-    - generateWithStyle(prompt, style) -> GeneratedImage
-    - getLastImage() -> {url, data}
-    - setStyle(preset) - "photorealistic", "artistic", "anime", etc.
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Image Generation Facet - Text-to-image output for cognitive architectures.
+#
+#   Generates images from text prompts using DALL-E, Flux, or...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.image_gen_facet
+# PURPOSE:  image gen facet facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   StylePreset, GenerationRequest, ImageGenFacet, create_image_gen_facet_with_client()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import logging
@@ -500,3 +506,7 @@ def create_image_gen_facet_with_client(
     facet.set_generation_client(create_image_gen_client(gen_backend))
 
     return facet
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

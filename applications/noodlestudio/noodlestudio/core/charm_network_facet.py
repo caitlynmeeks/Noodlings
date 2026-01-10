@@ -1,23 +1,36 @@
-"""
-Charm Network Facet - Neural affective processor
-
-The Charm Network is the core affective consciousness component - a trained
-hierarchical LSTM/GRU neural network that processes raw perception into
-continuous 5-D affect space and phenomenal state.
-
-Unlike other facets (which call LLMs), the Charm Network runs trained MLX models:
-- Fast LSTM (16-D, seconds timescale)
-- Medium LSTM (16-D, minutes timescale)
-- Slow GRU (8-D, hours/days timescale)
-- Predictor network (40-D phenomenal state)
-- Affect head (5-D continuous affect)
-
-"Charm" - like a quantum property, fundamental and irreducible.
-The Charm Network is where raw perception becomes felt experience.
-
-Author: Commander Spock + Cadet Caity
-Date: November 28, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Charm Network Facet - Neural affective processor
+#
+#   The Charm Network is the core affective consciousness com...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.charm_network_facet
+# PURPOSE:  Charm Network Facet - Neural affective processor
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CharmNetworkOutput, CharmNetworkFacet
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import sys
 import os
@@ -378,3 +391,7 @@ if __name__ == "__main__":
     else:
         print(f"Checkpoint not found: {checkpoint}")
         print("Charm Network requires trained checkpoint to run")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

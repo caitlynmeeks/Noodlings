@@ -1,20 +1,36 @@
-"""
-Component System Tests
-
-Tests for NoodleStudio's component architecture:
-- ComponentBase abstract class
-- ComponentRegistry registration and lookup
-- ComponentCollection entity management
-- ArtbookComponent as concrete example
-- Serialization round-trips
-
-Run with:
-    cd applications/noodlestudio
-    PYTHONPATH=.:../.. pytest tests/test_component_system.py -v
-
-Author: Noodlings Project
-Date: January 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Component System Tests
+#
+#   Tests for NoodleStudio's component architecture: - Compon...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tests.test_component_system
+# PURPOSE:  Component System Tests
+# LAYER:    Studio / Tests
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TestComponentBase, TestComponentRegistry, TestComponentCollection, TestArtbookComponent
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import pytest
 import sys
@@ -365,3 +381,7 @@ class TestArtbookComponent:
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,27 +1,36 @@
-"""
-Image Generation Clients - Text-to-image implementations.
-
-Supports multiple backends:
-- DALL-E 3 (OpenAI) - High quality, good prompt following
-- Flux (via Replicate) - Fast, artistic styles
-- Stable Diffusion (via Replicate or local) - Flexible, many models
-
-All clients implement the same interface:
-    async generate(prompt, **kwargs) -> Dict
-
-Returns:
-    {
-        'image_data': bytes,     # Raw image bytes
-        'image_url': str,        # URL if hosted
-        'width': int,
-        'height': int,
-        'seed': int,             # For reproducibility
-        'revised_prompt': str    # What model actually used
-    }
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Image Generation Clients - Text-to-image implementations.
+#
+#   Supports multiple backends: - DALL-E 3 (OpenAI) - High qu...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.image_gen_clients
+# PURPOSE:  Image Gen Clients
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   GeneratedImage, ImageGenClient, DallE3Client, FluxClient, StableDiffusionClient
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import base64
@@ -680,3 +689,7 @@ def create_image_gen_client(
 
     else:
         raise ValueError(f"Unknown image generation backend: {backend}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

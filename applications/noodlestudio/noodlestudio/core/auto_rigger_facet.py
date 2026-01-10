@@ -1,20 +1,36 @@
-"""
-Auto-Rigger Facet - Automatic rigging for arbitrary meshes.
-
-Wraps the AutoRigger tool as a facet for use in facet assemblies,
-enabling Mixamo-style auto-rigging directly from NoodleStudio.
-
-Example facet assembly usage:
-    - id: rigger
-      type: auto_rigger
-      config:
-        mesh_path: /path/to/model.obj
-        output_path: /path/to/output.radiance
-        auto_detect: true
-
-Author: Caitlyn + Claude
-Date: December 24, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Auto-Rigger Facet - Automatic rigging for arbitrary meshes.
+#
+#   Wraps the AutoRigger tool as a facet for use in facet ass...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.auto_rigger_facet
+# PURPOSE:  auto rigger facet facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AutoRiggerConfig, AutoRiggerFacet, AutoRiggerAPI
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import logging
@@ -238,3 +254,7 @@ class AutoRiggerAPI:
 # Export for facet registration
 FACET_TYPE = "auto_rigger"
 FACET_CLASS = AutoRiggerFacet
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

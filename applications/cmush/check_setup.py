@@ -1,10 +1,49 @@
 #!/usr/bin/env python3
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Setup Verification Script
+#
+#   A quick diagnostic tool that checks if your computer has
+#   everything needed to run noodleMUSH. It looks for Python
+#   version, required libraries, configuration files, and model
+#   checkpoints - then reports what is ready and what needs to
+#   be installed or configured. Run this first when setting up.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.check_setup
+# PURPOSE:  Verify dependencies and prerequisites before running
+# LAYER:    Backend / Utility
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   main()              Run all verification checks
+#   check_python_version()  Verify Python 3.10+
+#   check_module()      Test if a Python package is installed
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Setup verification script for cMUSH
 
 Checks that all dependencies and prerequisites are available.
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -119,3 +158,7 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,16 +1,36 @@
-"""
-Ensemble Exporter - Create .ens files from live Noodlings
-
-Reads current Noodlings from noodleMUSH and exports them as ensemble packs.
-
-Workflow:
-1. Select Noodlings in Scene Hierarchy
-2. File > Export Ensemble
-3. Creates .ens file from their current state
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Ensemble Exporter - Create .ens files from live Noodlings
+#
+#   Reads current Noodlings from noodleMUSH and exports them ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.data.ensemble_exporter
+# PURPOSE:  Ensemble Exporter
+# LAYER:    Studio / Data Layer
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   EnsembleExporter
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from pathlib import Path
 from typing import List, Dict
@@ -162,3 +182,7 @@ class EnsembleExporter:
             print(f"Error converting {agent_id} to archetype: {e}")
             traceback.print_exc()
             return None
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

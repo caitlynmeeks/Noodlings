@@ -1,39 +1,36 @@
-"""
-Annotation Overlay - Visual debugging tool for screenshot communication
-
-A transparent overlay for placing colorful annotations on top of the UI
-to communicate issues, sequences, and regions of interest in screenshots.
-
-Design: Colorful and curvy - visually distinct from monochrome UI.
-
-Primitives:
-- Dot: Simple colored marker, optionally numbered
-- Arrow: Curved arrow pointing at something, with optional label
-- Circle: Highlight a region loosely
-- Box: Highlight a rectangular area
-- Line: Show alignment or distance
-- Text: Floating note
-
-Shortcuts:
-- Shift+Tab: Toggle annotations visible/hidden/edit
-- 1-9: Quick place numbered dot at cursor
-- D: Dot mode
-- A: Arrow mode
-- C: Circle mode
-- B: Box mode
-- T: Text mode
-- R/G: Red/Green color
-- Delete: Remove selected annotation
-- Escape: Cancel/deselect
-- Cmd+Z: Undo
-- Cmd+Shift+Z: Redo
-- Option+Drag: Rotate selected annotation
-- Option+Click: Set custom pivot point
-- Double-click: Reset pivot to center
-
-Author: Noodlings Project
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Annotation Overlay - Visual debugging tool for screenshot communication
+#
+#   A transparent overlay for placing colorful annotations on...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.annotation_overlay
+# PURPOSE:  Annotation Overlay
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AnnotationType, AnnotationColor, Annotation, AnnotationCommand, AddAnnotationCommand
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -1160,3 +1157,7 @@ class AnnotationOverlay(QWidget):
         # Monochromatic text (light gray to match status bar style)
         painter.setPen(QPen(QColor("#AAAAAA")))
         painter.drawText(x, y, status_text)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

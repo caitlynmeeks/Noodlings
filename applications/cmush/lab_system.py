@@ -1,3 +1,42 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Lab System - Double-Blind Affect Testing
+#
+#   A scientific testing framework to validate whether our affect
+#   prediction model actually improves agent responses. For each
+#   user message, the system generates TWO responses - one using
+#   the real predicted emotions, one using random emotions. It
+#   shows both (labeled A and B) and asks which you prefer, without
+#   revealing which is which. After 50 trials, we know if real
+#   affect actually helps.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.lab_system
+# PURPOSE:  Double-blind A/B testing for affect model validation
+# LAYER:    Backend / Testing & Research
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   LabTestSession   Manages a 50-trial double-blind test session
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Lab System - Double-Blind Affect Testing
 
@@ -10,7 +49,7 @@ Architecture:
 - Blind presentation: Randomizes order (A/B)
 - User choice: Records preference and applies chosen response
 
-Author: Noodlings Project
+Author: Caitlyn + Claude
 Date: November 24, 2025
 """
 
@@ -443,3 +482,7 @@ class LabTestSession:
             'equal': self.equal_count,
             'win_rate': win_rate
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

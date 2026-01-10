@@ -1,19 +1,36 @@
-"""
-Provider Manager - Multi-backend LLM provider system.
-
-Supports:
-- Internal (Ollama): Local models, download-based
-- Anthropic: Claude API
-- OpenAI: GPT API
-- OpenRouter: Aggregated API marketplace
-- LM Studio: Local OpenAI-compatible API
-- Custom: User-defined endpoints
-
-Each provider has:
-- Configuration (API keys, endpoints)
-- Model discovery (list available models)
-- Client abstraction (unified generate interface)
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Provider Manager - Multi-backend LLM provider system.
+#
+#   Supports: - Internal (Ollama): Local models, download-bas...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.provider_manager
+# PURPOSE:  Provider Manager
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ProviderConfig, ProviderManager, get_provider_manager()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field, asdict
@@ -572,3 +589,7 @@ def get_provider_manager() -> ProviderManager:
     if _provider_manager_instance is None:
         _provider_manager_instance = ProviderManager()
     return _provider_manager_instance
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

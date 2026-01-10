@@ -1,15 +1,36 @@
-"""
-Face Detail Training Pipeline - Multi-stage Gaussian training with facial importance weighting.
-
-This pipeline:
-1. Generates importance-weighted camera views (more face close-ups)
-2. Renders training images from those views
-3. Runs OpenSplat with face-focused supervision
-4. Optionally does multi-stage refinement (body -> face -> details)
-
-The result is a Gaussian splat with significantly more detail on expressive
-facial regions: lips, brow, eyelids, nasolabial folds.
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Face Detail Training Pipeline - Multi-stage Gaussian training with facial importance weighting.
+#
+#   This pipeline: 1. Generates importance-weighted camera vi...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tools.face_detail_training
+# PURPOSE:  Face Detail Training
+# LAYER:    Studio / Tools
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TrainingConfig, FaceDetailTrainingPipeline, train_face_detail()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import json
@@ -529,3 +550,7 @@ if __name__ == "__main__":
     else:
         print("\nTraining failed!")
         sys.exit(1)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

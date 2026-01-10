@@ -1,19 +1,36 @@
-"""
-Facets Editor Panel - Node-based cognitive architecture editor
-
-Visual node graph editor for designing facet assemblies.
-Unity-style node editor with drag-and-drop, connection wires, and right-click menus.
-
-This is the main panel class that composes functionality from mixins:
-- FacetsEditorAssemblyMixin: Assembly I/O (load, save, validate)
-- FacetsEditorViewMixin: View navigation, zoom, grid, shortcuts
-- FacetsEditorSelectionMixin: Selection, clipboard, undo, layout
-- FacetsEditorWireMixin: Wire drawing and connections
-- FacetsEditorEventsMixin: WebSocket, execution events, sounds, cognition
-
-Author: Commander Spock + Cadet Caity
-Date: November 28, 2025 (Refactored December 2025)
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Facets Editor Panel - Node-based cognitive architecture editor
+#
+#   Visual node graph editor for designing facet assemblies. ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.facets_editor_panel
+# PURPOSE:  facets editor panel facet implementation
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   FacetsEditorPanel
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene,
@@ -568,3 +585,7 @@ class FacetsEditorPanel(
                 return True
 
         return super().eventFilter(obj, event)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

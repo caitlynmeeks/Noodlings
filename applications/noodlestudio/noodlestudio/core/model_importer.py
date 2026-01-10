@@ -1,31 +1,36 @@
-"""
-Model Importer - Unified model import for NoodleStudio.
-
-Supports importing 3D models from various formats and converting them
-to semantic Gaussian splats (.radiance) with optional humanoid rigging.
-
-Supported Formats:
-    - VRM (.vrm) - VR avatars with humanoid mapping and spring bones
-    - GLTF/GLB (.gltf, .glb) - Web standard, similar to VRM
-    - FBX (.fbx) - Unity/Unreal standard (requires pyassimp)
-    - OBJ (.obj) - Simple meshes without rigging
-
-The Pipeline:
-    1. Parse model file -> UnifiedMesh + Skeleton
-    2. Map to humanoid rig (optional) -> MuscleBinding
-    3. Generate Gaussians from mesh vertices
-    4. Sample texture colors
-    5. Output .radiance file
-
-Muscle System (like Unity Mecanim):
-    Instead of storing raw bone rotations, we use a muscle-space
-    representation where animations are defined by muscle values
-    in a normalized range. This allows retargeting between different
-    rigs with the same humanoid mapping.
-
-Author: Caitlyn + NinaK
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Model Importer - Unified model import for NoodleStudio.
+#
+#   Supports importing 3D models from various formats and con...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.model_importer
+# PURPOSE:  Model Importer
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   UnifiedVertex, UnifiedMaterial, UnifiedTexture, UnifiedBone, UnifiedMesh
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 from abc import ABC, abstractmethod
@@ -621,3 +626,7 @@ __all__ = [
     'convert_to_radiance',
     'get_supported_formats',
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

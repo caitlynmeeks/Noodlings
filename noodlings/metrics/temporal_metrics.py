@@ -1,16 +1,76 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Temporal Metrics
+#
+#   How do you know if your AI is actually learning personality
+#   over time, not just reacting randomly? This file gives you
+#   numbers to check.
+#
+#   There are four main measurements:
+#
+#     1. Temporal Prediction Horizon (TPH)
+#        Can the AI predict what it'll feel in 5 steps? 10 steps?
+#        Lower error = better long-term prediction.
+#
+#     2. Surprise-Novelty Correlation (SNC)
+#        When the AI says "that surprised me," does it actually
+#        match what's objectively novel? Score above 0.7 is good.
+#
+#     3. Hierarchical Separation Index (HSI)
+#        The "fast" layer should change quickly, the "slow" layer
+#        should stay stable. This checks if that's actually true.
+#
+#     4. Personality Consistency Score (PCS)
+#        If you reset the AI and ask the same question twice, does
+#        it give similar answers? High score = stable personality.
+#
+#   These are research tools for validating cognitive architectures.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.metrics.temporal_metrics
+# PURPOSE:  Scientific validation metrics for hierarchical affect models
+# LAYER:    Core / Metrics
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TemporalMetrics    Calculator for TPH, SNC, HSI, PCS
+#
+# DEPENDENCIES:
+#   mlx.core           Apple Silicon tensor operations
+#   scipy.stats        Pearson correlation
+#   numpy              Array operations
+#
+# RELATED:
+#   models/consilience_phase4.py    The model being evaluated
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Temporal Metrics for Noodlings - Phase 5 Scientific Validation
 
-This module implements quantitative metrics beyond Φ for evaluating
+This module implements quantitative metrics beyond Phi for evaluating
 hierarchical temporal affect models:
 
 1. Temporal Prediction Horizon (TPH): Prediction accuracy at multiple horizons
 2. Surprise-Novelty Correlation (SNC): Correlation between surprise and entropy
 3. Hierarchical Separation Index (HSI): Timescale separation in layers
 4. Personality Consistency Score (PCS): Response consistency across scenarios
-
-Author: Noodlings Project
-Date: November 2025
 """
 
 import mlx.core as mx
@@ -546,8 +606,13 @@ def test_metrics_on_random_data():
     pcs = metrics.calculate_pcs(test_scenarios)
     print(f"   PCS: {pcs}")
 
-    print("\n✓ All metrics tested successfully!")
+    print("\nAll metrics tested successfully!")
 
 
 if __name__ == "__main__":
     test_metrics_on_random_data()
+
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# Made with love. Use with love.
+# Caitlyn Meeks 2026 જ⁀➴ ♡

@@ -1,3 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agent Perception
+#
+#   This is how Noodlings "see" and "hear" the world around them.
+#   When something happens - someone speaks, enters, or acts -
+#   this module processes that input:
+#
+#   1. Validates the event (is it real? for us?)
+#   2. Extracts affect (what's the emotional tone?)
+#   3. Runs it through the facet assembly (charm network)
+#   4. Decides if we should respond (social routing)
+#   5. Coordinates with response generation
+#
+#   It's the Noodling's sensory cortex - converting raw world
+#   events into meaning and feeling.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.agent_perception
+# PURPOSE:  Process world events into cognitive input
+# LAYER:    Backend / Agent
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PerceptionMixin    Event perception and processing
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Agent Perception Mixin - Event perception and cognitive processing
 
@@ -1209,3 +1253,6 @@ class PerceptionMixin:
             # This ensures queued perceptions get processed even if we return early or crash
             self._complete_cognition_cycle()
 
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

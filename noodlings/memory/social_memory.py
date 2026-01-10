@@ -1,3 +1,66 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Social Memory
+#
+#   When you're in a conversation with multiple people, you don't
+#   just track what you're feeling - you also have a sense of what
+#   everyone else might be feeling. That's what this file does.
+#
+#   It's sometimes called "Theory of Mind" - the ability to imagine
+#   what's going on inside other people's heads. An AI talking to
+#   Alice and Bob needs to keep track of:
+#
+#     - What Alice seems to be feeling right now
+#     - What Bob seems to be feeling right now
+#     - Who's present in the conversation
+#     - The overall mood of the group
+#     - The history between Alice and Bob
+#
+#   This file stores "social moments" - snapshots that include not
+#   just the AI's own state, but its best guess about everyone
+#   else's state too. It can track up to 10 different people.
+#
+#   It also keeps track of who was mentioned when, who was present,
+#   and what the group dynamic felt like at each moment.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.memory.social_memory
+# PURPOSE:  Multi-agent memory with Theory of Mind tracking
+# LAYER:    Core / Memory
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SocialEpisodicMemory  Stores moments with multi-agent awareness
+#   AgentState            Inferred state of another person
+#   SocialContext         Group dynamics (who's here, mood, topic)
+#
+# DEPENDENCIES:
+#   mlx.core              Apple Silicon tensor operations
+#   mlx.nn                Neural network layers
+#   numpy                 Array utilities
+#
+# RELATED:
+#   episodic_memory.py    Simpler single-agent memory
+#   theory_of_mind.py     Neural model for inferring others' states
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Social Episodic Memory: Multi-Agent Memory System for Phase 4
 
@@ -11,9 +74,6 @@ This implements Theory of Mind computational substrate:
 - Track multiple agents simultaneously (up to 10)
 - Infer others' mental states from observations
 - Model relationship patterns over time
-
-Author: Caitlyn Meeks
-Date: October 2025
 """
 
 import mlx.core as mx
@@ -379,3 +439,8 @@ class SocialEpisodicMemory:
             })
 
         return memory
+
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# Made with love. Use with love.
+# Caitlyn Meeks 2026 જ⁀➴ ♡

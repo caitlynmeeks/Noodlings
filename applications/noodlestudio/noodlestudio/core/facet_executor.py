@@ -1,20 +1,36 @@
-"""
-Facet Executor - Parallel execution engine with synchronization
-
-Executes facet assemblies with:
-- Topological ordering (dependencies respected)
-- Parallel execution where possible
-- Synchronization gates (wait for all inputs)
-- Flow control integration
-- Token tracking
-- Error handling and recovery
-
-Like electrical current through a circuit - facets execute when all
-inputs are ready, multiple paths run in parallel, converges at sync points.
-
-Author: Commander Spock + Cadet Caity
-Date: November 28, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Facet Executor - Parallel execution engine with synchronization
+#
+#   Executes facet assemblies with: - Topological ordering (d...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.facet_executor
+# PURPOSE:  facet executor facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ExecutionResult, FacetExecutor
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import time
@@ -25,6 +41,7 @@ from collections import defaultdict, deque
 import logging
 
 from .facet_system import Facet, FacetAssembly, FacetConnection
+from ..runtime.channels import ChannelMessage, ChannelBus
 from .charm_network_facet import CharmNetworkFacet, CharmNetworkOutput
 from .scripted_facet import ScriptedFacet, ScriptContext
 from .transformer_facet import TransformerFacet, TransformerOutput
@@ -96,7 +113,8 @@ class FacetExecutor:
     - LLM facets (via provided LLM client)
     """
 
-    def __init__(self, llm_client=None, event_callback=None, use_event_bus=True, concurrency_mode='hybrid'):
+    def __init__(self, llm_client=None, event_callback=None, use_event_bus=True,
+                 concurrency_mode='hybrid', channel_bus=None):
         """
         Initialize executor.
 
@@ -109,11 +127,13 @@ class FacetExecutor:
                             - serial: Lock entire execution (debug mode)
                             - hybrid: Singleton stateful facets, isolated stateless (production)
                             - full: No locks, fresh instances (NOT RECOMMENDED)
+            channel_bus: ChannelBus for inter-noodling communication (optional)
         """
         self.llm_client = llm_client
         self.event_callback = event_callback  # Legacy support
         self.use_event_bus = use_event_bus
         self.concurrency_mode = concurrency_mode
+        self.channel_bus = channel_bus
         self.current_cycle = 0
 
         # Debug log callback (for routing context.log() to DEBUG console)
@@ -171,6 +191,106 @@ class FacetExecutor:
                 await self.event_callback(event)
             except Exception as e:
                 logger.error(f"Legacy event callback failed: {e}")
+
+    # =========================================================================
+    # Channel Integration
+    # =========================================================================
+
+    def _resolve_channel_inputs(
+        self,
+        facet: Facet,
+        inputs: Dict[str, Any],
+        assembly: FacetAssembly,
+        noodling_id: str = "unknown"
+    ) -> Dict[str, Any]:
+        """
+        Resolve channel inputs for a facet.
+
+        If the assembly subscribes to channels, check if any input pads
+        reference channel data (e.g., 'channel:#directors.cues').
+
+        Args:
+            facet: The facet being executed
+            inputs: Current input dictionary
+            assembly: The assembly being executed
+            noodling_id: ID of the noodling running this assembly
+
+        Returns:
+            Updated inputs with channel data resolved
+        """
+        if not self.channel_bus:
+            return inputs
+
+        # Get subscribed channels from assembly
+        subscribe_channels = assembly.get_subscribe_channels()
+        if not subscribe_channels:
+            return inputs
+
+        # Check each input pad for channel references
+        for pad in facet.input_pads:
+            pad_name = pad.name
+
+            # Check if pad name references a channel
+            if pad_name.startswith('channel:'):
+                channel = pad_name[8:]  # Strip 'channel:' prefix
+                if channel in subscribe_channels:
+                    latest = self.channel_bus.get_latest(channel)
+                    if latest:
+                        inputs[pad_name] = latest.payload
+                        logger.debug(f"[Channel] Resolved {pad_name} from channel {channel}")
+                else:
+                    logger.warning(
+                        f"[Channel] Facet {facet.name} wants {channel} but assembly "
+                        f"doesn't subscribe to it"
+                    )
+
+        return inputs
+
+    def _publish_channel_outputs(
+        self,
+        facet: Facet,
+        outputs: Dict[str, Any],
+        assembly: FacetAssembly,
+        noodling_id: str = "unknown"
+    ) -> None:
+        """
+        Publish outputs to channels if they have channel: prefix.
+
+        Args:
+            facet: The facet that produced outputs
+            outputs: The facet's output dictionary
+            assembly: The assembly being executed
+            noodling_id: ID of the noodling running this assembly
+        """
+        if not self.channel_bus or not outputs:
+            return
+
+        # Get publish channels from assembly
+        publish_channels = assembly.get_publish_channels()
+
+        for output_name, output_value in outputs.items():
+            if output_name.startswith('channel:'):
+                channel = output_name[8:]  # Strip 'channel:' prefix
+
+                # Check if assembly is allowed to publish to this channel
+                if channel in publish_channels:
+                    # Ensure payload is a dict
+                    if isinstance(output_value, dict):
+                        payload = output_value
+                    else:
+                        payload = {'value': output_value}
+
+                    self.channel_bus.publish_simple(
+                        channel=channel,
+                        payload=payload,
+                        from_noodling=noodling_id
+                    )
+                    logger.info(f"[Channel] Published to {channel} from {facet.name}")
+                else:
+                    logger.warning(
+                        f"[Channel] Facet {facet.name} tried to publish to {channel} "
+                        f"but assembly doesn't have publish permission"
+                    )
 
     def set_debug_log_callback(self, callback):
         """
@@ -646,7 +766,7 @@ class FacetExecutor:
             # ISOLATED: Surfaces insights from context (no state)
             return InsightEmergenceFacet(facet.id)
 
-        elif facet.facet_type == "SpecialNode":
+        elif facet.facet_type in ("SpecialNode", "INCOMING", "OUTGOING"):
             # INCOMING/OUTGOING - no instance needed
             return None
 
@@ -730,7 +850,7 @@ class FacetExecutor:
         instance = self._get_facet_instance(facet, context)
 
         # Execute based on type
-        if facet.facet_type == "SpecialNode":
+        if facet.facet_type in ("SpecialNode", "INCOMING", "OUTGOING"):
             # INCOMING/OUTGOING - just pass through
             outputs = {'out': inputs.get('in', inputs)}
             token_count = 0
@@ -1360,9 +1480,15 @@ class FacetExecutor:
         global_salience_map = {}  # facet_id -> salience_info (for convergence weighting)
 
         # INCOMING node starts with input data
+        # Support both programmatic (facet_type="SpecialNode", name="INCOMING")
+        # and YAML-loaded (facet_type="INCOMING") assemblies
         incoming_id = None
         for facet in assembly.facets:
-            if facet.facet_type == "SpecialNode" and facet.name == "INCOMING":
+            is_incoming = (
+                facet.facet_type == "INCOMING" or
+                (facet.facet_type == "SpecialNode" and facet.name == "INCOMING")
+            )
+            if is_incoming:
                 incoming_id = facet.id
                 completed[incoming_id] = {'out': incoming_data}
                 pending.remove(incoming_id)
@@ -1447,6 +1573,10 @@ class FacetExecutor:
                                 logger.warning(f"[OUTGOING] Source outputs available: {list(source_outputs.keys())}")
                                 print(f"[FacetExecutor] OUTGOING missing: {conn.from_facet}.{conn.from_pad}, available: {list(source_outputs.keys())}")
 
+                # Resolve channel inputs (if assembly subscribes to channels)
+                noodling_id = context.get('noodling_id', 'unknown')
+                inputs = self._resolve_channel_inputs(facet, inputs, assembly, noodling_id)
+
                 # Compute continuous salience (if facet has salience_script)
                 salience_info = self._compute_continuous_salience(facet, inputs, context)
                 salience_map[facet.id] = salience_info
@@ -1513,6 +1643,10 @@ class FacetExecutor:
                         out_val = outputs.get('out', '')
                         logger.info(f"[OUTGOING DEBUG] OUTPUT: '{out_val}' (len={len(out_val) if isinstance(out_val, str) else 'N/A'})")
 
+                    # Publish any channel outputs
+                    noodling_id = context.get('noodling_id', 'unknown')
+                    self._publish_channel_outputs(facet, outputs, assembly, noodling_id)
+
                 # Track tokens
                 token_usage = facet.get_token_usage()
                 total_tokens += token_usage['last_tokens']
@@ -1535,9 +1669,14 @@ class FacetExecutor:
                         })
 
         # Extract final output from OUTGOING node
+        # Support both programmatic and YAML-loaded assemblies
         outgoing_id = None
         for facet in assembly.facets:
-            if facet.facet_type == "SpecialNode" and facet.name == "OUTGOING":
+            is_outgoing = (
+                facet.facet_type == "OUTGOING" or
+                (facet.facet_type == "SpecialNode" and facet.name == "OUTGOING")
+            )
+            if is_outgoing:
                 outgoing_id = facet.id
                 break
 
@@ -1667,3 +1806,7 @@ if __name__ == "__main__":
     else:
         print(f"Assembly not found: {assembly_path}")
         print("Run facet_system.py first to generate test assembly")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

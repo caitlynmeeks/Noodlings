@@ -1,35 +1,36 @@
-"""
-Vision Facet - Image understanding for cognitive architectures.
-
-Processes images through vision models (Claude Vision, GPT-4V, LLaVA)
-and integrates with the facet execution cycle.
-
-Features:
-- Single image analysis
-- Screenshot capture (desktop/window)
-- Camera capture
-- Image history with hybrid memory model
-- Semantic image search
-
-Memory Model:
-- Hot context: Last 2-3 images stay as full tokens
-- Warm references: Older images -> text description + UUID + embedding
-- Cold storage: Full images on disk, retrievable by semantic similarity
-
-Events:
-- image_analyzed: New image analysis complete
-- screenshot_captured: Screenshot taken
-- camera_captured: Camera frame captured
-
-Scripting API (context.noodle.vision):
-    - analyze(imagePath) -> description
-    - screenshot() -> analysis
-    - getLastImage() -> {description, objects, text}
-    - searchImages(query) -> list of matching images
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Vision Facet - Image understanding for cognitive architectures.
+#
+#   Processes images through vision models (Claude Vision, GP...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.vision_facet
+# PURPOSE:  vision facet facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ImageMemory, VisionFacet, create_vision_facet_with_client()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import base64
@@ -585,3 +586,7 @@ def create_vision_facet_with_client(
     facet.set_vision_client(create_vision_client(vision_backend))
 
     return facet
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

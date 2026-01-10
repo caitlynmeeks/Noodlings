@@ -1,36 +1,36 @@
-"""
-Audio Stream Facet - Real-time audio processing for speech I/O.
-
-Implements Option C architecture: Runs parallel to main facet cycle.
-
-Audio Flow:
-    Mic Input → AudioBuffer → Whisper chunks → Text (sync→ facet cycle)
-    Text (sync←) → TTS Stream → Speaker Output
-
-Features:
-    - Voice Activity Detection (VAD) for smart chunking
-    - Whisper transcription (local or API)
-    - TTS synthesis (ElevenLabs, local, or system)
-    - Interrupt handling (stop TTS when user speaks)
-    - WebSocket streaming support (~250ms chunks)
-
-Events:
-    - transcription_ready: New transcription available
-    - transcription_partial: Partial transcription (real-time)
-    - speech_start: TTS started speaking
-    - speech_end: TTS finished speaking
-    - listening_start: Started listening
-    - listening_end: Stopped listening
-
-Scripting API (context.noodle.audio):
-    - Events: onTranscriptionReady, onSpeechStart, onSpeechEnd
-    - Polling: lastTranscription, isSpeaking, isListening
-    - Control: speak(), listen(), stopListening(), interrupt()
-    - Config: setSensitivity(), setVoice(), setModel()
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Audio Stream Facet - Real-time audio processing for speech I/O.
+#
+#   Implements Option C architecture: Runs parallel to main f...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.audio_stream_facet
+# PURPOSE:  audio stream facet facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AudioState, AudioChunk, Transcription, TTSRequest, AudioStreamFacet
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import time
@@ -731,3 +731,7 @@ def create_audio_facet_with_clients(
     facet.set_tts_client(create_tts_client(tts_backend))
 
     return facet
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,0 +1,119 @@
+# Let's Consciousness! - Main UI
+# 2025-01-08
+#
+# Note: The VRM character (Ajo Majo) is rendered via CharacterOverlayWindow,
+# a transparent floating overlay that follows this window. This allows the
+# character to composite cleanly over the UI without OpenGL embedding issues.
+#
+version: 1
+
+# Metadata for overlay configuration (read by cli.py)
+overlay:
+  enabled: true
+  vrm_path: "../../noodlings/guide/Radiances/AjoMajo.vrm"
+  size: [300, 400]
+  anchor: right
+  offset: [20, 50]
+
+root:
+  type: Panel
+  name: root
+  properties:
+    background: "#1a1a1a"
+    width: 800
+    height: 600
+  children:
+    # Main content area
+    - type: Panel
+      name: content_area
+      properties:
+        x: 0
+        y: 0
+        width: 800
+        height: 450
+        background: "#1a1a1a"
+      children:
+        # Speech bubble panel (expanded to fill more space)
+        - type: Panel
+          name: speech_panel
+          properties:
+            x: 50
+            y: 25
+            width: 450
+            height: 400
+            background: "#2a2a2a"
+            border_radius: 12
+          children:
+            - type: Label
+              name: guide_speech
+              properties:
+                x: 20
+                y: 20
+                width: 410
+                height: 360
+                text: "Hello! I'm Guide. Ask me anything about consciousness, minds, or how we might build thinking machines. I love a good question!"
+                wrap: true
+                font_size: 14
+                color: "#e0e0e0"
+
+        # Right side space reserved for character overlay
+        # (CharacterOverlayWindow renders here as a floating transparent window)
+        - type: Panel
+          name: character_area
+          properties:
+            x: 520
+            y: 25
+            width: 250
+            height: 400
+            background: "transparent"
+
+    # Input section
+    - type: Panel
+      name: input_panel
+      properties:
+        x: 50
+        y: 460
+        width: 700
+        height: 80
+        background: "#242424"
+        border_radius: 8
+      children:
+        - type: TextInput
+          name: user_input
+          properties:
+            x: 20
+            y: 20
+            width: 560
+            height: 40
+            placeholder: "Ask Guide something..."
+            font_size: 14
+          events:
+            onSubmit:
+              action: run_assembly
+              assembly: "../../noodlings/guide/assembly.yaml"
+              inputs:
+                text: "{user_input.value}"
+              outputs:
+                result: guide_speech.text
+              thinking_target: guide_speech
+              clear_input: true
+
+        - type: Button
+          name: send_button
+          properties:
+            x: 600
+            y: 20
+            width: 80
+            height: 40
+            text: "Ask"
+            background: "#3a3a3a"
+          events:
+            onClick:
+              action: run_assembly
+              assembly: "../../noodlings/guide/assembly.yaml"
+              inputs:
+                text: "{user_input.value}"
+              outputs:
+                result: guide_speech.text
+              thinking_target: guide_speech
+              clear_input: true

@@ -1,15 +1,36 @@
-"""
-Neural Canvas Node Operations Mixin - Node add/delete operations
-
-Contains:
-- start_add_node_mode: Enter add node mode
-- _add_node_from_menu: Add node from context menu
-- _delete_selected_nodes: Delete selected nodes with undo
-- _add_node_at_position: Add node at position with undo
-
-Author: Noodlings Project
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Neural Canvas Node Operations Mixin - Node add/delete operations
+#
+#   Contains: - start_add_node_mode: Enter add node mode - _a...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.neural_canvas.neural_canvas_node_ops_mixin
+# PURPOSE:  Neural Canvas Node Ops Mixin
+# LAYER:    Studio / Neural Canvas Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NeuralCanvasNodeOpsMixin
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtCore import Qt, QPointF
 
@@ -94,3 +115,7 @@ class NeuralCanvasNodeOpsMixin:
         undo_manager.push(cmd)
 
         print(f"[Neural Canvas] Created node (undoable): {node.name}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,20 +1,36 @@
-"""
-Animation Track Editor - Curve editor for affect and pose tracks
-
-A Maya Graph Editor-style panel for editing keyframed animation curves.
-Supports both affect channels (PAD+BS) and pose channels (muscles).
-
-Features:
-- Bezier curve visualization with tangent handles
-- Keyframe manipulation (select, drag, add, delete)
-- Multi-channel display with color coding
-- Playback controls and timeline scrubbing
-- Marker support for sync points
-- Load/save .affecttrack and .posetrack files
-
-Author: Caitlyn + Claude
-Date: December 21, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Animation Track Editor - Curve editor for affect and pose tracks
+#
+#   A Maya Graph Editor-style panel for editing keyframed ani...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.animation_track_editor
+# PURPOSE:  Animation Track Editor
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   KeyframeItem, TangentHandleItem, CurveScene, CurveView, ChannelListWidget
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import math
 import time
@@ -1462,3 +1478,7 @@ if __name__ == "__main__":
     editor.load_affect_track("/tmp/test_editor.affecttrack")
 
     sys.exit(app.exec())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

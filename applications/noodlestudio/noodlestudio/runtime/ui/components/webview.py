@@ -1,15 +1,36 @@
-"""
-WebView UI Component - Embedded web browser
-
-Displays web content within the UI canvas. Useful for:
-- Documentation panels
-- External dashboards
-- Interactive web content
-- HTML-based UI elements
-
-Author: Caitlyn + Claude
-Date: January 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   WebView UI Component - Embedded web browser
+#
+#   Displays web content within the UI canvas. Useful for: - ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.components.webview
+# PURPOSE:  WebView UI Component - Embedded web browser
+# LAYER:    Studio / UI Components
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   WebView
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
@@ -131,3 +152,7 @@ class WebView(UIComponent):
         webview._load_base_properties(data)
 
         return webview
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

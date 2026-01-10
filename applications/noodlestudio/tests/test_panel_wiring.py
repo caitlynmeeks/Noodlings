@@ -1,18 +1,36 @@
-"""
-Panel Wiring Tests - pytest-qt tests for NoodleStudio signal connections
-
-Tests the critical signal flows:
-1. Noodling selection in Stage View -> Facet Editor loads assembly
-2. Name change in Inspector -> Stage View updates
-3. Undo/redo operations work reliably
-
-Run with:
-    cd applications/noodlestudio
-    PYTHONPATH=.:../.. pytest tests/test_panel_wiring.py -v
-
-Author: Noodlings Project
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Panel Wiring Tests - pytest-qt tests for NoodleStudio signal connections
+#
+#   Tests the critical signal flows: 1. Noodling selection in...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tests.test_panel_wiring
+# PURPOSE:  Tests for panel wiring
+# LAYER:    Studio / Tests
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TestNoodlingSelectionToFacetEditor, TestNameChangePropagation, TestUndoRedo, TestSignalConnections, qapp()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import pytest
 import sys
@@ -348,3 +366,7 @@ class TestSignalConnections:
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,17 +1,36 @@
-"""
-Export Noodling(s) Dialog
-
-Unified export interface for single Noodlings or ensembles.
-
-Features:
-- Export 1+ selected Noodlings
-- Add metadata (name, description, tags)
-- Optional: Generate ensemble (.ensemble file)
-- Captures relationships between Noodlings if exporting ensemble
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Export Noodling(s) Dialog
+#
+#   Unified export interface for single Noodlings or ensemble...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.dialogs.export_noodlings_dialog
+# PURPOSE:  Export Noodling(s) Dialog
+# LAYER:    Studio / Dialogs
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ExportNoodlingsDialog
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QLabel, QLineEdit, QTextEdit, QPushButton, QCheckBox,
@@ -240,3 +259,7 @@ class ExportNoodlingsDialog(QDialog):
             print(f"Noodling export error: {e}")
             traceback.print_exc()
             return False
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

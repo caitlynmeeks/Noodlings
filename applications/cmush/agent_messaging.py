@@ -1,3 +1,41 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agent Messaging System
+#
+#   Allows AI agents to send private messages to each other, like
+#   a secure internal mail system. Each agent has an inbox where
+#   messages arrive and an outbox tracking what they have sent.
+#   Messages are stored as files on disk so nothing gets lost,
+#   and old messages are automatically cleaned up after a while.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.agent_messaging
+# PURPOSE:  Inter-agent and user-agent communication via inbox/outbox
+# LAYER:    Backend / Communication
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AgentMessage    Single message with sender, recipient, content
+#   AgentMessaging  Manages delivery, persistence, and cleanup
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Agent Messaging System - Inter-agent and user-agent communication
 
@@ -7,7 +45,7 @@ Provides agents with:
 - Message persistence and delivery tracking
 - Automatic cleanup of old messages
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -456,3 +494,7 @@ async def test_messaging():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(test_messaging())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,3 +1,43 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Ollama LLM Manager
+#
+#   A full-featured manager for running local AI models via Ollama.
+#   Unlike black-box services, this gives you complete visibility
+#   into what is happening - which models are loaded, how many
+#   tokens used, timing statistics, errors. It auto-starts Ollama
+#   if needed, auto-downloads models on first use, and provides
+#   a real-time status dashboard for NoodleStudio.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.ollama_manager
+# PURPOSE:  Full-lifecycle local LLM management with observability
+# LAYER:    Backend / LLM Infrastructure
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   OllamaManager   Main manager with auto-load, stats, and API
+#   OllamaConfig    Configuration for models and concurrency
+#   ModelStats      Per-model usage statistics
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Ollama LLM Manager with full observability and model lifecycle control.
 
@@ -9,10 +49,12 @@ Replaces LM Studio black box with instrumented Ollama client:
 
 Architecture:
     OllamaManager
-        ├→ Model tier system (SMALL, MEDIUM, LARGE)
-        ├→ Automatic model loading/pulling
-        ├→ Per-model usage statistics
-        └→ Real-time status API
+        -> Model tier system (SMALL, MEDIUM, LARGE)
+        -> Automatic model loading/pulling
+        -> Per-model usage statistics
+        -> Real-time status API
+
+Author: Caitlyn + Claude
 """
 
 import asyncio
@@ -939,3 +981,7 @@ Be concise and introspective."""
             )
 
         return (result['text'], result.get('tokens', 0))
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

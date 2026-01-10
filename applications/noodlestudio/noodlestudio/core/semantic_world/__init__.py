@@ -1,31 +1,36 @@
-"""
-Semantic World System
-
-Events are the atomic unit of reality. The universe is not made of things,
-it is made of happenings.
-
-This package provides:
-    - Event: The fundamental primitive of existence
-    - EventStore: The append-only log of all happenings
-    - Projections: Stage, Situation, Experience derived from events
-    - ContextBuilder: Generates agent context from events
-    - ScenePacket: Complete scene state for renderers (Genie/Mirage)
-    - PerceptionSlice: Filtered view for each entity's cognition
-    - SceneStateManager: Canonical truth holder
-
-The event log IS the world. Everything else is a view.
-Genie is stateless. Noodlings is stateful.
-
-Usage:
-    from semantic_world import Event, EventType, speech_event, movement_event
-    from semantic_world import EventStore
-    from semantic_world import project_situation, build_agent_context
-    from semantic_world import ScenePacket, SceneStateManager
-    from semantic_world import generate_perception_slice
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Semantic World System
+#
+#   Events are the atomic unit of reality. The universe is no...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.__init__
+# PURPOSE:  Semantic World System
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   (none)
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from .event import (
     Event,
@@ -507,3 +512,7 @@ __all__ = [
     "query_scene",
     "ray_gaussian_intersection",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,15 +1,36 @@
-"""
-Neural Canvas Grid Mixin - Grid snapping and display
-
-Contains:
-- toggle_grid_snap: Toggle grid snapping and visibility
-- set_grid_size: Set grid size in pixels
-- _draw_grid: Draw grid lines on scene
-- _clear_grid: Remove grid lines from scene
-
-Author: Noodlings Project
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Neural Canvas Grid Mixin - Grid snapping and display
+#
+#   Contains: - toggle_grid_snap: Toggle grid snapping and vi...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.neural_canvas.neural_canvas_grid_mixin
+# PURPOSE:  Neural Canvas Grid Mixin
+# LAYER:    Studio / Neural Canvas Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NeuralCanvasGridMixin
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPen, QColor
@@ -119,3 +140,7 @@ class NeuralCanvasGridMixin:
 
         self.grid_lines.clear()
         print("[Neural Canvas] Cleared grid lines")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

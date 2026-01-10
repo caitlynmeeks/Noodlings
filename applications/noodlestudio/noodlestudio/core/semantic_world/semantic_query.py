@@ -1,17 +1,36 @@
-"""
-Semantic Query System - Click-to-inspect with CLIP embeddings
-
-"What did you click on? The universe will tell you."
-
-Provides semantic understanding of Gaussian splats:
-- Ray-Gaussian intersection (clicking in 3D)
-- CLIP embedding search (natural language queries)
-- Entity/body part identification
-- Bone binding lookup
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Semantic Query System - Click-to-inspect with CLIP embeddings
+#
+#   "What did you click on? The universe will tell you." Prov...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.semantic_query
+# PURPOSE:  Semantic Query
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SplatHitInfo, SemanticSearchResult, SemanticMatch, CLIPEmbeddingGenerator, CLIPEmbeddingIndex
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 import numpy as np
@@ -965,3 +984,7 @@ __all__ = [
     # Ray intersection
     'ray_gaussian_intersection',
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

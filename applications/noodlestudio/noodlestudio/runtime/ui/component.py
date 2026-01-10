@@ -1,17 +1,36 @@
-"""
-UI Component System - Base Classes
-
-The foundation of the Delphi-style UI canvas. Users interact with these
-component classes. The underlying Qt implementation is hidden behind
-the renderer abstraction.
-
-Architecture:
-    ui.yaml (user's design)
-        ↓
-    UIComponent tree (this module)
-        ↓
-    QtWidgetRenderer (renderer.py)
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   UI Component System - Base Classes
+#
+#   The foundation of the Delphi-style UI canvas. Users inter...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.component
+# PURPOSE:  UI Component System - Base Classes
+# LAYER:    Studio / UI Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AnchorEdge, Anchors, Geometry, EventBinding, UIComponent
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
@@ -112,6 +131,8 @@ class EventBinding:
     assembly: Optional[str] = None  # For run_assembly
     inputs: Dict[str, Any] = field(default_factory=dict)  # For run_assembly
     outputs: Dict[str, str] = field(default_factory=dict)  # For run_assembly
+    thinking_target: Optional[str] = None  # Show "Thinking..." in this component
+    clear_input: bool = False  # Clear the source input after submit
     params: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -296,6 +317,8 @@ class UIComponent:
                     assembly=event_data.get("assembly"),
                     inputs=event_data.get("inputs", {}),
                     outputs=event_data.get("outputs", {}),
+                    thinking_target=event_data.get("thinking_target"),
+                    clear_input=event_data.get("clear_input", False),
                     params=event_data.get("params", {}),
                 )
 
@@ -342,3 +365,7 @@ def list_component_types() -> List[str]:
 
 # Register base component
 register_component(UIComponent)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

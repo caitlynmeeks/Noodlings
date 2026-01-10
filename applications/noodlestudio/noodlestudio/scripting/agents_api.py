@@ -1,18 +1,36 @@
-"""
-Agents API - Scriptable interface to agent facet assemblies.
-
-Provides JavaScript-accessible methods for:
-- Getting agent facet assemblies
-- Modifying facets
-- Connecting facets
-- Setting facet properties
-- Saving assemblies
-
-Part of the unified Noodlings scripting API (context.noodle.agents).
-
-Author: Commander Spock + Cadet Caity
-Date: December 10, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agents API - Scriptable interface to agent facet assemblies.
+#
+#   Provides JavaScript-accessible methods for: - Getting age...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.agents_api
+# PURPOSE:  Agents Api
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   FacetProxy, FacetAssemblyProxy, AgentsAPI
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, List, Optional, Any
 
@@ -741,3 +759,7 @@ class AgentsAPI:
             'load_assembly': '__agents_load_assembly__',
             'list_all': '__agents_list_all__'
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,18 +1,36 @@
-"""
-Neural API - Scriptable interface to Neural Canvas.
-
-Provides JavaScript-accessible methods for:
-- Creating/removing nodes
-- Connecting ports
-- Setting node properties
-- Generating MLX code
-- Loading/saving .nncanvas files
-
-Part of the unified Noodlings scripting API (context.noodle.neural).
-
-Author: Commander Spock + Cadet Caity
-Date: December 10, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Neural API - Scriptable interface to Neural Canvas.
+#
+#   Provides JavaScript-accessible methods for: - Creating/re...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.neural_api
+# PURPOSE:  Neural Api
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NeuralNetworkProxy, NeuralAPI
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, List, Optional, Any, Tuple
 
@@ -798,3 +816,7 @@ SCRIPT:
             'register_custom_node': '__neural_register_custom_node__',
             'get_custom_nodes': '__neural_get_custom_nodes__'
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

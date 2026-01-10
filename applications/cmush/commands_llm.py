@@ -1,3 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   LLM Control Commands
+#
+#   These commands let you configure which AI model powers
+#   the Noodlings' language abilities. You can switch between
+#   local Ollama models and cloud providers.
+#
+#   Commands:
+#     @model               -> See what model is being used
+#     @model qwen3-32b     -> Switch to a different model
+#     @models              -> List all available models
+#     @maxservers 4        -> Run up to 4 LLM queries in parallel
+#
+#   This affects all Noodlings in the world. Different models
+#   have different personalities and capabilities.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_llm
+# PURPOSE:  LLM model configuration commands
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   LLMCommandsMixin    Model, models, maxservers
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 LLM Control Commands Mixin for cMUSH
 
@@ -6,7 +50,7 @@ Contains commands for managing LLM configuration:
 - @models: List available models
 - @maxservers: Configure parallel LLM instances
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -170,3 +214,7 @@ class LLMCommandsMixin:
                 'output': f"Error: '{args}' is not a valid number\n\nUsage: @maxservers <number>",
                 'events': []
             }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

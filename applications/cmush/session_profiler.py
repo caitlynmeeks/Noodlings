@@ -1,15 +1,51 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Session Profiler - Phenomenal State Logging
+#
+#   When researching cognition, you need detailed logs of what
+#   happened inside an agent's "mind" over time. This profiler
+#   records every timestep: the 40-dimensional phenomenal state,
+#   affect vectors, surprise levels, speech events. The data
+#   feeds NoodleScope visualizations and Kimmie's interpretations.
+#   Think of it as a flight recorder for cognition experiments.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.session_profiler
+# PURPOSE:  Log phenomenal states for visualization and analysis
+# LAYER:    Backend / Instrumentation
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SessionProfiler       Records and exports agent state timelines
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Session Profiler - Comprehensive logging for NoodleScope 2.0
 
 Logs phenomenal states, events, metrics for real-time visualization and
-@Kimmie interpretation. Data format designed for:
+Kimmie interpretation. Data format designed for:
 - Timeline scrubbing
 - HSI (Hierarchical Separation Index) calculation
-- Human-readable interpretation by @Kimmie
+- Human-readable interpretation by Kimmie
 - Steve DiPaola demo (cause-and-effect storytelling)
-
-Author: Caitlyn (with Claude's help)
-Created: 2025-11-14
 """
 
 import json
@@ -328,3 +364,7 @@ class SessionProfiler:
             return []
 
         return self.agent_timelines[agent_id][-last_n:]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

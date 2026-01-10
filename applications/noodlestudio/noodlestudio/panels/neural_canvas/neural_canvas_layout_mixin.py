@@ -1,15 +1,36 @@
-"""
-Neural Canvas Layout Mixin - Auto-arrange and alignment operations
-
-Contains:
-- auto_arrange_nodes: Topological layering auto-layout
-- align_selected_horizontally: Align to same Y coordinate
-- align_selected_vertically: Align to same X coordinate
-
-Author: Noodlings Project
-Date: December 2025
-"""
-
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Neural Canvas Layout Mixin - Auto-arrange and alignment operations
+#
+#   Contains: - auto_arrange_nodes: Topological layering auto...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.neural_canvas.neural_canvas_layout_mixin
+# PURPOSE:  Neural Canvas Layout Mixin
+# LAYER:    Studio / Neural Canvas Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NeuralCanvasLayoutMixin
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 class NeuralCanvasLayoutMixin:
     """Mixin providing layout operations for NeuralCanvasView."""
@@ -124,3 +145,7 @@ class NeuralCanvasLayoutMixin:
         self.scene.update()
         self.graph_modified.emit()
         print(f"[Neural Canvas] Aligned {len(selected)} nodes vertically at x={avg_x:.0f}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

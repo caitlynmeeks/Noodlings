@@ -1,18 +1,36 @@
-"""
-Neural Canvas Input Mixin - Mouse, keyboard, and wheel event handling
-
-Contains:
-- wheelEvent: Zoom with mouse wheel
-- _zoom_view: Zoom implementation with limits
-- keyPressEvent: Space (pan mode), F (focus), A (frame all)
-- keyReleaseEvent: Return to selection mode
-- mousePressEvent: Pan, add node, wire drag, selection
-- mouseMoveEvent: Pan and wire drag updates
-- mouseReleaseEvent: Complete pan, wire connection, selection
-
-Author: Noodlings Project
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Neural Canvas Input Mixin - Mouse, keyboard, and wheel event handling
+#
+#   Contains: - wheelEvent: Zoom with mouse wheel - _zoom_vie...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.neural_canvas.neural_canvas_input_mixin
+# PURPOSE:  Neural Canvas Input Mixin
+# LAYER:    Studio / Neural Canvas Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NeuralCanvasInputMixin
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtCore import Qt, QPointF
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsItem
@@ -254,3 +272,7 @@ class NeuralCanvasInputMixin:
             # Check if node position changed
             if event.button() == Qt.MouseButton.LeftButton:
                 self.graph_modified.emit()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

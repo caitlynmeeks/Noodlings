@@ -1,18 +1,36 @@
-"""
-Noodlings Scripting API - Unity-like commands
-
-Global functions and classes available to all scripts:
-
-- Noodlings.Spawn()
-- Noodlings.Find()
-- Noodlings.Destroy()
-- Debug.Log()
-- Transform (position, rotation)
-- Prim (properties)
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Noodlings Scripting API - Unity-like commands
+#
+#   Global functions and classes available to all scripts: - ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.noodlings_api
+# PURPOSE:  Noodlings Scripting API - Unity-like commands
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   Debug, Vector3, Transform, Prim, Noodlings
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Optional, List
 
@@ -233,3 +251,7 @@ class Time:
         """Wait for seconds (coroutine-like)."""
         # TODO: Implement coroutine system
         pass
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

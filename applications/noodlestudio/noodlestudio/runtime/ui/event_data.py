@@ -1,16 +1,36 @@
-"""
-UI Event Data
-
-Rich event metadata for the UI event system. Inspired by browser DOM events,
-but designed for NoodleStudio's Delphi-style component architecture.
-
-Every UI event carries a UIEventData object with comprehensive context:
-- Mouse position and button state
-- Keyboard key and modifiers
-- Value changes (current and previous)
-- Drag-and-drop data
-- 3D hit info for RadianceViewport interactions
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   UI Event Data
+#
+#   Rich event metadata for the UI event system. Inspired by ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.event_data
+# PURPOSE:  UI Event Data
+# LAYER:    Studio / UI Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MouseButton, Modifiers, UIEventData
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Tuple
@@ -508,3 +528,7 @@ ALL_EVENT_TYPES = {
     EVENT_VALIDATE, EVENT_ERROR,
     EVENT_LOAD, EVENT_CAMERA_MOVE, EVENT_GAUSSIAN_CLICK, EVENT_GAUSSIAN_HOVER,
 }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

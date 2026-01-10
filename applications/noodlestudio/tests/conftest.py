@@ -1,11 +1,36 @@
-"""
-NoodleStudio Test Fixtures
-
-Shared fixtures for all NoodleStudio tests.
-Run tests with: cd applications/noodlestudio && PYTHONPATH=.:../.. pytest
-
-Author: Noodlings Project
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   NoodleStudio Test Fixtures
+#
+#   Shared fixtures for all NoodleStudio tests. Run tests wit...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tests.conftest
+# PURPOSE:  NoodleStudio Test Fixtures
+# LAYER:    Studio / Tests
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   qapp(), main_window(), find_test_radiance()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import pytest
 import sys
@@ -247,3 +272,7 @@ def temp_stage_dir(temp_project_dir):
     stage_yaml.write_text("name: Test Stage\nzones: []\n")
 
     return stage_dir
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

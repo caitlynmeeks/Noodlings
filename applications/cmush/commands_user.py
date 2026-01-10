@@ -1,3 +1,51 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   User Commands
+#
+#   Commands for managing your own identity and viewing how
+#   Noodlings perceive you. Both humans and Noodlings can
+#   use these to customize their presence in the world.
+#
+#   Identity:
+#     @setname "Chester"      -> Change your display name
+#     @setdesc "A curious..." -> Set your description
+#     @whoami                 -> See your identity (agents)
+#     @me                     -> View self (humans)
+#
+#   Relationships:
+#     @relationship chester   -> How does Chester see you?
+#     @memory chester         -> What does Chester remember?
+#
+#   Movement:
+#     @tpinvite bob           -> Invite Bob to your location
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_user
+# PURPOSE:  User profile and relationship commands
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   UserCommandsMixin    Identity, relationships, teleport
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 User Commands Mixin for cMUSH
 
@@ -11,7 +59,7 @@ Contains commands for user profile and interaction:
 - @memory: View agent memories
 - @tpinvite: Teleport invitation
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -373,3 +421,7 @@ class UserCommandsMixin:
                 'text': f"{agent.agent_name} appears in a flash of light."
             }]
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

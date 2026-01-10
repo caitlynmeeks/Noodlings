@@ -1,20 +1,36 @@
-"""
-UI Action Recorder - Captures UI events for crash debugging and test replay
-
-Records mouse clicks, key presses, and widget interactions in a ring buffer.
-Output format is designed to be qtbot-compatible for test replay.
-
-Usage:
-    recorder = get_ui_action_recorder()
-    recorder.install(main_window)  # Start recording
-
-    # On crash:
-    actions = recorder.get_recent_actions(50)
-    qtbot_script = recorder.to_qtbot_script(actions)
-
-Author: Caitlyn + Claude
-Date: January 2, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   UI Action Recorder - Captures UI events for crash debugging and test replay
+#
+#   Records mouse clicks, key presses, and widget interaction...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.ui_action_recorder
+# PURPOSE:  Ui Action Recorder
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ActionType, UIAction, UIActionRecorder, get_ui_action_recorder()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import time
 import json
@@ -510,3 +526,7 @@ class UIActionRecorder(QObject):
 def get_ui_action_recorder() -> UIActionRecorder:
     """Get the global UI action recorder instance."""
     return UIActionRecorder.instance()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

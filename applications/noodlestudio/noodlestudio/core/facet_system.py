@@ -1,21 +1,36 @@
-"""
-Facet System - Node-based cognitive architecture
-
-A facet is a discrete cognitive transformation - like a lens that colors
-information passing through it. Facets connect in assemblies to form
-complex cognitive topologies.
-
-Terminology:
-- Facet: Individual cognitive transformation node (replaces "transistor")
-- Facet Assembly: Connected network of facets
-- Convergence: Special facet that merges multiple inputs
-- Pad: Input/output connection point on a facet
-- INCOMING: Special node where information enters
-- OUTGOING: Special node where final response exits
-
-Author: Commander Spock + Cadet Caity
-Date: November 28, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Facet System - Node-based cognitive architecture
+#
+#   A facet is a discrete cognitive transformation - like a l...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.facet_system
+# PURPOSE:  Facet System - Node-based cognitive architecture
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PadType, FacetPad, FacetConnection, Facet, FacetAssembly
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Set
@@ -29,6 +44,14 @@ try:
 except ImportError:
     YAML_AVAILABLE = False
     yaml = None
+
+# Import ChannelsConfig for assembly channel configuration
+try:
+    from ..runtime.channels import ChannelsConfig
+    CHANNELS_AVAILABLE = True
+except ImportError:
+    CHANNELS_AVAILABLE = False
+    ChannelsConfig = None
 
 
 class PadType(Enum):
@@ -342,13 +365,16 @@ class FacetAssembly:
     facets: List[Facet] = field(default_factory=list)
     connections: List[FacetConnection] = field(default_factory=list)
 
+    # Channel configuration (subscribe/publish)
+    channels: Optional[Any] = None  # ChannelsConfig when available
+
     # Metadata
     created_date: str = ""
     modified_date: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary for YAML export."""
-        return {
+        result = {
             'name': self.name,
             'version': self.version,
             'description': self.description,
@@ -360,9 +386,30 @@ class FacetAssembly:
             'connections': [c.to_dict() for c in self.connections]
         }
 
+        # Include channels if configured
+        if self.channels:
+            if hasattr(self.channels, 'to_dict'):
+                channels_data = self.channels.to_dict()
+            else:
+                channels_data = self.channels
+            if channels_data:
+                result['channels'] = channels_data
+
+        return result
+
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'FacetAssembly':
         """Deserialize from dictionary."""
+        # Parse channels if present
+        channels = None
+        channels_data = data.get('channels')
+        if channels_data:
+            if CHANNELS_AVAILABLE and ChannelsConfig:
+                channels = ChannelsConfig.from_dict(channels_data)
+            else:
+                # Fallback: store as raw dict if ChannelsConfig not available
+                channels = channels_data
+
         return FacetAssembly(
             name=data['name'],
             version=data.get('version', '1.0.0'),
@@ -372,7 +419,8 @@ class FacetAssembly:
             created_date=data.get('created', ''),
             modified_date=data.get('modified', ''),
             facets=[Facet.from_dict(f) for f in data.get('facets', [])],
-            connections=[FacetConnection.from_dict(c) for c in data.get('connections', [])]
+            connections=[FacetConnection.from_dict(c) for c in data.get('connections', [])],
+            channels=channels
         )
 
     def save_yaml(self, filepath: str):
@@ -460,6 +508,34 @@ class FacetAssembly:
 
         return False
 
+    def get_subscribe_channels(self) -> List[str]:
+        """Get list of channels this assembly subscribes to."""
+        if not self.channels:
+            return []
+        if hasattr(self.channels, 'subscribe'):
+            return self.channels.subscribe
+        if isinstance(self.channels, dict):
+            return self.channels.get('subscribe', [])
+        return []
+
+    def get_publish_channels(self) -> List[str]:
+        """Get list of channels this assembly can publish to."""
+        if not self.channels:
+            return []
+        if hasattr(self.channels, 'publish'):
+            return self.channels.publish
+        if isinstance(self.channels, dict):
+            return self.channels.get('publish', [])
+        return []
+
+    def can_publish_to(self, channel: str) -> bool:
+        """Check if this assembly is allowed to publish to a channel."""
+        return channel in self.get_publish_channels()
+
+    def subscribes_to(self, channel: str) -> bool:
+        """Check if this assembly subscribes to a channel."""
+        return channel in self.get_subscribe_channels()
+
 
 def create_default_assembly() -> FacetAssembly:
     """
@@ -542,3 +618,7 @@ if __name__ == "__main__":
     # Load back
     loaded = FacetAssembly.load_yaml("/tmp/test_assembly.yaml")
     print(f"Loaded assembly: {loaded.name}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

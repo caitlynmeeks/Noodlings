@@ -1,3 +1,49 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   LLM Interface
+#
+#   This is how noodleMUSH talks to large language models. It
+#   uses the OpenAI-compatible API format that works with:
+#   - Ollama (local models)
+#   - LMStudio (local with UI)
+#   - OpenAI (cloud)
+#   - Anthropic via OpenRouter
+#   - Any OpenAI-compatible endpoint
+#
+#   Two main jobs:
+#   1. text_to_affect(): "Hello there!" -> {valence: 0.6, ...}
+#   2. generate_response(): Take this context, make Chester talk
+#
+#   Also tracks activity for the NoodleStudio visualization panel.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.llm_interface
+# PURPOSE:  Multi-provider LLM client with affect extraction
+# LAYER:    Backend / LLM
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   OpenAICompatibleLLM    Universal LLM client
+#   LLMActivityTracker     Real-time activity monitoring
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 LLM Interface for cMUSH - OpenAI-compatible API client
 
@@ -7,7 +53,7 @@ Functions:
 - text_to_affect(): User text -> 5-D affect vector
 - generate_response(): Consilience state -> natural language response
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -1742,3 +1788,7 @@ async def test_llm():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(test_llm())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

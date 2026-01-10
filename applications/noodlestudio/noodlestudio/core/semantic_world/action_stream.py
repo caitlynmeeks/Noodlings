@@ -1,30 +1,36 @@
-"""
-Action Stream - Lightweight high-frequency action API for world models
-
-Complements ScenePacketEmitter with a high-frequency action stream for:
-- Player movement vectors
-- Camera deltas
-- Simple interaction triggers
-- Entity micro-actions
-
-Design Philosophy (per Gemini analysis):
-    - Full Scene Packets: Low frequency (~5s), when semantic truth changes
-    - Delta Packets: Medium frequency (~100ms), on state changes
-    - Action Stream: High frequency (~30fps), tiny JSON payloads
-
-The world model (Genie/Mirage) interpolates smooth rendering between
-semantic updates. Actions are the lightweight "steering" inputs.
-
-Example action payloads:
-    {"action": "player_move", "direction": [0, 0, 1], "speed": 1.0}
-    {"action": "camera_look", "target": "red"}
-    {"action": "camera_orbit", "delta": [5, 0]}
-    {"action": "interact", "entity": "radio", "verb": "toggle"}
-    {"action": "entity_gaze", "entity": "red", "target": "player"}
-
-Author: Commander Spock + Cadet Caity
-Date: December 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Action Stream - Lightweight high-frequency action API for world models
+#
+#   Complements ScenePacketEmitter with a high-frequency acti...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.action_stream
+# PURPOSE:  Action Stream
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ActionType, Action, ActionAck, ActionSession, ActionStreamHandler
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import json
@@ -996,3 +1002,7 @@ __all__ = [
     "get_action_handler",
     "init_action_handler",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

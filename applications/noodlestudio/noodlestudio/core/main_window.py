@@ -1,19 +1,36 @@
-"""
-Main Window for NoodleSTUDIO.
-
-The primary application window with menu bar, toolbar, dock area, and status bar.
-
-This file uses mixins for organization:
-- MainWindowMenusMixin: Menu bar and toolbar setup
-- MainWindowStatusBarMixin: Status bar with avatar dropdown
-- MainWindowServerMixin: Server management and connection status
-- MainWindowPanelsMixin: Panel layout and shortcuts
-- MainWindowProjectMixin: Project management and recent projects
-- MainWindowEntitiesMixin: Entity creation (noodlings, objects, etc.)
-- MainWindowAccountMixin: Account management and world entry
-- MainWindowSignalsMixin: Panel signal handlers
-- MainWindowSettingsMixin: Settings, RNG, help, and misc handlers
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Main Window for NoodleSTUDIO.
+#
+#   The primary application window with menu bar, toolbar, do...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.main_window
+# PURPOSE:  Main Window for NoodleSTUDIO.
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MainWindow
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Optional
 
@@ -124,3 +141,7 @@ class MainWindow(
         # Central widget will be World View (main viewport)
         # Actual setup is done in _setup_panels() from mixin
         pass
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

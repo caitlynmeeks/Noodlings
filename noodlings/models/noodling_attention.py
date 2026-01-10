@@ -1,3 +1,62 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Phase 3: Attention and Memory
+#
+#   This is where things get interesting. In Phase 1 and 2, the
+#   AI could feel things moment-to-moment. But it couldn't really
+#   "remember" past experiences in a useful way.
+#
+#   Phase 3 adds episodic memory - the AI can now store the last
+#   100 moments and actively retrieve the ones that matter. This
+#   is like how your brain automatically brings up relevant
+#   memories when you're in a similar situation.
+#
+#   When the AI is talking to you and you mention something sad,
+#   it doesn't just react to the current sadness - it also pulls
+#   up memories of past sad moments you've shared together.
+#   This makes responses more coherent and relationship-aware.
+#
+#   ~50,000 parameters total (still small enough to run on a
+#   laptop, but smart enough to have meaningful memory).
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.noodling_attention
+# PURPOSE:  Phase 3 model with episodic memory and attention
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodlingModelWithAttention  Full Phase 3 architecture
+#   TopDownPredictor            Creates prediction loops for Phi
+#
+# DEPENDENCIES:
+#   mlx.core                    Apple Silicon tensor operations
+#   mlx.nn                      Neural network layers
+#   episodic_memory             Memory buffer
+#   attention_modules           Attention mechanism components
+#
+# RELATED:
+#   noodling_phase4.py          Adds social cognition on top
+#   attention_modules.py        Attention mechanism details
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Consilience Phase 3: Attention Mechanisms & Episodic Memory
 
@@ -448,3 +507,7 @@ class NoodlingModelWithAttention(nn.Module):
             Dictionary with parameter counts by component
         """
         return self.count_parameters()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

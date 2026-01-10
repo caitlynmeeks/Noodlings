@@ -1,3 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Cognition Control Commands
+#
+#   These commands let you peek into and tune how Noodlings
+#   think. Each Noodling has a cognition engine that runs in
+#   the background, processing thoughts and deciding when
+#   to speak or act.
+#
+#   Commands:
+#     @cognition chester   -> See Chester's thinking stats
+#     @set_frequency ...   -> How often does he ruminate?
+#     @ruminate chester    -> Force him to think right now
+#
+#   This is useful for debugging why a Noodling is too chatty,
+#   too quiet, or seems to be thinking about the wrong things.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_cognition
+# PURPOSE:  Cognition engine control commands
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CognitionCommandsMixin    Stats, frequency, rumination
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Cognition Control Commands Mixin for cMUSH
 
@@ -6,7 +50,7 @@ Contains commands for managing agent cognitive processes:
 - @set_frequency: Set rumination interval
 - @ruminate: Force immediate rumination
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -157,3 +201,7 @@ class CognitionCommandsMixin:
                 'output': f"Error during rumination: {str(e)}",
                 'events': [rumination_event]
             }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

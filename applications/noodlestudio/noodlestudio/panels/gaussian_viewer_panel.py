@@ -1,21 +1,36 @@
-"""
-Gaussian Viewer Panel - Native MPS-accelerated Gaussian splat viewport.
-
-Unity-style camera controls:
-- Left drag: Orbit around target
-- Right drag: Pan
-- Scroll: Zoom in/out
-- F: Focus/fit all
-- Middle drag: Pan (alternate)
-
-Performance notes:
-- Renders at low resolution during interaction
-- Full resolution render when interaction stops
-- Uses background thread to prevent UI freeze
-
-Author: Caitlyn + Claude (NinaK)
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Gaussian Viewer Panel - Native MPS-accelerated Gaussian splat viewport.
+#
+#   Unity-style camera controls: - Left drag: Orbit around ta...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.gaussian_viewer_panel
+# PURPOSE:  gaussian viewer panel panel UI
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   GaussianViewerPanel
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import logging
@@ -1410,3 +1425,7 @@ class GaussianViewerPanel(QWidget):
         """Force a re-render (call after Inspector changes)."""
         self._request_preview_render()
         self._schedule_full_render()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

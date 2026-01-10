@@ -1,19 +1,36 @@
-"""
-Bind Trained Gaussians to VRM Skeleton.
-
-Takes trained Gaussians from OpenSplat and binds them to the VRM skeleton
-by transferring skinning weights from the nearest mesh vertices.
-
-The pipeline:
-1. Load trained Gaussians (.ply from OpenSplat)
-2. Load original VRM (for skeleton + skinning weights)
-3. For each Gaussian, find nearest mesh vertex
-4. Transfer skinning weights from that vertex
-5. Save as .radiance with full skeleton binding
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Bind Trained Gaussians to VRM Skeleton.
+#
+#   Takes trained Gaussians from OpenSplat and binds them to ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tools.bind_gaussians_to_skeleton
+# PURPOSE:  Bind Trained Gaussians to VRM Skeleton.
+# LAYER:    Studio / Tools
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   load_gaussian_ply(), transfer_skinning_weights(), bind_gaussians_to_skeleton()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 import struct
@@ -381,3 +398,7 @@ if __name__ == '__main__':
     print(f"Created: {output_path}")
     print(f"  Gaussians: {asset.gaussian_count:,}")
     print(f"  Bones: {len(asset.bones) if asset.bones else 0}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

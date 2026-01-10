@@ -1,3 +1,42 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Permissions System
+#
+#   Controls who can do what with objects and characters - like
+#   Second Life's permission system. Every item tracks its creator
+#   (who made it), owner (who has it now), and what operations
+#   are allowed (edit, copy, give away, delete). When you transfer
+#   something, the "next owner permissions" kick in.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.permissions
+# PURPOSE:  Second Life-style permission management for entities
+# LAYER:    Backend / Authorization
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   Permission       Bitwise flags (MODIFY, COPY, TRANSFER, etc.)
+#   PermissionSet    Complete permission configuration
+#   EntityMetadata   Full provenance and permission tracking
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Second Life-style Permissions System
 
@@ -9,7 +48,7 @@ Based on Second Life's permission model:
 - Group: Optional group ownership
 - Permissions: modify, copy, transfer
 
-Author: Commander Spock + Lieutenant Caitlyn
+Author: Caitlyn + Claude
 Date: November 22, 2025
 """
 
@@ -387,3 +426,7 @@ def permissions_public_modify() -> PermissionSet:
         group=Permission.NONE,
         everyone=Permission.MODIFY | Permission.MOVE
     )
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

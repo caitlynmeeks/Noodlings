@@ -1,3 +1,42 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Anthropic Client - Direct Claude Access
+#
+#   Anthropic makes Claude, arguably the most capable AI model
+#   family. This client wraps their official SDK, handling the
+#   differences from OpenAI's format (system prompt is separate,
+#   messages have different structure). Supports Claude Opus,
+#   Sonnet, and Haiku - from most capable to most economical.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.providers.anthropic_client
+# PURPOSE:  Direct Anthropic API access for Claude models
+# LAYER:    Backend / LLM Interface
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AnthropicClient       LLMClient implementation for Claude
+#   AnthropicClientError  Exception for API errors
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Anthropic Client
 
@@ -228,3 +267,7 @@ if __name__ == '__main__':
     else:
         print("Set ANTHROPIC_API_KEY environment variable to test")
         print("Get your key at: https://console.anthropic.com/settings/keys")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

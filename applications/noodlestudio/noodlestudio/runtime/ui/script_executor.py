@@ -1,19 +1,36 @@
-"""
-UI Script Executor - Lightweight script execution for UI events
-
-Executes JavaScript code in response to UI events (button clicks, etc.)
-without the full ScriptedFacet overhead. Provides a UI-focused API.
-
-Scripts have access to:
-    - ui: Component value access (get, set, show, hide)
-    - event: Rich event data (type, source, value, x, y, key, modifiers, etc.)
-    - app: NoodleApp instance (if available)
-    - console: Logging functions
-
-Author: Caitlyn + Claude
-Date: January 3, 2026
-Updated: January 4, 2026 - Added UIEventData support (Phase 7A)
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   UI Script Executor - Lightweight script execution for UI events
+#
+#   Executes JavaScript code in response to UI events (button...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.script_executor
+# PURPOSE:  Script Executor
+# LAYER:    Studio / UI Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   UIScriptExecutor
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import time
 import json
@@ -563,3 +580,7 @@ if __name__ == "__main__":
     print(f"  Error: {result['error']}")
 
     print(f"\n=== Stats: {executor.get_stats()} ===")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

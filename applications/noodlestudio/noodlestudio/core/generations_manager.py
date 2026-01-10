@@ -1,30 +1,36 @@
-"""
-Generations Manager - Storage and retrieval of AI-generated assets.
-
-Handles all AI-generated content (images, audio, etc.) with:
-- Organized folder structure by type and date
-- Rich metadata for searchability
-- Thumbnail generation for UI display
-- Event notifications for new generations
-
-Storage Structure:
-    Generations/
-        Images/
-            2025-12/
-                img_abc123.png
-                img_abc123.json  (metadata)
-        Audio/
-            2025-12/
-                audio_def456.wav
-                audio_def456.json  (metadata)
-
-Events:
-- generation_stored: New generation saved to disk
-- generations_cleared: Generations folder cleared
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Generations Manager - Storage and retrieval of AI-generated assets.
+#
+#   Handles all AI-generated content (images, audio, etc.) wi...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.generations_manager
+# PURPOSE:  Generations Manager
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   GenerationMetadata, GenerationsManager, get_generations_manager()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import json
 import logging
@@ -397,3 +403,7 @@ def get_generations_manager(base_path: Optional[str] = None) -> GenerationsManag
         _generations_manager_instance = GenerationsManager(base_path)
 
     return _generations_manager_instance
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

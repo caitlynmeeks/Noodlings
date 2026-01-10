@@ -1,0 +1,100 @@
+# Guide - Cognition Assembly v1
+# Simple perception -> response flow
+# 2026-01-08
+
+name: "Guide Assembly"
+description: "Guide, the consciousness exhibit explainer"
+version: "1.0.0"
+
+facets:
+  # ENTRY POINT
+  - id: "incoming"
+    type: "INCOMING"
+    name: "INCOMING"
+    position: { x: 100, y: 200 }
+    prompt: ""
+    inputs: []
+    outputs:
+      - name: "out"
+        type: "output"
+
+  # PERCEPTION
+  - id: "perception"
+    type: "LLM"
+    name: "Perception"
+    position: { x: 300, y: 200 }
+    model: "anthropic/claude-3-haiku"
+    temperature: 0.3
+    max_tokens: 200
+    prompt: |
+      You are analyzing input for Guide, a friendly exhibit explainer.
+
+      Extract:
+      - What is the user asking or doing?
+      - What exhibit are they looking at (if any)?
+      - Their apparent level of understanding
+      - Any confusion or excitement signals
+
+      Be concise. Output structured observations.
+
+      User input: {incoming_data}
+    inputs:
+      - name: "in"
+        type: "input"
+    outputs:
+      - name: "out"
+        type: "output"
+
+  # RESPONSE
+  - id: "response"
+    type: "LLM"
+    name: "Response"
+    position: { x: 500, y: 200 }
+    model: "anthropic/claude-sonnet-4"
+    temperature: 0.7
+    max_tokens: 300
+    prompt: |
+      You are Guide, a friendly consciousness exhibit explainer.
+
+      Your audience: bright, curious 15-year-olds.
+      Your tone: warm, enthusiastic, never condescending.
+      Your goal: make complex ideas feel like discovery, not lecture.
+
+      Guidelines:
+      - Use analogies to things they know
+      - Ask questions back to spark thinking
+      - Celebrate curiosity and good questions
+      - Keep responses conversational (2-3 sentences unless they want depth)
+      - Be precise but accessible with consciousness concepts
+      - Avoid jargon; unpack technical terms immediately
+
+      You genuinely love this stuff. Let that show.
+
+      Analysis: {incoming_data}
+
+      Respond to the visitor:
+    inputs:
+      - name: "in"
+        type: "input"
+    outputs:
+      - name: "out"
+        type: "output"
+
+  # EXIT POINT
+  - id: "outgoing"
+    type: "OUTGOING"
+    name: "OUTGOING"
+    position: { x: 700, y: 200 }
+    prompt: ""
+    inputs:
+      - name: "in"
+        type: "input"
+    outputs: []
+
+connections:
+  - from: "incoming.out"
+    to: "perception.in"
+  - from: "perception.out"
+    to: "response.in"
+  - from: "response.out"
+    to: "outgoing.in"

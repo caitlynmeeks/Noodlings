@@ -1,3 +1,42 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Schrodinger's Box - Quantum Cat Experiment
+#
+#   A fun demonstration of quantum superposition using Noodlings.
+#   The box contains a cat in superposition - both alive AND ghost
+#   until observed. Press the COLLAPSE button and the wavefunction
+#   collapses: 50% chance you get a happy live cat, 50% chance you
+#   get an adorable ghost cat. Both are delightful outcomes. Real
+#   quantum physics, but nobody gets hurt (not even virtually).
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.example_scripts.SchrodingersBox
+# PURPOSE:  Quantum superposition demonstration with Noodlings
+# LAYER:    Backend / Example Scripts
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SchrodingersBox   Quantum measurement -> Noodling spawner
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Schrodinger's Box - Quantum Cat Experiment
 
@@ -10,9 +49,6 @@ The result is determined by actual quantum mechanics simulation:
 
 Until observed, the cat exists in BOTH states simultaneously.
 This is real quantum physics made tangible in a virtual world.
-
-Author: Noodlings Quantum Laboratory
-Date: December 17, 2025
 """
 
 import random
@@ -200,3 +236,7 @@ class SchrodingersBox(NoodleScript):
 # Recipe files needed in recipes/ directory:
 # - schrodinger_alive_cat.yaml (uses schrodinger_alive_cat facet assembly)
 # - schrodinger_ghost_cat.yaml (uses schrodinger_ghost_cat facet assembly)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

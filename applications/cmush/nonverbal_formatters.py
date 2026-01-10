@@ -1,3 +1,43 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Nonverbal Communication Formatters
+#
+#   Translates technical body language data into natural English.
+#   Takes FACS codes (like AU6 = cheeks raised) and Laban movement
+#   qualities (like "light + sudden") and describes them without
+#   using emotion labels. Instead of saying "happy face," we say
+#   "cheeks and corners lifted." This preserves the continuous
+#   nature of affect rather than forcing discrete emotion boxes.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.nonverbal_formatters
+# PURPOSE:  Convert FACS/Laban data to natural language descriptions
+# LAYER:    Backend / Communication
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   describe_facs()              FACS action units to text
+#   describe_laban()             Laban effort qualities to text
+#   format_nonverbal_for_chat()  Combined description for display
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Nonverbal Communication Formatters
 
@@ -6,7 +46,7 @@ JSON data into human-readable text descriptions using LLM.
 
 NO DISCRETE EMOTION LABELS - preserves continuous affect space.
 
-Author: Commander Spock + Lieutenant Caitlyn
+Author: Caitlyn + Claude
 Date: November 25, 2025
 """
 
@@ -227,3 +267,7 @@ if __name__ == "__main__":
     print("  face_desc = await describe_facs(facs_data, llm_client, affect)")
     print("  body_desc = await describe_laban(laban_data, llm_client, affect)")
     print("  combined = await format_nonverbal_for_chat(facs, laban, llm, affect)")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

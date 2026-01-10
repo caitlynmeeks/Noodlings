@@ -1,22 +1,36 @@
-"""
-VRM Parser - Parse VRM avatar files for Gaussian Splatting conversion.
-
-VRM is a glTF-based format for humanoid avatars, popular in VTubing and anime games.
-This parser extracts:
-- Base mesh and textures
-- Skeleton (humanoid bone mapping)
-- Skinning weights (for deformable Gaussians)
-- Blend shapes (facial expressions)
-- Spring bone definitions (hair/cloth physics)
-- MToon material parameters (cel shading)
-
-VRM Specifications:
-- VRM 0.x: Uses VRM extension
-- VRM 1.0: Uses VRMC_vrm, VRMC_springBone, VRMC_materials_mtoon
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   VRM Parser - Parse VRM avatar files for Gaussian Splatting conversion.
+#
+#   VRM is a glTF-based format for humanoid avatars, popular ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.vrm_parser
+# PURPOSE:  Vrm Parser
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   Vector3, Quaternion, Transform, Bone, Skeleton
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import json
 import struct
@@ -1005,3 +1019,7 @@ if __name__ == '__main__':
 
     result = vrm_to_gaussian_package(vrm_path, output_dir)
     print(f"Output: {result}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

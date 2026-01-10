@@ -1,25 +1,36 @@
-"""
-NoodleStudio Build System - Create standalone applications from projects
-
-This module provides the build infrastructure for packaging NoodleStudio
-projects into standalone executables that can run without the editor.
-
-Core Components:
-    Builder - Main orchestrator for the build process
-    BuildConfig - Configuration loaded from build.yaml
-    Packager - Asset collection and filtering
-    MacOSBundler - Creates macOS .app bundles
-
-Usage:
-    from noodlestudio.appbuilder import Builder, BuildConfig
-
-    config = BuildConfig.load("/path/to/project")
-    builder = Builder(config)
-    result = await builder.build("/path/to/output.app")
-
-Author: Caitlyn + Claude
-Date: January 3, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   NoodleStudio Build System - Create standalone applications from projects
+#
+#   This module provides the build infrastructure for packagi...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.appbuilder.__init__
+# PURPOSE:  Module exports
+# LAYER:    Studio / Build System
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   (none)
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from .builder import Builder, BuildConfig, BuildResult
 
@@ -30,3 +41,7 @@ __all__ = [
 ]
 
 __version__ = '1.0.0'
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

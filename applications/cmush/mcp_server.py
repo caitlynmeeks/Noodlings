@@ -1,4 +1,42 @@
 #!/usr/bin/env python3
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   MCP Server for NoodleMUSH
+#
+#   The Model Context Protocol (MCP) lets Claude instances connect
+#   to external tools. This server gives Claude the ability to
+#   interact with noodleMUSH - sending messages, observing agent
+#   internal states, querying the session profiler, and asking
+#   KIMMIE to interpret what is happening. It is like giving
+#   Claude a window into the AI agents' inner experiences.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.mcp_server
+# PURPOSE:  MCP integration for Claude to observe noodleMUSH
+# LAYER:    Backend / Integration
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodleMUSHMCPServer   MCP server with noodleMUSH tool handlers
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 NoodleMUSH MCP Server
 
@@ -11,7 +49,7 @@ Tools provided:
 - noodlemush_ask_kimmie: Get @Kimmie's interpretation of consciousness data
 - noodlemush_list_agents: List all active agents in the world
 
-Author: NoodleMUSH Project
+Author: Caitlyn + Claude
 Date: November 2025
 """
 
@@ -380,3 +418,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

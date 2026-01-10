@@ -1,16 +1,36 @@
-"""
-Facet Commands - Undo commands for Facets Editor operations
-
-Commands for:
-- Moving facets (with drag merging)
-- Creating/deleting facets
-- Editing facet properties (prompt, model, etc.)
-- Creating/deleting connections
-- Toggling lock state
-
-Author: Commander Spock + Cadet Caity
-Date: December 15, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Facet Commands - Undo commands for Facets Editor operations
+#
+#   Commands for: - Moving facets (with drag merging) - Creat...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.commands.facet_commands
+# PURPOSE:  facet commands facet implementation
+# LAYER:    Studio / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MoveFacetCommand, CreateFacetCommand, DeleteFacetCommand, EditFacetPropertyCommand, CreateConnectionCommand
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, Any, Optional, Tuple, TYPE_CHECKING
 from PyQt6.QtGui import QUndoCommand
@@ -529,3 +549,7 @@ class GenericPropertyCommand(MergeableCommand):
         # Merge: keep our old_value, take their new_value
         self.new_value = other.new_value
         return True
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

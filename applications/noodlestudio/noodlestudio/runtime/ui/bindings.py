@@ -1,24 +1,36 @@
-"""
-Component Value Binding System
-
-Enables automatic synchronization between component properties.
-When a source value changes, bound targets update automatically.
-
-Like Delphi's TDataSource or WPF's data binding, but simpler:
-- One-way binding (source -> target)
-- Expression support (simple property paths)
-- No complex MVVM patterns
-
-Usage in YAML:
-    Label:
-      name: "status"
-      bindings:
-        text: "input.value"           # Bind to another component's value
-        visible: "checkbox.checked"   # Bind visibility to a checkbox
-
-Author: Caitlyn + Claude
-Date: January 3, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Component Value Binding System
+#
+#   Enables automatic synchronization between component prope...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.bindings
+# PURPOSE:  Component Value Binding System
+# LAYER:    Studio / UI Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   Binding, BindingManager, parse_bindings_from_yaml()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 from dataclasses import dataclass, field
@@ -435,3 +447,7 @@ if __name__ == "__main__":
     manager.notify_change('input', 'value')
 
     print(f"\n=== Stats: {manager.get_stats()} ===")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

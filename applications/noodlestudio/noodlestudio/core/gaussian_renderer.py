@@ -1,19 +1,36 @@
-"""
-Gaussian Renderer - GPU-accelerated via gsplat-mps or PyTorch fallback.
-
-This renderer implements 3D Gaussian Splatting with two backends:
-1. gsplat-mps: GPU-accelerated Metal shaders (~200+ FPS on M3 Ultra)
-2. PyTorch software: CPU/MPS fallback (~0.1 FPS)
-
-Key features:
-- GPU acceleration via gsplat-mps when available
-- Automatic fallback to software rendering
-- MPS acceleration on Apple Silicon
-- Integrates with RadianceAsset format
-
-Author: Caitlyn + NinaK (Vulcan Nina Hagen)
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Gaussian Renderer - GPU-accelerated via gsplat-mps or PyTorch fallback.
+#
+#   This renderer implements 3D Gaussian Splatting with two b...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.gaussian_renderer
+# PURPOSE:  Gaussian Renderer
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CameraParams, GaussianRenderer, create_orbit_camera(), render_turntable()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import math
 import logging
@@ -899,3 +916,7 @@ __all__ = [
 if False:  # TYPE_CHECKING
     from .semantic_world.radiance_scene_builder import RenderBatch, RadianceSceneBuilder
     from .radiance_component import RadianceComponent
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

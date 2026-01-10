@@ -1,3 +1,54 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Noodle Component
+#
+#   This is the bridge between scripts and Noodling internals.
+#   When you have a Noodling character, you can attach this
+#   component to read its emotional state:
+#
+#     noodle = Noodlings.Find("agent_phi")
+#     noodleComp = noodle.GetComponent("Noodle")
+#
+#     affect = noodleComp.GetCurrentAffect()
+#     # Returns [valence, arousal, fear, sorrow, boredom]
+#     # valence: -1 (sad) to +1 (happy)
+#     # arousal: 0 (calm) to 1 (excited)
+#
+#   You can also subscribe to events:
+#     noodleComp.OnSurpriseSpike(lambda s: print(f"Surprised: {s}"))
+#     noodleComp.OnSpeech(lambda text: print(f"Said: {text}"))
+#
+#   This lets scripts react to what Noodlings are feeling - for
+#   example, playing sound effects when they're surprised, or
+#   triggering animations when their mood changes.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings_scripting.noodle_component
+# PURPOSE:  Script access to Noodling consciousness state
+# LAYER:    Scripting
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodleComponent  Unity-style component for reading Noodling state
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Noodle Component - Consciousness State Access
 
@@ -471,3 +522,7 @@ class NoodleComponent:
 
     def __repr__(self):
         return f"NoodleComponent({self.agent_id})"
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

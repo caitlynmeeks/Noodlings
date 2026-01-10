@@ -1,4 +1,43 @@
 #!/usr/bin/env python3
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Comparison Benchmark
+#
+#   Demonstrates the efficiency difference between noodleMUSH's
+#   stateful architecture and a standard LLM approach. In the
+#   standard way, the AI must re-read the entire conversation
+#   every turn (like re-reading a whole book each time). With
+#   noodleMUSH, agents maintain persistent internal states -
+#   like having actual memory. This benchmark shows the token
+#   savings and character consistency improvements.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.comparison_benchmark
+# PURPOSE:  Benchmark stateful vs stateless LLM approaches
+# LAYER:    Backend / Testing
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ComparisonBenchmark   Runs parallel tests and measures tokens
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Cognitive Manifold vs Standard LLM - Comparison Benchmark
 
@@ -8,7 +47,7 @@ Demonstrates:
 3. Memory retention (episodic vs context window)
 4. Multi-agent dynamics (individual states vs single model)
 
-Author: Commander Spock + Cadet Caity
+Author: Caitlyn + Claude
 Date: November 22, 2025
 """
 
@@ -277,3 +316,7 @@ if __name__ == '__main__':
         print(f"\n\nERROR: {e}")
         import traceback
         traceback.print_exc()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

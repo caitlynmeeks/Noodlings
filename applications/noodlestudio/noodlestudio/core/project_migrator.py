@@ -1,14 +1,36 @@
-"""
-Project Migrator - Converts legacy data to PROJECT_SPEC.md format.
-
-Migrates from:
-- cmush/world/agents.json → Stages/*/Instances/
-- cmush/world/rooms.json → Stages/*/Zones/
-- cmush/world/stages.json → Stages/*/stage.yaml
-- cmush/recipes/*.yaml → Noodlings/*/recipe.yaml
-- noodlestudio/facet_assemblies/*.yaml → Noodlings/*/assembly.yaml
-- noodlestudio/library/noodlings/ → Noodlings/
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Project Migrator - Converts legacy data to PROJECT_SPEC.md format.
+#
+#   Migrates from: - cmush/world/agents.json → Stages/*/Insta...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.project_migrator
+# PURPOSE:  Project Migrator
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ProjectMigrator, migrate_to_project()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import json
@@ -720,3 +742,7 @@ if __name__ == "__main__":
     success, report = migrate_to_project(source, target, dry_run)
     print(report)
     sys.exit(0 if success else 1)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,3 +1,44 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Stage Model - Zone-Based Spatial System
+#
+#   Virtual worlds need to know who is near whom. This module
+#   uses "zones" (like rooms in a house) instead of complex 3D
+#   physics. Asking "who's near Red?" just checks zone membership.
+#   It's USD-compatible (same format as Pixar films), supports
+#   containment (Red is IN the fireplace), and tags (this chair
+#   is "sittable"). Works for both text MUDs and 3D visualization.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.stage_model
+# PURPOSE:  Zone-based spatial model for proximity queries
+# LAYER:    Backend / World Model
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   Entity                Base class for objects, users, agents
+#   Stage                 Zone-based spatial container
+#   StageQuery            Spatial query utilities
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Stage Model - Zone-based spatial model for noodleMUSH.
 
@@ -313,3 +354,7 @@ class StageQuery:
                 count += 1
 
         return count
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

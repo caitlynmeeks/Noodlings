@@ -1,11 +1,36 @@
-"""
-Node Definitions - Templates for all Neural Canvas node types.
-
-Provides factory functions to create preconfigured nodes.
-
-Author: Commander Spock + Cadet Caity
-Date: December 8, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Node Definitions - Templates for all Neural Canvas node types.
+#
+#   Provides factory functions to create preconfigured nodes.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.neural_canvas.node_definitions
+# PURPOSE:  Node Definitions
+# LAYER:    Studio / Neural Canvas
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   create_node_from_type(), get_node_icon(), get_node_color()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, Any
 from .neural_node import NeuralNode, NodeType, Port, DataType, WeightInfo
@@ -1846,3 +1871,7 @@ def get_node_icon(node_type: NodeType) -> str:
 def get_node_color(node_type: NodeType) -> str:
     """Get color for node type."""
     return NODE_DEFINITIONS.get(node_type, {}).get('color', '#757575')
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

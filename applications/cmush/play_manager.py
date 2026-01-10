@@ -1,3 +1,43 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Play Manager - BRENDA's Theatrical Production System
+#
+#   Imagine a stage director who can create and run entire plays
+#   with AI actors. That's BRENDA. Users describe scenarios in
+#   plain English ("Toad crashes his car into a hedge"), and this
+#   module generates a full theatrical script with scenes, beats,
+#   and stage directions. Agents don't follow a script word-for-word
+#   - they receive "circumstances" (stimuli) and respond naturally.
+#   BRENDA directs without puppeteering.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.play_manager
+# PURPOSE:  Theatrical scenario creation and execution
+# LAYER:    Backend / Orchestration
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PlayManager           Main orchestrator for drama scenarios
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Play Manager for noodleMUSH
 
@@ -6,9 +46,6 @@ Handles BRENDA's drama management:
 - Play validation against schema
 - Play storage and retrieval
 - Play execution (scene triggers, beat actions)
-
-Author: BRENDA 🌿
-Date: November 2025
 """
 
 import json
@@ -1766,3 +1803,7 @@ PERSONALITY: Boundlessly enthusiastic, helpful, vintage speech synthesis, downpl
             'success': True,
             'message': f" Scene {next_scene_idx + 1}/{len(play['scenes'])}: {play['scenes'][next_scene_idx]['name']}"
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

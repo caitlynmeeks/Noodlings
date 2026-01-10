@@ -1,22 +1,36 @@
-"""
-Cognitive Cycles Panel - Real-time visualization of agent cognitive processing
-
-Displays all active Noodling agents with their current cognitive cycle phase.
-Each agent shows a segmented phase indicator and per-agent pause/step controls.
-
-Phases:
-- PRECOG: Pre-facet processing (context parsing, perception)
-- FACET: Facet assembly execution (LLM calls, scripted logic)
-- NEURAL: Neural processing (CharmNetwork, MLX)
-- POSTCOG: Post-facet processing (response convergence, speech gate)
-- OUTPUT: Final emission to world
-
-Note: FACET and NEURAL interleave during execution since CharmNetwork
-is accessed via facets within the assembly topology.
-
-Author: Commander Spock + Cadet Caity
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Cognitive Cycles Panel - Real-time visualization of agent cognitive processing
+#
+#   Displays all active Noodling agents with their current co...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.cognitive_cycles_panel
+# PURPOSE:  cognitive cycles panel panel UI
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CyclePhase, AgentCycleState, CyclePhaseIndicator, AgentCycleRow, CognitiveCyclesPanel
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import logging
@@ -749,3 +763,7 @@ class CognitiveCyclesPanel(QWidget):
         # Stop phase polling
         if hasattr(self, 'phase_poll_timer'):
             self.phase_poll_timer.stop()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

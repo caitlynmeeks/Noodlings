@@ -1,19 +1,36 @@
-"""
-Utility Facets - Common operations for agentic workflows
-
-These are lightweight, deterministic facets that perform simple operations
-without LLM calls. Useful for:
-- Data transformation and routing
-- Control flow (gates, branches, counters)
-- Math operations (arithmetic, min/max, clamp)
-- String manipulation (concat, split, format)
-- Array operations (get, join, filter)
-
-These can be chained together to build complex data processing pipelines.
-
-Author: Caitlyn + Claude
-Date: December 20, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Utility Facets - Common operations for agentic workflows
+#
+#   These are lightweight, deterministic facets that perform ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.utility_facets
+# PURPOSE:  utility facets facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MathAddFacet, MathSubtractFacet, MathMultiplyFacet, MathDivideFacet, MathMinFacet
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, Any, Optional, List, Union
 from dataclasses import dataclass
@@ -863,3 +880,7 @@ def create_utility_facet(facet_type: str, facet_id: str, config: Optional[Dict] 
         return cls(facet_id, indent=int(indent) if indent else None)
     else:
         return cls(facet_id)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

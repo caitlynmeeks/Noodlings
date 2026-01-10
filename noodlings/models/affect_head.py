@@ -1,11 +1,53 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Affect Head
+#
+#   This translates the AI's internal state into feelings we can
+#   understand. The AI has a 40-dimensional internal state (its
+#   "phenomenal state"), which is too complex for us to read
+#   directly. The Affect Head squishes this down to 5 numbers
+#   we can make sense of:
+#
+#     - Valence: Positive or negative feeling (-1 to +1)
+#     - Arousal: How energized/excited (0 to 1)
+#     - Dominance: Feeling in control vs. overwhelmed (0 to 1)
+#     - Sorrow: Sadness level (0 to 1)
+#     - Boredom: Disengagement level (0 to 1)
+#
+#   It's like having an interpreter who can look at brain scans
+#   and tell you "they're feeling happy but a bit tired."
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.affect_head
+# PURPOSE:  Maps phenomenal state to 5D affect vector
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AffectHead   Neural network head for affect regression
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Affect Head - Continuous 5D Affect Prediction
 
-Predicts continuous affect vectors from phenomenal states.
-Trained via affect regression (Option B).
-
-Author: Caitlyn Meeks
-Date: November 24, 2025
+Maps 40-D phenomenal state to continuous affect vectors.
 """
 
 import mlx.core as mx
@@ -243,3 +285,7 @@ if __name__ == '__main__':
 
     print(f"\nInterpretation: {interpret_affect(affect)}")
     print(f"Emotion (discrete): {classify_emotion_from_affect(affect)}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

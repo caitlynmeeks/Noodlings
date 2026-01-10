@@ -1,7 +1,7 @@
 # LLM Routing Service
 
 **Status**: Phase 2 COMPLETE - Deployed to Production
-**Last Updated**: January 3, 2026
+**Last Updated**: January 8, 2026
 **Authors**: Caitlyn + Claude
 **Inspiration**: OpenRouter
 
@@ -12,6 +12,7 @@
 | Phase | Status | Date |
 |-------|--------|------|
 | Phase 1: Core Routing (Anthropic) | COMPLETE | Jan 3, 2026 |
+| Phase 1.5: API Keys (`nood_xxxxx`) | COMPLETE | Jan 8, 2026 |
 | Phase 2: Admin Dashboard | Not Started | - |
 | Phase 3: Multi-Provider (OpenAI, Google) | Not Started | - |
 | Phase 4: Advanced (Rate limiting, Caching) | Not Started | - |
@@ -21,9 +22,9 @@
 **Endpoint**: `https://api.noodlings.ai/v1/chat/completions`
 
 ```bash
-# Example request
+# Example request (using API key)
 curl -X POST https://api.noodlings.ai/v1/chat/completions \
-  -H "Authorization: Bearer <user_token>" \
+  -H "Authorization: Bearer nood_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "anthropic/claude-3.5-haiku",
@@ -32,13 +33,16 @@ curl -X POST https://api.noodlings.ai/v1/chat/completions \
   }'
 ```
 
-**Tested**: Jan 3, 2026
-- Authentication: Working
+**Tested**: Jan 8, 2026 (end-to-end verification)
+- Authentication: Working (session tokens AND API keys)
+- API Keys: Working (`nood_xxxxx` format, create/list/revoke)
 - Credit checking: Working (402 when insufficient)
 - Anthropic routing: Working
 - Token counting: Working
 - Billing: Working (credits deducted correctly)
 - OpenAI-compatible response format: Working
+
+**Authentication**: Supports both session tokens and API keys (`nood_xxxxx` format). See [API Keys](../backend/api-keys.md) for key management. For CLI/runtime use, set `NOODLINGS_API_KEY` to either a session token or an API key.
 
 ### Supported Models (Production)
 
@@ -483,7 +487,7 @@ NOODLE_LLM_PROVIDER=ollama          # Use local Ollama
 NOODLE_LLM_PROVIDER=anthropic       # Use own Anthropic key
 
 # For noodlings provider, also need:
-NOODLINGS_API_KEY=nood_xxxxx        # User's API key from account
+NOODLINGS_API_KEY=<session_token>   # Session ID from web login (API keys TBD)
 
 # For own keys:
 ANTHROPIC_API_KEY=sk-ant-xxxxx
@@ -932,3 +936,4 @@ For runtime `noodlings` provider:
 | 2026-01-03 | Initial planning document |
 | 2026-01-03 | Added Architecture Decision (parallel systems), Runtime LLM Provider Architecture |
 | 2026-01-03 | Phase 1 COMPLETE: Deployed `/v1/chat/completions` with Anthropic routing |
+| 2026-01-08 | Phase 1.5 COMPLETE: API keys (`nood_xxxxx`) implemented and deployed |

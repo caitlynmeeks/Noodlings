@@ -1,30 +1,36 @@
-"""
-Scene State Manager - The Canonical Truth Holder
-
-The SceneStateManager maintains the authoritative state of the world.
-It is the single source of truth from which:
-    - Perception slices are generated (for noodling cognition)
-    - Scene packets are emitted (for Genie/Mirage rendering)
-    - MUD text is rendered (for text interface)
-
-Events flow IN (from user actions, noodling outputs, world simulation).
-State is maintained.
-Packets flow OUT (to renderers, to facet assemblies).
-
-          ┌─────────────────────────────────────────────┐
-          │           SCENE STATE MANAGER               │
-          │        (canonical truth holder)             │
-          └─────────────────────────────────────────────┘
-                              │
-         ┌────────────────────┼────────────────────┐
-         │                    │                    │
-         ▼                    ▼                    ▼
-    Red's Slice         Yuki's Slice         Full Packet
-    (cognition)         (cognition)          (rendering)
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Scene State Manager - The Canonical Truth Holder
+#
+#   The SceneStateManager maintains the authoritative state o...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.scene_state_manager
+# PURPOSE:  Scene State Manager - The Canonical Truth Holder
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SceneStateManager, get_scene_state_manager(), init_scene_state_manager()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -709,3 +715,7 @@ __all__ = [
     "get_scene_state_manager",
     "init_scene_state_manager",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

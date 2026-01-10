@@ -1,3 +1,41 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agent File System
+#
+#   Each AI agent gets their own private folder on disk - like a
+#   personal filing cabinet. They can store thoughts, read messages,
+#   and keep notes. The system acts as a protective sandbox, making
+#   sure agents can only access their own files and cannot wander
+#   into other parts of the computer. Think of it as giving each
+#   agent their own secure workspace with locked doors.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.agent_filesystem
+# PURPOSE:  Sandboxed filesystem interface for agent private storage
+# LAYER:    Backend / Infrastructure
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AgentFilesystem   Per-agent file operations with quota enforcement
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Agent File System - Sandboxed filesystem interface for Consilience agents
 
@@ -7,7 +45,7 @@ Provides agents with:
 - Sandboxed command execution
 - Storage quotas and security
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -476,3 +514,7 @@ async def test_filesystem():
 
 if __name__ == "__main__":
     asyncio.run(test_filesystem())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

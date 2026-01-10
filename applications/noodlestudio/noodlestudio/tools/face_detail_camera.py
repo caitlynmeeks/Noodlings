@@ -1,16 +1,36 @@
-"""
-Face Detail Camera Generator - Importance-weighted camera views for facial expression training.
-
-Generates camera transforms that focus on expressive facial regions:
-- Lips and mouth corners (speech, emotion)
-- Brow and forehead (concern, surprise, anger)
-- Eyelids and eye corners (subtle emotion cues)
-- Nasolabial folds (smile lines)
-- Profile views (nose, chin, cheekbones)
-
-The key insight: Gaussian splat quality is proportional to training view density.
-More views of the face = more Gaussians allocated to facial details.
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Face Detail Camera Generator - Importance-weighted camera views for facial expression training.
+#
+#   Generates camera transforms that focus on expressive faci...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tools.face_detail_camera
+# PURPOSE:  Face Detail Camera
+# LAYER:    Studio / Tools
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CameraView, FaceRegion, FaceDetailCameraGenerator, generate_face_detail_cameras()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import numpy as np
 import json
@@ -474,3 +494,7 @@ if __name__ == "__main__":
     print("  2. Import transforms.json")
     print("  3. Render each camera to images/frame_XXXX.png")
     print("  4. Run OpenSplat: ./opensplat <output_dir> -n 30000")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

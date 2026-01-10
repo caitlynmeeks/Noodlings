@@ -1,3 +1,65 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Episodic Memory
+#
+#   This file is about memory - how an AI keeps track of recent
+#   moments in a conversation.
+#
+#   Picture a jar that holds exactly 100 marbles. Each marble is
+#   a moment: what the person said, how the AI felt, what was
+#   happening. When marble 101 arrives, the oldest one rolls out
+#   the back. Simple as that.
+#
+#   But here's the interesting part: some moments matter more
+#   than others. The AI notices which memories it keeps returning
+#   to - like how you might keep thinking about something someone
+#   said yesterday. Those become "anchor memories," the moments
+#   that shaped everything after.
+#
+#   So this code does three things:
+#     1. Stores moments (up to 100)
+#     2. Lets old ones go when new ones arrive
+#     3. Notices which ones kept mattering
+#
+#   That's it. A way to remember without drowning in the past.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.memory.episodic_memory
+# PURPOSE:  Circular buffer storing recent phenomenal states
+# LAYER:    Core / Memory
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   EpisodicMemory    Circular buffer with key-value caching
+#
+# DEPENDENCIES:
+#   mlx.core          Apple Silicon tensor operations
+#   numpy             Array utilities
+#   collections.deque Efficient circular buffer
+#
+# RELATED:
+#   hierarchical_memory.py   Long-term consolidation
+#   semantic_memory.py       Concept-level storage
+#   social_memory.py         Relationship tracking
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Episodic Memory Buffer for Consilience Phase 3
 
@@ -7,9 +69,6 @@ Each memory entry stores:
 - Affect vector (5-D emotional state)
 - Key vector (64-D learned representation for retrieval)
 - Metadata (timestamp, surprise, user text, attention weights)
-
-Author: Caitlyn Meeks
-Date: October 2025
 """
 
 from collections import deque
@@ -285,3 +344,8 @@ class EpisodicMemory:
             'oldest_step': self.buffer[0]['step'],
             'newest_step': self.buffer[-1]['step']
         }
+
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# Made with love. Use with love.
+# Caitlyn Meeks 2026 જ⁀➴ ♡

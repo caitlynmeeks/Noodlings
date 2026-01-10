@@ -1,3 +1,51 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agent Commands
+#
+#   These commands manage the lifecycle of AI Noodlings - spawning
+#   them into the world, observing their internal states, and
+#   removing them when needed.
+#
+#   Spawning:
+#     @rez chester       -> Bring Chester into the world
+#     @rez -f chester    -> Fresh start (ignore saved memories)
+#     @rez -e chester    -> Spawn with enlightenment
+#
+#   Observing:
+#     @observe chester   -> See Chester's internal state
+#     @agents            -> List all active Noodlings
+#
+#   Removing:
+#     @remove chester    -> Send Chester away
+#     @reset confirm     -> Nuclear option: reset everything
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_agent
+# PURPOSE:  Noodling lifecycle management commands
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AgentCommandsMixin    Rez, observe, remove Noodlings
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Agent Commands Mixin for cMUSH
 
@@ -9,7 +57,7 @@ Contains commands for agent lifecycle and observation:
 - @agents: List active agents
 - @savestates: Save agent states
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -612,3 +660,7 @@ class AgentCommandsMixin:
             'output': output_msg,
             'events': []
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

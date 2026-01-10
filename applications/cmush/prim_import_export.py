@@ -1,3 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Prim Import/Export - USD-Compatible Scene Interchange
+#
+#   3D worlds need to share objects between different tools.
+#   This module handles importing and exporting "prims" (primitive
+#   objects like furniture, props, and scene elements) using a
+#   USD-augmented format. USD (Universal Scene Description) is the
+#   same format used by Pixar and major studios. Export a room
+#   from Blender, import it here, and Noodlings can interact with
+#   every object - complete with semantic physics and permissions.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.prim_import_export
+# PURPOSE:  USD-compatible import/export for scene objects
+# LAYER:    Backend / World Management
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PrimExporter          Export prims to USD-augmented .prim files
+#   PrimImporter          Import prims from USD-augmented .prim files
+#
+# KEY FUNCTIONS:
+#   export_third_prim()   Preserve the sacred Third Prim Ever
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Prim Import/Export with USD Compatibility
 
@@ -8,9 +52,6 @@ Uses Universal Scene Description (USD) as base format with custom schemas for:
 - noodleMUSH-specific metadata
 
 Compatible with Maya, Houdini, and other USD tools.
-
-Author: Commander Spock + Lieutenant Caitlyn
-Date: November 22, 2025
 """
 
 import json
@@ -521,3 +562,7 @@ if __name__ == '__main__':
         print(f"Name: {imported_obj['name']}")
         print(f"Owner: {imported_obj['owner']}")
         print(f"Has POD: {imported_obj.get('pod') is not None}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

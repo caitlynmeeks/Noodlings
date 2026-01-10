@@ -1,3 +1,42 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Noodling Name Generator
+#
+#   Creates poetic, unique names for AI characters in the style
+#   of indigenous naming traditions - but using machine learning
+#   terminology. Names like "Silent-Gradient-Who-Descends-7294"
+#   or "Patient-Tensor-Through-Gates-42891". With 17 billion
+#   possible combinations, every Noodling gets a unique identity.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.noodling_names
+# PURPOSE:  Generate unique poetic names for Noodling agents
+# LAYER:    Backend / Identity
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   generate_noodling_name()   Create a new unique name
+#   name_to_display()          Convert agent ID to display format
+#   is_noodling_name()         Check if ID uses naming convention
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Noodling Name Generator
 
@@ -7,7 +46,9 @@ but with machine learning and neural network terminology.
 Format: [Descriptor]-[Noun]-[Verb-Phrase]-[Number]
 Example: Silent-Gradient-Who-Descends-Backward-7294
 
-Information space: 64 × 64 × 64 × 65536 = ~17 billion unique combinations (37 bits)
+Information space: 64 x 64 x 64 x 65536 = ~17 billion unique combinations (37 bits)
+
+Author: Caitlyn + Claude
 """
 
 import random
@@ -176,3 +217,7 @@ if __name__ == "__main__":
 
     print(f"\nTotal combinations: {len(DESCRIPTORS)} × {len(NOUNS)} × {len(VERB_PHRASES)} × {NUMBER_MAX:,}")
     print(f"                  = {len(DESCRIPTORS) * len(NOUNS) * len(VERB_PHRASES) * NUMBER_MAX:,}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

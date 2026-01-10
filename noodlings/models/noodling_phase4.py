@@ -1,3 +1,65 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Phase 4: Social Cognition
+#
+#   Humans don't just have feelings - we also have guesses about
+#   what OTHER people are feeling. Psychologists call this
+#   "Theory of Mind" - the ability to imagine what's going on
+#   inside someone else's head.
+#
+#   Phase 4 gives Noodlings this social awareness. When talking
+#   to Alice and Bob, the AI maintains separate models of:
+#     - What Alice might be feeling right now
+#     - What Bob might be feeling right now
+#     - The history and dynamics between Alice and Bob
+#     - The overall "vibe" of the group conversation
+#
+#   It can track up to 10 different people simultaneously and
+#   uses this social context to respond more appropriately.
+#   When Alice seems upset, the AI notices and adjusts.
+#
+#   ~132,500 parameters - still runs on a laptop, but now
+#   with genuine social intelligence.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.noodling_phase4
+# PURPOSE:  Phase 4 model with Theory of Mind and relationships
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodlingModelPhase4  Full Phase 4 architecture with social cognition
+#
+# DEPENDENCIES:
+#   mlx.core             Apple Silicon tensor operations
+#   mlx.nn               Neural network layers
+#   noodling_attention   Phase 3 base model
+#   social_memory        Multi-agent memory
+#   theory_of_mind       ToM inference module
+#   social_attention     Social attention mechanism
+#
+# RELATED:
+#   noodling_phase6.py   Adds appetite/motivation system on top
+#   theory_of_mind.py    Details of mental state inference
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Consilience Phase 4: Social Cognition & Theory of Mind
 
@@ -487,3 +549,7 @@ class NoodlingModelPhase4(nn.Module):
                 pass
 
         print(f"✓ Loaded Phase 4 weights from {path}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

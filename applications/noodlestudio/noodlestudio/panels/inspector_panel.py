@@ -1,24 +1,36 @@
-"""
-Inspector Panel - Component-based property editor
-
-Shows and edits ALL properties of selected entity:
-- Users: name, description, location, inventory
-- Noodlings: name, species, description, LLM model, personality traits
-- Objects: name, description, properties
-- Rooms: name, description, exits
-
-Every atom of noodleMUSH exposed and editable!
-
-REFACTORED: Uses mixins for maintainability:
-- InspectorBaseMixin: Common utilities (create_property_group, add_text_field, etc.)
-- EntityInspectorMixin: Entity inspection (noodling, zone, prop, etc.)
-- AssetInspectorMixin: Asset panel inspection
-- NeuralInspectorMixin: Neural canvas node inspection
-
-Author: Caitlyn + Claude
-Date: November 17, 2025
-Refactored: December 30, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Inspector Panel - Component-based property editor
+#
+#   Shows and edits ALL properties of selected entity: - User...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.inspector_panel
+# PURPOSE:  Inspector Panel - Component-based property editor
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   InspectorPanel
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import (QDockWidget, QWidget, QVBoxLayout, QFormLayout, QHBoxLayout,
                              QLabel, QLineEdit, QTextEdit, QPushButton, QScrollArea,
@@ -1585,3 +1597,7 @@ class InspectorPanel(
         subprocess.run(['open', temp_path])
 
         # TODO: Watch for file changes and reload
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

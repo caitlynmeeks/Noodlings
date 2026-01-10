@@ -1,3 +1,50 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Orchestration Commands (Phase 6)
+#
+#   These are BRENDA's tools for directing Noodlings like a
+#   theater director. You can adjust their appetites (internal
+#   drives) and set goals to make stories happen.
+#
+#   Appetite commands:
+#     @stoke chester curiosity 0.8  -> Make Chester curious
+#     @sate chester hunger 0.0      -> Chester's not hungry
+#     @appetites chester            -> See all appetites
+#
+#   Goal commands:
+#     @override chester "Find the treasure"
+#     @bias chester "explore" 0.7
+#     @goals chester               -> List Chester's goals
+#
+#   This is the storyteller's toolkit for emergent narrative.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_orchestration
+# PURPOSE:  Phase 6 appetite and goal control
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   OrchestrationCommandsMixin    Stoke, sate, override, bias
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Orchestration Commands Mixin for cMUSH
 
@@ -6,7 +53,7 @@ Contains Phase 6 appetite and goal orchestration commands:
 - @override/@bias/@goals: Goal orchestration
 - @reset_goals/@clear_bias: Clear orchestration
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -302,3 +349,7 @@ class OrchestrationCommandsMixin:
             lines.append("Active Biases: None")
 
         return {'success': True, 'output': '\n'.join(lines), 'events': []}
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

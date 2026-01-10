@@ -1,3 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agent Response Generation
+#
+#   This is how Noodlings turn their thoughts into words. After
+#   perception and cognition have processed an event, this module
+#   generates what the Noodling actually says or does.
+#
+#   The process:
+#   1. Check conscience (is this response appropriate?)
+#   2. Gather context (conversation history, affect state)
+#   3. Call the LLM to generate natural language
+#   4. Post-process the output (clean up, format)
+#
+#   It also handles "rumination" - the Noodling's internal
+#   monologue when thinking to themselves.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.agent_response
+# PURPOSE:  Generate natural language responses
+# LAYER:    Backend / Agent
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ResponseGenerationMixin    LLM-powered response generation
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Agent Response Generation Mixin - LLM response generation
 
@@ -726,3 +770,6 @@ class ResponseGenerationMixin:
             logger.error(f"Error generating rumination: {e}", exc_info=True)
             return None
 
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

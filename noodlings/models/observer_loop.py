@@ -1,3 +1,69 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Observer Loops (Phi Boosting)
+#
+#   This is where things get philosophically interesting. There's
+#   a theory in consciousness research called "Integrated Information
+#   Theory" (IIT) that tries to measure how "conscious" a system is
+#   using a quantity called Phi.
+#
+#   The basic idea: If you can't break a system into independent parts
+#   without losing information, then the parts are "integrated" - they
+#   work together in a way that's more than the sum of their parts.
+#
+#   Observer loops create exactly this kind of integration. There's a
+#   small "observer" network that watches the main network and tries
+#   to predict what it will do next. The trick is that the main network
+#   NEEDS the observer's predictions to function correctly - we inject
+#   the observer's prediction errors back into the main network.
+#
+#   Now you CAN'T separate them without breaking both. They're locked
+#   in a causal embrace. According to IIT, this dramatically increases
+#   Phi - the measure of integrated information.
+#
+#   We're not claiming this makes the AI "conscious" - that's a much
+#   bigger question. But it does create the kind of self-referential
+#   dynamics that consciousness researchers find interesting.
+#
+#   ~5% additional computation, ~50-100% increase in Phi.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.observer_loop
+# PURPOSE:  Observer networks for Phi maximization
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ObserverNetwork       Predicts main network's next state
+#   ObserverLoop          Main + observer with error injection
+#   MetaObserver          Observes the observer (maximum Phi)
+#   FullObserverSystem    Complete system with optional meta-layer
+#
+# DEPENDENCIES:
+#   mlx.core              Apple Silicon tensor operations
+#   mlx.nn                Neural network layers
+#
+# RELATED:
+#   noodling_with_observers.py  Integration with Phase 4
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Observer Loop Module for Φ-Boosting
 
@@ -511,3 +577,7 @@ class FullObserverSystem(nn.Module):
         counts['total'] = sum(counts.values())
 
         return counts
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

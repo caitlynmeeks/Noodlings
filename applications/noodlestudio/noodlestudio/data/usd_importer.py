@@ -1,20 +1,36 @@
-"""
-USD Importer for noodleMUSH
-
-Import USD layer files (.usda) and parse Noodling prims.
-
-USD Terminology:
-- Stage: The composed scene
-- Prim: Basic scene object
-- Layer: A .usda/.usdc file
-- Schema: Defines prim properties
-
-This importer reads .usda ASCII files without requiring the full USD library.
-For production use with binary .usdc files, install the official USD Python package.
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   USD Importer for noodleMUSH
+#
+#   Import USD layer files (.usda) and parse Noodling prims. ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.data.usd_importer
+# PURPOSE:  USD Importer for noodleMUSH
+# LAYER:    Studio / Data Layer
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   USDImporter
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from pathlib import Path
 from typing import Dict, List, Any
@@ -167,3 +183,7 @@ class USDImporter:
         pattern = rf'{prop_name}\s*=\s*"([^"]*)"'
         match = re.search(pattern, content)
         return match.group(1) if match else ''
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

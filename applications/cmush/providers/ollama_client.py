@@ -1,3 +1,42 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Ollama Client - Local Model Inference
+#
+#   Ollama runs AI models locally on your own hardware. No API
+#   key needed, no cloud dependency, complete privacy. This
+#   client connects to Ollama's OpenAI-compatible API at
+#   localhost:11434. Perfect for development, offline use, or
+#   when you want to run models like DeepSeek-R1 on your M3 Mac.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.providers.ollama_client
+# PURPOSE:  Local LLM inference via Ollama
+# LAYER:    Backend / LLM Interface
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   OllamaClient       LLMClient implementation for Ollama
+#   OllamaClientError  Exception for local inference errors
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Ollama Client
 
@@ -195,3 +234,7 @@ async def test_ollama_client():
 if __name__ == '__main__':
     import asyncio
     asyncio.run(test_ollama_client())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

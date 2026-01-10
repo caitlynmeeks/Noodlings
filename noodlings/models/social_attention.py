@@ -1,3 +1,63 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Social Attention
+#
+#   Phase 3 attention looks back at your OWN past experiences.
+#   But in a social situation, you also think about what OTHERS
+#   have experienced. When Alice mentions her dog died, you
+#   remember your own grief - but you also recall what you know
+#   about Alice's relationship with that dog.
+#
+#   This module extends attention to include social awareness.
+#   It has 6 specialized "heads" that each look for different
+#   kinds of relevant memories:
+#     - 2 heads: Your own past feelings (self patterns)
+#     - 2 heads: What others have felt (other agents' patterns)
+#     - 2 heads: Relationship dynamics (how you interact together)
+#
+#   This is what lets the AI remember not just its own history,
+#   but the history of your relationship with it.
+#
+#   ~20,000 parameters.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.social_attention
+# PURPOSE:  Multi-head attention over self, others, and relationships
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SocialKeyEncoder          Memory keys include social context
+#   SocialQueryGenerator      Queries include "who am I with?"
+#   SocialMultiHeadAttention  6-head social-aware attention
+#   SocialContextIntegrator   Blend self + others + relationships
+#
+# DEPENDENCIES:
+#   mlx.core                  Apple Silicon tensor operations
+#   mlx.nn                    Neural network layers
+#
+# RELATED:
+#   attention_modules.py      Basic (non-social) attention
+#   noodling_phase4.py        Uses this for social cognition
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Social Multi-Head Attention: Attending to Self and Others
 
@@ -404,3 +464,7 @@ def encode_social_context_vector(
     # Slots 7-15: Reserved for future use / learned features
 
     return mx.array(features, dtype=mx.float32)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

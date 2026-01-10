@@ -1,25 +1,36 @@
-"""
-Backend Services for NoodleStudio
-=================================
-
-Client-side wrappers for the Noodlings cloud API.
-All persistent data flows through these services.
-
-Services:
-    - InventoryService: Avatars, props, stages you own
-    - FriendService: Social graph, online status, follow permissions
-    - WorldDirectory: Public stages, population counts
-    - TeleportService: Invitations, destination registry
-    - AchievementService: Milestones, progress tracking
-    - ChatHistory: Persistent message logs
-    - AssetStorage: R2 storage for Gaussians, avatars, etc.
-
-Architecture:
-    NoodleStudio → BackendServices → CloudflareWorkers → D1/R2/KV
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Backend Services for NoodleStudio
+#
+#   ================================= Client-side wrappers fo...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.backend_services
+# PURPOSE:  Backend Services for NoodleStudio
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AssetType, OnlineStatus, FriendStatus, TeleportStatus, InventoryItem
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import json
@@ -952,3 +963,7 @@ if __name__ == '__main__':
 
     print("\n" + "=" * 60)
     print("Test complete!")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

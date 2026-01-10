@@ -1,29 +1,36 @@
-"""
-Cognition Monitor - Central registry for assembly status reporting
-
-This singleton allows running assemblies to report their status to a central
-location that can be polled by the Cognitive Cycles Panel.
-
-Architecture-agnostic: The monitor doesn't know what KIND of cognition is
-happening - assemblies publish their own status_text strings.
-
-Usage:
-    # From within an assembly or facet executor:
-    from noodlestudio.core.cognition_monitor import get_cognition_monitor, CyclePhase
-
-    monitor = get_cognition_monitor()
-    monitor.report_status(
-        thing_id="chester",
-        assembly_id="emotional-processing",
-        phase=CyclePhase.FACET,
-        current_facet="LLMFacet",
-        status_text="valence: 0.7, arousal: 0.4",
-        activity=0.8
-    )
-
-Author: Caitlyn + Claude
-Date: January 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Cognition Monitor - Central registry for assembly status reporting
+#
+#   This singleton allows running assemblies to report their ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.cognition_monitor
+# PURPOSE:  Cognition Monitor
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CyclePhase, AssemblyStatus, ThingStatus, CognitionMonitor, get_cognition_monitor()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -432,3 +439,7 @@ __all__ = [
     'AssemblyStatus',
     'ThingStatus',
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

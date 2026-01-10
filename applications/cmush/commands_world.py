@@ -1,3 +1,51 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   World Commands
+#
+#   These are the everyday commands you use to exist in the
+#   virtual world - moving between rooms, talking to people,
+#   looking at things, and picking stuff up.
+#
+#   Movement:
+#     north, south, east, west, up, down (or n/s/e/w/u/d)
+#
+#   Communication:
+#     say Hello!     -> You say, "Hello!"
+#     emote waves    -> Chester waves.
+#     tell bob Hi    -> Whisper to Bob
+#
+#   Observation:
+#     look           -> See the room and who's in it
+#     inventory      -> What are you carrying?
+#     who            -> Who's online?
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_world
+# PURPOSE:  Basic world interaction commands
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   WorldCommandsMixin    Movement, communication, observation
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 World Commands Mixin for cMUSH
 
@@ -7,7 +55,7 @@ Contains basic world interaction commands:
 - Observation: look, inventory, who
 - Manipulation: take, drop
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -514,3 +562,7 @@ class WorldCommandsMixin:
             'output': f"You drop {obj['name']}.",
             'events': []
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

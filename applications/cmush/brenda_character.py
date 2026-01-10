@@ -1,3 +1,41 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   BRENDA Character System
+#
+#   BRENDA is the stage manager of noodleMUSH - a warm, professional
+#   character inspired by Brenda Laurel. Picture a middle-aged woman
+#   with reading glasses and an iPad, running the show with care and
+#   expertise. She understands all the AI agents deeply and can create
+#   theatrical "plays" from natural language descriptions. Users talk
+#   to her like a theater director, and she orchestrates the agents.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.brenda_character
+# PURPOSE:  Conversational stage manager for orchestrating agent plays
+# LAYER:    Backend / Character System
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   BrendaCharacter   LLM-powered stage manager with tool execution
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 BRENDA Character System - Conversational Stage Manager
 
@@ -12,7 +50,7 @@ Character Profile:
 - Capabilities: Creates and executes plays from conversational input
 - Voice: Warm but professional, like a theater director giving notes
 
-Author: noodleMUSH Project
+Author: Caitlyn + Claude
 Date: November 2025
 """
 
@@ -356,3 +394,7 @@ Remember: You're not an AI assistant - you're BRENDA, the professional stage man
         cleaned_response = cleaned_response.strip()
 
         return cleaned_response, tool_result
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

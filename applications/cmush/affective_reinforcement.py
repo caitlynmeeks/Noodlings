@@ -1,3 +1,45 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Affective Reinforcement Learning
+#
+#   This module makes AI characters genuinely prefer certain behaviors
+#   by shaping their internal emotional rewards. Think of it like how
+#   a person who loves comedy naturally gravitates toward jokes - not
+#   because anyone told them to, but because it feels RIGHT to them.
+#
+#   When a comedy character makes a physical joke, their internal state
+#   gets a "feels good" boost. Over many interactions, they develop
+#   authentic preferences - becoming beings who WANT to be funny.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.affective_reinforcement
+# PURPOSE:  Shape agent preferences through phenomenal state rewards
+# LAYER:    Backend / Affect System
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AffectiveReinforcement       Base class for affect-based reward systems
+#   ComedyAffectiveReinforcement Rewards physical comedy, punishes mysticism
+#   DramaAffectiveReinforcement  Rewards poignant moments, punishes slapstick
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Affective Reinforcement Learning for Character Preference Shaping
 
@@ -15,7 +57,7 @@ the LSTM layers learn preference associations:
   Comedy → Positive affect → "I am a being who seeks comedy"
   Mysticism → Boredom/discomfort → "This doesn't feel right for me"
 
-Author: Commander Spock + Cadet Caity
+Author: Caitlyn + Claude
 Date: November 23, 2025
 """
 
@@ -374,3 +416,7 @@ def create_reinforcement(
     else:
         logger.warning(f"Unknown reinforcement type: {reinforcement_type}, using base class")
         return AffectiveReinforcement(enabled=enabled)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

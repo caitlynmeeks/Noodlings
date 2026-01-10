@@ -1,4 +1,52 @@
 #!/usr/bin/env python3
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Live Comparison Test
+#
+#   This is a benchmarking tool that watches a live noodleMUSH
+#   conversation and measures how well the agents are doing.
+#
+#   Think of it like a sports statistician tracking a game in
+#   real-time. As Yuki and Carl chat, this tool counts:
+#   - How many tokens each turn uses (efficiency)
+#   - How often they mention their bodies (embodiment)
+#   - Whether they stay in character (Yuki's mysticism vs Carl's cynicism)
+#   - Whether they remember earlier parts of the conversation
+#
+#   So this code does three things:
+#     1. Watches the conversation logs as they happen
+#     2. Counts meaningful patterns in what agents say
+#     3. Generates a report comparing to baseline expectations
+#
+#   A scorekeeper for cognitive authenticity.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.live_comparison_test
+# PURPOSE:  Real-time metrics collection during agent conversations
+# LAYER:    Backend / Testing
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   LiveMetricsCollector    Tracks conversation metrics
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Live Comparison Test - Happening NOW
 
@@ -9,9 +57,6 @@ Caity interacts with Yuki and Carl while we measure:
 4. Memory retention (do they remember earlier turns?)
 
 This runs ALONGSIDE the conversation, tracking metrics in real-time.
-
-Author: Commander Spock
-Date: November 22, 2025
 """
 
 import asyncio
@@ -311,3 +356,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\n\nTest interrupted by user.")
         print("Partial data may be available.")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,3 +1,51 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Clickable Box Example Script
+#
+#   This is a playful example showing how to respond to click
+#   events and spawn creatures into the world.
+#
+#   The box warns you not to click it. But every time you do,
+#   it spawns an Anklebiter - a mischievous little creature.
+#   The more you click, the more chaos you create. Eventually
+#   the box runs out and destroys itself.
+#
+#   This demonstrates:
+#   - Handling OnClick events
+#   - Spawning entities with Noodlings.Rez()
+#   - Tracking state across interactions
+#   - Escalating feedback messages
+#   - Self-destruction (Destroy with delay)
+#
+#   A cautionary tale about curiosity.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.example_scripts.ClickableBox
+# PURPOSE:  Example of click-to-spawn behavior
+# LAYER:    Scripting / Examples
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ClickableBox    NoodleScript that spawns creatures on click
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Clickable Box Example - The Anklebiter Rezzer
 
@@ -12,9 +60,6 @@ Usage:
 4. Anklebiter rezzes!
 5. Click again... another Anklebiter!
 6. Click again... OH NO!
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
 """
 
 from noodlestudio.scripting import NoodleScript, Noodlings, Debug
@@ -82,3 +127,7 @@ class ClickableBox(NoodleScript):
         """Someone tried to use the box."""
         Debug.Log(f"{user} tried to use the box (nice try!)")
         Noodlings.SendMessage(user, "The box has no obvious latch or keyhole. There's just a big red button that says 'DO NOT PRESS'.")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

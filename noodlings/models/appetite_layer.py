@@ -1,24 +1,64 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Appetite Layer
+#
+#   This gives AI characters their WANTS. Not just feelings - actual
+#   drives that push them to pursue things. Think of it like hunger:
+#   when you're hungry, you don't just feel bad, you actively look
+#   for food. Same idea here.
+#
+#   There are 8 core appetites (think of them as basic human needs):
+#
+#     - Curiosity:    Wanting to learn and understand
+#     - Status:       Wanting to be respected
+#     - Mastery:      Wanting to get better at things
+#     - Novelty:      Wanting new experiences
+#     - Safety:       Wanting to feel secure
+#     - Social Bond:  Wanting connection with others
+#     - Comfort:      Wanting ease and pleasure
+#     - Autonomy:     Wanting independence
+#
+#   These appetites accumulate over time (like getting hungry the
+#   longer you don't eat). When an appetite gets strong enough AND
+#   an opportunity appears, it generates a GOAL - something the
+#   character actively pursues.
+#
+#   Example: Mr. Toad has novelty appetite set to 0.95. When he sees
+#   a motor-car, his high novelty + the opportunity = a strong goal
+#   to acquire and drive that car, no matter the consequences.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.appetite_layer
+# PURPOSE:  Goal-directed behavior through accumulating appetites
+# LAYER:    Core / Models (Phase 6)
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AppetiteLayer   8-D appetites + 16-D goal generation
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Appetite Layer - Phase 6 Motivational Architecture
 
-Implements goal-directed behavior through accumulating appetites.
-Sits alongside the slow layer and generates goals based on drives.
-
-8 Core Appetites:
-- curiosity: Drive to learn and explore
-- status: Desire for recognition/prestige
-- mastery: Need to excel and improve
-- novelty: Craving for new experiences
-- safety: Need for security/stability
-- social_bond: Desire for connection
-- comfort: Need for ease and pleasure
-- autonomy: Drive for independence
-
-Goals are generated when appetites reach high levels + opportunities appear.
-Conflicts arise when multiple goals compete for attention.
-
-Author: Caitlyn Meeks
-Date: November 2025
+8 core appetites drive 16 possible goals.
+Goals emerge when appetites are high + opportunities appear.
 """
 
 import mlx.core as mx
@@ -479,3 +519,7 @@ if __name__ == '__main__':
         print(f"    {goal_name:25s}: {strength:.3f}")
 
     print("\n✓ AppetiteLayer test complete!")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

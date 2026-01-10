@@ -1,3 +1,46 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Project Bridge - Studio-to-Server Format Adapter
+#
+#   NoodleStudio uses a modern project format (Stages, Zones, etc.)
+#   while the cmush server uses a legacy format (rooms.json, etc.).
+#   This bridge translates between them, so you can open a Studio
+#   project and have the server load it correctly. It reads YAML
+#   stage files and converts them to the JSON format the server
+#   expects. Think of it as a universal adapter plug.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.project_bridge
+# PURPOSE:  Translate Studio project format to server format
+# LAYER:    Backend / Data Interchange
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ProjectBridge         Converts project format to legacy format
+#
+# KEY FUNCTIONS:
+#   get_project_path()          Find current project path
+#   setup_world_from_project()  Create world directory from project
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Project Bridge - Adapts new PROJECT_SPEC.md format to legacy World interface.
 
@@ -434,3 +477,7 @@ def setup_world_from_project(project_path: str, temp_world_dir: str = None) -> s
         temp_world_dir = os.path.join(project_path, "Library", "world_cache")
 
     return bridge.create_world_dir(temp_world_dir)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

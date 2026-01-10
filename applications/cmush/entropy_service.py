@@ -1,3 +1,44 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Entropy Service
+#
+#   The randomness source for all AI decisions in noodleMUSH.
+#   When a TrueRNG V3 hardware device is connected, it provides
+#   genuine quantum-derived random numbers. Otherwise, it falls
+#   back to Python's built-in random generator. All uncertainty
+#   in agent behavior flows through this single service. Also
+#   includes an "avalanche RNG" that mimics quantum collapse
+#   effects with rare extreme values.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.entropy_service
+# PURPOSE:  Unified random number generation (hardware or PRNG)
+# LAYER:    Backend / Core Infrastructure
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   EntropyService   Global singleton for all randomness
+#   EntropyPool      Thread-safe buffer for hardware RNG
+#   AvalancheRNG     Heavy-tailed distribution generator
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Entropy Service - Hardware True Random Number Generation
 
@@ -5,6 +46,8 @@ Provides a unified interface for all randomness in noodleMUSH.
 Routes to either TrueRNG V3 hardware or Python's PRNG.
 
 Philosophy: Every decision point gets genuine quantum entropy.
+
+Author: Caitlyn + Claude
 """
 
 import random as stdlib_random
@@ -253,3 +296,7 @@ def get_entropy_service() -> EntropyService:
         # Auto-initialize with PRNG fallback
         initialize_entropy_service(use_hardware=False)
     return _entropy_service
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

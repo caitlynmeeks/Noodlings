@@ -1,14 +1,58 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Noodlings Core API
+#
+#   This is the main way to use Noodlings in your code. Think of
+#   it like a remote control for an AI character's feelings.
+#
+#   When you create a NoodlingAgent, you're giving an AI the ability
+#   to feel things over different time scales - some feelings change
+#   quickly (like surprise), others change slowly (like mood), and
+#   some stay steady for a long time (like personality).
+#
+#   The agent can also remember conversations and track its social
+#   relationships with different people. It knows who it's talked
+#   to before and builds up feelings about them over time.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.api
+# PURPOSE:  Main API for creating and using Noodling agents
+# LAYER:    Core / API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodlingAgent          Main API class for Phase 4 or Phase 6 agents
+#
+# DEPENDENCIES:
+#   mlx.core               Apple Silicon tensor operations
+#   NoodlingModelPhase4    Social cognition architecture (~82.5K params)
+#   NoodlingModelPhase6    Appetite architecture (~97.5K params)
+#   HierarchicalMemory     Multi-level memory system
+#   SemanticMemorySystem   Long-term knowledge storage
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
-Noodlings Core API - Clean Phase 4 Implementation
+Noodlings Core API - Clean Phase 4/6 Implementation
 
-This is the clean, production-ready API for Noodlings agents.
-Uses base Phase 4 architecture WITHOUT observer loops.
-
-Observers were removed after rigorous scientific testing showed
-they provide zero benefit (November 2025).
-
-Author: Caitlyn Meeks
-Date: November 2025
+Production-ready API for hierarchical affective agents.
+Supports Phase 4 (social cognition) and Phase 6 (appetites).
 """
 
 import mlx.core as mx
@@ -542,3 +586,7 @@ class NoodlingAgent:
 
 # DEPRECATED: Alias for backward compatibility - use NoodlingAgent instead
 ConsilienceAgent = NoodlingAgent
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,11 +1,50 @@
 #!/usr/bin/env python3
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Recipe to Prefab Converter
+#
+#   Converts old-style YAML recipe files into the newer .prefab
+#   format. Prefabs have unique reverse-DNS identifiers (like
+#   com.noodlings.characters.red), metadata sections, and better
+#   organization. Run this to upgrade your character recipes.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.convert_recipes_to_prefabs
+# PURPOSE:  Migrate recipes/*.yaml to prefabs/*.prefab format
+# LAYER:    Backend / Migration Tool
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   convert_recipe_to_prefab()  Transform single recipe to prefab
+#   generate_prefab_id()        Create unique reverse-DNS ID
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Convert legacy YAML recipes to .prefab format.
 
-Migrates recipes/*.yaml → prefabs/*.prefab with:
+Migrates recipes/*.yaml to prefabs/*.prefab with:
 - Unique reverse-DNS identifiers
 - Metadata section
 - Preserved cognitive_components configuration
+
+Author: Caitlyn + Claude
 """
 
 import yaml
@@ -171,3 +210,7 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,3 +1,42 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Prefab Loader - Character Template Management
+#
+#   Think of prefabs like cookie cutters for characters. Instead
+#   of building each Noodling from scratch, you define a template
+#   (prefab) that describes personality, cognitive settings, and
+#   identity. This module loads those YAML templates and creates
+#   new Noodlings from them. You can duplicate, modify, import,
+#   and export prefabs - sharing characters between projects.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.prefab_loader
+# PURPOSE:  Load, save, and manage character template files
+# LAYER:    Backend / World Management
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PrefabLoader          Manages .prefab files (YAML templates)
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Prefab Loader - Character template management system.
 
@@ -365,3 +404,7 @@ if __name__ == '__main__':
     print(f"Found {len(prefabs)} prefabs:")
     for p in prefabs:
         print(f"  {p['id']} - {p['name']} (v{p['version']})")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

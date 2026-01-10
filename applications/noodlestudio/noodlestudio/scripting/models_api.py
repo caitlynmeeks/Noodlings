@@ -1,16 +1,36 @@
-"""
-Models API - Scriptable interface to model/provider system.
-
-Provides JavaScript-accessible methods for:
-- Getting/setting label assignments (SMALL, MEDIUM, LARGE)
-- Listing available models from providers
-- Configuring providers
-
-Part of the unified Noodlings scripting API (context.noodle.models).
-
-Author: Commander Spock + Cadet Caity
-Date: December 10, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Models API - Scriptable interface to model/provider system.
+#
+#   Provides JavaScript-accessible methods for: - Getting/set...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.models_api
+# PURPOSE:  Models Api
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ModelsAPI
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, List, Tuple, Optional, Any
 
@@ -197,3 +217,7 @@ class ModelsAPI:
             'list_providers': '__models_list_providers__',
             'configure_provider': '__models_configure_provider__'
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

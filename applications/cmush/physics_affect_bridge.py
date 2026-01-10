@@ -1,5 +1,45 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Physics-Affect Integration Bridge
+#
+#   When something happens in the physical world (a glass breaks,
+#   something burns), this module broadcasts the event to nearby
+#   AI agents. Each agent "perceives" the event - extracting an
+#   emotional response, updating their internal state, calculating
+#   how surprised they are, and possibly reacting aloud if it was
+#   startling enough. Connects physics simulation to AI feelings.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.physics_affect_bridge
+# PURPOSE:  Connect physics events to agent phenomenal states
+# LAYER:    Backend / Semantic Physics
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PhysicsAffectEvent       Physics event with affect implications
+#   PhysicsAffectExtractor   Extract emotional meaning from events
+#   PhysicsAffectBroadcaster Notify agents of physics events
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
-Phase 4: Physics ↔ Affect Integration Bridge
+Phase 4: Physics to Affect Integration Bridge
 
 Connects semantic physics events to Noodling consciousness system.
 Physics events trigger affective responses in nearby agents.
@@ -14,7 +54,7 @@ Pipeline:
 7. Memory formation
 8. Behavioral response (if surprising)
 
-Author: Commander Spock + Lieutenant Caitlyn
+Author: Caitlyn + Claude
 Date: November 22, 2025
 """
 
@@ -357,3 +397,7 @@ if __name__ == '__main__':
     print(f"  Boredom: {affect_event.boredom:.2f}")
     print(f"Surprise: {affect_event.surprise:.2f}")
     print(f"Secondary effects: {outcome.secondary_effects}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

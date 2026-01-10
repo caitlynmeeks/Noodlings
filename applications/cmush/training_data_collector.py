@@ -1,3 +1,43 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Training Data Collector - Interaction Recording
+#
+#   Machine learning needs data. This collector captures every
+#   agent interaction in rich detail: what the user said, how the
+#   agent's internal state responded, what surprises occurred.
+#   The data feeds into offline training for temporal affect
+#   models. Each session records affect vectors, phenomenal states,
+#   relationship trajectories - everything needed to train an
+#   agent to respond like the original.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.training_data_collector
+# PURPOSE:  Capture interaction data for model training
+# LAYER:    Backend / Training
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TrainingDataCollector  Records sessions and exports datasets
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Training Data Collector for cMUSH
 
@@ -9,9 +49,6 @@ Stores:
 - Relationship evolution trajectories
 - Theory of Mind ground truth (when available)
 - Surprise patterns and response triggers
-
-Author: Consilience Project
-Date: October 2025
 """
 
 import json
@@ -318,3 +355,7 @@ class TrainingDataCollector:
             'total_interactions': total_interactions,
             'session_entries': len(self.session_data)
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

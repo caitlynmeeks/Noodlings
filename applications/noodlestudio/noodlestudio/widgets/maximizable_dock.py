@@ -1,11 +1,36 @@
-"""
-Maximizable Dock Widget
-
-Double-click title bar to toggle fullscreen (within app).
-
-Author: Caitlyn + Claude
-Date: November 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Maximizable Dock Widget
+#
+#   Double-click title bar to toggle fullscreen (within app).
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.widgets.maximizable_dock
+# PURPOSE:  Maximizable Dock Widget
+# LAYER:    Studio / Widgets
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MaximizableDock
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import QDockWidget, QPushButton, QWidget, QHBoxLayout
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -60,3 +85,7 @@ class MaximizableDock(QDockWidget):
 
             self.saved_docks = []
             self.is_maximized = False
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

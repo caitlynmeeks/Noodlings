@@ -1,19 +1,36 @@
-"""
-Event-Emitting Widget Mixins
-
-Qt widget mixins that capture user interactions and dispatch them
-through the UI event system with rich UIEventData.
-
-These mixins override Qt event handlers (mousePressEvent, keyPressEvent, etc.)
-and convert them to UIEventData for the dispatcher.
-
-Usage:
-    class MyButton(EventEmittingMixin, QPushButton):
-        pass
-
-    button = MyButton(component, renderer)
-    # Now button emits onClick, onMouseEnter, onKeyDown, etc.
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Event-Emitting Widget Mixins
+#
+#   Qt widget mixins that capture user interactions and dispa...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.event_widgets
+# PURPOSE:  Event-Emitting Widget Mixins
+# LAYER:    Studio / UI Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   EventEmittingMixin, EventEmittingFrame, EventEmittingButton, EventEmittingLineEdit, EventEmittingWidget
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 from PyQt6.QtWidgets import QWidget, QFrame, QPushButton, QLineEdit
@@ -339,3 +356,7 @@ class EventEmittingWidget(EventEmittingMixin, QWidget):
     ):
         super().__init__(parent)
         self._init_event_emitting(component, renderer, track_mouse_move)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

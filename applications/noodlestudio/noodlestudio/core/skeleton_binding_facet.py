@@ -1,18 +1,36 @@
-"""
-Skeleton Binding Facet - Bind Gaussians to VRM skeleton.
-
-Wraps the bind_gaussians_to_skeleton tool as a facet for use in
-facet assemblies, enabling skeleton-bound Gaussian avatar creation.
-
-Pipeline:
-1. Load trained Gaussians (.ply from training)
-2. Load VRM (for skeleton and skinning weights)
-3. Transfer skinning weights to Gaussians
-4. Save as .radiance with skeleton binding
-
-Author: Caitlyn + Claude
-Date: December 24, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Skeleton Binding Facet - Bind Gaussians to VRM skeleton.
+#
+#   Wraps the bind_gaussians_to_skeleton tool as a facet for ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.skeleton_binding_facet
+# PURPOSE:  skeleton binding facet facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SkeletonBindingConfig, SkeletonBindingFacet, SkeletonBindingAPI
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import logging
@@ -213,3 +231,7 @@ class SkeletonBindingAPI:
 # Export for facet registration
 FACET_TYPE = "skeleton_binding"
 FACET_CLASS = SkeletonBindingFacet
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -21,6 +21,7 @@ Desktop IDE for designing cognitive architectures and building worlds.
 
 | I want to... | Go here |
 |--------------|---------|
+| Understand editor/runtime duality | [Shell Mode](noodlestudio/shell-mode.md) |
 | Run the server | [NoodleMUSH Quickstart](noodlemush/quickstart.md) |
 | Create a character | [Recipe Format](noodlings/recipe-format.md) |
 | Understand facet assemblies | [Facet System](noodlestudio/facets.md) |

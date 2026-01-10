@@ -1,9 +1,45 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   World Initializer
+#
+#   Creates a fresh world from scratch - starter rooms like
+#   "The Nexus" (the central hub), "The Observatory" (a quiet
+#   space for contemplation), and a few basic objects. Run this
+#   script when setting up noodleMUSH for the first time.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.init_world
+# PURPOSE:  Create starter rooms and objects for a fresh world
+# LAYER:    Backend / Setup Tool
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   init_world()   Create initial world data files
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Initialize cMUSH World
 
 Creates starter rooms and objects for a fresh world.
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -100,3 +136,7 @@ def init_world():
 
 if __name__ == "__main__":
     init_world()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

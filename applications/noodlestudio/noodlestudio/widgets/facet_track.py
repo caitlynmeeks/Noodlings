@@ -1,21 +1,36 @@
-"""
-Facet Track Widget - Timeline visualization of facet executions
-
-Renders facet execution blocks as colored bars on the timeline,
-similar to clips in a video editor. Each facet type has a distinct
-color following the monochromatic palette guidelines.
-
-Color Coding:
-- LLMFacet: Purple (#9C27B0) - The thinking facets
-- CharmNetworkFacet: Green (#4CAF50) - Neural computation
-- ScriptedFacet: Blue (#2196F3) - Custom JavaScript
-- ContextIntelligenceFacet: Teal (#009688) - Context parsing
-- SpecialNode (INCOMING/OUTGOING): Gray (#607D8B)
-- Other: Dark gray (#424242)
-
-Author: Commander Spock + Captain Caity
-Date: December 19, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Facet Track Widget - Timeline visualization of facet executions
+#
+#   Renders facet execution blocks as colored bars on the tim...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.widgets.facet_track
+# PURPOSE:  facet track facet implementation
+# LAYER:    Studio / Widgets
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   FacetBlockItem, FacetTrack, CycleTrack, FacetSwimlanesWidget
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import QGraphicsItem, QGraphicsRectItem, QToolTip
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal
@@ -459,3 +474,7 @@ if __name__ == "__main__":
 
     view.show()
     sys.exit(app.exec())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

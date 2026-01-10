@@ -1,3 +1,50 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Building Commands
+#
+#   These commands let you construct the virtual world itself.
+#   Think of them as the "god mode" tools for world builders:
+#
+#   Creating spaces:
+#     @create room "The Garden"  -> Makes a new room
+#     @dig north "The Forest"    -> Creates exit + new room
+#
+#   Creating objects:
+#     @create object "Magic Sword" -> Makes a new thing
+#
+#   Connecting rooms:
+#     @link east room_123 "Cafe Entrance"
+#
+#   These are the tools that let you build entire worlds from
+#   scratch, one room and one object at a time.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_building
+# PURPOSE:  World construction commands
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   BuildingCommandsMixin    Room/object creation commands
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Building Commands Mixin for cMUSH
 
@@ -8,7 +55,7 @@ Contains world building commands:
 - @link: Link rooms with custom exit names
 - @destroy: Remove objects
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -182,3 +229,7 @@ class BuildingCommandsMixin:
             'output': f"Object '{obj['name']}' has been destroyed.",
             'events': []
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

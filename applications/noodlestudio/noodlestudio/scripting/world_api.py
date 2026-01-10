@@ -1,71 +1,36 @@
-"""
-World API - Scripting interface for scene perception and world interaction.
-
-Provides context.noodle.world in ScriptedFacets with perception-filtered
-access to world state. Each noodling only sees what they can perceive.
-
-Example (JavaScript in ScriptedFacet):
-
-    function process(inputs, context) {
-        // Who can I see?
-        var entities = context.noodle.world.perceivedEntities;
-        for (var i = 0; i < entities.length; i++) {
-            context.log("I see: " + entities[i].displayName);
-        }
-
-        // Can I see a specific entity?
-        if (context.noodle.world.canSee("yuki")) {
-            var yuki = context.noodle.world.getEntity("yuki");
-            context.log("Yuki is " + yuki.direction + ", looking " + yuki.expression);
-        }
-
-        // Where am I?
-        context.log("I'm in " + context.noodle.world.myZone);
-        context.log("Position: " + context.noodle.world.myPosition);
-
-        // Who's talking to me?
-        var partner = context.noodle.world.conversationPartner;
-        if (partner) {
-            context.log("In conversation with: " + partner);
-        }
-
-        // Change my state
-        context.noodle.world.setExpression("curious");
-        context.noodle.world.setGaze("yuki");
-
-        // Say something (records to dialogue history)
-        context.noodle.world.speak("Hello there!", "friendly");
-
-        // Camera control (if enabled)
-        context.noodle.world.focusCamera("yuki", "closeup");
-
-        // Physics interactions (SPE - Semantic Physics Engine)
-        if (context.noodle.world.physicsEnabled) {
-            // Throw something with narrative-first physics
-            var result = context.noodle.world.throw("rock", "heavy");
-            if (result) {
-                context.log("Physics: " + result.description);
-                // result.sound = "crash", result.affect = {...}
-            }
-
-            // Other physics actions
-            context.noodle.world.strike("radio", "light");
-            context.noodle.world.push("chair", "medium");
-            context.noodle.world.pickup("key");
-            context.noodle.world.drop("key");
-        }
-
-        return {processed: true};
-    }
-
-Key Design Principle:
-    Information asymmetry - noodlings only know what they can perceive.
-    Red can't see Yuki behind her (unless heat_sense triggers).
-    Each noodling gets their own filtered view of reality.
-
-Author: Commander Spock + Cadet Caity
-Date: December 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   World API - Scripting interface for scene perception and world interaction.
+#
+#   Provides context.noodle.world in ScriptedFacets with perc...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.world_api
+# PURPOSE:  World Api
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PerceivedEntityJS, PerceivedEventJS, WorldAPIState, WorldAPI, get_world_api()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 from typing import Dict, Any, Optional, List, Union
@@ -1081,3 +1046,7 @@ __all__ = [
     "get_world_api",
     "clear_world_apis",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

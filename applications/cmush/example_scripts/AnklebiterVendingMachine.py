@@ -1,3 +1,41 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Anklebiter Vending Machine - Chaos Dispenser
+#
+#   Press a button, get a gremlin. Blue button dispenses electric
+#   Blue Fire Anklebiters. Red button dispenses sassy Red Fire
+#   Anklebiters. Both types cause gleeful chaos - they argue with
+#   each other, jump on people, bite ankles, and make everyone
+#   laugh. A perfect example of interactive scripted objects.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.example_scripts.AnklebiterVendingMachine
+# PURPOSE:  Example of scripted object with Noodling spawning
+# LAYER:    Backend / Example Scripts
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AnklebiterVendingMachine  Interactive chaos dispenser
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Anklebiter Vending Machine
 
@@ -12,9 +50,6 @@ Usage:
 1. @rez -p vending_machine "Anklebiter Dispenser" script:AnklebiterVendingMachine
 2. say press blue button
 3. Watch chaos unfold
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
 """
 
 from noodlings_scripting import NoodleScript, Noodlings, Debug
@@ -175,3 +210,7 @@ class AnklebiterVendingMachine(NoodleScript):
                 "What have you DONE?!\n\n"
                 "*The machine displays: MISSION ACCOMPLISHED*"
             )
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

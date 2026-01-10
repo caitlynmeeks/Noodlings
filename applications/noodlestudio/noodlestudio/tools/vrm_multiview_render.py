@@ -1,18 +1,36 @@
-"""
-VRM Multi-View Renderer - Generate training views for Gaussian splatting.
-
-Renders a VRM avatar from multiple camera angles and outputs in nerfstudio format
-(transforms.json + images) for training with OpenSplat.
-
-The pipeline:
-1. Parse VRM and extract mesh/textures
-2. Render from N orbit positions around the model
-3. Output transforms.json with camera poses
-4. Output initial point cloud from mesh vertices (reconstruction.ply)
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   VRM Multi-View Renderer - Generate training views for Gaussian splatting.
+#
+#   Renders a VRM avatar from multiple camera angles and outp...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tools.vrm_multiview_render
+# PURPOSE:  Vrm Multiview Render
+# LAYER:    Studio / Tools
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CameraParams, look_at_matrix(), create_orbit_cameras(), cameras_to_transforms_json()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import json
 import logging
@@ -582,3 +600,7 @@ if __name__ == '__main__':
 
     print(f"Output: {result}")
     print(f"Next step: opensplat {result} -o {vrm_path.stem}_trained.ply -n 7000")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

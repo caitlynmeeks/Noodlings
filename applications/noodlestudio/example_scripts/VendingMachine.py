@@ -1,3 +1,50 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Vending Machine Example Script
+#
+#   This example shows how to create an interactive prop that
+#   responds to the "use" action and produces random results.
+#
+#   The vending machine has an inventory of silly items. When
+#   someone uses it, a random item gets spawned into the world.
+#   After 20 uses, the machine breaks down.
+#
+#   This demonstrates:
+#   - Handling OnUse events
+#   - Random selection from a list
+#   - Spawning props with RezPrim()
+#   - Usage limits and degradation
+#   - Achievement/easter egg triggers
+#
+#   A simple economy in a virtual snack.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.example_scripts.VendingMachine
+# PURPOSE:  Example of use-to-dispense item spawner
+# LAYER:    Scripting / Examples
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   VendingMachine    NoodleScript that dispenses random items
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Vending Machine Example - Buy items with... whatever currency you want!
 
@@ -8,9 +55,6 @@ Usage:
 2. Attach this script
 3. @use vending machine
 4. Random item spawns!
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
 """
 
 from noodlestudio.scripting import NoodleScript, Noodlings, Debug
@@ -78,3 +122,7 @@ class VendingMachine(NoodleScript):
             f"Items available: {len(self.items)}\n"
             f"Uses remaining: {20 - self.uses}"
         )
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,3 +1,48 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Social Router - Conversation Response Decisions
+#
+#   In a room with multiple agents and humans, how does a Noodling
+#   know when someone is talking TO them? This module uses simple
+#   heuristics (not expensive LLM calls) to decide: Was my name
+#   mentioned? Are we alone? Is this a question? Then affect
+#   modulates the response probability - a bored agent is more
+#   likely to jump into conversations than a content one.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.social_router
+# PURPOSE:  Heuristic-based conversation response decisions
+# LAYER:    Backend / Agent Response
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SocialRouter          Decides if agent should respond to message
+#
+# KEY FUNCTIONS:
+#   agent_name_in_text()  Check if name appears in message
+#   is_question()         Detect questions
+#   is_command()          Detect imperative commands
+#   recent_exchange()     Check for ongoing conversation thread
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Social Router - Simple heuristic-based conversation routing.
 
@@ -169,3 +214,7 @@ def recent_exchange(
 
     # Check if both parties were involved
     return speaker_id in speakers and agent_id in speakers
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

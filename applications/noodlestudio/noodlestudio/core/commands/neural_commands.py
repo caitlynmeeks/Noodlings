@@ -1,14 +1,36 @@
-"""
-Neural Canvas Commands - Undo commands for Neural Canvas operations
-
-Commands for:
-- Moving neural nodes (with drag merging)
-- Creating/deleting neural nodes
-- Creating/deleting connections
-
-Author: Commander Spock + Cadet Caity
-Date: December 15, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Neural Canvas Commands - Undo commands for Neural Canvas operations
+#
+#   Commands for: - Moving neural nodes (with drag merging) -...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.commands.neural_commands
+# PURPOSE:  Neural Commands
+# LAYER:    Studio / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MoveNeuralNodeCommand, CreateNeuralNodeCommand, DeleteNeuralNodeCommand, CreateNeuralConnectionCommand, DeleteNeuralConnectionCommand
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, Any, Optional, Tuple, TYPE_CHECKING
 from PyQt6.QtGui import QUndoCommand
@@ -352,3 +374,7 @@ class RenameNeuralNodeCommand(StudioCommand):
     def _undo(self):
         """Restore the old name."""
         self.view._rename_node_internal(self.node_id, self.old_name)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

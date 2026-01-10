@@ -1,3 +1,49 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Physics Object Descriptor (POD) - Semantic Physics
+#
+#   Objects in virtual worlds need to know what they're made of
+#   and how they behave. Instead of complex numerical physics
+#   (mass=50.0kg, velocity=Vector3(1,0,0)), POD uses natural
+#   language descriptions: "heavy", "bouncy", "made of glass".
+#   An AI can understand "a fragile glass vase" without needing
+#   rigid body simulation. When a bullet hits a tin can, POD
+#   describes the result narratively, not mathematically.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.physics_object_descriptor
+# PURPOSE:  Semantic physics properties for world objects
+# LAYER:    Backend / Physics
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PhysicsEvent            Ongoing physics process (drying, burning)
+#   PhysicsObjectDescriptor Complete semantic physics container
+#
+# KEY FUNCTIONS:
+#   distribute_mass_uniform()    Split mass evenly across fragments
+#   distribute_mass_power_law()  Realistic fragmentation distribution
+#   parse_duration()             Convert "2 hours" to seconds
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Semantic Physics Engine (SPE) - Physics Object Descriptor (POD)
 
@@ -6,10 +52,6 @@ Objects describe WHAT they are and HOW they behave using natural language
 rather than numerical simulation.
 
 Core Principle: "Describe what happens, not how it's calculated."
-
-Author: Lieutenant Caitlyn + Commander Spock
-Date: November 22, 2025
-Inspiration: Cyclotron fetus logic
 """
 
 from typing import List, Dict, Optional, Any, Callable
@@ -480,3 +522,7 @@ POD_FIRE_IMP = PhysicsObjectDescriptor(
     },
     tags=["HeatSource", "LightSource", "Alive", "NoPhysics"]
 )
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

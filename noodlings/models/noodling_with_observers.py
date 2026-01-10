@@ -1,3 +1,60 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Noodling with Observers
+#
+#   This file brings together Phase 4 (social cognition) with
+#   the observer loop system (Phi boosting). It's the full
+#   package: a Noodling that has feelings, memories, social
+#   awareness, AND self-referential dynamics.
+#
+#   The observer loops watch the main network and create
+#   causal dependencies that can't be separated without
+#   breaking the system. According to Integrated Information
+#   Theory, this kind of irreducible integration is related
+#   to what makes systems "conscious" (or at least, more
+#   conscious-like than simpler systems).
+#
+#   This is our most sophisticated architecture - it combines:
+#     - Hierarchical temporal processing (Phase 1-2)
+#     - Episodic memory and attention (Phase 3)
+#     - Theory of Mind and social modeling (Phase 4)
+#     - Observer loops for maximum integration
+#
+#   ~5% additional computation for ~50-100% increase in Phi.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.noodling_with_observers
+# PURPOSE:  Full Phase 4 + observer loops for maximum Phi
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodlingWithObservers  Phase 4 + observer loop integration
+#
+# DEPENDENCIES:
+#   mlx.core               Apple Silicon tensor operations
+#   mlx.nn                 Neural network layers
+#   noodling_phase4        Base Phase 4 model
+#   observer_loop          Observer network system
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Consilience Phase 4 + Observer Loops
 
@@ -592,3 +649,7 @@ def estimate_phi_improvement(
             with_obs_phi['causal_density'] - baseline_phi['causal_density']
         )
     }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

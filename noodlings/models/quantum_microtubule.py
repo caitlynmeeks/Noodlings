@@ -1,3 +1,64 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Quantum Microtubule Layer
+#
+#   This is the building block for quantum-inspired neural layers.
+#   Microtubules are tiny protein tubes inside every cell, including
+#   neurons. Penrose and Hameroff proposed they might be where
+#   quantum effects influence brain activity.
+#
+#   This layer adds four quantum-like effects to neural processing:
+#
+#   1. QUANTUM NOISE: Real randomness (from avalanche RNG hardware)
+#      injected like "quantum fluctuations." Unlike pseudorandom
+#      numbers, this is genuinely unpredictable.
+#
+#   2. ENTANGLEMENT: Nearby dimensions become correlated. When one
+#      changes, its neighbors tend to change too - like quantum
+#      entanglement creating "spooky action at a distance."
+#
+#   3. COLLAPSE: When the state gets too extreme, it suddenly
+#      "collapses" to a definite value - like quantum wavefunction
+#      collapse when measured.
+#
+#   4. DECOHERENCE: Quantum effects fade over time due to
+#      environmental interaction. The system becomes more
+#      "classical" unless something refreshes the coherence.
+#
+#   These effects can be tuned or disabled to study their impact.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.quantum_microtubule
+# PURPOSE:  Quantum-inspired neural layer with collapse dynamics
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   QuantumMicrotubuleLayer  Adds quantum effects to neural state
+#
+# DEPENDENCIES:
+#   mlx.core                 Apple Silicon tensor operations
+#   mlx.nn                   Neural network layers
+#   entropy_service          Avalanche RNG for true randomness
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Quantum Microtubule Layer for Consciousness Models
 
@@ -346,3 +407,7 @@ if __name__ == "__main__":
     print(f"  - Entanglement correlates nearby dimensions")
     print(f"  - Coherence decays every {mt_layer.coherence_time} steps")
     print(f"\nTest complete!")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

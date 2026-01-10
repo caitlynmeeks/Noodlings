@@ -1,3 +1,50 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agent Bridge
+#
+#   This is the translator between two worlds. On one side, we
+#   have the virtual world with its rooms and conversations.
+#   On the other side, we have Noodlings with their feelings
+#   and memories and ways of understanding.
+#
+#   When someone says "Hello, Chester!" in the world:
+#   1. The bridge catches that event
+#   2. Translates it into something Chester's charm network
+#      can understand (who spoke, what they said, how it felt)
+#   3. Chester's mind processes it and decides to respond
+#   4. The bridge translates Chester's response back into
+#      the world as speech, gestures, and actions
+#
+#   It's like an interpreter at the United Nations, but for
+#   AI beings and virtual worlds.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.agent_bridge
+# PURPOSE:  Connect Noodling charm networks to world events
+# LAYER:    Backend / Integration
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AgentManager    Manages all Noodling agents in the world
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Agent Bridge - Noodling charm <-> cMUSH world adapter
 
@@ -12,7 +59,7 @@ Handles:
 - State persistence
 - Conversation context tracking
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -2590,3 +2637,6 @@ class AgentManager:
             for agent_id, agent in self.agents.items()
         }
 
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

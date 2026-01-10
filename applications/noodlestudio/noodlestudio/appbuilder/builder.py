@@ -1,16 +1,36 @@
-"""
-Builder - Main orchestrator for the NoodleStudio build system
-
-Coordinates the build process:
-1. Validate project structure
-2. Load and validate build.yaml
-3. Package assets (via Packager)
-4. Create platform bundle (via Bundler)
-5. Report progress
-
-Author: Caitlyn + Claude
-Date: January 3, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Builder - Main orchestrator for the NoodleStudio build system
+#
+#   Coordinates the build process: 1. Validate project struct...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.appbuilder.builder
+# PURPOSE:  Builder
+# LAYER:    Studio / Build System
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   BuildConfig, BuildResult, Builder, create_default_build_yaml()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 import shutil
@@ -395,3 +415,7 @@ llm:
 
     logger.info(f"Created default build.yaml: {build_yaml}")
     return build_yaml
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

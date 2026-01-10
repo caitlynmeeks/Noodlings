@@ -1,14 +1,36 @@
-"""
-Computer Use Tests - Automated testing for NoodleCode's Computer Use capability
-
-Tests the ComputerUseController that enables Claude to see and interact
-with NoodleStudio's UI via screenshots, clicks, typing, etc.
-
-Run with: cd applications/noodlestudio && PYTHONPATH=.:../.. pytest tests/test_computer_use.py -v
-
-Author: Caitlyn + Claude
-Date: January 3, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Computer Use Tests - Automated testing for NoodleCode's Computer Use capability
+#
+#   Tests the ComputerUseController that enables Claude to se...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tests.test_computer_use
+# PURPOSE:  Tests for computer use
+# LAYER:    Studio / Tests
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TestScreenshot, TestUIElementMap, TestClick, TestType, TestKey
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import pytest
 import base64
@@ -632,3 +654,7 @@ class TestErrorHandling:
             controller.click(100, 100, "left")
 
         ComputerUseController._instance = None
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

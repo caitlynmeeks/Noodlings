@@ -1,10 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Performance Operation Tracker
+#
+#   A stopwatch for AI operations. Every time an agent makes an
+#   LLM call, runs a neural network forward pass, or accesses
+#   memory, this tracker records how long it took. Helps find
+#   bottlenecks and see what agents are actually spending time on.
+#   Like a flight recorder, but for AI cognition.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.performance_tracker
+# PURPOSE:  Track operation timing for bottleneck analysis
+# LAYER:    Backend / Observability
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PerformanceTracker   Rolling buffer of timed operations per agent
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Performance Operation Tracker
 
 Tracks all operations (LLM calls, MLX forward passes, memory ops) with timestamps
 for real-time visibility into what agents are doing and where bottlenecks are.
 
-Author: NoodleMUSH Project
+Author: Caitlyn + Claude
 Date: November 2025
 """
 
@@ -284,3 +321,7 @@ if __name__ == "__main__":
         print(f"\nStats: {stats}")
 
     asyncio.run(test_tracker())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

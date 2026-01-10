@@ -1,3 +1,43 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   BRENDA Commands - Conversational Stage Manager
+#
+#   BRENDA is the stage manager who keeps things interesting.
+#   Instead of typing arcane commands, users say natural things
+#   like "make Toad more chatty" or "write a play where Toad
+#   builds a rocket". This module parses natural language into
+#   actual parameter changes and play generation. BRENDA can
+#   tweak agent personalities, generate theatrical scripts, and
+#   orchestrate dramatic scenarios - all through conversation.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.brenda_commands
+# PURPOSE:  Natural language parameter tweaking and play generation
+# LAYER:    Backend / Command Interface
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   BrendaCommandsMixin   Mixin providing @brenda command handlers
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 BRENDA Commands - Natural Language Parameter Tweaking & Play Generation
 
@@ -1233,3 +1273,7 @@ Available Commands:
             'output': f"Built '{room_name}' ({room_uid})!\n\n{description}\n\nTip: Use '@link {room_uid} <direction>' to connect it to your current room",
             'events': result.get('events', []) + desc_result.get('events', [])
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

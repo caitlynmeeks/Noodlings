@@ -1,3 +1,42 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Script Manager - Server-Side Script Execution
+#
+#   Objects in the world can have scripts attached - little programs
+#   that respond to events like "someone walked in" or "someone
+#   clicked me". This manager loads those scripts, compiles them,
+#   and routes events to them. When a script calls Noodlings.Rez(),
+#   this module actually spawns the agent. Scripts run on the server
+#   (not the client) so they can directly manipulate world state.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.script_manager
+# PURPOSE:  Server-side NoodleScript execution and event routing
+# LAYER:    Backend / Scripting
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ScriptManager         Manages script compilation and execution
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Script Manager - Backend Integration
 
@@ -6,7 +45,7 @@ Integrates noodlings_scripting runtime with cmush backend.
 Responsibilities:
 - Load scripts from example_scripts/ and world state
 - Compile and attach scripts to prims
-- Inject backend API implementations (Noodlings.Rez → actual spawning)
+- Inject backend API implementations (Noodlings.Rez -> actual spawning)
 - Route world events to script callbacks
 - Persist script state to world state
 
@@ -14,9 +53,6 @@ Server-authoritative model:
 - Scripts execute in cmush backend (not Studio)
 - Studio uploads scripts via API (future)
 - Scripts can directly manipulate world state
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
 """
 
 import os
@@ -496,3 +532,7 @@ class ScriptManager:
             **executor_stats,
             'scripts_dir': str(self.scripts_dir),
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

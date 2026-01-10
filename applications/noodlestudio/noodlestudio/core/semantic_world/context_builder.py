@@ -1,27 +1,36 @@
-"""
-Context Builder - Generates Rich Agent Context from Events
-
-This is the bridge between event-sourced reality and the cognitive architecture.
-It builds the narrative context that gets fed to an agent's LLM, giving them
-a rich, perspectival understanding of their world.
-
-The context builder produces text like:
-    "You stand near the hearth in The Nexus. The flames dance with
-    unusual awareness today, casting your shadow long across worn
-    flagstones. Warmth seeps into you.
-
-    Servnak works at the cluttered bench across the room, muttering
-    over some mechanism. The distance feels deliberate.
-
-    Recently, you entered slowly from the garden. Servnak glanced up
-    but said nothing. The silence since has grown thick."
-
-This is what enables genuine storytelling - agents understand MEANING,
-not coordinates.
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Context Builder - Generates Rich Agent Context from Events
+#
+#   This is the bridge between event-sourced reality and the ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.context_builder
+# PURPOSE:  Context Builder
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   StageDefinition, AgentContext, ContextBuilder, get_context_builder(), init_context_builder()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -455,3 +464,7 @@ __all__ = [
     "init_context_builder",
     "build_agent_context",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

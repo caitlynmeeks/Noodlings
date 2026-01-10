@@ -1,3 +1,51 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   State Transitions - Object Transformation System
+#
+#   Objects change over time: ice melts, fire burns wood to ash,
+#   metal rusts in rain. This module manages those transitions
+#   with proper timing. Start burning a log, and over 2 minutes
+#   it progresses from "catching fire" to "burning brightly" to
+#   "burnt to ash". Agents can observe and react to these
+#   gradual changes, creating emergent narrative possibilities.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.state_transitions
+# PURPOSE:  Manage timed object state changes
+# LAYER:    Backend / Physics
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   StateTransitionType     Enum of transition types
+#   StateTransition         Single transition in progress
+#   StateTransitionManager  Background manager for all transitions
+#
+# KEY FUNCTIONS:
+#   break_object()          Shatter, crack, or dent an object
+#   ignite_object()         Set object on fire
+#   freeze_object()         Freeze an object solid
+#   melt_object()           Thaw a frozen object
+#   rust_object()           Corrode metal over time
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Phase 2: State Transition System
 
@@ -9,9 +57,6 @@ Handles semantic state changes for objects with physics:
 - Phase changes (solid/liquid/gas)
 
 Uses event-driven state machine with affect integration.
-
-Author: Commander Spock + Lieutenant Caitlyn
-Date: November 22, 2025
 """
 
 import time
@@ -487,3 +532,7 @@ if __name__ == '__main__':
         mgr.stop()
 
     asyncio.run(test_transitions())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

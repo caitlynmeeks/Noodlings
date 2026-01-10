@@ -1,28 +1,36 @@
-"""
-USD Exporter for noodleMUSH
-
-Export stages to Pixar USD format (.usda ASCII) for animation studio pipelines.
-
-USD Terminology:
-- Stage: The composed scene (what's rendered)
-- Prim: Basic scene object (rooms, Noodlings, objects)
-- Typed Schema: Defines prim type (we define custom "Noodling" schema)
-- Layer: A .usda/.usdc file
-
-Exports:
-- Stage hierarchy (rooms, Noodlings, objects as prims)
-- Prim properties (descriptions, personality, affect states)
-- Relationships (location, holding, following)
-- Time-sampled affect data (for animation)
-
-Compatible with:
-- Maya, Houdini, Blender (USD support)
-- Unreal Engine, Unity (USD import)
-- Pixar's USD tools
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   USD Exporter for noodleMUSH
+#
+#   Export stages to Pixar USD format (.usda ASCII) for anima...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.data.usd_exporter
+# PURPOSE:  USD Exporter for noodleMUSH
+# LAYER:    Studio / Data Layer
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   USDExporter
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from pathlib import Path
 from typing import Dict, List, Any
@@ -297,3 +305,7 @@ class USDExporter:
             f.write('\n'.join(lines))
 
         print(f"USD timeline exported to {output_path}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

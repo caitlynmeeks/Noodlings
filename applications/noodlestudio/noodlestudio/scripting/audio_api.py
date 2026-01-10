@@ -1,42 +1,36 @@
-"""
-Audio API - Scripting interface for real-time audio.
-
-Provides context.noodle.audio in ScriptedFacets with Unity-like API:
-
-    // TTS/STT Events
-    context.noodle.audio.onTranscriptionReady((text) => {
-        context.log("User said: " + text);
-    });
-
-    // TTS Control
-    context.noodle.audio.speak("Hello!");
-    context.noodle.audio.listen();
-    context.noodle.audio.interrupt();
-
-    // Spatial Audio (NEW)
-    context.noodle.audio.attachSource("footsteps", {
-        clip: "sounds/step.ogg",
-        volume: 0.5,
-        spatial: true,
-        maxDistance: 10
-    });
-    context.noodle.audio.play("footsteps");
-    context.noodle.audio.playAt("explosion", [10, 0, 5], {volume: 1.0});
-
-    // Polling
-    if (context.noodle.audio.isSpeaking) {
-        // wait...
-    }
-    var lastText = context.noodle.audio.lastTranscription;
-
-Model Labels:
-    - AUDIO_IN: Speech-to-text model (Whisper)
-    - AUDIO_OUT: Text-to-speech model (ElevenLabs, etc.)
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-Extended: December 21, 2025 - Added spatial audio emitter support
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Audio API - Scripting interface for real-time audio.
+#
+#   Provides context.noodle.audio in ScriptedFacets with Unit...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.audio_api
+# PURPOSE:  Audio Api
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AudioEmitter, AudioAPIState, AudioAPI, get_audio_api()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import logging
@@ -692,3 +686,7 @@ def get_audio_api() -> AudioAPI:
     if _audio_api_instance is None:
         _audio_api_instance = AudioAPI()
     return _audio_api_instance
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

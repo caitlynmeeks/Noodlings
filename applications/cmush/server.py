@@ -1,3 +1,48 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   cMUSH WebSocket Server
+#
+#   This is the heart of the online world. When you connect to
+#   noodleMUSH through a web browser or the NoodleStudio app,
+#   this server handles everything:
+#
+#   - Accepts your connection and authenticates you
+#   - Receives your commands ("say hello", "look", "go north")
+#   - Sends you messages about what's happening
+#   - Keeps all the Noodlings thinking and feeling
+#   - Broadcasts events so everyone sees the same world
+#
+#   Think of it like the game master in a tabletop RPG who keeps
+#   track of everything and tells players what they see and hear.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.server
+# PURPOSE:  WebSocket server handling connections and events
+# LAYER:    Backend / Network
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CMUSHServer        Main server with WebSocket handling
+#   WebSocketLogHandler  Broadcasts logs to subscribed clients
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 WebSocket Server for cMUSH
 
@@ -8,7 +53,7 @@ Handles:
 - Event broadcasting
 - Agent lifecycle management
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -1752,3 +1797,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

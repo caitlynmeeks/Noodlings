@@ -1,4 +1,47 @@
 #!/usr/bin/env python3
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Training Scenario Runner - Guided Data Collection
+#
+#   Training good cognitive models requires good training data.
+#   This interactive script guides researchers through structured
+#   scenarios: emotional arcs, empathy tests, multi-agent dynamics.
+#   It prompts you what to say, explains expected agent responses,
+#   and helps collect high-quality interaction data for later
+#   model training. Like a lab protocol, but for AI conversations.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.run_training_scenario
+# PURPOSE:  Interactive guide for training data collection
+# LAYER:    Backend / Training Tools
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TrainingScenario      Base class for scenario definitions
+#
+# KEY FUNCTIONS:
+#   create_emotional_arc_scenario()  25-turn emotional trajectory
+#   create_empathy_test_scenario()   Theory of Mind test
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Interactive Training Scenario Runner for cMUSH
 
@@ -13,9 +56,6 @@ Available scenarios:
     - multi_session: Relationship building over multiple sessions
     - multi_agent: Social dynamics with multiple agents
     - empathy: Test affective mirroring
-
-Author: Consilience Project
-Date: October 2025
 """
 
 import argparse
@@ -397,3 +437,7 @@ def main():
 if __name__ == "__main__":
     import sys
     sys.exit(main())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

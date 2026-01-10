@@ -1,3 +1,51 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Anklebiter Vending Machine Example Script
+#
+#   This is a whimsical example showing how to create an
+#   interactive object that responds to commands.
+#
+#   The vending machine has two buttons. When pressed, each
+#   spawns a different type of chaotic creature into the world.
+#   It tracks how many have been dispensed and has a maximum
+#   limit per type.
+#
+#   This demonstrates:
+#   - Responding to click events (OnClick)
+#   - Parsing command phrases (OnHear)
+#   - Rezzing other entities dynamically
+#   - Tracking internal state
+#   - Providing user feedback
+#
+#   Press the buttons at your own risk.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.example_scripts.AnklebiterVendingMachine
+# PURPOSE:  Example interactive prop with button commands
+# LAYER:    Scripting / Examples
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AnklebiterVendingMachine    NoodleScript for dispensing gremlins
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Anklebiter Vending Machine
 
@@ -13,9 +61,6 @@ Usage:
 2. Attach this script (Component > Add Script)
 3. Use commands: @press blue button, @press red button
 4. Watch chaos unfold
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
 """
 
 from noodlestudio.scripting import NoodleScript, Noodlings, Debug
@@ -176,3 +221,7 @@ class AnklebiterVendingMachine(NoodleScript):
                 "What have you DONE?!\n\n"
                 "*The machine displays: MISSION ACCOMPLISHED*"
             )
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

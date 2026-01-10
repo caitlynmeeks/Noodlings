@@ -1,26 +1,36 @@
-"""
-Gaussian Training Facet - Train 3D Gaussian splats from images.
-
-This facet wraps Gaussian splatting training, allowing users to create
-.radiance assets from multi-view images directly within NoodleStudio.
-
-Supports two backends:
-- OpenSplat CLI (default): Shells out to OpenSplat binary
-- Native Python: Uses gsplat-mps directly (more integrated, shows live progress)
-
-Example facet assembly usage:
-    - id: trainer
-      type: gaussian_training
-      config:
-        backend: opensplat  # or 'native'
-        dataset_path: /path/to/images
-        output_path: /path/to/output.ply
-        iterations: 30000
-        sh_degree: 2
-
-Author: Caitlyn + Claude
-Date: December 24, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Gaussian Training Facet - Train 3D Gaussian splats from images.
+#
+#   This facet wraps Gaussian splatting training, allowing us...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.gaussian_training_facet
+# PURPOSE:  gaussian training facet facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TrainingBackend, TrainingStatus, TrainingProgress, TrainingConfig, GaussianTrainingFacet
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import logging
@@ -508,3 +518,7 @@ class GaussianTrainingAPI:
 # Export for facet registration
 FACET_TYPE = "gaussian_training"
 FACET_CLASS = GaussianTrainingFacet
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

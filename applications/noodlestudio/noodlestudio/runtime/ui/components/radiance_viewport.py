@@ -1,24 +1,36 @@
-"""
-RadianceViewport Component
-
-A focused Gaussian splat renderer for the UI canvas system.
-
-This component ONLY concerns itself with:
-- Rendering Gaussian splats (RadianceComponents)
-- Camera controls (orbit, pan, zoom)
-- Semantic query passthrough for informed Gaussians
-
-It does NOT concern itself with:
-- What a "noodling" or "prop" is
-- Parsing recipe.yaml files
-- Stage loading
-- Personality traits or any domain concepts
-
-Whatever system needs to display Gaussians sends RadianceComponents here.
-The viewport renders them. That's it.
-
-Phase 3c (Jan 2026)
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   RadianceViewport Component
+#
+#   A focused Gaussian splat renderer for the UI canvas syste...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.components.radiance_viewport
+# PURPOSE:  RadianceViewport Component
+# LAYER:    Studio / UI Components
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CameraConfig, RadianceViewport
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 from typing import Any, Dict, Optional, Tuple
@@ -85,6 +97,7 @@ class RadianceViewport(UIComponent):
         self.background: str = "#000000"
         self.show_skeleton: bool = False
         self.interactive: bool = True
+        self.radiance_path: str = ""  # Path to .radiance file to load on init
 
         # Default size
         self.geometry.width = 512
@@ -99,6 +112,8 @@ class RadianceViewport(UIComponent):
             data["show_skeleton"] = True
         if not self.interactive:
             data["interactive"] = False
+        if self.radiance_path:
+            data["radiance_path"] = self.radiance_path
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'RadianceViewport':
@@ -118,6 +133,7 @@ class RadianceViewport(UIComponent):
         viewport.background = data.get("background", "#000000")
         viewport.show_skeleton = data.get("show_skeleton", False)
         viewport.interactive = data.get("interactive", True)
+        viewport.radiance_path = data.get("radiance_path", "")
 
         return viewport
 
@@ -134,7 +150,7 @@ except ImportError:
 
 try:
     from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
-    from PyQt6.QtCore import Qt, QTimer, QPoint, pyqtSignal
+    from PyQt6.QtCore import Qt, QTimer, QPoint, pyqtSignal, pyqtSlot
     from PyQt6.QtGui import QPixmap, QImage, QMouseEvent, QWheelEvent
     QT_AVAILABLE = True
 except ImportError:
@@ -467,14 +483,30 @@ if QT_AVAILABLE:
                     self._scene_builder, camera, background=bg_color
                 )
 
-                QTimer.singleShot(0, lambda: self._on_render_complete(image, alpha, info))
+                # Store results for main thread callback
+                self._pending_image = image
+                self._pending_alpha = alpha
+                self._pending_info = info
+
+                # Use QMetaObject to safely invoke on main thread
+                from PyQt6.QtCore import QMetaObject, Qt as QtCore_Qt
+                QMetaObject.invokeMethod(
+                    self, "_handle_render_result",
+                    QtCore_Qt.ConnectionType.QueuedConnection
+                )
 
             except Exception as e:
                 logger.error(f"Render error: {e}")
-                import traceback
-                traceback.print_exc()
                 with self._render_lock:
                     self._is_rendering = False
+
+        @pyqtSlot()
+        def _handle_render_result(self):
+            """Handle render result on main thread (invoked via QMetaObject)."""
+            image = getattr(self, '_pending_image', None)
+            alpha = getattr(self, '_pending_alpha', None)
+            info = getattr(self, '_pending_info', {})
+            self._on_render_complete(image, alpha, info)
 
         def _parse_background_color(self) -> Tuple[float, float, float]:
             """Parse hex background color to RGB tuple."""
@@ -502,8 +534,24 @@ if QT_AVAILABLE:
 
             # Convert to QPixmap and display
             if image is not None:
+                # Handle torch.Tensor - convert to numpy
+                if TORCH_AVAILABLE and torch.is_tensor(image):
+                    image = image.detach().cpu().numpy()
+
                 if isinstance(image, np.ndarray):
                     h, w = image.shape[:2]
+
+                    # Ensure image is uint8
+                    if image.dtype != np.uint8:
+                        # Check if values are in 0-1 range (float) or 0-255 range
+                        if image.max() <= 1.0:
+                            image = (image * 255).clip(0, 255).astype(np.uint8)
+                        else:
+                            image = image.clip(0, 255).astype(np.uint8)
+
+                    # Ensure contiguous memory
+                    image = np.ascontiguousarray(image)
+
                     if image.shape[2] == 3:
                         qimg = QImage(image.data, w, h, 3 * w, QImage.Format.Format_RGB888)
                     else:
@@ -576,6 +624,13 @@ if QT_AVAILABLE:
             self._interaction_timer.start(self.FULL_RENDER_DELAY)
             self._request_render(preview=True)
 
+        def showEvent(self, event):
+            """Trigger initial render when widget becomes visible."""
+            super().showEvent(event)
+            # Trigger render after a brief delay to ensure layout is complete
+            if self._scene_builder:
+                QTimer.singleShot(50, self._request_full_render)
+
         def resizeEvent(self, event):
             super().resizeEvent(event)
             if self._scene_builder:
@@ -593,3 +648,7 @@ if QT_AVAILABLE:
 # Type hint import guard
 if False:  # TYPE_CHECKING
     from noodlestudio.core.radiance_component import RadianceComponent
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

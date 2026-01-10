@@ -1,12 +1,36 @@
-"""
-Tests for the UI Canvas System (Phase 3a)
-
-Tests the Delphi-style UI component system including:
-- Component creation and serialization
-- Anchor system
-- YAML loading
-- Qt widget rendering
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Tests for the UI Canvas System (Phase 3a)
+#
+#   Tests the Delphi-style UI component system including: - C...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.tests.test_ui_canvas
+# PURPOSE:  Tests for the UI Canvas System (Phase 3a)
+# LAYER:    Studio / Tests
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TestUIComponent, TestPanel, TestLabel, TestButton, TestTextInput
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import pytest
 from pathlib import Path
@@ -2591,3 +2615,7 @@ class TestNewComponentsInYAML:
         slider2 = Slider.from_dict(loaded_data)
         assert slider2.value == 75
         assert slider2.step == 25
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

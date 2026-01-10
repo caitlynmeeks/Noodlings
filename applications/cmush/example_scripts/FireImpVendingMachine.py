@@ -1,3 +1,41 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Fire Imp Vending Machine - Semantic Physics Demo
+#
+#   This demonstrates how semantic physics (POD) connects to
+#   Noodling consciousness. Press the button and out pops a fire
+#   imp - complete with physical properties (800 degrees, glows,
+#   floats) AND a snarky personality. The imp knows it's made of
+#   flame and acts accordingly. Physics meets character.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.example_scripts.FireImpVendingMachine
+# PURPOSE:  Example of POD integration with Noodling consciousness
+# LAYER:    Backend / Example Scripts
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   FireImpVendingMachine   Dispenses embodied fire elementals
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Fire Imp Vending Machine - Example Script
 
@@ -9,9 +47,6 @@ When button pressed:
 3. Attach Noodling to prim (embodied consciousness)
 
 Result: Hot, bright fire imp with snarky personality hops out of vending machine!
-
-Author: Lieutenant Caitlyn + Commander Spock
-Date: November 22, 2025
 """
 
 from noodlings_scripting import NoodleScript, Noodlings, Debug
@@ -203,3 +238,7 @@ constraints:
 
 enlightenment: false  # Immersed in character
 """
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

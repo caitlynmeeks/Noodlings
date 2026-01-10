@@ -1,3 +1,62 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Theory of Mind
+#
+#   When you talk to a friend, you don't just hear words - you
+#   also make guesses about how they're feeling inside. Are they
+#   happy? Stressed? Hiding something? This ability to imagine
+#   what's going on in someone else's head is called "Theory of
+#   Mind" by psychologists.
+#
+#   This module gives an AI the same ability. Based on what
+#   someone says and the context of the conversation, it guesses
+#   what their internal state might be (using the same 40-D
+#   format as its own internal state).
+#
+#   Important: This is INFERENCE, not telepathy! The AI is making
+#   educated guesses, and it knows when it's uncertain. The
+#   module also tracks WHY it's uncertain - is it because there's
+#   not enough information? Conflicting signals? Fundamental
+#   unknowability of another mind?
+#
+#   ~55,000 parameters.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.theory_of_mind
+# PURPOSE:  Infer others' mental states from observation
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TheoryOfMindModule  Infers what others might be feeling
+#   RelationshipModel   Tracks relationship dynamics and trust
+#
+# DEPENDENCIES:
+#   mlx.core            Apple Silicon tensor operations
+#   mlx.nn              Neural network layers
+#
+# RELATED:
+#   noodling_phase4.py  Uses this for social cognition
+#   social_attention.py Works with ToM for social awareness
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Theory of Mind Module: Inferring Others' Mental States
 
@@ -408,3 +467,7 @@ def extract_context_features(
     # Placeholder: Random features
     # TODO: Replace with actual feature extraction
     return mx.random.normal((64,))
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

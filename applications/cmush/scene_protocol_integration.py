@@ -1,3 +1,46 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Scene Protocol Integration - World State Bridge
+#
+#   This is the connector between the server's world state and the
+#   NoodleStudio scene system. It syncs rooms to zones, agents to
+#   Noodlings, and enables perception-filtered views. When a facet
+#   script calls context.noodle.world.canSee("yuki"), this module
+#   answers that question. It also handles Gaussian scene composition
+#   and semantic queries (asking "where is Red's hand?" via CLIP).
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.scene_protocol_integration
+# PURPOSE:  Bridge server world state to Studio scene system
+# LAYER:    Backend / Integration
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   sync_room_to_zone()         Sync room to Scene Protocol Zone
+#   sync_agent_to_noodling()    Sync agent to Scene Protocol Noodling
+#   get_agent_world_api()       Get agent's perception-filtered view
+#   compose_gaussian_scene()    Create Gaussian scene from world state
+#   query_scene_semantic()      Natural language scene queries
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Scene Protocol Integration - Bridges cmush World with Noodlings Scene Protocol
 
@@ -11,9 +54,6 @@ This module enables ScriptedFacets to access world state via:
     context.noodle.world.perceivedEntities
     context.noodle.world.canSee("yuki")
     context.noodle.world.speak("Hello!", "friendly")
-
-Author: Commander Spock + Cadet Caity
-Date: December 18, 2025
 """
 
 import logging
@@ -997,3 +1037,7 @@ __all__ = [
     "get_entity_visible_body_parts",
     "get_entity_radiance_asset",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

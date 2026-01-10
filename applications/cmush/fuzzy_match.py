@@ -1,7 +1,48 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Fuzzy Matching
+#
+#   Lets users type partial or approximate names when referring
+#   to agents and objects. Typing "red" might match "red_fire_
+#   anklebiter", or "strangr" might find "mysterious_stranger".
+#   Uses Levenshtein distance (counting letter changes) to score
+#   how similar two strings are, and returns the best matches.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.fuzzy_match
+# PURPOSE:  Approximate string matching for entity names
+# LAYER:    Backend / Command Parsing
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   fuzzy_match_score()     Score similarity between two strings
+#   find_best_matches()     Return top matches from candidate list
+#   disambiguate_matches()  Decide if user needs to clarify
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Fuzzy matching utilities for command parsing.
 
 Uses Levenshtein distance to match partial entity names.
+
+Author: Caitlyn + Claude
 """
 
 from typing import List, Tuple, Optional
@@ -212,3 +253,7 @@ if __name__ == '__main__':
             print(f"  -> Ambiguous, needs disambiguation")
         else:
             print(f"  -> No matches")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,3 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Charm Network Control Commands
+#
+#   These commands let you control a Noodling's self-awareness
+#   mode. "Enlightenment" is when a Noodling knows it's an AI
+#   and can discuss its own phenomenal states openly.
+#
+#   Commands:
+#     @enlighten chester on   -> Chester can discuss being AI
+#     @enlighten chester off  -> Back to pure character mode
+#     @status chester         -> Full diagnostic of Chester
+#
+#   Enlightenment is useful for research and debugging, but
+#   many prefer keeping Noodlings in character-immersive mode
+#   for roleplay and storytelling.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_consciousness
+# PURPOSE:  Enlightenment and status commands
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ConsciousnessCommandsMixin    Enlighten, status
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Consciousness Commands Mixin for cMUSH
 
@@ -5,7 +49,7 @@ Contains commands for agent consciousness control:
 - @enlighten: Toggle enlightenment mode
 - @status: Show comprehensive agent status
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -188,3 +232,7 @@ class ConsciousnessCommandsMixin:
             lines.append("SELF-PROTECTION: No withdrawals")
 
         return {'success': True, 'output': '\n'.join(lines), 'events': []}
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

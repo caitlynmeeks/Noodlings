@@ -1,20 +1,36 @@
-"""
-Gaussian Adapter - Bridge between Noodlings Scene Protocol and Gaussian Splatting
-
-This module connects the semantic world (NSP ScenePackets) to the visual world
-(3D Gaussian Splats). It manages:
-
-    - Character Gaussians: Generated from reference art via Apple SHARP
-    - Environment Gaussians: Generated from captured images via OpenSplat
-    - Scene composition: Combining multiple Gaussian assets into a scene
-    - Semantic queries: Future LangSplat integration for queryable 3D
-
-The key insight: Every Gaussian knows what it represents.
-Semantic 3D that's query-able, not just renderable.
-
-Author: Caitlyn + Claude
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Gaussian Adapter - Bridge between Noodlings Scene Protocol and Gaussian Splatting
+#
+#   This module connects the semantic world (NSP ScenePackets...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.gaussian_adapter
+# PURPOSE:  Gaussian Adapter
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SemanticGaussian, SplatHitInfo, SkeletonBinding, GaussianAsset, GaussianInstance
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import json
@@ -1140,3 +1156,7 @@ __all__ = [
     # VRM Integration
     "create_skeleton_binding_from_vrm",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

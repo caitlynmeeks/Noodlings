@@ -1,8 +1,48 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Event System
+#
+#   A Unity-style event system that lets different parts of the
+#   code communicate without knowing about each other. When an
+#   agent speaks, an "OnSpeak" event fires, and any listener that
+#   cares about speech can react. This keeps code modular - the
+#   speaker does not need to know who is listening.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.event_system
+# PURPOSE:  Unity-style event messaging for components and scripts
+# LAYER:    Backend / Core Infrastructure
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   Event      Single event that can have multiple listeners
+#   EventBus   Global singleton for system-wide events
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Unity-style Event System for Noodlings.
 
 Provides component event messaging (OnSpeak, OnFACSChange, etc.)
 for reactive programming and script integration.
+
+Author: Caitlyn + Claude
 """
 
 from typing import Callable, List, Any, Dict
@@ -173,3 +213,7 @@ if __name__ == '__main__':
     on_speak.invoke({'text': 'Hello world!', 'timestamp': 12345})
 
     # Output: "Agent said: Hello world!"
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

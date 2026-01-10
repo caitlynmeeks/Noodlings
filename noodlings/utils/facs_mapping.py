@@ -1,3 +1,58 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   FACS Mapping (Facial Action Coding System)
+#
+#   Humans communicate a LOT through facial expressions - even
+#   when we're not aware of it. Psychologist Paul Ekman developed
+#   FACS, a system for describing facial expressions in terms of
+#   individual muscle movements called "Action Units" (AUs).
+#
+#   For example:
+#     - AU6 + AU12 = genuine smile (Duchenne smile)
+#     - AU1 + AU4 + AU15 = sadness
+#     - AU1 + AU2 + AU5 + AU26 = surprise
+#
+#   This file translates a Noodling's 5-D affect (valence, arousal,
+#   fear, sorrow, boredom) into FACS codes that can drive facial
+#   animation. A 3D renderer can use these codes to make a
+#   character's face move in emotionally appropriate ways.
+#
+#   The mapping is based on psychology research about which
+#   muscle combinations produce which emotional expressions.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.utils.facs_mapping
+# PURPOSE:  Map affect vectors to facial animation codes
+# LAYER:    Core / Utils
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   affect_to_emotion_weights  Convert affect to emotion strengths
+#   affect_to_facs             Convert affect to FACS Action Units
+#   facs_to_description        Human-readable expression description
+#   format_facs_for_renderer   JSON-ready format for 3D animation
+#
+# RELATED:
+#   body_language_mapping.py   Same idea but for body animation
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 FACS (Facial Action Coding System) Mapping for Noodlings
 
@@ -274,3 +329,7 @@ if __name__ == "__main__":
     facs = affect_to_facs(affect)
     print(f"FACS: {facs}")
     print(f"Description: {facs_to_description(facs)}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,13 +1,58 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Noodlings API with Observer Loops
+#
+#   This is an experimental version of the API that adds "observer
+#   loops" - a second network that watches the first one and tries
+#   to predict what it will do next.
+#
+#   The idea comes from theories of consciousness that say the brain
+#   needs to model itself to be aware. By having one network watch
+#   another, we create a kind of self-observation that might boost
+#   integrated information (Φ) - a measure of how unified a system's
+#   processing is.
+#
+#   In practice, the observer injects a correction signal back into
+#   the main network, creating a feedback loop that neither part
+#   can function without. It's like two dancers who've practiced
+#   together so long they can't perform alone anymore.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.api_with_observers
+# PURPOSE:  API with observer loops for maximum integrated information
+# LAYER:    Core / API (Experimental)
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodlingAgentWithObservers   Drop-in replacement with observers
+#
+# DEPENDENCIES:
+#   NoodlingWithObservers        Phase 4 + observer integration
+#   FullObserverSystem           Primary + meta observer loops
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Noodlings API with Observer Loops - Enhanced Φ Version
 
-This is an enhanced version of the API that integrates observer loops
-for maximum integrated information (Φ).
-
-Drop-in replacement for the standard API with additional Φ-boosting features.
-
-Author: Caitlyn Meeks
-Date: November 2025
+Drop-in replacement for standard API with observer loops for
+boosted integrated information (Φ).
 """
 
 import mlx.core as mx
@@ -539,3 +584,7 @@ class NoodlingAgentWithObservers:
                 print(f"⚠ Could not load agent state: {e}")
         else:
             print(f"⚠ Agent state file not found: {state_path}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,3 +1,43 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Recipe Loader - Character Configuration Files
+#
+#   Each Noodling has a "recipe" - a YAML file describing who they
+#   are. Like a character sheet in tabletop gaming, recipes define
+#   personality (affect baseline), how they speak (identity prompt),
+#   their thinking style (LLM settings), and which cognitive graph
+#   they use (facet assembly). The recipe loader reads these files
+#   and validates them before spawning a Noodling.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.recipe_loader
+# PURPOSE:  Load and validate character configuration YAML files
+# LAYER:    Backend / Agent Management
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AgentRecipe           Structured recipe data (dataclass)
+#   RecipeLoader          Loads and caches recipe files
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Recipe Loader for noodleMUSH
 
@@ -313,3 +353,7 @@ if __name__ == '__main__':
                     print(f"      {error}")
         else:
             print(f"  Failed to load")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

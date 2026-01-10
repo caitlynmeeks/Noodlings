@@ -1,3 +1,41 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   KIMMIE Character System
+#
+#   KIMMIE is the "sports announcer for AI feelings." When you want
+#   to understand what is happening inside a Noodling's internal
+#   experience, KIMMIE reads the raw data and explains it in plain
+#   English with vivid metaphors. She is an enthusiastic tomboy
+#   data scientist who makes complex neuroscience accessible and
+#   fun. Ask her "what happened here?" and she will tell you a story.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.kimmie_character
+# PURPOSE:  LLM character that interprets phenomenal state data
+# LAYER:    Backend / Character System
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   KimmieCharacter   Phenomenal state interpreter and explainer
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 KIMMIE Character System - Phenomenal State Interpreter
 
@@ -14,7 +52,7 @@ Character Profile:
 - Voice: Like your favorite adventure-loving science teacher - clear, excited, uses analogies
 - Inspiration: Kim Tempest (animation teacher)
 
-Author: noodleMUSH Project
+Author: Caitlyn + Claude
 Date: November 2025
 """
 
@@ -362,3 +400,7 @@ async def handle_kimmie_command(
     )
 
     return f"[KIMMIE] {interpretation}"
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,25 +1,36 @@
-"""
-Subconscious Facet - Continuous symbolic processing
-
-Runs every cognition cycle, generating symbolic abstractions (haiku, metaphor, dream logic)
-that capture the EMOTIONAL ESSENCE of perception. Output is LATENT - stored but not spoken,
-until defenses drop and insights can safely emerge.
-
-This models the continuous stream of subconscious processing that happens beneath
-conscious awareness. Like dreams, it transforms raw experience into symbolic imagery.
-
-VISUAL IMAGERY MODE:
-When `generate_visual=True`, the symbolic text is sent to the image generation system
-to create actual visual imagery. Generated images are stored in the Generations asset
-folder and accessible via the Assets panel.
-
-Events:
-- subconscious_imagery_generated: Visual image created from symbolic text
-
-Author: NinaK + Caity
-Date: December 3, 2025
-Updated: December 17, 2025 - Added visual image generation
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Subconscious Facet - Continuous symbolic processing
+#
+#   Runs every cognition cycle, generating symbolic abstracti...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.subconscious_facet
+# PURPOSE:  subconscious facet facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SubconsciousFacet
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Dict, Any, Optional, Callable, List
 import logging
@@ -352,3 +363,7 @@ Symbolic image:"""
 
         except Exception as e:
             logger.error(f"[SubconsciousFacet] Visual storage error: {e}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

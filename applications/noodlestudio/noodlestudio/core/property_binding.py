@@ -1,23 +1,36 @@
-"""
-Property Binding System - Automatic undo for Inspector properties
-
-This module provides a binding system that connects Qt widgets to object
-properties with automatic undo/redo support. Any widget bound through
-this system automatically gets:
-
-- Undo command generation on value change
-- Command merging for continuous changes (typing, dragging)
-- Proper old/new value tracking
-- Support for dynamic/scripted component types
-
-Usage:
-    # In Inspector, use the factory method:
-    widget = self.create_bound_widget(facet, 'temperature', QDoubleSpinBox,
-                                       minimum=0.0, maximum=2.0, singleStep=0.1)
-
-Author: Commander Spock + Cadet Caity
-Date: December 15, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Property Binding System - Automatic undo for Inspector properties
+#
+#   This module provides a binding system that connects Qt wi...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.property_binding
+# PURPOSE:  Property Binding
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PropertyBinding, PropertyBindingManager, PropertyMeta, PropertyRegistry, editable_properties()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Any, Optional, Callable, Dict, Type, TYPE_CHECKING
 from PyQt6.QtWidgets import (
@@ -667,3 +680,7 @@ class PropertyRegistry:
 
 # Global singleton instance
 property_registry = PropertyRegistry()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

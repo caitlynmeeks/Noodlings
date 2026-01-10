@@ -1,25 +1,36 @@
-"""
-Transcription Clients - Speech-to-text implementations.
-
-Supports multiple backends:
-- Groq Whisper (fast cloud API, recommended)
-- Local faster-whisper (offline, requires model download)
-- OpenAI Whisper API (fallback)
-
-All clients implement the same interface:
-    async transcribe(audio_bytes, sample_rate) -> Dict
-
-Returns:
-    {
-        'text': str,           # Transcribed text
-        'confidence': float,   # 0-1 confidence score
-        'language': str,       # Detected language code
-        'segments': List[Dict] # Word-level timing (optional)
-    }
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Transcription Clients - Speech-to-text implementations.
+#
+#   Supports multiple backends: - Groq Whisper (fast cloud AP...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.transcription_clients
+# PURPOSE:  Transcription Clients
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   TranscriptionResult, TranscriptionClient, GroqWhisperClient, LocalWhisperClient, OpenAIWhisperClient
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import logging
@@ -472,3 +483,7 @@ def create_transcription_client(
 
     else:
         raise ValueError(f"Unknown transcription backend: {backend}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

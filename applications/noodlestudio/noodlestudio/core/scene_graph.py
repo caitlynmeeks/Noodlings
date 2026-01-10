@@ -1,19 +1,36 @@
-"""
-Scene Graph - Unity-style scene hierarchy manager
-
-The SceneGraph manages the tree of SceneNodes, providing:
-- CRUD operations (create, read, update, delete)
-- Reparenting with ordering
-- Path-based lookup ("Alicia/skeleton/leftHand")
-- YAML persistence
-- Signals for UI updates
-
-This is the canonical source of truth for scene organization.
-The Stage View panel reflects this graph.
-
-Author: Commander Spock + Cadet Caity
-Date: December 27, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Scene Graph - Unity-style scene hierarchy manager
+#
+#   The SceneGraph manages the tree of SceneNodes, providing:...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.scene_graph
+# PURPOSE:  Scene Graph - Unity-style scene hierarchy manager
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SceneGraph
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import List, Dict, Any, Optional, Callable, Set
 from pathlib import Path
@@ -674,3 +691,7 @@ class SceneGraph(QObject if HAS_PYQT else object):
 
     def __contains__(self, node_id: str) -> bool:
         return node_id in self._nodes
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -161,3 +161,6 @@ backend/
 
 # Legacy documentation (boxed up, not shipped)
 docs/_legacy/
+
+# Legacy code quarantine
+discards/

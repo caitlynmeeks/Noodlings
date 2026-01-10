@@ -1,8 +1,50 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   LLM Client Router
+#
+#   A switchboard that routes AI requests to the right provider.
+#   When code asks for "SMALL" model, the router figures out which
+#   service to use (Ollama running locally? Anthropic Claude in
+#   the cloud? OpenRouter?) and creates the appropriate connection.
+#   This lets the rest of the code not worry about which provider
+#   is configured - it just asks for what it needs.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.llm_client_router
+# PURPOSE:  Route model labels to appropriate LLM provider clients
+# LAYER:    Backend / LLM Infrastructure
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   LLMClientRouter   Routes SMALL/MEDIUM/LARGE to provider clients
+#   LLMClient         Abstract base class for provider implementations
+#   LLMResponse       Standardized response format across providers
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 LLM Client Router - Multi-Provider Execution Infrastructure
 
 Routes model labels (SMALL/MEDIUM/LARGE) to appropriate provider clients.
 Unified interface for Ollama, Anthropic, OpenAI, OpenRouter, LM Studio.
+
+Author: Caitlyn + Claude
 """
 
 from abc import ABC, abstractmethod
@@ -312,3 +354,7 @@ class LLMClientRouter:
     def get_usage_stats(self) -> Dict[str, Any]:
         """Get usage statistics (for monitoring/cost tracking)"""
         return self.usage_stats.copy()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

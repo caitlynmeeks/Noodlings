@@ -1,3 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   World State Manager
+#
+#   This is the memory of the entire virtual world. Everything
+#   that exists "in there" gets tracked here:
+#
+#   - ROOMS: The places you can visit (The Cafe, Forest Path)
+#   - OBJECTS: Things you can pick up or interact with
+#   - USERS: Human players who connect
+#   - AGENTS: AI Noodlings with their own personalities
+#
+#   All of this gets saved as simple JSON files so you can
+#   easily edit them, version them with git, or back them up.
+#   When the server restarts, everything is right where you
+#   left it.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.world
+# PURPOSE:  Persistent world state with JSON storage
+# LAYER:    Backend / Persistence
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   World    Manages rooms, objects, users, and agents
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 World State & Persistence for cMUSH
 
@@ -9,7 +53,7 @@ Manages:
 
 All state stored as human-readable JSON for git-friendly collaboration.
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -927,3 +971,7 @@ class World:
         self.save_all()
         logger.info(f"Stage created: {stage_id} '{name}'")
         return stage
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

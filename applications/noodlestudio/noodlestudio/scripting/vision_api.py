@@ -1,29 +1,36 @@
-"""
-Vision API - Scripting interface for image understanding and generation.
-
-Provides context.noodle.vision in ScriptedFacets with Unity-like API:
-
-    // Analyze an image
-    var result = context.noodle.vision.analyze("/path/to/image.png");
-    context.log("I see: " + result.description);
-
-    // Capture screenshot
-    var screen = context.noodle.vision.screenshot();
-    context.log("Screen shows: " + screen.description);
-
-    // Generate an image
-    var image = context.noodle.vision.generate("a sunset over mountains");
-
-    // Search image memory
-    var matches = context.noodle.vision.searchImages("cat");
-
-Model Labels:
-    - VISION: Image understanding (Claude Vision, GPT-4V, LLaVA)
-    - IMAGE_GEN: Image generation (DALL-E, Flux, Stable Diffusion)
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Vision API - Scripting interface for image understanding and generation.
+#
+#   Provides context.noodle.vision in ScriptedFacets with Uni...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.vision_api
+# PURPOSE:  Vision Api
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   VisionAPIState, VisionAPI, get_vision_api()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import logging
@@ -336,3 +343,7 @@ def get_vision_api() -> VisionAPI:
     if _vision_api_instance is None:
         _vision_api_instance = VisionAPI()
     return _vision_api_instance
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,4 +1,42 @@
 #!/usr/bin/env python3
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Legacy World Converter
+#
+#   Converts older noodleMUSH world files (JSON format) into the
+#   newer PROJECT_SPEC format with proper Stages, Zones, Noodlings,
+#   and Instances. This is a one-time migration tool for upgrading
+#   existing worlds to the current project architecture.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.convert_legacy_world
+# PURPOSE:  Migrate old world data to PROJECT_SPEC.md format
+# LAYER:    Backend / Migration Tool
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   convert_legacy_world()    Main conversion entry point
+#   convert_room_to_zone()    Transform room JSON to zone YAML
+#   convert_agent_to_noodling() Create noodling from agent
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Legacy World to Project Format Converter
 
@@ -10,6 +48,8 @@ Usage:
 
 If project_path is not specified, reads from PROJECT_PATH env var or
 ~/.noodlestudio/current_project.json
+
+Author: Caitlyn + Claude
 """
 
 import os
@@ -460,3 +500,7 @@ if __name__ == "__main__":
 
     success = convert_legacy_world(project_path)
     sys.exit(0 if success else 1)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

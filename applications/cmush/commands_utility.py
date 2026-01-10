@@ -1,3 +1,50 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Utility Commands
+#
+#   General-purpose commands for system management and user
+#   convenience - things that don't fit neatly into other
+#   categories.
+#
+#   User commands:
+#     help           -> Show all available commands
+#     quit           -> Disconnect from the server
+#
+#   Admin commands:
+#     @shutdown      -> Gracefully stop the server
+#     @yeet <user>   -> Force disconnect someone
+#
+#   Research tools:
+#     @lab           -> Double-blind affect testing facility
+#     @withdrawn     -> Check agent self-protection status
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_utility
+# PURPOSE:  General utility and admin commands
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   UtilityCommandsMixin    Help, quit, shutdown, research
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Utility Commands Mixin for cMUSH
 
@@ -9,7 +56,7 @@ Contains general utility commands:
 - @withdrawn/@reengage: Agent self-protection status
 - @lab: Double-blind affect testing
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -518,3 +565,7 @@ agent responses compared to random affect vectors.
                 'output': output,
                 'events': []
             }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

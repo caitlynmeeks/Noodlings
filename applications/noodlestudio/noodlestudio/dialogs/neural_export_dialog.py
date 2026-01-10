@@ -1,16 +1,36 @@
-"""
-Neural Network Export Dialog
-
-Unified export interface for multiple neural network formats:
-- .nncanvas (NoodleSTUDIO native)
-- MLX Python (Apple Silicon)
-- ONNX (universal interchange)
-- PyTorch (.pt)
-- CoreML (Apple ecosystem)
-
-Author: Commander Spock + Captain Caity
-Date: December 10, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Neural Network Export Dialog
+#
+#   Unified export interface for multiple neural network form...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.dialogs.neural_export_dialog
+# PURPOSE:  Neural Network Export Dialog
+# LAYER:    Studio / Dialogs
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NeuralExportDialog
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -304,3 +324,7 @@ class NeuralExportDialog(QDialog):
             Dict with format info or None if canceled
         """
         return self.selected_format
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,25 +1,36 @@
-"""
-SPE Bridge - Connects Semantic Physics Engine to Action Stream
-
-Routes ActionStream interactions through the Semantic Physics Engine (SPE)
-for narrative-first physics resolution.
-
-Flow:
-    ActionStream action (interact, throw, etc.)
-        ↓
-    SPE Bridge resolves via PhysicsInteractionEngine
-        ↓
-    InteractionOutcome (description, sound, state_change)
-        ↓
-    SceneStateManager updates
-        ↓
-    PhysicsAffectBroadcaster notifies noodlings
-        ↓
-    ScenePacketEmitter emits delta
-
-Author: Commander Spock + Cadet Caity
-Date: December 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   SPE Bridge - Connects Semantic Physics Engine to Action Stream
+#
+#   Routes ActionStream interactions through the Semantic Phy...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.spe_bridge
+# PURPOSE:  Spe Bridge
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SpatialContext, SpatialResolver, PODCache, SPEBridge, get_spe_bridge()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 import sys
@@ -850,3 +861,7 @@ __all__ = [
     "get_spe_bridge",
     "init_spe_bridge",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

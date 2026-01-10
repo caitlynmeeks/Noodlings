@@ -1,3 +1,42 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   OpenRouter Client - Multi-Model Aggregator
+#
+#   OpenRouter.ai is like a universal translator for AI models.
+#   One API key gives you access to 200+ models from Anthropic,
+#   Google, Meta, Mistral, and more. This client handles their
+#   OpenAI-compatible format with proper attribution headers.
+#   Great for comparing models or when you need fallback options.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.providers.openrouter_client
+# PURPOSE:  Access 200+ models via OpenRouter aggregation
+# LAYER:    Backend / LLM Interface
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   OpenRouterClient    LLMClient implementation for OpenRouter
+#   OpenRouterAPIError  Exception for API errors
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 OpenRouter Client
 
@@ -263,3 +302,7 @@ if __name__ == '__main__':
         asyncio.run(test_openrouter_client(api_key))
     else:
         print("Set OPENROUTER_API_KEY environment variable to test")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

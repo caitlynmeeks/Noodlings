@@ -1,24 +1,36 @@
-"""
-Spatial View Panel - Qt Quick 3D visualization of stage zones.
-
-Renders zones as wireframe spheres in 3D space with connections shown as lines.
-Click a zone to select it. Orbit camera to explore.
-
-Controls:
-  - W: Toggle wireframe/solid rendering
-  - T: Toggle ghost mode (transparent, no occlusion)
-  - F: Focus on selected zone
-  - A: Frame all zones (snaps to top-down view)
-  - Alt+LMB: Tumble (orbit camera)
-  - Alt+MMB: Track (pan camera)
-  - Alt+RMB: Dolly (zoom)
-  - Scroll: Zoom (with limits)
-  - Click: Select zone
-  - Right-click: Context menu (add/delete/rename zones)
-
-Author: Caitlyn + Claude
-Date: December 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Spatial View Panel - Qt Quick 3D visualization of stage zones.
+#
+#   Renders zones as wireframe spheres in 3D space with conne...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.spatial_view_panel
+# PURPOSE:  spatial view panel panel UI
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ZoneData, ZoneModel, SpatialViewPanel
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import yaml
@@ -1229,3 +1241,7 @@ Rectangle {
             event.accept()
         else:
             super().keyPressEvent(event)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

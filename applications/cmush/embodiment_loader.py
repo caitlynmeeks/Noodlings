@@ -1,8 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Embodiment Loader
+#
+#   Manages the physical body templates for Noodlings. An embodiment
+#   defines what kind of body a character has - whether it is a cat
+#   with four legs and fur, a robot with wheels, or an amorphous
+#   spirit. The loader can save, load, duplicate, and validate
+#   these body templates. Think of it as a costume closet for AI.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.embodiment_loader
+# PURPOSE:  Load and manage .embodiment body template files
+# LAYER:    Backend / Asset Management
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   EmbodimentLoader   CRUD operations for embodiment assets
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Embodiment Loader - Physical body template management system.
 
 Loads, saves, and manages .embodiment files (body templates).
 Embodiments define physical structure, characteristics, and mutable state.
+
+Author: Caitlyn + Claude
 """
 
 import yaml
@@ -416,3 +455,7 @@ if __name__ == '__main__':
     print(f"Found {len(embodiments)} embodiments:")
     for e in embodiments:
         print(f"  {e['id']} - {e['name']} (v{e['version']})")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

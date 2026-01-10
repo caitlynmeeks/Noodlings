@@ -1,3 +1,59 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   NoodleScript Base Class
+#
+#   If you've used Unity, think of this like MonoBehaviour.
+#   Every script you write inherits from NoodleScript and can
+#   override event callbacks to respond to things happening:
+#
+#     class MyScript(NoodleScript):
+#         def Start(self):
+#             Debug.Log("Script started!")
+#
+#         def OnClick(self, clicker):
+#             Debug.Log(f"{clicker} clicked me!")
+#
+#         def OnHear(self, speaker, message):
+#             if "hello" in message.lower():
+#                 Noodlings.SendMessage(speaker, "Hi there!")
+#
+#   Available events:
+#     - Start() - Called once when script loads
+#     - Update() - Called every tick (use sparingly!)
+#     - OnClick(clicker) - Someone clicked this object
+#     - OnUse(user) - Someone used @use command
+#     - OnHear(speaker, message) - Someone spoke in the room
+#     - OnEnter/OnExit(entity) - Entity entered/left room
+#     - OnSurprised(level) - Noodling experienced high surprise
+#     - OnEmotionChange(old, new) - Noodling's affect changed
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings_scripting.noodle_script
+# PURPOSE:  Base class for all user scripts
+# LAYER:    Scripting
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodleScript  Base class with event callbacks
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 NoodleScript Base Class - Like Unity's MonoBehaviour
 
@@ -212,3 +268,7 @@ class NoodleScript:
         # Implemented by script executor
         if self.prim:
             self.prim.Destroy(delay)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

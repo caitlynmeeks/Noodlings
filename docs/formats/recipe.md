@@ -34,13 +34,24 @@ personality:
   agreeableness: 0.6      # Cooperative vs challenging
   neuroticism: 0.4        # Sensitive vs stable
 
-# Baseline affect (where they drift to at rest)
-affect_baseline:
-  valence: 0.3            # -1 to +1
-  arousal: 0.6            # 0 to 1
-  dominance: 0.5          # 0 to 1
-  boredom: 0.2            # 0 to 1
-  sorrow: 0.1             # 0 to 1
+# Affect model - flexible, dimension-agnostic
+# NoodleStudio does not hardcode any particular affect model.
+# Declare your dimensions; the animation system adapts.
+affect:
+  model: pad              # Label for reference (pad, vkp, occ, ekman, custom...)
+  dimensions:
+    - name: valence
+      range: [-1, 1]
+      baseline: 0.3
+      description: "Pleasure/displeasure"
+    - name: arousal
+      range: [0, 1]
+      baseline: 0.6
+      description: "Energy/activation"
+    - name: dominance
+      range: [0, 1]
+      baseline: 0.5
+      description: "Sense of control"
 
 # Physical description (for LLM context)
 appearance: |
@@ -87,12 +98,18 @@ personality:
   agreeableness: 0.5
   neuroticism: 0.5
 
-affect_baseline:
-  valence: 0.0
-  arousal: 0.5
-  dominance: 0.5
-  boredom: 0.0
-  sorrow: 0.0
+affect:
+  model: pad
+  dimensions:
+    - name: valence
+      range: [-1, 1]
+      baseline: 0.0
+    - name: arousal
+      range: [0, 1]
+      baseline: 0.5
+    - name: dominance
+      range: [0, 1]
+      baseline: 0.5
 
 appearance: A generic character.
 

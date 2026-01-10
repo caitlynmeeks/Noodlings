@@ -1,18 +1,36 @@
-"""
-FBX Animation Importer - Import Mixamo and other FBX animations
-
-Converts FBX bone animations to Noodle muscle space for rig-agnostic playback.
-This is the "RetargetFrom" phase - extracting normalized muscle values from
-arbitrary skeleton animations.
-
-Supported sources:
-- Mixamo (most common for VTuber/game animations)
-- Unity FBX exports
-- Blender FBX exports
-
-Author: Caitlyn + Claude
-Date: December 21, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   FBX Animation Importer - Import Mixamo and other FBX animations
+#
+#   Converts FBX bone animations to Noodle muscle space for r...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.fbx_importer
+# PURPOSE:  Fbx Importer
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AnimationKeyframe, AnimationCurve, AnimationClip, FBXAnimation, FBXParser
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import struct
 import zlib
@@ -794,3 +812,7 @@ if __name__ == "__main__":
         output_path = fbx_path.replace('.fbx', '.posetrack').replace('.FBX', '.posetrack')
         track.save_yaml(output_path)
         print(f"\nSaved to: {output_path}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

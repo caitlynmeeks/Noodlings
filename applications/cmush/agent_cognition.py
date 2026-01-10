@@ -1,3 +1,46 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agent Cognition Loop
+#
+#   This is the "thinking engine" that runs inside every Noodling.
+#   It's the continuous background process that:
+#
+#   - Generates intuitions and insights without external input
+#   - Manages the cognition cycle (perception -> thought -> response)
+#   - Decides when to speak up vs stay quiet
+#   - Tracks how many LLM calls are happening
+#
+#   Think of it as the stream of consciousness that keeps running
+#   even when nobody is talking to the Noodling. It's why they
+#   might suddenly say "I just realized something!" out of nowhere.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.agent_cognition
+# PURPOSE:  Continuous cognition loop for Noodlings
+# LAYER:    Backend / Agent
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CognitionLoopMixin    Continuous thought process mixin
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Agent Cognition Loop Mixin - Continuous cognition and intuition
 
@@ -500,3 +543,6 @@ Generate factual awareness:"""
                 logger.error(f"[{self.agent_name}] Error in continuous cognition: {e}", exc_info=True)
                 await asyncio.sleep(5)  # Wait before retrying after error
 
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

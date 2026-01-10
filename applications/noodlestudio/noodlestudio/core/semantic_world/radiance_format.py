@@ -1,49 +1,36 @@
-"""
-Radiance Format - Semantic Gaussian Splat file format for Noodlings.
-
-.radiance files contain:
-- Standard Gaussian parameters (position, scale, rotation, SH)
-- Skeleton definition for animation
-- Per-Gaussian skinning weights for LBS deformation
-- Semantic labels (body part, region)
-- Optional CLIP embeddings for natural language queries
-- Optional spring bone physics parameters
-
-Every Gaussian knows what it represents. Every frame is query-able.
-
-Author: Caitlyn + Claude
-Date: December 2025
-
-FUTURE: Progressive Streaming (v2 format)
-=========================================
-For massive worlds with composited Gaussians, progressive loading would allow
-instant rough display that refines over time. Design options:
-
-1. SH Band Streaming
-   - Load DC coefficients first (flat color, instant silhouette)
-   - Stream higher SH bands progressively (view-dependent shading)
-   - Minimal format change: split GAUS into GAUS_DC + GAUS_SH chunks
-
-2. Multi-Resolution LOD Chunks
-   - GAUS_LOD0: 1K coarse Gaussians (instant rough shape)
-   - GAUS_LOD1: 10K medium
-   - GAUS_LOD2: 100K+ full detail
-   - New chunk: LODS (summary with counts, byte offsets, target screen sizes)
-
-3. Spatial Tiling (for world-scale)
-   - Octree subdivision of Gaussians
-   - Stream tiles near camera first
-   - Chunk: TILE with spatial bounds + Gaussian range
-
-4. Importance Sorting
-   - Sort Gaussians by visual importance (opacity * size)
-   - First N Gaussians give most visual impact
-   - Progressive count increase without format change
-
-Current format (v1) stores everything linearly. When we need progressive
-loading, we'll extend with optional LOD/tile chunks while maintaining
-backward compatibility (v1 readers ignore unknown chunks).
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Radiance Format - Semantic Gaussian Splat file format for Noodlings.
+#
+#   .radiance files contain: - Standard Gaussian parameters (...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.radiance_format
+# PURPOSE:  Radiance Format
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   BodyRegion, RadianceBone, RadianceSkeleton, SpringChain, SpringCollider
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import struct
 import json
@@ -1149,3 +1136,7 @@ __all__ = [
     'save_radiance',
     'ply_to_radiance',
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

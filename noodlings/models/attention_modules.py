@@ -1,3 +1,62 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Attention Modules
+#
+#   When you're remembering something, how do you decide which
+#   memory to focus on? That's what attention does. This file
+#   gives an AI the ability to look back at its past experiences
+#   and pick out the ones that matter most right now.
+#
+#   Think of it like this: if you're about to give a speech,
+#   your brain automatically pulls up memories of past speeches,
+#   not what you had for breakfast. These attention modules do
+#   the same thing - they learn which memories are relevant.
+#
+#   There are 4 different "heads" that each specialize in
+#   finding different kinds of relevant memories:
+#     - Recent things (what just happened)
+#     - Emotionally similar things (how you felt before)
+#     - Surprising moments (things that stood out)
+#     - Thematically related things (similar situations)
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.attention_modules
+# PURPOSE:  Multi-head attention over episodic memory
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   KeyEncoder               Turns internal states into memory keys
+#   AttentionQueryGenerator  Creates "what am I looking for?" queries
+#   MultiHeadAttention       4-head attention over past experiences
+#   ContextIntegrator        Blends current state with retrieved memories
+#
+# DEPENDENCIES:
+#   mlx.core                 Apple Silicon tensor operations
+#   mlx.nn                   Neural network layers
+#
+# RELATED:
+#   noodling_attention.py    Full model with these attention modules
+#   episodic_memory.py       Memory buffer these modules attend over
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Attention Mechanisms for Consilience Phase 3
 
@@ -380,3 +439,7 @@ def top_k_attended_indices(attention_weights: mx.array, k: int = 3) -> Tuple[mx.
     weights = attention_weights[indices]
 
     return indices, weights
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,10 +1,53 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agent State Persistence
+#
+#   Noodlings remember! This module handles saving and loading
+#   a Noodling's complete state - memories, relationships, affect
+#   history, and internal model weights.
+#
+#   When you "@rez chester" after a server restart, Chester comes
+#   back with all his memories intact because this module saved
+#   them to disk as JSON files.
+#
+#   It also supports "snapshots" for lab experiments - freeze
+#   Chester's state, run an experiment, then restore him to
+#   exactly how he was before.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.agent_state
+# PURPOSE:  Save and restore Noodling state
+# LAYER:    Backend / Agent
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   StatePersistenceMixin    Save/load agent state to disk
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Agent State Persistence Mixin - State save/load functionality
 
 Extracted from agent_bridge.py for maintainability.
 Contains methods for persisting and restoring agent state to disk.
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -315,3 +358,6 @@ class StatePersistenceMixin:
 
         logger.info(f"Agent state loaded: {state_dir}")
 
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

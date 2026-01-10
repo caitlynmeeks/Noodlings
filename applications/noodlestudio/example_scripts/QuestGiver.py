@@ -1,3 +1,49 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Quest Giver Example Script
+#
+#   This is a sample NoodleScript showing how to create an NPC
+#   who gives quests to players.
+#
+#   The quest giver waits for someone to say "help" or "quest",
+#   then gives them a task to complete. When they return with
+#   the quest item, they get a reward!
+#
+#   This demonstrates:
+#   - Listening for trigger phrases (OnHear)
+#   - Tracking state (quest given/completed)
+#   - Sending messages back to players
+#   - Rezzing reward items
+#
+#   A template for interactive NPCs in your worlds.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.example_scripts.QuestGiver
+# PURPOSE:  Example NPC with quest-giving behavior
+# LAYER:    Scripting / Examples
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   QuestGiver    NoodleScript implementing quest NPC
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Quest Giver Example - NPC with a quest
 
@@ -9,9 +55,6 @@ Usage:
 3. Talk to them in-world
 4. They give you a quest!
 5. Complete objectives to finish quest
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
 """
 
 from noodlestudio.scripting import NoodleScript, Noodlings, Debug
@@ -94,3 +137,7 @@ class QuestGiver(NoodleScript):
         else:
             objective = self.objectives[self.current_objective]
             Noodlings.SendMessage(clicker, f"Your current objective: {objective}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

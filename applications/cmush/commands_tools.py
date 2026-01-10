@@ -1,3 +1,51 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Agent Tools Commands
+#
+#   These commands give Noodlings their own private workspace -
+#   a journal for thoughts, a messaging inbox, and a sandboxed
+#   filesystem for notes and data.
+#
+#   Journal:
+#     @think <thought>     -> Record a private thought
+#     @remember            -> Read past journal entries
+#
+#   Messaging:
+#     @message bob "Hi"    -> Send private message
+#     @inbox               -> Check messages
+#
+#   Filesystem:
+#     @write file.txt "..."  -> Write to agent's directory
+#     @read file.txt         -> Read a file
+#     @ls                    -> List files
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.commands_tools
+# PURPOSE:  Agent filesystem and messaging commands
+# LAYER:    Backend / Commands
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ToolsCommandsMixin    Think, remember, message, filesystem
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Agent Tools Commands Mixin for cMUSH
 
@@ -11,7 +59,7 @@ Contains commands for agent tools and filesystem operations:
 - @ls: List directory
 - @exec: Execute sandboxed command
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: December 2025
 """
 
@@ -228,3 +276,7 @@ class ToolsCommandsMixin:
             }
         except Exception as e:
             return {'success': False, 'output': f'Error: {str(e)}', 'events': []}
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

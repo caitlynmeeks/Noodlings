@@ -1,23 +1,36 @@
-"""
-Timeline Recorder - Bridge from ExecutionEventBus to Cognitive Timeline
-
-Listens to facet execution events and builds timeline data structures
-for visualization in the ProfilerPanel / Cognitive Timeline Editor.
-
-Architecture:
-    ExecutionEventBus
-           │
-           ├─ cycle_start    ──→ TimelineRecorder.on_cycle_start()
-           ├─ facet_start    ──→ TimelineRecorder.on_facet_start()
-           ├─ facet_complete ──→ TimelineRecorder.on_facet_complete()
-           └─ cycle_complete ──→ TimelineRecorder.on_cycle_complete()
-                                        │
-                                        ▼
-                               ProfilerPanel.add_cycle()
-
-Author: Commander Spock + Captain Caity
-Date: December 19, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Timeline Recorder - Bridge from ExecutionEventBus to Cognitive Timeline
+#
+#   Listens to facet execution events and builds timeline dat...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.timeline_recorder
+# PURPOSE:  Timeline Recorder
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   FacetRecord, CycleRecord, AffectSample, AgentTimeline, TimelineSession
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import time
 import asyncio
@@ -579,3 +592,7 @@ if __name__ == "__main__":
         print("\n=== Test complete ===")
 
     asyncio.run(test_recorder())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

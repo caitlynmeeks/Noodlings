@@ -1,26 +1,36 @@
-"""
-Cloud API for NoodleStudio Scripting
-====================================
-
-Provides context.noodle.cloud interface for interacting with
-the Noodlings cloud backend.
-
-Usage in ScriptedFacet:
-    // Get current user
-    const user = await context.noodle.cloud.getUser();
-
-    // Check credits
-    const balance = await context.noodle.cloud.getCredits();
-
-    // Save noodling to cloud
-    await context.noodle.cloud.saveNoodling(noodlingData);
-
-    // Use routed LLM (charges credits)
-    const response = await context.noodle.cloud.generate({
-        model: 'anthropic/claude-3-sonnet',
-        messages: [{ role: 'user', content: 'Hello!' }]
-    });
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Cloud API for NoodleStudio Scripting
+#
+#   ==================================== Provides context.noo...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.cloud_api
+# PURPOSE:  Cloud API for NoodleStudio Scripting
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   User, Noodling, LLMResponse, CloudAPIError, CloudAPI
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import json
@@ -802,3 +812,7 @@ class CloudAPIJS:
         from ..core.backend_services import get_backend_client, AssetType
         client = get_backend_client()
         return self._run(client.assets.upload_file(filePath, AssetType(assetType)))
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

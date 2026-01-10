@@ -1,25 +1,36 @@
-"""
-MacOSBundler - Creates macOS .app bundles
-
-Creates a standalone .app that:
-1. Contains the runtime module and project assets
-2. Bundles Python or uses system Python
-3. Has proper Info.plist and icon
-
-Structure:
-    MyApp.app/
-    ├── Contents/
-    │   ├── Info.plist
-    │   ├── MacOS/
-    │   │   └── MyApp          # Launcher script
-    │   └── Resources/
-    │       ├── AppIcon.icns   # Icon
-    │       ├── runtime/       # NoodleStudio runtime module
-    │       └── project/       # User's project files
-
-Author: Caitlyn + Claude
-Date: January 3, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   MacOSBundler - Creates macOS .app bundles
+#
+#   Creates a standalone .app that: 1. Contains the runtime m...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.appbuilder.bundler_macos
+# PURPOSE:  MacOSBundler - Creates macOS .app bundles
+# LAYER:    Studio / Build System
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MacOSBundler, is_macos(), get_system_python_path()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 import os
@@ -402,3 +413,7 @@ def get_system_python_path() -> Optional[str]:
     """Get path to system Python 3."""
     import shutil
     return shutil.which('python3')
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

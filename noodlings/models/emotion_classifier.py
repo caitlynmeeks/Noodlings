@@ -1,3 +1,53 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Emotion Classifier
+#
+#   This module takes the AI's complex 40-dimensional internal
+#   state and translates it into recognizable emotion labels
+#   like "joy" or "curiosity."
+#
+#   It's NOT used during normal operation (Noodlings don't need
+#   discrete labels internally - they feel continuous states).
+#   Instead, it's a research tool for:
+#     - Validating that internal states make sense
+#     - Fine-tuning on human-labeled conversation data
+#     - Comparing AI experiences to human emotion categories
+#
+#   The 10 emotions it can recognize are based on psychology
+#   research: fear, joy, sadness, anger, love, guilt, pride,
+#   shame, curiosity, and boredom.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.emotion_classifier
+# PURPOSE:  Map phenomenal states to emotion labels (research tool)
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   EmotionClassificationHead  Maps 40-D state to 10 emotion classes
+#
+# DEPENDENCIES:
+#   mlx.core                   Apple Silicon tensor operations
+#   mlx.nn                     Neural network layers
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Emotion Classification Head for Noodlings
 
@@ -143,3 +193,7 @@ def test_emotion_head():
 
 if __name__ == '__main__':
     test_emotion_head()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

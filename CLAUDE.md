@@ -2,11 +2,333 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: January 5, 2026
+**Last Updated**: January 9, 2026
 
 ---
 
-## NEXT: Facets as Universal Components - Phase 3
+## COMPLETED: LLM Router Wiring for Let's Consciousness! (Jan 9, 2026)
+
+**Goal:** Make Guide (Ajo Majo the axolotl) talk using facet assemblies via NoodleROUTER.
+
+**Project Location:** `Projects/lets-consciousness/`
+
+**What Was Wired:**
+1. **Project path derivation** - cli.py now derives project from ui.yaml location
+2. **FacetExecutor initialization** - Created with HeadlessLLMClient in run_gui()
+3. **Assembly model names** - Using NoodleROUTER format (`anthropic/claude-3-haiku`, `anthropic/claude-sonnet-4`)
+4. **UI event binding** - TextInput and Button trigger `run_assembly` action
+
+**Architecture Flow:**
+```
+User Input -> run_assembly action -> FacetExecutor -> HeadlessLLMClient
+    -> NoodleROUTER (api.noodlings.ai) -> Claude -> Response -> guide_speech.text
+```
+
+**Running the Project:**
+```bash
+cd applications/noodlestudio
+
+# Option 1: CLI args
+PYTHONPATH=.:../.. python -m noodlestudio.runtime \
+  --gui --ui "../../Projects/lets-consciousness/ui.yaml" \
+  --provider noodlerouter --api-key $NOODLEROUTER_API_KEY
+
+# Option 2: Environment variables
+export NOODLE_LLM_PROVIDER=noodlerouter
+export NOODLEROUTER_API_KEY=<your-api-key>
+PYTHONPATH=.:../.. python -m noodlestudio.runtime \
+  --gui --ui "../../Projects/lets-consciousness/ui.yaml"
+```
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `runtime/cli.py:258-319` | Project derivation + FacetExecutor init |
+| `runtime/llm_client.py` | HeadlessLLMClient with noodlerouter provider |
+| `runtime/ui/event_dispatcher.py:363` | `_handle_run_assembly()` action |
+| `noodlings/guide/assembly.yaml` | Guide's cognitive pipeline |
+| `Projects/lets-consciousness/ui.yaml` | UI with run_assembly events |
+
+**NoodleROUTER Reference:**
+
+| Model ID | Use Case |
+|----------|----------|
+| `anthropic/claude-3-haiku` | Testing, simple tasks |
+| `anthropic/claude-3.5-haiku` | Good balance |
+| `anthropic/claude-sonnet-4` | Complex reasoning |
+| `anthropic/claude-opus-4-5` | Maximum capability |
+
+**Status:** Ajo Majo is ready to talk! Run the project with a valid NoodleROUTER API key.
+
+---
+
+## COMPLETED: RadianceViewport Tensor Fix (Jan 8, 2026)
+
+**Issue:** Axolotl rendered black despite Gaussians loading successfully.
+
+**Root Cause:** `GaussianRenderer.render_scene()` returns `torch.Tensor` on MPS device, but display code expected numpy array.
+
+**Fix:** Added tensor-to-numpy conversion in `runtime/ui/components/radiance_viewport.py:554`:
+```python
+if TORCH_AVAILABLE and torch.is_tensor(image):
+    image = image.detach().cpu().numpy()
+```
+
+Also fixed Qt thread safety using `QMetaObject.invokeMethod` with `@pyqtSlot()` decorator.
+
+**Status:** Ajo Majo now renders correctly. All 414 tests passing.
+
+---
+
+## COMPLETED: Transparent VRM Character Overlay (Jan 8, 2026)
+
+**Issue:** QOpenGLWidget can't composite transparently as an embedded widget. VRM characters had opaque backgrounds.
+
+**Solution:** Created `CharacterOverlayWindow` - a separate frameless overlay window that follows the main window.
+
+**Key Implementation:**
+- `runtime/ui/overlay.py` - New `CharacterOverlayWindow` class
+- Frameless window with `Qt.WindowType.Tool` (no taskbar entry)
+- `WA_TranslucentBackground` + `WA_NoSystemBackground` for transparency
+- Timer-based position tracking (50ms) keeps overlay following main window
+- VRMViewport with `transparent: True` clears with alpha=0
+
+**UI YAML Configuration:**
+```yaml
+# In ui.yaml - top level overlay section
+overlay:
+  enabled: true
+  vrm_path: "../../noodlings/guide/Radiances/AjoMajo.vrm"
+  size: [300, 400]
+  anchor: right  # or "left"
+  offset: [20, 50]  # x, y offset from anchor
+```
+
+**API:**
+```python
+overlay = CharacterOverlayWindow(
+    parent_window=main_window,
+    vrm_path="/path/to/character.vrm",
+    size=(300, 400),
+    offset=(20, 100),
+    anchor="right"
+)
+overlay.show()
+
+# Animate character
+overlay.set_muscles({"Head.TurnLeftRight": 0.3})
+overlay.set_blend_shapes({"happy": 0.6})
+```
+
+**Files:**
+- `runtime/ui/overlay.py` - CharacterOverlayWindow class
+- `runtime/cli.py` - Reads overlay config, creates overlay in run_gui()
+- `Projects/lets-consciousness/ui.yaml` - Updated with overlay config
+
+**Status:** Guide (Ajo Majo) now floats transparently over the Let's Consciousness UI.
+
+---
+
+## COMPLETED: Channel Architecture (Jan 8, 2026)
+
+**Goal:** Named message buses for inter-noodling communication. Enables stage direction, environmental context, group communication, and private messaging.
+
+**Full spec:** `/docs/noodlestudio/channels.md`
+
+**Key Classes:**
+- `ChannelBus` - Pub/sub message bus with history
+- `ChannelMessage` - Message structure with channel, sender, timestamp, payload
+- `ChannelsConfig` - Assembly channel subscription/publish configuration
+
+**Assembly YAML:**
+```yaml
+name: Guide Assembly
+channels:
+  subscribe:
+    - "#directors.cues"
+    - "#world.context"
+  publish:
+    - "#directors.feedback"
+```
+
+**FacetAssembly Methods:**
+```python
+assembly.get_subscribe_channels()  # List of subscribed channels
+assembly.get_publish_channels()    # List of publishable channels
+assembly.can_publish_to(channel)   # Check publish permission
+assembly.subscribes_to(channel)    # Check subscription
+```
+
+**FacetExecutor Integration:**
+- Channel inputs resolved via `channel:#channel.name` pad references
+- Channel outputs published via `channel:#channel.name` output pads
+- Respects assembly subscribe/publish permissions
+
+**ChannelBus API:**
+```python
+bus = ChannelBus()
+bus.subscribe("#directors.cues", callback)
+bus.publish_simple("#directors.cues", {"type": "cue"}, "brenda")
+latest = bus.get_latest("#directors.cues")
+history = bus.get_history("#directors.cues", limit=10)
+```
+
+**Channel Naming Convention:**
+- `#world.*` - Public environmental (weather, time, events)
+- `#directors.*` - Stage management (cues, feedback)
+- `#dm.*` - Direct messages (private)
+- `#<scope>.*` - Scoped group channels
+
+**Files Created:**
+- `runtime/channels.py` - ChannelBus, ChannelMessage, ChannelsConfig
+- `tests/test_channels.py` - 28 unit tests
+
+**Files Modified:**
+- `core/facet_system.py` - Added channels field to FacetAssembly
+- `core/facet_executor.py` - Added channel input/output resolution
+- `runtime/app.py` - NoodleApp owns ChannelBus instance
+
+**Tests:** 28 new tests, all passing.
+
+---
+
+## COMPLETED: World Channels (Jan 9, 2026)
+
+**Goal:** System-level channels that broadcast environmental context to all noodlings: time, weather, events, ambiance.
+
+**Full spec:** `/docs/noodlestudio/handoff-world-channels.md`
+
+**Key Classes:**
+- `WorldChannelService` - Manages world-level channels for environmental context
+- `WorldConfig` - Configuration loaded from stage.yaml `world` section
+
+**Channels Published:**
+| Channel | Content |
+|---------|---------|
+| `#world.time` | Simulation time, time of day, sun position, natural language description |
+| `#world.weather` | Temperature, conditions, wind, humidity, description |
+| `#world.ambiance` | Mood, energy level, atmospheric description |
+| `#world.events` | Discrete events (sounds, visuals, physical, social) |
+
+**Stage Configuration:**
+```yaml
+# stage.yaml
+world:
+  time_scale: 1.0              # Real time (60.0 = 1 min per second)
+  initial_time: "18:00"        # Start at 6 PM
+  weather:
+    temperature: 68
+    conditions: partly_cloudy
+    wind: light_breeze
+  ambiance:
+    mood: calm
+    energy: 0.5
+```
+
+**NoodleApp API:**
+```python
+app.tick_world()                           # Advance simulation time
+app.set_world_time("15:30")               # Set time directly
+app.set_world_weather(conditions="rain")  # Update weather
+app.set_world_ambiance(mood="tense")      # Update ambiance
+app.trigger_world_event("sound", "door", "A door slammed.")  # Discrete event
+app.get_world_context()                   # Get full world state
+```
+
+**Noodling Subscription:**
+```yaml
+# guide/assembly.yaml
+channels:
+  subscribe:
+    - "#directors.cues"
+    - "#world.time"
+    - "#world.ambiance"
+```
+
+**Files Created:**
+- `runtime/world_channels.py` - WorldChannelService, WorldConfig
+- `tests/test_world_channels.py` - 44 unit tests
+
+**Files Modified:**
+- `runtime/app.py` - NoodleApp owns WorldChannelService, convenience methods
+
+**Tests:** 44 new tests, all passing. Total: 486 tests.
+
+---
+
+## COMPLETED: Brenda Stage Director (Jan 9, 2026)
+
+**Goal:** Invisible stage director who orchestrates performances from `.play.yaml` scripts, sending cues to noodlings and managing theatrical flow.
+
+**Full spec:** `/docs/noodlestudio/handoff-brenda.md`
+
+**Key Classes:**
+- `BrendaDirector` - Stage director that loads and runs .play.yaml scripts
+- `PlayState` - Tracks current beat, completed beats, character states, improv zones
+- `DirectorMode` - Enum: ACTIVE, PASSIVE, PASSIVE_AVAILABLE, PAUSED
+- `TriggerType` - Enum: SEQUENCE, AFTER, THRESHOLD, DELAY, USER_CHOICE, USER_RESPONSE, IMPROV_COMPLETE, ALL
+
+**Play YAML Format:**
+```yaml
+play:
+  title: "Let's Consciousness!"
+  characters:
+    - name: guide
+      assembly: noodlings/guide/assembly.yaml
+
+beats:
+  intro:
+    direction: "Guide greets the visitor warmly"
+    actors:
+      guide:
+        action: greet
+        emotional_target: {pleasure: 0.6, arousal: 0.5}
+    triggers:
+      - type: sequence
+        next_beat: explore
+```
+
+**NoodleApp API:**
+```python
+app.load_director("path/to/play.yaml")  # Load a play script
+app.start_performance()                  # Begin the performance
+app.stop_performance()                   # End the performance
+app.publish_user_input("Hello!")         # Send user input to director
+app.get_director_state()                 # Get current play state
+app.get_play_info()                      # Get play metadata
+app.tick()                               # Advances both world and director
+```
+
+**Channel Integration:**
+- Subscribes to `#directors.feedback` (noodling status updates)
+- Subscribes to `#user.input` (user messages)
+- Publishes to `#directors.cues` (beat instructions)
+- Can control world channels via WorldChannelService
+
+**Trigger Types:**
+| Type | Description |
+|------|-------------|
+| `sequence` | Immediately advance to next beat |
+| `after` | After specific beat completes |
+| `delay` | Wait N seconds |
+| `threshold` | When character affect reaches target |
+| `user_choice` | Wait for user to select an option |
+| `user_response` | Wait for any user input |
+| `improv_complete` | When improv zone ends |
+| `all` | All sub-triggers must complete |
+
+**Files Created:**
+- `runtime/brenda.py` - BrendaDirector, PlayState, DirectorMode, TriggerType
+- `tests/test_brenda.py` - 31 unit tests
+
+**Files Modified:**
+- `runtime/app.py` - NoodleApp owns BrendaDirector, convenience methods, tick()
+
+**Tests:** 31 new tests, all passing. Total: 517 tests.
+
+---
+
+## BACKLOG: Facets as Universal Components - Phase 3
 
 **Goal:** UI Canvas Designer integration.
 
@@ -766,6 +1088,14 @@ PYTHONPATH=.:../.. pytest -k "test_ui" # By pattern
 
 ## Development
 
+### Environment Setup
+```bash
+cd /Users/thistlequell/git/noodlings_clean
+source venv/bin/activate
+```
+
+The venv contains all dependencies (PyQt6, pytest, etc.). Always activate before running tests or the application.
+
 ### Running NoodleStudio
 ```bash
 cd applications/noodlestudio
@@ -802,6 +1132,8 @@ tail -f applications/noodlestudio/logs/noodlestudio_*.log
 
 | What | Where |
 |------|-------|
+| **LLM Client** | `noodlestudio/runtime/llm_client.py` |
+| **Runtime CLI** | `noodlestudio/runtime/cli.py` |
 | **UI Canvas (runtime)** | `noodlestudio/runtime/ui/` |
 | **UIEventData** | `runtime/ui/event_data.py` |
 | **EventEmitting widgets** | `runtime/ui/event_widgets.py` |
@@ -819,6 +1151,9 @@ tail -f applications/noodlestudio/logs/noodlestudio_*.log
 | **Scene hierarchy** | `panels/scene_hierarchy.py` |
 | **Cognitive Cycles Panel v2** | `panels/cognitive_cycles_panel_v2.py` |
 | **Cognition Monitor** | `core/cognition_monitor.py` |
+| **Channel Bus** | `runtime/channels.py` |
+| **World Channels** | `runtime/world_channels.py` |
+| **Brenda Director** | `runtime/brenda.py` |
 
 ---
 
@@ -834,6 +1169,10 @@ tail -f applications/noodlestudio/logs/noodlestudio_*.log
 
 ## Completed Systems
 
+- **LLM Router Wiring** - Let's Consciousness! project talks via NoodleROUTER
+- **Brenda Stage Director** - Invisible director orchestrating .play.yaml performances
+- **World Channels** - Environmental context broadcasting (time, weather, ambiance, events)
+- **Channel Architecture** - Named message buses for inter-noodling communication
 - **More Components** - Checkbox, Dropdown, Slider, RadioButton, RadioGroup (Phase 7C)
 - **Inspector Event Wiring UI** - Delphi Object Inspector Events tab (Phase 7B)
 - **Full Event Model** - UIEventData, EventEmitting widgets (Phase 7A)
@@ -842,7 +1181,7 @@ tail -f applications/noodlestudio/logs/noodlestudio_*.log
 - **UI Hierarchy Fix** - Duplicate component display resolved
 - **Build System** - File > Build Application (macOS .app bundles)
 - **Runtime Foundation** - Headless execution, CLI, multi-provider LLM
-- **LLM Routing API** - api.noodlings.ai/v1/chat/completions (live)
+- **NoodleROUTER** - api.noodlings.ai/v1/chat/completions (live)
 - **GPU Gaussian Rendering** - 120 FPS via gsplat-mps
 - **Admin Dashboard** - admin.noodlings.ai (live)
 - **Crash Recovery** - Sentinel file detection

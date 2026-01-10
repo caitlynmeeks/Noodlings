@@ -1,12 +1,36 @@
-"""
-Script Editor Dialog - Inline JavaScript editor for UI events
-
-Modal dialog for editing QuickJS scripts that respond to UI events.
-Provides syntax highlighting, API reference, and validation.
-
-Author: Caitlyn + Claude
-Date: January 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Script Editor Dialog - Inline JavaScript editor for UI events
+#
+#   Modal dialog for editing QuickJS scripts that respond to ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.dialogs.script_editor_dialog
+# PURPOSE:  Script Editor Dialog
+# LAYER:    Studio / Dialogs
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   JavaScriptHighlighter, ScriptEditorDialog
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Optional
 
@@ -450,3 +474,7 @@ console.log(event.type, 'from', event.source);"""
         if dialog.exec() == QDialog.DialogCode.Accepted:
             return dialog.get_script()
         return None
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

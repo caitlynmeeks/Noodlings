@@ -1,9 +1,36 @@
-"""
-Bug Report Dialog for NoodleStudio
-==================================
-
-Collects bug reports and crash information for submission to GitHub Issues.
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Bug Report Dialog for NoodleStudio
+#
+#   ================================== Collects bug reports a...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.dialogs.bug_report_dialog
+# PURPOSE:  Bug Report Dialog for NoodleStudio
+# LAYER:    Studio / Dialogs
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SystemInfoCollector, BugReportDialog, show_bug_report_dialog(), show_crash_report_dialog()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import platform
 import sys
@@ -531,3 +558,7 @@ def show_crash_report_dialog(
 
     dialog = BugReportDialog(parent, crash_info=crash_info)
     return dialog.exec() == QDialog.DialogCode.Accepted
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

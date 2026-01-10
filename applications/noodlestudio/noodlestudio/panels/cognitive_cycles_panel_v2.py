@@ -1,22 +1,36 @@
-"""
-Cognitive Cycles Panel v2 - Hierarchical assembly monitoring
-
-Upgraded from "one cognitive thread per agent" to "multiple assemblies per Thing,
-each independently reportable."
-
-The panel is architecture-agnostic - it doesn't know or care what KIND of cognition
-is happening (CHARM, custom RNNs, rule systems, quantum chaos). It just provides
-a generic dashboard that assemblies can report to.
-
-Key changes from v1:
-- Hierarchical layout: Things contain Assemblies
-- Collapsible Thing rows with aggregate activity
-- Per-assembly status reporting (architecture-agnostic)
-- Per-assembly and per-Thing pause/step controls
-
-Author: Caitlyn + Claude
-Date: January 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Cognitive Cycles Panel v2 - Hierarchical assembly monitoring
+#
+#   Upgraded from "one cognitive thread per agent" to "multip...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.cognitive_cycles_panel_v2
+# PURPOSE:  cognitive cycles panel v2 panel UI
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   CyclePhase, AssemblyStatus, ThingStatus, CyclePhaseIndicator, AssemblyCycleRow
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 import requests
@@ -1109,3 +1123,7 @@ __all__ = [
     'ThingCycleRow',
     'AssemblyCycleRow',
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

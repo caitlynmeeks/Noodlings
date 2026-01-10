@@ -1,3 +1,64 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Hierarchical Memory
+#
+#   Your brain doesn't treat all memories the same. Something that
+#   happened five seconds ago is stored differently than something
+#   from last year. This file works the same way.
+#
+#   Think of it like a desk, a filing cabinet, and a library:
+#
+#     - Working memory (the desk): The last 20 things that happened.
+#       Right there, easy to grab, full detail.
+#
+#     - Episodic memory (the filing cabinet): 200 important moments.
+#       Things that were surprising or emotional get filed here.
+#       Old stuff that stopped mattering eventually gets tossed.
+#
+#     - Semantic memory (the library): Patterns learned over time.
+#       Not individual moments, but what all those moments taught.
+#
+#   When something new happens, this code decides: is it important
+#   enough to file away? And it slowly forgets the things that
+#   never came up again.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.memory.hierarchical_memory
+# PURPOSE:  Three-tier memory with automatic consolidation
+# LAYER:    Core / Memory
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   HierarchicalMemory    Three-tier storage with consolidation
+#   MemoryEntry           Single memory with metadata
+#
+# DEPENDENCIES:
+#   mlx.core              Apple Silicon tensor operations
+#   numpy                 Array utilities
+#   collections.deque     FIFO working memory
+#
+# RELATED:
+#   episodic_memory.py    Simpler single-tier memory
+#   semantic_memory.py    Long-term fact storage
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Hierarchical Memory System for Noodlings
 
@@ -7,9 +68,6 @@ Three-tier architecture:
 3. Semantic Memory: Compressed patterns (stored in slow layer state)
 
 Inspired by cognitive neuroscience models of human memory.
-
-Author: Caitlyn Meeks
-Date: October 2025
 """
 
 import mlx.core as mx
@@ -423,3 +481,8 @@ class HierarchicalMemory:
         self.evictions = state['evictions']
 
         logger.info(f"Memory state loaded: {filepath}")
+
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# Made with love. Use with love.
+# Caitlyn Meeks 2026 જ⁀➴ ♡

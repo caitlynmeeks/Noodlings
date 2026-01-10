@@ -1,35 +1,36 @@
-"""
-Quantum API - Scriptable quantum computation interface.
-
-Provides REAL quantum computation for ScriptedFacets:
-- Qubit measurement on IBM Quantum hardware
-- Simulated fallback when offline
-- Schrodinger's Cat experiment with actual quantum collapse
-- Neural Canvas quantum node execution
-
-Available in ScriptedFacets via context.noodle.quantum
-
-Example (JavaScript):
-    function process(inputs, context) {
-        // Simple qubit measurement (REAL QUANTUM!)
-        var result = context.noodle.quantum.measure_qubit();
-        // result is 0 or 1 determined by actual quantum collapse
-
-        // Schrodinger's Cat experiment
-        var cat = context.noodle.quantum.schrodingers_cat();
-        // cat's fate determined by real quantum mechanics!
-
-        // Execute a quantum canvas
-        var canvas_result = context.noodle.quantum.execute_canvas(
-            "tutorials/08_schrodingers_cat.nncanvas"
-        );
-
-        return {outcome: cat.is_alive ? "alive" : "ghost"};
-    }
-
-Author: Noodlings Quantum Laboratory
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Quantum API - Scriptable quantum computation interface.
+#
+#   Provides REAL quantum computation for ScriptedFacets: - Q...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.quantum_api
+# PURPOSE:  Quantum Api
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   QuantumAPI
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import random
@@ -582,3 +583,7 @@ class QuantumAPI:
             'set_backend': '__quantum_set_backend__',
             'get_stats': '__quantum_get_stats__'
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

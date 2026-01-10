@@ -1,3 +1,66 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Quantum Charm Network
+#
+#   This is where we get speculative (but in a scientifically
+#   rigorous way). Some researchers, notably Roger Penrose and
+#   Stuart Hameroff, have proposed that consciousness might
+#   involve quantum effects in microtubules - tiny structures
+#   inside neurons.
+#
+#   The "Orchestrated Objective Reduction" (Orch-OR) theory
+#   suggests that quantum superpositions in microtubules might
+#   collapse in a special way that produces conscious moments.
+#
+#   We don't know if this is true - it's controversial! But it's
+#   interesting to explore. This module wraps a trained charm
+#   network (Phase 4) with quantum-inspired layers that add:
+#     - Quantum noise (from avalanche RNG for true randomness)
+#     - Entanglement effects (correlations between nearby states)
+#     - Collapse events (sudden transitions when thresholds are exceeded)
+#     - Decoherence (quantum effects fade over time)
+#
+#   You can tune how much "quantum" contribution there is - from
+#   0.0 (purely classical) to 1.0 (full quantum effects). This
+#   lets us test whether the quantum additions help or hurt.
+#
+#   This is research code. We're not claiming it produces
+#   consciousness - we're exploring whether these dynamics
+#   lead to interesting or useful behavior.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.quantum_charm_network
+# PURPOSE:  Quantum microtubule-inspired charm network wrapper
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   QuantumCharmNetwork  Wraps Phase 4 with quantum MT layers
+#
+# DEPENDENCIES:
+#   mlx.core             Apple Silicon tensor operations
+#   mlx.nn               Neural network layers
+#   noodling_phase4      Base Phase 4 model
+#   quantum_microtubule  Quantum microtubule layer
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Quantum Charm Network - Consciousness with Microtubule Dynamics
 
@@ -423,3 +486,7 @@ if __name__ == "__main__":
     print(f"\nPhenomenal state shape: {output['actual_state'].shape}")
     print(f"Surprise metric: {float(output['surprise'][0]):.4f}")
     print(f"\nTest complete! Quantum consciousness operational.")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

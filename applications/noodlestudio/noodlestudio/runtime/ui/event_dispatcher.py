@@ -1,19 +1,41 @@
-"""
-UI Event Dispatcher
-
-Routes UI events to noodlings, scripts, assemblies, and handles responses.
-
-Supported actions:
-    - send_to_noodling: Send message to a noodling
-    - call_script: Execute JavaScript code
-    - set_value: Set a component's value
-    - show/hide/toggle_visible: Control visibility
-    - run_assembly: Execute a facet assembly (NEW!)
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   UI Event Dispatcher
+#
+#   Routes UI events to noodlings, scripts, assemblies, and h...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.event_dispatcher
+# PURPOSE:  UI Event Dispatcher
+# LAYER:    Studio / UI Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   UIEventDispatcher
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 import asyncio
 import logging
+import threading
 
 if TYPE_CHECKING:
     from .component import UIComponent, EventBinding
@@ -400,12 +422,53 @@ class UIEventDispatcher:
         # Get output bindings
         output_bindings = getattr(binding, 'outputs', {})
 
-        # Execute asynchronously
-        asyncio.create_task(
-            self._run_assembly_and_bind(
-                assembly, inputs, output_bindings, component
-            )
-        )
+        # UX feedback: show "Thinking..." and clear input immediately
+        thinking_target = getattr(binding, 'thinking_target', None)
+        clear_input = getattr(binding, 'clear_input', False)
+        logger.info(f"[run_assembly] thinking_target={thinking_target}, clear_input={clear_input}")
+
+        if thinking_target:
+            target_widget = self.renderer.get_widget(thinking_target)
+            if target_widget and hasattr(target_widget, 'setText'):
+                target_widget.setText("Thinking...")
+
+        if clear_input and component:
+            source_widget = self.renderer.get_widget(component.name)
+            if source_widget and hasattr(source_widget, 'clear'):
+                source_widget.clear()
+            elif source_widget and hasattr(source_widget, 'setText'):
+                source_widget.setText("")
+
+        # Execute asynchronously in a thread
+        # Note: Qt's event loop doesn't process asyncio tasks, so we always use threads
+        import traceback
+        logger.info(f"[run_assembly] Using thread for: {assembly.name}")
+
+        def run_in_thread():
+            print(f"[run_assembly] Thread started for: {assembly.name}", flush=True)
+            logger.info(f"[run_assembly] Thread starting for assembly: {assembly.name}")
+            thread_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(thread_loop)
+            try:
+                thread_loop.run_until_complete(
+                    self._run_assembly_and_bind(
+                        assembly, inputs, output_bindings, component,
+                        from_worker_thread=True
+                    )
+                )
+                print(f"[run_assembly] Thread completed for: {assembly.name}", flush=True)
+                logger.info(f"[run_assembly] Thread completed for assembly: {assembly.name}")
+            except Exception as e:
+                print(f"[run_assembly] Thread CRASHED: {e}", flush=True)
+                traceback.print_exc()
+                logger.error(f"[run_assembly] Thread error: {e}", exc_info=True)
+            finally:
+                thread_loop.close()
+
+        logger.info(f"[run_assembly] Starting thread for: {assembly.name}")
+        thread = threading.Thread(target=run_in_thread, daemon=True)
+        thread.start()
+        logger.info(f"[run_assembly] Thread.start() called")
 
     def _get_or_load_assembly(self, assembly_path: str):
         """Load assembly from cache or disk."""
@@ -475,7 +538,8 @@ class UIEventDispatcher:
         assembly,
         inputs: Any,
         output_bindings: Dict[str, str],
-        source_component: 'UIComponent'
+        source_component: 'UIComponent',
+        from_worker_thread: bool = False
     ) -> None:
         """
         Execute assembly and bind outputs to components.
@@ -485,6 +549,7 @@ class UIEventDispatcher:
             inputs: Input values for INCOMING node
             output_bindings: Map of output pad -> "component.property"
             source_component: The component that triggered the event
+            from_worker_thread: If True, marshal widget updates to main thread
         """
         try:
             # Execute assembly
@@ -530,14 +595,53 @@ class UIEventDispatcher:
                     if hasattr(target_comp, prop_name):
                         setattr(target_comp, prop_name, output_value)
 
-                    # Update widget if applicable
+                    # Update widget - must be on main thread for Qt
                     if target_widget:
-                        if prop_name == 'text' and hasattr(target_widget, 'setText'):
-                            target_widget.setText(str(output_value))
-                        elif prop_name == 'value' and hasattr(target_widget, 'setValue'):
-                            target_widget.setValue(output_value)
+                        if from_worker_thread:
+                            # Marshal to main thread via QMetaObject
+                            self._update_widget_threadsafe(
+                                target_widget, prop_name, output_value
+                            )
+                        else:
+                            # Direct update (already on main thread)
+                            if prop_name == 'text' and hasattr(target_widget, 'setText'):
+                                target_widget.setText(str(output_value))
+                            elif prop_name == 'value' and hasattr(target_widget, 'setValue'):
+                                target_widget.setValue(output_value)
 
             logger.debug(f"Assembly {assembly.name} completed, outputs bound")
 
         except Exception as e:
             logger.error(f"Assembly execution error: {e}")
+
+    def _update_widget_threadsafe(self, widget, prop_name: str, value: Any) -> None:
+        """
+        Update a Qt widget from a worker thread.
+
+        Uses QMetaObject.invokeMethod with Qt.QueuedConnection to marshal
+        the update to the main thread.
+        """
+        try:
+            from PyQt6.QtCore import QMetaObject, Qt, Q_ARG
+
+            if prop_name == 'text' and hasattr(widget, 'setText'):
+                QMetaObject.invokeMethod(
+                    widget, "setText",
+                    Qt.ConnectionType.QueuedConnection,
+                    Q_ARG(str, str(value))
+                )
+            elif prop_name == 'value' and hasattr(widget, 'setValue'):
+                # Note: setValue signature varies by widget type
+                # For QLabel text, use setText
+                if hasattr(widget, 'setText'):
+                    QMetaObject.invokeMethod(
+                        widget, "setText",
+                        Qt.ConnectionType.QueuedConnection,
+                        Q_ARG(str, str(value))
+                    )
+        except Exception as e:
+            logger.warning(f"Thread-safe widget update failed: {e}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

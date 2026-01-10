@@ -1,23 +1,36 @@
-"""
-Facet Assembly Component - Attachable facet assemblies for any entity
-
-This is THE key architectural unification: Facet Assemblies are now attachable
-components that can go on ANY object (Noodling, Prim, UI element). Each assembly
-gets a "run_in_cognition_loop" checkbox - checked means continuous (thinking),
-unchecked means one-shot (event-triggered).
-
-This makes Facets the universal visual logic language for everything in NoodleStudio.
-
-Key concepts:
-- Multiple assemblies per entity (each is independent)
-- singleton = False (unlike most components)
-- Two execution modes:
-  - Continuous: Runs in cognition loop every tick_rate seconds
-  - One-shot: Runs once on demand (via events, scripts, or manual trigger)
-
-Author: Caitlyn + Claude
-Date: January 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Facet Assembly Component - Attachable facet assemblies for any entity
+#
+#   This is THE key architectural unification: Facet Assembli...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.facet_assembly_component
+# PURPOSE:  facet assembly component facet implementation
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AssemblyEvent, EventEmitter, FacetAssemblyComponent
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional, Callable
@@ -702,3 +715,7 @@ __all__ = [
     'AssemblyEvent',
     'EventEmitter',
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

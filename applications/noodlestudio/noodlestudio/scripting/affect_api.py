@@ -1,38 +1,36 @@
-"""
-Affect API - Scripting interface for affect animation tracks.
-
-Enables ScriptedFacets to:
-- Load and play affect animation tracks
-- Control playback (play, pause, seek, speed)
-- Sample track values at any time
-- Blend track with live CharmNetwork affect
-- Inject affect for momentum handoff
-- Listen for markers/events
-
-Example (JavaScript in ScriptedFacet):
-    function process(inputs, context) {
-        // Load and play an affect track
-        var track = context.noodle.affect.loadTrack("grief_reaction.affecttrack");
-        track.play();
-
-        // Query current affect
-        var state = context.noodle.affect.getState();
-        log("Valence: " + state.valence);
-
-        // Blend with live affect
-        context.noodle.affect.setBlendMode("weighted", {track: 0.7, live: 0.3});
-
-        // Listen for markers
-        track.onMarker("tears_start", function() {
-            context.noodle.events.emit("start_tears", {intensity: 0.6});
-        });
-
-        return {processed: true};
-    }
-
-Author: Commander Spock + Cadet Caity
-Date: December 21, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Affect API - Scripting interface for affect animation tracks.
+#
+#   Enables ScriptedFacets to: - Load and play affect animati...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.affect_api
+# PURPOSE:  Affect Api
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AffectTrackProxy, AffectAPI, AffectAPIJS, get_affect_api()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 import time
@@ -555,3 +553,7 @@ class AffectAPIJS:
 
     def inject(self, affect: Dict[str, float], decay: str = "natural"):
         self._api.inject(affect, decay)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

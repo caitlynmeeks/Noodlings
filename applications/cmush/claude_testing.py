@@ -1,11 +1,51 @@
 #!/usr/bin/env python3
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Claude Testing Harness
+#
+#   A programmatic test client for running experiments on the
+#   noodleMUSH system. Connects via WebSocket and HTTP API to
+#   send commands, read agent states, and run test protocols.
+#   Used for systematic testing of memory retention (like the
+#   "strawberry test" - tell an agent a secret word, chat about
+#   other things, then ask if they remember).
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.claude_testing
+# PURPOSE:  Programmatic test harness for agent memory and behavior
+# LAYER:    Backend / Testing
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodleMUSHTestClient   Async client for WebSocket/API testing
+#   AgentState             Snapshot of agent phenomenal state
+#   TestResult             Outcome of a test protocol
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Claude Testing Harness for noodleMUSH
 
 Programmatic interface for systematic testing of Noodling consciousness and memory systems.
 Provides async API for connecting, sending commands, querying state, and running test protocols.
 
-Author: Claude (Spock Mode)
+Author: Caitlyn + Claude
 Date: November 22, 2025
 """
 import asyncio
@@ -484,3 +524,7 @@ if __name__ == "__main__":
 
     asyncio.run(test_connectivity())
     asyncio.run(test_strawberry_persistence())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

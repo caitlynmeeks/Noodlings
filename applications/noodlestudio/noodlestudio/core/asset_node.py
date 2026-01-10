@@ -1,21 +1,36 @@
-"""
-Asset Node - Data model for organizing assets in a folder hierarchy.
-
-Unlike SceneNode (which represents entities in a scene), AssetNode represents
-assets on disk that can be organized into user-created folders.
-
-Asset types:
-- FOLDER: User-created organizational folder
-- NOODLING: AI character definition (library/noodlings/)
-- STAGE: Scene/level file (Stages/)
-- PRIM: 3D object template (Prims/)
-- RADIANCE: Gaussian splat model (.radiance)
-- MESH: Imported mesh file (OBJ, GLTF, etc.)
-- GENERATION: AI-generated content (images, etc.)
-
-Author: Commander Spock + Cadet Caity
-Date: December 28, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Asset Node - Data model for organizing assets in a folder hierarchy.
+#
+#   Unlike SceneNode (which represents entities in a scene), ...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.asset_node
+# PURPOSE:  Asset Node
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AssetNodeType, AssetNode
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple
@@ -115,3 +130,7 @@ class AssetNode:
 
     def __repr__(self) -> str:
         return f"AssetNode({self.name!r}, {self.node_type.value})"
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

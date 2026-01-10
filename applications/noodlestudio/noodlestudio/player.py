@@ -1,26 +1,37 @@
-"""
-NoodleStudio Player - Headless facet assembly execution runtime
-
-Allows running facet assemblies without the GUI for:
-- Command-line tools (like Toy Claude Code)
-- Batch processing
-- Integration into other applications
-- Testing and automation
-
-Usage:
-    # As library:
-    from noodlestudio.player import Player
-
-    player = Player()
-    player.load_assembly("my_agent.yaml")
-    result = await player.run("Hello, world!")
-
-    # From command line:
-    python -m noodlestudio.player --assembly my_agent.yaml --input "Hello"
-
-Author: Caitlyn + Claude
-Date: December 20, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   NoodleStudio Player
+#
+#   Headless facet assembly execution runtime. Run cognitive
+#   architectures from CLI, in batch mode, or embedded in apps.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.player
+# PURPOSE:  Headless facet assembly execution
+# LAYER:    Studio / Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   PlayerConfig, Player
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import argparse
@@ -439,3 +450,7 @@ Examples:
 
 if __name__ == '__main__':
     asyncio.run(main())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

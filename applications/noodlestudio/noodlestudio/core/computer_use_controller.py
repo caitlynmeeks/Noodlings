@@ -1,21 +1,36 @@
-"""
-Computer Use Controller - Enable Claude to see and interact with NoodleStudio
-
-Provides screenshot capture and input injection for Claude's Computer Use capability.
-Claude can see the UI, move the mouse, click, type, and press keys.
-
-THREAD SAFETY:
-    All Qt GUI operations run on the main thread via QMetaObject.invokeMethod.
-    This allows safe calls from AsyncWorker threads.
-
-Architecture:
-    Screenshot: QWidget.grab() -> QBuffer -> base64 PNG
-    Input: QTest synthetic events injected into Qt event loop
-    Coordinates: Relative to main window (0,0 = top-left of window)
-
-Author: Caitlyn + Claude (NinaK edition)
-Date: January 2, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Computer Use Controller - Enable Claude to see and interact with NoodleStudio
+#
+#   Provides screenshot capture and input injection for Claud...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.computer_use_controller
+# PURPOSE:  Computer Use Controller
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   MouseButton, ComputerUseAction, ComputerUseController, get_computer_use_controller()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import base64
 import threading
@@ -1072,3 +1087,7 @@ class ComputerUseController(QObject):
 def get_computer_use_controller() -> ComputerUseController:
     """Get the global ComputerUseController instance."""
     return ComputerUseController.instance()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

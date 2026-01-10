@@ -12,6 +12,65 @@ Think of facets like Unity components, but for cognition rather than physics or 
 
 ---
 
+## Facets as Universal Components
+
+**Architectural Principle (Jan 2025):** Facet Assemblies are not just "noodling brains" - they are **attachable components** that can go on ANY object.
+
+### Any Object Can Think
+
+- **Thing** = the universal base object (replaces old Noodling/Prim distinction)
+- **Noodling** = not a type, but a *state* - "a Thing that's noodling" (thinking)
+- Attach assemblies to any Thing → it can process, react, think
+- Turn off the assemblies → it stops noodling
+
+The distinction is configuration, not type. Any Thing can think.
+
+### Continuous vs One-Shot
+
+Each assembly has a **`[Run in cognition loop]`** checkbox:
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| **Continuous** (checked) | Runs every cognitive cycle, shows in Cognition Monitor | Thinking, feeling, perceiving |
+| **One-Shot** (unchecked) | Event-triggered, executes and completes | Button click handlers, API calls |
+
+### Multiple Assemblies Per Object
+
+Objects can have multiple assemblies running in parallel:
+
+```
+Red the Fire Imp
+├── emotional-processing.assembly  [✓ continuous]
+├── language-generation.assembly   [✓ continuous]
+├── social-modeling.assembly       [✓ continuous]
+├── greet-newcomer.assembly        [ ] one-shot
+└── translate-output.assembly      [ ] one-shot
+```
+
+This enables **modular cognition** - parallel cognitive processes in one entity ("left lobe, right lobe").
+
+### UI Canvas Integration
+
+Assemblies can be triggered from UI events:
+
+```yaml
+# ui.yaml
+Button:
+  name: translateButton
+  events:
+    onClick:
+      action: run_assembly
+      assembly: "translate-to-chinese.assembly"
+      inputs:
+        text: "{input_field.value}"
+      outputs:
+        result: "output_label.text"
+```
+
+See [UI Canvas](ui-canvas.md) for full event binding documentation.
+
+---
+
 ## Key Concepts
 
 ### Facet Assembly
@@ -68,7 +127,7 @@ The visual node editor for facet assemblies:
 When a Noodling is selected, the Inspector shows:
 
 1. **Identity** - Name, species, description
-2. **Affect Baseline** - Starting emotional state (5D: valence, arousal, dominance, boredom, sorrow)
+2. **Affect Model** - Baseline emotional state (flexible dimensions, see [Recipe Format](../formats/recipe.md))
 3. **Facet Dropdown** - Select a facet to edit its properties
 
 The facet dropdown lists all facets in the assembly. Selecting one shows:

@@ -1,37 +1,36 @@
-"""
-Radiance API - Scripting interface for Gaussian splat visual components.
-
-Provides JavaScript-accessible interface for:
-- Loading and managing RadianceComponents
-- Material overrides (entity, region, per-Gaussian)
-- Spatial queries (raycast, radius search)
-- Scene composition
-- Dynamic lighting (Phase 4)
-
-Available in ScriptedFacets via context.noodle.radiance
-
-Example (JavaScript in ScriptedFacet):
-    function process(inputs, context) {
-        // Get entity's radiance component
-        var radiance = context.noodle.radiance.get("red_fire_anklebiter");
-
-        // Tint based on affect
-        var arousal = context.noodle.affect.get_arousal();
-        radiance.set_tint(1.0, 0.5 + arousal * 0.5, 0.5);
-
-        // Make left arm glow when excited
-        if (arousal > 0.7) {
-            radiance.set_region_override("left_arm", {
-                emission: {r: 0.3, g: 0, b: 0}
-            });
-        }
-
-        return {modified: true};
-    }
-
-Author: Caitlyn + Claude (NinaK)
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Radiance API - Scripting interface for Gaussian splat visual components.
+#
+#   Provides JavaScript-accessible interface for: - Loading a...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.radiance_api
+# PURPOSE:  Radiance Api
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   RadianceComponentJS, SceneBuilderJS, RadianceAPI, get_radiance_api(), reset_radiance_api()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 from typing import Dict, Any, Optional, List, Tuple
@@ -588,3 +587,7 @@ __all__ = [
     'get_radiance_api',
     'reset_radiance_api',
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

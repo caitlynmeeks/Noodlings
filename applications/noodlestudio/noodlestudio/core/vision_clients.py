@@ -1,26 +1,36 @@
-"""
-Vision Clients - Image understanding implementations.
-
-Supports multiple backends:
-- Claude Vision (Anthropic) - Best quality, excellent reasoning
-- GPT-4V (OpenAI) - Good alternative
-- LLaVA (via Ollama) - Local, offline
-
-All clients implement the same interface:
-    async analyze(image_data, prompt) -> Dict
-
-Returns:
-    {
-        'description': str,    # Natural language description
-        'objects': List[str],  # Detected objects
-        'text': str,           # Any text in image (OCR)
-        'emotions': Dict,      # Detected emotions (if faces)
-        'metadata': Dict       # Additional analysis
-    }
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Vision Clients - Image understanding implementations.
+#
+#   Supports multiple backends: - Claude Vision (Anthropic) -...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.vision_clients
+# PURPOSE:  Vision Clients
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   VisionResult, VisionClient, ClaudeVisionClient, GPT4VisionClient, LLaVAClient
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import base64
@@ -547,3 +557,7 @@ def create_vision_client(
 
     else:
         raise ValueError(f"Unknown vision backend: {backend}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

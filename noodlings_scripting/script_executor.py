@@ -1,3 +1,54 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Script Executor
+#
+#   This is the engine that actually runs user scripts. It handles
+#   the lifecycle of scripts:
+#
+#   1. COMPILATION: Python source code gets compiled into a class
+#      executor.compile_script("MyScript", source_code)
+#
+#   2. ATTACHMENT: Script instance gets attached to an object
+#      executor.attach_script("obj_001", "MyScript")
+#      # This calls the script's Start() method
+#
+#   3. EVENTS: When things happen, events get dispatched
+#      executor.trigger_event("obj_001", "OnClick", "user_alice")
+#
+#   4. PERSISTENCE: Script state survives server restarts
+#      state = executor.get_script_state("obj_001")
+#      # Later: executor.attach_script("obj_001", "MyScript", state)
+#
+#   The executor runs in the server backend (cmush), not in
+#   NoodleStudio. This makes it server-authoritative.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings_scripting.script_executor
+# PURPOSE:  Server-side script compilation and execution
+# LAYER:    Scripting
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ScriptExecutor  Compiles, attaches, and dispatches events
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Script Executor - Server-Side Runtime
 
@@ -260,3 +311,7 @@ class ScriptExecutor:
             'compiled_classes': len(self.script_classes),
             'attached_instances': len(self.script_instances),
         }
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

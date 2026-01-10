@@ -1,3 +1,64 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Noodlings API
+#
+#   These are the global functions and classes you use in scripts
+#   to interact with the world. They work like Unity's API:
+#
+#   SPAWNING:
+#     anklebiter = Noodlings.Rez("blue_fire_anklebiter", room="room_000")
+#     chair = Noodlings.RezPrim("furniture", "Wooden Chair", room="room_000")
+#
+#   FINDING:
+#     phi = Noodlings.Find("agent_phi")
+#     if phi:
+#         affect = phi.GetComponent("Noodle").GetCurrentAffect()
+#
+#   MESSAGING:
+#     Noodlings.SendMessage("agent_phi", "Hello Phi!")
+#     Noodlings.Broadcast("room_000", "Attention everyone!")
+#
+#   LOGGING:
+#     Debug.Log("This is a normal message")
+#     Debug.LogWarning("Something might be wrong")
+#     Debug.LogError("Something IS wrong")
+#
+#   GEOMETRY:
+#     position = Vector3(10, 0, 5)
+#     prim.transform.Translate(Vector3(1, 0, 0))
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings_scripting.noodlings_api
+# PURPOSE:  Global API for scripts (like Unity static methods)
+# LAYER:    Scripting
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   Noodlings  Static methods for spawn/find/message
+#   Debug      Logging utilities
+#   Vector3    3D vector math
+#   Transform  Position/rotation/scale component
+#   Prim       World entity reference (like GameObject)
+#   Time       Time utilities
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Noodlings Scripting API - Unity-like Global Functions
 
@@ -368,3 +429,7 @@ class Time:
         Note: Not implemented yet - requires async coroutine system.
         """
         Debug.LogWarning("Time.Wait() not yet implemented")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

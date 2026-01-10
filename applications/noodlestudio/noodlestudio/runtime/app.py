@@ -1,20 +1,36 @@
-"""
-NoodleApp - Headless runtime for NoodleStudio projects
-
-This is the core runtime that executes NoodleStudio projects (stages, noodlings,
-facet assemblies) without the editor GUI. Used for:
-- Built standalone applications
-- Command-line execution
-- Integration into other systems
-- Testing and automation
-
-Unlike the simpler Player class (which runs assemblies directly), NoodleApp
-works with complete projects - loading stages, resolving noodling references,
-and managing the full execution environment.
-
-Author: Caitlyn + Claude
-Date: January 3, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   NoodleApp - Headless runtime for NoodleStudio projects
+#
+#   This is the core runtime that executes NoodleStudio proje...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.app
+# PURPOSE:  App
+# LAYER:    Studio / Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ProjectConfig, NoodleAppConfig, NoodleApp
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import logging
@@ -25,6 +41,9 @@ from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field
 
 from .llm_client import HeadlessLLMClient, LLMConfig, create_llm_client_from_env
+from .channels import ChannelBus, ChannelMessage
+from .world_channels import WorldChannelService, WorldConfig
+from .brenda import BrendaDirector
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +153,16 @@ class NoodleApp:
         self.executor = None
         self.llm_client: Optional[HeadlessLLMClient] = None
 
+        # Channel bus for inter-noodling communication
+        self.channel_bus = ChannelBus()
+
+        # World channels service (initialized when project loads)
+        self.world_channels: Optional[WorldChannelService] = None
+        self._world_config: Optional[Dict[str, Any]] = None
+
+        # Stage director (Brenda)
+        self.director: Optional[BrendaDirector] = None
+
         # Event handlers
         self._on_output: Optional[Callable[[str], None]] = None
         self._on_event: Optional[Callable[[Dict], None]] = None
@@ -163,13 +192,22 @@ class NoodleApp:
         if self.llm_client is None:
             self.llm_client = self._create_llm_client()
 
+        # Initialize world channels service
+        if self.world_channels is None:
+            world_config = WorldConfig.from_dict(self._world_config or {})
+            self.world_channels = WorldChannelService(self.channel_bus, world_config)
+            self.world_channels.start()
+            if self.config.verbose:
+                logger.info("[NoodleApp] Started world channels service")
+
         # Import executor (lazy to avoid Qt import at module load)
         from ..core.facet_executor import FacetExecutor
 
         self.executor = FacetExecutor(
             llm_client=self.llm_client,
             use_event_bus=False,  # No event bus in headless mode
-            concurrency_mode='serial'  # Simpler for headless
+            concurrency_mode='serial',  # Simpler for headless
+            channel_bus=self.channel_bus  # For inter-noodling communication
         )
 
         if self.config.verbose:
@@ -263,6 +301,9 @@ class NoodleApp:
         # Load stage
         with open(stage_yaml, 'r') as f:
             stage_data = yaml.safe_load(f) or {}
+
+        # Extract world config if present
+        self._world_config = stage_data.get('world', {})
 
         # Find noodlings in stage
         noodlings = stage_data.get('noodlings', [])
@@ -484,6 +525,140 @@ class NoodleApp:
         """Register callback for execution events."""
         self._on_event = callback
 
+    def tick(self):
+        """
+        Main tick - call periodically from main loop.
+
+        Updates world channels and stage director.
+        """
+        if self.world_channels:
+            self.world_channels.tick()
+        if self.director:
+            self.director.tick()
+
+    def tick_world(self):
+        """
+        Update world channels (call periodically from main loop).
+
+        This advances simulation time and broadcasts updates if needed.
+        Deprecated: Use tick() instead which also updates the director.
+        """
+        if self.world_channels:
+            self.world_channels.tick()
+
+    def set_world_time(self, time_str: str):
+        """Set simulation time (e.g., '18:00')."""
+        if self.world_channels:
+            self.world_channels.set_time(time_str)
+
+    def set_world_weather(self, **kwargs):
+        """
+        Set weather conditions.
+
+        Args:
+            temperature: Temperature in Fahrenheit
+            conditions: clear, cloudy, partly_cloudy, rain, storm, snow, fog
+            wind: calm, light_breeze, windy, gusty
+            humidity: 0.0 to 1.0
+        """
+        if self.world_channels:
+            self.world_channels.set_weather(**kwargs)
+
+    def set_world_ambiance(self, mood: Optional[str] = None, energy: Optional[float] = None):
+        """
+        Set scene ambiance.
+
+        Args:
+            mood: calm, tense, joyful, melancholy, mysterious, etc.
+            energy: 0.0 to 1.0
+        """
+        if self.world_channels:
+            self.world_channels.set_ambiance(mood=mood, energy=energy)
+
+    def trigger_world_event(
+        self,
+        event_type: str,
+        source: str,
+        description: str,
+        **kwargs
+    ):
+        """
+        Trigger a world event.
+
+        Args:
+            event_type: sound, visual, physical, social
+            source: What caused the event
+            description: Human-readable description
+            **kwargs: Additional data (location, intensity, etc.)
+        """
+        if self.world_channels:
+            self.world_channels.trigger_event(event_type, source, description, **kwargs)
+
+    def get_world_context(self) -> Dict[str, Any]:
+        """Get full world context (time, weather, ambiance)."""
+        if self.world_channels:
+            return self.world_channels.get_full_context()
+        return {}
+
+    # =========================================================================
+    # Stage Director (Brenda)
+    # =========================================================================
+
+    def load_director(self, play_path: str) -> bool:
+        """
+        Load Brenda with a play script.
+
+        Args:
+            play_path: Path to .play.yaml file
+
+        Returns:
+            True if loaded successfully
+        """
+        self.director = BrendaDirector(self.channel_bus)
+        return self.director.load_play(play_path)
+
+    def start_performance(self):
+        """Start the directed performance."""
+        if self.director:
+            self.director.start()
+
+    def stop_performance(self):
+        """Stop the directed performance."""
+        if self.director:
+            self.director.stop()
+
+    def publish_user_input(self, text: str):
+        """
+        Publish user input to #user.input channel.
+
+        This allows Brenda and other systems to react to user messages.
+
+        Args:
+            text: The user's message text
+        """
+        import time
+        self.channel_bus.publish(
+            "#user.input",
+            ChannelMessage(
+                channel="#user.input",
+                from_noodling="user",
+                timestamp=time.time(),
+                payload={'text': text}
+            )
+        )
+
+    def get_director_state(self) -> Dict[str, Any]:
+        """Get current director/performance state."""
+        if self.director:
+            return self.director.get_state()
+        return {}
+
+    def get_play_info(self) -> Dict[str, Any]:
+        """Get info about the loaded play."""
+        if self.director:
+            return self.director.get_play_info()
+        return {}
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get cumulative execution statistics."""
         if self.executor:
@@ -492,5 +667,17 @@ class NoodleApp:
 
     async def cleanup(self):
         """Clean up resources."""
+        if self.director:
+            self.director.stop()
+            self.director = None
+
+        if self.world_channels:
+            self.world_channels.stop()
+            self.world_channels = None
+
         if self.llm_client:
             await self.llm_client.close()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

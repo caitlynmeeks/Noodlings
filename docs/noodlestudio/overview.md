@@ -75,6 +75,8 @@ MyProject/
 ## Next
 
 - [Facet System](facets.md) - Cognitive architecture explained
+- [Animation Muscle System](animation-muscle-system.md) - Humanoid animation (Unity Mecanim-style)
+- [VRM Viewport](vrm-viewport.md) - OpenGL VRM rendering component
 - [Panels Reference](panels.md) - All panels explained
 - [Scripting](scripting.md) - JavaScript API
 - [Neural Canvas](neural-canvas.md) - Visual programming

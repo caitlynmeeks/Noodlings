@@ -1,3 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Authentication
+#
+#   How do we know you are who you say you are? This module
+#   handles login and account verification for noodleMUSH.
+#
+#   Two modes:
+#   1. LOCAL: Username + password stored locally with SHA256
+#      Good for running your own server on Tailscale
+#
+#   2. CLOUD: Token validation against api.noodlings.ai
+#      Used when you sign in through NoodleStudio
+#
+#   Once authenticated, you get a session that lets you do
+#   things in the world.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.auth
+# PURPOSE:  User authentication and session management
+# LAYER:    Backend / Security
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AuthManager    Login, logout, session validation
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Authentication for cMUSH
 
@@ -5,7 +49,7 @@ Supports two authentication modes:
 1. Local: username/password with SHA256 hashing (for personal/Tailscale use)
 2. Cloud: NoodleStudio session token validation (for unified auth)
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -364,3 +408,7 @@ class AuthManager:
         if user:
             return user.get('password_hash') == "CLOUD_AUTH"
         return False
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

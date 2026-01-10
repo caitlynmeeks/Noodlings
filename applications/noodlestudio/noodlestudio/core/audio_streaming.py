@@ -1,34 +1,36 @@
-"""
-Audio Streaming - WebSocket handler for real-time audio I/O.
-
-Handles:
-- Microphone audio streaming from browser/client
-- Real-time transcription feedback
-- TTS audio streaming to client
-- Voice activity detection integration
-
-WebSocket Protocol:
-    Client -> Server:
-        {type: "audio_chunk", data: base64, sample_rate: 16000, timestamp: float}
-        {type: "start_listening"}
-        {type: "stop_listening"}
-        {type: "speak", text: "Hello!"}
-        {type: "interrupt"}
-        {type: "configure", voice: "...", sensitivity: 0.5}
-
-    Server -> Client:
-        {type: "transcription", text: "...", is_final: bool, confidence: float}
-        {type: "audio_out", data: base64, sample_rate: 22050}
-        {type: "state", listening: bool, speaking: bool}
-        {type: "error", message: "..."}
-
-Integration:
-    - Add to existing cMUSH server via add_audio_handlers()
-    - Or run standalone via AudioStreamingServer
-
-Author: Commander Spock + Cadet Caity
-Date: December 17, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Audio Streaming - WebSocket handler for real-time audio I/O.
+#
+#   Handles: - Microphone audio streaming from browser/client...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.audio_streaming
+# PURPOSE:  Audio Streaming
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AudioConnection, AudioStreamingHandler, AudioStreamingServer, AudioStreamClient, add_audio_handlers()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import asyncio
 import base64
@@ -636,3 +638,7 @@ class AudioStreamClient {
 def get_browser_client_js() -> str:
     """Get JavaScript client code for browser integration."""
     return BROWSER_CLIENT_JS
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

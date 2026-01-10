@@ -1,3 +1,47 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Semantic Integration - Event-Based Context Building
+#
+#   Instead of agents reading raw world state ("room has 3 chairs"),
+#   they experience events ("Alice sat down in the red chair").
+#   This module bridges the semantic_world event system with cmush,
+#   recording speech, movement, actions as typed events. When an
+#   agent needs context, it queries recent events relevant to them
+#   and builds a narrative description. Events, not snapshots.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.semantic_integration
+# PURPOSE:  Bridge semantic_world events to cmush agents
+# LAYER:    Backend / Integration
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   init_semantic_world()      Initialize event system
+#   log_speech()               Record speech event
+#   log_movement()             Record movement event
+#   log_arrival()              Record arrival event
+#   log_departure()            Record departure event
+#   get_semantic_context()     Build narrative context for agent
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# Author: Caitlyn + Claude
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Semantic World Integration for noodleMUSH
 
@@ -13,9 +57,6 @@ Usage in server.py:
 
     # When building agent context
     context = get_semantic_context(agent_id, stage_id)
-
-Author: Caitlyn + Claude
-Date: December 2025
 """
 
 import sys
@@ -468,3 +509,7 @@ __all__ = [
     "get_stats",
     "get_recent_events",
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

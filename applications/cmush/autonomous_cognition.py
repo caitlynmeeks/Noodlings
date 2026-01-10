@@ -1,3 +1,41 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Autonomous Cognition Engine
+#
+#   This is the "daydreaming brain" for AI agents. Even when nobody
+#   is talking to them, agents keep thinking in the background -
+#   reflecting on memories, developing ideas, and sometimes deciding
+#   to speak up on their own. It is what makes them feel alive rather
+#   than just waiting for commands. Personality traits like curiosity
+#   and extraversion shape how often and why they think.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.cmush.autonomous_cognition
+# PURPOSE:  Background rumination, spontaneous speech, self-directed thinking
+# LAYER:    Backend / Cognition
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   AutonomousCognitionEngine  Event-driven thought loop with personality traits
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
+
 """
 Autonomous Cognition Engine - Independent agent thought and action
 
@@ -9,7 +47,7 @@ Gives agents:
 - File system integration (reading/writing thoughts)
 - Inbox processing
 
-Author: cMUSH Project
+Author: Caitlyn + Claude
 Date: October 2025
 """
 
@@ -990,3 +1028,7 @@ async def test_cognition():
 
 if __name__ == "__main__":
     asyncio.run(test_cognition())
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

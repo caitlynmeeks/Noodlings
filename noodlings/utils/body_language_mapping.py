@@ -1,3 +1,59 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Body Language Mapping (BLAU)
+#
+#   Emotions aren't just in our faces - our whole bodies express
+#   how we feel. When you're happy, you might bounce on your toes.
+#   When you're scared, you might shrink and step back. When you're
+#   angry, your fists clench and you lean forward.
+#
+#   This file defines "Body Language Action Units" (BLAU) - similar
+#   to FACS for faces, but for body movements:
+#     - Posture (upright/slouched, tense/relaxed)
+#     - Arms (crossed, spread, fidgeting)
+#     - Legs/movement (stepping forward/back, bouncing, pacing)
+#     - Head (nodding, tilting, hanging)
+#     - Species-specific (tail wag for dogs, feather ruffle for birds)
+#
+#   When combined with FACS (facial expressions), this gives us a
+#   complete system for translating emotional states into visible
+#   animation that looks natural and emotionally authentic.
+#
+#   The mappings are based on psychology research by Mehrabian,
+#   Darwin, and others who studied nonverbal communication.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.utils.body_language_mapping
+# PURPOSE:  Map affect vectors to body animation codes
+# LAYER:    Core / Utils
+# ──────────────────────────────────────────────────────────────
+#
+# KEY FUNCTIONS:
+#   affect_to_body_language       Convert affect to BLAU codes
+#   body_language_to_description  Human-readable movement description
+#   format_body_language_for_renderer  JSON-ready format for animation
+#
+# RELATED:
+#   facs_mapping.py              Face animation (companion module)
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Body Language Action Units (BLAU) - Body Language Mapping for Noodlings
 
@@ -330,3 +386,7 @@ if __name__ == "__main__":
     body = affect_to_body_language(affect, species='toad')
     print(f"Body Language: {body}")
     print(f"Description: {body_language_to_description(body)}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

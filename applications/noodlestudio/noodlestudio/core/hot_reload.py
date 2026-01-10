@@ -1,23 +1,36 @@
-"""
-Hot Reload System - Safe module reloading for live development
-
-Provides controlled hot-reloading of Python modules while NoodleStudio is running.
-Designed for use with Noodle Code to enable live editing.
-
-SAFE to reload:
-- Tool definitions (noodle_code_tools.py)
-- Facet implementations (utility_facets.py, etc.)
-- API modules (scripting/*.py)
-- Data models (facet_system.py, etc.)
-
-UNSAFE to reload (require restart):
-- Panel classes (already instantiated as widgets)
-- MainWindow mixins
-- Core singletons that hold state
-
-Author: Caitlyn + Claude
-Date: January 2, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Hot Reload System - Safe module reloading for live development
+#
+#   Provides controlled hot-reloading of Python modules while...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.hot_reload
+# PURPOSE:  Hot Reload
+# LAYER:    Studio / Core
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ReloadResult, HotReloadManager, get_hot_reload_manager(), hot_reload()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import importlib
 import sys
@@ -366,3 +379,7 @@ def hot_reload(module_name: str, force: bool = False) -> ReloadResult:
             print("Reloaded!")
     """
     return get_hot_reload_manager().reload_module(module_name, force)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

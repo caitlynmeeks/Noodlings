@@ -1,19 +1,36 @@
-"""
-Profiler Panel - The Cognitive Timeline Editor
-
-Logic Pro-style timeline with:
-- Affect waveform visualization
-- Facet execution swimlanes (LIVE from ExecutionEventBus)
-- Cycle boundaries
-- Click-to-inspect facet details
-- Playhead scrubbing
-
-What Premiere did for video, what Maya did for 3D - we do for cognition!
-
-Author: Caitlyn + Claude
-Date: November 17, 2025 (original)
-Updated: December 19, 2025 (Cognitive Timeline Editor)
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Profiler Panel - The Cognitive Timeline Editor
+#
+#   Logic Pro-style timeline with: - Affect waveform visualiz...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.profiler_panel
+# PURPOSE:  Profiler Panel - The Cognitive Timeline Editor
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   FacetTimelineScene, FacetTimelineView, ProfilerPanel
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QTextEdit, QPushButton, QSplitter, QScrollArea,
@@ -484,3 +501,7 @@ class ProfilerPanel(QWidget):
         session_data = self.loader.load_session_file(Path(filepath))
         if session_data:
             self.affect_timeline.load_session(session_data)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

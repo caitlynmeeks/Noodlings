@@ -1,3 +1,63 @@
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#  ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Phase 6: Appetite Architecture
+#
+#   What makes characters feel ALIVE? They want things! Mr. Toad
+#   doesn't just react to motor-cars - he's DRIVEN by an insatiable
+#   appetite for novelty. Phi the kitten doesn't just respond to
+#   petting - she craves social bonding.
+#
+#   Phase 6 adds 8 core appetites based on psychology research:
+#     - curiosity (wanting to learn and explore)
+#     - status (wanting recognition and respect)
+#     - mastery (wanting to get better at things)
+#     - novelty (wanting new experiences)
+#     - safety (wanting to feel secure)
+#     - social_bond (wanting connection with others)
+#     - comfort (wanting physical ease)
+#     - autonomy (wanting to be in control)
+#
+#   These appetites grow over time (like hunger), and generate
+#   goals automatically. The AI doesn't need to be told "seek
+#   novelty" - it just... wants it. That's what makes characters
+#   feel like they have their own personalities.
+#
+#   ~97,500 parameters. Still runs on a laptop, but now with
+#   genuine internal motivation.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   noodlings.models.noodling_phase6
+# PURPOSE:  Phase 6 model with appetites and goal generation
+# LAYER:    Core / Models
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   NoodlingModelPhase6  Full Phase 6 with appetite system
+#
+# DEPENDENCIES:
+#   mlx.core             Apple Silicon tensor operations
+#   mlx.nn               Neural network layers
+#   noodling_phase4      Phase 4 base model
+#   appetite_layer       Appetite dynamics and goal generation
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: MIT
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 """
 Noodlings Phase 6: Appetite Architecture - Motivational Layer
 
@@ -515,3 +575,7 @@ if __name__ == '__main__':
         print(f"  {goal_name:25s}: {strength:.3f}")
 
     print("\n✓ Phase 6 test complete!")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,15 +1,36 @@
-"""
-Facets Editor Graphics - Visual components for node graph editor
-
-Graphics item classes for the facets editor:
-- ClickableTextItem: Clickable text for pencil icons
-- FacetPadGraphics: Connection point visualization
-- FacetNodeGraphics: Facet node visualization with animations
-- ConnectionWire: Bezier curve connection with data flow animation
-
-Author: Commander Spock + Cadet Caity
-Date: November 28, 2025 (Refactored December 2025)
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Facets Editor Graphics - Visual components for node graph editor
+#
+#   Graphics item classes for the facets editor: - ClickableT...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.panels.facets_editor_graphics
+# PURPOSE:  facets editor graphics facet implementation
+# LAYER:    Studio / Panels
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ClickableTextItem, FacetPadGraphics, FacetNodeGraphics, ConnectionWire, get_facet_header_color()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from PyQt6.QtWidgets import (
     QGraphicsItem, QGraphicsRectItem, QGraphicsTextItem, QGraphicsEllipseItem
@@ -933,3 +954,7 @@ def _log_facet(facet_name: str, event_type: str, cycle_id: str = "", details: st
     cycle_str = f"[{cycle_id[:8]}]" if cycle_id else ""
     detail_str = f" - {details}" if details else ""
     print(f"[FACET] {timestamp} {cycle_str} {facet_name}: {event_type}{detail_str}")
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

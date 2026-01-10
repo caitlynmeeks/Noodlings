@@ -1,15 +1,36 @@
-"""
-NoodleStudio Runtime CLI - Command-line interface for running projects
-
-Usage:
-    python -m noodlestudio.runtime path/to/project
-    python -m noodlestudio.runtime --assembly path/to/assembly.yaml
-    python -m noodlestudio.runtime path/to/project --interactive
-    python -m noodlestudio.runtime path/to/project --gui
-
-Author: Caitlyn + Claude
-Date: January 3, 2026
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   NoodleStudio Runtime CLI - Command-line interface for running projects
+#
+#   Usage: python -m noodlestudio.runtime path/to/project pyt...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.cli
+# PURPOSE:  Cli
+# LAYER:    Studio / Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   setup_logging(), create_parser(), run_gui()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import argparse
 import asyncio
@@ -113,7 +134,7 @@ Environment Variables:
     parser.add_argument(
         '--provider', '-p',
         default='ollama',
-        choices=['ollama', 'anthropic', 'openai', 'openrouter'],
+        choices=['ollama', 'anthropic', 'openai', 'openrouter', 'noodlerouter'],
         help='LLM provider (default: ollama)'
     )
 
@@ -182,7 +203,11 @@ def run_gui(args: argparse.Namespace) -> int:
         print("Error: PyQt6 is required for GUI mode", file=sys.stderr)
         return 1
 
-    from .ui import load_ui, create_default_ui, QtWidgetRenderer, AnchoredWidget
+    from .ui import (
+        load_ui, create_default_ui, QtWidgetRenderer,
+        AnchoredWidget, UIEventDispatcher
+    )
+    from .ui.overlay import CharacterOverlayWindow
 
     # Parse window size
     try:
@@ -226,6 +251,73 @@ def run_gui(args: argparse.Namespace) -> int:
     # Render UI components
     renderer = QtWidgetRenderer()
 
+    # Create event dispatcher and wire to renderer
+    dispatcher = UIEventDispatcher(renderer)
+    renderer.set_event_dispatcher(dispatcher.dispatch)
+
+    # Derive project path from ui.yaml location if --project not provided
+    # This allows running with just --ui path/to/ui.yaml
+    if args.ui and not args.project:
+        args.project = str(Path(args.ui).resolve().parent)
+        if not args.quiet:
+            print(f"Derived project path from UI: {args.project}", file=sys.stderr)
+
+    # Set project path for relative path resolution in assemblies and assets
+    if args.project:
+        project_path = str(Path(args.project).resolve())
+        dispatcher.set_project_path(project_path)
+        renderer.set_project_path(project_path)
+        if not args.quiet:
+            print(f"Project path: {args.project}", file=sys.stderr)
+
+    # Set up facet executor for run_assembly actions
+    if args.project:
+        try:
+            from .app import NoodleApp, NoodleAppConfig
+            import asyncio
+            import threading
+
+            config = NoodleAppConfig(
+                llm_provider=args.provider,
+                llm_model=args.model,
+                llm_api_key=args.api_key,
+                llm_base_url=args.base_url,
+                verbose=args.verbose
+            )
+            noodle_app = NoodleApp(config)
+            noodle_app.project_path = Path(args.project).resolve()
+
+            # Initialize executor in a separate thread with its own event loop
+            init_error = None
+
+            def init_in_thread():
+                nonlocal init_error
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    loop.run_until_complete(noodle_app._ensure_executor())
+                except Exception as e:
+                    init_error = e
+                finally:
+                    loop.close()
+
+            thread = threading.Thread(target=init_in_thread)
+            thread.start()
+            thread.join(timeout=10)  # Wait up to 10 seconds
+
+            if init_error:
+                raise init_error
+
+            if noodle_app.executor:
+                dispatcher.set_facet_executor(noodle_app.executor)
+                if not args.quiet:
+                    print("Facet executor initialized", file=sys.stderr)
+            else:
+                print("Warning: Facet executor not initialized", file=sys.stderr)
+
+        except Exception as e:
+            print(f"Warning: Failed to initialize facet executor: {e}", file=sys.stderr)
+
     # Use AnchoredWidget for proper resize handling
     anchored_widget = AnchoredWidget(root, renderer)
     window.setCentralWidget(anchored_widget)
@@ -235,6 +327,44 @@ def run_gui(args: argparse.Namespace) -> int:
 
     if not args.quiet:
         print(f"Window: {width}x{height}", file=sys.stderr)
+
+    # Create character overlay if configured in ui.yaml
+    character_overlay = None
+    if ui_path and ui_path.exists():
+        try:
+            import yaml
+            with open(ui_path, 'r') as f:
+                ui_data = yaml.safe_load(f)
+
+            overlay_config = ui_data.get('overlay', {})
+            if overlay_config.get('enabled', False):
+                vrm_path = overlay_config.get('vrm_path', '')
+
+                # Resolve relative path from ui.yaml location
+                if vrm_path and not Path(vrm_path).is_absolute():
+                    vrm_path = str((ui_path.parent / vrm_path).resolve())
+
+                if vrm_path and Path(vrm_path).exists():
+                    size = tuple(overlay_config.get('size', [300, 400]))
+                    offset = tuple(overlay_config.get('offset', [20, 100]))
+                    anchor = overlay_config.get('anchor', 'right')
+
+                    character_overlay = CharacterOverlayWindow(
+                        parent_window=window,
+                        vrm_path=vrm_path,
+                        size=size,
+                        offset=offset,
+                        anchor=anchor
+                    )
+                    character_overlay.show()
+
+                    if not args.quiet:
+                        print(f"Character overlay: {vrm_path}", file=sys.stderr)
+                else:
+                    if not args.quiet:
+                        print(f"Warning: VRM file not found: {vrm_path}", file=sys.stderr)
+        except Exception as e:
+            print(f"Warning: Failed to create character overlay: {e}", file=sys.stderr)
 
     # Run event loop
     return app.exec()
@@ -361,3 +491,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -56,6 +56,12 @@ System design at a glance.
 
 ## Core Concepts
 
+### Editor/Runtime Duality
+
+There is no separate "player" or "runtime." NoodleStudio is one application that presents different faces based on project permission levels. When someone "plays" a project, they're running NoodleStudio with editor panels hidden.
+
+See: [Shell Mode Architecture](noodlestudio/shell-mode.md)
+
 ### Scene State Manager
 Single source of truth for world state. All renders (text, 2D, 3D) are
 projections of this canonical data.

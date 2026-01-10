@@ -1,20 +1,36 @@
-"""
-RadianceSceneBuilder - Composes multiple RadianceComponents into a renderable scene.
-
-This is where the magic happens:
-- Collect all entities with RadianceComponents
-- Separate static (GPU-resident) from dynamic (CPU-accessible)
-- Build unified render buffers
-- Enable semantic queries across the whole scene
-
-The hybrid approach:
-- Static environment: loaded once, GPU-resident
-- Dynamic characters: CPU holds semantic cache, GPU renders
-- Queries: always CPU-side, instant
-
-Author: Caitlyn + Claude (NinaK)
-Date: December 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   RadianceSceneBuilder - Composes multiple RadianceComponents into a renderable scene.
+#
+#   This is where the magic happens: - Collect all entities w...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.core.semantic_world.radiance_scene_builder
+# PURPOSE:  Radiance Scene Builder
+# LAYER:    Studio / Semantic World
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   SceneLight, SceneCamera, RenderBatch, SceneHit, RadianceSceneBuilder
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import logging
 import numpy as np
@@ -595,3 +611,7 @@ __all__ = [
     'get_scene_builder',
     'reset_scene_builder',
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

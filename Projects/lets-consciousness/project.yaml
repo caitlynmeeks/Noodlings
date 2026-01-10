@@ -1,0 +1,17 @@
+# Let's Consciousness!
+# A learning experience about minds and machines
+# 2025-01-08
+
+name: Let's Consciousness!
+version: 0.1.0
+permission: view_source
+ui: ui.yaml
+
+description: |
+  Interactive exploration of consciousness and AI concepts,
+  guided by Ajo Majo the axolotl.
+
+noodlings:
+  - guide
+
+entry_point: ui.yaml

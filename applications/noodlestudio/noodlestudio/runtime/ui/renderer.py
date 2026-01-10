@@ -1,13 +1,38 @@
-"""
-Qt Widget Renderer
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Qt Widget Renderer
+#
+#   Renders UIComponent trees using Qt Widgets. This is the v...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.renderer
+# PURPOSE:  Qt Widget Renderer
+# LAYER:    Studio / UI Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   QtWidgetRenderer, AnchoredWidget, ChatHistoryWidget, ChatInputWidget, WebViewWidget
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
-Renders UIComponent trees using Qt Widgets.
-
-This is the v1 desktop renderer. The component abstraction layer allows
-future renderers (WebGL, etc.) to read the same ui.yaml files without
-changing user projects.
-"""
-
+import logging
 from typing import Any, Callable, Dict, Optional
 
 from PyQt6.QtWidgets import (
@@ -26,6 +51,8 @@ from .event_widgets import (
     EventEmittingButton,
     EventEmittingLineEdit,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def hex_to_qcolor(hex_color: str) -> QColor:
@@ -68,6 +95,9 @@ class QtWidgetRenderer:
         # Binding manager (lazy-initialized)
         self._binding_manager: Optional['BindingManager'] = None
 
+        # Project path for resolving relative asset paths
+        self._project_path: Optional[str] = None
+
     def _get_binding_manager(self) -> 'BindingManager':
         """Get or create the binding manager."""
         if self._binding_manager is None:
@@ -83,6 +113,15 @@ class QtWidgetRenderer:
             dispatcher: Callable(event_name, component, binding)
         """
         self._event_dispatcher = dispatcher
+
+    def set_project_path(self, path: str) -> None:
+        """
+        Set the project path for resolving relative asset paths.
+
+        Args:
+            path: Absolute path to project directory
+        """
+        self._project_path = path
 
     def render(self, component: UIComponent, parent: Optional[QWidget] = None) -> QWidget:
         """
@@ -138,6 +177,7 @@ class QtWidgetRenderer:
         from .components.button import Button
         from .components.text_input import TextInput
         from .components.radiance_viewport import RadianceViewport
+        from .components.vrm_viewport import VRMViewport
         from .components.chat_history import ChatHistory
         from .components.chat_input import ChatInput
         from .components.checkbox import Checkbox
@@ -156,6 +196,8 @@ class QtWidgetRenderer:
             widget = self._render_text_input(component, parent)
         elif isinstance(component, RadianceViewport):
             widget = self._render_radiance_viewport(component, parent)
+        elif isinstance(component, VRMViewport):
+            widget = self._render_vrm_viewport(component, parent)
         elif isinstance(component, ChatHistory):
             widget = self._render_chat_history(component, parent)
         elif isinstance(component, ChatInput):
@@ -400,9 +442,55 @@ class QtWidgetRenderer:
     def _render_radiance_viewport(self, component: 'RadianceViewport', parent: Optional[QWidget]) -> QWidget:
         """Render a RadianceViewport component."""
         from .components.radiance_viewport import RadianceViewport, RadianceViewportWidget
+        from pathlib import Path
+        import sys
+
+        print(f"[DEBUG] _render_radiance_viewport called for: {component.name}", file=sys.stderr)
+        print(f"[DEBUG] radiance_path: {component.radiance_path!r}", file=sys.stderr)
+        print(f"[DEBUG] project_path: {self._project_path!r}", file=sys.stderr)
 
         # Create the custom viewport widget
         viewport_widget = RadianceViewportWidget(component, parent)
+
+        # Load radiance file if specified
+        if component.radiance_path:
+            radiance_path = component.radiance_path
+
+            # Resolve relative path against project path if available
+            if not Path(radiance_path).is_absolute() and self._project_path:
+                radiance_path = str(Path(self._project_path) / radiance_path)
+
+            if Path(radiance_path).exists():
+                viewport_widget.load_file(radiance_path, component.name or "viewport")
+                logger.debug(f"Loaded radiance: {radiance_path}")
+            else:
+                logger.warning(f"Radiance file not found: {radiance_path}")
+
+        return viewport_widget
+
+    def _render_vrm_viewport(self, component: 'VRMViewport', parent: Optional[QWidget]) -> QWidget:
+        """Render a VRMViewport component."""
+        from .components.vrm_viewport import VRMViewport, VRMViewportWidget
+        from pathlib import Path
+
+        logger.debug(f"Creating VRMViewport: {component.name}")
+
+        # Create the OpenGL viewport widget
+        viewport_widget = VRMViewportWidget(component, parent)
+
+        # Load VRM file if specified
+        if component.vrm_path:
+            vrm_path = component.vrm_path
+
+            # Resolve relative path against project path if available
+            if not Path(vrm_path).is_absolute() and self._project_path:
+                vrm_path = str(Path(self._project_path) / vrm_path)
+
+            if Path(vrm_path).exists():
+                viewport_widget.load_vrm(vrm_path)
+                logger.debug(f"Loaded VRM: {vrm_path}")
+            else:
+                logger.warning(f"VRM file not found: {vrm_path}")
 
         return viewport_widget
 
@@ -1329,3 +1417,7 @@ class WebViewWidget(QWidget):
         if "onUrlChanged" in self.component.events and self.renderer._event_dispatcher:
             binding = self.component.events["onUrlChanged"]
             self.renderer._event_dispatcher("onUrlChanged", self.component, binding)
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

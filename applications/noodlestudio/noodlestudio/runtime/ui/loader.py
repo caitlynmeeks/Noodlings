@@ -1,8 +1,36 @@
-"""
-UI YAML Loader
-
-Loads ui.yaml files and constructs component trees.
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   UI YAML Loader
+#
+#   Loads ui.yaml files and constructs component trees.
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.runtime.ui.loader
+# PURPOSE:  UI YAML Loader
+# LAYER:    Studio / UI Runtime
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   UILoader, load_ui(), create_default_ui(), create_default_ui_yaml()
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 import os
 from pathlib import Path
@@ -81,8 +109,19 @@ class UILoader:
         if not component_class:
             raise ValueError(f"Unknown component type: {component_type}")
 
+        # Flatten 'properties' block into top level for from_dict
+        # This allows YAML to use a cleaner nested structure:
+        #   type: Panel
+        #   properties:
+        #     x: 100
+        #     background: "#1a1a1a"
+        flat_data = data.copy()
+        if "properties" in flat_data:
+            props = flat_data.pop("properties")
+            flat_data.update(props)
+
         # Create component using its from_dict method
-        component = component_class.from_dict(data)
+        component = component_class.from_dict(flat_data)
 
         # Load children recursively
         children_data = data.get("children", [])
@@ -185,3 +224,7 @@ root:
       height: 32
       font_size: 24
 """
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026

@@ -1,21 +1,36 @@
-"""
-Noodlings Scripting System - Unity-like API in Python
-
-Instead of C#, we use Python with Unity-style API.
-Same workflow, easier integration!
-
-Example:
-```python
-class ClickableBox(NoodleScript):
-    def OnClick(self, clicker):
-        # Spawn an Anklebiter!
-        Noodlings.Spawn("anklebiter.noo", self.transform.position)
-        Debug.Log("Oops! You released an Anklebiter!")
-```
-
-Author: Caitlyn + Claude
-Date: November 18, 2025
-"""
+# ▄▄▄    ▄▄▄   ▄▄▄▄▄     ▄▄▄▄▄   ▄▄▄▄▄▄   ▄▄▄      ▄▄▄▄▄ ▄▄▄    ▄▄▄  ▄▄▄▄▄▄▄
+# ████▄  ███ ▄███████▄ ▄███████▄ ███▀▀██▄ ███       ███  ████▄  ███ ███▀▀▀▀▀
+# ███▀██▄███ ███   ███ ███   ███ ███  ███ ███       ███  ███▀██▄███ ███
+# ███  ▀████ ███▄▄▄███ ███▄▄▄███ ███  ███ ███       ███  ███  ▀████ ███  ███▀
+# ███    ███  ▀█████▀   ▀█████▀  ██████▀  ████████ ▄███▄ ███    ███ ▀██████▀
+#
+#   ▄▄▄▄▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# ███▀▀▀▀▀ ▄███████▄ ███▀▀███▄ ███▀▀▀▀▀
+# ███      ███   ███ ███▄▄███▀ ███▄▄
+# ███      ███▄▄▄███ ███▀▀██▄  ███
+# ▀███████  ▀█████▀  ███  ▀███ ▀███████
+# ──────────────────────────────────────────────────────────────
+#
+#   Noodlings Scripting System - Unity-like API in Python
+#
+#   Instead of C#, we use Python with Unity-style API. Same w...
+#
+# ──────────────────────────────────────────────────────────────
+# MODULE:   applications.noodlestudio.scripting.__init__
+# PURPOSE:  Module exports
+# LAYER:    Studio / Scripting API
+# ──────────────────────────────────────────────────────────────
+#
+# KEY CLASSES:
+#   ClickableBox
+#
+# ──────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Subject to the Noodling Ethical Covenant (NEC)
+# (C) 2026 Caitlyn Meeks
+# Noodling Technologies, LLC
+# https://noodlings.ai
+# ──────────────────────────────────────────────────────────────
 
 from .noodle_script import NoodleScript
 from .noodlings_api import Noodlings, Debug, Transform, Prim
@@ -30,3 +45,7 @@ __all__ = [
     'NoodleAPI', 'get_noodle_api', 'ModelsAPI', 'NeuralAPI', 'AgentsAPI',
     'NeuralNetworkProxy', 'FacetAssemblyProxy', 'FacetProxy'
 ]
+
+# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+# જ⁀➴ ♡ Made with love. Use with love.
+# Caitlyn Meeks 2026
