@@ -46,6 +46,11 @@ from .slider import Slider
 from .radio import RadioButton, RadioGroup
 from .webview import WebView
 from .facet_assembly import FacetAssembly, InputBinding, OutputBinding
+from .led import LED, LEDShape
+from .gauge import Gauge, GaugeZone
+from .qml_widget import QMLWidget, QMLPropertyBinding
+from .seven_segment import SevenSegment, SegmentStyle
+from .level_meter import LevelMeter, MeterZone, MeterOrientation
 
 __all__ = [
     'Panel',
@@ -67,6 +72,17 @@ __all__ = [
     'FacetAssembly',
     'InputBinding',
     'OutputBinding',
+    'LED',
+    'LEDShape',
+    'Gauge',
+    'GaugeZone',
+    'QMLWidget',
+    'QMLPropertyBinding',
+    'SevenSegment',
+    'SegmentStyle',
+    'LevelMeter',
+    'MeterZone',
+    'MeterOrientation',
 ]
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
