@@ -1,9 +1,27 @@
 # API Key Settings UI
 
-**Status**: Specification
+**Status**: COMPLETED (2026-01-10)
 **Date**: 2026-01-09
 **Authors**: Caity + Claude
 **Priority**: High (users need this to use LLM features)
+
+## Implementation Summary
+
+**Files Created:**
+- `panels/api_key_settings.py` - APIKeySettingsWidget with macOS Keychain integration
+- `tests/test_api_key_settings.py` - 14 unit tests
+
+**Files Modified:**
+- `panels/settings_panel.py` - Added "Account" tab with API key widget
+
+**Features Implemented:**
+- Key display with copy-to-clipboard
+- Secure storage via macOS Keychain (`security` command)
+- Regenerate key with confirmation dialog
+- Show/hide key toggle
+- Clear key functionality
+
+**Tests:** 14 passing
 
 ---
 

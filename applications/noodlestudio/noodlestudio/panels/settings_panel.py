@@ -44,6 +44,7 @@ import json
 import requests
 
 from .model_manager_panel_v2 import ModelManagerPanel
+from .api_key_settings import APIKeySettingsWidget
 
 
 class GeneralSettingsWidget(QWidget):
@@ -718,6 +719,10 @@ class SettingsPanel(QWidget):
         # External Apps tab
         self.external_apps_widget = ExternalAppsWidget()
         self.tabs.addTab(self.external_apps_widget, "External Apps")
+
+        # Account tab (API Key management)
+        self.api_key_widget = APIKeySettingsWidget()
+        self.tabs.addTab(self.api_key_widget, "Account")
 
         # Models tab (Model Manager v2)
         self.models_panel = ModelManagerPanel()

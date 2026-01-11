@@ -6,6 +6,15 @@ name: "Guide Assembly"
 description: "Guide, the consciousness exhibit explainer"
 version: "1.0.0"
 
+# Channel subscriptions for Brenda's direction
+channels:
+  subscribe:
+    - "#directors.cues"      # Receive direction from Brenda
+    - "#world.time"          # Perceive time of day
+    - "#world.ambiance"      # Feel the mood
+  publish:
+    - "#directors.feedback"  # Report back to Brenda
+
 facets:
   # ENTRY POINT
   - id: "incoming"

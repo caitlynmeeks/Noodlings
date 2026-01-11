@@ -51,6 +51,7 @@ from .main_window_entities_mixin import MainWindowEntitiesMixin
 from .main_window_account_mixin import MainWindowAccountMixin
 from .main_window_signals_mixin import MainWindowSignalsMixin
 from .main_window_settings_mixin import MainWindowSettingsMixin
+from .main_window_fold_mixin import MainWindowFoldMixin
 
 
 class MainWindow(
@@ -63,6 +64,7 @@ class MainWindow(
     MainWindowAccountMixin,
     MainWindowSignalsMixin,
     MainWindowSettingsMixin,
+    MainWindowFoldMixin,
     QMainWindow
 ):
     """
@@ -110,6 +112,7 @@ class MainWindow(
         self._setup_tool_bar()
         self._setup_status_bar()
         self._setup_panels()
+        self._setup_fold()  # Must be after _setup_panels()
         self._setup_shortcuts()
 
         # Load last used layout (preserve workspace state)

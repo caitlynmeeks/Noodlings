@@ -1,9 +1,31 @@
 # The Unfold: App ↔ Studio Transition
 
-**Status**: Specification
+**Status**: COMPLETED (2026-01-10)
 **Date**: 2026-01-08
 **Authors**: Caity + Claude
 **Priority**: High (core UX for Let's Consciousness)
+
+## Implementation Summary
+
+**Files Created:**
+- `core/panel_fold_manager.py` - PanelFoldManager with animated transitions
+- `core/main_window_fold_mixin.py` - MainWindowFoldMixin integration
+- `widgets/view_project_button.py` - ViewProjectButton with fade animations
+- `tests/test_panel_fold.py` - 17 unit tests
+
+**Files Modified:**
+- `core/main_window.py` - Added MainWindowFoldMixin to inheritance, calls `_setup_fold()`
+
+**Features Implemented:**
+- 400ms ease-out unfold animation (fast start, gentle landing)
+- 300ms ease-in fold animation (gentle start, fast finish)
+- QSplitter-based panel management (left, center, right, bottom)
+- Keyboard shortcut: Ctrl+Shift+U
+- ViewProjectButton with opacity fade effects
+- Signal-based state change notifications
+- Saved sizes restoration on unfold
+
+**Tests:** 17 passing (instant transitions + easing function tests)
 
 ---
 
