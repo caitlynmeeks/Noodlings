@@ -59,10 +59,44 @@ PYTHONPATH=.:../.. python -m noodlestudio.runtime --gui \
 | `tests/test_splash_screen.py` | 35 tests |
 
 **Remaining Work:**
-- Phase 3-4: Runtime enforcement of editor access and LLM provider settings
+- Phase 4: Runtime LLM provider switching from build.yaml
 - Phase 7: Actual build process (py2app/PyInstaller integration)
 
-**Tests:** 71 tests for build settings + splash screen. Total project: 660 tests.
+**Tests:** 92 tests for build settings + splash + editor access. Total project: 681 tests.
+
+---
+
+## COMPLETED: Editor Access Enforcement (Jan 10, 2026)
+
+**Goal:** Control access to NoodleStudio editor in published apps via build.yaml settings.
+
+**Key Components:**
+
+### EditorPasswordDialog (`dialogs/editor_password_dialog.py`)
+- Password prompt for protected editor access
+- SHA-256 password hashing (hash_password, verify_password)
+- Attempt tracking with lockout after max failures
+- Clean dark-mode styling
+
+### MainWindowFoldMixin Updates (`core/main_window_fold_mixin.py`)
+- `set_editor_access(access, password_hash, keyboard_shortcut)` - Configure restrictions
+- `_check_editor_access()` - Validate access before unfold
+- Keyboard shortcut disabled when access is "hidden"
+- Password dialog shown when access is "password"
+- "View Project" button hidden when access is "hidden"
+
+### Project Integration (`core/main_window_project_mixin.py`)
+- `_load_editor_access_from_build_config()` - Load settings when project opens
+- Settings reloaded when Build Settings dialog saves
+
+**Access Levels:**
+| Level | Button | Shortcut | Behavior |
+|-------|--------|----------|----------|
+| `allow` | Shown | Enabled | Normal unfold |
+| `password` | Shown | Enabled | Password dialog before unfold |
+| `hidden` | Hidden | Disabled | No editor access |
+
+**Tests:** 21 new tests in `test_editor_access.py`
 
 ---
 

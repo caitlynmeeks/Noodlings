@@ -420,11 +420,16 @@ class BuiltApp:
 - [x] Click-to-dismiss support
 - [x] 35 unit tests
 
-### Phase 3: Editor Access - UI COMPLETE
+### Phase 3: Editor Access - COMPLETE
 - [x] Unfold permission toggle (radio buttons)
 - [x] Password protection option with password field
 - [x] Hide editor completely option
-- [ ] Runtime permission checking (pending)
+- [x] EditorPasswordDialog with SHA-256 hashing
+- [x] MainWindowFoldMixin.set_editor_access() and _check_editor_access()
+- [x] Keyboard shortcut disabled when access is "hidden"
+- [x] Password dialog shown when access is "password"
+- [x] Settings loaded from build.yaml on project open
+- [x] 21 unit tests
 
 ### Phase 4: LLM Provider - UI COMPLETE
 - [x] Provider selection radio buttons

@@ -895,10 +895,10 @@ class BuildSettingsDialog(QDialog):
         c.editor.access = access_map.get(self.editor_group.checkedId(), "allow")
         c.editor.keyboard_shortcut = self.editor_shortcut.text() or "Ctrl+Shift+U"
 
-        # Password handling (would need bcrypt for proper implementation)
+        # Password handling - use SHA-256 hash
         if c.editor.access == "password" and self.editor_pw_field.text():
-            # In production, this should be bcrypt hashed
-            c.editor.password_hash = f"PLAINTEXT:{self.editor_pw_field.text()}"
+            from .editor_password_dialog import hash_password
+            c.editor.password_hash = hash_password(self.editor_pw_field.text())
 
         # LLM provider
         llm_map = {0: "noodlerouter", 1: "user_keys", 2: "ollama", 3: "bundled"}

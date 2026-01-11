@@ -124,6 +124,9 @@ class MainWindowProjectMixin:
                 from pathlib import Path
                 self.noodle_code_engine.set_project_path(Path(project_path))
 
+            # Load editor access settings from build.yaml
+            self._load_editor_access_from_build_config(project_path)
+
             print(f"Project opened: {project_path}")
 
         except Exception as e:
@@ -347,6 +350,41 @@ class MainWindowProjectMixin:
         shutil.copytree(source, target)
         self.statusBar().showMessage(f"Exported noodling to: {target}", 3000)
 
+    def _load_editor_access_from_build_config(self, project_path: str):
+        """
+        Load editor access settings from build.yaml.
+
+        Called when a project is opened to apply editor access restrictions.
+
+        Args:
+            project_path: Path to the project directory
+        """
+        from pathlib import Path as PathLib
+        build_yaml = PathLib(project_path) / "build.yaml"
+
+        if not build_yaml.exists():
+            # No build.yaml - reset to default (allow)
+            if hasattr(self, 'set_editor_access'):
+                self.set_editor_access(access="allow")
+            return
+
+        try:
+            from .build_config import BuildConfig
+            config = BuildConfig.from_yaml(build_yaml)
+
+            if hasattr(self, 'set_editor_access'):
+                self.set_editor_access(
+                    access=config.editor.access,
+                    password_hash=config.editor.password_hash,
+                    keyboard_shortcut=config.editor.keyboard_shortcut
+                )
+                print(f"Editor access loaded: {config.editor.access}")
+        except Exception as e:
+            print(f"Warning: Could not load editor access from build.yaml: {e}")
+            # Reset to default on error
+            if hasattr(self, 'set_editor_access'):
+                self.set_editor_access(access="allow")
+
     def show_build_settings(self):
         """Show the Build Settings dialog."""
         if not self.project_manager.is_project_open():
@@ -362,6 +400,8 @@ class MainWindowProjectMixin:
             # Refresh assets to show build.yaml if newly created
             if hasattr(self, 'assets'):
                 self.assets.refresh()
+            # Reload editor access settings
+            self._load_editor_access_from_build_config(str(project_path))
 
     def build_application(self):
         """Build a standalone application from the current project."""
