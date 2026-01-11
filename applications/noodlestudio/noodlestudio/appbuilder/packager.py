@@ -91,21 +91,22 @@ class Packager:
     editor-only and development files.
 
     Usage:
-        packager = Packager(config, staging_dir)
+        packager = Packager(config, project_path, staging_dir)
         result = packager.package()
     """
 
-    def __init__(self, config: 'BuildConfig', staging_dir: Path):
+    def __init__(self, config: 'BuildConfig', project_path: Path, staging_dir: Path):
         """
         Initialize packager.
 
         Args:
-            config: Build configuration
+            config: Build configuration from core/build_config.py
+            project_path: Path to the project directory
             staging_dir: Directory to stage files into
         """
         self.config = config
         self.staging_dir = Path(staging_dir)
-        self.project_dir = Path(config.project_path)
+        self.project_dir = Path(project_path)
 
         self._progress_callback: Optional[Callable[[float, str], None]] = None
         self._copied_files: List[Path] = []
@@ -154,7 +155,7 @@ class Packager:
 
             # Step 3: Copy build.yaml (25-30%)
             self._report_progress(0.25, "Copying build config...")
-            build_src = self.config.build_yaml_path
+            build_src = self.project_dir / "build.yaml"
             if build_src.exists():
                 shutil.copy2(build_src, project_staging / "build.yaml")
 
@@ -163,11 +164,12 @@ class Packager:
             self._copy_project_directories(project_staging)
 
             # Step 5: Copy icon if specified (80-85%)
-            if self.config.icon:
+            icon_path = self.config.identity.icon if hasattr(self.config, 'identity') else ""
+            if icon_path:
                 self._report_progress(0.8, "Copying icon...")
-                icon_src = self.project_dir / self.config.icon
+                icon_src = self.project_dir / icon_path
                 if icon_src.exists():
-                    icon_dst = project_staging / self.config.icon
+                    icon_dst = project_staging / icon_path
                     icon_dst.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(icon_src, icon_dst)
                     self._copied_files.append(icon_dst)

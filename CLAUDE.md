@@ -6,6 +6,81 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
+## COMPLETED: Phase 7 - Build Process (Jan 10, 2026)
+
+**Goal:** Make "Build and Run" actually build a standalone macOS .app bundle.
+
+**What Was Built:**
+
+### BuildProgressDialog (`dialogs/build_progress_dialog.py`)
+- Progress bar with percentage and status messages
+- Cancel button with proper thread cleanup
+- Success/failure states with detailed output info
+- Auto-launch support for "Build and Run"
+- 22 unit tests
+
+### BuildWorker (`dialogs/build_progress_dialog.py`)
+- QThread-based background build execution
+- Progress, finished, and error signals
+- Cancellation support
+
+### Builder Updates (`appbuilder/builder.py`)
+- Now uses canonical `core/build_config.BuildConfig`
+- Accepts `project_path` separately from config
+- Cancellation support throughout build process
+- Output directory auto-creation
+
+### Packager Updates (`appbuilder/packager.py`)
+- Updated to accept `project_path` parameter
+- Uses new BuildConfig structure (identity.icon, etc.)
+
+### MacOSBundler Updates (`appbuilder/bundler_macos.py`)
+- Updated to accept `project_path` parameter
+- Uses new BuildConfig structure for Info.plist
+
+### BuildSettingsDialog Wiring
+- `_build()` now shows BuildProgressDialog and runs actual build
+- `_build_and_run()` builds and auto-launches the .app
+- `_on_build_completed()` handles result (close on success, stay open on failure)
+
+**Build Output Structure:**
+```
+~/Desktop/builds/
+└── Let's Consciousness!.app/
+    └── Contents/
+        ├── Info.plist
+        ├── MacOS/
+        │   └── LetsConsciousness (launcher script)
+        └── Resources/
+            ├── project/
+            │   ├── ui.yaml
+            │   └── build.yaml
+            └── runtime/
+                └── noodlestudio/
+                    ├── core/
+                    ├── runtime/
+                    ├── scripting/
+                    └── data/
+```
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `dialogs/build_progress_dialog.py` | Progress dialog + BuildWorker (320 lines) |
+| `appbuilder/builder.py` | Build orchestrator (300 lines) |
+| `appbuilder/packager.py` | Asset packaging (365 lines) |
+| `appbuilder/bundler_macos.py` | macOS .app creation (420 lines) |
+| `tests/test_build_progress.py` | 22 tests |
+
+**Tests:** 114 tests for build settings + splash + editor access + build progress. Total project: ~700 tests.
+
+**Remaining Work:**
+- Phase 4: Runtime LLM provider switching from build.yaml
+- Code signing and notarization (distribution section)
+- Windows/Linux bundlers (PyInstaller)
+
+---
+
 ## COMPLETED: Build Settings + Splash Screen (Jan 10, 2026)
 
 **Goal:** Unity-style File > Build Settings dialog with splash screen support for published apps.
@@ -38,110 +113,16 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 - `run_gui()` loads build.yaml and shows splash before main window
 - Character overlay waits for splash completion
 
-**Test Project:** `Projects/lets-consciousness/build.yaml` with kawaii petri dish splash image.
-
-**Running with Splash:**
-```bash
-cd applications/noodlestudio
-PYTHONPATH=.:../.. python -m noodlestudio.runtime --gui \
-  --ui "Projects/lets-consciousness/ui.yaml"
-```
-
 **Key Files:**
 | File | Purpose |
 |------|---------|
-| `dialogs/build_settings_dialog.py` | Main dialog UI (970 lines) |
+| `dialogs/build_settings_dialog.py` | Main dialog UI (1000 lines) |
 | `core/build_config.py` | BuildConfig dataclass (533 lines) |
 | `widgets/splash_screen.py` | SplashScreen + AttributionWidget (570 lines) |
 | `runtime/cli.py:189-230` | `_build_config_to_splash_config()` helper |
 | `runtime/cli.py:370-457` | Splash integration in `run_gui()` |
 | `tests/test_build_settings.py` | 36 tests |
 | `tests/test_splash_screen.py` | 35 tests |
-
-**Remaining Work:**
-- Phase 4: Runtime LLM provider switching from build.yaml
-- Phase 7: Actual build process (py2app/PyInstaller integration)
-
-**Tests:** 92 tests for build settings + splash + editor access. Total project: 681 tests.
-
----
-
-## NEXT SESSION: Phase 7 - Build Process (Jan 10, 2026)
-
-**Goal:** Make "Build and Run" actually build a standalone macOS .app bundle.
-
-**Current State:**
-- BuildSettingsDialog saves config to `build.yaml` - DONE
-- `_build()` method just saves and closes - needs implementation
-- `appbuilder/` module exists with scaffolding from earlier work
-
-**What Needs Building:**
-
-### 1. BuildProgressDialog (`dialogs/build_progress_dialog.py`)
-```
-+-- Building: Let's Consciousness! ------------------+
-| [=========>                    ] 35%               |
-|                                                    |
-| Collecting assets...                               |
-| - noodlings/guide/assembly.yaml                    |
-| - assets/splash.png                                |
-+----------------------------------------------------+
-| [Cancel]                                           |
-+----------------------------------------------------+
-```
-
-### 2. Asset Packager (`appbuilder/packager.py`)
-- Collect all files based on ContentConfig checkboxes
-- Copy to staging directory
-- Respect include_unused, include_source flags
-
-### 3. py2app Integration (`appbuilder/bundler_macos.py`)
-- Generate setup.py for py2app
-- Configure with splash, icon, bundle_id from BuildConfig
-- Run py2app in subprocess
-- Handle errors gracefully
-
-### 4. Wire "Build and Run" Button
-- Show BuildProgressDialog
-- Run build in background thread
-- On success: launch the .app
-- On failure: show error dialog
-
-**Key Files:**
-| File | Status |
-|------|--------|
-| `appbuilder/builder.py` | Exists - orchestrator scaffold |
-| `appbuilder/packager.py` | Exists - needs completion |
-| `appbuilder/bundler_macos.py` | Exists - needs py2app integration |
-| `dialogs/build_progress_dialog.py` | NEW - needs creation |
-
-**Build Output Structure:**
-```
-~/Desktop/builds/
-└── Let's Consciousness!.app/
-    └── Contents/
-        ├── MacOS/
-        │   └── noodlestudio-runtime
-        ├── Resources/
-        │   └── project/
-        │       ├── ui.yaml
-        │       ├── build.yaml
-        │       ├── assets/
-        │       └── noodlings/
-        └── Info.plist
-```
-
-**Testing Approach:**
-1. Build Let's Consciousness project
-2. Verify .app launches
-3. Verify splash screen shows
-4. Verify editor access restrictions work in built app
-
-**Dependencies:**
-- py2app (`pip install py2app`)
-- Already in requirements.txt
-
-**Reference:** Full spec in `/docs/noodlestudio/build-settings.md`
 
 ---
 

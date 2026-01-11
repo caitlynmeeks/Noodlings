@@ -32,12 +32,14 @@
 # https://noodlings.ai
 # ──────────────────────────────────────────────────────────────
 
-from .builder import Builder, BuildConfig, BuildResult
+from .builder import Builder, BuildResult, create_default_build_yaml
+from ..core.build_config import BuildConfig
 
 __all__ = [
     'Builder',
     'BuildConfig',
     'BuildResult',
+    'create_default_build_yaml',
 ]
 
 __version__ = '1.0.0'

@@ -100,19 +100,21 @@ class MacOSBundler:
     Creates macOS .app bundles.
 
     Usage:
-        bundler = MacOSBundler(config, staging_dir)
+        bundler = MacOSBundler(config, project_path, staging_dir)
         result = bundler.bundle(Path("~/Desktop/MyApp.app"))
     """
 
-    def __init__(self, config: 'BuildConfig', staging_dir: Path):
+    def __init__(self, config: 'BuildConfig', project_path: Path, staging_dir: Path):
         """
         Initialize bundler.
 
         Args:
-            config: Build configuration
+            config: Build configuration from core/build_config.py
+            project_path: Path to the project directory
             staging_dir: Directory containing staged files
         """
         self.config = config
+        self.project_path = Path(project_path)
         self.staging_dir = Path(staging_dir)
         self._progress_callback: Optional[Callable[[float, str], None]] = None
 
@@ -199,7 +201,7 @@ class MacOSBundler:
     def _get_executable_name(self) -> str:
         """Get the executable name (sanitized app name)."""
         # Remove spaces and special chars for the executable
-        name = self.config.name
+        name = self.config.identity.name if hasattr(self.config, 'identity') else "NoodleApp"
         name = ''.join(c for c in name if c.isalnum() or c in '-_')
         return name or 'NoodleApp'
 
@@ -207,10 +209,19 @@ class MacOSBundler:
         """Create Info.plist."""
         plist = INFO_PLIST_TEMPLATE.copy()
 
-        plist['CFBundleExecutable'] = self._get_executable_name()
-        plist['CFBundleIdentifier'] = self.config.identifier
-        plist['CFBundleName'] = self.config.name
-        plist['CFBundleShortVersionString'] = self.config.version
+        # Use identity fields from the new BuildConfig structure
+        identity = self.config.identity if hasattr(self.config, 'identity') else None
+        if identity:
+            plist['CFBundleExecutable'] = self._get_executable_name()
+            plist['CFBundleIdentifier'] = identity.bundle_id or "ai.noodlings.app"
+            plist['CFBundleName'] = identity.name or "NoodleApp"
+            plist['CFBundleShortVersionString'] = identity.version or "1.0.0"
+        else:
+            # Fallback for old config format
+            plist['CFBundleExecutable'] = self._get_executable_name()
+            plist['CFBundleIdentifier'] = getattr(self.config, 'identifier', "ai.noodlings.app")
+            plist['CFBundleName'] = getattr(self.config, 'name', "NoodleApp")
+            plist['CFBundleShortVersionString'] = getattr(self.config, 'version', "1.0.0")
 
         plist_path = contents_dir / "Info.plist"
         with open(plist_path, 'wb') as f:
@@ -229,12 +240,14 @@ class MacOSBundler:
 
     def _copy_icon(self, resources_dir: Path):
         """Copy and convert icon to .icns format."""
-        if not self.config.icon:
+        # Get icon path from identity
+        icon_path = self.config.identity.icon if hasattr(self.config, 'identity') else ""
+        if not icon_path:
             # Use default icon or skip
             logger.info("No icon specified, using default")
             return
 
-        icon_src = self.config.project_path / self.config.icon
+        icon_src = self.project_path / icon_path
         if not icon_src.exists():
             logger.warning(f"Icon not found: {icon_src}")
             return

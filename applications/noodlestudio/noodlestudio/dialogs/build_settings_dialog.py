@@ -948,15 +948,49 @@ class BuildSettingsDialog(QDialog):
     # -------------------------------------------------------------------------
     def _build(self):
         """Save settings and initiate build."""
-        if self._save_config():
-            self.accept()
-            # TODO: Trigger actual build process in Phase 7
+        if not self._save_config():
+            return
+
+        from .build_progress_dialog import BuildProgressDialog
+
+        # Show progress dialog
+        dialog = BuildProgressDialog(
+            self.config,
+            self.project_path,
+            parent=self,
+            run_after_build=False
+        )
+        dialog.build_completed.connect(self._on_build_completed)
+        dialog.exec()
 
     def _build_and_run(self):
         """Save settings, build, and run the result."""
-        if self._save_config():
+        if not self._save_config():
+            return
+
+        from .build_progress_dialog import BuildProgressDialog
+
+        # Show progress dialog with auto-launch
+        dialog = BuildProgressDialog(
+            self.config,
+            self.project_path,
+            parent=self,
+            run_after_build=True
+        )
+        dialog.build_completed.connect(self._on_build_completed)
+        dialog.exec()
+
+    def _on_build_completed(self, result):
+        """Handle build completion."""
+        from ..appbuilder.builder import BuildResult
+
+        if result.success:
+            logger.info(f"Build completed successfully: {result.output_path}")
+            # Close the Build Settings dialog
             self.accept()
-            # TODO: Trigger build + run in Phase 7
+        else:
+            logger.warning(f"Build failed: {result.errors}")
+            # Keep dialog open so user can adjust settings
 
     def accept(self):
         """Override accept to save config before closing."""

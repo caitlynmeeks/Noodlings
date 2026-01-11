@@ -1,6 +1,6 @@
 # Build Settings
 
-**Status**: Specification
+**Status**: Implemented (Phase 7 Complete)
 **Date**: 2026-01-10
 **Authors**: Caity + Claude
 **Priority**: High (required for publishing apps)
@@ -451,12 +451,16 @@ class BuiltApp:
 - [x] Notarization checkbox
 - [ ] Actual signing integration (pending)
 
-### Phase 7: Build Process - PENDING
-- [ ] Asset collection
-- [ ] py2app integration (macOS)
-- [ ] PyInstaller integration (Windows/Linux)
-- [ ] Progress dialog during build
-- [ ] Build and Run functionality
+### Phase 7: Build Process - COMPLETE (Jan 10, 2026)
+- [x] BuildProgressDialog with progress bar, status, cancel
+- [x] BuildWorker QThread for background builds
+- [x] Asset collection via Packager
+- [x] macOS .app bundle creation via MacOSBundler
+- [x] Build and Run functionality (auto-launches app)
+- [x] BuildSettingsDialog wired to trigger builds
+- [x] 22 unit tests
+- [ ] PyInstaller integration (Windows/Linux) - future
+- [ ] Actual code signing (currently creates unsigned bundles)
 
 ---
 
