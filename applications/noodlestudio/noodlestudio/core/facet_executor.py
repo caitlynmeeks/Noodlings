@@ -43,6 +43,7 @@ import logging
 from .facet_system import Facet, FacetAssembly, FacetConnection
 from ..runtime.channels import ChannelMessage, ChannelBus
 from .charm_network_facet import CharmNetworkFacet, CharmNetworkOutput
+from .neural_canvas_facet import NeuralCanvasFacet
 from .scripted_facet import ScriptedFacet, ScriptContext
 from .transformer_facet import TransformerFacet, TransformerOutput
 from .subconscious_facet import SubconsciousFacet
@@ -370,6 +371,21 @@ class FacetExecutor:
                 self.singleton_facets['charm_network'] = CharmNetworkFacet(checkpoint_path)
                 logger.info("[FacetExecutor] Created singleton CharmNetworkFacet")
             return self.singleton_facets['charm_network']
+
+        elif facet.facet_type == "NeuralCanvasFacet":
+            # Singleton: Loads .nncanvas file and executes NeuralGraph
+            key = f"neural_canvas_{facet.id}"
+            if key not in self.singleton_facets:
+                # Get project root from context
+                project_root = context.get('project_root', None)
+                self.singleton_facets[key] = NeuralCanvasFacet(
+                    facet_id=facet.id,
+                    name=facet.name,
+                    nncanvas_path=facet.nncanvas_path or '',
+                    project_root=project_root
+                )
+                logger.info(f"[FacetExecutor] Created singleton NeuralCanvasFacet: {facet.name} (path={facet.nncanvas_path})")
+            return self.singleton_facets[key]
 
         elif facet.facet_type == "TransformerFacet":
             # Singleton: Transformer is stateless but model loading is expensive
@@ -883,6 +899,26 @@ class FacetExecutor:
                 'phenomenal_state': result.phenomenal_state
             }
             token_count = 0
+
+        elif facet.facet_type == "NeuralCanvasFacet":
+            # NeuralCanvas: Execute visual neural network from .nncanvas file
+            # Supports affect inputs (5D vector) or arbitrary inputs
+            result = await instance.execute(inputs)
+
+            if 'error' in result:
+                logger.warning(f"[FacetExecutor] NeuralCanvasFacet error: {result['error']}")
+                outputs = {'out': f"[NeuralCanvas error: {result['error']}]"}
+            else:
+                # Map outputs from graph
+                outputs = result.copy()
+                # Remove internal metadata from output
+                outputs.pop('_node_outputs', None)
+                outputs.pop('_execution_time_ms', None)
+
+                # Log execution details
+                logger.info(f"[FacetExecutor] NeuralCanvasFacet {facet.name} executed in {result.get('_execution_time_ms', 0):.1f}ms")
+
+            token_count = 0  # Neural computation, not LLM
 
         elif facet.facet_type == "TransformerFacet":
             # Attention-based context processing

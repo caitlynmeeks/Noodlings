@@ -191,6 +191,18 @@ class FacetsEditorEventsMixin:
                 action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
                                         self.add_facet(ft, dn, position))
 
+            # Neural facets submenu
+            neural_menu = add_menu.addMenu("Neural")
+            neural_types = [
+                ("Neural Canvas (NNCanvas)", "NeuralCanvasFacet"),
+                ("Charm Network (.npz)", "CharmNetworkFacet"),
+                ("Transformer", "TransformerFacet"),
+            ]
+            for display_name, facet_type in neural_types:
+                action = neural_menu.addAction(display_name)
+                action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:
+                                        self.add_facet(ft, dn, position))
+
             for display_name, facet_type in facet_types:
                 action = add_menu.addAction(display_name)
                 action.triggered.connect(lambda checked, ft=facet_type, dn=display_name:

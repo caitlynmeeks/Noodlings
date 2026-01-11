@@ -144,6 +144,9 @@ class Facet:
     # Scripting API - Dynamic salience control
     salience_script: Optional[str] = None  # JavaScript code for continuous salience computation
 
+    # NeuralCanvasFacet - Path to .nncanvas file (for NeuralCanvasFacet type only)
+    nncanvas_path: Optional[str] = None  # Path to .nncanvas file (relative to project)
+
     # Connection pads
     input_pads: List[FacetPad] = field(default_factory=list)
     output_pads: List[FacetPad] = field(default_factory=list)
@@ -184,6 +187,9 @@ class Facet:
         # Only include salience_script if it exists
         if self.salience_script:
             result['salience_script'] = self.salience_script
+        # Include nncanvas_path for NeuralCanvasFacet types
+        if self.nncanvas_path:
+            result['nncanvas_path'] = self.nncanvas_path
         return result
 
     @staticmethod
@@ -193,11 +199,12 @@ class Facet:
             id=data['id'],
             name=data['name'],
             facet_type=data['type'],
-            prompt=data['prompt'],
+            prompt=data.get('prompt', ''),  # NeuralCanvasFacet may not have prompt
             model=data.get('model', 'SMALL'),
             temperature=data.get('temperature', 0.7),
             max_tokens=data.get('max_tokens', 150),
             salience_script=data.get('salience_script'),  # Load salience script if present
+            nncanvas_path=data.get('nncanvas_path'),  # Load nncanvas_path for NeuralCanvasFacet
             input_pads=[FacetPad.from_dict(p) for p in data.get('inputs', [])],
             output_pads=[FacetPad.from_dict(p) for p in data.get('outputs', [])],
             position=data.get('position', {'x': 0, 'y': 0}),

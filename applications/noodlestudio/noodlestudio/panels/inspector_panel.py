@@ -783,6 +783,63 @@ class InspectorPanel(
             info_label.setStyleSheet("color: #888888; font-style: italic;")
             props_layout.addRow(info_label)
 
+        # NeuralCanvasFacet
+        elif facet.facet_type == "NeuralCanvasFacet":
+            # NNCanvas path field with browse button
+            from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QFileDialog
+
+            path_layout = QHBoxLayout()
+            path_edit = QLineEdit(facet.nncanvas_path or "")
+            path_edit.setPlaceholderText("Path to .nncanvas file...")
+            path_edit.setStyleSheet("background-color: #2D2D2D; color: #D2D2D2; padding: 4px;")
+            path_edit._baseline_value = facet.nncanvas_path or ""
+
+            def on_path_changed(text, edit=path_edit, f=facet):
+                old_val = getattr(edit, '_baseline_value', '')
+                if text != old_val:
+                    f.nncanvas_path = text
+                    self._push_facet_property_command(f, 'nncanvas_path', old_val, text)
+                    edit._baseline_value = text
+
+            path_edit.editingFinished.connect(lambda: on_path_changed(path_edit.text()))
+            path_layout.addWidget(path_edit)
+
+            browse_btn = QPushButton("Browse...")
+            browse_btn.setMaximumWidth(80)
+            browse_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #404040;
+                    color: #D2D2D2;
+                    border: 1px solid #555555;
+                    padding: 4px 8px;
+                }
+                QPushButton:hover {
+                    background-color: #505050;
+                }
+            """)
+
+            def browse_nncanvas():
+                file_path, _ = QFileDialog.getOpenFileName(
+                    self,
+                    "Select NNCanvas File",
+                    "",
+                    "NNCanvas Files (*.nncanvas);;All Files (*)"
+                )
+                if file_path:
+                    path_edit.setText(file_path)
+                    on_path_changed(file_path)
+
+            browse_btn.clicked.connect(browse_nncanvas)
+            path_layout.addWidget(browse_btn)
+
+            path_widget = QWidget()
+            path_widget.setLayout(path_layout)
+            props_layout.addRow("NNCanvas Path:", path_widget)
+
+            info_label = QLabel("Visual neural network from NeuralCanvas editor")
+            info_label.setStyleSheet("color: #9C27B0; font-style: italic;")  # Purple for neural
+            props_layout.addRow(info_label)
+
         # ScriptedFacet (with undo support)
         elif facet.facet_type == "ScriptedFacet":
             script_edit = ClickableTextEdit(

@@ -71,6 +71,10 @@ def get_facet_header_color(facet: Facet) -> str:
         return "#5A6A7A"  # Steel blue (synthesis - matches CELL_STATE)
     elif "CharmNetwork" in facet_type:
         return "#6A4A6A"  # Deep mauve (neural processing)
+    elif "NeuralCanvas" in facet_type:
+        return "#7B1FA2"  # Purple (visual neural network from NNCanvas)
+    elif "Transformer" in facet_type:
+        return "#6A4A8A"  # Purple-mauve (attention-based neural)
     else:
         return "#5A5A5A"  # Medium gray (default - matches TENSOR)
 
