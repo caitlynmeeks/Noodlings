@@ -66,6 +66,85 @@ PYTHONPATH=.:../.. python -m noodlestudio.runtime --gui \
 
 ---
 
+## NEXT SESSION: Phase 7 - Build Process (Jan 10, 2026)
+
+**Goal:** Make "Build and Run" actually build a standalone macOS .app bundle.
+
+**Current State:**
+- BuildSettingsDialog saves config to `build.yaml` - DONE
+- `_build()` method just saves and closes - needs implementation
+- `appbuilder/` module exists with scaffolding from earlier work
+
+**What Needs Building:**
+
+### 1. BuildProgressDialog (`dialogs/build_progress_dialog.py`)
+```
++-- Building: Let's Consciousness! ------------------+
+| [=========>                    ] 35%               |
+|                                                    |
+| Collecting assets...                               |
+| - noodlings/guide/assembly.yaml                    |
+| - assets/splash.png                                |
++----------------------------------------------------+
+| [Cancel]                                           |
++----------------------------------------------------+
+```
+
+### 2. Asset Packager (`appbuilder/packager.py`)
+- Collect all files based on ContentConfig checkboxes
+- Copy to staging directory
+- Respect include_unused, include_source flags
+
+### 3. py2app Integration (`appbuilder/bundler_macos.py`)
+- Generate setup.py for py2app
+- Configure with splash, icon, bundle_id from BuildConfig
+- Run py2app in subprocess
+- Handle errors gracefully
+
+### 4. Wire "Build and Run" Button
+- Show BuildProgressDialog
+- Run build in background thread
+- On success: launch the .app
+- On failure: show error dialog
+
+**Key Files:**
+| File | Status |
+|------|--------|
+| `appbuilder/builder.py` | Exists - orchestrator scaffold |
+| `appbuilder/packager.py` | Exists - needs completion |
+| `appbuilder/bundler_macos.py` | Exists - needs py2app integration |
+| `dialogs/build_progress_dialog.py` | NEW - needs creation |
+
+**Build Output Structure:**
+```
+~/Desktop/builds/
+└── Let's Consciousness!.app/
+    └── Contents/
+        ├── MacOS/
+        │   └── noodlestudio-runtime
+        ├── Resources/
+        │   └── project/
+        │       ├── ui.yaml
+        │       ├── build.yaml
+        │       ├── assets/
+        │       └── noodlings/
+        └── Info.plist
+```
+
+**Testing Approach:**
+1. Build Let's Consciousness project
+2. Verify .app launches
+3. Verify splash screen shows
+4. Verify editor access restrictions work in built app
+
+**Dependencies:**
+- py2app (`pip install py2app`)
+- Already in requirements.txt
+
+**Reference:** Full spec in `/docs/noodlestudio/build-settings.md`
+
+---
+
 ## COMPLETED: Editor Access Enforcement (Jan 10, 2026)
 
 **Goal:** Control access to NoodleStudio editor in published apps via build.yaml settings.
