@@ -171,30 +171,41 @@ class MainWindowPanelsMixin:
         world_layout.setContentsMargins(0, 0, 0, 0)
         world_layout.setSpacing(0)
 
-        try:
-            from PyQt6.QtWebEngineWidgets import QWebEngineView
-            self.web_view = QWebEngineView()
-            self.web_view.setStyleSheet("background-color: #1a1a1a;")
-            self.web_view.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-            self.web_view.setUrl(QUrl("http://localhost:8080"))
-            world_layout.addWidget(self.web_view)
-        except ImportError as e:
-            print(f"[WebView] ImportError: {e}")
-            placeholder = QLabel("WebEngine not available\nInstall: pip install PyQt6-WebEngine")
+        # Skip WebEngine in test environment (crashes during pytest)
+        import os
+        in_test_mode = "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules
+
+        if in_test_mode:
+            placeholder = QLabel("WebEngine disabled in test mode")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet("color: #999; font-size: 14px;")
+            placeholder.setStyleSheet("color: #666; font-size: 12px;")
             world_layout.addWidget(placeholder)
             self.web_view = None
-        except Exception as e:
-            print(f"[WebView] Unexpected error initializing WebEngine: {e}")
-            import traceback
-            traceback.print_exc()
-            placeholder = QLabel(f"WebEngine error:\n{e}")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet("color: #FF6666; font-size: 12px;")
-            placeholder.setWordWrap(True)
-            world_layout.addWidget(placeholder)
-            self.web_view = None
+        else:
+            try:
+                from PyQt6.QtWebEngineWidgets import QWebEngineView
+                self.web_view = QWebEngineView()
+                self.web_view.setStyleSheet("background-color: #1a1a1a;")
+                self.web_view.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+                self.web_view.setUrl(QUrl("http://localhost:8080"))
+                world_layout.addWidget(self.web_view)
+            except ImportError as e:
+                print(f"[WebView] ImportError: {e}")
+                placeholder = QLabel("WebEngine not available\nInstall: pip install PyQt6-WebEngine")
+                placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                placeholder.setStyleSheet("color: #999; font-size: 14px;")
+                world_layout.addWidget(placeholder)
+                self.web_view = None
+            except Exception as e:
+                print(f"[WebView] Unexpected error initializing WebEngine: {e}")
+                import traceback
+                traceback.print_exc()
+                placeholder = QLabel(f"WebEngine error:\n{e}")
+                placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                placeholder.setStyleSheet("color: #FF6666; font-size: 12px;")
+                placeholder.setWordWrap(True)
+                world_layout.addWidget(placeholder)
+                self.web_view = None
 
         center_tabs.addTab(world_widget, "Text View")
 
