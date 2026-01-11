@@ -1,9 +1,30 @@
 # Splash Screen Specification
 
-**Status**: Specification
+**Status**: COMPLETED (2026-01-10)
 **Date**: 2026-01-09
 **Authors**: Caity + Claude
 **Priority**: Medium (polish for published apps)
+
+## Implementation Summary
+
+**Files Created:**
+- `widgets/splash_screen.py` - SplashScreen, AttributionWidget, LoadingIndicator classes
+- `tests/test_splash_screen.py` - 30 unit tests
+
+**Features Implemented:**
+- Custom image or text-based splash
+- Configurable title, subtitle, background color
+- Fade in/out animations with customizable duration
+- Loading indicator (dots, bar, spinner, none styles)
+- Required attribution (Made with NoodleSTUDIO + NEC link)
+- Attribution styles: badge, text, minimal
+- Attribution positions: bottom-left, bottom-center, bottom-right
+- Minimum 1.5s display duration enforced
+- Click-to-skip option
+- Frameless, stays-on-top window
+- create_default_splash() factory function
+
+**Tests:** 30 passing
 
 ---
 
