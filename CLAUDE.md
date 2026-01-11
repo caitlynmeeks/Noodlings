@@ -37,22 +37,42 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 **Usage in ui.yaml:**
 ```yaml
-FacetAssembly:
+# Define the FacetAssembly component
+- type: FacetAssembly
   name: sentiment_analyzer
-  assembly: assemblies/sentiment.yaml
-  auto_run: false
+  properties:
+    assembly: assemblies/sentiment.yaml
+    auto_run: false
   input_bindings:
     - pad: text
       source: text_input.value
   output_bindings:
     - pad: sentiment
       target: mood_indicator.color
+
+# Reference it from events using target:
+- type: Button
+  name: analyze_btn
+  events:
+    onClick:
+      action: run_assembly
+      target: sentiment_analyzer  # Uses FacetAssembly's bindings
+      thinking_target: result_label
+      clear_input: true
 ```
+
+**Event Dispatcher Integration:**
+- `target: component_name` syntax references FacetAssembly component by name
+- Uses component's `assembly_path`, `input_bindings`, `output_bindings`
+- Falls back to inline `assembly:` config if no target specified
+- Helper methods: `_find_facet_assembly_component()`, `_resolve_facet_assembly_inputs()`
 
 **Key Files:**
 | File | Purpose |
 |------|---------|
 | `runtime/ui/components/facet_assembly.py` | FacetAssembly component (200 lines) |
+| `runtime/ui/event_dispatcher.py` | target: syntax + binding resolution |
+| `runtime/cli.py` | Wires root_component to dispatcher |
 | `dialogs/assembly_picker_dialog.py` | Assembly file picker (380 lines) |
 | `panels/inspector_ui_canvas.py` | Inspector assembly field |
 | `panels/ui_canvas_editor_panel.py` | Context menu + default size |

@@ -357,6 +357,7 @@ def run_gui(args: argparse.Namespace) -> int:
     # Create event dispatcher and wire to renderer
     dispatcher = UIEventDispatcher(renderer)
     renderer.set_event_dispatcher(dispatcher.dispatch)
+    dispatcher.root_component = root  # For FacetAssembly lookups
 
     # Derive project path from ui.yaml location if --project not provided
     # This allows running with just --ui path/to/ui.yaml

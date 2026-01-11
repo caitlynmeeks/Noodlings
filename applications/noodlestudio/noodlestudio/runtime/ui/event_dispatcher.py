@@ -93,6 +93,9 @@ class UIEventDispatcher:
         # Assembly cache (path -> FacetAssembly)
         self._assembly_cache: Dict[str, Any] = {}
 
+        # Root UI component (for FacetAssembly lookups)
+        self.root_component: Optional['UIComponent'] = None
+
     def _get_script_executor(self) -> 'UIScriptExecutor':
         """Get or create the script executor."""
         if self._script_executor is None:
@@ -370,6 +373,7 @@ class UIEventDispatcher:
         Run a facet assembly one-shot.
 
         Binding parameters:
+            target: Name of FacetAssembly component (uses its configured bindings)
             assembly: Path to assembly YAML file (relative to project)
             inputs: Dict mapping input pad names to values or component references
             outputs: Dict mapping output pad names to target component properties
@@ -383,7 +387,7 @@ class UIEventDispatcher:
             - {"result": "result_label.text"}
             - {"sentiment": "mood_indicator.color"}
 
-        Example binding:
+        Example binding (inline):
             onClick:
               action: run_assembly
               assembly: assemblies/sentiment-analysis.yaml
@@ -391,15 +395,36 @@ class UIEventDispatcher:
                 text: "{text_field.value}"
               outputs:
                 result: result_label.text
-                sentiment: mood_indicator.color
+
+        Example binding (FacetAssembly component):
+            onClick:
+              action: run_assembly
+              target: guide_assembly  # References FacetAssembly component
         """
         from pathlib import Path
 
-        # Get assembly path
-        assembly_path = getattr(binding, 'assembly', None)
-        if not assembly_path:
-            logger.warning("run_assembly action requires 'assembly' parameter")
-            return
+        # Check for FacetAssembly component reference
+        target_name = getattr(binding, 'target', None)
+        if target_name and self.root_component:
+            facet_component = self._find_facet_assembly_component(target_name)
+            if facet_component:
+                # Use FacetAssembly component's configuration
+                assembly_path = facet_component.assembly_path
+                # Convert input/output bindings to dicts
+                input_bindings = {b.pad_name: "{" + b.source + "}" for b in facet_component.input_bindings}
+                output_bindings = facet_component.get_output_targets()
+                logger.info(f"Using FacetAssembly component '{target_name}': {assembly_path}")
+            else:
+                logger.warning(f"FacetAssembly component not found: {target_name}")
+                return
+        else:
+            # Get inline assembly path
+            assembly_path = getattr(binding, 'assembly', None)
+            if not assembly_path:
+                logger.warning("run_assembly action requires 'assembly' or 'target' parameter")
+                return
+            input_bindings = None  # Will use binding.inputs
+            output_bindings = None  # Will use binding.outputs
 
         # Resolve relative path
         if self.project_path and not Path(assembly_path).is_absolute():
@@ -416,11 +441,17 @@ class UIEventDispatcher:
             logger.error(f"Failed to load assembly: {assembly_path}")
             return
 
-        # Resolve input bindings
-        inputs = self._resolve_assembly_inputs(binding, component, event_data)
+        # Resolve input bindings (use FacetAssembly bindings if available)
+        if input_bindings is not None:
+            # FacetAssembly component - resolve its bindings
+            inputs = self._resolve_facet_assembly_inputs(input_bindings, component, event_data)
+        else:
+            # Inline binding config
+            inputs = self._resolve_assembly_inputs(binding, component, event_data)
 
-        # Get output bindings
-        output_bindings = getattr(binding, 'outputs', {})
+        # Get output bindings (use FacetAssembly bindings if available)
+        if output_bindings is None:
+            output_bindings = getattr(binding, 'outputs', {})
 
         # UX feedback: show "Thinking..." and clear input immediately
         thinking_target = getattr(binding, 'thinking_target', None)
@@ -469,6 +500,76 @@ class UIEventDispatcher:
         thread = threading.Thread(target=run_in_thread, daemon=True)
         thread.start()
         logger.info(f"[run_assembly] Thread.start() called")
+
+    def _find_facet_assembly_component(self, name: str):
+        """Find a FacetAssembly component by name in the UI tree."""
+        from .components.facet_assembly import FacetAssembly
+
+        def find_recursive(component):
+            if component.name == name and isinstance(component, FacetAssembly):
+                return component
+            for child in component.children:
+                result = find_recursive(child)
+                if result:
+                    return result
+            return None
+
+        return find_recursive(self.root_component) if self.root_component else None
+
+    def _resolve_facet_assembly_inputs(
+        self,
+        input_bindings: dict,
+        component: 'UIComponent',
+        event_data: 'UIEventData'
+    ) -> dict:
+        """
+        Resolve FacetAssembly input bindings to actual values.
+
+        Args:
+            input_bindings: Dict of pad_name -> source string (e.g., "{input.value}")
+            component: Source component that triggered the event
+            event_data: Event data
+        """
+        resolved = {}
+        for pad_name, source in input_bindings.items():
+            resolved[pad_name] = self._resolve_reference(source, component, event_data)
+        return resolved
+
+    def _resolve_reference(
+        self,
+        value: str,
+        component: 'UIComponent',
+        event_data: 'UIEventData'
+    ) -> Any:
+        """Resolve a single reference value like {input.value} or {event.value}."""
+        if not isinstance(value, str) or not value.startswith('{') or not value.endswith('}'):
+            return value
+
+        ref = value[1:-1]  # Remove braces
+
+        if ref.startswith('event.'):
+            # Event reference
+            attr = ref[6:]  # Remove "event."
+            return getattr(event_data, attr, None)
+        elif '.' in ref:
+            # Component.property reference
+            comp_name, prop_name = ref.split('.', 1)
+            widget = self.renderer.get_widget(comp_name) if self.renderer else None
+            if widget:
+                if prop_name == 'value':
+                    if hasattr(widget, 'text'):
+                        return widget.text()
+                    elif hasattr(widget, 'value'):
+                        return widget.value()
+                elif prop_name == 'text':
+                    if hasattr(widget, 'text'):
+                        return widget.text()
+                elif prop_name == 'checked':
+                    if hasattr(widget, 'isChecked'):
+                        return widget.isChecked()
+                else:
+                    return widget.property(prop_name)
+        return value
 
     def _get_or_load_assembly(self, assembly_path: str):
         """Load assembly from cache or disk."""

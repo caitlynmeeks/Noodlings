@@ -23,6 +23,18 @@ root:
     width: 800
     height: 600
   children:
+    # FacetAssembly component - declares the Guide's cognitive pipeline
+    - type: FacetAssembly
+      name: guide_assembly
+      properties:
+        assembly: "../../noodlings/guide/assembly.yaml"
+        auto_run: false
+      input_bindings:
+        - pad: text
+          source: "user_input.value"
+      output_bindings:
+        - pad: result
+          target: "guide_speech.text"
     # Main content area
     - type: Panel
       name: content_area
@@ -90,11 +102,7 @@ root:
           events:
             onSubmit:
               action: run_assembly
-              assembly: "../../noodlings/guide/assembly.yaml"
-              inputs:
-                text: "{user_input.value}"
-              outputs:
-                result: guide_speech.text
+              target: guide_assembly
               thinking_target: guide_speech
               clear_input: true
 
@@ -110,10 +118,6 @@ root:
           events:
             onClick:
               action: run_assembly
-              assembly: "../../noodlings/guide/assembly.yaml"
-              inputs:
-                text: "{user_input.value}"
-              outputs:
-                result: guide_speech.text
+              target: guide_assembly
               thinking_target: guide_speech
               clear_input: true
