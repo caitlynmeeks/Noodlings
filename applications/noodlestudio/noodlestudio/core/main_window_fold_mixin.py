@@ -36,8 +36,8 @@
 import logging
 from typing import Optional
 
-from PyQt6.QtWidgets import QShortcut, QWidget, QVBoxLayout
-from PyQt6.QtGui import QKeySequence
+from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtCore import Qt
 
 logger = logging.getLogger(__name__)
