@@ -32,6 +32,9 @@
 # https://noodlings.ai
 # ──────────────────────────────────────────────────────────────
 
+import os
+import sys
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTabWidget, QSplitter, QTabBar
 )
