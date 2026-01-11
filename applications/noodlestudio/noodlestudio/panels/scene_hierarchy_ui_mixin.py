@@ -146,6 +146,7 @@ class SceneHierarchyUIMixin:
             "ChatInput": (300, 48),
             "RadianceViewport": (400, 300),
             "WebView": (400, 300),
+            "FacetAssembly": (32, 32),
         }
         w, h = default_sizes.get(component_type, (100, 32))
         new_component.geometry.width = w

@@ -65,6 +65,7 @@ COMPONENT_COLORS = {
     "ChatHistory": "#333333",
     "ChatInput": "#3a3a3a",
     "RadianceViewport": "#1a1a1a",
+    "FacetAssembly": "#3a3a4a",  # Slight blue tint for logic components
 }
 
 
@@ -476,6 +477,7 @@ class UICanvasView(QGraphicsView):
             "ChatHistory": (300, 200),
             "ChatInput": (300, 48),
             "RadianceViewport": (400, 300),
+            "FacetAssembly": (32, 32),  # Small - invisible at runtime
         }
         w, h = default_sizes.get(component_type, (100, 32))
         component.geometry.width = w
@@ -918,6 +920,10 @@ class UICanvasEditorPanel(QWidget):
         add_menu.addAction("ChatInput", lambda: self._add_component_at_cursor("ChatInput", pos))
         add_menu.addAction("RadianceViewport", lambda: self._add_component_at_cursor("RadianceViewport", pos))
         add_menu.addAction("WebView", lambda: self._add_component_at_cursor("WebView", pos))
+        add_menu.addSeparator()
+
+        # Logic components
+        add_menu.addAction("FacetAssembly", lambda: self._add_component_at_cursor("FacetAssembly", pos))
 
         menu.addSeparator()
 

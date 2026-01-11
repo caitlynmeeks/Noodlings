@@ -2616,6 +2616,171 @@ class TestNewComponentsInYAML:
         assert slider2.value == 75
         assert slider2.step == 25
 
-# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
-# જ⁀➴ ♡ Made with love. Use with love.
+
+# ============================================================================
+# FacetAssembly Component Tests
+# ============================================================================
+
+class TestFacetAssemblyComponent:
+    """Test FacetAssembly UI component."""
+
+    def test_facet_assembly_creation(self):
+        """Test basic FacetAssembly creation."""
+        from noodlestudio.runtime.ui.components import FacetAssembly
+
+        fa = FacetAssembly(name="sentiment")
+        assert fa.name == "sentiment"
+        assert fa.component_type == "FacetAssembly"
+        assert fa.assembly_path == ""
+        assert fa.auto_run is False
+        assert fa.input_bindings == []
+        assert fa.output_bindings == []
+
+    def test_facet_assembly_properties(self):
+        """Test FacetAssembly property setting."""
+        from noodlestudio.runtime.ui.components import FacetAssembly
+
+        fa = FacetAssembly(name="analyzer")
+        fa.assembly_path = "assemblies/sentiment.yaml"
+        fa.auto_run = True
+
+        assert fa.assembly_path == "assemblies/sentiment.yaml"
+        assert fa.auto_run is True
+
+    def test_facet_assembly_input_binding(self):
+        """Test FacetAssembly input binding."""
+        from noodlestudio.runtime.ui.components import FacetAssembly, InputBinding
+
+        fa = FacetAssembly(name="fa")
+        fa.add_input_binding("text", "text_input.value")
+
+        assert len(fa.input_bindings) == 1
+        assert fa.input_bindings[0].pad_name == "text"
+        assert fa.input_bindings[0].source == "text_input.value"
+
+        sources = fa.get_input_sources()
+        assert sources == {"text": "text_input.value"}
+
+    def test_facet_assembly_output_binding(self):
+        """Test FacetAssembly output binding."""
+        from noodlestudio.runtime.ui.components import FacetAssembly, OutputBinding
+
+        fa = FacetAssembly(name="fa")
+        fa.add_output_binding("sentiment", "mood_label.text")
+        fa.add_output_binding("score", "score_display.value")
+
+        assert len(fa.output_bindings) == 2
+
+        targets = fa.get_output_targets()
+        assert targets == {
+            "sentiment": "mood_label.text",
+            "score": "score_display.value"
+        }
+
+    def test_facet_assembly_remove_binding(self):
+        """Test removing bindings."""
+        from noodlestudio.runtime.ui.components import FacetAssembly
+
+        fa = FacetAssembly(name="fa")
+        fa.add_input_binding("text", "input.value")
+        fa.add_input_binding("context", "context.value")
+        fa.add_output_binding("result", "output.text")
+
+        fa.remove_input_binding("text")
+        assert len(fa.input_bindings) == 1
+        assert fa.input_bindings[0].pad_name == "context"
+
+        fa.remove_output_binding("result")
+        assert len(fa.output_bindings) == 0
+
+    def test_facet_assembly_serialization(self):
+        """Test FacetAssembly serialization."""
+        from noodlestudio.runtime.ui.components import FacetAssembly
+
+        fa = FacetAssembly(name="serialization_test")
+        fa.assembly_path = "noodlings/guide/assembly.yaml"
+        fa.auto_run = True
+        fa.add_input_binding("text", "user_input.value")
+        fa.add_output_binding("response", "guide_output.text")
+
+        data = fa.to_dict()
+
+        assert data["type"] == "FacetAssembly"
+        assert data["name"] == "serialization_test"
+        assert data["assembly"] == "noodlings/guide/assembly.yaml"
+        assert data["auto_run"] is True
+        assert len(data["input_bindings"]) == 1
+        assert len(data["output_bindings"]) == 1
+
+    def test_facet_assembly_deserialization(self):
+        """Test FacetAssembly deserialization."""
+        from noodlestudio.runtime.ui.components import FacetAssembly
+
+        data = {
+            "type": "FacetAssembly",
+            "name": "loaded_fa",
+            "assembly": "assemblies/test.yaml",
+            "auto_run": True,
+            "input_bindings": [
+                {"pad": "text", "source": "input.value"}
+            ],
+            "output_bindings": [
+                {"pad": "result", "target": "output.text"}
+            ]
+        }
+
+        fa = FacetAssembly.from_dict(data)
+
+        assert fa.name == "loaded_fa"
+        assert fa.assembly_path == "assemblies/test.yaml"
+        assert fa.auto_run is True
+        assert len(fa.input_bindings) == 1
+        assert fa.input_bindings[0].pad_name == "text"
+        assert len(fa.output_bindings) == 1
+        assert fa.output_bindings[0].target == "output.text"
+
+    def test_facet_assembly_yaml_round_trip(self):
+        """Test FacetAssembly survives YAML serialization."""
+        import yaml
+        from noodlestudio.runtime.ui.components import FacetAssembly
+
+        fa = FacetAssembly(name="yaml_fa")
+        fa.assembly_path = "assemblies/chat.yaml"
+        fa.add_input_binding("message", "chat_input.value")
+        fa.add_output_binding("reply", "chat_history.append")
+
+        data = fa.to_dict()
+        yaml_str = yaml.dump(data)
+        loaded_data = yaml.safe_load(yaml_str)
+
+        fa2 = FacetAssembly.from_dict(loaded_data)
+        assert fa2.name == "yaml_fa"
+        assert fa2.assembly_path == "assemblies/chat.yaml"
+        assert len(fa2.input_bindings) == 1
+        assert len(fa2.output_bindings) == 1
+
+    def test_facet_assembly_render(self, qtbot):
+        """Test FacetAssembly renders as invisible widget."""
+        from noodlestudio.runtime.ui.components import FacetAssembly, Panel
+        from noodlestudio.runtime.ui.renderer import QtWidgetRenderer
+
+        root = Panel(name="root")
+        root.geometry.width = 400
+        root.geometry.height = 300
+
+        fa = FacetAssembly(name="test_fa")
+        fa.assembly_path = "test.yaml"
+        root.add_child(fa)
+
+        renderer = QtWidgetRenderer()
+        renderer.render(root)
+
+        widget = renderer.get_widget("test_fa")
+        assert widget is not None
+        # FacetAssembly should be invisible
+        assert not widget.isVisible() or widget.width() == 0
+
+
+# ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡
+# Made with love. Use with love.
 # Caitlyn Meeks 2026

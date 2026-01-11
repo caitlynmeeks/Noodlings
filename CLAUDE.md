@@ -6,6 +6,63 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 
 ---
 
+## COMPLETED: Facets Phase 3 - UI Canvas Integration (Jan 10, 2026)
+
+**Goal:** Add FacetAssembly to UI Canvas component palette for visual assembly integration.
+
+**What Was Built:**
+
+### FacetAssembly UIComponent (`runtime/ui/components/facet_assembly.py`)
+- New UI Canvas component for attaching facet assemblies
+- Properties: `assembly_path`, `auto_run`, `input_bindings`, `output_bindings`
+- InputBinding/OutputBinding dataclasses for pad-to-UI mappings
+- Full YAML serialization/deserialization support
+- Invisible at runtime (pure logic component)
+
+### AssemblyPickerDialog (`dialogs/assembly_picker_dialog.py`)
+- Visual browser for assembly files in project
+- Tree view with directory grouping
+- Preview pane showing assembly metadata (inputs, outputs, facets)
+- Filter/search functionality
+- Dark theme styling
+
+### Inspector Integration (`panels/inspector_ui_canvas.py`)
+- Assembly path field with browse button
+- Auto Run checkbox
+- Opens AssemblyPickerDialog for file selection
+
+### Context Menu Integration
+- Added to UI Canvas editor context menu (Add > FacetAssembly)
+- Added to Stage hierarchy context menus (UI Canvas root and Panel children)
+
+**Usage in ui.yaml:**
+```yaml
+FacetAssembly:
+  name: sentiment_analyzer
+  assembly: assemblies/sentiment.yaml
+  auto_run: false
+  input_bindings:
+    - pad: text
+      source: text_input.value
+  output_bindings:
+    - pad: sentiment
+      target: mood_indicator.color
+```
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `runtime/ui/components/facet_assembly.py` | FacetAssembly component (200 lines) |
+| `dialogs/assembly_picker_dialog.py` | Assembly file picker (380 lines) |
+| `panels/inspector_ui_canvas.py` | Inspector assembly field |
+| `panels/ui_canvas_editor_panel.py` | Context menu + default size |
+| `panels/scene_hierarchy_*.py` | Stage hierarchy context menus |
+| `runtime/ui/renderer.py` | Invisible widget rendering |
+
+**Tests:** 9 new tests in `test_ui_canvas.py::TestFacetAssemblyComponent`
+
+---
+
 ## COMPLETED: Phase 7 - Build Process (Jan 10, 2026)
 
 **Goal:** Make "Build and Run" actually build a standalone macOS .app bundle.
@@ -519,17 +576,6 @@ app.tick()                               # Advances both world and director
 - `runtime/app.py` - NoodleApp owns BrendaDirector, convenience methods, tick()
 
 **Tests:** 31 new tests, all passing. Total: 517 tests.
-
----
-
-## BACKLOG: Facets as Universal Components - Phase 3
-
-**Goal:** UI Canvas Designer integration.
-
-**Remaining Tasks:**
-1. UI Canvas Designer integration
-   - Add "Facet Assembly" to component palette (for UI-attached assemblies)
-   - Visual assembly picker dialog
 
 ---
 

@@ -234,6 +234,99 @@ class UICanvasInspectorMixin:
         layout.addRow(label + ":", field)
         self._ui_widgets[prop] = field
 
+    def _add_ui_assembly_field(self, section: CollapsibleSection, label: str, prop: str, value: str):
+        """Add an assembly path field with browse button."""
+        layout = section.content_layout
+
+        # Container for text field + button
+        container = QWidget()
+        container_layout = QHBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(4)
+
+        # Text field showing path
+        field = QLineEdit(value)
+        field.setStyleSheet("""
+            QLineEdit {
+                background-color: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                border-radius: 2px;
+                padding: 2px 4px;
+                color: #cccccc;
+            }
+            QLineEdit:focus {
+                border-color: #4a9eff;
+            }
+        """)
+
+        def on_changed():
+            if not self._ui_updating:
+                self._set_ui_property(prop, field.text())
+
+        field.editingFinished.connect(on_changed)
+        container_layout.addWidget(field)
+
+        # Browse button
+        browse_btn = QPushButton("...")
+        browse_btn.setFixedWidth(28)
+        browse_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3d3d3d;
+                color: #cccccc;
+                border: 1px solid #3d3d3d;
+                border-radius: 2px;
+                padding: 2px;
+            }
+            QPushButton:hover {
+                background-color: #4d4d4d;
+            }
+        """)
+
+        def on_browse():
+            self._show_assembly_picker(field)
+
+        browse_btn.clicked.connect(on_browse)
+        container_layout.addWidget(browse_btn)
+
+        layout.addRow(label + ":", container)
+        self._ui_widgets[prop] = field
+
+    def _show_assembly_picker(self, field: QLineEdit):
+        """Show the assembly picker dialog."""
+        from ..dialogs.assembly_picker_dialog import AssemblyPickerDialog
+
+        # Get project path from project manager or parent
+        project_path = None
+        if hasattr(self, 'project_manager') and self.project_manager:
+            if self.project_manager.is_project_open():
+                project_path = self.project_manager.current_project_path
+        if not project_path:
+            # Try to get from parent widget
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'project_manager'):
+                    pm = parent.project_manager
+                    if pm and pm.is_project_open():
+                        project_path = pm.current_project_path
+                        break
+                parent = parent.parent()
+
+        if not project_path:
+            return
+
+        dialog = AssemblyPickerDialog(
+            project_path=project_path,
+            current_value=field.text(),
+            parent=self
+        )
+
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            selected = dialog.get_selected_assembly()
+            if selected:
+                field.setText(selected)
+                if not self._ui_updating:
+                    self._set_ui_property("assembly_path", selected)
+
     def _add_ui_color_field(self, section: CollapsibleSection, label: str, prop: str, value: str):
         """Add a color picker field."""
         layout = section.content_layout
@@ -334,6 +427,17 @@ class UICanvasInspectorMixin:
         if hasattr(component, 'placeholder'):
             self._add_ui_text_field(section, "Placeholder", "placeholder",
                                     getattr(component, 'placeholder', ''))
+            has_fields = True
+
+        # FacetAssembly-specific properties
+        if hasattr(component, 'assembly_path'):
+            self._add_ui_assembly_field(section, "Assembly", "assembly_path",
+                                        getattr(component, 'assembly_path', ''))
+            has_fields = True
+
+        if hasattr(component, 'auto_run'):
+            self._add_ui_checkbox(section, "Auto Run", "auto_run",
+                                  getattr(component, 'auto_run', False))
             has_fields = True
 
         return section if has_fields else None

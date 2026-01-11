@@ -45,6 +45,7 @@ from .dropdown import Dropdown
 from .slider import Slider
 from .radio import RadioButton, RadioGroup
 from .webview import WebView
+from .facet_assembly import FacetAssembly, InputBinding, OutputBinding
 
 __all__ = [
     'Panel',
@@ -63,6 +64,9 @@ __all__ = [
     'RadioButton',
     'RadioGroup',
     'WebView',
+    'FacetAssembly',
+    'InputBinding',
+    'OutputBinding',
 ]
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡

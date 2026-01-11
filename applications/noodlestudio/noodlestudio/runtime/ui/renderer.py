@@ -185,8 +185,12 @@ class QtWidgetRenderer:
         from .components.slider import Slider
         from .components.radio import RadioButton, RadioGroup
         from .components.webview import WebView
+        from .components.facet_assembly import FacetAssembly
 
-        if isinstance(component, Panel):
+        if isinstance(component, FacetAssembly):
+            # FacetAssembly is invisible at runtime - just a placeholder widget
+            widget = self._render_facet_assembly(component, parent)
+        elif isinstance(component, Panel):
             widget = self._render_panel(component, parent)
         elif isinstance(component, Label):
             widget = self._render_label(component, parent)
@@ -862,6 +866,28 @@ class QtWidgetRenderer:
         """Render a WebView component."""
         widget = WebViewWidget(component, self, parent)
         widget.setObjectName(component.name or "webview")
+        return widget
+
+    def _render_facet_assembly(self, component: 'FacetAssembly', parent: Optional[QWidget]) -> QWidget:
+        """
+        Render a FacetAssembly component.
+
+        At runtime, FacetAssembly is invisible - it's pure logic with no visual
+        representation. We create a zero-size widget as a placeholder for the
+        component system to reference.
+        """
+        from PyQt6.QtWidgets import QWidget as QW
+
+        widget = QW(parent)
+        widget.setObjectName(component.name or "facet_assembly")
+        widget.setFixedSize(0, 0)  # Invisible
+        widget.hide()
+
+        # Store assembly path for event dispatcher to use
+        widget.setProperty("assembly_path", component.assembly_path)
+        widget.setProperty("input_bindings", component.get_input_sources())
+        widget.setProperty("output_bindings", component.get_output_targets())
+
         return widget
 
     def _apply_geometry(self, widget: QWidget, component: UIComponent, parent: Optional[QWidget]) -> None:
