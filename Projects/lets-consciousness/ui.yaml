@@ -64,7 +64,7 @@ root:
                 width: 410
                 height: 360
                 text: "Hello! I'm Guide. Ask me anything about consciousness, minds, or how we might build thinking machines. I love a good question!"
-                wrap: true
+                word_wrap: true
                 font_size: 14
                 color: "#e0e0e0"
 
