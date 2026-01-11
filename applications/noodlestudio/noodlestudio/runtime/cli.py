@@ -186,6 +186,50 @@ Environment Variables:
     return parser
 
 
+def _build_config_to_splash_config(build_config, project_path: Path) -> dict:
+    """
+    Convert BuildConfig.splash to SplashScreen config dict.
+
+    Args:
+        build_config: BuildConfig instance
+        project_path: Path to project directory for resolving relative paths
+
+    Returns:
+        Config dict for SplashScreen
+    """
+    splash = build_config.splash
+    identity = build_config.identity
+
+    # Resolve image path
+    image_path = None
+    if splash.image:
+        img = project_path / splash.image
+        if img.exists():
+            image_path = str(img)
+
+    # Map attribution position from build config to splash screen format
+    # build_config uses: bottom_right, bottom_left, bottom_center
+    # SplashScreen uses: bottom-right, bottom-left, bottom-center
+    attr_pos = splash.attribution_position.replace('_', '-')
+
+    return {
+        'title': identity.name,
+        'image': image_path,
+        'background': splash.background,
+        'duration': splash.duration,
+        'fade_in': splash.fade_in,
+        'fade_out': splash.fade_out,
+        'click_to_skip': splash.click_to_dismiss,
+        'show_loading': True,
+        'loading_style': 'dots',
+        'attribution': {
+            'position': attr_pos,
+            'style': 'badge',
+            'show_nec_link': True,  # Always required
+        }
+    }
+
+
 def run_gui(args: argparse.Namespace) -> int:
     """
     Run the GUI application.
@@ -208,6 +252,7 @@ def run_gui(args: argparse.Namespace) -> int:
         AnchoredWidget, UIEventDispatcher
     )
     from .ui.overlay import CharacterOverlayWindow
+    from ..widgets.splash_screen import SplashScreen
 
     # Parse window size
     try:
@@ -322,32 +367,62 @@ def run_gui(args: argparse.Namespace) -> int:
     anchored_widget = AnchoredWidget(root, renderer)
     window.setCentralWidget(anchored_widget)
 
-    # Show window
-    window.show()
+    # Check for build.yaml to determine splash screen settings
+    build_config = None
+    splash_screen = None
+    project_path = Path(args.project).resolve() if args.project else None
 
-    if not args.quiet:
-        print(f"Window: {width}x{height}", file=sys.stderr)
+    if project_path:
+        build_yaml_path = project_path / 'build.yaml'
+        if build_yaml_path.exists():
+            try:
+                from ..core.build_config import BuildConfig
+                build_config = BuildConfig.from_yaml(build_yaml_path)
+                if not args.quiet:
+                    print(f"Loaded build config: {build_yaml_path}", file=sys.stderr)
+            except Exception as e:
+                print(f"Warning: Failed to load build.yaml: {e}", file=sys.stderr)
 
-    # Create character overlay if configured in ui.yaml
+    # Determine if splash screen should be shown
+    show_splash = (
+        build_config is not None and
+        build_config.splash.enabled and
+        project_path is not None
+    )
+
+    # Prepare character overlay config (will be created after splash or directly)
     character_overlay = None
+    overlay_config_data = None
     if ui_path and ui_path.exists():
         try:
             import yaml
             with open(ui_path, 'r') as f:
                 ui_data = yaml.safe_load(f)
+            overlay_config_data = ui_data.get('overlay', {})
+        except Exception as e:
+            print(f"Warning: Failed to read overlay config: {e}", file=sys.stderr)
 
-            overlay_config = ui_data.get('overlay', {})
-            if overlay_config.get('enabled', False):
-                vrm_path = overlay_config.get('vrm_path', '')
+    def show_main_window():
+        """Show main window and character overlay."""
+        nonlocal character_overlay
+        window.show()
+
+        if not args.quiet:
+            print(f"Window: {width}x{height}", file=sys.stderr)
+
+        # Create character overlay if configured
+        if overlay_config_data and overlay_config_data.get('enabled', False):
+            try:
+                vrm_path = overlay_config_data.get('vrm_path', '')
 
                 # Resolve relative path from ui.yaml location
                 if vrm_path and not Path(vrm_path).is_absolute():
                     vrm_path = str((ui_path.parent / vrm_path).resolve())
 
                 if vrm_path and Path(vrm_path).exists():
-                    size = tuple(overlay_config.get('size', [300, 400]))
-                    offset = tuple(overlay_config.get('offset', [20, 100]))
-                    anchor = overlay_config.get('anchor', 'right')
+                    size = tuple(overlay_config_data.get('size', [300, 400]))
+                    offset = tuple(overlay_config_data.get('offset', [20, 100]))
+                    anchor = overlay_config_data.get('anchor', 'right')
 
                     character_overlay = CharacterOverlayWindow(
                         parent_window=window,
@@ -363,8 +438,23 @@ def run_gui(args: argparse.Namespace) -> int:
                 else:
                     if not args.quiet:
                         print(f"Warning: VRM file not found: {vrm_path}", file=sys.stderr)
-        except Exception as e:
-            print(f"Warning: Failed to create character overlay: {e}", file=sys.stderr)
+            except Exception as e:
+                print(f"Warning: Failed to create character overlay: {e}", file=sys.stderr)
+
+    if show_splash:
+        # Create and show splash screen
+        splash_config = _build_config_to_splash_config(build_config, project_path)
+        splash_screen = SplashScreen(splash_config)
+
+        if not args.quiet:
+            image_info = f" (image: {build_config.splash.image})" if build_config.splash.image else ""
+            print(f"Showing splash screen{image_info}", file=sys.stderr)
+
+        # Show splash, then show main window when complete
+        splash_screen.show_splash(on_complete=show_main_window)
+    else:
+        # No splash - show window directly
+        show_main_window()
 
     # Run event loop
     return app.exec()

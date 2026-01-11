@@ -1,0 +1,67 @@
+# NoodleStudio Build Configuration
+# Generated for Let's Consciousness!
+
+target: macos
+
+identity:
+  name: "Let's Consciousness!"
+  bundle_id: ai.noodlings.lets-consciousness
+  version: 1.0.0
+  icon: ""
+
+splash:
+  enabled: true
+  image: assets/splash.png
+  duration: 3.0
+  click_to_dismiss: true
+  background: "#1a1a2e"
+  fade_in: 0.3
+  fade_out: 0.5
+  attribution_position: bottom_right
+
+editor:
+  access: allow
+  password_hash: null
+  keyboard_shortcut: Ctrl+Shift+U
+
+llm:
+  provider: noodlerouter
+
+content:
+  include_stages: true
+  include_noodlings: true
+  include_ui_layouts: true
+  include_assemblies: true
+  include_plays: true
+  include_unused: false
+  include_source: false
+
+distribution:
+  signing: noodlestudio
+  notarize: true
+
+advanced:
+  python_version: "3.11"
+  strip_debug: false
+  codesign:
+    enabled: false
+    certificate: null
+  notarize:
+    enabled: false
+    apple_id: null
+  hooks:
+    pre_build: null
+    post_build: null
+
+output:
+  directory: ~/Desktop/builds
+
+ui: ui.yaml
+main_stage: ""
+
+settings:
+  window_size: [1280, 720]
+  window_title: "Let's Consciousness!"
+  resizable: true
+  min_size: [640, 480]
+  fullscreen: false

@@ -364,3 +364,136 @@ class TestSplashScreenConfig:
 
         assert splash._loading_indicator is not None
         assert splash._loading_indicator._style == 'spinner'
+
+
+class TestSplashScreenWithImage:
+    """Tests for splash screen with custom images."""
+
+    def test_lets_consciousness_splash_image(self, qtbot):
+        """Let's Consciousness splash image loads and displays."""
+        from pathlib import Path
+        from noodlestudio.widgets.splash_screen import SplashScreen
+
+        # Find the splash image relative to the test file
+        test_dir = Path(__file__).parent
+        splash_path = test_dir.parent / "Projects" / "lets-consciousness" / "assets" / "splash.png"
+
+        if not splash_path.exists():
+            pytest.skip(f"Splash image not found: {splash_path}")
+
+        config = {
+            'image': str(splash_path),
+            'background': '#1a1a2e',
+            'duration': 2.0,
+            'click_to_skip': True,
+            'attribution': {
+                'position': 'bottom-center',
+                'style': 'badge',
+                'show_nec_link': True,
+            }
+        }
+        splash = SplashScreen(config)
+        qtbot.addWidget(splash)
+
+        assert splash is not None
+        # Image-based splash should not have loading indicator by default
+        # (it's built differently)
+
+    def test_image_config_with_path(self, qtbot):
+        """SplashScreen accepts image path in config."""
+        from noodlestudio.widgets.splash_screen import SplashScreen
+        import tempfile
+        from pathlib import Path
+        from PIL import Image
+
+        # Create a test image
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            img = Image.new('RGB', (100, 100), color='blue')
+            img.save(f.name)
+            temp_path = f.name
+
+        try:
+            config = {
+                'image': temp_path,
+                'background': '#1a1a1a',
+                'duration': 1.5,
+            }
+            splash = SplashScreen(config)
+            qtbot.addWidget(splash)
+
+            assert splash is not None
+        finally:
+            Path(temp_path).unlink(missing_ok=True)
+
+
+class TestBuildConfigToSplashConfig:
+    """Tests for BuildConfig to SplashScreen config conversion."""
+
+    def test_conversion_basic(self):
+        """Basic conversion from BuildConfig.splash to SplashScreen config."""
+        from pathlib import Path
+        from noodlestudio.core.build_config import BuildConfig
+        from noodlestudio.runtime.cli import _build_config_to_splash_config
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir)
+
+            config = BuildConfig.default(name="Test App")
+            config.splash.enabled = True
+            config.splash.duration = 3.0
+            config.splash.background = "#ff0000"
+            config.splash.fade_in = 0.5
+            config.splash.fade_out = 0.8
+            config.splash.click_to_dismiss = True
+            config.splash.attribution_position = "bottom_left"
+
+            result = _build_config_to_splash_config(config, project)
+
+            assert result['title'] == "Test App"
+            assert result['duration'] == 3.0
+            assert result['background'] == "#ff0000"
+            assert result['fade_in'] == 0.5
+            assert result['fade_out'] == 0.8
+            assert result['click_to_skip'] is True
+            assert result['attribution']['position'] == "bottom-left"
+            assert result['attribution']['show_nec_link'] is True
+
+    def test_conversion_with_image(self):
+        """Conversion resolves splash image path."""
+        from pathlib import Path
+        from noodlestudio.core.build_config import BuildConfig
+        from noodlestudio.runtime.cli import _build_config_to_splash_config
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir)
+
+            # Create a fake splash image
+            assets_dir = project / "assets"
+            assets_dir.mkdir()
+            (assets_dir / "splash.png").touch()
+
+            config = BuildConfig.default(name="Test App")
+            config.splash.image = "assets/splash.png"
+
+            result = _build_config_to_splash_config(config, project)
+
+            assert result['image'] == str(assets_dir / "splash.png")
+
+    def test_conversion_missing_image(self):
+        """Conversion handles missing image gracefully."""
+        from pathlib import Path
+        from noodlestudio.core.build_config import BuildConfig
+        from noodlestudio.runtime.cli import _build_config_to_splash_config
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir)
+
+            config = BuildConfig.default(name="Test App")
+            config.splash.image = "nonexistent/splash.png"
+
+            result = _build_config_to_splash_config(config, project)
+
+            assert result['image'] is None

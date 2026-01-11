@@ -347,6 +347,22 @@ class MainWindowProjectMixin:
         shutil.copytree(source, target)
         self.statusBar().showMessage(f"Exported noodling to: {target}", 3000)
 
+    def show_build_settings(self):
+        """Show the Build Settings dialog."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Please open a project first.")
+            return
+
+        project_path = Path(self.project_manager.current_project_path)
+
+        from ..dialogs.build_settings_dialog import BuildSettingsDialog
+        dialog = BuildSettingsDialog(project_path, self)
+        if dialog.exec():
+            self.statusBar().showMessage("Build settings saved", 3000)
+            # Refresh assets to show build.yaml if newly created
+            if hasattr(self, 'assets'):
+                self.assets.refresh()
+
     def build_application(self):
         """Build a standalone application from the current project."""
         if not self.project_manager.is_project_open():

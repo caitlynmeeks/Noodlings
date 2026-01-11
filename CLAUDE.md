@@ -2,7 +2,67 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: January 9, 2026
+**Last Updated**: January 10, 2026
+
+---
+
+## COMPLETED: Build Settings + Splash Screen (Jan 10, 2026)
+
+**Goal:** Unity-style File > Build Settings dialog with splash screen support for published apps.
+
+**Full spec:** `/docs/noodlestudio/build-settings.md`
+
+**What Was Built:**
+
+### BuildSettingsDialog (`dialogs/build_settings_dialog.py`)
+- File > Build Settings... (Ctrl+Shift+B)
+- Collapsible sections: Platform, Identity, Splash, Editor Access, LLM Provider, Content, Distribution, Advanced
+- Saves/loads `build.yaml` in project root
+- 36 unit tests
+
+### BuildConfig (`core/build_config.py`)
+- Dataclasses for all build settings
+- Full YAML serialization/deserialization
+- Validation against project assets
+
+### SplashScreen (`widgets/splash_screen.py`)
+- Custom image or text-based splash
+- Fade in/out animations
+- LoadingIndicator (dots/bar/spinner)
+- AttributionWidget - "Made with NoodleSTUDIO" + NEC link (always required)
+- Click-to-dismiss support
+- 35 unit tests
+
+### Runtime Integration (`runtime/cli.py`)
+- `_build_config_to_splash_config()` helper converts BuildConfig to SplashScreen format
+- `run_gui()` loads build.yaml and shows splash before main window
+- Character overlay waits for splash completion
+
+**Test Project:** `Projects/lets-consciousness/build.yaml` with kawaii petri dish splash image.
+
+**Running with Splash:**
+```bash
+cd applications/noodlestudio
+PYTHONPATH=.:../.. python -m noodlestudio.runtime --gui \
+  --ui "Projects/lets-consciousness/ui.yaml"
+```
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `dialogs/build_settings_dialog.py` | Main dialog UI (970 lines) |
+| `core/build_config.py` | BuildConfig dataclass (533 lines) |
+| `widgets/splash_screen.py` | SplashScreen + AttributionWidget (570 lines) |
+| `runtime/cli.py:189-230` | `_build_config_to_splash_config()` helper |
+| `runtime/cli.py:370-457` | Splash integration in `run_gui()` |
+| `tests/test_build_settings.py` | 36 tests |
+| `tests/test_splash_screen.py` | 35 tests |
+
+**Remaining Work:**
+- Phase 3-4: Runtime enforcement of editor access and LLM provider settings
+- Phase 7: Actual build process (py2app/PyInstaller integration)
+
+**Tests:** 71 tests for build settings + splash screen. Total project: 660 tests.
 
 ---
 

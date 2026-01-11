@@ -81,6 +81,7 @@ class MainWindowMenusMixin:
         # Build section
         file_menu.addSeparator()
         file_menu.addSection("Build")
+        file_menu.addAction(self._create_action("Build Settings...", "Ctrl+Shift+B", slot=self.show_build_settings))
         file_menu.addAction(self._create_action("Build Application...", "Ctrl+B", slot=self.build_application))
 
         # Migration tool
