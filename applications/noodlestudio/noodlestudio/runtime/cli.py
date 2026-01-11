@@ -230,6 +230,64 @@ def _build_config_to_splash_config(build_config, project_path: Path) -> dict:
     }
 
 
+def _apply_build_config_llm_settings(args: argparse.Namespace, build_config) -> None:
+    """
+    Apply LLM settings from build.yaml to args if CLI didn't override.
+
+    build.yaml llm.provider values:
+      - noodlerouter: Use NoodleROUTER API
+      - user_keys: User provides own Anthropic/OpenAI keys
+      - ollama: Local Ollama models
+      - bundled: Use bundled API key (not recommended)
+
+    Args:
+        args: Parsed command-line arguments (modified in place)
+        build_config: BuildConfig loaded from build.yaml
+    """
+    import os
+
+    if build_config is None or not hasattr(build_config, 'llm'):
+        return
+
+    llm = build_config.llm
+
+    # Map build.yaml provider to runtime provider
+    provider_map = {
+        'noodlerouter': 'noodlerouter',
+        'user_keys': None,  # Will detect from env
+        'ollama': 'ollama',
+        'bundled': 'noodlerouter',  # Bundled key uses noodlerouter
+    }
+
+    build_provider = llm.provider if hasattr(llm, 'provider') else 'noodlerouter'
+
+    # Only apply if user didn't explicitly set --provider (check if it's default)
+    # We detect "explicit" by checking if it's the parser default 'ollama'
+    # and build.yaml specifies something different
+    if args.provider == 'ollama' and build_provider != 'ollama':
+        mapped_provider = provider_map.get(build_provider)
+
+        if build_provider == 'user_keys':
+            # Detect which provider the user has keys for
+            if os.environ.get('ANTHROPIC_API_KEY'):
+                args.provider = 'anthropic'
+            elif os.environ.get('OPENAI_API_KEY'):
+                args.provider = 'openai'
+            elif os.environ.get('OPENROUTER_API_KEY'):
+                args.provider = 'openrouter'
+            else:
+                # No keys found - will need to prompt user or fail gracefully
+                print("Warning: user_keys mode but no API keys found in environment", file=sys.stderr)
+                print("Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY", file=sys.stderr)
+        elif mapped_provider:
+            args.provider = mapped_provider
+
+        # Handle bundled key
+        if build_provider == 'bundled' and hasattr(llm, 'bundled_key') and llm.bundled_key:
+            if not args.api_key:  # Only if CLI didn't provide key
+                args.api_key = llm.bundled_key
+
+
 def run_gui(args: argparse.Namespace) -> int:
     """
     Run the GUI application.
@@ -315,6 +373,27 @@ def run_gui(args: argparse.Namespace) -> int:
         if not args.quiet:
             print(f"Project path: {args.project}", file=sys.stderr)
 
+    # Load build.yaml early to configure LLM settings before executor init
+    build_config = None
+    project_path_obj = Path(args.project).resolve() if args.project else None
+
+    if project_path_obj:
+        build_yaml_path = project_path_obj / 'build.yaml'
+        if build_yaml_path.exists():
+            try:
+                from ..core.build_config import BuildConfig
+                build_config = BuildConfig.from_yaml(build_yaml_path)
+                if not args.quiet:
+                    print(f"Loaded build config: {build_yaml_path}", file=sys.stderr)
+
+                # Apply LLM settings from build.yaml to args
+                _apply_build_config_llm_settings(args, build_config)
+                if not args.quiet and build_config.llm.provider != 'ollama':
+                    print(f"LLM provider from build.yaml: {build_config.llm.provider}", file=sys.stderr)
+
+            except Exception as e:
+                print(f"Warning: Failed to load build.yaml: {e}", file=sys.stderr)
+
     # Set up facet executor for run_assembly actions
     if args.project:
         try:
@@ -367,27 +446,14 @@ def run_gui(args: argparse.Namespace) -> int:
     anchored_widget = AnchoredWidget(root, renderer)
     window.setCentralWidget(anchored_widget)
 
-    # Check for build.yaml to determine splash screen settings
-    build_config = None
+    # Splash screen setup (build_config already loaded above for LLM settings)
     splash_screen = None
-    project_path = Path(args.project).resolve() if args.project else None
-
-    if project_path:
-        build_yaml_path = project_path / 'build.yaml'
-        if build_yaml_path.exists():
-            try:
-                from ..core.build_config import BuildConfig
-                build_config = BuildConfig.from_yaml(build_yaml_path)
-                if not args.quiet:
-                    print(f"Loaded build config: {build_yaml_path}", file=sys.stderr)
-            except Exception as e:
-                print(f"Warning: Failed to load build.yaml: {e}", file=sys.stderr)
 
     # Determine if splash screen should be shown
     show_splash = (
         build_config is not None and
         build_config.splash.enabled and
-        project_path is not None
+        project_path_obj is not None
     )
 
     # Prepare character overlay config (will be created after splash or directly)
@@ -443,7 +509,7 @@ def run_gui(args: argparse.Namespace) -> int:
 
     if show_splash:
         # Create and show splash screen
-        splash_config = _build_config_to_splash_config(build_config, project_path)
+        splash_config = _build_config_to_splash_config(build_config, project_path_obj)
         splash_screen = SplashScreen(splash_config)
 
         if not args.quiet:

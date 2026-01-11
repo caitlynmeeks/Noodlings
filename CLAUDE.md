@@ -75,9 +75,49 @@ AI assistant guidance for working with Noodlings Multi-Timescale Affective Agent
 **Tests:** 114 tests for build settings + splash + editor access + build progress. Total project: ~700 tests.
 
 **Remaining Work:**
-- Phase 4: Runtime LLM provider switching from build.yaml
 - Code signing and notarization (distribution section)
 - Windows/Linux bundlers (PyInstaller)
+
+---
+
+## COMPLETED: Runtime LLM Provider Switching (Jan 10, 2026)
+
+**Goal:** Built apps read LLM provider from build.yaml and configure the API client accordingly.
+
+**Implementation:**
+
+### Helper Function (`runtime/cli.py`)
+- `_apply_build_config_llm_settings(args, build_config)` - Applies LLM settings from build.yaml to CLI args
+- Called early in `run_gui()` before FacetExecutor initialization
+- Maps build.yaml providers to runtime providers:
+  - `noodlerouter` -> `noodlerouter`
+  - `user_keys` -> auto-detects from environment (ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY)
+  - `ollama` -> `ollama`
+  - `bundled` -> `noodlerouter` with bundled key
+
+### Provider Priority
+1. CLI `--provider` flag (explicit user override)
+2. build.yaml `llm.provider` setting
+3. Default (`ollama`)
+
+### user_keys Mode
+When build.yaml specifies `user_keys`, the runtime auto-detects which provider the user has configured:
+1. Checks for `ANTHROPIC_API_KEY` -> uses `anthropic` provider
+2. Checks for `OPENAI_API_KEY` -> uses `openai` provider
+3. Checks for `OPENROUTER_API_KEY` -> uses `openrouter` provider
+4. None found -> prints warning
+
+### bundled Mode
+When build.yaml specifies `bundled`:
+- Uses `noodlerouter` provider
+- Uses `llm.bundled_key` from build.yaml as API key
+- CLI key takes precedence if provided
+
+**Key Changes:**
+- `runtime/cli.py:233-289` - `_apply_build_config_llm_settings()` helper
+- `runtime/cli.py:376-395` - Early build_config loading and LLM settings application
+
+**Tests:** 10 new tests in `test_build_settings.py::TestApplyBuildConfigLLMSettings`
 
 ---
 

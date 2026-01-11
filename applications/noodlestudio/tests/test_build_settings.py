@@ -563,3 +563,170 @@ class TestBuildConfigEnums:
         assert AttributionPosition.BOTTOM_RIGHT.value == "bottom_right"
         assert AttributionPosition.BOTTOM_LEFT.value == "bottom_left"
         assert AttributionPosition.BOTTOM_CENTER.value == "bottom_center"
+
+
+# =============================================================================
+# Runtime LLM Provider Switching Tests
+# =============================================================================
+
+class TestApplyBuildConfigLLMSettings:
+    """Tests for _apply_build_config_llm_settings helper."""
+
+    def test_noop_when_no_build_config(self):
+        """Does nothing when build_config is None."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+
+        args = argparse.Namespace(provider='ollama', api_key=None)
+        _apply_build_config_llm_settings(args, None)
+
+        assert args.provider == 'ollama'
+
+    def test_noop_when_provider_already_set(self):
+        """Does nothing when CLI explicitly set provider."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+        from noodlestudio.core.build_config import BuildConfig, LLMConfig
+
+        config = BuildConfig.default("Test")
+        config.llm.provider = 'noodlerouter'
+
+        # Simulate user explicitly setting anthropic on CLI
+        args = argparse.Namespace(provider='anthropic', api_key=None)
+        _apply_build_config_llm_settings(args, config)
+
+        # Should not change - CLI takes precedence
+        assert args.provider == 'anthropic'
+
+    def test_applies_noodlerouter_from_build_yaml(self):
+        """Applies noodlerouter provider from build.yaml."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+        from noodlestudio.core.build_config import BuildConfig
+
+        config = BuildConfig.default("Test")
+        config.llm.provider = 'noodlerouter'
+
+        args = argparse.Namespace(provider='ollama', api_key=None)
+        _apply_build_config_llm_settings(args, config)
+
+        assert args.provider == 'noodlerouter'
+
+    def test_applies_ollama_from_build_yaml(self):
+        """Keeps ollama when build.yaml specifies ollama."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+        from noodlestudio.core.build_config import BuildConfig
+
+        config = BuildConfig.default("Test")
+        config.llm.provider = 'ollama'
+
+        args = argparse.Namespace(provider='ollama', api_key=None)
+        _apply_build_config_llm_settings(args, config)
+
+        assert args.provider == 'ollama'
+
+    def test_bundled_maps_to_noodlerouter(self):
+        """Bundled provider maps to noodlerouter."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+        from noodlestudio.core.build_config import BuildConfig
+
+        config = BuildConfig.default("Test")
+        config.llm.provider = 'bundled'
+        config.llm.bundled_key = 'test-key-123'
+
+        args = argparse.Namespace(provider='ollama', api_key=None)
+        _apply_build_config_llm_settings(args, config)
+
+        assert args.provider == 'noodlerouter'
+        assert args.api_key == 'test-key-123'
+
+    def test_bundled_does_not_override_cli_key(self):
+        """Bundled key does not override CLI-provided key."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+        from noodlestudio.core.build_config import BuildConfig
+
+        config = BuildConfig.default("Test")
+        config.llm.provider = 'bundled'
+        config.llm.bundled_key = 'build-key-123'
+
+        args = argparse.Namespace(provider='ollama', api_key='cli-key-456')
+        _apply_build_config_llm_settings(args, config)
+
+        # CLI key takes precedence
+        assert args.api_key == 'cli-key-456'
+
+    def test_user_keys_detects_anthropic(self, monkeypatch):
+        """user_keys mode detects ANTHROPIC_API_KEY."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+        from noodlestudio.core.build_config import BuildConfig
+
+        monkeypatch.setenv('ANTHROPIC_API_KEY', 'test-anthropic-key')
+        monkeypatch.delenv('OPENAI_API_KEY', raising=False)
+        monkeypatch.delenv('OPENROUTER_API_KEY', raising=False)
+
+        config = BuildConfig.default("Test")
+        config.llm.provider = 'user_keys'
+
+        args = argparse.Namespace(provider='ollama', api_key=None)
+        _apply_build_config_llm_settings(args, config)
+
+        assert args.provider == 'anthropic'
+
+    def test_user_keys_detects_openai(self, monkeypatch):
+        """user_keys mode detects OPENAI_API_KEY when no Anthropic key."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+        from noodlestudio.core.build_config import BuildConfig
+
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.setenv('OPENAI_API_KEY', 'test-openai-key')
+        monkeypatch.delenv('OPENROUTER_API_KEY', raising=False)
+
+        config = BuildConfig.default("Test")
+        config.llm.provider = 'user_keys'
+
+        args = argparse.Namespace(provider='ollama', api_key=None)
+        _apply_build_config_llm_settings(args, config)
+
+        assert args.provider == 'openai'
+
+    def test_user_keys_detects_openrouter(self, monkeypatch):
+        """user_keys mode detects OPENROUTER_API_KEY when no others."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+        from noodlestudio.core.build_config import BuildConfig
+
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('OPENAI_API_KEY', raising=False)
+        monkeypatch.setenv('OPENROUTER_API_KEY', 'test-openrouter-key')
+
+        config = BuildConfig.default("Test")
+        config.llm.provider = 'user_keys'
+
+        args = argparse.Namespace(provider='ollama', api_key=None)
+        _apply_build_config_llm_settings(args, config)
+
+        assert args.provider == 'openrouter'
+
+    def test_user_keys_no_keys_warns(self, monkeypatch, capsys):
+        """user_keys mode prints warning when no keys found."""
+        import argparse
+        from noodlestudio.runtime.cli import _apply_build_config_llm_settings
+        from noodlestudio.core.build_config import BuildConfig
+
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('OPENAI_API_KEY', raising=False)
+        monkeypatch.delenv('OPENROUTER_API_KEY', raising=False)
+
+        config = BuildConfig.default("Test")
+        config.llm.provider = 'user_keys'
+
+        args = argparse.Namespace(provider='ollama', api_key=None)
+        _apply_build_config_llm_settings(args, config)
+
+        captured = capsys.readouterr()
+        assert "user_keys mode but no API keys found" in captured.err
