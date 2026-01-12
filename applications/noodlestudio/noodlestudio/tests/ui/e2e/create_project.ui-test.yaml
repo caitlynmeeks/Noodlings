@@ -1,0 +1,61 @@
+# Create Project E2E Test
+# =======================
+# Full workflow test of project creation.
+
+name: "Create New Project"
+description: "End-to-end test of project creation workflow"
+tags: [e2e, project, critical]
+
+phases:
+  - name: "Open New Project Dialog"
+    steps:
+      - action: click
+        target: {menu: "File"}
+        comment: "Open File menu"
+
+      - action: wait
+        duration: 300ms
+
+      - action: click
+        target: {menu_item: "New Project..."}
+        comment: "Click New Project"
+
+      - action: wait_for
+        element: {dialog: "New Project"}
+        timeout: 5s
+
+  - name: "Fill Project Details"
+    steps:
+      - action: clear_and_type
+        target: {field: "project_name"}
+        text: "QA Test Project"
+        comment: "Enter project name"
+
+      - action: wait
+        duration: 200ms
+
+  - name: "Create and Verify"
+    steps:
+      - action: click
+        target: {button: "Create"}
+        comment: "Click Create button"
+
+      - action: wait_for
+        condition: {project_loaded: true}
+        timeout: 10s
+
+      - action: screenshot
+        path: "screenshots/project_created.png"
+        comment: "Capture final state"
+
+cleanup:
+  - action: key
+    key: "ctrl+w"
+    comment: "Close project"
+
+success:
+  message: "Project creation workflow complete"
+
+on_failure:
+  screenshot: true
+  log_ui_state: true

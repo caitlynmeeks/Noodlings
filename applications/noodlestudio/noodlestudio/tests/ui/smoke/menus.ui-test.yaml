@@ -1,0 +1,75 @@
+# Menu Smoke Test
+# ===============
+# Verify that all main menus are accessible.
+
+name: "Menu Smoke Test"
+description: "Verify all menus open and close correctly"
+tags: [smoke, menus, quick]
+
+phases:
+  - name: "Test File Menu"
+    steps:
+      - action: click
+        target: {menu: "File"}
+        comment: "Open File menu"
+
+      - action: wait
+        duration: 300ms
+
+      - action: key
+        key: "Escape"
+        comment: "Close menu"
+
+      - action: wait
+        duration: 200ms
+
+  - name: "Test Edit Menu"
+    steps:
+      - action: click
+        target: {menu: "Edit"}
+        comment: "Open Edit menu"
+
+      - action: wait
+        duration: 300ms
+
+      - action: key
+        key: "Escape"
+        comment: "Close menu"
+
+      - action: wait
+        duration: 200ms
+
+  - name: "Test View Menu"
+    steps:
+      - action: click
+        target: {menu: "View"}
+        comment: "Open View menu"
+
+      - action: wait
+        duration: 300ms
+
+      - action: key
+        key: "Escape"
+        comment: "Close menu"
+
+      - action: wait
+        duration: 200ms
+
+  - name: "Test Help Menu"
+    steps:
+      - action: click
+        target: {menu: "Help"}
+        comment: "Open Help menu"
+
+      - action: wait
+        duration: 300ms
+
+      - action: key
+        key: "Escape"
+        comment: "Close menu"
+
+success:
+  message: "All menus accessible"
+
+on_failure:
+  screenshot: true

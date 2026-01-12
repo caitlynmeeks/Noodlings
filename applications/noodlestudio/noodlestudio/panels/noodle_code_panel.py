@@ -579,6 +579,23 @@ class NoodleCodePanel(MaximizableDock):
 
         return super().eventFilter(obj, event)
 
+    def execute_command(self, message: str):
+        """
+        Execute a command programmatically (e.g., from CLI --execute parameter).
+
+        This is the public API for injecting commands into NoodleCode from
+        external sources like CLI parameters or automated tests.
+
+        Args:
+            message: The command/message to execute
+        """
+        if not message or not message.strip():
+            return
+
+        # Set the input field and trigger send
+        self.input_field.setText(message.strip())
+        self._on_send()
+
     def _on_send(self):
         """Handle send button click or enter key."""
         message = self.input_field.text().strip()

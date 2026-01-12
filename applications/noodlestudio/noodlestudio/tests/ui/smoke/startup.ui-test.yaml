@@ -1,0 +1,41 @@
+# Startup Smoke Test
+# ==================
+# Verify that the app starts cleanly with essential UI elements.
+
+name: "Startup Smoke Test"
+description: "Verify app starts with essential UI elements visible"
+tags: [smoke, startup, quick]
+
+phases:
+  - name: "Verify Main Window"
+    steps:
+      - action: wait
+        duration: 500ms
+        comment: "Let UI stabilize after launch"
+
+      - action: assert
+        condition: {window_visible: true}
+        comment: "Main window should be visible"
+
+  - name: "Verify Menu Bar Works"
+    steps:
+      - action: click
+        target: {menu: "File"}
+        comment: "Click File menu to verify it exists"
+
+      - action: wait
+        duration: 200ms
+
+      - action: key
+        key: "Escape"
+        comment: "Close the menu"
+
+      - action: log
+        message: "Startup smoke test complete - UI is responsive"
+
+success:
+  message: "App started cleanly with all essential elements"
+
+on_failure:
+  screenshot: true
+  log_ui_state: true

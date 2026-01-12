@@ -174,7 +174,7 @@ class InspectorPanel(
         self.current_entity = None
         self.current_agent_id = None
         self.current_facet = None
-        self.entity_header.setText("Select a noodling or prim")
+        self.entity_header.setText("Select a thing to inspect its properties")
 
         # Clear property bindings (important for undo system)
         self._binding_manager.clear_bindings()

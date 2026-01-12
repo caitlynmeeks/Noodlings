@@ -1,0 +1,24 @@
+# Minimal Smoke Test
+# ===================
+# Simplest possible test to verify the framework works.
+
+name: "Minimal Smoke Test"
+description: "Just wait and log - verify test framework is working"
+tags: [smoke, minimal, quick]
+
+phases:
+  - name: "Basic Test"
+    steps:
+      - action: wait
+        duration: 100ms
+        comment: "Brief wait"
+
+      - action: log
+        message: "Test framework is working!"
+
+      - action: wait
+        duration: 100ms
+        comment: "Another brief wait"
+
+success:
+  message: "Minimal test passed"

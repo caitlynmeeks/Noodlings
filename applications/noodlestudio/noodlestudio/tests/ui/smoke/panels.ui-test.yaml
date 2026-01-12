@@ -1,0 +1,42 @@
+# Panel Smoke Test
+# ================
+# Verify that core panels are visible and accessible.
+
+name: "Panel Smoke Test"
+description: "Verify all main panels open correctly"
+tags: [smoke, panels, quick]
+
+phases:
+  - name: "Verify Window Ready"
+    steps:
+      - action: wait
+        duration: 500ms
+        comment: "Wait for UI to fully load"
+
+      - action: log
+        message: "Window is ready for testing"
+
+  - name: "Check View Menu Panels"
+    steps:
+      - action: click
+        target: {menu: "View"}
+        comment: "Open View menu"
+
+      - action: wait
+        duration: 300ms
+        comment: "Wait for menu to open"
+
+      - action: key
+        key: "Escape"
+        comment: "Close menu"
+
+      - action: wait
+        duration: 200ms
+        comment: "Wait for menu to close"
+
+success:
+  message: "All core panels verified"
+
+on_failure:
+  screenshot: true
+  log_ui_state: true

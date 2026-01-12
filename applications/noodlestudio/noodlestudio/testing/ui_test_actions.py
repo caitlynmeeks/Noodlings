@@ -245,7 +245,8 @@ class UITestActions:
         path = step.get('path', 'screenshot.png')
 
         if self.computer_use and hasattr(self.computer_use, 'screenshot'):
-            await self.computer_use.screenshot(path)
+            # ComputerUseController.screenshot() is synchronous
+            self.computer_use.screenshot(path)
             print(f"    Screenshot saved: {path}")
 
     # ═══════════════════════════════════════════════════════════
@@ -272,12 +273,13 @@ class UITestActions:
 
     async def _do_click(self, x: int, y: int, button: str = 'left'):
         """Perform a click via computer use."""
+        # ComputerUseController methods are synchronous (return bool)
         if hasattr(self.computer_use, 'click'):
-            await self.computer_use.click(x, y, button)
+            self.computer_use.click(x, y, button)
         elif hasattr(self.computer_use, 'left_click') and button == 'left':
-            await self.computer_use.left_click(x, y)
+            self.computer_use.left_click(x, y)
         elif hasattr(self.computer_use, 'right_click') and button == 'right':
-            await self.computer_use.right_click(x, y)
+            self.computer_use.right_click(x, y)
         else:
             # Fallback: simulate with Qt
             from PyQt6.QtCore import QPoint, Qt
@@ -292,8 +294,9 @@ class UITestActions:
 
     async def _do_double_click(self, x: int, y: int):
         """Perform a double click."""
+        # ComputerUseController methods are synchronous
         if hasattr(self.computer_use, 'double_click'):
-            await self.computer_use.double_click(x, y)
+            self.computer_use.double_click(x, y)
         else:
             # Fallback: two clicks
             await self._do_click(x, y, 'left')
@@ -302,10 +305,9 @@ class UITestActions:
 
     async def _do_type(self, text: str):
         """Type text via computer use."""
-        if hasattr(self.computer_use, 'type'):
-            await self.computer_use.type(text)
-        elif hasattr(self.computer_use, 'type_text'):
-            await self.computer_use.type_text(text)
+        # ComputerUseController methods are synchronous
+        if hasattr(self.computer_use, 'type_text'):
+            self.computer_use.type_text(text)
         else:
             # Fallback: simulate with Qt
             from PyQt6.QtWidgets import QApplication
@@ -317,20 +319,18 @@ class UITestActions:
 
     async def _do_drag(self, x1: int, y1: int, x2: int, y2: int):
         """Perform a drag operation."""
+        # ComputerUseController methods are synchronous
         if hasattr(self.computer_use, 'drag'):
-            await self.computer_use.drag(x1, y1, x2, y2)
-        elif hasattr(self.computer_use, 'mouse_drag'):
-            await self.computer_use.mouse_drag(x1, y1, x2, y2)
+            self.computer_use.drag(x1, y1, x2, y2)
         else:
             # Fallback: mouse down, move, up
             print(f"    [Drag not implemented - would drag from ({x1},{y1}) to ({x2},{y2})]")
 
     async def _do_key(self, key: str):
         """Press a key."""
+        # ComputerUseController methods are synchronous
         if hasattr(self.computer_use, 'key'):
-            await self.computer_use.key(key)
-        elif hasattr(self.computer_use, 'press_key'):
-            await self.computer_use.press_key(key)
+            self.computer_use.key(key)
         else:
             # Fallback: simulate with Qt
             from PyQt6.QtWidgets import QApplication
@@ -354,10 +354,11 @@ class UITestActions:
 
     async def _do_key_combo(self, keys: list):
         """Press a key combination."""
+        # ComputerUseController methods are synchronous
         if hasattr(self.computer_use, 'key_combo'):
-            await self.computer_use.key_combo(keys)
+            self.computer_use.key_combo(keys)
         elif hasattr(self.computer_use, 'hotkey'):
-            await self.computer_use.hotkey(*keys)
+            self.computer_use.hotkey(*keys)
         else:
             # Fallback: Qt simulation
             from PyQt6.QtWidgets import QApplication

@@ -337,6 +337,100 @@ The repository context is auto-detected from the project's git config.""",
                     },
                     "required": ["command"]
                 }
+            },
+            {
+                "name": "run_ui_test",
+                "description": """Run UI tests using Computer Use to actually click the UI.
+
+USE THIS WHEN:
+- User asks "did I break anything?" -> run smoke tests
+- User asks to test specific feature -> run targeted test
+- Before committing changes -> run critical tests
+- User asks to run smoke/e2e/panel tests
+
+RETURNS:
+- Pass/fail status per test
+- Duration
+- Any failures with screenshots
+- Suggestions for fixes
+
+EXAMPLES:
+  # Run all smoke tests
+  {"suite": "smoke"}
+
+  # Run specific test file
+  {"test": "tests/ui/smoke/panels.ui-test.yaml"}
+
+  # Run tests matching pattern
+  {"pattern": "**/facet*.ui-test.yaml"}
+
+  # Run with visual mode (ghost cursor)
+  {"suite": "smoke", "visual": true}""",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "test": {
+                            "type": "string",
+                            "description": "Path to specific test file"
+                        },
+                        "suite": {
+                            "type": "string",
+                            "enum": ["smoke", "e2e", "panels", "facets", "all"],
+                            "description": "Test suite to run"
+                        },
+                        "pattern": {
+                            "type": "string",
+                            "description": "Glob pattern for test files"
+                        },
+                        "visual": {
+                            "type": "boolean",
+                            "description": "Show ghost cursor during tests (default: true)"
+                        },
+                        "stop_on_failure": {
+                            "type": "boolean",
+                            "description": "Stop at first failure (default: true)"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "ai_verify_ui",
+                "description": """Take a screenshot and verify UI state using AI vision.
+
+USE THIS WHEN:
+- Need to verify something not easily checkable programmatically
+- Want to catch visual regressions
+- Checking "does this look right?"
+- Verifying UI matches expected state
+
+Takes a screenshot and you (Claude) verify specific aspects of the UI state.
+
+EXAMPLES:
+  # Verify inspector shows correct data
+  {"verify": "Inspector panel shows Position X = 100, Y = 200"}
+
+  # Check for visual issues
+  {"verify": "No overlapping text or clipped elements visible"}
+
+  # Verify layout
+  {"verify": "Facets panel has 3 nodes: Perception, Memory, Response"}
+
+  # Check specific region
+  {"verify": "The chat input field is empty", "region": "chat_panel"}""",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "verify": {
+                            "type": "string",
+                            "description": "What to verify in the screenshot"
+                        },
+                        "region": {
+                            "type": "string",
+                            "description": "Optional: specific panel/area to focus on"
+                        }
+                    },
+                    "required": ["verify"]
+                }
             }
         ]
 
@@ -1334,6 +1428,258 @@ The repository context is auto-detected from the project's git config.""",
                 output="",
                 error=f"GitHub CLI error: {e}"
             )
+
+    # ========== UI TESTING TOOLS ==========
+
+    async def tool_run_ui_test(
+        self,
+        test: str = None,
+        suite: str = None,
+        pattern: str = None,
+        visual: bool = True,
+        stop_on_failure: bool = True
+    ) -> ToolResult:
+        """
+        Run UI tests using Computer Use.
+
+        Runs actual UI tests that click, type, and verify the UI.
+        Ghost cursor visualizes what the test is doing.
+        """
+        try:
+            # Import test runner
+            from ..testing.ui_test_runner import UITestRunner
+
+            # Get main window
+            from PyQt6.QtWidgets import QApplication, QMainWindow
+            from PyQt6.QtCore import QThread, QMetaObject, Qt, Q_ARG
+            import threading
+
+            app = QApplication.instance()
+            if not app:
+                return ToolResult(
+                    success=False,
+                    output="",
+                    error="No QApplication instance found"
+                )
+
+            main_window = None
+            for widget in app.topLevelWidgets():
+                if isinstance(widget, QMainWindow) and widget.isVisible():
+                    main_window = widget
+                    break
+
+            if not main_window:
+                return ToolResult(
+                    success=False,
+                    output="",
+                    error="MainWindow not found"
+                )
+
+            # Check if we're on the main thread - if not, we need to run tests differently
+            on_main_thread = QThread.currentThread() == app.thread()
+            print(f"[run_ui_test] On main thread: {on_main_thread}")
+
+            # If on background thread, disable visual mode (ghost cursor can't be created)
+            # and run assertions synchronously using QMetaObject
+            if not on_main_thread:
+                visual = False
+                print("[run_ui_test] Running on background thread, disabling visual mode")
+
+            # Create runner
+            runner = UITestRunner(main_window, visual_mode=visual)
+
+            # Determine what to run
+            test_files = []
+            noodlestudio_path = Path(__file__).parent.parent
+            tests_dir = noodlestudio_path / "tests" / "ui"
+
+            if test:
+                # Single test file
+                test_path = Path(test)
+                if not test_path.is_absolute():
+                    test_path = tests_dir / test
+                if test_path.exists():
+                    test_files = [test_path]
+                else:
+                    return ToolResult(
+                        success=False,
+                        output="",
+                        error=f"Test file not found: {test}"
+                    )
+
+            elif suite:
+                # Load suite from suites.yaml
+                suites_file = tests_dir / "suites.yaml"
+                if suites_file.exists():
+                    import yaml
+                    with open(suites_file) as f:
+                        suites_config = yaml.safe_load(f) or {}
+                    suite_def = suites_config.get("suites", {}).get(suite)
+                    if suite_def:
+                        for test_pattern in suite_def.get("tests", []):
+                            test_files.extend(tests_dir.glob(test_pattern))
+                    else:
+                        # Fallback: suite name as directory
+                        suite_dir = tests_dir / suite
+                        if suite_dir.is_dir():
+                            test_files = list(suite_dir.glob("*.ui-test.yaml"))
+                else:
+                    # No suites.yaml, use suite as directory name
+                    suite_dir = tests_dir / suite
+                    if suite_dir.is_dir():
+                        test_files = list(suite_dir.glob("*.ui-test.yaml"))
+
+            elif pattern:
+                # Glob pattern
+                test_files = list(tests_dir.glob(pattern))
+
+            else:
+                # Default: run smoke tests
+                smoke_dir = tests_dir / "smoke"
+                if smoke_dir.is_dir():
+                    test_files = list(smoke_dir.glob("*.ui-test.yaml"))
+
+            if not test_files:
+                return ToolResult(
+                    success=False,
+                    output="",
+                    error=f"No test files found. Tests should be in: {tests_dir}"
+                )
+
+            # Run tests
+            results = []
+            total_passed = 0
+            total_failed = 0
+            total_duration = 0
+
+            for test_file in sorted(test_files):
+                result = await runner.run_test_file(str(test_file))
+                results.append(result)
+                total_duration += result.duration
+
+                if result.success:
+                    total_passed += 1
+                else:
+                    total_failed += 1
+                    if stop_on_failure:
+                        break
+
+            # Format output
+            output_lines = [
+                f"UI Test Results",
+                f"===============",
+                f"",
+                f"Passed: {total_passed}",
+                f"Failed: {total_failed}",
+                f"Duration: {total_duration:.2f}s",
+                f"",
+            ]
+
+            for result in results:
+                status = "PASS" if result.success else "FAIL"
+                output_lines.append(f"[{status}] {result.name} ({result.duration:.2f}s)")
+                if not result.success and result.error:
+                    output_lines.append(f"       Error: {result.error}")
+
+            overall_success = total_failed == 0
+            output = "\n".join(output_lines)
+
+            return ToolResult(
+                success=overall_success,
+                output=output,
+                error=None if overall_success else f"{total_failed} test(s) failed"
+            )
+
+        except ImportError as e:
+            return ToolResult(
+                success=False,
+                output="",
+                error=f"UI testing module not available: {e}"
+            )
+        except Exception as e:
+            import traceback
+            return ToolResult(
+                success=False,
+                output="",
+                error=f"UI test error: {e}\n{traceback.format_exc()}"
+            )
+
+    async def tool_ai_verify_ui(
+        self,
+        verify: str,
+        region: str = None
+    ) -> ToolResult:
+        """
+        Take a screenshot for AI visual verification.
+
+        Returns the screenshot with the verification prompt so Claude
+        can visually verify the UI state.
+        """
+        try:
+            # Get computer use controller
+            from .computer_use_controller import get_computer_use_controller
+            controller = get_computer_use_controller()
+
+            # Ensure main window is set
+            if not controller.main_window:
+                from PyQt6.QtWidgets import QApplication, QMainWindow
+                app = QApplication.instance()
+                if app:
+                    for widget in app.topLevelWidgets():
+                        if isinstance(widget, QMainWindow) and widget.isVisible():
+                            controller.set_main_window(widget)
+                            break
+
+            if not controller.main_window:
+                return ToolResult(
+                    success=False,
+                    output="",
+                    error="MainWindow not found for screenshot"
+                )
+
+            # Take screenshot
+            b64_data, width, height = controller.screenshot(add_rulers=False)
+
+            # Get UI element summary for context
+            ui_summary = controller.get_ui_summary()
+
+            # Build verification context
+            output_lines = [
+                f"AI Visual Verification Request",
+                f"===============================",
+                f"",
+                f"Screenshot: {width}x{height} pixels",
+            ]
+
+            if region:
+                output_lines.append(f"Focus Region: {region}")
+
+            output_lines.extend([
+                f"",
+                f"VERIFY: {verify}",
+                f"",
+                f"Please examine the screenshot and verify the above condition.",
+                f"Report PASS if the condition is met, FAIL if not, with explanation.",
+                f"",
+                f"Current UI Elements:",
+                ui_summary,
+            ])
+
+            return ToolResult(
+                success=True,
+                output="\n".join(output_lines),
+                image_base64=b64_data,
+                metadata={"width": width, "height": height, "verify": verify, "region": region}
+            )
+
+        except Exception as e:
+            import traceback
+            return ToolResult(
+                success=False,
+                output="",
+                error=f"AI verify error: {e}\n{traceback.format_exc()}"
+            )
+
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.

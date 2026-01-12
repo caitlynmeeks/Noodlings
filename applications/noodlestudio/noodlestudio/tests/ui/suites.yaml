@@ -1,0 +1,39 @@
+# UI Test Suite Definitions
+# =========================
+#
+# Organize UI tests into suites for easy execution.
+# Run with: run_ui_test(suite="smoke")
+
+suites:
+  smoke:
+    description: "Quick sanity checks (< 30 seconds)"
+    tests:
+      - smoke/*.ui-test.yaml
+
+  e2e:
+    description: "Full workflow tests"
+    tests:
+      - e2e/*.ui-test.yaml
+    depends_on: smoke
+
+  panels:
+    description: "Panel-specific tests"
+    tests:
+      - smoke/panels.ui-test.yaml
+      - panels/*.ui-test.yaml
+
+  facets:
+    description: "Facet editor tests"
+    tests:
+      - facets/*.ui-test.yaml
+
+  all:
+    description: "All tests"
+    tests:
+      - "**/*.ui-test.yaml"
+
+  critical:
+    description: "Must-pass before commit"
+    tests:
+      - smoke/*.ui-test.yaml
+      - e2e/create_project.ui-test.yaml

@@ -35,6 +35,7 @@
 
 import sys
 import os
+import argparse
 import traceback
 import atexit
 from pathlib import Path
@@ -46,6 +47,40 @@ from PyQt6.QtGui import QPixmap, QPainter, QFont, QColor
 # NOTE: MainWindow imported AFTER QApplication is created
 from .core.studio_acronyms import get_random_acronym
 from . import __version__
+
+
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        prog='noodlestudio',
+        description='NoodleSTUDIO - Visual cognition development environment'
+    )
+
+    parser.add_argument(
+        '--execute', '-e',
+        metavar='COMMAND',
+        help='Execute a NoodleCode command after startup (e.g., --execute "run the smoke tests")'
+    )
+
+    parser.add_argument(
+        '--project', '-p',
+        metavar='PATH',
+        help='Open a project on startup'
+    )
+
+    parser.add_argument(
+        '--no-splash',
+        action='store_true',
+        help='Skip the splash screen'
+    )
+
+    parser.add_argument(
+        '--version', '-v',
+        action='version',
+        version=f'NoodleSTUDIO {__version__}'
+    )
+
+    return parser.parse_args()
 
 
 # Global reference to main window for crash reporter
@@ -196,6 +231,9 @@ def install_crash_reporter():
 
 def main():
     """Launch NoodleSTUDIO."""
+    # Parse command line arguments
+    args = parse_args()
+
     # Check for crash from previous session BEFORE creating app
     previous_crash = check_for_crash()
 
@@ -241,10 +279,12 @@ def main():
     # Connect app aboutToQuit to clean up sentinel
     app.aboutToQuit.connect(remove_sentinel)
 
-    # Create splash screen with random acronym
-    splash = create_splash_screen()
-    splash.show()
-    app.processEvents()
+    # Create splash screen with random acronym (unless --no-splash)
+    splash = None
+    if not args.no_splash:
+        splash = create_splash_screen()
+        splash.show()
+        app.processEvents()
 
     # Import MainWindow AFTER QApplication is created
     # (WebEngine on macOS requires QApplication to exist before import)
@@ -255,19 +295,21 @@ def main():
     window = MainWindow()
     _main_window = window
 
-    # Keep splash visible for 7 seconds
-    import time
-    start_time = time.time()
-    while time.time() - start_time < 7.0:
-        app.processEvents()
-        time.sleep(0.01)
+    # Keep splash visible for 7 seconds (unless --no-splash)
+    if splash:
+        import time
+        start_time = time.time()
+        while time.time() - start_time < 7.0:
+            app.processEvents()
+            time.sleep(0.01)
+        splash.finish(window)
 
-    # Close splash and show main window maximized
-    splash.finish(window)
+    # Show main window maximized
     window.showMaximized()
 
     # Show crash recovery dialog if previous session crashed
-    if previous_crash:
+    # Skip if running with --execute (automated mode)
+    if previous_crash and not args.execute:
         show_crash_recovery_dialog(window)
 
     # Check for soft restart state and restore
@@ -275,6 +317,37 @@ def main():
     restart_state = load_restart_state()
     if restart_state:
         restore_state(window, restart_state)
+
+    # Open project if specified via CLI
+    if args.project:
+        project_path = Path(args.project).resolve()
+        if project_path.exists():
+            # Use QTimer to open after event loop starts
+            QTimer.singleShot(500, lambda: window.open_project(str(project_path)))
+
+    # Execute NoodleCode command if specified via CLI
+    if args.execute:
+        def execute_noodlecode_command():
+            """Execute the CLI command in NoodleCode."""
+            import sys
+            # Find NoodleCode panel
+            noodle_code_panel = getattr(window, 'noodle_code_panel', None)
+            if noodle_code_panel:
+                # Check if engine is ready
+                engine = getattr(noodle_code_panel, 'engine', None)
+                if engine:
+                    print(f"[CLI] Executing NoodleCode command: {args.execute}", flush=True)
+                    noodle_code_panel.execute_command(args.execute)
+                else:
+                    print(f"[CLI] Warning: NoodleCode engine not ready yet, retrying in 2s...", flush=True)
+                    QTimer.singleShot(2000, execute_noodlecode_command)
+            else:
+                print(f"[CLI] Warning: NoodleCode panel not found. Has attr: {hasattr(window, 'noodle_code_panel')}", flush=True)
+                print(f"[CLI] Window type: {type(window).__name__}", flush=True)
+
+        # Delay execution to allow UI to fully initialize
+        # 5 seconds should be enough for engine to be ready
+        QTimer.singleShot(5000, execute_noodlecode_command)
 
     sys.exit(app.exec())
 

@@ -19,11 +19,12 @@
 
 from typing import Dict, Any, Tuple, Optional
 from PyQt6.QtWidgets import (
-    QWidget, QMainWindow, QMenuBar, QMenu, QAction,
+    QWidget, QMainWindow, QMenuBar, QMenu,
     QPushButton, QLineEdit, QTextEdit, QLabel,
     QDockWidget, QTabWidget, QTreeView, QListView,
     QGraphicsView, QApplication
 )
+from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QPoint, QRect
 
 

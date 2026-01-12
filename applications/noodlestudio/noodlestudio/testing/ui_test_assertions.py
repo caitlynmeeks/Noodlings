@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLineEdit, QTextEdit, QLabel,
     QApplication
 )
+from PyQt6.QtCore import QThread
 
 
 class UITestAssertions:
@@ -205,6 +206,18 @@ class UITestAssertions:
         if 'guide_visible' in condition:
             return self._guide_visible() == condition['guide_visible']
 
+        # Tab exists (check if a tab with this name exists in any tab bar)
+        if 'tab_exists' in condition:
+            return self._tab_exists(condition['tab_exists'])
+
+        # Panel visible
+        if 'panel_visible' in condition:
+            return self._panel_visible(condition['panel_visible'])
+
+        # Window visible (main window)
+        if 'window_visible' in condition:
+            return self.window.isVisible() == condition['window_visible']
+
         return False
 
     # ═══════════════════════════════════════════════════════════
@@ -235,6 +248,47 @@ class UITestAssertions:
                 panel = getattr(self.window, attr)
                 if panel and panel.isVisible():
                     return True
+
+        return False
+
+    def _tab_exists(self, tab_name: str) -> bool:
+        """Check if a tab with given name exists in any tab widget or dock."""
+        from PyQt6.QtWidgets import QTabWidget, QTabBar, QDockWidget
+
+        # Search all tab widgets in the window
+        try:
+            for tab_widget in self.window.findChildren(QTabWidget):
+                for i in range(tab_widget.count()):
+                    if tab_name.lower() in tab_widget.tabText(i).lower():
+                        return True
+        except Exception:
+            pass
+
+        # Also check tab bars directly (some UIs use standalone tab bars)
+        try:
+            for tab_bar in self.window.findChildren(QTabBar):
+                for i in range(tab_bar.count()):
+                    if tab_name.lower() in tab_bar.tabText(i).lower():
+                        return True
+        except Exception:
+            pass
+
+        # Check dock widgets (they can be tabified without using QTabWidget)
+        try:
+            for dock in self.window.findChildren(QDockWidget):
+                if tab_name.lower() in dock.windowTitle().lower():
+                    return True
+        except Exception:
+            pass
+
+        # Also check if the window has a panel attribute with that name
+        panel_attrs = [f'{tab_name}_panel', tab_name, f'{tab_name}Panel']
+        for attr in panel_attrs:
+            try:
+                if hasattr(self.window, attr) and getattr(self.window, attr, None) is not None:
+                    return True
+            except Exception:
+                pass
 
         return False
 

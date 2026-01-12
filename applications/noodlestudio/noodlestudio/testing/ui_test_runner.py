@@ -120,17 +120,38 @@ class UITestRunner:
         # Fallback: create controllers if not found
         if self._computer_use is None:
             try:
-                from ..core.computer_use_controller import ComputerUseController
-                self._computer_use = ComputerUseController(self.window)
+                from ..core.computer_use_controller import get_computer_use_controller
+                self._computer_use = get_computer_use_controller()
+                # Ensure window is set
+                if self._computer_use._main_window is None:
+                    self._computer_use.set_main_window(self.window)
             except ImportError:
                 print("[UITestRunner] WARNING: ComputerUseController not available")
 
         if self._ghost is None and self.visual_mode:
             try:
-                from ..core.ghost_cursor import GhostCursorController
-                self._ghost = GhostCursorController(self.window)
+                # First try to get the existing global ghost controller
+                from ..core.ghost_cursor import get_ghost_controller
+                self._ghost = get_ghost_controller()
+                
+                if self._ghost is None:
+                    # Fallback: create new ghost cursor
+                    from ..core.ghost_cursor import GhostCursorOverlay, GhostCursorController
+                    from PyQt6.QtCore import QThread
+                    from PyQt6.QtWidgets import QApplication
+
+                    # Only create ghost cursor on main thread (GUI widgets must be created there)
+                    app = QApplication.instance()
+                    if app and QThread.currentThread() == app.thread():
+                        overlay = GhostCursorOverlay(self.window)
+                        self._ghost = GhostCursorController(overlay)
+                        overlay.show()
+                    else:
+                        print("[UITestRunner] WARNING: Cannot create ghost cursor from non-main thread")
             except ImportError:
                 print("[UITestRunner] WARNING: GhostCursorController not available")
+            except Exception as e:
+                print(f"[UITestRunner] WARNING: Could not create ghost cursor: {e}")
 
     @property
     def computer_use(self):
@@ -324,14 +345,17 @@ class UITestRunner:
             )
 
         except Exception as e:
+            import traceback
             duration = time.time() - start_time
+            tb = traceback.format_exc()
             error_msg = f"Step failed: {e}"
             print(f"    ERROR: {error_msg}")
+            print(f"    Traceback:\n{tb}")
             return StepResult(
                 action=action,
                 success=False,
                 duration=duration,
-                error=error_msg
+                error=f"{error_msg}\n{tb}"
             )
 
     def stop(self):
