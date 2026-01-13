@@ -350,6 +350,57 @@ class MainWindowProjectMixin:
         shutil.copytree(source, target)
         self.statusBar().showMessage(f"Exported noodling to: {target}", 3000)
 
+    def export_unity_package(self):
+        """Export a noodling to Unity-compatible .noodling package."""
+        if not self.project_manager.is_project_open():
+            QMessageBox.warning(self, "No Project", "Please open a project first.")
+            return
+
+        noodlings = self.project_manager.list_noodlings()
+        if not noodlings:
+            QMessageBox.information(self, "No Noodlings", "No noodlings to export.")
+            return
+
+        name, ok = QInputDialog.getItem(
+            self, "Export Unity Package", "Select noodling:", noodlings, 0, False
+        )
+        if not ok:
+            return
+
+        target_dir = QFileDialog.getExistingDirectory(
+            self, "Export Unity Package To", os.path.expanduser("~")
+        )
+        if not target_dir:
+            return
+
+        try:
+            from .noodling_package_exporter import NoodlingPackageExporter, ExportOptions
+            from pathlib import Path
+
+            exporter = NoodlingPackageExporter(self.project_manager)
+            package_path = exporter.export(
+                name,
+                Path(target_dir),
+                ExportOptions(include_plays=True)
+            )
+
+            QMessageBox.information(
+                self,
+                "Export Complete",
+                f"Exported Unity package to:\n{package_path}\n\n"
+                "Drag this folder into your Unity project's Assets."
+            )
+            self.statusBar().showMessage(f"Exported Unity package: {package_path}", 5000)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                "Export Failed",
+                f"Failed to export Unity package:\n{str(e)}"
+            )
+
     def _load_editor_access_from_build_config(self, project_path: str):
         """
         Load editor access settings from build.yaml.

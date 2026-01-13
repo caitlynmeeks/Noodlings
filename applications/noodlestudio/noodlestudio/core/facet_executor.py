@@ -1246,9 +1246,18 @@ class FacetExecutor:
                     if agent_ref is not None:
                         agent_ref.current_llm_status = "AWAITING_RESPONSE"
 
+                    # Build system prompt with optional Brenda direction
+                    base_system_prompt = "You are a cognitive facet in an AI consciousness architecture."
+                    brenda_direction = context.get('brenda_direction', '')
+                    if brenda_direction:
+                        system_prompt = f"{base_system_prompt}\n\n{brenda_direction}"
+                        logger.debug(f"[FacetExecutor] Injected Brenda direction into {facet.name}")
+                    else:
+                        system_prompt = base_system_prompt
+
                     response_text, llm_token_count = await self.llm_client.generate_with_tokens(
                         prompt=formatted_prompt,
-                        system_prompt="You are a cognitive facet in an AI consciousness architecture.",
+                        system_prompt=system_prompt,
                         model=facet.model if facet.model else None,
                         temperature=facet.temperature,
                         max_tokens=facet.max_tokens

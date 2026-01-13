@@ -653,14 +653,37 @@ class UIEventDispatcher:
             from_worker_thread: If True, marshal widget updates to main thread
         """
         try:
+            # Build execution context
+            context = {
+                'source_component': source_component.name,
+                'ui_event': True
+            }
+
+            # Get Brenda's direction if available and inject into context
+            # This allows the facet assembly to incorporate stage direction
+            user_input_text = None
+            if self.app:
+                # Get the direction text from Brenda via GuideCueHandler
+                brenda_direction = self.app.get_brenda_direction()
+                if brenda_direction:
+                    context['brenda_direction'] = brenda_direction
+                    logger.debug("[UIEventDispatcher] Injected Brenda direction into context")
+
+                # Capture user input for publishing and reporting
+                if isinstance(inputs, str):
+                    user_input_text = inputs
+                elif isinstance(inputs, dict) and 'text' in inputs:
+                    user_input_text = inputs['text']
+
+                # Publish user input to #user.input for Brenda and other listeners
+                if user_input_text:
+                    self.app.publish_user_input(user_input_text)
+
             # Execute assembly
             result = await self._facet_executor.execute(
                 assembly,
                 inputs,
-                context={
-                    'source_component': source_component.name,
-                    'ui_event': True
-                }
+                context=context
             )
 
             # Apply output bindings
@@ -711,6 +734,11 @@ class UIEventDispatcher:
                                 target_widget.setValue(output_value)
 
             logger.debug(f"Assembly {assembly.name} completed, outputs bound")
+
+            # Report response back to Brenda for play advancement
+            if self.app and result.response:
+                self.app.report_actor_response(result.response, user_input_text)
+                logger.debug("[UIEventDispatcher] Reported response to Brenda")
 
         except Exception as e:
             logger.error(f"Assembly execution error: {e}")

@@ -76,6 +76,7 @@ class MainWindowMenusMixin:
         file_menu.addSeparator()
         file_menu.addSection("Export")
         file_menu.addAction(self._create_action("Export Noodling...", slot=self.export_noodling))
+        file_menu.addAction(self._create_action("Export to Unity Package...", slot=self.export_unity_package))
         file_menu.addAction(self._create_action("Export Stage to USD (.usda)...", slot=self.export_stage_to_usd))
 
         # Build section

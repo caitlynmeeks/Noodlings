@@ -44,6 +44,7 @@ from .llm_client import HeadlessLLMClient, LLMConfig, create_llm_client_from_env
 from .channels import ChannelBus, ChannelMessage
 from .world_channels import WorldChannelService, WorldConfig
 from .brenda import BrendaDirector
+from .guide_cue_handler import GuideCueHandler
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +163,9 @@ class NoodleApp:
 
         # Stage director (Brenda)
         self.director: Optional[BrendaDirector] = None
+
+        # Guide cue handler (wired to director for receiving cues)
+        self.guide_cue_handler: Optional[GuideCueHandler] = None
 
         # Event handlers
         self._on_output: Optional[Callable[[str], None]] = None
@@ -604,28 +608,39 @@ class NoodleApp:
     # Stage Director (Brenda)
     # =========================================================================
 
-    def load_director(self, play_path: str) -> bool:
+    def load_director(self, play_path: str, actor_id: str = "guide") -> bool:
         """
-        Load Brenda with a play script.
+        Load Brenda with a play script and wire up the actor's cue handler.
 
         Args:
             play_path: Path to .play.yaml file
+            actor_id: ID of the actor receiving cues (default: "guide")
 
         Returns:
             True if loaded successfully
         """
         self.director = BrendaDirector(self.channel_bus)
-        return self.director.load_play(play_path)
+        if not self.director.load_play(play_path):
+            return False
+
+        # Create and wire up the GuideCueHandler for the actor
+        # This handler receives cues from Brenda via #directors.cues
+        self.guide_cue_handler = GuideCueHandler(self.channel_bus, actor_id)
+        logger.info(f"[NoodleApp] Created GuideCueHandler for actor '{actor_id}'")
+
+        return True
 
     def start_performance(self):
         """Start the directed performance."""
         if self.director:
             self.director.start()
+            logger.info("[NoodleApp] Performance started")
 
     def stop_performance(self):
         """Stop the directed performance."""
         if self.director:
             self.director.stop()
+            logger.info("[NoodleApp] Performance stopped")
 
     def publish_user_input(self, text: str):
         """
@@ -659,6 +674,44 @@ class NoodleApp:
             return self.director.get_play_info()
         return {}
 
+    def get_brenda_direction(self) -> str:
+        """
+        Get Brenda's current direction for injection into LLM prompts.
+
+        This returns the system prompt addition from the GuideCueHandler,
+        which includes stage direction, motivation, emotional state, etc.
+
+        Returns:
+            Multi-line string to append to system prompt, or empty string
+        """
+        if self.guide_cue_handler:
+            return self.guide_cue_handler.build_system_prompt_addition()
+        return ""
+
+    def report_actor_response(self, response: str, user_message: Optional[str] = None):
+        """
+        Report the actor's response back to Brenda.
+
+        This allows Brenda to track completion and advance the play.
+
+        Args:
+            response: The actor's generated response
+            user_message: The user message that prompted this response
+        """
+        if self.guide_cue_handler:
+            self.guide_cue_handler.report_response(response, user_message)
+
+    def set_computer_use_controller(self, controller):
+        """
+        Set the ComputerUseController for UI demonstrations.
+
+        Args:
+            controller: ComputerUseController instance
+        """
+        if self.guide_cue_handler:
+            self.guide_cue_handler.set_computer_use_controller(controller)
+            logger.info("[NoodleApp] ComputerUseController wired to GuideCueHandler")
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get cumulative execution statistics."""
         if self.executor:
@@ -670,6 +723,9 @@ class NoodleApp:
         if self.director:
             self.director.stop()
             self.director = None
+
+        if self.guide_cue_handler:
+            self.guide_cue_handler = None
 
         if self.world_channels:
             self.world_channels.stop()

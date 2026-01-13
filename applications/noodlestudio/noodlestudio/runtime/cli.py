@@ -125,6 +125,12 @@ Environment Variables:
     )
 
     parser.add_argument(
+        '--play',
+        default='',
+        help='Path to .play.yaml file for Brenda stage direction'
+    )
+
+    parser.add_argument(
         '--window-size', '-w',
         default='1024x768',
         help='Window size as WxH (default: 1024x768)'
@@ -439,6 +445,27 @@ def run_gui(args: argparse.Namespace) -> int:
                     print("Facet executor initialized", file=sys.stderr)
             else:
                 print("Warning: Facet executor not initialized", file=sys.stderr)
+
+            # Wire app to dispatcher for Brenda direction injection
+            dispatcher.set_app(noodle_app)
+
+            # Load play script if provided
+            if args.play:
+                play_path = Path(args.play)
+                if not play_path.is_absolute():
+                    play_path = Path(args.project).resolve() / args.play
+                if play_path.exists():
+                    if noodle_app.load_director(str(play_path)):
+                        noodle_app.start_performance()
+                        if not args.quiet:
+                            play_info = noodle_app.get_play_info()
+                            print(f"Loaded play: {play_info.get('title', 'Unknown')}", file=sys.stderr)
+                            print(f"  Beats: {play_info.get('beat_count', 0)}", file=sys.stderr)
+                            print(f"  Starting beat: {noodle_app.get_director_state().get('current_beat_id')}", file=sys.stderr)
+                    else:
+                        print(f"Warning: Failed to load play: {play_path}", file=sys.stderr)
+                else:
+                    print(f"Warning: Play file not found: {play_path}", file=sys.stderr)
 
         except Exception as e:
             print(f"Warning: Failed to initialize facet executor: {e}", file=sys.stderr)
