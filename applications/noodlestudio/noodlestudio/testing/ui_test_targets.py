@@ -161,13 +161,15 @@ class UITestTargetResolver:
         """Find a panel by name."""
         panel_map = {
             'stage': ['stage_panel', 'StagePanel', 'stage'],
-            'hierarchy': ['hierarchy_panel', 'HierarchyPanel', 'scene_hierarchy'],
+            'hierarchy': ['hierarchy', 'hierarchy_panel', 'HierarchyPanel', 'scene_hierarchy'],
             'facets': ['facets_panel', 'FacetsEditorPanel', 'facets_editor'],
-            'inspector': ['inspector_panel', 'InspectorPanel', 'inspector'],
+            'inspector': ['inspector', 'inspector_panel', 'InspectorPanel'],
             'neural_canvas': ['neural_canvas_panel', 'NeuralCanvasPanel', 'nncanvas'],
             'chat': ['chat_panel', 'ChatPanel', 'conversation'],
             'console': ['console_panel', 'ConsolePanel', 'console'],
             'noodlecode': ['noodle_code_panel', 'NoodleCodePanel', 'noodlecode'],
+            'profiler': ['profiler_panel', 'ProfilerPanel'],
+            'settings': ['settings_panel', 'SettingsPanel'],
         }
 
         # Get possible attribute names

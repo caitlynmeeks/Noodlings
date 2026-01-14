@@ -22,6 +22,7 @@ from .ui_test_runner import UITestRunner, TestResult, TestPhaseResult
 from .ui_test_actions import UITestActions
 from .ui_test_targets import UITestTargetResolver
 from .ui_test_assertions import UITestAssertions
+from .demo_play_runner import DemoPlayRunner, BeatResult
 
 __all__ = [
     'UITestRunner',
@@ -30,4 +31,6 @@ __all__ = [
     'UITestActions',
     'UITestTargetResolver',
     'UITestAssertions',
+    'DemoPlayRunner',
+    'BeatResult',
 ]

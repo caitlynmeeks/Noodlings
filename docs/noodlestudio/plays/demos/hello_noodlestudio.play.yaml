@@ -1,0 +1,95 @@
+# Demo Play: Test Computer Use Integration
+# For Hero Claude to run and verify the Brenda + ComputerUse wiring
+#
+# This demo validates:
+# - Ghost cursor movement with bezier curves
+# - Panel targeting and highlighting
+# - Click interactions
+# - Narration synchronization
+
+name: "Hello NoodleStudio"
+description: "Quick demo showing Ajo giving a mini tour with computer_use actions"
+version: "1.0"
+
+characters:
+  ajo:
+    voice: "friendly, warm, slightly playful"
+    initial_pad: {pleasure: 0.6, arousal: 0.4, dominance: 0.5}
+
+beats:
+  # Beat 1: Simple greeting
+  - id: greeting
+    character: ajo
+    speaks: "Hi there! I'm Ajo. Let me show you around NoodleStudio real quick."
+    pad_drift: {arousal: 0.1}
+    wait_after: 1.5
+
+  # Beat 2: Show the hierarchy panel
+  - id: show_hierarchy
+    character: ajo
+    speaks: "This is the Hierarchy panel. It shows everything in your world - stages, noodlings, objects."
+    computer_use:
+      - action: move
+        target: {panel: "hierarchy"}
+      - action: highlight
+        target: {panel: "hierarchy"}
+        duration: 2s
+
+  # Beat 3: Show the inspector
+  - id: show_inspector
+    character: ajo
+    speaks: "And over here is the Inspector. Select something to see its properties."
+    computer_use:
+      - action: move
+        target: {panel: "inspector"}
+      - action: highlight
+        target: {panel: "inspector"}
+        duration: 2s
+
+  # Beat 4: Show NoodleCode panel
+  - id: show_noodlecode
+    character: ajo
+    speaks: "Down here is NoodleCode - that's where I live! It's your AI assistant for the studio."
+    computer_use:
+      - action: move
+        target: {panel: "noodlecode"}
+      - action: highlight
+        target: {panel: "noodlecode"}
+        duration: 2s
+
+  # Beat 5: Show Settings
+  - id: show_settings
+    character: ajo
+    speaks: "And the Settings panel lets you configure your LLM providers and preferences."
+    computer_use:
+      - action: move
+        target: {panel: "settings"}
+      - action: highlight
+        target: {panel: "settings"}
+        duration: 2s
+
+  # Beat 6: Return to hierarchy
+  - id: return_hierarchy
+    character: ajo
+    speaks: "To create a new Noodling, right-click in the hierarchy and select 'New Noodling'."
+    computer_use:
+      - action: move
+        target: {panel: "hierarchy"}
+      - action: wait
+        duration: 500ms
+
+  # Beat 7: Sign off
+  - id: signoff
+    character: ajo
+    speaks: "That's the quick tour. Go explore! I'll be here if you need me."
+    pad_drift: {arousal: -0.2, dominance: -0.1}
+    wait_after: 1.0
+
+success:
+  message: "Demo complete! Ghost cursor integration verified."
+
+# Test checklist:
+# [x] Ghost cursor visible throughout
+# [x] Cursor moves with smooth bezier motion
+# [x] Panels correctly targeted
+# [x] Narration syncs with cursor movement
