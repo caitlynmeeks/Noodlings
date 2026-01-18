@@ -431,6 +431,39 @@ EXAMPLES:
                     },
                     "required": ["verify"]
                 }
+            },
+            {
+                "name": "capture_visual_baseline",
+                "description": """Capture current UI as a visual baseline for testing.
+
+USE THIS WHEN:
+- Setting up visual tests for the first time
+- UI has intentionally changed and baseline needs updating
+- Human verifies "this looks correct" and wants to save it
+
+RETURNS:
+- Path to saved baseline image
+- Screenshot of the captured baseline
+
+EXAMPLES:
+  # After importing Ajo and verifying it looks correct
+  {"name": "ajo_imported_textured"}
+
+  # After opening File menu
+  {"name": "file_menu_open"}
+
+  # After creating a new character
+  {"name": "new_character_dialog"}""",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name for the baseline (e.g., 'ajo_imported', 'file_menu_open')"
+                        }
+                    },
+                    "required": ["name"]
+                }
             }
         ]
 
@@ -1678,6 +1711,73 @@ EXAMPLES:
                 success=False,
                 output="",
                 error=f"AI verify error: {e}\n{traceback.format_exc()}"
+            )
+
+    async def tool_capture_visual_baseline(self, name: str) -> ToolResult:
+        """
+        Capture current UI state as a visual baseline.
+
+        Takes a screenshot and saves it to tests/ui/baselines/{name}.png
+        for use with assert_visual in UI tests.
+        """
+        try:
+            # Get computer use controller
+            from .computer_use_controller import get_computer_use_controller
+            controller = get_computer_use_controller()
+
+            # Ensure main window is set
+            if not controller.main_window:
+                from PyQt6.QtWidgets import QApplication, QMainWindow
+                app = QApplication.instance()
+                if app:
+                    for widget in app.topLevelWidgets():
+                        if isinstance(widget, QMainWindow) and widget.isVisible():
+                            controller.set_main_window(widget)
+                            break
+
+            if not controller.main_window:
+                return ToolResult(
+                    success=False,
+                    output="",
+                    error="MainWindow not found for screenshot"
+                )
+
+            # Take screenshot (without rulers for clean baseline)
+            b64_data, width, height = controller.screenshot(add_rulers=False)
+
+            # Save as baseline
+            from ..testing.visual_verifier import VisualVerifier
+            verifier = VisualVerifier()
+            path = verifier.capture_baseline(name, b64_data)
+
+            # List existing baselines for context
+            baselines = verifier.list_baselines()
+
+            return ToolResult(
+                success=True,
+                output=(
+                    f"Visual baseline captured successfully.\n\n"
+                    f"Name: {name}\n"
+                    f"Path: {path}\n"
+                    f"Dimensions: {width}x{height}\n\n"
+                    f"Use in UI tests:\n"
+                    f"  - action: assert_visual\n"
+                    f"    baseline: \"{name}\"\n"
+                    f"    threshold: 0.95\n\n"
+                    f"Available baselines ({len(baselines)}):\n"
+                    f"  {', '.join(baselines[:10])}"
+                    f"{'...' if len(baselines) > 10 else ''}"
+                ),
+                image_base64=b64_data,
+                metadata={"path": str(path), "width": width, "height": height}
+            )
+
+        except Exception as e:
+            import traceback
+            return ToolResult(
+                success=False,
+                output="",
+                error=f"Baseline capture error: {e}\n{traceback.format_exc()}"
             )
 
 

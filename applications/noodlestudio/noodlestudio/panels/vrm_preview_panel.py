@@ -94,7 +94,7 @@ class Camera:
     """Orbit camera around a target point."""
     target: np.ndarray = None           # Look-at point
     distance: float = 3.0               # Distance from target
-    azimuth: float = 0.0                # Horizontal angle (degrees)
+    azimuth: float = 180.0              # Horizontal angle (degrees) - front view
     elevation: float = 15.0             # Vertical angle (degrees)
     fov: float = 45.0                   # Field of view
     near: float = 0.01
@@ -194,6 +194,7 @@ class DisplayMesh:
     vbo_bone_idx: int = 0
     vbo_bone_wgt: int = 0
     ebo: int = 0
+    texture_id: int = 0         # OpenGL texture ID (0 = no texture)
 
 
 @dataclass
@@ -280,6 +281,9 @@ class VRMGLWidget(QOpenGLWidget):
         self._skeleton_vao = 0
         self._skeleton_vbo = 0
 
+        # Pending texture data (loaded after GL init)
+        self._pending_texture_data: Optional[bytes] = None
+
     def initializeGL(self):
         """Initialize OpenGL resources."""
         if not OPENGL_AVAILABLE:
@@ -340,20 +344,30 @@ class VRMGLWidget(QOpenGLWidget):
         uniform vec3 uViewPos;
         uniform vec3 uColor;
         uniform int uShadingMode;
+        uniform sampler2D uTexture;
+        uniform bool uHasTexture;
 
         out vec4 FragColor;
 
         void main() {
             vec3 normal = normalize(vNormal);
 
+            // Get base color from texture or fallback color
+            vec3 baseColor;
+            if (uHasTexture) {
+                baseColor = texture(uTexture, vUV).rgb;
+            } else {
+                baseColor = uColor;
+            }
+
             if (uShadingMode == 0) {
                 // Unlit
-                FragColor = vec4(uColor, 1.0);
+                FragColor = vec4(baseColor, 1.0);
             } else if (uShadingMode == 1) {
                 // Lit
                 float diff = max(dot(normal, uLightDir), 0.0);
                 float ambient = 0.3;
-                vec3 color = uColor * (ambient + diff * 0.7);
+                vec3 color = baseColor * (ambient + diff * 0.7);
                 FragColor = vec4(color, 1.0);
             } else if (uShadingMode == 2) {
                 // Normal visualization
@@ -362,7 +376,7 @@ class VRMGLWidget(QOpenGLWidget):
                 // UV visualization
                 FragColor = vec4(vUV, 0.0, 1.0);
             } else {
-                FragColor = vec4(uColor, 1.0);
+                FragColor = vec4(baseColor, 1.0);
             }
         }
         """
@@ -461,6 +475,56 @@ class VRMGLWidget(QOpenGLWidget):
 
         return program
 
+    def _load_texture(self, texture_data: bytes) -> int:
+        """Load texture data into OpenGL texture."""
+        from PIL import Image
+        import io
+        import ctypes
+        from OpenGL import platform
+
+        try:
+            image = Image.open(io.BytesIO(texture_data))
+            image = image.convert('RGBA')
+            # Note: VRM/glTF textures have Y=0 at top, matching OpenGL's texCoord convention
+            # No flip needed when UVs come directly from glTF
+
+            # Convert to numpy array for PyOpenGL compatibility
+            img_array = np.array(image, dtype=np.uint8)
+
+            # Get the raw glGenTextures function from the platform
+            gl_lib = platform.PLATFORM.GL
+            raw_glGenTextures = gl_lib.glGenTextures
+            raw_glGenTextures.argtypes = [ctypes.c_int, ctypes.POINTER(ctypes.c_uint)]
+            raw_glGenTextures.restype = None
+
+            # Generate texture ID
+            tex_id = ctypes.c_uint()
+            raw_glGenTextures(1, ctypes.byref(tex_id))
+            tex_id_val = tex_id.value
+
+            GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id_val)
+            GL.glTexImage2D(
+                GL.GL_TEXTURE_2D, 0, GL.GL_RGBA,
+                image.width, image.height, 0,
+                GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, img_array
+            )
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR_MIPMAP_LINEAR)
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT)
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT)
+            GL.glGenerateMipmap(GL.GL_TEXTURE_2D)
+
+            GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+
+            logger.info(f"Loaded texture: {image.width}x{image.height}, ID={tex_id_val}")
+            return tex_id_val
+
+        except Exception as e:
+            logger.error(f"Failed to load texture: {e}")
+            import traceback
+            traceback.print_exc()
+            return 0
+
     def _create_grid(self):
         """Create ground grid."""
         lines = []
@@ -536,6 +600,11 @@ class VRMGLWidget(QOpenGLWidget):
         if not OPENGL_AVAILABLE:
             return
 
+        # Load pending texture now that GL context is ready
+        if self._pending_texture_data is not None and self.mesh is not None:
+            self.mesh.texture_id = self._load_texture(self._pending_texture_data)
+            self._pending_texture_data = None
+
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
         aspect = self.width() / max(1, self.height())
@@ -603,12 +672,24 @@ class VRMGLWidget(QOpenGLWidget):
         GL.glUniform3f(GL.glGetUniformLocation(self._shader_mesh, "uColor"), 0.8, 0.75, 0.7)
         GL.glUniform1i(GL.glGetUniformLocation(self._shader_mesh, "uShadingMode"), self.shading_mode.value == "lit")
 
+        # Bind texture if available
+        has_texture = self.mesh.texture_id > 0
+        GL.glUniform1i(GL.glGetUniformLocation(self._shader_mesh, "uHasTexture"), has_texture)
+        if has_texture:
+            GL.glActiveTexture(GL.GL_TEXTURE0)
+            GL.glBindTexture(GL.GL_TEXTURE_2D, self.mesh.texture_id)
+            GL.glUniform1i(GL.glGetUniformLocation(self._shader_mesh, "uTexture"), 0)
+
         if self.view_mode == ViewMode.WIREFRAME:
             GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
 
         GL.glBindVertexArray(self.mesh.vao)
         GL.glDrawElements(GL.GL_TRIANGLES, len(self.mesh.indices), GL.GL_UNSIGNED_INT, None)
         GL.glBindVertexArray(0)
+
+        # Unbind texture
+        if has_texture:
+            GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 
         if self.view_mode == ViewMode.WIREFRAME:
             GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
@@ -750,6 +831,9 @@ class VRMGLWidget(QOpenGLWidget):
 
             avatar = parse_vrm(vrm_path)
 
+            # Ensure GL context is current for buffer/texture creation
+            self.makeCurrent()
+
             # Extract mesh data
             if avatar.meshes:
                 mesh_data = avatar.meshes[0]  # Use first mesh
@@ -825,6 +909,10 @@ class VRMGLWidget(QOpenGLWidget):
         GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL.GL_STATIC_DRAW)
 
         GL.glBindVertexArray(0)
+
+        # Store texture data for deferred loading (GL context may not be ready)
+        if avatar.textures and len(avatar.textures) > 0:
+            self._pending_texture_data = avatar.textures[0]
 
     def _create_skeleton_from_vrm(self, avatar):
         """Extract skeleton from VRM avatar."""

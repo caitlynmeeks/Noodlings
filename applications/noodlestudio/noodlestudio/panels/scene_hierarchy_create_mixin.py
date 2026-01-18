@@ -400,6 +400,86 @@ class SceneHierarchyCreateMixin:
             # TODO: Send to noodleMUSH API
             self.refresh_scene()
 
+    def add_asset_as_prop(self, asset_type: str, asset_path: str):
+        """
+        Add an asset to the current stage as a Prop.
+
+        Creates a prop with a source_asset reference to the original file.
+        Supports: vrm, radiance, mesh (glb, gltf, obj, fbx)
+
+        Args:
+            asset_type: Type of asset ('vrm', 'radiance', 'mesh')
+            asset_path: Full path to the asset file
+        """
+        if not self.project_manager or not self.project_manager.is_project_open():
+            self._prompt_open_project()
+            return
+
+        if not self.current_stage:
+            QMessageBox.warning(
+                self,
+                "No Stage Selected",
+                "Please select a stage first.\n\nUse the Stage dropdown at the top of the Stage View."
+            )
+            return
+
+        stage_path = self.project_manager.get_stage_path(self.current_stage)
+        if not stage_path:
+            print(f"Stage path not found for {self.current_stage}")
+            return
+
+        # Get Props directory
+        props_dir = os.path.join(stage_path, "Props")
+        os.makedirs(props_dir, exist_ok=True)
+
+        # Generate display name from asset filename
+        asset_filename = os.path.basename(asset_path)
+        asset_name = os.path.splitext(asset_filename)[0]
+        display_name = self._generate_unique_name(props_dir, asset_name, "prop.yaml")
+
+        # Use UUID for folder name
+        prop_id = str(uuid.uuid4())
+        prop_path = os.path.join(props_dir, prop_id)
+
+        # Get relative path from project root for source reference
+        project_path = self.project_manager.current_project_path
+        if asset_path.startswith(project_path):
+            relative_asset_path = os.path.relpath(asset_path, project_path)
+        else:
+            relative_asset_path = asset_path
+
+        # Prepare prop data with source asset reference
+        prop_data = {
+            'id': prop_id,
+            'name': display_name,
+            'description': f'Added from {asset_filename}',
+            'zone': 'default',
+            'position': [0, 0, 0],
+            'rotation': [0, 0, 0],
+            'scale': [1, 1, 1],
+            # Physics properties (SPE)
+            'mass': 'medium',
+            'material': 'unknown',
+            'friction': 'medium',
+            'elasticity': 'normal',
+            'softness': 'normal',
+            # Source asset reference
+            'source_asset': {
+                'type': asset_type,
+                'path': relative_asset_path,
+            }
+        }
+
+        # Push undo command
+        cmd = CreatePropCommand(
+            hierarchy=self,
+            prop_path=prop_path,
+            prop_data=prop_data,
+            display_name=display_name
+        )
+        UndoManager().push(cmd)
+        print(f"Added to Stage: {display_name} ({asset_type} from {asset_filename})")
+
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.
 # Caitlyn Meeks 2026

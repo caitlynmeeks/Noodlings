@@ -209,6 +209,58 @@ class UITestActions:
         if result != expected:
             raise AssertionError(f"Expected {expected}, got {result} for condition {condition}")
 
+    async def _action_assert_visual(self, step: Dict[str, Any]):
+        """
+        Assert current UI matches a baseline screenshot.
+
+        Usage in .ui-test.yaml:
+            - action: assert_visual
+              baseline: "ajo_imported"
+              threshold: 0.95
+              ignore_regions:
+                - [0, 0, 100, 30]  # Ignore title bar area
+        """
+        import base64
+
+        baseline = step.get('baseline')
+        threshold = step.get('threshold', 0.95)
+        ignore_regions = step.get('ignore_regions', [])
+
+        if not baseline:
+            raise ValueError("assert_visual requires 'baseline' parameter")
+
+        # Take screenshot
+        if not self.computer_use:
+            raise RuntimeError("Computer use controller required for visual verification")
+
+        b64_data, width, height = self.computer_use.screenshot(add_rulers=False)
+
+        # Verify against baseline
+        from .visual_verifier import VisualVerifier
+        verifier = VisualVerifier()
+        result = verifier.verify(baseline, b64_data, threshold, ignore_regions)
+
+        if not result.passed:
+            # Save the failed screenshot for debugging
+            fail_path = verifier.baselines_dir / f"{baseline}_FAILED.png"
+            fail_path.write_bytes(base64.b64decode(b64_data))
+
+            diff_path = None
+            if result.diff_image:
+                diff_path = verifier.baselines_dir / f"{baseline}_DIFF.png"
+                diff_path.write_bytes(result.diff_image)
+
+            error_msg = (
+                f"Visual verification failed: {result.message}\n"
+                f"Failed screenshot: {fail_path}"
+            )
+            if diff_path:
+                error_msg += f"\nDiff image: {diff_path}"
+
+            raise AssertionError(error_msg)
+
+        print(f"    VISUAL PASS: {baseline} ({result.similarity:.1%} similarity)")
+
     async def _action_assert_file_exists(self, step: Dict[str, Any]):
         """Assert a file exists."""
         import os

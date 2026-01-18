@@ -626,8 +626,17 @@ class AssetsPanel(QWidget):
                     menu.addSeparator()
                 else:
                     # File context menu
+                    asset_type = self._get_asset_type(path)
+
                     open_action = menu.addAction("Open")
-                    open_action.triggered.connect(lambda: self._open_asset(path, self._get_asset_type(path)))
+                    open_action.triggered.connect(lambda: self._open_asset(path, asset_type))
+
+                    # Add to Stage for supported asset types
+                    if asset_type in ('vrm', 'radiance', 'mesh'):
+                        add_to_stage_action = menu.addAction("Add to Stage")
+                        add_to_stage_action.triggered.connect(
+                            lambda checked=False, p=path, t=asset_type: self._add_to_stage(p, t)
+                        )
 
                     menu.addSeparator()
 
@@ -734,6 +743,18 @@ class AssetsPanel(QWidget):
         """Reveal file/folder in Finder (macOS)."""
         import subprocess
         subprocess.run(['open', '-R', path])
+
+    def _add_to_stage(self, path: str, asset_type: str):
+        """Add an asset to the current stage as a prop."""
+        main_window = self.window()
+        if hasattr(main_window, 'hierarchy') and main_window.hierarchy:
+            main_window.hierarchy.add_asset_as_prop(asset_type, path)
+        else:
+            QMessageBox.warning(
+                self,
+                "Cannot Add to Stage",
+                "Stage hierarchy not available."
+            )
 
     def _on_generation_stored(self, gen_id: str, metadata: dict):
         """Handle new AI generation stored."""

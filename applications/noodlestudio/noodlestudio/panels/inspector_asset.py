@@ -257,6 +257,7 @@ class AssetInspectorMixin:
 
         # Actions
         self._add_asset_actions([
+            ("Add to Stage", lambda: self._add_to_stage(path, 'radiance')),
             ("Open in Viewer", lambda: self._open_in_gaussian_viewer(path))
         ])
 
@@ -318,6 +319,7 @@ class AssetInspectorMixin:
 
         # Actions
         self._add_asset_actions([
+            ("Add to Stage", lambda: self._add_to_stage(path, 'vrm')),
             ("Import as Radiance", lambda: self._import_vrm_as_radiance(
                 path, densify_cb.isChecked(), face_cb.isChecked(), scale_spin.value()
             )),
@@ -654,6 +656,14 @@ class AssetInspectorMixin:
         if hasattr(main_window, 'vrm_preview'):
             main_window.vrm_preview.load_vrm(path)
         print(f"[Inspector] VRM preview requested: {path}")
+
+    def _add_to_stage(self, path: str, asset_type: str):
+        """Add an asset to the current stage as a prop."""
+        main_window = self.window()
+        if hasattr(main_window, 'hierarchy') and main_window.hierarchy:
+            main_window.hierarchy.add_asset_as_prop(asset_type, path)
+        else:
+            print(f"[Inspector] Cannot add to stage - hierarchy not available")
 
     def _play_audio(self, path: str):
         """Play audio file."""
