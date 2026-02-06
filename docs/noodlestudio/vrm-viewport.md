@@ -1,7 +1,7 @@
 # VRMViewport Component
 
-**Status**: Implementation Spec
-**Date**: 2026-01-08
+**Status**: Implemented (Phase 1 complete, texture rendering + idle animation)
+**Date**: 2026-01-08 (spec), 2026-02-06 (texture rendering)
 **Authors**: Caity + Claude
 **Priority**: High (enables Guide experience)
 
@@ -1003,6 +1003,81 @@ if QT_AVAILABLE and OPENGL_AVAILABLE:
 
 ---
 
+## Texture Rendering (Feb 6, 2026)
+
+The VRM viewport now renders per-material textures instead of a flat hardcoded color.
+
+### Pipeline
+
+```
+VRM file -> vrm_parser.py extracts:
+    - Mesh vertices, normals, UVs, indices (per primitive)
+    - MToonMaterial list (diffuse_color, diffuse_texture index)
+    - Texture byte arrays (PNG/JPG)
+
+_create_mesh_buffers():
+    - Sorts meshes by material_index
+    - Builds single combined VAO
+    - Tracks per-material draw groups: (mat_idx, byte_offset, index_count)
+    - Merges same-material primitives into contiguous groups
+
+_load_textures():
+    - Decodes texture bytes via QImage.fromData()
+    - Converts to RGBA8888
+    - Uploads to GL via raw ctypes (PyOpenGL workaround)
+    - Stores GL texture IDs per material
+
+_draw_mesh():
+    - Loops over material groups
+    - Binds diffuse texture (if available) or sets uHasTexture=0
+    - Sets material diffuse color via uColor uniform
+    - Draws index range for each group
+```
+
+### Fragment Shader
+
+```glsl
+uniform sampler2D uDiffuseTex;
+uniform int uHasTexture;
+uniform vec3 uColor;
+
+if (uHasTexture == 1) {
+    vec4 texColor = texture(uDiffuseTex, vUV);
+    baseColor = texColor.rgb * uColor;
+    alpha = texColor.a;
+} else {
+    baseColor = uColor;
+}
+
+// Alpha cutout for hair/accessories
+if (alpha < 0.5) discard;
+```
+
+### PyOpenGL Workaround
+
+PyOpenGL 3.1.0 + OpenGL_accelerate 3.1.10 on Python 3.14 has a broken array-type handler that prevents `glGenTextures(1)` from working (CArgObject error). The texture upload functions bypass PyOpenGL and call the macOS OpenGL framework directly via ctypes:
+
+```python
+_gl_lib = ctypes.cdll.LoadLibrary(ctypes.util.find_library('OpenGL'))
+_raw_glGenTextures = _gl_lib.glGenTextures
+# ... defined with proper argtypes/restype
+```
+
+This affects only texture creation/binding. All other GL calls use PyOpenGL normally.
+
+### Idle Animation
+
+Model-level transforms (no skeletal animation). Two sine waves on the 4x4 model matrix:
+
+| Transform | Axis | Amplitude | Period | Effect |
+|-----------|------|-----------|--------|--------|
+| Translation | Y | 0.01 | 4.0s | Gentle bob |
+| Scale | Y | 0.02 | 3.5s | Breathing pulse |
+
+The different periods create a natural, non-repeating combined motion. Driven by a `QTimer` at ~60fps calling `self.update()`.
+
+---
+
 ## Renderer Integration
 
 The `QtWidgetRenderer` needs to know how to create `VRMViewportWidget`:
@@ -1120,18 +1195,30 @@ The `muscles` output binds to the viewport's `set_muscles` method.
 
 ## Implementation Checklist
 
-### Phase 1: Basic Rendering
-- [ ] Create `vrm_viewport.py` with UIComponent and Widget
-- [ ] Register in components/__init__.py
-- [ ] Add to renderer.py widget creation
-- [ ] Test: Load VRM, display static mesh
-- [ ] Test: Camera controls (orbit, pan, zoom)
+### Phase 1: Basic Rendering -- COMPLETE
+- [x] Create `vrm_viewport.py` with UIComponent and Widget
+- [x] Register in components/__init__.py
+- [x] Add to renderer.py widget creation
+- [x] Test: Load VRM, display static mesh
+- [x] Test: Camera controls (orbit, pan, zoom)
 
-### Phase 2: Muscle Integration
+### Phase 1b: Texture Rendering + Idle Animation -- COMPLETE (Feb 6, 2026)
+- [x] Per-material draw groups (sort meshes by material, track index ranges)
+- [x] Fragment shader: `uDiffuseTex` / `uHasTexture` uniforms, alpha cutout
+- [x] Texture upload via QImage decode + raw ctypes GL calls (PyOpenGL 3.14 workaround)
+- [x] Per-material diffuse color from MToonMaterial
+- [x] Cached uniform locations (`_cache_mesh_uniforms()`)
+- [x] QTimer-driven idle animation: Y bob (4s period) + breathing scale (3.5s period)
+- [x] Test suite: 21 tests (`test_vrm_texture_rendering.py`)
+
+### Phase 2: GPU Skinning (Future)
+- [ ] Extract inverse bind matrices from VRM skin data
+- [ ] Recursive bone world transform computation
+- [ ] Bone matrix uniform array upload (47+ bones)
+- [ ] Enable GPU skinning in vertex shader (`uUseSkinning`)
 - [ ] Import PoseRetargeter in widget
 - [ ] Implement `set_muscles()` method
 - [ ] Compute bone matrices from muscle values
-- [ ] Enable GPU skinning in shader
 - [ ] Test: Apply muscle values, see mesh deform
 
 ### Phase 3: Polish
@@ -1141,7 +1228,8 @@ The `muscles` output binds to the viewport's `set_muscles` method.
 - [ ] Performance optimization (bone matrix caching)
 
 ### Phase 4: Let's Consciousness
-- [ ] Update ui.yaml to use VRMViewport
+- [x] GuidePerformanceWindow renders VRM with textures
+- [x] Brenda play pipeline wired to guide window
 - [ ] Wire Guide's assembly to send muscles
 - [ ] Test full loop: chat → facets → pose → viewport
 
