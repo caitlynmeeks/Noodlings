@@ -106,6 +106,7 @@ class Skeleton:
     bones: List[Bone] = field(default_factory=list)
     root_bone_index: int = 0
     humanoid_map: Dict[str, int] = field(default_factory=dict)  # humanoid_bone_name -> bone_index
+    inverse_bind_matrices: Optional[np.ndarray] = None  # (N, 4, 4) row-major, one per bone
 
     def get_bone_by_name(self, name: str) -> Optional[Bone]:
         for bone in self.bones:
@@ -632,11 +633,16 @@ class VRMParser:
             skin = skins[0]
             joint_indices = list(skin.get('joints', []))
 
-            # Get inverse bind matrices
+            # Get inverse bind matrices (one per joint in the skin)
             ibm_accessor = skin.get('inverseBindMatrices')
             inverse_bind_matrices = None
+            original_joint_count = len(joint_indices)
             if ibm_accessor is not None:
-                inverse_bind_matrices = self.gltf.get_accessor_data(ibm_accessor)
+                ibm_raw = self.gltf.get_accessor_data(ibm_accessor)
+                # glTF stores mat4 as 16 floats in column-major order.
+                # Reshape to (N, 4, 4) then transpose each matrix to row-major
+                # (matching our convention - we upload with GL_TRUE transpose).
+                inverse_bind_matrices = ibm_raw.reshape(-1, 4, 4).transpose(0, 2, 1).astype(np.float32)
 
             # Save original humanoid map (glTF node indices) before modifying
             # This is critical: we'll modify the map values to bone list indices,
@@ -698,6 +704,20 @@ class VRMParser:
                 if bone.parent_index == -1:
                     self.avatar.skeleton.root_bone_index = i
                     break
+
+            # Store inverse bind matrices on skeleton.
+            # The IBM accessor provides matrices for the original skin joints.
+            # Extra humanoid bones added beyond that get identity matrices.
+            num_bones = len(self.avatar.skeleton.bones)
+            if inverse_bind_matrices is not None:
+                ibm_full = np.zeros((num_bones, 4, 4), dtype=np.float32)
+                # Identity for all bones as default
+                for i in range(num_bones):
+                    ibm_full[i] = np.eye(4, dtype=np.float32)
+                # Copy parsed matrices for original skin joints
+                ibm_count = min(len(inverse_bind_matrices), original_joint_count)
+                ibm_full[:ibm_count] = inverse_bind_matrices[:ibm_count]
+                self.avatar.skeleton.inverse_bind_matrices = ibm_full
 
     def _parse_meshes(self, json_data: Dict[str, Any]):
         """Parse meshes with skinning data."""

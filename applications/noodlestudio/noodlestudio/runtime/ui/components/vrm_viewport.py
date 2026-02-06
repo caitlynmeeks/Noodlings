@@ -225,6 +225,15 @@ if OPENGL_AVAILABLE:
             data     # ctypes handles bytes natively
         )
 
+    # glUniformMatrix4fv for uploading bone matrices
+    _raw_glUniformMatrix4fv = _gl_lib.glUniformMatrix4fv
+    _raw_glUniformMatrix4fv.argtypes = [_ct.c_int, _ct.c_int, _ct.c_uint, _ct.c_void_p]
+    _raw_glUniformMatrix4fv.restype = None
+
+    def _gl_uniform_matrix4fv(location: int, count: int, transpose: bool, data):
+        """Upload mat4 array via raw ctypes (PyOpenGL 3.14 workaround)."""
+        _raw_glUniformMatrix4fv(location, count, 1 if transpose else 0, data)
+
 
 if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
@@ -277,6 +286,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self._mesh: Optional[Dict] = None
             self._skeleton: Optional[Dict] = None
             self._bone_matrices: Optional[np.ndarray] = None
+            self._world_transforms: Optional[List] = None
 
             # Current pose (muscle values)
             self._current_muscles: Dict[str, float] = {}
@@ -357,25 +367,37 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
         def _create_shaders(self):
             """Create shader programs."""
-            # Mesh shader (simplified - no skinning yet for phase 1)
+            # Mesh shader with GPU skeletal skinning
             vertex_mesh = """
             #version 330 core
             layout(location = 0) in vec3 aPos;
             layout(location = 1) in vec3 aNormal;
             layout(location = 2) in vec2 aUV;
+            layout(location = 3) in ivec4 aBoneIndices;
+            layout(location = 4) in vec4 aBoneWeights;
 
             uniform mat4 uModel;
             uniform mat4 uView;
             uniform mat4 uProjection;
+            uniform mat4 uBoneMatrices[128];
 
             out vec3 vNormal;
             out vec3 vWorldPos;
             out vec2 vUV;
 
             void main() {
-                vec4 worldPos = uModel * vec4(aPos, 1.0);
+                // Skeletal skinning: blend bone transforms by vertex weights
+                mat4 skinMatrix = uBoneMatrices[aBoneIndices.x] * aBoneWeights.x
+                                + uBoneMatrices[aBoneIndices.y] * aBoneWeights.y
+                                + uBoneMatrices[aBoneIndices.z] * aBoneWeights.z
+                                + uBoneMatrices[aBoneIndices.w] * aBoneWeights.w;
+
+                vec4 skinnedPos = skinMatrix * vec4(aPos, 1.0);
+                vec3 skinnedNormal = mat3(skinMatrix) * aNormal;
+
+                vec4 worldPos = uModel * skinnedPos;
                 vWorldPos = worldPos.xyz;
-                vNormal = mat3(transpose(inverse(uModel))) * aNormal;
+                vNormal = mat3(transpose(inverse(uModel))) * skinnedNormal;
                 vUV = aUV;
                 gl_Position = uProjection * uView * worldPos;
             }
@@ -567,6 +589,9 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 self._cache_mesh_uniforms()
                 self._create_skeleton_data()
 
+                # Initialize bone matrices to rest pose (identity skinning)
+                self._compute_bone_matrices()
+
                 # Center camera
                 self._center_camera()
 
@@ -614,6 +639,8 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             all_vertices = []
             all_normals = []
             all_uvs = []
+            all_joint_indices = []
+            all_joint_weights = []
             all_indices = []
             self._material_groups = []  # (material_index, byte_offset, index_count)
 
@@ -636,6 +663,27 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                     all_uvs.append(np.asarray(mesh.uvs, dtype=np.float32))
                 else:
                     all_uvs.append(np.zeros((len(vertices), 2), dtype=np.float32))
+
+                # Skinning data: joint indices and weights
+                if mesh.joint_indices is not None:
+                    all_joint_indices.append(
+                        np.asarray(mesh.joint_indices, dtype=np.int32)
+                    )
+                else:
+                    # Fallback: pin to bone 0 (root)
+                    all_joint_indices.append(
+                        np.zeros((len(vertices), 4), dtype=np.int32)
+                    )
+
+                if mesh.joint_weights is not None:
+                    all_joint_weights.append(
+                        np.asarray(mesh.joint_weights, dtype=np.float32)
+                    )
+                else:
+                    # Fallback: full weight on first bone
+                    fallback_weights = np.zeros((len(vertices), 4), dtype=np.float32)
+                    fallback_weights[:, 0] = 1.0
+                    all_joint_weights.append(fallback_weights)
 
                 if mesh.indices is not None:
                     indices = np.asarray(mesh.indices, dtype=np.uint32).flatten() + vertex_offset
@@ -667,6 +715,8 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             vertices = np.vstack(all_vertices)
             normals = np.vstack(all_normals)
             uvs = np.vstack(all_uvs)
+            joint_indices = np.vstack(all_joint_indices)
+            joint_weights = np.vstack(all_joint_weights)
             indices = np.concatenate(all_indices)
 
             logger.info(
@@ -707,6 +757,26 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             GL.glBufferData(GL.GL_ARRAY_BUFFER, uvs.nbytes, uvs, GL.GL_STATIC_DRAW)
             GL.glVertexAttribPointer(2, 2, GL.GL_FLOAT, GL.GL_FALSE, 0, None)
             GL.glEnableVertexAttribArray(2)
+
+            # Bone indices (location 3) - integer attribute
+            vbo_joints = GL.glGenBuffers(1)
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo_joints)
+            GL.glBufferData(
+                GL.GL_ARRAY_BUFFER, joint_indices.nbytes,
+                joint_indices, GL.GL_STATIC_DRAW
+            )
+            GL.glVertexAttribIPointer(3, 4, GL.GL_INT, 0, None)
+            GL.glEnableVertexAttribArray(3)
+
+            # Bone weights (location 4)
+            vbo_weights = GL.glGenBuffers(1)
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo_weights)
+            GL.glBufferData(
+                GL.GL_ARRAY_BUFFER, joint_weights.nbytes,
+                joint_weights, GL.GL_STATIC_DRAW
+            )
+            GL.glVertexAttribPointer(4, 4, GL.GL_FLOAT, GL.GL_FALSE, 0, None)
+            GL.glEnableVertexAttribArray(4)
 
             # Index buffer
             ebo = GL.glGenBuffers(1)
@@ -846,6 +916,8 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 'uRimColor': GL.glGetUniformLocation(prog, "uRimColor"),
                 'uRimPower': GL.glGetUniformLocation(prog, "uRimPower"),
                 'uCameraPos': GL.glGetUniformLocation(prog, "uCameraPos"),
+                # Skeletal skinning
+                'uBoneMatrices': GL.glGetUniformLocation(prog, "uBoneMatrices"),
             }
 
         def _center_camera(self):
@@ -896,14 +968,167 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self.update()
 
         def _apply_pose(self):
-            """Apply current muscle values to skeleton."""
-            if not self._current_muscles:
+            """Apply current muscle values to skeleton via PoseRetargeter.
+
+            Converts muscle values to per-bone euler rotations, then
+            recomputes the bone matrices for GPU skinning.
+            """
+            if not self._avatar or not self._avatar.skeleton:
                 return
 
-            # For Phase 1, we'll skip the retargeter and just store muscles
-            # Phase 2 will implement proper bone matrix computation
-            # TODO: Implement muscle → bone rotation → bone matrices
-            pass
+            if not self._retargeter:
+                from noodlestudio.core.pose_track import PoseRetargeter, PoseState
+                self._retargeter = PoseRetargeter()
+                # PoseRetargeter defaults to lowercase bone names,
+                # which matches VRM humanoid_map keys (e.g. "head", "chest")
+
+            from noodlestudio.core.pose_track import PoseState
+            pose = PoseState(muscles=self._current_muscles)
+            self._bone_rotations = self._retargeter.apply_pose(pose)
+
+            # Recompute bone matrices for GPU upload
+            self._compute_bone_matrices()
+
+        # =====================================================================
+        # Skeletal Skinning: Bone Matrix Computation
+        # =====================================================================
+
+        def _compute_bone_matrices(self):
+            """Compute per-bone skinning matrices for GPU upload.
+
+            For each bone: skinMatrix = worldTransform * inverseBind
+            At rest pose (no rotations applied), this equals identity.
+            """
+            if not self._avatar or not self._avatar.skeleton:
+                return
+
+            skeleton = self._avatar.skeleton
+            num_bones = len(skeleton.bones)
+            ibm = skeleton.inverse_bind_matrices  # (N, 4, 4) or None
+
+            # Compute world transforms by walking hierarchy (parents first)
+            world_transforms = [None] * num_bones
+
+            # BFS from root to ensure parents are processed before children
+            order = []
+            visited = set()
+            queue = [skeleton.root_bone_index]
+            while queue:
+                idx = queue.pop(0)
+                if idx in visited or idx < 0 or idx >= num_bones:
+                    continue
+                visited.add(idx)
+                order.append(idx)
+                queue.extend(skeleton.bones[idx].children)
+
+            # Add any unvisited bones (disconnected from root)
+            for i in range(num_bones):
+                if i not in visited:
+                    order.append(i)
+
+            # Build bone-name-to-index lookup for pose rotations
+            humanoid_to_bone_idx = {}
+            for bone in skeleton.bones:
+                if bone.humanoid_bone:
+                    humanoid_to_bone_idx[bone.humanoid_bone] = bone.index
+
+            for idx in order:
+                bone = skeleton.bones[idx]
+                local = self._bone_local_matrix(bone, humanoid_to_bone_idx)
+
+                if bone.parent_index >= 0 and world_transforms[bone.parent_index] is not None:
+                    world_transforms[idx] = world_transforms[bone.parent_index] @ local
+                else:
+                    world_transforms[idx] = local
+
+            # Compute skinning matrices: world * inverse_bind
+            self._bone_matrices = np.zeros((num_bones, 4, 4), dtype=np.float32)
+            self._world_transforms = world_transforms
+
+            for i in range(num_bones):
+                wt = world_transforms[i]
+                if wt is None:
+                    wt = np.eye(4, dtype=np.float32)
+                if ibm is not None and i < len(ibm):
+                    self._bone_matrices[i] = wt @ ibm[i]
+                else:
+                    self._bone_matrices[i] = wt
+
+        def _bone_local_matrix(self, bone, humanoid_to_bone_idx: Dict) -> np.ndarray:
+            """Build 4x4 local transform matrix for a bone.
+
+            Combines the rest-pose transform (from VRM) with any
+            pose rotation applied via set_muscles().
+            """
+            mat = np.eye(4, dtype=np.float32)
+
+            # Rest-pose rotation (quaternion from VRM)
+            q = bone.transform.rotation
+            rot_rest = self._quat_to_matrix(q.x, q.y, q.z, q.w)
+
+            # Pose rotation overlay (euler degrees from PoseRetargeter)
+            rot_pose = np.eye(3, dtype=np.float32)
+            if self._bone_rotations and bone.humanoid_bone:
+                euler = self._bone_rotations.get(bone.humanoid_bone)
+                if euler:
+                    rot_pose = self._euler_to_matrix(euler[0], euler[1], euler[2])
+
+            # Combined rotation: rest * pose
+            combined_rot = rot_rest @ rot_pose
+
+            # Rest-pose scale
+            s = bone.transform.scale
+            scale = np.diag([s.x, s.y, s.z]).astype(np.float32)
+
+            # Upper-left 3x3: rotation * scale
+            mat[:3, :3] = combined_rot @ scale
+
+            # Translation
+            mat[0, 3] = bone.transform.position.x
+            mat[1, 3] = bone.transform.position.y
+            mat[2, 3] = bone.transform.position.z
+
+            return mat
+
+        @staticmethod
+        def _quat_to_matrix(x: float, y: float, z: float, w: float) -> np.ndarray:
+            """Convert quaternion to 3x3 rotation matrix (row-major)."""
+            x2 = x + x
+            y2 = y + y
+            z2 = z + z
+            xx = x * x2
+            xy = x * y2
+            xz = x * z2
+            yy = y * y2
+            yz = y * z2
+            zz = z * z2
+            wx = w * x2
+            wy = w * y2
+            wz = w * z2
+
+            return np.array([
+                [1 - (yy + zz), xy - wz,       xz + wy],
+                [xy + wz,       1 - (xx + zz),  yz - wx],
+                [xz - wy,       yz + wx,         1 - (xx + yy)],
+            ], dtype=np.float32)
+
+        @staticmethod
+        def _euler_to_matrix(rx: float, ry: float, rz: float) -> np.ndarray:
+            """Convert euler angles (degrees, XYZ order) to 3x3 rotation matrix."""
+            rx_rad = math.radians(rx)
+            ry_rad = math.radians(ry)
+            rz_rad = math.radians(rz)
+
+            cx, sx = math.cos(rx_rad), math.sin(rx_rad)
+            cy, sy = math.cos(ry_rad), math.sin(ry_rad)
+            cz, sz = math.cos(rz_rad), math.sin(rz_rad)
+
+            # Rotation matrix: Rz * Ry * Rx (extrinsic XYZ)
+            return np.array([
+                [cy * cz,  sx * sy * cz - cx * sz,  cx * sy * cz + sx * sz],
+                [cy * sz,  sx * sy * sz + cx * cz,  cx * sy * sz - sx * cz],
+                [-sy,      sx * cy,                  cx * cy],
+            ], dtype=np.float32)
 
         # =====================================================================
         # Public API: Camera
@@ -1056,6 +1281,16 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             ], dtype=np.float32)
             GL.glUniform3fv(locs.get('uCameraPos', -1), 1, cam_pos)
 
+            # Upload bone matrices for skeletal skinning
+            loc_bones = locs.get('uBoneMatrices', -1)
+            if loc_bones >= 0 and self._bone_matrices is not None:
+                # Flatten (N, 4, 4) to contiguous C array and upload
+                flat = np.ascontiguousarray(self._bone_matrices, dtype=np.float32)
+                _gl_uniform_matrix4fv(
+                    loc_bones, len(self._bone_matrices),
+                    True, flat.ctypes.data
+                )
+
             loc_color = locs.get('uColor', -1)
             loc_tex = locs.get('uDiffuseTex', -1)
             loc_has_tex = locs.get('uHasTexture', -1)
@@ -1165,9 +1400,17 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             GL.glBindVertexArray(0)
 
         def _get_bone_world_position(self, bone, all_bones) -> Optional[List[float]]:
-            """Get world position of a bone (rest pose)."""
+            """Get world position of a bone using computed world transforms."""
             try:
-                # Accumulate transforms up the hierarchy
+                # Use precomputed world transforms if available
+                if (hasattr(self, '_world_transforms')
+                        and self._world_transforms
+                        and bone.index < len(self._world_transforms)
+                        and self._world_transforms[bone.index] is not None):
+                    wt = self._world_transforms[bone.index]
+                    return [float(wt[0, 3]), float(wt[1, 3]), float(wt[2, 3])]
+
+                # Fallback: naive position accumulation (pre-skinning path)
                 pos = np.array([
                     bone.transform.position.x,
                     bone.transform.position.y,
