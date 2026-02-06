@@ -333,14 +333,9 @@ def main():
     # Single-instance enforcement (unless --allow-multiple)
     if not args.allow_multiple:
         if not claim_single_instance(app):
-            print("[SingleInstance] NoodleStudio is already running.", flush=True)
-            QMessageBox.warning(
-                None,
-                "NoodleStudio Already Running",
-                "Another instance of NoodleStudio is already running.\n\n"
-                "Use --allow-multiple to override this check."
-            )
-            sys.exit(0)
+            print("[SingleInstance] NoodleStudio is already running. "
+                  "Use --allow-multiple to override.", flush=True)
+            sys.exit(1)
 
     # Install crash reporter and create sentinel
     install_crash_reporter()
