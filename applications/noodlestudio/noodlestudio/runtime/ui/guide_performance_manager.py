@@ -36,9 +36,13 @@
 # ──────────────────────────────────────────────────────────────
 
 import logging
+from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# Well-known guide VRM location relative to project root
+_GUIDE_VRM_RELATIVE = Path("noodlings/guide/Radiances/AjoMajo.vrm")
 
 
 class GuidePerformanceManager:
@@ -155,7 +159,9 @@ class GuidePerformanceManager:
                     f"Could not wire ComputerUseController to GuideCueHandler: {e}"
                 )
 
-        # Load VRM if provided
+        # Load VRM -- use provided path, or auto-discover guide VRM
+        if not vrm_path:
+            vrm_path = self._discover_guide_vrm()
         if vrm_path:
             self._window.set_vrm(vrm_path)
 
@@ -187,6 +193,37 @@ class GuidePerformanceManager:
     def window(self):
         """The current GuidePerformanceWindow (or None)."""
         return self._window
+
+    # =========================================================================
+    # VRM DISCOVERY
+    # =========================================================================
+
+    def _discover_guide_vrm(self) -> Optional[str]:
+        """
+        Auto-discover the guide character VRM file.
+
+        Looks for AjoMajo.vrm at the well-known path relative to the
+        project root (noodlings/guide/Radiances/AjoMajo.vrm).
+
+        Returns:
+            Absolute path to VRM file, or None if not found
+        """
+        # Walk up from this file to find the project root
+        # noodlings_clean/applications/noodlestudio/noodlestudio/runtime/ui/
+        try:
+            studio_dir = Path(__file__).resolve().parent.parent.parent.parent
+            project_root = studio_dir.parent.parent
+
+            vrm_path = project_root / _GUIDE_VRM_RELATIVE
+            if vrm_path.exists():
+                logger.info(f"Auto-discovered guide VRM: {vrm_path}")
+                return str(vrm_path)
+
+            logger.debug(f"Guide VRM not found at {vrm_path}")
+        except Exception as e:
+            logger.debug(f"Could not discover guide VRM: {e}")
+
+        return None
 
     # =========================================================================
     # DEMO MODE

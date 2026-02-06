@@ -312,6 +312,7 @@ class MainWindowPanelsMixin:
         )
         self.noodle_code_panel.set_engine(self.noodle_code_engine)
         center_tabs.insertTab(0, self.noodle_code_panel, "Noodle Code")  # Leftmost
+        center_tabs.setCurrentIndex(0)  # Default to Noodle Code
 
         # Create splitters
         top_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -812,6 +813,14 @@ class MainWindowPanelsMixin:
                 print("Failed to restore last layout, using default panel arrangement")
         else:
             print("No last layout saved, using default panel arrangement")
+
+        # Always default to Noodle Code tab after layout restore
+        center_tabs = getattr(self, 'center_tabs', None)
+        if center_tabs:
+            for i in range(center_tabs.count()):
+                if center_tabs.tabText(i) == "Noodle Code":
+                    center_tabs.setCurrentIndex(i)
+                    break
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.

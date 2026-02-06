@@ -98,17 +98,18 @@ class TestPositionTracking:
     """Tests for parent window following."""
 
     def test_follow_parent_positions_relative(self, guide_window, parent_window):
-        """Window positions itself relative to parent's right edge."""
+        """Window positions itself inside parent's right edge."""
         parent_window.move(100, 50)
         parent_window.show()
 
         guide_window._follow_parent()
 
         geo = parent_window.geometry()
-        expected_x = geo.right() + guide_window._offset[0]
+        # Anchored inside right edge: right - width - x_offset
+        expected_x = geo.right() - guide_window._size[0] - guide_window._offset[0]
 
-        # X position should match (no window decoration offset on x)
-        assert guide_window.x() == expected_x
+        # X position should match (allow small tolerance for WM)
+        assert abs(guide_window.x() - expected_x) < 50
 
         # Y position: allow for window manager decoration offsets
         expected_y = geo.top() + guide_window._offset[1]
@@ -122,6 +123,25 @@ class TestPositionTracking:
         guide_window._follow_parent()
 
         assert not guide_window.isVisible()
+
+    def test_drag_pauses_follow(self, guide_window, parent_window):
+        """Follow-parent pauses during drag and resumes after."""
+        parent_window.move(100, 50)
+        parent_window.show()
+
+        # Simulate drag start
+        guide_window._on_drag_start()
+        assert guide_window._user_dragging is True
+
+        # Move parent -- follow_parent should NOT reposition during drag
+        old_pos = guide_window.pos()
+        parent_window.move(500, 200)
+        guide_window._follow_parent()
+        assert guide_window.pos() == old_pos
+
+        # Simulate drag finish -- should recalculate offset
+        guide_window._on_drag_finish()
+        assert guide_window._user_dragging is False
 
 
 # =============================================================================

@@ -22,4 +22,5 @@ echo "Press Ctrl+C to stop"
 echo ""
 
 # Launch with venv python and output to both terminal and log file
-"$PROJECT_ROOT/venv/bin/python3" -m noodlestudio.main 2>&1 | tee "$LOGFILE"
+# Forward all CLI arguments (--play, --execute, --no-splash, etc.)
+"$PROJECT_ROOT/venv/bin/python3" -m noodlestudio.main "$@" 2>&1 | tee "$LOGFILE"

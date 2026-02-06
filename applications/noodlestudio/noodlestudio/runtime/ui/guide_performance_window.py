@@ -128,9 +128,16 @@ if QT_AVAILABLE:
 if QT_AVAILABLE:
 
     class _DraggableHeader(QLabel):
-        """Header label that supports window dragging."""
+        """Header label that supports window dragging.
+
+        Coordinates with GuidePerformanceWindow to pause follow-parent
+        tracking during drag and recalculate offset on release so the
+        window stays at the user-chosen position relative to the parent.
+        """
 
         closeClicked = pyqtSignal()
+        dragStarted = pyqtSignal()
+        dragFinished = pyqtSignal()
 
         def __init__(self, text: str = "", parent=None):
             super().__init__(text, parent)
@@ -142,6 +149,7 @@ if QT_AVAILABLE:
                     event.globalPosition().toPoint()
                     - self.window().frameGeometry().topLeft()
                 )
+                self.dragStarted.emit()
             super().mousePressEvent(event)
 
         def mouseMoveEvent(self, event: QMouseEvent):
@@ -155,6 +163,7 @@ if QT_AVAILABLE:
         def mouseReleaseEvent(self, event: QMouseEvent):
             if event.button() == Qt.MouseButton.LeftButton:
                 self.drag_position = None
+                self.dragFinished.emit()
             super().mouseReleaseEvent(event)
 
 
@@ -272,6 +281,9 @@ if QT_AVAILABLE:
             self.worker = None
             self._guide_cue_handler = None
 
+            # Drag state -- pauses follow-parent during user drag
+            self._user_dragging = False
+
             # Streaming state
             self._current_response = ""
             self._response_started = False
@@ -328,6 +340,8 @@ if QT_AVAILABLE:
                 font-weight: bold;
                 background: transparent;
             """)
+            self.header_label.dragStarted.connect(self._on_drag_start)
+            self.header_label.dragFinished.connect(self._on_drag_finish)
             header_layout.addWidget(self.header_label, stretch=1)
 
             close_btn = QPushButton("x")
@@ -772,13 +786,33 @@ if QT_AVAILABLE:
         # POSITION TRACKING
         # =====================================================================
 
+        def _on_drag_start(self):
+            """Pause follow-parent while user drags the window."""
+            self._user_dragging = True
+
+        def _on_drag_finish(self):
+            """Recalculate offset from parent after user drag, then resume tracking."""
+            if self.parent_window:
+                geo = self.parent_window.geometry()
+                pos = self.pos()
+                # Recalculate offset so window stays at user-chosen position
+                self._offset = (
+                    geo.right() - pos.x() - self._size[0],
+                    pos.y() - geo.top()
+                )
+            self._user_dragging = False
+
         def _follow_parent(self):
-            """Update position to follow parent window (anchored to right edge)."""
+            """Update position to follow parent window (anchored inside right edge)."""
+            if self._user_dragging:
+                return
+
             if self.parent_window and self.parent_window.isVisible():
                 geo = self.parent_window.geometry()
 
-                # Anchor to right edge of parent window
-                x = geo.right() + self._offset[0]
+                # Anchor inside the right edge of the parent window
+                # Inset from the right so it's visible even when maximized
+                x = geo.right() - self._size[0] - self._offset[0]
                 y = geo.top() + self._offset[1]
                 self.move(x, y)
 

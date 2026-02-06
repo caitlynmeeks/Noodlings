@@ -388,8 +388,8 @@ def main():
     window.showMaximized()
 
     # Show crash recovery dialog if previous session crashed
-    # Skip if running with --execute (automated mode)
-    if previous_crash and not args.execute:
+    # Skip if running with --execute or --play (automated mode)
+    if previous_crash and not args.execute and not args.play:
         show_crash_recovery_dialog(window)
 
     # Check for soft restart state and restore
@@ -440,24 +440,16 @@ def main():
                 return
 
             play_path = Path(args.play).resolve()
-            if not play_path.exists():
-                print(f"[CLI] Error: Play file not found: {play_path}", flush=True)
-                return
+            if play_path.exists():
+                # Extract play title from filename
+                play_title = play_path.stem.replace('_', ' ').replace('-', ' ').title()
+            else:
+                # Treat the argument as a play title directly (no file needed)
+                play_title = args.play
 
-            print(f"[CLI] Launching guided play: {play_path}", flush=True)
-
-            # Extract play title from filename
-            play_title = play_path.stem.replace('_', ' ').replace('-', ' ').title()
+            print(f"[CLI] Launching guided play: {play_title}", flush=True)
             manager.start_performance(play_title)
-
-            # Load the play via NoodleApp's director system if available
-            try:
-                from noodlestudio.runtime.app import NoodleApp
-                # The NoodleApp integration is handled separately
-                # For now, the performance window is up and ready
-                print(f"[CLI] Performance window active: {play_title}", flush=True)
-            except ImportError:
-                pass
+            print(f"[CLI] Performance window active: {play_title}", flush=True)
 
         # Delay to allow guide_performance_manager to initialize (timer at 900ms)
         QTimer.singleShot(5000, launch_guided_play)
