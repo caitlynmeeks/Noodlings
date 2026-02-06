@@ -49,7 +49,6 @@ from noodlestudio.main import (
     remove_sentinel,
     check_for_crash,
     save_crash_info,
-    is_another_instance_running,
     claim_single_instance,
 )
 
@@ -368,18 +367,17 @@ class TestSingleInstance:
         yield
         QLocalServer.removeServer(SINGLE_INSTANCE_KEY)
 
-    def test_no_instance_running_initially(self, qapp):
-        """No instance should be detected when server is not running."""
-        assert is_another_instance_running() is False
-
     def test_claim_succeeds_when_none_running(self, qapp):
         """Claiming the lock succeeds when no other instance holds it."""
         assert claim_single_instance(qapp) is True
 
-    def test_detect_running_instance(self, qapp):
-        """Detect an already-running instance after claiming the lock."""
+    def test_second_claim_fails(self, qapp):
+        """Second claim fails when first instance holds the lock."""
         assert claim_single_instance(qapp) is True
-        assert is_another_instance_running() is True
+        # A second claim in the same process should fail
+        from PyQt6.QtNetwork import QLocalServer
+        second_server = QLocalServer(qapp)
+        assert second_server.listen(SINGLE_INSTANCE_KEY) is False
 
     def test_parse_args_allow_multiple(self):
         """--allow-multiple flag is parsed correctly."""

@@ -69,11 +69,12 @@ if QT_AVAILABLE:
         chunk_received = pyqtSignal(dict)
         finished_signal = pyqtSignal()
 
-        def __init__(self, engine, message: str, system_addition: str = ""):
+        def __init__(self, engine, message: str,
+                     system_prompt_override: str = ""):
             super().__init__()
             self.engine = engine
             self.message = message
-            self.system_addition = system_addition
+            self.system_prompt_override = system_prompt_override
             self._running = True
 
         def run(self):
@@ -88,17 +89,11 @@ if QT_AVAILABLE:
         async def _process_message(self):
             """Process message and emit chunks."""
             try:
-                # Prepend guide direction as system context
-                effective_message = self.message
-                if self.system_addition:
-                    effective_message = (
-                        f"[SYSTEM CONTEXT - Guide Direction]\n"
-                        f"{self.system_addition}\n"
-                        f"[END SYSTEM CONTEXT]\n\n"
-                        f"{self.message}"
-                    )
+                kwargs = {}
+                if self.system_prompt_override:
+                    kwargs["system_prompt_override"] = self.system_prompt_override
 
-                async for chunk in self.engine.send_message(effective_message):
+                async for chunk in self.engine.send_message(self.message, **kwargs):
                     if not self._running:
                         break
                     self.chunk_received.emit({
@@ -670,6 +665,31 @@ if QT_AVAILABLE:
         # SENDING MESSAGES
         # =====================================================================
 
+        def _build_guide_system_prompt(self, direction: str) -> str:
+            """
+            Build a complete system prompt for Guide mode.
+
+            Replaces the NoodleCode persona with the Guide character
+            identity and injects Brenda's current direction.
+
+            Args:
+                direction: Output from GuideCueHandler.build_system_prompt_addition()
+
+            Returns:
+                Complete system prompt string for the LLM
+            """
+            return f"""You are Guide (also known as Ajo Majo), a friendly character in NoodleStudio.
+
+You are NOT NoodleCode. You are a warm, curious tutor who genuinely loves sharing
+the world of noodlings and NoodleStudio with new users. You have your own personality
+-- you're enthusiastic but not pushy, knowledgeable but approachable.
+
+Keep your responses conversational and relatively concise. You're having a real
+conversation, not giving a lecture. Use natural language, not bullet points or
+markdown formatting.
+
+{direction}"""
+
         def _on_send(self):
             """Handle user pressing Enter or clicking Send."""
             message = self.input_field.text().strip()
@@ -694,13 +714,17 @@ if QT_AVAILABLE:
             self._current_response = ""
             self._response_started = False
 
-            # Get guide direction for system prompt
-            system_addition = ""
+            # Build Guide system prompt (replaces NoodleCode persona entirely)
+            system_prompt_override = ""
             if self._guide_cue_handler:
-                system_addition = self._guide_cue_handler.build_system_prompt_addition()
+                direction = self._guide_cue_handler.build_system_prompt_addition()
+                system_prompt_override = self._build_guide_system_prompt(direction)
+                print(f"[GuideWindow] Guide prompt built, mode={self._guide_cue_handler.state.mode}, "
+                      f"has_cue={self._guide_cue_handler.state.current_cue is not None}, "
+                      f"prompt_len={len(system_prompt_override)}", flush=True)
 
             # Start async worker
-            self.worker = _GuideAsyncWorker(self.engine, message, system_addition)
+            self.worker = _GuideAsyncWorker(self.engine, message, system_prompt_override)
             self.worker.chunk_received.connect(self._on_chunk)
             self.worker.finished_signal.connect(self._on_finished)
             self.worker.start()

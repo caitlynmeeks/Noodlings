@@ -132,26 +132,13 @@ def remove_sentinel():
         print(f"Could not remove sentinel file: {e}")
 
 
-def is_another_instance_running() -> bool:
-    """
-    Check if another NoodleStudio instance is already running.
-
-    Uses QLocalSocket to probe for an existing QLocalServer. This is the
-    standard Qt pattern for single-instance enforcement -- reliable across
-    platforms and immune to stale PID files.
-
-    Returns True if another instance is listening.
-    """
-    probe = QLocalSocket()
-    probe.connectToServer(SINGLE_INSTANCE_KEY)
-    running = probe.waitForConnected(500)
-    probe.disconnectFromServer()
-    return running
-
-
 def claim_single_instance(app: QApplication) -> bool:
     """
-    Claim the single-instance lock by starting a QLocalServer.
+    Atomically claim the single-instance lock by starting a QLocalServer.
+
+    This is the standard Qt pattern for single-instance enforcement. The
+    server attempt IS the check -- if listen() fails, another instance is
+    already running. No separate probe needed (avoids TOCTTOU race).
 
     If a stale server socket exists (e.g. from a crash), removes it
     and retries. The server is kept alive for the duration of the
@@ -164,14 +151,29 @@ def claim_single_instance(app: QApplication) -> bool:
     """
     global _instance_server
 
-    # Remove any stale socket left by a crashed session
-    QLocalServer.removeServer(SINGLE_INSTANCE_KEY)
-
     _instance_server = QLocalServer(app)
+
+    # First attempt -- will fail if another live instance holds the lock,
+    # or if a stale socket exists from a crashed session.
     if _instance_server.listen(SINGLE_INSTANCE_KEY):
         return True
 
-    # Listen failed -- another instance may have started between probe and claim
+    # Listen failed. Probe to distinguish "live instance" from "stale socket".
+    probe = QLocalSocket()
+    probe.connectToServer(SINGLE_INSTANCE_KEY)
+    if probe.waitForConnected(500):
+        # Another instance is genuinely running
+        probe.disconnectFromServer()
+        _instance_server = None
+        return False
+
+    # Stale socket from a crash -- remove it and retry once
+    probe.disconnectFromServer()
+    QLocalServer.removeServer(SINGLE_INSTANCE_KEY)
+
+    if _instance_server.listen(SINGLE_INSTANCE_KEY):
+        return True
+
     print(f"[SingleInstance] Could not claim lock: {_instance_server.errorString()}")
     _instance_server = None
     return False
@@ -330,7 +332,7 @@ def main():
 
     # Single-instance enforcement (unless --allow-multiple)
     if not args.allow_multiple:
-        if is_another_instance_running():
+        if not claim_single_instance(app):
             print("[SingleInstance] NoodleStudio is already running.", flush=True)
             QMessageBox.warning(
                 None,
@@ -339,10 +341,6 @@ def main():
                 "Use --allow-multiple to override this check."
             )
             sys.exit(0)
-
-        if not claim_single_instance(app):
-            print("[SingleInstance] Could not claim instance lock.", flush=True)
-            sys.exit(1)
 
     # Install crash reporter and create sentinel
     install_crash_reporter()
@@ -443,12 +441,14 @@ def main():
             if play_path.exists():
                 # Extract play title from filename
                 play_title = play_path.stem.replace('_', ' ').replace('-', ' ').title()
+                play_file = str(play_path)
             else:
                 # Treat the argument as a play title directly (no file needed)
                 play_title = args.play
+                play_file = None
 
             print(f"[CLI] Launching guided play: {play_title}", flush=True)
-            manager.start_performance(play_title)
+            manager.start_performance(play_title, play_path=play_file)
             print(f"[CLI] Performance window active: {play_title}", flush=True)
 
         # Delay to allow guide_performance_manager to initialize (timer at 900ms)

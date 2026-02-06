@@ -430,7 +430,8 @@ class TestTriggers:
         brenda.load_play(simple_play_path)
         brenda.start()
 
-        # Complete beat_1
+        # Complete beat_1 (clear gate to simulate actor feedback)
+        brenda.state.awaiting_actor_response = False
         brenda.state.completed_beats.append('beat_1')
         brenda.tick()
 
@@ -445,18 +446,21 @@ class TestTriggers:
         brenda.start()
 
         # First advance through beat_1 -> beat_2 (sequence trigger)
+        brenda.state.awaiting_actor_response = False
         brenda.state.completed_beats.append('beat_1')
         brenda.tick()
         assert brenda.state.current_beat_id == 'beat_2'
 
         # Now we're on beat_2, and beat_3 has a delay trigger
         # Before delay expires, should stay on beat_2
+        brenda.state.awaiting_actor_response = False
         brenda.tick()
         assert brenda.state.current_beat_id == 'beat_2'
 
         # Simulate time passing (delay of 1 second on beat_3)
         # Set current beat's start time in the past
         brenda.state.beat_start_times['beat_2'] = time.time() - 2.0
+        brenda.state.awaiting_actor_response = False
         brenda.state.completed_beats.append('beat_2')
 
         brenda.tick()
@@ -475,7 +479,8 @@ class TestTriggers:
         # Initial arousal 0.7 + 0.2 = 0.9 > 0.85
         assert brenda.state.character_states['toad']['arousal'] == pytest.approx(0.9, 0.01)
 
-        # Complete beat_1
+        # Complete beat_1 (clear gate to simulate actor feedback)
+        brenda.state.awaiting_actor_response = False
         brenda.state.completed_beats.append('beat_1')
         brenda.tick()
 
@@ -495,7 +500,8 @@ class TestTriggers:
         assert brenda.state.waiting_for is not None
         assert brenda.state.waiting_for['type'] == 'user_choice'
 
-        # Simulate user choosing tour
+        # Simulate user choosing tour (clear gate first)
+        brenda.state.awaiting_actor_response = False
         channel_bus.publish_simple(CHANNEL_USER_INPUT, {'text': 'show me around'})
 
         brenda.tick()
@@ -512,14 +518,16 @@ class TestTriggers:
         # Should be in improv zone
         assert brenda.state.active_improv_zone is not None
 
-        # Simulate max exchanges
+        # Simulate max exchanges (clear gate to allow processing)
+        brenda.state.awaiting_actor_response = False
         for i in range(3):
             channel_bus.publish_simple(CHANNEL_USER_INPUT, {'text': f'message {i}'})
 
         # Improv zone should exit
         assert brenda.state.active_improv_zone is None
 
-        # Complete improv beat
+        # Complete improv beat (clear gate)
+        brenda.state.awaiting_actor_response = False
         brenda.state.completed_beats.append('improv_beat')
         brenda.tick()
 
@@ -573,6 +581,8 @@ class TestUserInputHandling:
         assert brenda.state.waiting_for is not None
 
         # Set wait start time in the past (beyond 10 second timeout)
+        # Clear gate so tick() can process
+        brenda.state.awaiting_actor_response = False
         brenda.state.wait_start_time = time.time() - 15
 
         brenda.tick()
@@ -581,6 +591,7 @@ class TestUserInputHandling:
         assert brenda.state.waiting_for is None
 
         # Now tick again - should advance to tour_start due to user_choice trigger
+        brenda.state.awaiting_actor_response = False
         brenda.state.completed_beats.append('offer_choice')
         brenda.tick()
 
@@ -753,7 +764,8 @@ class TestIntegration:
         assert len(cues_received) >= 1
         assert cues_received[0].payload['beat_id'] == 'offer_choice'
 
-        # User chooses tour
+        # User chooses tour (clear gate to simulate actor feedback)
+        brenda.state.awaiting_actor_response = False
         channel_bus.publish_simple(CHANNEL_USER_INPUT, {'text': 'Show me around'})
         brenda.tick()
 

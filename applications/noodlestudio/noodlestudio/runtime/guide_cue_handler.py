@@ -264,6 +264,8 @@ class GuideCueHandler:
         if target and target != self.noodling_id:
             return  # Not for us
 
+        print(f"[GuideCueHandler] Received cue: beat={cue.get('beat_name')}, "
+              f"target={cue.get('target_actor')}", flush=True)
         logger.info(f"[{self.noodling_id}] Received cue: {cue.get('beat_name')}")
 
         # Store cue

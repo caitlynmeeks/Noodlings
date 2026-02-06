@@ -36,8 +36,15 @@
 # ──────────────────────────────────────────────────────────────
 
 import logging
+import time
 from pathlib import Path
 from typing import Optional
+
+from PyQt6.QtCore import QTimer
+
+from ..channels import ChannelBus, ChannelMessage
+from ..brenda import BrendaDirector, CHANNEL_USER_INPUT
+from ..guide_cue_handler import GuideCueHandler
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +83,11 @@ class GuidePerformanceManager:
         self._guide_cue_handler = None
         self._noodle_code_panel = None
 
+        # Play system (created per-performance when play_path is provided)
+        self._channel_bus = None
+        self._director = None      # BrendaDirector
+        self._tick_timer = None    # QTimer for Brenda.tick()
+
         logger.info("GuidePerformanceManager initialized")
 
     # =========================================================================
@@ -113,16 +125,20 @@ class GuidePerformanceManager:
     # PERFORMANCE LIFECYCLE
     # =========================================================================
 
-    def start_performance(self, play_title: str, vrm_path: Optional[str] = None):
+    def start_performance(self, play_title: str, vrm_path: Optional[str] = None,
+                          play_path: Optional[str] = None):
         """
         Start a guided performance.
 
-        Creates the floating window, enables demo mode, and wires
-        up the guide cue handler.
+        Creates the floating window, enables demo mode, and optionally
+        loads a .play.yaml via BrendaDirector + GuideCueHandler.
 
         Args:
             play_title: Title displayed in the window header
             vrm_path: Optional path to VRM character file
+            play_path: Optional path to .play.yaml file. When provided,
+                       creates the full play pipeline (ChannelBus ->
+                       BrendaDirector -> GuideCueHandler -> window).
         """
         if self._window:
             logger.warning("Performance already active, stopping first")
@@ -130,6 +146,10 @@ class GuidePerformanceManager:
 
         # Enable demo mode on ComputerUseController
         self._set_demo_mode(True)
+
+        # --- Set up play pipeline if play_path provided ---
+        if play_path:
+            self._setup_play_pipeline(play_path)
 
         # Create the floating performance window
         from .guide_performance_window import GuidePerformanceWindow
@@ -143,7 +163,7 @@ class GuidePerformanceManager:
         if self._engine:
             self._window.set_engine(self._engine)
 
-        # Wire guide cue handler
+        # Wire guide cue handler (may have been set externally or by _setup_play_pipeline)
         if self._guide_cue_handler:
             self._window.set_guide_cue_handler(self._guide_cue_handler)
 
@@ -159,6 +179,10 @@ class GuidePerformanceManager:
                     f"Could not wire ComputerUseController to GuideCueHandler: {e}"
                 )
 
+        # Connect user input to channel bus for Brenda tracking
+        if self._channel_bus and hasattr(self._window, 'messageSent') and self._window.messageSent:
+            self._window.messageSent.connect(self._on_user_message)
+
         # Load VRM -- use provided path, or auto-discover guide VRM
         if not vrm_path:
             vrm_path = self._discover_guide_vrm()
@@ -170,14 +194,87 @@ class GuidePerformanceManager:
 
         self._window.show()
 
+        # Start Brenda after window is visible (so first cue arrives with UI ready)
+        if self._director:
+            self._director.start()
+            print(f"[GuidePerformance] Brenda directing: {play_title}", flush=True)
+
         logger.info(f"Performance started: {play_title}")
+
+    def _setup_play_pipeline(self, play_path: str):
+        """
+        Create the full play pipeline: ChannelBus -> BrendaDirector -> GuideCueHandler.
+
+        Args:
+            play_path: Path to the .play.yaml file
+        """
+        path = Path(play_path)
+        if not path.exists():
+            print(f"[GuidePerformance] Play file not found: {play_path}", flush=True)
+            return
+
+        # Create channel bus for this performance
+        self._channel_bus = ChannelBus()
+
+        # Create and load Brenda
+        self._director = BrendaDirector(self._channel_bus)
+        if not self._director.load_play(str(path)):
+            print(f"[GuidePerformance] Failed to load play: {play_path}", flush=True)
+            self._director = None
+            self._channel_bus = None
+            return
+
+        # Create guide cue handler on the same bus
+        self._guide_cue_handler = GuideCueHandler(self._channel_bus, "guide")
+
+        # Start tick timer for Brenda (200ms interval)
+        self._tick_timer = QTimer()
+        self._tick_timer.timeout.connect(self._director.tick)
+        self._tick_timer.start(200)
+
+        print(f"[GuidePerformance] Play pipeline ready: {path.stem}", flush=True)
+
+    def _on_user_message(self, message: str):
+        """
+        Forward user message to the channel bus so Brenda can track it.
+
+        Args:
+            message: The user's message text
+        """
+        if not self._channel_bus:
+            return
+
+        self._channel_bus.publish(
+            CHANNEL_USER_INPUT,
+            ChannelMessage(
+                channel=CHANNEL_USER_INPUT,
+                from_noodling="user",
+                timestamp=time.time(),
+                payload={"text": message}
+            )
+        )
 
     def stop_performance(self):
         """
         Stop the current performance.
 
-        Closes the floating window, disables demo mode, and cleans up.
+        Closes the floating window, stops Brenda, disables demo mode,
+        and tears down the play pipeline.
         """
+        # Stop Brenda tick timer
+        if self._tick_timer:
+            self._tick_timer.stop()
+            self._tick_timer = None
+
+        # Stop director
+        if self._director:
+            self._director.stop()
+            self._director = None
+
+        # Clear play pipeline references
+        self._channel_bus = None
+        self._guide_cue_handler = None
+
         if self._window:
             self._window.close()
             self._window = None

@@ -455,9 +455,16 @@ Project path: {self.project_path}"""
 
         return messages
 
-    async def send_message(self, user_message: str) -> AsyncIterator[StreamChunk]:
+    async def send_message(self, user_message: str,
+                           system_prompt_override: Optional[str] = None) -> AsyncIterator[StreamChunk]:
         """
         Send a message and stream the response.
+
+        Args:
+            user_message: The user's message text.
+            system_prompt_override: If provided, replaces the default
+                NoodleCode system prompt entirely. Used by Guide mode
+                to establish a different persona for the LLM.
 
         Yields StreamChunk objects as response is generated.
         """
@@ -476,7 +483,8 @@ Project path: {self.project_path}"""
             response_text = ""
             tool_calls = []
 
-            async for chunk in self._call_llm(provider_type, model_id, base_url, api_key):
+            async for chunk in self._call_llm(provider_type, model_id, base_url, api_key,
+                                                system_prompt_override=system_prompt_override):
                 if chunk.type == "text":
                     response_text += chunk.content
                     yield chunk
@@ -558,15 +566,17 @@ Project path: {self.project_path}"""
         provider_type: str,
         model_id: str,
         base_url: str,
-        api_key: Optional[str]
+        api_key: Optional[str],
+        system_prompt_override: Optional[str] = None
     ) -> AsyncIterator[StreamChunk]:
         """Call the LLM API and stream response."""
+        system_prompt = system_prompt_override or self._build_system_prompt()
 
         if provider_type == "anthropic":
-            async for chunk in self._call_anthropic(model_id, api_key):
+            async for chunk in self._call_anthropic(model_id, api_key, system_prompt):
                 yield chunk
         elif provider_type in ["openai", "openrouter", "ollama"]:
-            async for chunk in self._call_openai_compatible(model_id, base_url, api_key, provider_type):
+            async for chunk in self._call_openai_compatible(model_id, base_url, api_key, provider_type, system_prompt):
                 yield chunk
         else:
             yield StreamChunk(type="error", content=f"Unsupported provider type: {provider_type}")
@@ -574,7 +584,8 @@ Project path: {self.project_path}"""
     async def _call_anthropic(
         self,
         model_id: str,
-        api_key: Optional[str]
+        api_key: Optional[str],
+        system_prompt: str = ""
     ) -> AsyncIterator[StreamChunk]:
         """Call Anthropic API with tool use."""
 
@@ -588,7 +599,7 @@ Project path: {self.project_path}"""
         payload = {
             "model": model_id,
             "max_tokens": 4096,
-            "system": self._build_system_prompt(),
+            "system": system_prompt,
             "messages": messages,
             "tools": tools,
             "stream": True
@@ -677,11 +688,12 @@ Project path: {self.project_path}"""
         model_id: str,
         base_url: str,
         api_key: Optional[str],
-        provider_type: str
+        provider_type: str,
+        system_prompt: str = ""
     ) -> AsyncIterator[StreamChunk]:
         """Call OpenAI-compatible API (OpenAI, OpenRouter, Ollama, etc.)."""
 
-        messages = [{"role": "system", "content": self._build_system_prompt()}]
+        messages = [{"role": "system", "content": system_prompt}]
 
         # Convert history to OpenAI format
         for msg in self.history:

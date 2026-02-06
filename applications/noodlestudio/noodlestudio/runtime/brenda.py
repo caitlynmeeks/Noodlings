@@ -119,6 +119,10 @@ class PlayState:
     beat_start_times: Dict[str, float] = field(default_factory=dict)
     wait_start_time: float = 0.0
 
+    # Actor response gate -- blocks trigger evaluation until actors respond
+    awaiting_actor_response: bool = False
+    awaiting_actor_response_since: float = 0.0
+
     def reset(self):
         """Reset state for a new performance."""
         self.current_beat_id = None
@@ -132,6 +136,8 @@ class PlayState:
         self.exchange_count = 0
         self.beat_start_times = {}
         self.wait_start_time = 0.0
+        self.awaiting_actor_response = False
+        self.awaiting_actor_response_since = 0.0
 
 
 # =============================================================================
@@ -262,6 +268,16 @@ class BrendaDirector:
         """
         if not self._running or not self.play_data:
             return
+
+        # Gate: don't advance while waiting for actor to respond
+        if self.state.awaiting_actor_response:
+            # Safety timeout: 120 seconds max wait
+            elapsed = time.time() - self.state.awaiting_actor_response_since
+            if elapsed < 120.0:
+                return
+            # Timeout -- force advance
+            print(f"[Brenda] Actor response timeout after {elapsed:.0f}s, advancing", flush=True)
+            self.state.awaiting_actor_response = False
 
         # Check timeout on wait_for
         if self.state.waiting_for:
@@ -676,7 +692,9 @@ class BrendaDirector:
                 self._on_mode_change(new_mode)
 
     def _send_cue(self, cue: Dict):
-        """Publish a cue to #directors.cues."""
+        """Publish a cue to #directors.cues and wait for actor response."""
+        print(f"[Brenda] Sending cue -> {cue.get('target_actor')}: "
+              f"beat={cue.get('beat_name')}, direction={cue.get('direction', '')[:60]}...", flush=True)
         self.channel_bus.publish(
             CHANNEL_CUES,
             ChannelMessage(
@@ -686,6 +704,11 @@ class BrendaDirector:
                 payload=cue
             )
         )
+
+        # Gate: wait for actor feedback before advancing to next beat
+        self.state.awaiting_actor_response = True
+        self.state.awaiting_actor_response_since = time.time()
+
         logger.debug(f"[Brenda] Sent cue to {cue.get('target_actor')}: {cue.get('beat_name')}")
 
     def _send_quick_response(self, text: str):
@@ -805,15 +828,20 @@ class BrendaDirector:
 
         payload = message.payload
         actor_id = payload.get('actor_id')
+        status = payload.get('status')
 
-        logger.debug(f"[Brenda] Received feedback from {actor_id}: {payload.get('status')}")
+        print(f"[Brenda] Feedback from {actor_id}: status={status}, "
+              f"beat={payload.get('beat_id')}", flush=True)
 
         # Update character state from feedback
         if actor_id and payload.get('emotional_state'):
             self.state.character_states[actor_id] = payload['emotional_state']
 
+        # Actor responded -- clear the gate
+        self.state.awaiting_actor_response = False
+
         # Check if beat completed
-        if payload.get('status') == 'completed':
+        if status == 'completed':
             beat_id = payload.get('beat_id')
             if beat_id == self.state.current_beat_id:
                 # Current beat completed, check what's next
