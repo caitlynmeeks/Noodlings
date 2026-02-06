@@ -178,6 +178,9 @@ class ModelLabelManager(QObject):
         """
         Get label assigned to a (provider, model) pair (reverse lookup).
 
+        Returns the first label found. For multi-label lookups, use
+        get_labels_for_model() instead.
+
         Args:
             provider_id: Provider ID (e.g., "ollama")
             model_name: Model name (e.g., "deepseek-r1:7b")
@@ -188,11 +191,31 @@ class ModelLabelManager(QObject):
         for label in self.get_all_labels():
             p, m = self.get_model_for_label(label)
             if p == provider_id and m == model_name:
-                # print(f"DEBUG get_label_for_model: {provider_id}/{model_name} -> '{label}'")
                 return label
 
-        # print(f"DEBUG get_label_for_model: {provider_id}/{model_name} -> None (not found)")
         return None
+
+    def get_labels_for_model(self, provider_id: str, model_name: str) -> List[str]:
+        """
+        Get ALL labels assigned to a (provider, model) pair.
+
+        Multiple labels can point to the same model (many-to-one).
+        For example, a single model can be assigned to both "Large"
+        and "Noodle Code" simultaneously.
+
+        Args:
+            provider_id: Provider ID (e.g., "anthropic")
+            model_name: Model name (e.g., "claude-opus-4-5-20250220")
+
+        Returns:
+            List of label names (empty if no labels assigned)
+        """
+        labels = []
+        for label in self.get_all_labels():
+            p, m = self.get_model_for_label(label)
+            if p == provider_id and m == model_name:
+                labels.append(label)
+        return labels
 
     def get_all_labels(self) -> List[str]:
         """

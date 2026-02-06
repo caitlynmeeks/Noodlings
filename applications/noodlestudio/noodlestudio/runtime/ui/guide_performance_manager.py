@@ -163,7 +163,10 @@ class GuidePerformanceManager:
         if not vrm_path:
             vrm_path = self._discover_guide_vrm()
         if vrm_path:
+            print(f"[GuidePerformance] Loading VRM: {vrm_path}", flush=True)
             self._window.set_vrm(vrm_path)
+        else:
+            print("[GuidePerformance] No VRM found", flush=True)
 
         self._window.show()
 
@@ -216,10 +219,10 @@ class GuidePerformanceManager:
 
             vrm_path = project_root / _GUIDE_VRM_RELATIVE
             if vrm_path.exists():
-                logger.info(f"Auto-discovered guide VRM: {vrm_path}")
+                print(f"[GuidePerformance] Auto-discovered VRM: {vrm_path}", flush=True)
                 return str(vrm_path)
 
-            logger.debug(f"Guide VRM not found at {vrm_path}")
+            print(f"[GuidePerformance] VRM not found at {vrm_path}", flush=True)
         except Exception as e:
             logger.debug(f"Could not discover guide VRM: {e}")
 

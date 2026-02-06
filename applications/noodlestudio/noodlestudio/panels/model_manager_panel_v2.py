@@ -41,10 +41,10 @@ from typing import Optional, Dict, List
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QProgressBar, QScrollArea, QFrame, QMessageBox, QComboBox,
-    QLineEdit, QDialog, QFormLayout, QSpinBox, QSplitter
+    QLineEdit, QDialog, QFormLayout, QSpinBox, QSplitter, QMenu
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush
+from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QAction
 
 from ..core.model_label_manager import get_model_label_manager
 from ..core.provider_manager import get_provider_manager, ProviderConfig
@@ -534,67 +534,27 @@ class ModelRow(QFrame):
 
         layout.addStretch()
 
-        # "Use as" dropdown
-        self.label_combo = QComboBox()
-        self.label_combo.setStyleSheet("""
-            QComboBox {
+        # Multi-label assignment button (opens checkable menu)
+        self._assigned_labels: List[str] = []
+        self._all_labels: List[str] = []
+
+        self.label_button = QPushButton("(None)")
+        self.label_button.setStyleSheet("""
+            QPushButton {
                 background: #3e3e3e;
                 color: #D2D2D2;
                 border: 1px solid #555555;
-                padding: 4px 8px 4px 8px;
-                padding-right: 24px;
+                padding: 4px 8px;
                 border-radius: 3px;
-                min-width: 80px;
+                text-align: left;
             }
-            QComboBox:hover {
+            QPushButton:hover {
                 border: 1px solid #666666;
             }
-            QComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                width: 20px;
-                border-left: 1px solid #555555;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 6px solid #888888;
-                width: 0px;
-                height: 0px;
-                margin-right: 6px;
-            }
-            QComboBox::down-arrow:hover {
-                border-top-color: #aaaaaa;
-            }
-            QComboBox QAbstractItemView {
-                background: #3e3e3e;
-                color: #D2D2D2;
-                selection-background-color: #555555;
-                selection-color: #FFFFFF;
-                border: 1px solid #555555;
-                outline: none;
-            }
-            QComboBox QAbstractItemView::item {
-                padding: 6px 12px;
-                border: none;
-            }
-            QComboBox QAbstractItemView::item:hover {
-                background: #4e4e4e;
-                color: #FFFFFF;
-            }
-            QComboBox QAbstractItemView::item:selected {
-                background: #555555;
-                color: #FFFFFF;
-            }
-            QComboBox::indicator {
-                width: 0px;
-                height: 0px;
-            }
         """)
-        self.label_combo.currentTextChanged.connect(self._on_label_changed)
-        self.label_combo.setFixedWidth(120)
-        layout.addWidget(self.label_combo)
+        self.label_button.setFixedWidth(150)
+        self.label_button.clicked.connect(self._show_label_menu)
+        layout.addWidget(self.label_button)
 
         # Delete button (only for ollama)
         if self.provider_id == "ollama":
@@ -616,62 +576,97 @@ class ModelRow(QFrame):
             delete_btn.setFixedWidth(70)
             layout.addWidget(delete_btn)
 
-    def update_labels(self, all_labels: List[str], current_label: Optional[str]):
-        """Update dropdown with available labels."""
-        print(f"DEBUG update_labels: model={self.model_name}, current_label='{current_label}' (type: {type(current_label).__name__})")
-        print(f"DEBUG: Signals currently blocked? {self.label_combo.signalsBlocked()}")
+    def update_labels(self, all_labels: List[str], current_labels: List[str]):
+        """Update button with available labels and current assignments.
 
-        was_blocked = self.label_combo.signalsBlocked()
-        self.label_combo.blockSignals(True)
+        Args:
+            all_labels: All defined label names (sorted).
+            current_labels: Labels currently assigned to this model.
+        """
+        self._all_labels = list(all_labels)
+        self._assigned_labels = list(current_labels)
+        self._update_button_text()
 
-        try:
-            self.label_combo.clear()
-            self.label_combo.addItem("(None)")
-            self.label_combo.addItem("(Apply to All Labels)")
-            self.label_combo.addItems(all_labels)
-
-            # Set the selection based on current_label (from database)
-            # Treat string "None" as unassigned (legacy data)
-            if current_label and current_label != "None":
-                index = self.label_combo.findText(current_label)
-                print(f"DEBUG: Found '{current_label}' at index {index}")
-                if index >= 0:
-                    self.label_combo.setCurrentIndex(index)
-                    print(f"DEBUG: Set index to {index}, currentText is now '{self.label_combo.currentText()}'")
-                else:
-                    # Fallback to (None) if label not found
-                    print(f"DEBUG: Label '{current_label}' not found in dropdown, setting to (None)")
-                    self.label_combo.setCurrentIndex(0)
-            else:
-                # No label assigned - show (None)
-                print(f"DEBUG: No label assigned (or legacy 'None'), setting to (None)")
-                self.label_combo.setCurrentIndex(0)
-        finally:
-            # ALWAYS unblock signals, even if there was an error
-            self.label_combo.blockSignals(was_blocked)
-            print(f"DEBUG: Signals unblocked, now blocked? {self.label_combo.signalsBlocked()}")
-
-        # Force visual update
-        self.label_combo.update()
-        print(f"DEBUG: Final currentText = '{self.label_combo.currentText()}'")
-
-    def _on_label_changed(self, label_text: str):
-        """Handle label selection."""
-        print(f"DEBUG ModelRow._on_label_changed: Dropdown changed to '{label_text}' for {self.provider_id}/{self.model_name}")
-
-        # Check for special options
-        if label_text == "(Apply to All Labels)":
-            # Signal to apply this model to all labels
-            print(f"DEBUG: Emitting __APPLY_TO_ALL__")
-            self.labelChanged.emit(self.provider_id, self.model_name, "__APPLY_TO_ALL__")
-        elif label_text == "(None)":
-            # Clear assignment
-            print(f"DEBUG: Emitting clear (empty string)")
-            self.labelChanged.emit(self.provider_id, self.model_name, "")
+    def _update_button_text(self):
+        """Set button text based on number of assigned labels."""
+        count = len(self._assigned_labels)
+        if count == 0:
+            self.label_button.setText("(None)")
+            self.label_button.setToolTip("")
+        elif count == 1:
+            self.label_button.setText(self._assigned_labels[0])
+            self.label_button.setToolTip("")
+        elif count == 2:
+            text = ", ".join(sorted(self._assigned_labels))
+            self.label_button.setText(text)
+            self.label_button.setToolTip(text)
         else:
-            # Regular label assignment
-            print(f"DEBUG: Emitting label '{label_text}'")
-            self.labelChanged.emit(self.provider_id, self.model_name, label_text)
+            self.label_button.setText(f"{count} labels")
+            self.label_button.setToolTip(", ".join(sorted(self._assigned_labels)))
+
+    def _show_label_menu(self):
+        """Show checkable label menu."""
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #2a2a2a;
+                border: 1px solid #404040;
+                padding: 4px;
+            }
+            QMenu::item {
+                color: #d2d2d2;
+                padding: 6px 20px;
+            }
+            QMenu::item:selected {
+                background-color: #404040;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #404040;
+                margin: 4px 8px;
+            }
+            QMenu::indicator {
+                width: 14px;
+                height: 14px;
+                margin-left: 4px;
+            }
+            QMenu::indicator:checked {
+                background: #888888;
+                border: 1px solid #aaaaaa;
+                border-radius: 2px;
+            }
+            QMenu::indicator:unchecked {
+                background: #3e3e3e;
+                border: 1px solid #555555;
+                border-radius: 2px;
+            }
+        """)
+
+        # Add checkable action for each label
+        for label in self._all_labels:
+            action = menu.addAction(label)
+            action.setCheckable(True)
+            action.setChecked(label in self._assigned_labels)
+            action.toggled.connect(lambda checked, lbl=label: self._on_label_toggled(lbl, checked))
+
+        # Separator + Apply to All
+        menu.addSeparator()
+        apply_all_action = menu.addAction("Apply to All Labels")
+        apply_all_action.triggered.connect(
+            lambda: self.labelChanged.emit(self.provider_id, self.model_name, "__APPLY_TO_ALL__")
+        )
+
+        # Show menu below the button
+        menu.exec(self.label_button.mapToGlobal(
+            self.label_button.rect().bottomLeft()
+        ))
+
+    def _on_label_toggled(self, label: str, checked: bool):
+        """Handle label check/uncheck in the menu."""
+        if checked:
+            self.labelChanged.emit(self.provider_id, self.model_name, label)
+        else:
+            self.labelChanged.emit(self.provider_id, self.model_name, f"__UNCHECK__{label}")
 
 
 class DownloadProgressRow(QFrame):
@@ -1158,26 +1153,21 @@ class ModelManagerPanel(QWidget):
                 row.labelChanged.connect(self._on_label_changed)
                 row.deleteRequested.connect(self._delete_model)
 
-                # Find current label assignment
-                current_label = self.label_manager.get_label_for_model(provider_id, model_id)
-                row.update_labels(all_labels, current_label)
+                # Find current label assignments (plural -- model can have multiple)
+                current_labels = self.label_manager.get_labels_for_model(provider_id, model_id)
+                row.update_labels(all_labels, current_labels)
 
                 self.models_layout.insertWidget(self.models_layout.count() - 1, row)
                 self.model_rows[model_id] = row
         else:
-            # Model list hasn't changed - just update existing dropdowns
+            # Model list hasn't changed - just update existing buttons
             # BUT only if their label assignment has actually changed
             for model_name, row in self.model_rows.items():
-                current_label = self.label_manager.get_label_for_model(provider_id, model_name)
+                current_labels = self.label_manager.get_labels_for_model(provider_id, model_name)
 
-                # Check if dropdown is already showing the correct value
-                current_display = row.label_combo.currentText()
-                expected_display = current_label if current_label else "(None)"
-
-                # Only update if the display is wrong
-                if current_display != expected_display:
-                    print(f"DEBUG _refresh_models: Updating {model_name} dropdown: '{current_display}' -> '{expected_display}'")
-                    row.update_labels(all_labels, current_label)
+                # Only update if the assigned labels have actually changed
+                if set(current_labels) != set(row._assigned_labels):
+                    row.update_labels(all_labels, current_labels)
 
         # For Ollama: Add downloads section
         if provider_id == "ollama":
@@ -1246,11 +1236,16 @@ class ModelManagerPanel(QWidget):
             visible = search_text in searchable_text
             row.setVisible(visible)
 
-    def _on_label_changed(self, provider_id: str, model_name: str, label: str):
-        """Handle label assignment change."""
-        # Check for "Apply to All Labels" special option
-        if label == "__APPLY_TO_ALL__":
-            # Show confirmation dialog
+    def _on_label_changed(self, provider_id: str, model_name: str, label_action: str):
+        """Handle label assignment change from multi-select menu.
+
+        Actions:
+            "LabelName"            -- assign this label to the model
+            "__UNCHECK__LabelName" -- unassign this label from the model
+            "__APPLY_TO_ALL__"     -- assign model to every label
+        """
+        # --- Apply to All Labels ---
+        if label_action == "__APPLY_TO_ALL__":
             reply = QMessageBox.question(
                 self,
                 "Apply to All Labels",
@@ -1263,100 +1258,85 @@ class ModelManagerPanel(QWidget):
             )
 
             if reply == QMessageBox.StandardButton.Yes:
-                # Apply to all labels
                 for lbl in self.label_manager.get_all_labels():
                     self.label_manager.set_model_for_label(lbl, provider_id, model_name)
-
-                # Full refresh needed since all labels changed
                 self._refresh_models()
             else:
-                # User cancelled - refresh to reset the dropdown
                 self._refresh_models()
-
             return
 
-        if label:
-            print(f"DEBUG _on_label_changed: User selected '{label}' for {provider_id}/{model_name}")
+        # --- Uncheck (remove label assignment) ---
+        if label_action.startswith("__UNCHECK__"):
+            label_to_clear = label_action[len("__UNCHECK__"):]
 
-            # Check if label is already assigned to a different model
-            current_provider, current_model = self.label_manager.get_model_for_label(label)
-            print(f"DEBUG: Label '{label}' currently assigned to: {current_provider}/{current_model}")
+            # Safety guard: don't leave the system with zero assigned labels
+            assigned_labels = [lbl for lbl in self.label_manager.get_all_labels()
+                              if self.label_manager.get_model_for_label(lbl)[0]]
 
-            if current_provider and current_model and (current_provider != provider_id or current_model != model_name):
-                # Label is being reassigned - show impact warning
-                affected_facets = self._find_facets_using_label(label)
+            if len(assigned_labels) == 1 and label_to_clear in assigned_labels:
+                QMessageBox.warning(
+                    self,
+                    "Cannot Clear",
+                    f"Cannot clear '{label_to_clear}' because it's the only label assigned to a model.\n\n"
+                    f"The system must have at least one LLM configured."
+                )
+                self._refresh_models()
+                return
 
-                if affected_facets:
-                    facet_list = "\n".join([f"  • {f}" for f in affected_facets[:10]])
-                    if len(affected_facets) > 10:
-                        facet_list += f"\n  ... and {len(affected_facets) - 10} more"
+            self.label_manager.set_model_for_label(label_to_clear, None, None)
+            QTimer.singleShot(200, lambda: self._delayed_refresh_after_label_change(provider_id, model_name))
+            return
 
-                    message = (
-                        f"Changing '{label}' from\n"
-                        f"  {current_provider} / {current_model}\n"
-                        f"to\n"
-                        f"  {provider_id} / {model_name}\n\n"
-                        f"This will affect:\n\n"
-                        f"{facet_list}\n\n"
-                        f"Continue?"
-                    )
+        # --- Regular label assignment (check) ---
+        label = label_action
 
-                    reply = QMessageBox.question(
-                        self,
-                        "Confirm Label Change",
-                        message,
-                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                        QMessageBox.StandardButton.Yes
-                    )
+        # Check if label is already assigned to a different model
+        current_provider, current_model = self.label_manager.get_model_for_label(label)
 
-                    if reply != QMessageBox.StandardButton.Yes:
-                        # User cancelled - refresh to reset dropdown
-                        self._refresh_models()
-                        return
+        if current_provider and current_model and (current_provider != provider_id or current_model != model_name):
+            # Label is being reassigned - show impact warning
+            affected_facets = self._find_facets_using_label(label)
 
-            self.label_manager.set_model_for_label(label, provider_id, model_name)
-            print(f"DEBUG: Saved label '{label}' for {provider_id}/{model_name}")
+            if affected_facets:
+                facet_list = "\n".join([f"  {f}" for f in affected_facets[:10]])
+                if len(affected_facets) > 10:
+                    facet_list += f"\n  ... and {len(affected_facets) - 10} more"
 
-            # Verify immediately after save
-            verify = self.label_manager.get_label_for_model(provider_id, model_name)
-            print(f"DEBUG: Immediate verification -> '{verify}'")
-        else:
-            # Clear assignment - check if this is the last one
-            current_label = self.label_manager.get_label_for_model(provider_id, model_name)
-            if current_label:
-                # Check if this would leave no assigned labels
-                assigned_labels = [lbl for lbl in self.label_manager.get_all_labels()
-                                  if self.label_manager.get_model_for_label(lbl)[0]]
+                message = (
+                    f"Changing '{label}' from\n"
+                    f"  {current_provider} / {current_model}\n"
+                    f"to\n"
+                    f"  {provider_id} / {model_name}\n\n"
+                    f"This will affect:\n\n"
+                    f"{facet_list}\n\n"
+                    f"Continue?"
+                )
 
-                if len(assigned_labels) == 1 and current_label in assigned_labels:
-                    QMessageBox.warning(
-                        self,
-                        "Cannot Clear",
-                        f"Cannot clear '{current_label}' because it's the only label assigned to a model.\n\n"
-                        f"The system must have at least one LLM configured."
-                    )
+                reply = QMessageBox.question(
+                    self,
+                    "Confirm Label Change",
+                    message,
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+
+                if reply != QMessageBox.StandardButton.Yes:
                     self._refresh_models()
                     return
 
-                self.label_manager.set_model_for_label(current_label, None, None)
-
-        # Delay refresh slightly to allow dropdown to close naturally
-        # This prevents the dropdown from closing while user is still interacting
+        self.label_manager.set_model_for_label(label, provider_id, model_name)
         QTimer.singleShot(200, lambda: self._delayed_refresh_after_label_change(provider_id, model_name))
 
     def _delayed_refresh_after_label_change(self, provider_id: str, model_name: str):
-        """Delayed refresh after label change to avoid closing dropdown prematurely."""
+        """Delayed refresh after label change to avoid closing menu prematurely."""
         # Refresh label assignments section
         self._refresh_label_assignments()
 
         # Update ALL model rows including the one that just changed
-        # By this point (after 500ms delay), the dropdown has closed naturally
         all_labels = sorted(self.label_manager.get_all_labels())
         for row_model_name, row in self.model_rows.items():
-            # Get current label for this model
-            current = self.label_manager.get_label_for_model(row.provider_id, row_model_name)
-            # Update the row's dropdown to show the correct selection
-            row.update_labels(all_labels, current)
+            current_labels = self.label_manager.get_labels_for_model(row.provider_id, row_model_name)
+            row.update_labels(all_labels, current_labels)
 
     def _rename_label(self, old_label: str):
         """Rename a label."""

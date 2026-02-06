@@ -568,6 +568,7 @@ if QT_AVAILABLE:
                 logger.info(f"GuidePerformanceWindow: VRM loaded from {vrm_path}")
 
             except Exception as e:
+                print(f"[GuidePerformance] VRM load failed: {e}", flush=True)
                 logger.error(f"GuidePerformanceWindow: Failed to load VRM: {e}")
                 if self._vrm_placeholder:
                     self._vrm_placeholder.setText(f"VRM load failed: {e}")
