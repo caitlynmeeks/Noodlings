@@ -133,11 +133,30 @@ class MainWindow(
         # Initialize Computer Use controller for Claude integration
         QTimer.singleShot(800, self._init_computer_use)
 
+        # Initialize Guide Performance Manager (after computer use and panels)
+        QTimer.singleShot(900, self._init_guide_performance)
+
     def _init_computer_use(self):
         """Initialize Computer Use controller for Claude to see and interact with UI."""
         from .computer_use_controller import get_computer_use_controller
         controller = get_computer_use_controller()
         controller.set_main_window(self)
+
+    def _init_guide_performance(self):
+        """Initialize Guide Performance Manager for guided play support."""
+        from ..runtime.ui.guide_performance_manager import GuidePerformanceManager
+
+        self.guide_performance_manager = GuidePerformanceManager(self)
+
+        # Wire engine from NoodleCode
+        engine = getattr(self, 'noodle_code_engine', None)
+        if engine:
+            self.guide_performance_manager.set_engine(engine)
+
+        # Wire NoodleCode panel for [D] button sync
+        panel = getattr(self, 'noodle_code_panel', None)
+        if panel:
+            self.guide_performance_manager.set_noodle_code_panel(panel)
 
     def _setup_ui(self):
         """Build UI components."""

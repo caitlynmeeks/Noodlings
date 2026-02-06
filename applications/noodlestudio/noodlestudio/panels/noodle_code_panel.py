@@ -454,6 +454,15 @@ class NoodleCodePanel(MaximizableDock):
     def _toggle_demo_mode(self):
         """Toggle demo mode for Computer Use visualization."""
         enabled = self.demo_mode_btn.isChecked()
+
+        # If a performance manager is active, route through it
+        # so it can coordinate the floating window lifecycle
+        manager = getattr(self, '_guide_performance_manager', None)
+        if manager and manager.is_active and not enabled:
+            # Turning off demo mode while performance is active stops the performance
+            manager.stop_performance()
+            return
+
         try:
             from noodlestudio.core.computer_use_controller import get_computer_use_controller
             controller = get_computer_use_controller()
@@ -531,6 +540,15 @@ class NoodleCodePanel(MaximizableDock):
     def set_engine(self, engine):
         """Set the NoodleCodeEngine instance."""
         self.engine = engine
+
+    def set_guide_performance_manager(self, manager):
+        """
+        Set the GuidePerformanceManager for coordinated performance control.
+
+        Args:
+            manager: GuidePerformanceManager instance
+        """
+        self._guide_performance_manager = manager
 
     def set_project_path(self, path: Path):
         """Set the project path for the engine."""
