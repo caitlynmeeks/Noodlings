@@ -39,15 +39,18 @@ from pathlib import Path
 from datetime import datetime
 from unittest.mock import patch, MagicMock
 
-# Import the crash detection functions
+# Import the crash detection and single-instance functions
 from noodlestudio.main import (
     SENTINEL_DIR,
     SENTINEL_FILE,
     CRASH_INFO_FILE,
+    SINGLE_INSTANCE_KEY,
     create_sentinel,
     remove_sentinel,
     check_for_crash,
     save_crash_info,
+    is_another_instance_running,
+    claim_single_instance,
 )
 
 
@@ -348,6 +351,62 @@ class TestBugReportDialog:
         assert "noodlestudio_version" in report["system_info"]
 
         dialog.close()
+
+
+# =============================================================================
+# Single-Instance Enforcement Tests
+# =============================================================================
+
+class TestSingleInstance:
+    """Tests for single-instance application enforcement."""
+
+    @pytest.fixture(autouse=True)
+    def clean_server(self, qapp):
+        """Ensure no stale server from previous tests."""
+        from PyQt6.QtNetwork import QLocalServer
+        QLocalServer.removeServer(SINGLE_INSTANCE_KEY)
+        yield
+        QLocalServer.removeServer(SINGLE_INSTANCE_KEY)
+
+    def test_no_instance_running_initially(self, qapp):
+        """No instance should be detected when server is not running."""
+        assert is_another_instance_running() is False
+
+    def test_claim_succeeds_when_none_running(self, qapp):
+        """Claiming the lock succeeds when no other instance holds it."""
+        assert claim_single_instance(qapp) is True
+
+    def test_detect_running_instance(self, qapp):
+        """Detect an already-running instance after claiming the lock."""
+        assert claim_single_instance(qapp) is True
+        assert is_another_instance_running() is True
+
+    def test_parse_args_allow_multiple(self):
+        """--allow-multiple flag is parsed correctly."""
+        from noodlestudio.main import parse_args
+        import sys
+
+        original_argv = sys.argv
+        sys.argv = ['noodlestudio', '--allow-multiple', '--no-splash']
+        try:
+            args = parse_args()
+            assert args.allow_multiple is True
+        finally:
+            sys.argv = original_argv
+
+    def test_parse_args_default_no_multiple(self):
+        """Default: allow_multiple is False."""
+        from noodlestudio.main import parse_args
+        import sys
+
+        original_argv = sys.argv
+        sys.argv = ['noodlestudio', '--no-splash']
+        try:
+            args = parse_args()
+            assert args.allow_multiple is False
+        finally:
+            sys.argv = original_argv
+
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.

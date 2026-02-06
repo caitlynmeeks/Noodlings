@@ -43,6 +43,7 @@ from datetime import datetime
 from PyQt6.QtWidgets import QApplication, QSplashScreen, QLabel, QMessageBox
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap, QPainter, QFont, QColor
+from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 
 # NOTE: MainWindow imported AFTER QApplication is created
 from .core.studio_acronyms import get_random_acronym
@@ -81,6 +82,12 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--allow-multiple',
+        action='store_true',
+        help='Allow multiple NoodleStudio instances (default: single instance only)'
+    )
+
+    parser.add_argument(
         '--version', '-v',
         action='version',
         version=f'NoodleSTUDIO {__version__}'
@@ -96,6 +103,12 @@ _main_window = None
 SENTINEL_DIR = Path.home() / ".noodlestudio"
 SENTINEL_FILE = SENTINEL_DIR / ".running"
 CRASH_INFO_FILE = SENTINEL_DIR / ".last_crash"
+
+# Single-instance IPC server name
+SINGLE_INSTANCE_KEY = "com.noodlings.NoodleStudio.instance"
+
+# Global reference to local server (prevent GC)
+_instance_server = None
 
 
 def create_sentinel():
@@ -117,6 +130,51 @@ def remove_sentinel():
             SENTINEL_FILE.unlink()
     except Exception as e:
         print(f"Could not remove sentinel file: {e}")
+
+
+def is_another_instance_running() -> bool:
+    """
+    Check if another NoodleStudio instance is already running.
+
+    Uses QLocalSocket to probe for an existing QLocalServer. This is the
+    standard Qt pattern for single-instance enforcement -- reliable across
+    platforms and immune to stale PID files.
+
+    Returns True if another instance is listening.
+    """
+    probe = QLocalSocket()
+    probe.connectToServer(SINGLE_INSTANCE_KEY)
+    running = probe.waitForConnected(500)
+    probe.disconnectFromServer()
+    return running
+
+
+def claim_single_instance(app: QApplication) -> bool:
+    """
+    Claim the single-instance lock by starting a QLocalServer.
+
+    If a stale server socket exists (e.g. from a crash), removes it
+    and retries. The server is kept alive for the duration of the
+    application process.
+
+    Args:
+        app: The QApplication (server lifetime is tied to it)
+
+    Returns True if successfully claimed, False if another instance owns it.
+    """
+    global _instance_server
+
+    # Remove any stale socket left by a crashed session
+    QLocalServer.removeServer(SINGLE_INSTANCE_KEY)
+
+    _instance_server = QLocalServer(app)
+    if _instance_server.listen(SINGLE_INSTANCE_KEY):
+        return True
+
+    # Listen failed -- another instance may have started between probe and claim
+    print(f"[SingleInstance] Could not claim lock: {_instance_server.errorString()}")
+    _instance_server = None
+    return False
 
 
 def check_for_crash() -> bool:
@@ -269,6 +327,22 @@ def main():
     app.setApplicationVersion(__version__)
     app.setOrganizationName("Noodlings")
     app.setOrganizationDomain("noodlings.ai")
+
+    # Single-instance enforcement (unless --allow-multiple)
+    if not args.allow_multiple:
+        if is_another_instance_running():
+            print("[SingleInstance] NoodleStudio is already running.", flush=True)
+            QMessageBox.warning(
+                None,
+                "NoodleStudio Already Running",
+                "Another instance of NoodleStudio is already running.\n\n"
+                "Use --allow-multiple to override this check."
+            )
+            sys.exit(0)
+
+        if not claim_single_instance(app):
+            print("[SingleInstance] Could not claim instance lock.", flush=True)
+            sys.exit(1)
 
     # Install crash reporter and create sentinel
     install_crash_reporter()
