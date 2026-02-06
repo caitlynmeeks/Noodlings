@@ -9,7 +9,9 @@
 # (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
 # ──────────────────────────────────────────────────────────────
 
+import asyncio
 import time
+from unittest.mock import MagicMock
 import pytest
 
 from noodlestudio.runtime.channels import ChannelBus, ChannelMessage
@@ -604,3 +606,174 @@ class TestGuideCueHandler:
         handler.report_response("Response", "ok")
 
         assert "brief" in received[0].payload['notes'].lower()
+
+
+# =============================================================================
+# Computer Use Execution Tests
+# =============================================================================
+
+class TestComputerUseCueExecution:
+    """Tests for computer_use action execution triggered by cue reception."""
+
+    def test_cue_with_computer_use_triggers_execution(self):
+        """Cue with computer_use actions schedules execution on event loop."""
+        bus = ChannelBus()
+        handler = GuideCueHandler(bus, "guide")
+
+        # Mock controller with UI element map
+        controller = MagicMock()
+        controller.get_ui_element_map.return_value = [
+            {'name': 'Button: View Project', 'x': 100, 'y': 200},
+        ]
+        handler.set_computer_use_controller(controller)
+
+        async def run_test():
+            # Publish cue with computer_use actions
+            bus.publish(CHANNEL_CUES, ChannelMessage(
+                channel=CHANNEL_CUES,
+                from_noodling="brenda",
+                timestamp=time.time(),
+                payload={
+                    'type': 'cue',
+                    'beat_id': 'demo_click',
+                    'beat_name': 'Demo Click',
+                    'target_actor': 'guide',
+                    'direction': 'Click the view project button',
+                    'your_action': {
+                        'computer_use': [
+                            {'action': 'move', 'target': 'Button: View Project'},
+                            {'action': 'click', 'target': 'Button: View Project'},
+                        ]
+                    }
+                }
+            ))
+
+            # Let the scheduled task run
+            await asyncio.sleep(0)
+
+            # Verify controller methods were called
+            controller.mouse_move.assert_called_once_with(100, 200)
+            controller.click.assert_called_once_with(100, 200, 'left')
+
+        asyncio.run(run_test())
+
+    def test_cue_without_computer_use_no_execution(self):
+        """Cue without computer_use does not trigger controller."""
+        bus = ChannelBus()
+        handler = GuideCueHandler(bus, "guide")
+
+        controller = MagicMock()
+        handler.set_computer_use_controller(controller)
+
+        async def run_test():
+            bus.publish(CHANNEL_CUES, ChannelMessage(
+                channel=CHANNEL_CUES,
+                from_noodling="brenda",
+                timestamp=time.time(),
+                payload={
+                    'type': 'cue',
+                    'beat_id': 'speech_only',
+                    'beat_name': 'Speech Only',
+                    'target_actor': 'guide',
+                    'your_action': {
+                        'speaks': 'Hello there!',
+                    }
+                }
+            ))
+
+            await asyncio.sleep(0)
+
+            controller.mouse_move.assert_not_called()
+            controller.click.assert_not_called()
+
+        asyncio.run(run_test())
+
+    def test_cue_computer_use_no_controller_no_error(self):
+        """Cue with computer_use but no controller does not raise."""
+        bus = ChannelBus()
+        handler = GuideCueHandler(bus, "guide")
+
+        # No controller set - should not raise
+        async def run_test():
+            bus.publish(CHANNEL_CUES, ChannelMessage(
+                channel=CHANNEL_CUES,
+                from_noodling="brenda",
+                timestamp=time.time(),
+                payload={
+                    'type': 'cue',
+                    'beat_id': 'demo_click',
+                    'target_actor': 'guide',
+                    'your_action': {
+                        'computer_use': [
+                            {'action': 'click', 'target': 'Button: View Project'},
+                        ]
+                    }
+                }
+            ))
+
+            await asyncio.sleep(0)
+
+        asyncio.run(run_test())
+
+        # Handler should have stored the cue
+        assert handler.state.current_beat_id == 'demo_click'
+
+    def test_cue_computer_use_no_event_loop(self):
+        """Cue with computer_use outside event loop logs debug, no crash."""
+        bus = ChannelBus()
+        handler = GuideCueHandler(bus, "guide")
+
+        controller = MagicMock()
+        handler.set_computer_use_controller(controller)
+
+        # Publish outside an event loop - should gracefully handle RuntimeError
+        bus.publish(CHANNEL_CUES, ChannelMessage(
+            channel=CHANNEL_CUES,
+            from_noodling="brenda",
+            timestamp=time.time(),
+            payload={
+                'type': 'cue',
+                'beat_id': 'demo_click',
+                'target_actor': 'guide',
+                'your_action': {
+                    'computer_use': [
+                        {'action': 'click', 'target': 'Button: View Project'},
+                    ]
+                }
+            }
+        ))
+
+        # Cue was still stored despite no event loop
+        assert handler.state.current_beat_id == 'demo_click'
+
+    def test_cue_computer_use_type_action(self):
+        """Cue with type action executes type_text on controller."""
+        bus = ChannelBus()
+        handler = GuideCueHandler(bus, "guide")
+
+        controller = MagicMock()
+        controller.get_ui_element_map.return_value = []
+        handler.set_computer_use_controller(controller)
+
+        async def run_test():
+            bus.publish(CHANNEL_CUES, ChannelMessage(
+                channel=CHANNEL_CUES,
+                from_noodling="brenda",
+                timestamp=time.time(),
+                payload={
+                    'type': 'cue',
+                    'beat_id': 'type_test',
+                    'target_actor': 'guide',
+                    'your_action': {
+                        'computer_use': [
+                            {'action': 'type', 'text': 'Hello world'},
+                        ]
+                    }
+                }
+            ))
+
+            await asyncio.sleep(0)
+
+            controller.type_text.assert_called_once_with('Hello world')
+
+        asyncio.run(run_test())

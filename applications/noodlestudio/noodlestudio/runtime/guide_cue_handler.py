@@ -289,6 +289,15 @@ class GuideCueHandler:
         if self._on_cue_received:
             self._on_cue_received(cue)
 
+        # Execute computer_use actions if present in this cue
+        your_action = cue.get('your_action', {})
+        if your_action.get('computer_use') and self._computer_use:
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self.execute_computer_use())
+            except RuntimeError:
+                logger.debug(f"[{self.noodling_id}] No event loop for computer_use actions")
+
     def _on_ambiance(self, message: ChannelMessage):
         """
         React to world ambiance changes.

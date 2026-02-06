@@ -12,6 +12,8 @@ Tests for Play execution integration:
 - Direction injection into facet execution
 """
 
+import asyncio
+from unittest.mock import MagicMock
 import pytest
 import tempfile
 import os
@@ -259,6 +261,111 @@ class TestComputerUseWiring:
 
         # Should not raise
         app.set_computer_use_controller(MockController())
+
+
+# =============================================================================
+# Computer Use Play Integration Tests
+# =============================================================================
+
+@pytest.fixture
+def computer_use_play_path():
+    """Create a play file with computer_use actions."""
+    play_content = """
+title: "Computer Use Integration Test"
+author: "Test"
+
+characters:
+  guide:
+    initial_pad:
+      pleasure: 0.6
+      arousal: 0.5
+      dominance: 0.5
+    motivation: "Demonstrate the UI"
+
+beats:
+  - id: click_view_project
+    name: "Click View Project"
+    on_stage: [guide]
+    direction: "Show the user where the View Project button is"
+    guide:
+      speaks: "Let me show you the View Project button."
+      computer_use:
+        - action: move
+          target: "Button: View Project"
+        - action: click
+          target: "Button: View Project"
+"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.play.yaml', delete=False) as f:
+        f.write(play_content)
+        path = f.name
+
+    yield path
+
+    os.unlink(path)
+
+
+class TestComputerUsePlayIntegration:
+    """Integration tests for computer_use actions through the full play chain."""
+
+    def test_play_with_computer_use_executes_actions(self, computer_use_play_path):
+        """Full chain: play -> Brenda -> cue -> GuideCueHandler -> controller."""
+        app = NoodleApp()
+        app.load_director(computer_use_play_path)
+
+        # Wire mock controller
+        controller = MagicMock()
+        controller.get_ui_element_map.return_value = [
+            {'name': 'Button: View Project', 'x': 150, 'y': 300},
+        ]
+        app.set_computer_use_controller(controller)
+
+        async def run_test():
+            # Start performance - this sends the first cue
+            app.start_performance()
+
+            # Let the scheduled computer_use task execute
+            await asyncio.sleep(0)
+
+            # Verify controller was driven
+            controller.mouse_move.assert_called_once_with(150, 300)
+            controller.click.assert_called_once_with(150, 300, 'left')
+
+        asyncio.run(run_test())
+
+    def test_play_with_computer_use_no_controller_safe(self, computer_use_play_path):
+        """Play with computer_use but no controller does not crash."""
+        app = NoodleApp()
+        app.load_director(computer_use_play_path)
+
+        # No controller set - should not raise
+        async def run_test():
+            app.start_performance()
+            await asyncio.sleep(0)
+
+        asyncio.run(run_test())
+
+        # Cue was still received and stored
+        assert app.guide_cue_handler.state.current_beat_id == 'click_view_project'
+
+    def test_play_computer_use_cue_also_stores_direction(self, computer_use_play_path):
+        """Computer use cue also stores direction for prompt context."""
+        app = NoodleApp()
+        app.load_director(computer_use_play_path)
+
+        controller = MagicMock()
+        controller.get_ui_element_map.return_value = []
+        app.set_computer_use_controller(controller)
+
+        async def run_test():
+            app.start_performance()
+            await asyncio.sleep(0)
+
+        asyncio.run(run_test())
+
+        # Direction should be available for LLM prompt
+        direction = app.get_brenda_direction()
+        assert "Director's Notes" in direction
+        assert "View Project" in direction
 
 
 # ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡
