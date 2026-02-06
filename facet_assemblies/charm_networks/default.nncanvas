@@ -4,7 +4,7 @@
   "description": "Hierarchical temporal affect processor",
   "metadata": {
     "created": "2025-12-09T13:48:23.517342",
-    "modified": "2025-12-19T15:48:38.531135",
+    "modified": "2026-02-02T08:59:09.164801",
     "author": "Caity",
     "total_parameters": 5045
   },
@@ -14,7 +14,7 @@
       "type": "INPUT",
       "name": "Affect Input",
       "position": [
-        100,
+        98,
         100
       ],
       "params": {
@@ -41,7 +41,7 @@
       "type": "LSTM",
       "name": "Fast LSTM",
       "position": [
-        400,
+        331,
         100
       ],
       "params": {
@@ -128,8 +128,8 @@
       "type": "LSTM",
       "name": "Medium LSTM",
       "position": [
-        700,
-        100
+        698,
+        280
       ],
       "params": {
         "input_dim": 5,
@@ -215,8 +215,8 @@
       "type": "GRU",
       "name": "GRU",
       "position": [
-        1000,
-        100
+        1082,
+        476
       ],
       "params": {
         "input_dim": 16,
@@ -291,8 +291,8 @@
       "type": "STATE_CONCAT",
       "name": "Phenomenal State",
       "position": [
-        1299,
-        100
+        1264,
+        232
       ],
       "params": {},
       "inputs": {
@@ -341,8 +341,8 @@
       "type": "AFFECT_HEAD",
       "name": "Affect Predictor",
       "position": [
-        1600,
-        280
+        1667,
+        427
       ],
       "params": {
         "state_dim": 40,
@@ -432,7 +432,7 @@
       "type": "OUTPUT",
       "name": "Network Output",
       "position": [
-        1600,
+        1598,
         100
       ],
       "params": {},
@@ -458,7 +458,7 @@
       "type": "COMMENT",
       "name": "About this project",
       "position": [
-        100,
+        98,
         280
       ],
       "params": {

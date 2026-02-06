@@ -24,8 +24,8 @@ facets:
     description: Raw incoming perception
     required: true
   position:
-    x: -33.41782178217824
-    y: 218.22838283828378
+    x: -95.41782178217824
+    y: 102.22838283828378
   color: '#76AF6A'
   enabled: true
   locked: false
@@ -202,6 +202,29 @@ facets:
   position:
     x: 817.305
     y: 423.1999999999999
+  color: '#64B5F6'
+  enabled: true
+  locked: false
+- id: 88f1802d-79b7-4a54-82e2-8dba7e6b6d7f
+  name: Social Context Facet
+  type: SocialFacet
+  prompt: 'TODO: Define prompt for Social Context Facet'
+  model: SMALL
+  temperature: 0.7
+  max_tokens: 150
+  inputs:
+  - name: in
+    type: input
+    description: Input
+    required: true
+  outputs:
+  - name: out
+    type: output
+    description: Output
+    required: true
+  position:
+    x: -40.9357673244021
+    y: 370.5764199893243
   color: '#64B5F6'
   enabled: true
   locked: false
