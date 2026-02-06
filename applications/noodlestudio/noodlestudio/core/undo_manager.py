@@ -35,6 +35,7 @@
 from typing import Optional, Callable
 from PyQt6.QtGui import QUndoStack, QUndoCommand, QAction
 from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6 import sip
 
 
 class UndoManager(QObject):
@@ -78,11 +79,21 @@ class UndoManager(QObject):
         # The central undo stack
         self._stack = QUndoStack(self)
 
-        # Connect stack signals to our signals
-        self._stack.canUndoChanged.connect(lambda _: self.stack_changed.emit())
-        self._stack.canRedoChanged.connect(lambda _: self.stack_changed.emit())
-        self._stack.indexChanged.connect(lambda _: self.stack_changed.emit())
-        self._stack.cleanChanged.connect(self.clean_changed.emit)
+        # Connect stack signals to our signals.
+        # Guard against C++ object being deleted during teardown
+        # (Qt may fire signals after the Python wrapper is gone).
+        def _emit_stack_changed(_):
+            if not sip.isdeleted(self):
+                self.stack_changed.emit()
+
+        def _emit_clean_changed(clean):
+            if not sip.isdeleted(self):
+                self.clean_changed.emit(clean)
+
+        self._stack.canUndoChanged.connect(_emit_stack_changed)
+        self._stack.canRedoChanged.connect(_emit_stack_changed)
+        self._stack.indexChanged.connect(_emit_stack_changed)
+        self._stack.cleanChanged.connect(_emit_clean_changed)
 
         # Undo limit (0 = unlimited)
         self._stack.setUndoLimit(100)

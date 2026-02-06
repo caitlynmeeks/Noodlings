@@ -670,11 +670,15 @@ class VRMGLWidget(QOpenGLWidget):
         GL.glUniform3fv(GL.glGetUniformLocation(self._shader_mesh, "uLightDir"), 1, light_dir)
         GL.glUniform3fv(GL.glGetUniformLocation(self._shader_mesh, "uViewPos"), 1, self.camera.position.astype(np.float32))
         GL.glUniform3f(GL.glGetUniformLocation(self._shader_mesh, "uColor"), 0.8, 0.75, 0.7)
-        GL.glUniform1i(GL.glGetUniformLocation(self._shader_mesh, "uShadingMode"), self.shading_mode.value == "lit")
+
+        # Map shading mode enum to shader int (0=unlit, 1=lit, 2=normal, 3=uv)
+        shading_map = {"unlit": 0, "lit": 1, "normal": 2, "uv": 3, "weights": 4}
+        GL.glUniform1i(GL.glGetUniformLocation(self._shader_mesh, "uShadingMode"),
+                       shading_map.get(self.shading_mode.value, 1))
 
         # Bind texture if available
         has_texture = self.mesh.texture_id > 0
-        GL.glUniform1i(GL.glGetUniformLocation(self._shader_mesh, "uHasTexture"), has_texture)
+        GL.glUniform1i(GL.glGetUniformLocation(self._shader_mesh, "uHasTexture"), int(has_texture))
         if has_texture:
             GL.glActiveTexture(GL.GL_TEXTURE0)
             GL.glBindTexture(GL.GL_TEXTURE_2D, self.mesh.texture_id)
