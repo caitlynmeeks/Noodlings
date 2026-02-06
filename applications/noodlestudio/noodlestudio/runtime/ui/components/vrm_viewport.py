@@ -161,8 +161,8 @@ except ImportError:
 
 try:
     from PyQt6.QtWidgets import QWidget, QVBoxLayout
-    from PyQt6.QtCore import Qt, QPoint, pyqtSignal
-    from PyQt6.QtGui import QMouseEvent, QWheelEvent, QSurfaceFormat
+    from PyQt6.QtCore import Qt, QPoint, QByteArray, QTimer, pyqtSignal
+    from PyQt6.QtGui import QMouseEvent, QWheelEvent, QSurfaceFormat, QImage
     QT_AVAILABLE = True
 except ImportError:
     QT_AVAILABLE = False
@@ -173,6 +173,57 @@ try:
     OPENGL_AVAILABLE = True
 except ImportError:
     OPENGL_AVAILABLE = False
+
+
+# ============================================================================
+# Raw ctypes GL helpers for texture upload
+# PyOpenGL 3.1.0 + OpenGL_accelerate 3.1.10 has a broken array-type handler
+# on Python 3.14 that prevents glGenTextures from working. These helpers
+# bypass the PyOpenGL wrapper and call the C API directly via ctypes.
+# ============================================================================
+if OPENGL_AVAILABLE:
+    import ctypes as _ct
+    import ctypes.util as _ct_util
+
+    _gl_lib = _ct.cdll.LoadLibrary(_ct_util.find_library('OpenGL'))
+
+    _raw_glGenTextures = _gl_lib.glGenTextures
+    _raw_glGenTextures.argtypes = [_ct.c_int, _ct.POINTER(_ct.c_uint)]
+    _raw_glGenTextures.restype = None
+
+    _raw_glBindTexture = _gl_lib.glBindTexture
+    _raw_glBindTexture.argtypes = [_ct.c_uint, _ct.c_uint]
+    _raw_glBindTexture.restype = None
+
+    _raw_glTexImage2D = _gl_lib.glTexImage2D
+    _raw_glTexImage2D.argtypes = [
+        _ct.c_uint, _ct.c_int, _ct.c_int,
+        _ct.c_int, _ct.c_int, _ct.c_int,
+        _ct.c_uint, _ct.c_uint, _ct.c_void_p
+    ]
+    _raw_glTexImage2D.restype = None
+
+    def _gl_gen_texture() -> int:
+        """Generate one GL texture ID via raw ctypes."""
+        buf = (_ct.c_uint * 1)()
+        _raw_glGenTextures(1, buf)
+        return int(buf[0])
+
+    def _gl_bind_texture(tex_id: int):
+        """Bind a 2D texture via raw ctypes."""
+        _raw_glBindTexture(0x0DE1, _ct.c_uint(tex_id))  # GL_TEXTURE_2D
+
+    def _gl_tex_image_2d(width: int, height: int, data: bytes):
+        """Upload RGBA texture data via raw ctypes."""
+        _raw_glTexImage2D(
+            0x0DE1,  # GL_TEXTURE_2D
+            0,       # level
+            0x1908,  # GL_RGBA (internalformat)
+            width, height, 0,
+            0x1908,  # GL_RGBA (format)
+            0x1401,  # GL_UNSIGNED_BYTE
+            data     # ctypes handles bytes natively
+        )
 
 
 if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
@@ -247,6 +298,18 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             # Shaders (initialized in initializeGL)
             self._shader_mesh = None
             self._shader_line = None
+
+            # Per-material rendering
+            self._material_groups = []   # (material_index, byte_offset, index_count)
+            self._gl_textures = {}       # material_index -> GL texture ID
+            self._material_colors = {}   # material_index -> (r, g, b)
+
+            # Cached uniform locations (set after shader compilation)
+            self._mesh_uniform_locs = {}
+
+            # Idle animation
+            self._idle_phase = 0.0       # Animation phase in seconds
+            self._idle_timer = None      # QTimer for animation
 
             # Grid buffers
             self._grid_vao = 0
@@ -325,6 +388,8 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             uniform vec3 uLightDir;
             uniform vec3 uColor;
+            uniform sampler2D uDiffuseTex;
+            uniform int uHasTexture;
 
             out vec4 FragColor;
 
@@ -332,8 +397,22 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 vec3 normal = normalize(vNormal);
                 float diff = max(dot(normal, uLightDir), 0.0);
                 float ambient = 0.35;
-                vec3 color = uColor * (ambient + diff * 0.65);
-                FragColor = vec4(color, 1.0);
+
+                vec3 baseColor;
+                float alpha = 1.0;
+                if (uHasTexture == 1) {
+                    vec4 texColor = texture(uDiffuseTex, vUV);
+                    baseColor = texColor.rgb * uColor;
+                    alpha = texColor.a;
+                } else {
+                    baseColor = uColor;
+                }
+
+                // Alpha cutout for hair/accessories
+                if (alpha < 0.5) discard;
+
+                vec3 color = baseColor * (ambient + diff * 0.65);
+                FragColor = vec4(color, alpha);
             }
             """
 
@@ -456,10 +535,18 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
                 # Create GPU buffers
                 self._create_mesh_buffers()
+                self._load_textures()
+                self._cache_mesh_uniforms()
                 self._create_skeleton_data()
 
                 # Center camera
                 self._center_camera()
+
+                # Start idle animation
+                if not self._idle_timer:
+                    self._idle_timer = QTimer(self)
+                    self._idle_timer.timeout.connect(self._tick_idle)
+                    self._idle_timer.start(16)  # ~60fps
 
                 # Emit signal
                 bone_count = len(self._avatar.skeleton.bones) if self._avatar.skeleton else 0
@@ -478,19 +565,34 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 traceback.print_exc()
 
         def _create_mesh_buffers(self):
-            """Create OpenGL buffers from avatar mesh data."""
+            """Create OpenGL buffers from avatar mesh data.
+
+            Builds a single combined VAO with all meshes, but tracks
+            per-material draw groups so each material can bind its own
+            texture and diffuse color during rendering.
+            """
             if not self._avatar or not self._avatar.meshes:
                 logger.warning("No meshes in avatar")
                 return
 
-            # Combine all meshes for simplicity
+            # Sort meshes by material_index so same-material primitives
+            # are contiguous in the index buffer
+            sorted_meshes = sorted(
+                self._avatar.meshes,
+                key=lambda m: m.material_index if m.material_index is not None else -1
+            )
+
+            # Combine all meshes, tracking per-material groups
             all_vertices = []
             all_normals = []
             all_uvs = []
             all_indices = []
-            index_offset = 0
+            self._material_groups = []  # (material_index, byte_offset, index_count)
 
-            for mesh in self._avatar.meshes:
+            vertex_offset = 0
+            index_offset = 0  # in number of indices (not bytes)
+
+            for mesh in sorted_meshes:
                 if mesh.vertices is None or len(mesh.vertices) == 0:
                     continue
 
@@ -508,14 +610,27 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                     all_uvs.append(np.zeros((len(vertices), 2), dtype=np.float32))
 
                 if mesh.indices is not None:
-                    indices = np.asarray(mesh.indices, dtype=np.uint32) + index_offset
+                    indices = np.asarray(mesh.indices, dtype=np.uint32).flatten() + vertex_offset
                     all_indices.append(indices)
                 else:
-                    all_indices.append(
-                        np.arange(len(vertices), dtype=np.uint32) + index_offset
-                    )
+                    indices = np.arange(len(vertices), dtype=np.uint32) + vertex_offset
+                    all_indices.append(indices)
 
-                index_offset += len(vertices)
+                mat_idx = mesh.material_index if mesh.material_index is not None else -1
+                # byte_offset = index position * 4 bytes per uint32
+                byte_offset = index_offset * 4
+                index_count = len(indices)
+
+                # Try to merge with previous group if same material
+                if (self._material_groups
+                        and self._material_groups[-1][0] == mat_idx):
+                    prev_mat, prev_offset, prev_count = self._material_groups[-1]
+                    self._material_groups[-1] = (prev_mat, prev_offset, prev_count + index_count)
+                else:
+                    self._material_groups.append((mat_idx, byte_offset, index_count))
+
+                vertex_offset += len(vertices)
+                index_offset += index_count
 
             if not all_vertices:
                 logger.warning("No vertex data found")
@@ -526,7 +641,10 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             uvs = np.vstack(all_uvs)
             indices = np.concatenate(all_indices)
 
-            logger.info(f"Combined mesh: {len(vertices)} verts, {len(indices)} indices")
+            logger.info(
+                f"Combined mesh: {len(vertices)} verts, {len(indices)} indices, "
+                f"{len(self._material_groups)} material groups"
+            )
 
             # Store for rendering
             self._mesh = {
@@ -578,6 +696,117 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 'bones': self._avatar.skeleton.bones,
                 'humanoid_map': dict(self._avatar.skeleton.humanoid_map)
                     if hasattr(self._avatar.skeleton, 'humanoid_map') else {},
+            }
+
+        def _load_textures(self):
+            """Load textures from avatar materials and upload to GL.
+
+            For each material that references a diffuse_texture, decodes the
+            image bytes via QImage and uploads to an OpenGL texture object.
+            Also extracts per-material diffuse colors for the uColor uniform.
+            """
+            if not self._avatar:
+                return
+
+            self._gl_textures = {}
+            self._material_colors = {}
+
+            for mat_idx, material in enumerate(self._avatar.materials):
+                # Extract diffuse color (RGB from RGBA)
+                dc = material.diffuse_color
+                self._material_colors[mat_idx] = (
+                    float(dc[0]), float(dc[1]), float(dc[2])
+                )
+
+                # Load diffuse texture if available
+                tex_idx = material.diffuse_texture
+                if tex_idx is None:
+                    continue
+                if tex_idx >= len(self._avatar.textures):
+                    logger.warning(
+                        f"Material '{material.name}' references texture {tex_idx} "
+                        f"but only {len(self._avatar.textures)} textures available"
+                    )
+                    continue
+
+                raw_bytes = self._avatar.textures[tex_idx]
+                if not raw_bytes:
+                    continue
+
+                try:
+                    qimg = QImage.fromData(QByteArray(raw_bytes))
+                    if qimg.isNull():
+                        logger.warning(
+                            f"Failed to decode texture {tex_idx} for material "
+                            f"'{material.name}'"
+                        )
+                        continue
+
+                    # Convert to RGBA8888 for GL upload
+                    qimg = qimg.convertToFormat(QImage.Format.Format_RGBA8888)
+                    # glTF/VRM UVs use top-left origin (V=0 at top).
+                    # OpenGL glTexImage2D uploads the first row of pixels
+                    # to the bottom of the texture (where V=0 maps).
+                    # So no vertical flip is needed -- the conventions
+                    # align when the image is uploaded as-is.
+
+                    w, h = qimg.width(), qimg.height()
+                    ptr = qimg.bits()
+                    ptr.setsize(w * h * 4)
+                    raw_bytes_data = bytes(ptr)
+
+                    # Use raw ctypes GL calls for texture upload.
+                    # PyOpenGL 3.1.0 + OpenGL_accelerate 3.1.10 has a
+                    # broken array-type handler on Python 3.14 that
+                    # causes CArgObject errors in glGenTextures.
+                    tex_id = _gl_gen_texture()
+                    _gl_bind_texture(tex_id)
+                    _gl_tex_image_2d(w, h, raw_bytes_data)
+                    GL.glTexParameteri(
+                        GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR
+                    )
+                    GL.glTexParameteri(
+                        GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR
+                    )
+                    GL.glTexParameteri(
+                        GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT
+                    )
+                    GL.glTexParameteri(
+                        GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT
+                    )
+                    _gl_bind_texture(0)
+
+                    self._gl_textures[mat_idx] = tex_id
+                    logger.info(
+                        f"Loaded texture {tex_idx} ({w}x{h}) for material "
+                        f"'{material.name}'"
+                    )
+
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to load texture {tex_idx} for material "
+                        f"'{material.name}': {e}"
+                    )
+
+            logger.info(
+                f"Loaded {len(self._gl_textures)} textures, "
+                f"{len(self._material_colors)} material colors"
+            )
+
+        def _cache_mesh_uniforms(self):
+            """Cache uniform locations for the mesh shader to avoid
+            per-frame glGetUniformLocation calls."""
+            if not self._shader_mesh:
+                return
+            prog = self._shader_mesh
+            self._mesh_uniform_locs = {
+                'uModel': GL.glGetUniformLocation(prog, "uModel"),
+                'uView': GL.glGetUniformLocation(prog, "uView"),
+                'uProjection': GL.glGetUniformLocation(prog, "uProjection"),
+                'uLightDir': GL.glGetUniformLocation(prog, "uLightDir"),
+                'uColor': GL.glGetUniformLocation(prog, "uColor"),
+                'uDiffuseTex': GL.glGetUniformLocation(prog, "uDiffuseTex"),
+                'uHasTexture': GL.glGetUniformLocation(prog, "uHasTexture"),
             }
 
         def _center_camera(self):
@@ -760,42 +989,51 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             GL.glBindVertexArray(0)
 
         def _draw_mesh(self, view: np.ndarray, proj: np.ndarray):
-            """Draw avatar mesh."""
+            """Draw avatar mesh with per-material texture binding."""
             GL.glUseProgram(self._shader_mesh)
 
-            model = np.eye(4, dtype=np.float32)
+            locs = self._mesh_uniform_locs
+
+            # Model matrix with idle animation
+            model = self._build_model_matrix()
+            GL.glUniformMatrix4fv(locs.get('uModel', -1), 1, GL.GL_TRUE, model)
+            GL.glUniformMatrix4fv(locs.get('uView', -1), 1, GL.GL_TRUE, view)
             GL.glUniformMatrix4fv(
-                GL.glGetUniformLocation(self._shader_mesh, "uModel"),
-                1, GL.GL_TRUE, model
-            )
-            GL.glUniformMatrix4fv(
-                GL.glGetUniformLocation(self._shader_mesh, "uView"),
-                1, GL.GL_TRUE, view
-            )
-            GL.glUniformMatrix4fv(
-                GL.glGetUniformLocation(self._shader_mesh, "uProjection"),
-                1, GL.GL_TRUE, proj
+                locs.get('uProjection', -1), 1, GL.GL_TRUE, proj
             )
 
-            # Light and color
+            # Light direction (shared across all materials)
             light_dir = np.array([0.5, 0.7, 0.5], dtype=np.float32)
             light_dir = light_dir / np.linalg.norm(light_dir)
-            GL.glUniform3fv(
-                GL.glGetUniformLocation(self._shader_mesh, "uLightDir"),
-                1, light_dir
-            )
-            GL.glUniform3f(
-                GL.glGetUniformLocation(self._shader_mesh, "uColor"),
-                0.85, 0.80, 0.75
-            )
+            GL.glUniform3fv(locs.get('uLightDir', -1), 1, light_dir)
+
+            loc_color = locs.get('uColor', -1)
+            loc_tex = locs.get('uDiffuseTex', -1)
+            loc_has_tex = locs.get('uHasTexture', -1)
 
             GL.glBindVertexArray(self._mesh['vao'])
-            GL.glDrawElements(
-                GL.GL_TRIANGLES,
-                len(self._mesh['indices']),
-                GL.GL_UNSIGNED_INT,
-                None
-            )
+
+            for mat_idx, byte_offset, count in self._material_groups:
+                # Bind texture if available for this material
+                if mat_idx in self._gl_textures:
+                    GL.glActiveTexture(GL.GL_TEXTURE0)
+                    _gl_bind_texture(self._gl_textures[mat_idx])
+                    GL.glUniform1i(loc_tex, 0)
+                    GL.glUniform1i(loc_has_tex, 1)
+                else:
+                    GL.glUniform1i(loc_has_tex, 0)
+
+                # Set material diffuse color
+                color = self._material_colors.get(mat_idx, (0.85, 0.80, 0.75))
+                GL.glUniform3f(loc_color, *color)
+
+                # Draw this material group
+                GL.glDrawElements(
+                    GL.GL_TRIANGLES, count, GL.GL_UNSIGNED_INT,
+                    GL.ctypes.c_void_p(byte_offset)
+                )
+
+            _gl_bind_texture(0)
             GL.glBindVertexArray(0)
 
         def _draw_skeleton(self, view: np.ndarray, proj: np.ndarray):
@@ -881,6 +1119,34 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 return pos.tolist()
             except Exception:
                 return None
+
+        # =====================================================================
+        # Idle Animation
+        # =====================================================================
+
+        def _tick_idle(self):
+            """Advance idle animation phase and request repaint."""
+            self._idle_phase += 0.016  # ~16ms per tick
+            self.update()
+
+        def _build_model_matrix(self) -> np.ndarray:
+            """Build model matrix with idle animation transforms.
+
+            Applies a subtle Y-axis bob (breathing rhythm) and Y-axis
+            scale pulse (chest expansion) driven by sine waves.
+            """
+            t = self._idle_phase
+            model = np.eye(4, dtype=np.float32)
+
+            # Y bob (period ~4s, amplitude ~0.01 units)
+            bob_y = 0.01 * math.sin(t * 2.0 * math.pi / 4.0)
+            model[1, 3] = bob_y
+
+            # Chest expansion via Y scale (period ~3.5s, amplitude ~0.02)
+            breath_scale = 1.0 + 0.02 * math.sin(t * 2.0 * math.pi / 3.5)
+            model[1, 1] = breath_scale
+
+            return model
 
         # =====================================================================
         # Mouse Interaction
