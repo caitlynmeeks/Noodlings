@@ -303,6 +303,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self._material_groups = []   # (material_index, byte_offset, index_count)
             self._gl_textures = {}       # material_index -> GL texture ID
             self._material_colors = {}   # material_index -> (r, g, b)
+            self._material_mtoon = {}    # material_index -> MToonMaterial
 
             # Cached uniform locations (set after shader compilation)
             self._mesh_uniform_locs = {}
@@ -391,12 +392,18 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             uniform sampler2D uDiffuseTex;
             uniform int uHasTexture;
 
+            // MToon cel-shading uniforms
+            uniform vec3 uShadeColor;
+            uniform float uShadingToony;
+            uniform float uShadingShift;
+            uniform vec3 uRimColor;
+            uniform float uRimPower;
+            uniform vec3 uCameraPos;
+
             out vec4 FragColor;
 
             void main() {
                 vec3 normal = normalize(vNormal);
-                float diff = max(dot(normal, uLightDir), 0.0);
-                float ambient = 0.35;
 
                 vec3 baseColor;
                 float alpha = 1.0;
@@ -411,7 +418,28 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 // Alpha cutout for hair/accessories
                 if (alpha < 0.5) discard;
 
-                vec3 color = baseColor * (ambient + diff * 0.65);
+                // MToon cel shading: half-Lambert with stepped boundary
+                float halfLambert = dot(normal, uLightDir) * 0.5 + 0.5;
+                float shifted = halfLambert + uShadingShift;
+                float toony = smoothstep(
+                    0.5 - uShadingToony * 0.5,
+                    0.5 + uShadingToony * 0.5,
+                    shifted
+                );
+
+                // Blend between shade color and lit color
+                vec3 shadedColor = baseColor * uShadeColor;
+                vec3 color = mix(shadedColor, baseColor, toony);
+
+                // Ambient fill to prevent pure black shadows
+                color = max(color, baseColor * 0.15);
+
+                // Rim lighting (view-dependent edge glow)
+                vec3 viewDir = normalize(uCameraPos - vWorldPos);
+                float rim = 1.0 - max(dot(viewDir, normal), 0.0);
+                rim = pow(rim, uRimPower);
+                color += uRimColor * rim;
+
                 FragColor = vec4(color, alpha);
             }
             """
@@ -710,8 +738,12 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             self._gl_textures = {}
             self._material_colors = {}
+            self._material_mtoon = {}
 
             for mat_idx, material in enumerate(self._avatar.materials):
+                # Store MToon material reference for cel-shading uniforms
+                self._material_mtoon[mat_idx] = material
+
                 # Extract diffuse color (RGB from RGBA)
                 dc = material.diffuse_color
                 self._material_colors[mat_idx] = (
@@ -807,6 +839,13 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 'uColor': GL.glGetUniformLocation(prog, "uColor"),
                 'uDiffuseTex': GL.glGetUniformLocation(prog, "uDiffuseTex"),
                 'uHasTexture': GL.glGetUniformLocation(prog, "uHasTexture"),
+                # MToon cel-shading uniforms
+                'uShadeColor': GL.glGetUniformLocation(prog, "uShadeColor"),
+                'uShadingToony': GL.glGetUniformLocation(prog, "uShadingToony"),
+                'uShadingShift': GL.glGetUniformLocation(prog, "uShadingShift"),
+                'uRimColor': GL.glGetUniformLocation(prog, "uRimColor"),
+                'uRimPower': GL.glGetUniformLocation(prog, "uRimPower"),
+                'uCameraPos': GL.glGetUniformLocation(prog, "uCameraPos"),
             }
 
         def _center_camera(self):
@@ -989,7 +1028,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             GL.glBindVertexArray(0)
 
         def _draw_mesh(self, view: np.ndarray, proj: np.ndarray):
-            """Draw avatar mesh with per-material texture binding."""
+            """Draw avatar mesh with per-material MToon cel-shading."""
             GL.glUseProgram(self._shader_mesh)
 
             locs = self._mesh_uniform_locs
@@ -1007,9 +1046,24 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             light_dir = light_dir / np.linalg.norm(light_dir)
             GL.glUniform3fv(locs.get('uLightDir', -1), 1, light_dir)
 
+            # Camera position for rim lighting (same computation as _view_matrix)
+            az_rad = math.radians(self._azimuth)
+            el_rad = math.radians(self._elevation)
+            cam_pos = np.array([
+                self._target[0] + self._distance * math.cos(el_rad) * math.sin(az_rad),
+                self._target[1] + self._distance * math.sin(el_rad),
+                self._target[2] + self._distance * math.cos(el_rad) * math.cos(az_rad),
+            ], dtype=np.float32)
+            GL.glUniform3fv(locs.get('uCameraPos', -1), 1, cam_pos)
+
             loc_color = locs.get('uColor', -1)
             loc_tex = locs.get('uDiffuseTex', -1)
             loc_has_tex = locs.get('uHasTexture', -1)
+            loc_shade_color = locs.get('uShadeColor', -1)
+            loc_shading_toony = locs.get('uShadingToony', -1)
+            loc_shading_shift = locs.get('uShadingShift', -1)
+            loc_rim_color = locs.get('uRimColor', -1)
+            loc_rim_power = locs.get('uRimPower', -1)
 
             GL.glBindVertexArray(self._mesh['vao'])
 
@@ -1026,6 +1080,21 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 # Set material diffuse color
                 color = self._material_colors.get(mat_idx, (0.85, 0.80, 0.75))
                 GL.glUniform3f(loc_color, *color)
+
+                # Set MToon cel-shading uniforms
+                mtoon = self._material_mtoon.get(mat_idx)
+                if mtoon:
+                    GL.glUniform3f(loc_shade_color, *mtoon.shade_color[:3])
+                    GL.glUniform1f(loc_shading_toony, mtoon.shading_toony)
+                    GL.glUniform1f(loc_shading_shift, mtoon.shading_shift)
+                    GL.glUniform3f(loc_rim_color, *mtoon.rim_color)
+                    GL.glUniform1f(loc_rim_power, max(0.1, mtoon.rim_power))
+                else:
+                    GL.glUniform3f(loc_shade_color, 0.65, 0.65, 0.7)
+                    GL.glUniform1f(loc_shading_toony, 0.9)
+                    GL.glUniform1f(loc_shading_shift, 0.0)
+                    GL.glUniform3f(loc_rim_color, 0.0, 0.0, 0.0)
+                    GL.glUniform1f(loc_rim_power, 1.0)
 
                 # Draw this material group
                 GL.glDrawElements(
