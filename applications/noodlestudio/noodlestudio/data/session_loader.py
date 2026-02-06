@@ -33,6 +33,7 @@
 # ──────────────────────────────────────────────────────────────
 
 import json
+import time
 import requests
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -97,26 +98,62 @@ class SessionLoader:
     The Krugerrand Profiler Backend - worth its weight in gold!
     """
 
+    # Backoff settings for when backend is unavailable
+    INITIAL_BACKOFF = 5.0  # seconds before first retry after failure
+    MAX_BACKOFF = 60.0  # max seconds between retries
+    BACKOFF_MULTIPLIER = 2.0
+
     def __init__(self, api_base: str = "http://localhost:8081/api"):
         self.api_base = api_base
+        self._backend_available = True
+        self._last_error_logged = False
+        self._next_retry_time = 0.0
+        self._current_backoff = self.INITIAL_BACKOFF
 
     def load_live_session(self) -> Optional[SessionData]:
         """
         Load current live session from API.
 
+        Uses exponential backoff when backend is unavailable to avoid
+        spamming the logs every 2 seconds.
+
         Returns:
-            SessionData or None if error
+            SessionData or None if error/unavailable
         """
+        # If backend was previously unavailable, check if we should retry yet
+        if not self._backend_available:
+            if time.time() < self._next_retry_time:
+                return None  # Still in backoff period, skip silently
+
         try:
             url = f"{self.api_base}/profiler/live-session"
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=2)
             response.raise_for_status()
             data = response.json()
+
+            # Success - reset backoff state
+            if not self._backend_available:
+                print("[ProfilerPanel] Backend connection restored")
+            self._backend_available = True
+            self._last_error_logged = False
+            self._current_backoff = self.INITIAL_BACKOFF
 
             return self._parse_session_data(data)
 
         except Exception as e:
-            print(f"Error loading live session: {e}")
+            # Only log the error once, not every retry
+            if not self._last_error_logged:
+                print(f"[ProfilerPanel] Backend unavailable (will retry silently): {e}")
+                self._last_error_logged = True
+
+            # Set up exponential backoff
+            self._backend_available = False
+            self._next_retry_time = time.time() + self._current_backoff
+            self._current_backoff = min(
+                self._current_backoff * self.BACKOFF_MULTIPLIER,
+                self.MAX_BACKOFF
+            )
+
             return None
 
     def load_session_file(self, filepath: Path) -> Optional[SessionData]:
