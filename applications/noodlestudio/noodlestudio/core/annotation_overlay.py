@@ -355,6 +355,10 @@ class AnnotationOverlay(QWidget):
         # Make transparent and overlay
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        # Disable macOS window shadow — without this, macOS composites a
+        # drop shadow around painted content, creating dark outlines on
+        # every annotation element.
+        self.setAttribute(Qt.WidgetAttribute(89), True)  # WA_MacNoShadow
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setMouseTracking(True)
 
@@ -822,10 +826,18 @@ class AnnotationOverlay(QWidget):
     # =========================================================================
 
     def paintEvent(self, event):
+        painter = QPainter(self)
+        # Clear entire backing store to fully transparent every frame.
+        # Without this, macOS composites new paint on top of stale pixels
+        # from previous frames, causing glow alpha to accumulate into
+        # visible dark outlines around annotations.
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+        painter.fillRect(self.rect(), Qt.GlobalColor.transparent)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+
         if not self.visible_annotations:
             return
 
-        painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
         # Draw existing annotations

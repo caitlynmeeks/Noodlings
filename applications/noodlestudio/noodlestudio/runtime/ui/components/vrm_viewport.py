@@ -272,6 +272,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             fmt = QSurfaceFormat()
             fmt.setSamples(4)  # MSAA
             fmt.setDepthBufferSize(24)
+            fmt.setStencilBufferSize(8)  # For single-layer shadow rendering
             fmt.setAlphaBufferSize(8)  # Enable alpha channel for transparency
             fmt.setVersion(3, 3)
             fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
@@ -350,6 +351,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self._ground_vao = 0
             self._ground_vbo = 0
             self._ground_ebo = 0
+            self._ground_texture = 0  # Wood floor texture
             self._shader_ground = 0
             self._shader_shadow = 0
 
@@ -449,6 +451,10 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             uniform float uRimPower;
             uniform vec3 uCameraPos;
 
+            // Soft frontal fill light
+            uniform vec3 uFillLightDir;
+            uniform vec3 uFillLightColor;
+
             out vec4 FragColor;
 
             void main() {
@@ -482,6 +488,11 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
                 // Ambient fill to prevent pure black shadows
                 color = max(color, baseColor * 0.15);
+
+                // Soft frontal fill light: half-Lambert wrap for gentle contours
+                // (no hard shadow boundary — light wraps around the form)
+                float fillHalfLambert = dot(normal, uFillLightDir) * 0.5 + 0.5;
+                color += baseColor * uFillLightColor * fillHalfLambert * 0.2;
 
                 // Rim lighting (view-dependent edge glow)
                 vec3 viewDir = normalize(uCameraPos - vWorldPos);
@@ -524,7 +535,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             self._shader_line = self._compile_shader(vertex_line, fragment_line)
 
-            # Ground plane shader (spotlight effect)
+            # Ground plane shader (wood texture + spotlight)
             vertex_ground = """
             #version 330 core
             layout(location = 0) in vec3 aPos;
@@ -549,6 +560,9 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             uniform float uSpotRadius;
             uniform vec3 uSpotColor;
             uniform vec3 uFloorColor;
+            uniform sampler2D uFloorTex;
+            uniform int uHasFloorTex;
+            uniform float uTexScale;
 
             void main() {
                 float dist = length(vWorldPos.xz - uSpotCenter.xz);
@@ -556,7 +570,20 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 // Hard-center spotlight: solid pool inside 60%, fade over outer 40%
                 float innerRadius = uSpotRadius * 0.6;
                 float falloff = 1.0 - smoothstep(innerRadius, uSpotRadius, dist);
-                vec3 color = mix(uFloorColor, uSpotColor, falloff);
+
+                // Sample wood texture via XZ planar projection
+                vec3 baseColor;
+                if (uHasFloorTex == 1) {
+                    vec2 uv = vWorldPos.xz * uTexScale;
+                    vec3 texColor = texture(uFloorTex, uv).rgb;
+                    // Darken texture to match stage mood
+                    baseColor = texColor * 0.35;
+                } else {
+                    baseColor = uFloorColor;
+                }
+
+                // Spotlight tints the textured floor with warm amber
+                vec3 color = mix(baseColor, baseColor + uSpotColor * 0.6, falloff);
 
                 FragColor = vec4(color, 1.0);
             }
@@ -596,7 +623,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             out vec4 FragColor;
 
             void main() {
-                FragColor = vec4(0.0, 0.0, 0.0, 0.45);
+                FragColor = vec4(0.0, 0.0, 0.0, 0.25);
             }
             """
 
@@ -699,6 +726,57 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             )
 
             GL.glBindVertexArray(0)
+
+            # Load wood floor texture
+            self._load_ground_texture()
+
+        def _load_ground_texture(self):
+            """Load wood floor texture from bundled asset."""
+            import os
+            tex_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                'assets', 'wood_floor.jpg'
+            )
+            if not os.path.exists(tex_path):
+                logger.warning(f"Ground texture not found: {tex_path}")
+                return
+
+            try:
+                qimg = QImage(tex_path)
+                if qimg.isNull():
+                    logger.warning(f"Failed to decode ground texture: {tex_path}")
+                    return
+
+                qimg = qimg.convertToFormat(QImage.Format.Format_RGBA8888)
+                w, h = qimg.width(), qimg.height()
+                ptr = qimg.bits()
+                ptr.setsize(w * h * 4)
+                raw_bytes = bytes(ptr)
+
+                tex_id = _gl_gen_texture()
+                _gl_bind_texture(tex_id)
+                _gl_tex_image_2d(w, h, raw_bytes)
+                GL.glTexParameteri(
+                    GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER,
+                    GL.GL_LINEAR_MIPMAP_LINEAR
+                )
+                GL.glTexParameteri(
+                    GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR
+                )
+                GL.glTexParameteri(
+                    GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT
+                )
+                GL.glTexParameteri(
+                    GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT
+                )
+                GL.glGenerateMipmap(GL.GL_TEXTURE_2D)
+                _gl_bind_texture(0)
+
+                self._ground_texture = tex_id
+                logger.info(f"Loaded ground texture ({w}x{h}): {tex_path}")
+
+            except Exception as e:
+                logger.warning(f"Failed to load ground texture: {e}")
 
         # =====================================================================
         # Public API: VRM Loading
@@ -1098,6 +1176,9 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 'uRimColor': GL.glGetUniformLocation(prog, "uRimColor"),
                 'uRimPower': GL.glGetUniformLocation(prog, "uRimPower"),
                 'uCameraPos': GL.glGetUniformLocation(prog, "uCameraPos"),
+                # Frontal fill light
+                'uFillLightDir': GL.glGetUniformLocation(prog, "uFillLightDir"),
+                'uFillLightColor': GL.glGetUniformLocation(prog, "uFillLightColor"),
                 # Skeletal skinning
                 'uBoneMatrices': GL.glGetUniformLocation(prog, "uBoneMatrices"),
             }
@@ -1493,7 +1574,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
         def paintGL(self):
             """Render the scene."""
-            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
 
             aspect = self.width() / max(1, self.height())
             view = self._view_matrix()
@@ -1569,43 +1650,65 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             return proj
 
         def _draw_ground_plane(self, view: np.ndarray, proj: np.ndarray):
-            """Draw KK Slider-style stage floor with spotlight pool."""
+            """Draw KK Slider-style stage floor with wood texture + spotlight."""
             if not self._ground_vao or not self._shader_ground:
                 return
 
-            GL.glUseProgram(self._shader_ground)
+            prog = self._shader_ground
+            GL.glUseProgram(prog)
             GL.glUniformMatrix4fv(
-                GL.glGetUniformLocation(self._shader_ground, "uView"),
+                GL.glGetUniformLocation(prog, "uView"),
                 1, GL.GL_TRUE, view
             )
             GL.glUniformMatrix4fv(
-                GL.glGetUniformLocation(self._shader_ground, "uProjection"),
+                GL.glGetUniformLocation(prog, "uProjection"),
                 1, GL.GL_TRUE, proj
             )
 
-            # Spotlight offset slightly screen-right for shadow offset
+            # Spotlight centered on character, tighter pool
             GL.glUniform3f(
-                GL.glGetUniformLocation(self._shader_ground, "uSpotCenter"),
-                0.3, 0.0, 0.0
+                GL.glGetUniformLocation(prog, "uSpotCenter"),
+                0.0, 0.0, 0.0
             )
             GL.glUniform1f(
-                GL.glGetUniformLocation(self._shader_ground, "uSpotRadius"),
-                1.4
+                GL.glGetUniformLocation(prog, "uSpotRadius"),
+                0.9
             )
             # Warm amber spotlight on floor
             GL.glUniform3f(
-                GL.glGetUniformLocation(self._shader_ground, "uSpotColor"),
+                GL.glGetUniformLocation(prog, "uSpotColor"),
                 0.38, 0.28, 0.14
             )
             # Dark floor blending into background
             GL.glUniform3f(
-                GL.glGetUniformLocation(self._shader_ground, "uFloorColor"),
+                GL.glGetUniformLocation(prog, "uFloorColor"),
                 0.02, 0.02, 0.03
             )
+
+            # Wood texture: tile every ~0.8 world units
+            if self._ground_texture:
+                GL.glActiveTexture(GL.GL_TEXTURE0)
+                _gl_bind_texture(self._ground_texture)
+                GL.glUniform1i(
+                    GL.glGetUniformLocation(prog, "uFloorTex"), 0
+                )
+                GL.glUniform1i(
+                    GL.glGetUniformLocation(prog, "uHasFloorTex"), 1
+                )
+                GL.glUniform1f(
+                    GL.glGetUniformLocation(prog, "uTexScale"), 1.25
+                )
+            else:
+                GL.glUniform1i(
+                    GL.glGetUniformLocation(prog, "uHasFloorTex"), 0
+                )
 
             GL.glBindVertexArray(self._ground_vao)
             GL.glDrawElements(GL.GL_TRIANGLES, 6, GL.GL_UNSIGNED_INT, None)
             GL.glBindVertexArray(0)
+
+            if self._ground_texture:
+                _gl_bind_texture(0)
 
         def _draw_grid(self, view: np.ndarray, proj: np.ndarray):
             """Draw ground grid."""
@@ -1625,9 +1728,10 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
         def _shadow_projection_matrix(self) -> np.ndarray:
             """Planar shadow projection for Y=0 ground plane."""
-            # Light direction toward source: (0.5, 0.7, 0.5)
-            # Ray from light: negate
-            dx, dy, dz = -0.5, -0.7, -0.5
+            # Camera at azimuth 180 sits at -Z looking toward origin.
+            # Shadow offset = (dx, dz) * y / 0.7, so positive dz pushes
+            # shadow into +Z (behind Ajo, away from camera).
+            dx, dy, dz = 0.2, -0.7, 0.5
             m = np.eye(4, dtype=np.float32)
             m[0, 1] = -dx / dy   # X shear from height
             m[1, 1] = 0.0        # Flatten Y to ground
@@ -1673,6 +1777,14 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             # Projection flips winding — disable culling for shadow pass
             GL.glDisable(GL.GL_CULL_FACE)
 
+            # Stencil test: draw each shadow pixel exactly once.
+            # Without this, overlapping mesh triangles (front/back faces)
+            # stack their alpha, creating darker patches in the shadow.
+            GL.glEnable(GL.GL_STENCIL_TEST)
+            GL.glStencilFunc(GL.GL_EQUAL, 0, 0xFF)      # Pass where stencil == 0
+            GL.glStencilOp(GL.GL_KEEP, GL.GL_KEEP, GL.GL_REPLACE)  # Mark as 1
+            GL.glStencilMask(0xFF)
+
             GL.glBindVertexArray(self._mesh['vao'])
             for _mat_idx, byte_offset, count in self._material_groups:
                 GL.glDrawElements(
@@ -1682,6 +1794,8 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             GL.glBindVertexArray(0)
 
             # Restore state
+            GL.glDisable(GL.GL_STENCIL_TEST)
+            GL.glStencilMask(0xFF)
             GL.glEnable(GL.GL_CULL_FACE)
             GL.glDepthMask(GL.GL_TRUE)
 
@@ -1713,6 +1827,13 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 self._target[2] + self._distance * math.cos(el_rad) * math.cos(az_rad),
             ], dtype=np.float32)
             GL.glUniform3fv(locs.get('uCameraPos', -1), 1, cam_pos)
+
+            # Soft frontal fill light: from camera direction, warm tone
+            fill_dir = np.array([0.0, 0.3, 1.0], dtype=np.float32)
+            fill_dir = fill_dir / np.linalg.norm(fill_dir)
+            GL.glUniform3fv(locs.get('uFillLightDir', -1), 1, fill_dir)
+            # Warm amber fill: slightly orange for skin warmth
+            GL.glUniform3f(locs.get('uFillLightColor', -1), 1.0, 0.85, 0.6)
 
             # Upload bone matrices for skeletal skinning
             loc_bones = locs.get('uBoneMatrices', -1)

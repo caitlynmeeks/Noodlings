@@ -505,6 +505,7 @@ class MainWindowPanelsMixin:
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowStaysOnTopHint
             | Qt.WindowType.Tool  # No taskbar entry
+            | Qt.WindowType.NoDropShadowWindowHint  # No macOS outline on annotations
         )
         self.annotation_overlay.setAttribute(
             Qt.WidgetAttribute.WA_TranslucentBackground, True
