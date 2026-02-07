@@ -527,16 +527,16 @@ class TestRetargeterMapping:
         assert abs(rz) > 0
 
     def test_arm_muscles_map_correctly(self):
-        """Arm muscle bone names lowercase-match humanoid_map."""
+        """Arm muscle bone names map to VRM humanoid bone names."""
         retargeter = PoseRetargeter()
         pose = PoseState(muscles={
             "LeftArm.DownUp": 0.5,
             "RightArm.DownUp": 0.3,
         })
         rotations = retargeter.apply_pose(pose)
-        # PoseRetargeter extracts bone part as "LeftArm" -> "leftarm"
-        assert "leftarm" in rotations
-        assert "rightarm" in rotations
+        # PoseRetargeter maps "LeftArm" -> "leftUpperArm" via DEFAULT_VRM_BONE_MAP
+        assert "leftUpperArm" in rotations
+        assert "rightUpperArm" in rotations
 
 
 # =============================================================================

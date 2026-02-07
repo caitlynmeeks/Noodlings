@@ -726,6 +726,37 @@ class PoseRetargeter:
     and applies it to a specific skeleton with proper bone limits.
     """
 
+    # Default mapping from muscle bone-part names to VRM humanoid bone names.
+    # Our muscle naming uses Unity-style PascalCase (LeftArm, RightForeArm),
+    # while VRM humanoid bones use camelCase (leftUpperArm, rightLowerArm).
+    DEFAULT_VRM_BONE_MAP: Dict[str, str] = {
+        'Hips': 'hips',
+        'Spine': 'spine',
+        'Chest': 'chest',
+        'UpperChest': 'upperChest',
+        'Neck': 'neck',
+        'Head': 'head',
+        'LeftEye': 'leftEye',
+        'RightEye': 'rightEye',
+        'Jaw': 'jaw',
+        'LeftShoulder': 'leftShoulder',
+        'LeftArm': 'leftUpperArm',
+        'LeftForeArm': 'leftLowerArm',
+        'LeftHand': 'leftHand',
+        'RightShoulder': 'rightShoulder',
+        'RightArm': 'rightUpperArm',
+        'RightForeArm': 'rightLowerArm',
+        'RightHand': 'rightHand',
+        'LeftUpperLeg': 'leftUpperLeg',
+        'LeftLowerLeg': 'leftLowerLeg',
+        'LeftFoot': 'leftFoot',
+        'LeftToes': 'leftToes',
+        'RightUpperLeg': 'rightUpperLeg',
+        'RightLowerLeg': 'rightLowerLeg',
+        'RightFoot': 'rightFoot',
+        'RightToes': 'rightToes',
+    }
+
     def __init__(self, avatar_config: Optional[Dict[str, Any]] = None):
         """
         Initialize with avatar muscle configuration.
@@ -737,7 +768,8 @@ class PoseRetargeter:
         self.config = avatar_config or MUSCLE_DEFINITIONS
 
         # Bone name mapping (avatar-specific bone names)
-        self.bone_map: Dict[str, str] = {}
+        # Pre-populated with VRM humanoid standard names
+        self.bone_map: Dict[str, str] = dict(self.DEFAULT_VRM_BONE_MAP)
 
     def set_bone_map(self, bone_map: Dict[str, str]):
         """
