@@ -1593,11 +1593,13 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             # === SPINE SWAY (very slow lateral drift) ===
             muscles['Spine.LeftRight'] = 0.015 * math.sin(t * two_pi / 9.7)
 
-            # === ARM BOB (Animal Crossing style - gentle asymmetric sway) ===
+            # === ARM REST + BOB (arms hang naturally, not T-pose) ===
+            # DownUp at -0.75 brings arms ~45deg below horizontal
+            arm_rest = -0.75
             muscles['LeftArm.FrontBack'] = 0.03 * math.sin(t * two_pi / 5.3)
             muscles['RightArm.FrontBack'] = 0.03 * math.sin(t * two_pi / 5.9)
-            muscles['LeftArm.DownUp'] = 0.02 * math.sin(t * two_pi / 8.3)
-            muscles['RightArm.DownUp'] = 0.02 * math.sin(t * two_pi / 8.9)
+            muscles['LeftArm.DownUp'] = arm_rest + 0.02 * math.sin(t * two_pi / 8.3)
+            muscles['RightArm.DownUp'] = arm_rest + 0.02 * math.sin(t * two_pi / 8.9)
 
             return muscles
 

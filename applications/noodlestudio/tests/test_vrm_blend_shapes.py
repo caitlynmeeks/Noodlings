@@ -116,11 +116,12 @@ def _compute_idle_muscles(t: float) -> dict:
     # Spine sway
     muscles['Spine.LeftRight'] = 0.015 * math.sin(t * two_pi / 9.7)
 
-    # Arm bob
+    # Arm rest + bob
+    arm_rest = -0.75
     muscles['LeftArm.FrontBack'] = 0.03 * math.sin(t * two_pi / 5.3)
     muscles['RightArm.FrontBack'] = 0.03 * math.sin(t * two_pi / 5.9)
-    muscles['LeftArm.DownUp'] = 0.02 * math.sin(t * two_pi / 8.3)
-    muscles['RightArm.DownUp'] = 0.02 * math.sin(t * two_pi / 8.9)
+    muscles['LeftArm.DownUp'] = arm_rest + 0.02 * math.sin(t * two_pi / 8.3)
+    muscles['RightArm.DownUp'] = arm_rest + 0.02 * math.sin(t * two_pi / 8.9)
 
     return muscles
 
@@ -353,23 +354,24 @@ class TestArmBobIdle:
         assert result['LeftArm.DownUp'] != result['RightArm.DownUp']
 
     def test_arm_bob_amplitudes_bounded(self):
-        """Arm muscles stay within [-0.05, 0.05] over many samples."""
-        arm_keys = [
-            'LeftArm.FrontBack', 'RightArm.FrontBack',
-            'LeftArm.DownUp', 'RightArm.DownUp',
-        ]
+        """Arm FrontBack stays within [-0.05, 0.05], DownUp around rest bias."""
         for i in range(500):
             t = i * 0.1
             result = _compute_idle_muscles(t)
-            for key in arm_keys:
+            for key in ['LeftArm.FrontBack', 'RightArm.FrontBack']:
                 assert -0.05 <= result[key] <= 0.05, (
                     f"{key} = {result[key]} at t={t} exceeds bounds"
                 )
+            # DownUp oscillates around -0.75 rest bias
+            for key in ['LeftArm.DownUp', 'RightArm.DownUp']:
+                assert -0.8 <= result[key] <= -0.7, (
+                    f"{key} = {result[key]} at t={t} exceeds rest+bob bounds"
+                )
 
-    def test_arm_bob_at_zero(self):
-        """At t=0, arm muscles are 0."""
+    def test_arm_rest_position(self):
+        """At t=0, arms hang at rest bias (-0.75), not T-pose."""
         result = _compute_idle_muscles(0.0)
         assert result['LeftArm.FrontBack'] == 0.0
         assert result['RightArm.FrontBack'] == 0.0
-        assert result['LeftArm.DownUp'] == 0.0
-        assert result['RightArm.DownUp'] == 0.0
+        assert result['LeftArm.DownUp'] == -0.75
+        assert result['RightArm.DownUp'] == -0.75

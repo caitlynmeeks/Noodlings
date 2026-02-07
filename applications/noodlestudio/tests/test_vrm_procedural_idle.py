@@ -71,6 +71,13 @@ def _compute_idle_muscles(t: float) -> dict:
     # Spine sway
     muscles['Spine.LeftRight'] = 0.015 * math.sin(t * two_pi / 9.7)
 
+    # Arm rest + bob
+    arm_rest = -0.75
+    muscles['LeftArm.FrontBack'] = 0.03 * math.sin(t * two_pi / 5.3)
+    muscles['RightArm.FrontBack'] = 0.03 * math.sin(t * two_pi / 5.9)
+    muscles['LeftArm.DownUp'] = arm_rest + 0.02 * math.sin(t * two_pi / 8.3)
+    muscles['RightArm.DownUp'] = arm_rest + 0.02 * math.sin(t * two_pi / 8.9)
+
     return muscles
 
 
@@ -87,6 +94,8 @@ IDLE_MUSCLE_KEYS = {
     'LeftShoulder.DownUp', 'RightShoulder.DownUp',
     'Head.NodDownUp', 'Head.TiltLeftRight', 'Head.TurnLeftRight',
     'Neck.NodDownUp', 'Neck.TiltLeftRight',
+    'LeftArm.FrontBack', 'RightArm.FrontBack',
+    'LeftArm.DownUp', 'RightArm.DownUp',
     'Spine.LeftRight',
 }
 
@@ -108,6 +117,10 @@ IDLE_PERIODS = {
     'Neck.NodDownUp': 7.3,
     'Neck.TiltLeftRight': 11.1,
     'Spine.LeftRight': 9.7,
+    'LeftArm.FrontBack': 5.3,
+    'RightArm.FrontBack': 5.9,
+    'LeftArm.DownUp': 8.3,
+    'RightArm.DownUp': 8.9,
 }
 
 
@@ -144,10 +157,13 @@ class TestIdleMuscleGeneration:
         assert NECK_KEYS.issubset(result.keys())
 
     def test_idle_muscles_at_zero(self):
-        """At t=0, sin(0) = 0, so all muscles should be 0."""
+        """At t=0, sin(0) = 0. Sine-only muscles are 0, arm DownUp at rest bias."""
         result = _compute_idle_muscles(0.0)
         for key, value in result.items():
-            assert value == 0.0, f"{key} should be 0 at t=0, got {value}"
+            if key in ('LeftArm.DownUp', 'RightArm.DownUp'):
+                assert value == -0.75, f"{key} should be -0.75 at t=0, got {value}"
+            else:
+                assert value == 0.0, f"{key} should be 0 at t=0, got {value}"
 
     def test_idle_muscles_vary_over_time(self):
         """At t=0.875 (quarter period of 3.5s), breathing muscles are nonzero."""
@@ -166,14 +182,20 @@ class TestIdleAmplitudes:
     """Tests for idle muscle amplitude bounds."""
 
     def test_idle_amplitudes_bounded(self):
-        """All idle muscles stay within [-0.1, 0.1] over 1000 time samples."""
+        """Oscillation-only muscles stay within [-0.1, 0.1]. Arm DownUp around rest."""
         for i in range(1000):
             t = i * 0.05  # 0 to 50 seconds
             result = _compute_idle_muscles(t)
             for key, value in result.items():
-                assert -0.1 <= value <= 0.1, (
-                    f"{key} = {value} at t={t} exceeds bounds"
-                )
+                if key in ('LeftArm.DownUp', 'RightArm.DownUp'):
+                    # Rest bias -0.75 + oscillation +/-0.02
+                    assert -0.8 <= value <= -0.7, (
+                        f"{key} = {value} at t={t} exceeds rest+bob bounds"
+                    )
+                else:
+                    assert -0.1 <= value <= 0.1, (
+                        f"{key} = {value} at t={t} exceeds bounds"
+                    )
 
     def test_breathing_symmetric_shoulders(self):
         """Left and right shoulder amplitudes are equal at all times."""
@@ -202,8 +224,8 @@ class TestIdleFrequencies:
     def test_incommensurate_frequencies(self):
         """No two muscle groups share the same period."""
         unique_periods = set(IDLE_PERIODS.values())
-        # We expect: 3.5, 7.3, 11.1, 13.7, 9.7 = 5 distinct periods
-        assert len(unique_periods) == 5
+        # We expect: 3.5, 5.3, 5.9, 7.3, 8.3, 8.9, 9.7, 11.1, 13.7 = 9 distinct periods
+        assert len(unique_periods) == 9
 
     def test_head_nod_period(self):
         """Head.NodDownUp near zero at t=0 and t=7.3."""
