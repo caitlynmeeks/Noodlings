@@ -321,6 +321,8 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             # Idle animation
             self._idle_phase = 0.0       # Animation phase in seconds
             self._idle_timer = None      # QTimer for animation
+            self._idle_muscles = {}      # Generated each tick from sine waves
+            self._external_muscles = {}  # Set by set_muscles() from outside
 
             # Grid buffers
             self._grid_vao = 0
@@ -591,6 +593,10 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
                 # Initialize bone matrices to rest pose (identity skinning)
                 self._compute_bone_matrices()
+
+                # Initialize idle muscles for first frame
+                self._idle_muscles = self._compute_idle_muscles(0.0)
+                self._merge_and_apply_muscles()
 
                 # Center camera
                 self._center_camera()
@@ -940,18 +946,21 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
         def set_muscles(self, muscles: Dict[str, float]):
             """
-            Apply muscle values to the avatar.
+            Apply external muscle values to the avatar.
 
             This is the PRIMARY animation interface. Send normalized muscle
             values (-1 to 1), and the widget handles retargeting to bone
             rotations internally.
 
+            External muscles override idle muscles for any muscle they set.
+            Idle muscles continue to drive bones not covered by external input.
+
             Args:
                 muscles: Dict mapping muscle name to value, e.g.:
                     {'Head.TurnLeftRight': 0.3, 'RightArm.DownUp': 0.5}
             """
-            self._current_muscles = muscles.copy()
-            self._apply_pose()
+            self._external_muscles = muscles.copy()
+            self._merge_and_apply_muscles()
             self.poseApplied.emit(len(muscles))
             self.update()
 
@@ -966,6 +975,17 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self._current_blend_shapes = shapes.copy()
             # TODO: Apply to mesh morph targets
             self.update()
+
+        def _merge_and_apply_muscles(self):
+            """Merge idle and external muscles, apply to skeleton.
+
+            Idle muscles provide baseline animation (breathing, head drift).
+            External muscles override idle for any muscle they specify.
+            """
+            merged = dict(self._idle_muscles)
+            merged.update(self._external_muscles)
+            self._current_muscles = merged
+            self._apply_pose()
 
         def _apply_pose(self):
             """Apply current muscle values to skeleton via PoseRetargeter.
@@ -1437,28 +1457,49 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
         # =====================================================================
 
         def _tick_idle(self):
-            """Advance idle animation phase and request repaint."""
+            """Advance idle animation and compute per-bone muscle values."""
             self._idle_phase += 0.016  # ~16ms per tick
+            self._idle_muscles = self._compute_idle_muscles(self._idle_phase)
+            self._merge_and_apply_muscles()
             self.update()
 
-        def _build_model_matrix(self) -> np.ndarray:
-            """Build model matrix with idle animation transforms.
+        def _compute_idle_muscles(self, t: float) -> Dict[str, float]:
+            """Generate idle muscle values from layered sine waves.
 
-            Applies a subtle Y-axis bob (breathing rhythm) and Y-axis
-            scale pulse (chest expansion) driven by sine waves.
+            Uses incommensurate frequencies for organic, never-repeating motion.
+            All values are in normalized muscle space (-1 to 1).
             """
-            t = self._idle_phase
-            model = np.eye(4, dtype=np.float32)
+            muscles = {}
+            two_pi = 2.0 * math.pi
 
-            # Y bob (period ~4s, amplitude ~0.01 units)
-            bob_y = 0.01 * math.sin(t * 2.0 * math.pi / 4.0)
-            model[1, 3] = bob_y
+            # === BREATHING (primary rhythm, ~3.5s period) ===
+            breath = math.sin(t * two_pi / 3.5)
 
-            # Chest expansion via Y scale (period ~3.5s, amplitude ~0.02)
-            breath_scale = 1.0 + 0.02 * math.sin(t * 2.0 * math.pi / 3.5)
-            model[1, 1] = breath_scale
+            muscles['Chest.FrontBack'] = 0.06 * breath
+            muscles['UpperChest.FrontBack'] = 0.04 * breath
+            muscles['Spine.FrontBack'] = 0.02 * breath
 
-            return model
+            # Shoulders rise slightly on inhale
+            muscles['LeftShoulder.DownUp'] = 0.03 * breath
+            muscles['RightShoulder.DownUp'] = 0.03 * breath
+
+            # === HEAD DRIFT (very slow, very subtle) ===
+            muscles['Head.NodDownUp'] = 0.02 * math.sin(t * two_pi / 7.3)
+            muscles['Head.TiltLeftRight'] = 0.015 * math.sin(t * two_pi / 11.1)
+            muscles['Head.TurnLeftRight'] = 0.01 * math.sin(t * two_pi / 13.7)
+
+            # Neck follows head at reduced amplitude
+            muscles['Neck.NodDownUp'] = 0.01 * math.sin(t * two_pi / 7.3)
+            muscles['Neck.TiltLeftRight'] = 0.008 * math.sin(t * two_pi / 11.1)
+
+            # === SPINE SWAY (very slow lateral drift) ===
+            muscles['Spine.LeftRight'] = 0.015 * math.sin(t * two_pi / 9.7)
+
+            return muscles
+
+        def _build_model_matrix(self) -> np.ndarray:
+            """Build model matrix. Idle animation now driven by muscles."""
+            return np.eye(4, dtype=np.float32)
 
         # =====================================================================
         # Mouse Interaction
