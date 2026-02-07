@@ -234,6 +234,15 @@ if OPENGL_AVAILABLE:
         """Upload mat4 array via raw ctypes (PyOpenGL 3.14 workaround)."""
         _raw_glUniformMatrix4fv(location, count, 1 if transpose else 0, data)
 
+    # glBufferSubData for morph target VBO updates
+    _raw_glBufferSubData = _gl_lib.glBufferSubData
+    _raw_glBufferSubData.argtypes = [_ct.c_uint, _ct.c_long, _ct.c_long, _ct.c_void_p]
+    _raw_glBufferSubData.restype = None
+
+    def _gl_buffer_sub_data(target: int, offset: int, size: int, data):
+        """Update a region of a buffer via raw ctypes."""
+        _raw_glBufferSubData(target, offset, size, data)
+
 
 if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
@@ -323,6 +332,13 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self._idle_timer = None      # QTimer for animation
             self._idle_muscles = {}      # Generated each tick from sine waves
             self._external_muscles = {}  # Set by set_muscles() from outside
+
+            # Morph target blending (CPU-side)
+            self._base_positions = None   # (N,3) original vertex positions
+            self._base_normals = None     # (N,3) original vertex normals
+            self._vbo_pos = 0             # Position VBO ID for glBufferSubData
+            self._vbo_norm = 0            # Normal VBO ID for glBufferSubData
+            self._mesh_vertex_ranges = [] # [(sorted_mesh_ref, vbo_offset, vtx_count)]
 
             # Grid buffers
             self._grid_vao = 0
@@ -649,6 +665,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             all_joint_weights = []
             all_indices = []
             self._material_groups = []  # (material_index, byte_offset, index_count)
+            self._mesh_vertex_ranges = []  # (mesh_ref, vbo_offset, vtx_count)
 
             vertex_offset = 0
             index_offset = 0  # in number of indices (not bytes)
@@ -711,6 +728,9 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 else:
                     self._material_groups.append((mat_idx, byte_offset, index_count))
 
+                # Track vertex range for morph target blending
+                self._mesh_vertex_ranges.append((mesh, vertex_offset, len(vertices)))
+
                 vertex_offset += len(vertices)
                 index_offset += index_count
 
@@ -730,7 +750,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 f"{len(self._material_groups)} material groups"
             )
 
-            # Store for rendering
+            # Store for rendering + base data for morph blending
             self._mesh = {
                 'vertices': vertices,
                 'normals': normals,
@@ -738,24 +758,28 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 'indices': indices,
                 'vao': 0,
             }
+            self._base_positions = vertices.copy()
+            self._base_normals = normals.copy()
 
             # Create VAO
             self._mesh['vao'] = GL.glGenVertexArrays(1)
             GL.glBindVertexArray(self._mesh['vao'])
 
-            # Position (location 0)
+            # Position (location 0) - DYNAMIC for morph target updates
             vbo_pos = GL.glGenBuffers(1)
             GL.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo_pos)
-            GL.glBufferData(GL.GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL.GL_STATIC_DRAW)
+            GL.glBufferData(GL.GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL.GL_DYNAMIC_DRAW)
             GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, GL.GL_FALSE, 0, None)
             GL.glEnableVertexAttribArray(0)
+            self._vbo_pos = vbo_pos
 
-            # Normal (location 1)
+            # Normal (location 1) - DYNAMIC for morph target updates
             vbo_norm = GL.glGenBuffers(1)
             GL.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo_norm)
-            GL.glBufferData(GL.GL_ARRAY_BUFFER, normals.nbytes, normals, GL.GL_STATIC_DRAW)
+            GL.glBufferData(GL.GL_ARRAY_BUFFER, normals.nbytes, normals, GL.GL_DYNAMIC_DRAW)
             GL.glVertexAttribPointer(1, 3, GL.GL_FLOAT, GL.GL_FALSE, 0, None)
             GL.glEnableVertexAttribArray(1)
+            self._vbo_norm = vbo_norm
 
             # UV (location 2)
             vbo_uv = GL.glGenBuffers(1)
@@ -966,15 +990,89 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
         def set_blend_shapes(self, shapes: Dict[str, float]):
             """
-            Apply blend shape weights.
+            Apply blend shape weights via CPU morph target blending.
 
             Args:
                 shapes: Dict mapping shape name to weight (0-1), e.g.:
-                    {'happy': 0.6, 'blink_left': 0.0}
+                    {'happy': 0.6, 'blink': 1.0}
             """
             self._current_blend_shapes = shapes.copy()
-            # TODO: Apply to mesh morph targets
+            self._apply_blend_shapes()
             self.update()
+
+        def _apply_blend_shapes(self):
+            """Apply blend shape weights via CPU morph blending.
+
+            For each active blend shape, accumulates weighted morph target
+            deltas on the relevant mesh vertices, then uploads modified
+            positions/normals via glBufferSubData.
+            """
+            if (not self._avatar or self._base_positions is None
+                    or not self._mesh_vertex_ranges):
+                return
+
+            # Start from base geometry
+            blended_pos = self._base_positions.copy()
+            blended_norm = self._base_normals.copy()
+            changed = False
+
+            # Build blend shape lookup: name/preset -> BlendShape
+            bs_map = {}
+            for bs in self._avatar.blend_shapes:
+                bs_map[bs.name] = bs
+                if bs.preset:
+                    bs_map[bs.preset] = bs
+
+            # Accumulate morph target deltas
+            for shape_name, weight in self._current_blend_shapes.items():
+                if weight == 0.0:
+                    continue
+                bs = bs_map.get(shape_name)
+                if not bs or not bs.binds:
+                    continue
+
+                for bind in bs.binds:
+                    # Find mesh(es) matching this bind's source mesh index
+                    for mesh_ref, vbo_offset, vtx_count in self._mesh_vertex_ranges:
+                        if mesh_ref.source_mesh_index != bind.mesh_index:
+                            continue
+                        if not mesh_ref.morph_targets:
+                            continue
+                        if bind.target_index >= len(mesh_ref.morph_targets):
+                            continue
+
+                        delta_pos = mesh_ref.morph_targets[bind.target_index]
+                        effective_weight = weight * bind.weight
+                        start = vbo_offset
+                        end = vbo_offset + vtx_count
+
+                        blended_pos[start:end] += effective_weight * delta_pos
+                        changed = True
+
+                        # Normal deltas (if available)
+                        if (mesh_ref.morph_target_normals
+                                and bind.target_index < len(mesh_ref.morph_target_normals)):
+                            delta_norm = mesh_ref.morph_target_normals[bind.target_index]
+                            blended_norm[start:end] += effective_weight * delta_norm
+
+            if not changed and not self._current_blend_shapes:
+                return
+
+            # Upload modified geometry to GPU
+            blended_pos = np.ascontiguousarray(blended_pos, dtype=np.float32)
+            blended_norm = np.ascontiguousarray(blended_norm, dtype=np.float32)
+
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._vbo_pos)
+            _gl_buffer_sub_data(
+                GL.GL_ARRAY_BUFFER, 0, blended_pos.nbytes,
+                blended_pos.ctypes.data
+            )
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._vbo_norm)
+            _gl_buffer_sub_data(
+                GL.GL_ARRAY_BUFFER, 0, blended_norm.nbytes,
+                blended_norm.ctypes.data
+            )
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
 
         def _merge_and_apply_muscles(self):
             """Merge idle and external muscles, apply to skeleton.
@@ -1494,6 +1592,12 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             # === SPINE SWAY (very slow lateral drift) ===
             muscles['Spine.LeftRight'] = 0.015 * math.sin(t * two_pi / 9.7)
+
+            # === ARM BOB (Animal Crossing style - gentle asymmetric sway) ===
+            muscles['LeftArm.FrontBack'] = 0.03 * math.sin(t * two_pi / 5.3)
+            muscles['RightArm.FrontBack'] = 0.03 * math.sin(t * two_pi / 5.9)
+            muscles['LeftArm.DownUp'] = 0.02 * math.sin(t * two_pi / 8.3)
+            muscles['RightArm.DownUp'] = 0.02 * math.sin(t * two_pi / 8.9)
 
             return muscles
 

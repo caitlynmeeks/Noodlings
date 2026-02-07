@@ -122,6 +122,14 @@ class Skeleton:
 
 
 @dataclass
+class MorphTargetBind:
+    """Links a blend shape expression to a mesh's morph target."""
+    mesh_index: int          # Index into glTF meshes array
+    target_index: int        # Index into primitive.targets array
+    weight: float = 1.0      # Bind weight (0-1)
+
+
+@dataclass
 class BlendShape:
     """Morph target / blend shape."""
     name: str
@@ -129,6 +137,7 @@ class BlendShape:
     normals: Optional[np.ndarray] = None    # Delta normals
     preset: Optional[str] = None            # VRM preset (joy, angry, sorrow, fun, etc.)
     is_binary: bool = False                 # Binary (on/off) vs continuous
+    binds: List['MorphTargetBind'] = field(default_factory=list)
 
 
 @dataclass
@@ -195,6 +204,10 @@ class Mesh:
     joint_weights: Optional[np.ndarray] = None  # (N, 4) weights per vertex
     # Material
     material_index: Optional[int] = None
+    # Morph targets
+    morph_targets: Optional[List[np.ndarray]] = None         # List of (N,3) position deltas
+    morph_target_normals: Optional[List[np.ndarray]] = None  # List of (N,3) normal deltas
+    source_mesh_index: int = -1                              # Original glTF mesh index
 
 
 @dataclass
@@ -499,18 +512,25 @@ class VRMParser:
             if 'node' in bone_data:
                 self.avatar.skeleton.humanoid_map[bone_name] = bone_data['node']
 
-        # Expressions (blend shapes)
+        # Expressions (blend shapes) - one BlendShape per expression
         expressions = vrm_ext.get('expressions', {})
         preset_exps = expressions.get('preset', {})
         for preset_name, exp_data in preset_exps.items():
-            if exp_data.get('morphTargetBinds'):
-                for bind in exp_data['morphTargetBinds']:
-                    bs = BlendShape(
-                        name=preset_name,
-                        preset=preset_name,
-                        is_binary=exp_data.get('isBinary', False),
-                    )
-                    self.avatar.blend_shapes.append(bs)
+            binds = []
+            for bind in exp_data.get('morphTargetBinds', []):
+                binds.append(MorphTargetBind(
+                    mesh_index=bind.get('node', 0),
+                    target_index=bind.get('index', 0),
+                    weight=bind.get('weight', 1.0),
+                ))
+            if binds:
+                bs = BlendShape(
+                    name=preset_name,
+                    preset=preset_name,
+                    is_binary=exp_data.get('isBinary', False),
+                    binds=binds,
+                )
+                self.avatar.blend_shapes.append(bs)
 
         # VRMC_springBone - Hair/cloth physics
         spring_ext = extensions.get('VRMC_springBone', {})
@@ -543,13 +563,21 @@ class VRMParser:
             if bone_name and node_index >= 0:
                 self.avatar.skeleton.humanoid_map[bone_name] = node_index
 
-        # Blend shapes
+        # Blend shapes - one BlendShape per group with all its binds
         blend_shape_master = vrm_ext.get('blendShapeMaster', {})
         for group in blend_shape_master.get('blendShapeGroups', []):
+            binds = []
+            for bind in group.get('binds', []):
+                binds.append(MorphTargetBind(
+                    mesh_index=bind.get('mesh', 0),
+                    target_index=bind.get('index', 0),
+                    weight=bind.get('weight', 100) / 100.0,  # VRM 0.x uses 0-100
+                ))
             bs = BlendShape(
                 name=group.get('name', ''),
                 preset=group.get('presetName', ''),
                 is_binary=group.get('isBinary', False),
+                binds=binds,
             )
             self.avatar.blend_shapes.append(bs)
 
@@ -720,10 +748,10 @@ class VRMParser:
                 self.avatar.skeleton.inverse_bind_matrices = ibm_full
 
     def _parse_meshes(self, json_data: Dict[str, Any]):
-        """Parse meshes with skinning data."""
+        """Parse meshes with skinning data and morph targets."""
         meshes = json_data.get('meshes', [])
 
-        for mesh_data in meshes:
+        for mesh_idx, mesh_data in enumerate(meshes):
             for primitive in mesh_data.get('primitives', []):
                 attributes = primitive.get('attributes', {})
 
@@ -736,6 +764,7 @@ class VRMParser:
                 mesh = Mesh(
                     name=mesh_data.get('name', f'mesh_{len(self.avatar.meshes)}'),
                     vertices=positions,
+                    source_mesh_index=mesh_idx,
                 )
 
                 # Normals
@@ -758,6 +787,23 @@ class VRMParser:
 
                 # Material
                 mesh.material_index = primitive.get('material')
+
+                # Morph targets (blend shape vertex deltas)
+                targets = primitive.get('targets', [])
+                if targets:
+                    mesh.morph_targets = []
+                    mesh.morph_target_normals = []
+                    for target in targets:
+                        if 'POSITION' in target:
+                            delta_pos = self.gltf.get_accessor_data(target['POSITION'])
+                            mesh.morph_targets.append(
+                                np.asarray(delta_pos, dtype=np.float32)
+                            )
+                        if 'NORMAL' in target:
+                            delta_norm = self.gltf.get_accessor_data(target['NORMAL'])
+                            mesh.morph_target_normals.append(
+                                np.asarray(delta_norm, dtype=np.float32)
+                            )
 
                 self.avatar.meshes.append(mesh)
 
