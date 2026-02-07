@@ -757,6 +757,17 @@ class PoseRetargeter:
         'RightToes': 'rightToes',
     }
 
+    # Left-side bone parts that need Z and Y axis sign negation.
+    # In T-pose, left limbs extend in -X while right limbs extend in +X.
+    # A Z rotation that brings the right arm down (+X -> down) would bring
+    # the left arm UP (-X -> up). Negating Z and Y for left-side bones
+    # gives symmetric muscle behavior: DownUp=-1 means "down" for both sides.
+    LEFT_MIRROR_BONES: set = {
+        'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',
+        'LeftUpperLeg', 'LeftLowerLeg', 'LeftFoot', 'LeftToes',
+        'LeftEye',
+    }
+
     def __init__(self, avatar_config: Optional[Dict[str, Any]] = None):
         """
         Initialize with avatar muscle configuration.
@@ -808,6 +819,11 @@ class PoseRetargeter:
         # Get bone name
         bone_part = muscle_name.split('.')[0]  # "Head" from "Head.NodDownUp"
         bone_name = self.bone_map.get(bone_part, bone_part.lower())
+
+        # Mirror correction for left-side bones: negate Y and Z axes
+        # so that symmetric muscle values produce symmetric visual results.
+        if bone_part in self.LEFT_MIRROR_BONES and axis in ('Y', 'Z'):
+            degrees = -degrees
 
         # Create euler rotation based on axis
         euler = [0.0, 0.0, 0.0]
