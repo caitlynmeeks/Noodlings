@@ -310,7 +310,7 @@ if QT_AVAILABLE:
         def _build_ui(self):
             """Build the window layout."""
             container = QWidget()
-            container.setStyleSheet("background-color: #1A1A1A;")
+            container.setStyleSheet("background-color: #020204;")
             main_layout = QVBoxLayout(container)
             main_layout.setContentsMargins(0, 0, 0, 0)
             main_layout.setSpacing(0)
@@ -365,8 +365,8 @@ if QT_AVAILABLE:
             self.vrm_container.setFixedHeight(250)
             self.vrm_container.setStyleSheet("""
                 QFrame {
-                    background-color: #1A1A1A;
-                    border-bottom: 1px solid #2A2A2A;
+                    background-color: #020204;
+                    border: none;
                 }
             """)
             self.vrm_container_layout = QVBoxLayout(self.vrm_container)
@@ -535,7 +535,7 @@ if QT_AVAILABLE:
                 # Create VRMViewport component (opaque background for this window)
                 component = VRMViewport("guide_character")
                 component.transparent = False
-                component.background = "#1A1A1A"
+                component.background = "#020204"
                 component.vrm_path = vrm_path
                 component.show_grid = False
                 component.show_skeleton = False

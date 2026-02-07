@@ -100,7 +100,7 @@ class VRMViewport(UIComponent):
         super().__init__(name)
         self.vrm_path: str = ""
         self.camera = CameraConfig()
-        self.background: str = "#1e1e1e"
+        self.background: str = "#020204"
         self.show_skeleton: bool = False
         self.show_grid: bool = False
         self.interactive: bool = True
@@ -115,7 +115,7 @@ class VRMViewport(UIComponent):
         if self.vrm_path:
             data["vrm_path"] = self.vrm_path
         data["camera"] = self.camera.to_dict()
-        if self.background != "#1e1e1e":
+        if self.background != "#020204":
             data["background"] = self.background
         if self.show_skeleton:
             data["show_skeleton"] = True
@@ -140,7 +140,7 @@ class VRMViewport(UIComponent):
         viewport.vrm_path = data.get("vrm_path", "")
         if "camera" in data:
             viewport.camera = CameraConfig.from_dict(data["camera"])
-        viewport.background = data.get("background", "#1e1e1e")
+        viewport.background = data.get("background", "#020204")
         viewport.show_skeleton = data.get("show_skeleton", False)
         viewport.show_grid = data.get("show_grid", False)
         viewport.interactive = data.get("interactive", True)
@@ -346,6 +346,13 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self._grid_vbo = 0
             self._grid_count = 0
 
+            # Ground plane buffers
+            self._ground_vao = 0
+            self._ground_vbo = 0
+            self._ground_ebo = 0
+            self._shader_ground = 0
+            self._shader_shadow = 0
+
             # Skeleton buffers
             self._skeleton_vao = 0
             self._skeleton_vbo = 0
@@ -374,6 +381,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             self._create_shaders()
             self._create_grid()
+            self._create_ground_plane()
 
             # Load VRM if path specified
             if self.component.vrm_path:
@@ -516,6 +524,86 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             self._shader_line = self._compile_shader(vertex_line, fragment_line)
 
+            # Ground plane shader (spotlight effect)
+            vertex_ground = """
+            #version 330 core
+            layout(location = 0) in vec3 aPos;
+
+            uniform mat4 uView;
+            uniform mat4 uProjection;
+
+            out vec3 vWorldPos;
+
+            void main() {
+                vWorldPos = aPos;
+                gl_Position = uProjection * uView * vec4(aPos, 1.0);
+            }
+            """
+
+            fragment_ground = """
+            #version 330 core
+            in vec3 vWorldPos;
+            out vec4 FragColor;
+
+            uniform vec3 uSpotCenter;
+            uniform float uSpotRadius;
+            uniform vec3 uSpotColor;
+            uniform vec3 uFloorColor;
+
+            void main() {
+                float dist = length(vWorldPos.xz - uSpotCenter.xz);
+
+                // Hard-center spotlight: solid pool inside 60%, fade over outer 40%
+                float innerRadius = uSpotRadius * 0.6;
+                float falloff = 1.0 - smoothstep(innerRadius, uSpotRadius, dist);
+                vec3 color = mix(uFloorColor, uSpotColor, falloff);
+
+                FragColor = vec4(color, 1.0);
+            }
+            """
+
+            self._shader_ground = self._compile_shader(
+                vertex_ground, fragment_ground
+            )
+
+            # Shadow shader (dedicated: renders flat dark silhouette)
+            # Separate from mesh shader to avoid any state contamination
+            vertex_shadow = """
+            #version 330 core
+            layout(location = 0) in vec3 aPos;
+            layout(location = 1) in vec3 aNormal;
+            layout(location = 2) in vec2 aUV;
+            layout(location = 3) in ivec4 aBoneIndices;
+            layout(location = 4) in vec4 aBoneWeights;
+
+            uniform mat4 uModel;
+            uniform mat4 uView;
+            uniform mat4 uProjection;
+            uniform mat4 uBoneMatrices[128];
+
+            void main() {
+                mat4 skinMatrix = uBoneMatrices[aBoneIndices.x] * aBoneWeights.x
+                                + uBoneMatrices[aBoneIndices.y] * aBoneWeights.y
+                                + uBoneMatrices[aBoneIndices.z] * aBoneWeights.z
+                                + uBoneMatrices[aBoneIndices.w] * aBoneWeights.w;
+                vec4 skinnedPos = skinMatrix * vec4(aPos, 1.0);
+                gl_Position = uProjection * uView * uModel * skinnedPos;
+            }
+            """
+
+            fragment_shadow = """
+            #version 330 core
+            out vec4 FragColor;
+
+            void main() {
+                FragColor = vec4(0.0, 0.0, 0.0, 0.45);
+            }
+            """
+
+            self._shader_shadow = self._compile_shader(
+                vertex_shadow, fragment_shadow
+            )
+
         def _compile_shader(self, vertex_src: str, fragment_src: str) -> int:
             """Compile and link shader program."""
             program = GL.glCreateProgram()
@@ -579,6 +667,39 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             GL.glBindVertexArray(0)
 
+        def _create_ground_plane(self):
+            """Create ground plane quad for KK Slider-style stage lighting."""
+            # Large quad at Y=0
+            size = 5.0
+            verts = np.array([
+                -size, 0.0, -size,
+                 size, 0.0, -size,
+                 size, 0.0,  size,
+                -size, 0.0,  size,
+            ], dtype=np.float32)
+            indices = np.array([0, 2, 1, 0, 3, 2], dtype=np.uint32)
+
+            self._ground_vao = GL.glGenVertexArrays(1)
+            self._ground_vbo = GL.glGenBuffers(1)
+            self._ground_ebo = GL.glGenBuffers(1)
+
+            GL.glBindVertexArray(self._ground_vao)
+
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._ground_vbo)
+            GL.glBufferData(
+                GL.GL_ARRAY_BUFFER, verts.nbytes, verts, GL.GL_STATIC_DRAW
+            )
+            GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, GL.GL_FALSE, 12, None)
+            GL.glEnableVertexAttribArray(0)
+
+            GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self._ground_ebo)
+            GL.glBufferData(
+                GL.GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices,
+                GL.GL_STATIC_DRAW
+            )
+
+            GL.glBindVertexArray(0)
+
         # =====================================================================
         # Public API: VRM Loading
         # =====================================================================
@@ -618,6 +739,22 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 # Initialize spring bone simulator for hair/accessory physics
                 if self._avatar.spring_chain_count > 0:
                     from noodlestudio.core.semantic_world.spring_bone_simulation import SpringBoneSimulator
+
+                    # Tune spring stiffness per chain type:
+                    # Short chains (2 bones) = neotenic gills: springy cartilage nubs
+                    # Long chains (3+ bones) = tail: fluid sway
+                    for chain in self._avatar.spring_bones.chains:
+                        # No gravity on any spring bones
+                        chain.gravity_power = 0.0
+                        if len(chain.bone_indices) <= 2:
+                            # Neotenic gills: stiff cartilage, barely moves
+                            chain.stiffness = 30.0
+                            chain.drag_force = 0.95
+                        else:
+                            # Tail: fluid sway
+                            chain.stiffness = 1.5
+                            chain.drag_force = 0.5
+
                     self._spring_sim = SpringBoneSimulator(self._avatar)
                     self._spring_sim.initialize()
                     # Seed simulator with rest-pose world transforms
@@ -1362,7 +1499,15 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             view = self._view_matrix()
             proj = self._projection_matrix(aspect)
 
-            # Draw grid (skip if transparent - don't want floating grid)
+            # Draw ground plane (KK Slider-style stage)
+            if not self.component.transparent:
+                self._draw_ground_plane(view, proj)
+
+            # Draw projected shadow onto ground plane
+            if self._mesh and self._mesh.get('vao') and not self.component.transparent:
+                self._draw_shadow(view, proj)
+
+            # Draw grid overlay (skip if transparent)
             if self.component.show_grid and not self.component.transparent:
                 self._draw_grid(view, proj)
 
@@ -1423,6 +1568,45 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             return proj
 
+        def _draw_ground_plane(self, view: np.ndarray, proj: np.ndarray):
+            """Draw KK Slider-style stage floor with spotlight pool."""
+            if not self._ground_vao or not self._shader_ground:
+                return
+
+            GL.glUseProgram(self._shader_ground)
+            GL.glUniformMatrix4fv(
+                GL.glGetUniformLocation(self._shader_ground, "uView"),
+                1, GL.GL_TRUE, view
+            )
+            GL.glUniformMatrix4fv(
+                GL.glGetUniformLocation(self._shader_ground, "uProjection"),
+                1, GL.GL_TRUE, proj
+            )
+
+            # Spotlight offset slightly screen-right for shadow offset
+            GL.glUniform3f(
+                GL.glGetUniformLocation(self._shader_ground, "uSpotCenter"),
+                0.3, 0.0, 0.0
+            )
+            GL.glUniform1f(
+                GL.glGetUniformLocation(self._shader_ground, "uSpotRadius"),
+                1.4
+            )
+            # Warm amber spotlight on floor
+            GL.glUniform3f(
+                GL.glGetUniformLocation(self._shader_ground, "uSpotColor"),
+                0.38, 0.28, 0.14
+            )
+            # Dark floor blending into background
+            GL.glUniform3f(
+                GL.glGetUniformLocation(self._shader_ground, "uFloorColor"),
+                0.02, 0.02, 0.03
+            )
+
+            GL.glBindVertexArray(self._ground_vao)
+            GL.glDrawElements(GL.GL_TRIANGLES, 6, GL.GL_UNSIGNED_INT, None)
+            GL.glBindVertexArray(0)
+
         def _draw_grid(self, view: np.ndarray, proj: np.ndarray):
             """Draw ground grid."""
             GL.glUseProgram(self._shader_line)
@@ -1438,6 +1622,68 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             GL.glBindVertexArray(self._grid_vao)
             GL.glDrawArrays(GL.GL_LINES, 0, self._grid_count)
             GL.glBindVertexArray(0)
+
+        def _shadow_projection_matrix(self) -> np.ndarray:
+            """Planar shadow projection for Y=0 ground plane."""
+            # Light direction toward source: (0.5, 0.7, 0.5)
+            # Ray from light: negate
+            dx, dy, dz = -0.5, -0.7, -0.5
+            m = np.eye(4, dtype=np.float32)
+            m[0, 1] = -dx / dy   # X shear from height
+            m[1, 1] = 0.0        # Flatten Y to ground
+            m[2, 1] = -dz / dy   # Z shear from height
+            m[1, 3] = 0.002      # Tiny Y lift to avoid z-fighting
+            return m
+
+        def _draw_shadow(self, view: np.ndarray, proj: np.ndarray):
+            """Draw planar projection shadow of character onto Y=0.
+
+            Uses a dedicated shadow shader (separate from mesh shader)
+            that outputs a flat dark silhouette. This avoids any
+            state contamination between shadow and mesh rendering.
+            """
+            if not self._shader_shadow:
+                return
+
+            GL.glUseProgram(self._shader_shadow)
+
+            # Shadow uniforms (own shader, own uniform locations)
+            loc_model = GL.glGetUniformLocation(self._shader_shadow, "uModel")
+            loc_view = GL.glGetUniformLocation(self._shader_shadow, "uView")
+            loc_proj = GL.glGetUniformLocation(self._shader_shadow, "uProjection")
+            loc_bones = GL.glGetUniformLocation(self._shader_shadow, "uBoneMatrices")
+
+            # Shadow model = projection * model
+            shadow_model = self._shadow_projection_matrix() @ self._build_model_matrix()
+            GL.glUniformMatrix4fv(loc_model, 1, GL.GL_TRUE, shadow_model)
+            GL.glUniformMatrix4fv(loc_view, 1, GL.GL_TRUE, view)
+            GL.glUniformMatrix4fv(loc_proj, 1, GL.GL_TRUE, proj)
+
+            # Upload bone matrices (current animated pose)
+            if loc_bones >= 0 and self._bone_matrices is not None:
+                flat = np.ascontiguousarray(self._bone_matrices, dtype=np.float32)
+                _gl_uniform_matrix4fv(
+                    loc_bones, len(self._bone_matrices),
+                    True, flat.ctypes.data
+                )
+
+            # Prevent z-fighting: don't write depth
+            GL.glDepthMask(GL.GL_FALSE)
+
+            # Projection flips winding — disable culling for shadow pass
+            GL.glDisable(GL.GL_CULL_FACE)
+
+            GL.glBindVertexArray(self._mesh['vao'])
+            for _mat_idx, byte_offset, count in self._material_groups:
+                GL.glDrawElements(
+                    GL.GL_TRIANGLES, count, GL.GL_UNSIGNED_INT,
+                    GL.ctypes.c_void_p(byte_offset)
+                )
+            GL.glBindVertexArray(0)
+
+            # Restore state
+            GL.glEnable(GL.GL_CULL_FACE)
+            GL.glDepthMask(GL.GL_TRUE)
 
         def _draw_mesh(self, view: np.ndarray, proj: np.ndarray):
             """Draw avatar mesh with per-material MToon cel-shading."""

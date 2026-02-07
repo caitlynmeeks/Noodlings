@@ -490,25 +490,47 @@ class MainWindowPanelsMixin:
         self.hierarchy.entitySelected.connect(safe_ui_canvas_select)
 
     def _setup_annotation_overlay(self):
-        """Setup the annotation overlay for screenshot debugging with Claude."""
+        """Setup the annotation overlay for screenshot debugging with Claude.
+
+        The overlay is a top-level transparent window (not a child widget)
+        so it can render above ALL windows including floating tool windows
+        like the Guide Performance Window.
+        """
         from .annotation_overlay import AnnotationOverlay
 
-        self.annotation_overlay = AnnotationOverlay(self)
-        self.annotation_overlay.setGeometry(self.rect())
+        self.annotation_overlay = AnnotationOverlay(None)  # Top-level, no parent
+
+        # Top-level transparent window that floats above everything
+        self.annotation_overlay.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.Tool  # No taskbar entry
+        )
+        self.annotation_overlay.setAttribute(
+            Qt.WidgetAttribute.WA_TranslucentBackground, True
+        )
+        self.annotation_overlay.setAttribute(
+            Qt.WidgetAttribute.WA_NoSystemBackground, True
+        )
+
+        # Position over main window
+        self.annotation_overlay.setGeometry(self.geometry())
         self.annotation_overlay.show()
         self.annotation_overlay.raise_()
 
         # Start in passthrough mode (not intercepting clicks)
         self.annotation_overlay.toggle_edit_mode()  # Turns off edit mode
 
-        # Install event filter to resize overlay with window
+        # Install event filter to track main window geometry changes
         self.installEventFilter(self)
 
     def eventFilter(self, obj, event):
-        """Handle window resize to keep annotation overlay sized correctly."""
-        if obj == self and event.type() == QEvent.Type.Resize:
+        """Track main window geometry to keep annotation overlay positioned."""
+        if obj == self and event.type() in (
+            QEvent.Type.Resize, QEvent.Type.Move
+        ):
             if hasattr(self, 'annotation_overlay'):
-                self.annotation_overlay.setGeometry(self.rect())
+                self.annotation_overlay.setGeometry(self.geometry())
         return super().eventFilter(obj, event)
 
     def _toggle_annotation_overlay(self):
@@ -523,7 +545,11 @@ class MainWindowPanelsMixin:
             self.annotation_overlay.setAttribute(
                 Qt.WidgetAttribute.WA_TransparentForMouseEvents, False
             )
+            # Ensure overlay geometry matches main window
+            self.annotation_overlay.setGeometry(self.geometry())
+            self.annotation_overlay.show()
             self.annotation_overlay.raise_()
+            self.annotation_overlay.activateWindow()
             self.annotation_overlay.setFocus()
             self.statusBar().showMessage("Annotations: EDIT MODE (right-click for tools)", 3000)
         # If in edit mode, switch to view-only (passthrough)
@@ -532,6 +558,7 @@ class MainWindowPanelsMixin:
             self.annotation_overlay.setAttribute(
                 Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
             )
+            self.annotation_overlay.update()
             self.statusBar().showMessage("Annotations: VIEW ONLY (Shift+Tab to edit/hide)", 3000)
         # If view-only, hide annotations
         else:
@@ -560,12 +587,75 @@ class MainWindowPanelsMixin:
         goose_shortcut.activated.connect(self._summon_goose)
 
         # Cmd+Option+S - Screenshot for debugging with Claude
+        # ApplicationShortcut so it works even when a floating window has focus
         screenshot_shortcut = QShortcut(QKeySequence("Ctrl+Alt+S"), self)
+        screenshot_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
         screenshot_shortcut.activated.connect(self._take_debug_screenshot)
 
         # Shift+Tab - Toggle annotation overlay for screenshot markup
         annotation_shortcut = QShortcut(QKeySequence("Shift+Tab"), self)
+        annotation_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
         annotation_shortcut.activated.connect(self._toggle_annotation_overlay)
+
+    def _grab_with_floating_windows(self):
+        """Grab main window and composite floating windows + annotations.
+
+        Tool windows (like GuidePerformanceWindow) float above the main
+        window as separate OS windows, so QWidget.grab() misses them.
+
+        Compositing order:
+        1. Main window (without annotation overlay)
+        2. Floating tool windows at their screen-relative positions
+        3. Annotation overlay ON TOP of everything (user markup)
+        """
+        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtGui import QPainter, QPixmap
+        from PyQt6.QtCore import Qt as QtConst
+
+        overlay = getattr(self, 'annotation_overlay', None)
+        overlay_was_visible = False
+
+        # Temporarily hide annotation overlay so main grab excludes it
+        if overlay and overlay.visible_annotations:
+            overlay_was_visible = True
+            overlay.visible_annotations = False
+            overlay.update()
+            overlay.repaint()
+
+        # 1. Grab main window (without annotations)
+        pixmap = self.grab()
+        main_geo = self.geometry()
+
+        painter = QPainter(pixmap)
+
+        # 2. Composite floating tool windows (skip annotation overlay — it goes last)
+        for widget in QApplication.topLevelWidgets():
+            if widget is self or not widget.isVisible() or widget.isMinimized():
+                continue
+            if widget is overlay:
+                continue
+            if widget.windowTitle() in ("Screenshot Saved",):
+                continue
+
+            child_geo = widget.geometry()
+            rel_x = child_geo.x() - main_geo.x()
+            rel_y = child_geo.y() - main_geo.y()
+
+            child_pixmap = widget.grab()
+            painter.drawPixmap(rel_x, rel_y, child_pixmap)
+
+        # 3. Render annotation overlay ON TOP of everything
+        if overlay and overlay_was_visible:
+            overlay.visible_annotations = True
+            overlay.update()
+
+            ann_pixmap = QPixmap(pixmap.size())
+            ann_pixmap.fill(QtConst.GlobalColor.transparent)
+            overlay.render(ann_pixmap)
+            painter.drawPixmap(0, 0, ann_pixmap)
+
+        painter.end()
+        return pixmap
 
     def _take_debug_screenshot(self):
         """
@@ -587,8 +677,8 @@ class MainWindowPanelsMixin:
             filename = f"screenshot_{timestamp}.png"
             filepath = screenshots_dir / filename
 
-            # Capture the window using QWidget.grab() - no permissions needed
-            pixmap = self.grab()
+            # Capture the main window + any floating tool windows
+            pixmap = self._grab_with_floating_windows()
 
             if not pixmap.isNull() and pixmap.save(str(filepath)):
                 print(f"[Screenshot] Saved: {filepath}")
