@@ -458,6 +458,7 @@ class VRMParser:
     def __init__(self):
         self.gltf = GLTFParser()
         self.avatar = VRMAvatar()
+        self._gltf_to_bone: Dict[int, int] = {}  # glTF node index -> bone array index
 
     def parse(self, path: str) -> VRMAvatar:
         """Parse a VRM file and return the avatar data."""
@@ -478,6 +479,7 @@ class VRMParser:
 
         # Parse common glTF data
         self._parse_skeleton(json_data)
+        self._remap_spring_bone_indices()
         self._parse_meshes(json_data)
         self._parse_textures(json_data)
 
@@ -625,7 +627,12 @@ class VRMParser:
             self.avatar.spring_bones.chains.append(chain)
 
     def _parse_spring_bones_0_x(self, secondary_anim: Dict[str, Any]):
-        """Parse VRM 0.x secondary animation (spring bones)."""
+        """Parse VRM 0.x secondary animation (spring bones).
+
+        In VRM 0.x, each entry in boneGroups[i].bones is the ROOT of an
+        independent spring chain. The chain extends through the bone's
+        children in the glTF node hierarchy.
+        """
         # Collider groups
         for group_data in secondary_anim.get('colliderGroups', []):
             bone_idx = group_data.get('node', 0)
@@ -637,19 +644,58 @@ class VRMParser:
                 )
                 self.avatar.spring_bones.colliders.append(collider)
 
-        # Bone groups (springs)
+        # Bone groups (springs) - each bone in the group is a chain root
         for group_data in secondary_anim.get('boneGroups', []):
-            chain = SpringBoneChain(
-                name=group_data.get('comment', f'spring_{len(self.avatar.spring_bones.chains)}'),
-                bone_indices=group_data.get('bones', []),
-                stiffness=group_data.get('stiffiness', 1.0),  # Note: typo in VRM 0.x spec
-                gravity_power=group_data.get('gravityPower', 0.0),
-                gravity_dir=Vector3.from_list(group_data.get('gravityDir', [0, -1, 0])),
-                drag_force=group_data.get('dragForce', 0.4),
-                hit_radius=group_data.get('hitRadius', 0.02),
-                colliders=group_data.get('colliderGroups', []),
+            root_nodes = group_data.get('bones', [])
+            for root_node in root_nodes:
+                chain_indices = self._expand_spring_chain(root_node)
+                chain = SpringBoneChain(
+                    name=group_data.get('comment', f'spring_{len(self.avatar.spring_bones.chains)}'),
+                    bone_indices=chain_indices,
+                    stiffness=group_data.get('stiffiness', 1.0),  # Note: typo in VRM 0.x spec
+                    gravity_power=group_data.get('gravityPower', 0.0),
+                    gravity_dir=Vector3.from_list(group_data.get('gravityDir', [0, -1, 0])),
+                    drag_force=group_data.get('dragForce', 0.4),
+                    hit_radius=group_data.get('hitRadius', 0.02),
+                    colliders=group_data.get('colliderGroups', []),
+                )
+                self.avatar.spring_bones.chains.append(chain)
+
+    def _expand_spring_chain(self, root_node_idx: int) -> List[int]:
+        """Walk glTF node children from root to build a linear spring chain."""
+        nodes = self.gltf.json_data.get('nodes', [])
+        if root_node_idx >= len(nodes):
+            return [root_node_idx]
+        chain = [root_node_idx]
+        current = root_node_idx
+        while True:
+            children = nodes[current].get('children', [])
+            if not children:
+                break
+            current = children[0]  # Spring chains follow first child
+            chain.append(current)
+        return chain
+
+    def _remap_spring_bone_indices(self):
+        """Convert spring bone glTF node indices to skeleton bone array indices.
+
+        Spring bone chains and colliders store raw glTF node indices from
+        the VRM file, but the skeleton uses remapped bone array indices.
+        Must be called after _parse_skeleton() populates _gltf_to_bone.
+        """
+        if not self._gltf_to_bone:
+            return
+
+        for chain in self.avatar.spring_bones.chains:
+            chain.bone_indices = [
+                self._gltf_to_bone.get(gltf_idx, gltf_idx)
+                for gltf_idx in chain.bone_indices
+            ]
+
+        for collider in self.avatar.spring_bones.colliders:
+            collider.bone_index = self._gltf_to_bone.get(
+                collider.bone_index, collider.bone_index
             )
-            self.avatar.spring_bones.chains.append(chain)
 
     def _parse_skeleton(self, json_data: Dict[str, Any]):
         """Parse skeleton from glTF nodes."""
@@ -746,6 +792,12 @@ class VRMParser:
                 ibm_count = min(len(inverse_bind_matrices), original_joint_count)
                 ibm_full[:ibm_count] = inverse_bind_matrices[:ibm_count]
                 self.avatar.skeleton.inverse_bind_matrices = ibm_full
+
+            # Store glTF node → bone array index mapping for spring bone remapping
+            self._gltf_to_bone = {
+                gltf_idx: bone_idx
+                for bone_idx, gltf_idx in enumerate(joint_indices)
+            }
 
     def _parse_meshes(self, json_data: Dict[str, Any]):
         """Parse meshes with skinning data and morph targets."""

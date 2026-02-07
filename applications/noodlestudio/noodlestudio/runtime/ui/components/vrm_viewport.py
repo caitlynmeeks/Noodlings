@@ -290,6 +290,7 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self._avatar = None           # Parsed VRM data
             self._muscle_binding = None   # MuscleBinding for retargeting
             self._retargeter = None       # PoseRetargeter instance
+            self._spring_sim = None       # SpringBoneSimulator for hair/accessory physics
 
             # Display data (GPU buffers)
             self._mesh: Optional[Dict] = None
@@ -613,6 +614,20 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 # Initialize idle muscles for first frame
                 self._idle_muscles = self._compute_idle_muscles(0.0)
                 self._merge_and_apply_muscles()
+
+                # Initialize spring bone simulator for hair/accessory physics
+                if self._avatar.spring_chain_count > 0:
+                    from noodlestudio.core.semantic_world.spring_bone_simulation import SpringBoneSimulator
+                    self._spring_sim = SpringBoneSimulator(self._avatar)
+                    self._spring_sim.initialize()
+                    # Seed simulator with rest-pose world transforms
+                    if self._world_transforms:
+                        rest_transforms = {
+                            i: wt for i, wt in enumerate(self._world_transforms)
+                            if wt is not None
+                        }
+                        self._spring_sim.set_bone_transforms(rest_transforms)
+                    logger.info(f"Spring bone sim: {self._avatar.spring_chain_count} chains")
 
                 # Center camera
                 self._center_camera()
@@ -1084,6 +1099,60 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             merged.update(self._external_muscles)
             self._current_muscles = merged
             self._apply_pose()
+            self._step_spring_bones()
+
+        def _step_spring_bones(self):
+            """Run spring bone simulation and apply results to bone matrices.
+
+            After skeletal animation computes world transforms, spring bone
+            physics simulates secondary motion (hair, tail, accessories).
+            The simulated positions and rotations override the corresponding
+            bone matrices for GPU skinning.
+            """
+            if not self._spring_sim or not self._world_transforms:
+                return
+
+            # Build world transform dict {bone_index: 4x4 matrix}
+            bone_transforms = {}
+            for i, wt in enumerate(self._world_transforms):
+                if wt is not None:
+                    bone_transforms[i] = wt
+
+            # Step simulation (dt=0.016 for 60fps)
+            self._spring_sim.update(0.016, bone_transforms)
+
+            # Get simulated results
+            spring_positions = self._spring_sim.get_joint_positions()
+            spring_rotations = self._spring_sim.get_bone_rotations()
+
+            if not spring_positions:
+                return
+
+            skeleton = self._avatar.skeleton
+            ibm = skeleton.inverse_bind_matrices
+
+            # Override world transforms and skinning matrices for spring bones
+            for bone_idx, sim_pos in spring_positions.items():
+                if bone_idx >= len(self._world_transforms):
+                    continue
+
+                # Build world transform from simulated position and rotation
+                wt = np.eye(4, dtype=np.float32)
+
+                if bone_idx in spring_rotations:
+                    q = spring_rotations[bone_idx]
+                    wt[:3, :3] = self._quat_to_matrix(q[0], q[1], q[2], q[3])
+
+                wt[:3, 3] = sim_pos
+
+                # Override world transform
+                self._world_transforms[bone_idx] = wt
+
+                # Recompute skinning matrix: world * inverseBind
+                if ibm is not None and bone_idx < len(ibm):
+                    self._bone_matrices[bone_idx] = wt @ ibm[bone_idx]
+                else:
+                    self._bone_matrices[bone_idx] = wt
 
         def _apply_pose(self):
             """Apply current muscle values to skeleton via PoseRetargeter.
