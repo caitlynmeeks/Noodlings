@@ -39,6 +39,7 @@ import asyncio
 import json
 import logging
 import time
+import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -153,6 +154,10 @@ class GuidePerformanceManager:
         self._expression_test_timer = None
         self._expression_test_index = 0
         self._expression_test_mapper = None
+
+        # Facets editor live visualization
+        self._facets_editor = None         # Cached reference
+        self._current_execution_id = None  # Current execution for event tracking
 
         logger.info("GuidePerformanceManager initialized")
 
@@ -381,6 +386,14 @@ class GuidePerformanceManager:
                         self._assembly, force_reload=True, source_path=source
                     )
                     print(f"[GuidePerformance] Assembly loaded in facets editor", flush=True)
+
+                    # Switch to Facets Editor tab so user sees the graph
+                    center_tabs = getattr(self._main_window, 'center_tabs', None)
+                    if center_tabs:
+                        for i in range(center_tabs.count()):
+                            if center_tabs.tabText(i) == "Facets Editor":
+                                center_tabs.setCurrentIndex(i)
+                                break
             except Exception as e:
                 print(f"[GuidePerformance] Could not load assembly in editor: {e}", flush=True)
 
@@ -472,6 +485,10 @@ class GuidePerformanceManager:
         self._worker.errorOccurred.connect(self._on_assembly_error)
         self._worker.start()
 
+        # Emit live execution events for facets editor visualization
+        self._current_execution_id = str(uuid.uuid4())[:8]
+        self._emit_execution_start_events()
+
     def _on_assembly_result(self, result):
         """
         Handle completed assembly execution.
@@ -515,6 +532,9 @@ class GuidePerformanceManager:
             'role': 'assistant', 'content': response
         })
 
+        # Emit completion events for facets editor live visualization
+        self._emit_execution_complete_events(result)
+
         # Clear busy state
         self._window.set_busy(False)
         self._worker = None
@@ -529,6 +549,9 @@ class GuidePerformanceManager:
         Args:
             error_msg: Error description
         """
+        # Emit error events for facets editor visualization
+        self._emit_execution_error_events(error_msg)
+
         if self._window:
             self._window._show_error(f"Assembly error: {error_msg}")
             self._window.set_busy(False)
@@ -687,6 +710,224 @@ class GuidePerformanceManager:
             self._window.show_play_header(f"FACS Test: {name}")
 
         print(f"[FACS TEST] {name}: {shapes}", flush=True)
+
+    # =========================================================================
+    # FACETS EDITOR LIVE VISUALIZATION
+    # =========================================================================
+
+    def _get_facets_editor(self):
+        """
+        Get the facets editor panel (cached).
+
+        Uses getattr for safety -- tests may create instances via __new__
+        without calling __init__, so attributes may not exist.
+
+        Returns:
+            FacetsEditorPanel or None
+        """
+        editor = getattr(self, '_facets_editor', None)
+        if editor is None:
+            main_window = getattr(self, '_main_window', None)
+            if main_window:
+                editor = getattr(main_window, 'facets_editor', None)
+                self._facets_editor = editor
+        return editor
+
+    def _emit_execution_event(self, event: dict):
+        """
+        Feed an execution event directly to the facets editor.
+
+        Bypasses the WebSocket layer entirely -- events are delivered
+        synchronously on the Qt main thread, exactly as
+        _handle_execution_event expects.
+
+        Args:
+            event: Execution event dict matching the WebSocket protocol
+        """
+        editor = self._get_facets_editor()
+        if editor and hasattr(editor, '_handle_execution_event'):
+            editor._handle_execution_event(event)
+
+    def _emit_execution_start_events(self):
+        """
+        Emit events when assembly execution begins.
+
+        INCOMING completes immediately (pass-through), then Response and
+        Sentiment facets start processing. They stay in 'processing' state
+        (yellow pulse) until the result arrives from the worker thread.
+        """
+        eid = getattr(self, '_current_execution_id', None)
+        if not eid:
+            return
+
+        # Cycle begins
+        self._emit_execution_event({
+            'type': 'facet_execution',
+            'subtype': 'cycle_start',
+            'execution_id': eid,
+            'data': {'execution_id': eid}
+        })
+
+        # INCOMING receives user input
+        self._emit_execution_event({
+            'type': 'facet_execution',
+            'subtype': 'facet_start',
+            'source_id': 'incoming',
+            'execution_id': eid,
+            'data': {
+                'execution_id': eid,
+                'inputs': {'user_message': self._last_user_message}
+            }
+        })
+
+        def _after_incoming():
+            if self._current_execution_id != eid:
+                return  # Stale execution, skip
+
+            # INCOMING completes (pass-through)
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'facet_complete',
+                'source_id': 'incoming',
+                'execution_id': eid,
+                'data': {
+                    'execution_id': eid,
+                    'outputs': {'out': self._last_user_message}
+                }
+            })
+
+            # Data flows from INCOMING to both parallel facets
+            for target in ('response', 'sentiment'):
+                self._emit_execution_event({
+                    'type': 'facet_execution',
+                    'subtype': 'data_flow',
+                    'from_facet': 'incoming',
+                    'to_facet': target,
+                    'execution_id': eid,
+                })
+
+            # Response and Sentiment start processing (stay yellow until result)
+            for facet_id in ('response', 'sentiment'):
+                self._emit_execution_event({
+                    'type': 'facet_execution',
+                    'subtype': 'facet_start',
+                    'source_id': facet_id,
+                    'execution_id': eid,
+                    'data': {
+                        'execution_id': eid,
+                        'inputs': {'in': self._last_user_message}
+                    }
+                })
+
+        QTimer.singleShot(80, _after_incoming)
+
+    def _emit_execution_complete_events(self, result):
+        """
+        Emit events when assembly execution completes.
+
+        Response and Sentiment turn green (complete), data flows to
+        OUTGOING, and the cycle finishes.
+
+        Args:
+            result: ExecutionResult from FacetExecutor
+        """
+        eid = getattr(self, '_current_execution_id', None)
+        if not eid:
+            return
+
+        # Response and Sentiment complete
+        for facet_id in ('response', 'sentiment'):
+            outputs = result.facet_outputs.get(facet_id, {})
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'facet_complete',
+                'source_id': facet_id,
+                'execution_id': eid,
+                'data': {'execution_id': eid, 'outputs': outputs}
+            })
+
+        # Data flows to OUTGOING
+        for source in ('response', 'sentiment'):
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'data_flow',
+                'from_facet': source,
+                'to_facet': 'outgoing',
+                'execution_id': eid,
+            })
+
+        def _complete_outgoing():
+            if self._current_execution_id != eid:
+                return
+
+            # OUTGOING starts
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'facet_start',
+                'source_id': 'outgoing',
+                'execution_id': eid,
+                'data': {'execution_id': eid, 'inputs': {}}
+            })
+
+            def _finish_cycle():
+                if self._current_execution_id != eid:
+                    return
+
+                # OUTGOING completes
+                self._emit_execution_event({
+                    'type': 'facet_execution',
+                    'subtype': 'facet_complete',
+                    'source_id': 'outgoing',
+                    'execution_id': eid,
+                    'data': {'execution_id': eid, 'outputs': {}}
+                })
+
+                # Cycle ends
+                self._emit_execution_event({
+                    'type': 'facet_execution',
+                    'subtype': 'cycle_complete',
+                    'execution_id': eid,
+                    'data': {'execution_id': eid}
+                })
+
+                self._current_execution_id = None
+
+            QTimer.singleShot(100, _finish_cycle)
+
+        QTimer.singleShot(150, _complete_outgoing)
+
+    def _emit_execution_error_events(self, error_msg: str):
+        """
+        Emit error events for facets editor visualization.
+
+        Shows red flash on processing nodes when execution fails.
+
+        Args:
+            error_msg: Error description
+        """
+        eid = getattr(self, '_current_execution_id', None)
+        if not eid:
+            return
+
+        # Error on any processing facets
+        for facet_id in ('response', 'sentiment'):
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'facet_error',
+                'source_id': facet_id,
+                'execution_id': eid,
+                'data': {'execution_id': eid, 'error': error_msg}
+            })
+
+        # End the cycle
+        self._emit_execution_event({
+            'type': 'facet_execution',
+            'subtype': 'cycle_complete',
+            'execution_id': eid,
+            'data': {'execution_id': eid}
+        })
+
+        self._current_execution_id = None
 
     # =========================================================================
     # PERFORMANCE LIFECYCLE (STOP)

@@ -895,12 +895,13 @@ class ConnectionWire(QGraphicsItem):
             packet_size = 12
             painter.setBrush(QBrush(QColor("#FFFFFF")))  # Bright white square
             painter.setPen(QPen(QColor("#CCAA00"), 2))
-            painter.drawRect(
-                packet_pos.x() - packet_size/2,
-                packet_pos.y() - packet_size/2,
+            from PyQt6.QtCore import QRectF
+            painter.drawRect(QRectF(
+                packet_pos.x() - packet_size / 2,
+                packet_pos.y() - packet_size / 2,
                 packet_size,
                 packet_size
-            )
+            ))
 
     def update_path(self):
         """Update path when nodes move."""
