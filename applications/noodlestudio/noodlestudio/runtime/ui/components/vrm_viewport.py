@@ -801,6 +801,17 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                     logger.error(f"Failed to parse VRM: {path}")
                     return
 
+                # Log available blend shapes for diagnostics
+                if self._avatar.blend_shapes:
+                    bs_names = [(bs.name, bs.preset) for bs in self._avatar.blend_shapes]
+                    print(f"[VRM] {len(self._avatar.blend_shapes)} blend shapes: "
+                          f"{bs_names}", flush=True)
+                    for bs in self._avatar.blend_shapes:
+                        print(f"[VRM]   '{bs.name}' (preset='{bs.preset}') "
+                              f"binds={len(bs.binds)} binary={bs.is_binary}", flush=True)
+                else:
+                    print("[VRM] WARNING: No blend shapes found!", flush=True)
+
                 # Create GPU buffers
                 self._create_mesh_buffers()
                 self._load_textures()
@@ -1255,12 +1266,60 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
                 bs_map[bs.name] = bs
                 if bs.preset:
                     bs_map[bs.preset] = bs
+                # Also index by lowercase for case-insensitive matching
+                bs_map[bs.name.lower()] = bs
+
+            # Normalization: Fcl_* (VRoid Studio) -> VRM preset names.
+            # VRoid models use Fcl_ALL_Joy, Fcl_EYE_Close, Fcl_MTH_A etc.
+            # but many VRMs (including AjoMajo) use simple preset names
+            # like Joy, Angry, Sorrow, A, Blink. Map both conventions
+            # so the FACS pipeline works with any VRM.
+            _FCL_TO_PRESET = {
+                # Whole-face expressions
+                'Fcl_ALL_Joy': 'Joy',
+                'Fcl_ALL_Angry': 'Angry',
+                'Fcl_ALL_Sorrow': 'Sorrow',
+                'Fcl_ALL_Fun': 'Fun',
+                'Fcl_ALL_Surprised': 'Surprised',
+                'Fcl_ALL_Neutral': 'Neutral',
+                # Eye expressions -> fold into whole-face
+                'Fcl_EYE_Joy': 'Joy',
+                'Fcl_EYE_Angry': 'Angry',
+                'Fcl_EYE_Sorrow': 'Sorrow',
+                'Fcl_EYE_Surprised': 'Surprised',
+                'Fcl_EYE_Close': 'Blink',
+                'Fcl_EYE_Close_L': 'Blink_L',
+                'Fcl_EYE_Close_R': 'Blink_R',
+                # Brow expressions -> fold into whole-face
+                'Fcl_BRW_Joy': 'Joy',
+                'Fcl_BRW_Angry': 'Angry',
+                'Fcl_BRW_Sorrow': 'Sorrow',
+                'Fcl_BRW_Surprised': 'Surprised',
+                'Fcl_BRW_Fun': 'Fun',
+                # Mouth visemes
+                'Fcl_MTH_A': 'A',
+                'Fcl_MTH_I': 'I',
+                'Fcl_MTH_U': 'U',
+                'Fcl_MTH_E': 'E',
+                'Fcl_MTH_O': 'O',
+                'Fcl_MTH_Joy': 'Joy',
+                'Fcl_MTH_Angry': 'Angry',
+                'Fcl_MTH_Sorrow': 'Sorrow',
+            }
 
             # Accumulate morph target deltas
             for shape_name, weight in self._current_blend_shapes.items():
                 if weight == 0.0:
                     continue
                 bs = bs_map.get(shape_name)
+                if not bs:
+                    # Try Fcl_* -> preset normalization
+                    normalized = _FCL_TO_PRESET.get(shape_name)
+                    if normalized:
+                        bs = bs_map.get(normalized)
+                if not bs:
+                    # Try case-insensitive
+                    bs = bs_map.get(shape_name.lower())
                 if not bs or not bs.binds:
                     continue
 

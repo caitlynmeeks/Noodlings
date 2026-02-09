@@ -133,6 +133,7 @@ class GuidePerformanceManager:
 
         # Assembly execution
         self._assembly = None       # FacetAssembly
+        self._assembly_path = None  # Path to assembly YAML (for editor)
         self._executor = None       # FacetExecutor
         self._llm_client = None     # HeadlessLLMClient
         self._worker = None         # _AssemblyWorker (current execution)
@@ -146,6 +147,12 @@ class GuidePerformanceManager:
         self._director = None       # BrendaDirector
         self._guide_cue_handler = None
         self._tick_timer = None     # QTimer for Brenda.tick()
+        self._play_title = None     # For restoring header after test mode
+
+        # FACS expression test mode
+        self._expression_test_timer = None
+        self._expression_test_index = 0
+        self._expression_test_mapper = None
 
         logger.info("GuidePerformanceManager initialized")
 
@@ -259,6 +266,7 @@ class GuidePerformanceManager:
 
         try:
             self._assembly = FacetAssembly.load_yaml(assembly_path)
+            self._assembly_path = assembly_path
             print(f"[GuidePerformance] Loaded assembly: {self._assembly.name} "
                   f"({len(self._assembly.facets)} facets, "
                   f"{len(self._assembly.connections)} connections)", flush=True)
@@ -324,6 +332,7 @@ class GuidePerformanceManager:
         self._window = GuidePerformanceWindow(
             parent_window=self._main_window
         )
+        self._play_title = play_title
         self._window.show_play_header(play_title)
 
         # Wire guide cue handler (may have been set externally or by _setup_play_pipeline)
@@ -343,6 +352,11 @@ class GuidePerformanceManager:
         # Connect user message signals
         self._window.messageSubmitted.connect(self._on_user_message_for_assembly)
 
+        # Ctrl+Shift+F - FACS expression test mode
+        from PyQt6.QtGui import QShortcut, QKeySequence
+        facs_shortcut = QShortcut(QKeySequence("Ctrl+Shift+F"), self._window)
+        facs_shortcut.activated.connect(self.toggle_expression_test)
+
         if self._channel_bus and hasattr(self._window, 'messageSent') and self._window.messageSent:
             self._window.messageSent.connect(self._on_user_message_for_channel)
 
@@ -356,6 +370,19 @@ class GuidePerformanceManager:
             print("[GuidePerformance] No VRM found", flush=True)
 
         self._window.show()
+
+        # Load assembly into facets editor for visibility
+        if self._assembly:
+            try:
+                facets_editor = getattr(self._main_window, 'facets_editor', None)
+                if facets_editor and hasattr(facets_editor, 'load_assembly_from_data'):
+                    source = str(self._assembly_path) if self._assembly_path else None
+                    facets_editor.load_assembly_from_data(
+                        self._assembly, force_reload=True, source_path=source
+                    )
+                    print(f"[GuidePerformance] Assembly loaded in facets editor", flush=True)
+            except Exception as e:
+                print(f"[GuidePerformance] Could not load assembly in editor: {e}", flush=True)
 
         # Start Brenda after window is visible
         if self._director:
@@ -466,9 +493,13 @@ class GuidePerformanceManager:
             self._window._show_error("No response generated.")
 
         # Drive expressions from sentiment facet output
-        sentiment_output = result.facet_outputs.get('sentiment', {}).get('out')
+        sentiment_raw = result.facet_outputs.get('sentiment', {})
+        sentiment_output = sentiment_raw.get('out')
+        print(f"[AFFECT] Sentiment facet outputs: {sentiment_raw}", flush=True)
         if sentiment_output:
             self._apply_affect(sentiment_output)
+        else:
+            print("[AFFECT] Sentiment facet produced NO output", flush=True)
 
         # Report to GuideCueHandler for Brenda feedback
         if self._guide_cue_handler and response and response.strip():
@@ -538,13 +569,17 @@ class GuidePerformanceManager:
         Args:
             affect_text: JSON string from the sentiment facet
         """
+        print(f"[AFFECT] Raw sentiment text: {affect_text!r}", flush=True)
+
         try:
             affect_data = json.loads(affect_text)
             valence = float(affect_data.get('valence', 0.5))
             arousal = float(affect_data.get('arousal', 0.5))
             dominance = float(affect_data.get('dominance', 0.5))
+            print(f"[AFFECT] Parsed: valence={valence:.2f} arousal={arousal:.2f} "
+                  f"dominance={dominance:.2f}", flush=True)
         except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.debug(f"Could not parse affect: {e}")
+            print(f"[AFFECT] JSON parse FAILED: {e}", flush=True)
             return
 
         from noodlestudio.runtime.facs_mapper import FACSMapper, Affect
@@ -559,11 +594,99 @@ class GuidePerformanceManager:
         )
 
         vrm_shapes = mapper.map_affect_to_vrm(affect_state)
+        print(f"[AFFECT] VRM blend shapes ({len(vrm_shapes)}): {vrm_shapes}", flush=True)
 
         if self._window and vrm_shapes:
             self._window.set_blend_shapes(vrm_shapes)
-            print(f"[GuidePerformance] Affect: v={valence:.2f} a={arousal:.2f} "
-                  f"d={dominance:.2f} -> {len(vrm_shapes)} shapes", flush=True)
+        elif not vrm_shapes:
+            print("[AFFECT] FACSMapper produced EMPTY shapes", flush=True)
+
+    # =========================================================================
+    # FACS EXPRESSION TEST MODE
+    # =========================================================================
+
+    _EXPRESSION_TEST_PRESETS = None  # Lazy-loaded
+
+    @classmethod
+    def _get_test_presets(cls):
+        """Lazy-load test presets to avoid import at module level."""
+        if cls._EXPRESSION_TEST_PRESETS is None:
+            from noodlestudio.runtime.facs_mapper import Affect
+            cls._EXPRESSION_TEST_PRESETS = [
+                ("Neutral",    Affect(valence=0.0,  arousal=0.3, dominance=0.5, sorrow=0.0, boredom=0.0)),
+                ("Happy",      Affect(valence=0.8,  arousal=0.6, dominance=0.7, sorrow=0.0, boredom=0.0)),
+                ("Very Happy", Affect(valence=1.0,  arousal=0.9, dominance=0.8, sorrow=0.0, boredom=0.0)),
+                ("Sad",        Affect(valence=-0.7, arousal=0.2, dominance=0.2, sorrow=0.8, boredom=0.0)),
+                ("Angry",      Affect(valence=-0.6, arousal=0.9, dominance=0.9, sorrow=0.0, boredom=0.0)),
+                ("Surprised",  Affect(valence=0.3,  arousal=0.9, dominance=0.3, sorrow=0.0, boredom=0.0)),
+                ("Afraid",     Affect(valence=-0.5, arousal=0.8, dominance=0.1, sorrow=0.0, boredom=0.0)),
+                ("Bored",      Affect(valence=-0.2, arousal=0.1, dominance=0.3, sorrow=0.0, boredom=0.8)),
+                ("Contempt",   Affect(valence=-0.3, arousal=0.4, dominance=0.8, sorrow=0.0, boredom=0.2)),
+            ]
+        return cls._EXPRESSION_TEST_PRESETS
+
+    def toggle_expression_test(self):
+        """Toggle FACS expression test mode (Ctrl+Shift+F).
+
+        Cycles through 9 preset affect states at 2.5s intervals to
+        visually verify the morph target pipeline. Shows the current
+        expression name in the window header.
+        """
+        if not self._window:
+            return
+
+        if self._expression_test_timer and self._expression_test_timer.isActive():
+            self._stop_expression_test()
+        else:
+            self._start_expression_test()
+
+    def _start_expression_test(self):
+        """Start cycling through test expressions."""
+        from noodlestudio.runtime.facs_mapper import FACSMapper
+
+        self._expression_test_index = 0
+        self._expression_test_mapper = FACSMapper()
+
+        if not self._expression_test_timer:
+            self._expression_test_timer = QTimer()
+            self._expression_test_timer.timeout.connect(self._next_test_expression)
+
+        self._apply_test_expression()
+        self._expression_test_timer.start(2500)
+        print("[FACS TEST] Started expression test cycle", flush=True)
+
+    def _stop_expression_test(self):
+        """Stop test mode and reset to neutral."""
+        if self._expression_test_timer:
+            self._expression_test_timer.stop()
+
+        from noodlestudio.runtime.facs_mapper import FACSMapper, Affect
+        neutral = Affect(valence=0.0, arousal=0.3, dominance=0.5, sorrow=0.0, boredom=0.0)
+        shapes = FACSMapper().map_affect_to_vrm(neutral)
+        if self._window:
+            self._window.set_blend_shapes(shapes)
+            self._window.show_play_header(self._play_title or "Guide")
+        print("[FACS TEST] Stopped", flush=True)
+
+    def _next_test_expression(self):
+        """Advance to the next test expression."""
+        presets = self._get_test_presets()
+        self._expression_test_index = (
+            (self._expression_test_index + 1) % len(presets)
+        )
+        self._apply_test_expression()
+
+    def _apply_test_expression(self):
+        """Apply the current test expression."""
+        presets = self._get_test_presets()
+        name, affect = presets[self._expression_test_index]
+        shapes = self._expression_test_mapper.map_affect_to_vrm(affect)
+
+        if self._window:
+            self._window.set_blend_shapes(shapes)
+            self._window.show_play_header(f"FACS Test: {name}")
+
+        print(f"[FACS TEST] {name}: {shapes}", flush=True)
 
     # =========================================================================
     # PERFORMANCE LIFECYCLE (STOP)
