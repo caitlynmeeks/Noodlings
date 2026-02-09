@@ -275,6 +275,43 @@ def temp_stage_dir(temp_project_dir):
 
 
 # ============================================================================
+# Fake LLM Client (for tests that create NoodlingPerformer)
+# ============================================================================
+
+class FakeLLMClient:
+    """Lightweight stand-in for HeadlessLLMClient.
+
+    Returns canned responses for testing without real LLM calls.
+    Call real ``__init__`` / real interface -- no MagicMock.
+    """
+
+    async def close(self):
+        pass
+
+
+class SignalCollector:
+    """Collects signal emissions for test assertions.
+
+    Usage:
+        collector = SignalCollector()
+        performer.responseReady.connect(collector)
+        # ... trigger signal ...
+        assert collector.values == ["expected text"]
+    """
+
+    def __init__(self):
+        self.values: list = []
+
+    def __call__(self, *args):
+        if len(args) == 1:
+            self.values.append(args[0])
+        elif len(args) == 0:
+            self.values.append(None)
+        else:
+            self.values.append(args)
+
+
+# ============================================================================
 # Guide Performance Manager Fixtures
 # ============================================================================
 
@@ -289,13 +326,25 @@ class StubFacetsEditor:
 
     def __init__(self):
         self.events: list[dict] = []
+        self._selected_noodling_id = None
+        self._ensemble_noodlings: list[dict] = []
+        self._loaded_assemblies: list[tuple] = []  # (assembly, path)
 
     def _handle_execution_event(self, event: dict):
         self.events.append(event)
 
     def load_assembly_from_data(self, assembly, *, force_reload=False,
                                 source_path=None):
-        pass
+        self._loaded_assemblies.append((assembly, source_path))
+
+    def set_ensemble_noodlings(self, noodlings: list):
+        self._ensemble_noodlings = noodlings
+        if noodlings:
+            self._selected_noodling_id = noodlings[0]['id']
+
+    def clear_ensemble_noodlings(self):
+        self._ensemble_noodlings = []
+        self._selected_noodling_id = None
 
 
 _SENTINEL = object()
@@ -325,18 +374,20 @@ class StubWindow:
     """Lightweight stand-in for GuidePerformanceWindow.
 
     Records method calls so tests can assert on them without
-    creating real Qt widgets.
+    creating real Qt widgets. Supports both single and ensemble APIs.
     """
 
     def __init__(self):
         self.texts: list[str] = []
         self.errors: list[str] = []
-        self.busy_states: list[bool] = []
-        self.blend_shapes_calls: list[dict] = []
+        self.busy_states: list = []   # (busy,) or (busy, name)
+        self.blend_shapes_calls: list = []  # (shapes,) or (shapes, nid)
         self._vrm_viewport = None
         self._typed_chars: list[str] = []
         self._text_blocks_begun = 0
         self._text_blocks_ended = 0
+        self._noodling_texts: list[tuple] = []  # (nid, name, text)
+        self._speaking_mode_calls: list[tuple] = []
 
     def append_guide_text(self, text):
         self.texts.append(text)
@@ -344,13 +395,16 @@ class StubWindow:
     def _show_error(self, msg):
         self.errors.append(msg)
 
-    def set_busy(self, busy):
-        self.busy_states.append(busy)
+    def set_busy(self, busy, name=None):
+        self.busy_states.append((busy, name))
 
-    def set_blend_shapes(self, shapes):
-        self.blend_shapes_calls.append(shapes)
+    def set_blend_shapes(self, shapes, noodling_id='default'):
+        self.blend_shapes_calls.append((shapes, noodling_id))
 
     def begin_guide_text(self):
+        self._text_blocks_begun += 1
+
+    def begin_noodling_text(self, noodling_id, name):
         self._text_blocks_begun += 1
 
     def append_character(self, char):
@@ -359,8 +413,23 @@ class StubWindow:
     def end_guide_text(self):
         self._text_blocks_ended += 1
 
+    def end_noodling_text(self):
+        self._text_blocks_ended += 1
+
+    def append_noodling_text(self, noodling_id, name, text):
+        self._noodling_texts.append((noodling_id, name, text))
+
+    def set_speaking_mode(self, active, intensity=0.7, noodling_id='default'):
+        self._speaking_mode_calls.append((active, intensity, noodling_id))
+
     def show_play_header(self, title):
         pass
+
+    def close(self):
+        pass
+
+    def isVisible(self):
+        return True
 
 
 @pytest.fixture
@@ -383,6 +452,23 @@ def guide_manager():
     manager._window = StubWindow()
 
     return manager
+
+
+@pytest.fixture
+def performer(qapp):
+    """Real NoodlingPerformer with lightweight fake dependencies.
+
+    Calls real ``__init__``, so all attributes are properly set.
+    Uses FakeLLMClient -- no MagicMock, no ``__new__`` bypass.
+    """
+    from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+
+    p = NoodlingPerformer(
+        noodling_id='ajo',
+        name='Ajo',
+        llm_client=FakeLLMClient()
+    )
+    return p
 
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡

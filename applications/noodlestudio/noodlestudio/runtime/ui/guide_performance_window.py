@@ -13,11 +13,14 @@
 #
 #   Guide Performance Window
 #
-#   Pure renderer for a noodling's performance. Displays VRM
-#   character, receives text and affect from a facet assembly.
+#   Pure renderer for noodling performances. Displays VRM
+#   character(s), receives text and affect from facet assemblies.
 #   Does NOT make LLM calls. Does NOT contain personality prompts.
-#   All cognition happens in the assembly, orchestrated by
+#   All cognition happens in assemblies, orchestrated by
 #   GuidePerformanceManager.
+#
+#   Supports single-noodling mode (one VRM viewport, 350x600) and
+#   ensemble mode (two VRM viewports side by side, 650x650).
 #
 # ──────────────────────────────────────────────────────────────
 # MODULE:   applications.noodlestudio.runtime.ui.guide_performance_window
@@ -170,25 +173,27 @@ if QT_AVAILABLE:
 
     class GuidePerformanceWindow(QMainWindow):
         """
-        Pure renderer for a noodling's performance.
+        Pure renderer for noodling performances.
 
-        Displays VRM character, receives text and affect from a facet
-        assembly. Does NOT make LLM calls. Does NOT contain personality
-        prompts. All cognition happens in the assembly, orchestrated by
-        GuidePerformanceManager.
+        Supports two modes:
 
-        Combines:
-        - VRM character rendering (top)
-        - Dialogue text display (middle)
-        - User text input (bottom)
+        **Single mode** (default): One VRM viewport, 350x600 window.
+        Backward compatible with existing single-noodling performances.
 
-        Floats alongside the main window, always visible regardless
-        of which center tab is active.
+        **Ensemble mode**: Two VRM viewports side by side, 650x650 window.
+        Each viewport is independently addressable by noodling_id.
+        Dialogue interleaves noodling text with name prefixes.
 
-        Usage:
+        Usage (single):
             window = GuidePerformanceWindow(parent_window=main_window)
             window.set_vrm("/path/to/ajo.vrm")
-            window.show_play_header("Let's Consciousness!")
+            window.show()
+
+        Usage (ensemble):
+            window = GuidePerformanceWindow(parent_window=main_window,
+                                            ensemble_mode=True)
+            window.set_vrm("/path/to/ajo.vrm", noodling_id='ajo')
+            window.set_vrm("/path/to/yuki.vrm", noodling_id='yuki')
             window.show()
         """
 
@@ -203,6 +208,7 @@ if QT_AVAILABLE:
             parent_window: QMainWindow,
             size: Tuple[int, int] = (350, 600),
             offset: Tuple[int, int] = (10, 60),
+            ensemble_mode: bool = False,
         ):
             """
             Initialize the guide performance window.
@@ -211,11 +217,17 @@ if QT_AVAILABLE:
                 parent_window: The main window to follow
                 size: (width, height) of this window
                 offset: (x, y) offset from right edge of parent
+                ensemble_mode: If True, create two VRM viewports side by side
             """
             super().__init__()
             self.parent_window = parent_window
-            self._size = size
+            self._ensemble_mode = ensemble_mode
             self._offset = offset
+
+            # In ensemble mode with default single-mode size, widen
+            if ensemble_mode and size == (350, 600):
+                size = (650, 650)
+            self._size = size
 
             # Frameless, stays on top, no taskbar entry
             self.setWindowFlags(
@@ -228,22 +240,47 @@ if QT_AVAILABLE:
             self._build_ui()
 
             # Position once at the right edge of the parent, then stay put.
-            # The user can drag the window anywhere (including a second
-            # monitor) and it will remain there independently.
             if parent_window:
                 geo = parent_window.geometry()
                 x = geo.right() - size[0] - offset[0]
                 y = geo.top() + offset[1]
                 self.move(x, y)
 
-            # VRM viewport reference (created lazily when VRM is loaded)
+            # VRM viewports (slot_key -> VRMViewportWidget)
+            self._vrm_viewports = {}
+
+            # Legacy alias for single mode (set when VRM loads)
             self._vrm_viewport = None
 
-            logger.info("GuidePerformanceWindow created")
+            # Ensemble: slot assignment for noodling_ids
+            self._noodling_to_slot = {}
 
-        # =====================================================================
+            # Noodling text colors for dialogue (noodling_id -> QColor)
+            self._noodling_colors = {
+                'ajo': QColor(176, 176, 176),     # #B0B0B0 warm gray
+                'yuki': QColor(144, 160, 176),    # #90A0B0 cooler gray
+                'default': QColor(176, 176, 176),
+            }
+
+            # Track which noodling is currently in a typed-text block
+            self._current_typing_noodling = None
+
+            logger.info(
+                f"GuidePerformanceWindow created (ensemble={ensemble_mode})"
+            )
+
+        # =================================================================
+        # ENSEMBLE PROPERTIES
+        # =================================================================
+
+        @property
+        def ensemble_mode(self) -> bool:
+            """Whether this window is in ensemble mode."""
+            return self._ensemble_mode
+
+        # =================================================================
         # UI CONSTRUCTION
-        # =====================================================================
+        # =================================================================
 
         def _build_ui(self):
             """Build the window layout."""
@@ -296,27 +333,15 @@ if QT_AVAILABLE:
 
             main_layout.addWidget(header_frame)
 
-            # --- VRM Viewport Container ---
-            self.vrm_container = QFrame()
-            self.vrm_container.setFixedHeight(250)
-            self.vrm_container.setStyleSheet("""
-                QFrame {
-                    background-color: #020204;
-                    border: none;
-                }
-            """)
-            self.vrm_container_layout = QVBoxLayout(self.vrm_container)
-            self.vrm_container_layout.setContentsMargins(0, 0, 0, 0)
+            # --- VRM Viewport Area ---
+            self._vrm_containers = {}
+            self._vrm_container_layouts = {}
+            self._vrm_placeholders = {}
 
-            # Placeholder label (replaced when VRM loads)
-            self._vrm_placeholder = QLabel("No character loaded")
-            self._vrm_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._vrm_placeholder.setStyleSheet(
-                "color: #555555; font-size: 11px; background: transparent;"
-            )
-            self.vrm_container_layout.addWidget(self._vrm_placeholder)
-
-            main_layout.addWidget(self.vrm_container)
+            if self._ensemble_mode:
+                self._build_ensemble_vrm_area(main_layout)
+            else:
+                self._build_single_vrm_area(main_layout)
 
             # --- Thinking Indicator ---
             self.thinking_indicator = _ThinkingIndicator()
@@ -361,8 +386,13 @@ if QT_AVAILABLE:
             input_layout.setContentsMargins(6, 6, 6, 6)
             input_layout.setSpacing(6)
 
+            placeholder = (
+                "Talk to the ensemble..."
+                if self._ensemble_mode
+                else "Talk to Guide..."
+            )
             self.input_field = QLineEdit()
-            self.input_field.setPlaceholderText("Talk to Guide...")
+            self.input_field.setPlaceholderText(placeholder)
             self.input_field.setStyleSheet("""
                 QLineEdit {
                     background-color: #1E1E1E;
@@ -405,22 +435,136 @@ if QT_AVAILABLE:
 
             self.setCentralWidget(container)
 
-        # =====================================================================
-        # VRM
-        # =====================================================================
+        def _build_single_vrm_area(self, main_layout: QVBoxLayout):
+            """Build the single-noodling VRM viewport area."""
+            self.vrm_container = QFrame()
+            self.vrm_container.setFixedHeight(250)
+            self.vrm_container.setStyleSheet("""
+                QFrame {
+                    background-color: #020204;
+                    border: none;
+                }
+            """)
+            self.vrm_container_layout = QVBoxLayout(self.vrm_container)
+            self.vrm_container_layout.setContentsMargins(0, 0, 0, 0)
 
-        def set_vrm(self, vrm_path: str):
+            placeholder = QLabel("No character loaded")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.setStyleSheet(
+                "color: #555555; font-size: 11px; background: transparent;"
+            )
+            self.vrm_container_layout.addWidget(placeholder)
+
+            # Register in container dicts
+            self._vrm_containers['default'] = self.vrm_container
+            self._vrm_container_layouts['default'] = self.vrm_container_layout
+            self._vrm_placeholders['default'] = placeholder
+
+            # Legacy alias
+            self._vrm_placeholder = placeholder
+
+            main_layout.addWidget(self.vrm_container)
+
+        def _build_ensemble_vrm_area(self, main_layout: QVBoxLayout):
+            """Build the ensemble VRM viewport area (two viewports side by side)."""
+            vrm_row = QFrame()
+            vrm_row.setFixedHeight(280)
+            vrm_row.setStyleSheet(
+                "QFrame { background-color: #020204; border: none; }"
+            )
+            vrm_row_layout = QHBoxLayout(vrm_row)
+            vrm_row_layout.setContentsMargins(0, 0, 0, 0)
+            vrm_row_layout.setSpacing(1)
+
+            for slot_key in ('left', 'right'):
+                slot_container = QFrame()
+                slot_container.setStyleSheet(
+                    "QFrame { background-color: #020204; border: none; }"
+                )
+                slot_layout = QVBoxLayout(slot_container)
+                slot_layout.setContentsMargins(0, 0, 0, 0)
+
+                placeholder = QLabel("No character loaded")
+                placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                placeholder.setStyleSheet(
+                    "color: #555555; font-size: 11px; "
+                    "background: transparent;"
+                )
+                slot_layout.addWidget(placeholder)
+
+                self._vrm_containers[slot_key] = slot_container
+                self._vrm_container_layouts[slot_key] = slot_layout
+                self._vrm_placeholders[slot_key] = placeholder
+
+                vrm_row_layout.addWidget(slot_container, stretch=1)
+
+            # Store reference for layout access
+            self._vrm_row = vrm_row
+
+            main_layout.addWidget(vrm_row)
+
+        # =================================================================
+        # VRM SLOT ROUTING
+        # =================================================================
+
+        def _get_slot(self, noodling_id: str = 'default') -> str:
             """
-            Load a VRM character model into the viewport.
+            Get the container slot key for a noodling_id.
+
+            In single mode, always returns 'default'.
+            In ensemble mode, assigns noodling_ids to 'left'/'right' slots
+            in the order they are first seen.
+
+            Args:
+                noodling_id: Identifier for the noodling
+
+            Returns:
+                Slot key ('default', 'left', or 'right')
+            """
+            if not self._ensemble_mode:
+                return 'default'
+
+            # Already assigned?
+            if noodling_id in self._noodling_to_slot:
+                return self._noodling_to_slot[noodling_id]
+
+            # Assign next available slot
+            used_slots = set(self._noodling_to_slot.values())
+            for slot in ('left', 'right'):
+                if slot not in used_slots:
+                    self._noodling_to_slot[noodling_id] = slot
+                    return slot
+
+            # All slots taken — return left as fallback
+            return 'left'
+
+        # =================================================================
+        # VRM
+        # =================================================================
+
+        def set_vrm(self, vrm_path: str, noodling_id: str = 'default'):
+            """
+            Load a VRM character model into a viewport.
+
+            In single mode, noodling_id is ignored (uses default viewport).
+            In ensemble mode, each noodling_id is assigned a viewport slot.
 
             Args:
                 vrm_path: Path to .vrm file
+                noodling_id: Identifier for the noodling
             """
+            slot = self._get_slot(noodling_id)
+            slot_container = self._vrm_containers.get(slot)
+            slot_layout = self._vrm_container_layouts.get(slot)
+
+            if not slot_container or not slot_layout:
+                logger.warning(f"No VRM container for slot '{slot}'")
+                return
+
             try:
                 from .components.vrm_viewport import VRMViewport, VRMViewportWidget
 
-                # Create VRMViewport component (opaque background for this window)
-                component = VRMViewport("guide_character")
+                component = VRMViewport(f"character_{noodling_id}")
                 component.transparent = False
                 component.background = "#020204"
                 component.vrm_path = vrm_path
@@ -435,39 +579,72 @@ if QT_AVAILABLE:
                 component.camera.target = (0.0, 0.85, 0.0)
 
                 # Remove placeholder
-                if self._vrm_placeholder:
-                    self._vrm_placeholder.setParent(None)
-                    self._vrm_placeholder = None
+                placeholder = self._vrm_placeholders.get(slot)
+                if placeholder:
+                    placeholder.setParent(None)
+                    self._vrm_placeholders[slot] = None
+                    # Clear legacy alias (single mode)
+                    if not self._ensemble_mode:
+                        self._vrm_placeholder = None
 
                 # Remove old viewport if any
-                if self._vrm_viewport:
-                    self._vrm_viewport.setParent(None)
+                old_viewport = self._vrm_viewports.get(slot)
+                if old_viewport:
+                    old_viewport.setParent(None)
 
                 # Create and add the viewport widget
-                self._vrm_viewport = VRMViewportWidget(component, self.vrm_container)
-                self.vrm_container_layout.addWidget(self._vrm_viewport)
+                viewport = VRMViewportWidget(component, slot_container)
+                slot_layout.addWidget(viewport)
+                self._vrm_viewports[slot] = viewport
 
-                logger.info(f"GuidePerformanceWindow: VRM loaded from {vrm_path}")
+                # Legacy alias for single mode
+                if not self._ensemble_mode:
+                    self._vrm_viewport = viewport
+
+                logger.info(
+                    f"VRM loaded for {noodling_id} (slot={slot}): {vrm_path}"
+                )
 
             except Exception as e:
-                print(f"[GuidePerformance] VRM load failed: {e}", flush=True)
-                logger.error(f"GuidePerformanceWindow: Failed to load VRM: {e}")
-                if self._vrm_placeholder:
-                    self._vrm_placeholder.setText(f"VRM load failed: {e}")
+                logger.error(f"VRM load failed for {noodling_id}: {e}")
+                placeholder = self._vrm_placeholders.get(slot)
+                if placeholder:
+                    placeholder.setText(f"VRM load failed: {e}")
 
-        def set_muscles(self, muscles: Dict[str, float]):
-            """Apply muscle values to the VRM character."""
-            if self._vrm_viewport:
-                self._vrm_viewport.set_muscles(muscles)
+        def set_muscles(self, muscles: Dict[str, float],
+                        noodling_id: str = 'default'):
+            """Apply muscle values to a VRM character."""
+            slot = self._get_slot(noodling_id)
+            viewport = self._vrm_viewports.get(slot)
+            if viewport:
+                viewport.set_muscles(muscles)
 
-        def set_blend_shapes(self, shapes: Dict[str, float]):
-            """Apply blend shape weights to the VRM character."""
-            if self._vrm_viewport:
-                self._vrm_viewport.set_blend_shapes(shapes)
+        def set_blend_shapes(self, shapes: Dict[str, float],
+                             noodling_id: str = 'default'):
+            """Apply blend shape weights to a VRM character."""
+            slot = self._get_slot(noodling_id)
+            viewport = self._vrm_viewports.get(slot)
+            if viewport:
+                viewport.set_blend_shapes(shapes)
 
-        # =====================================================================
+        def set_speaking_mode(self, active: bool, intensity: float = 0.7,
+                              noodling_id: str = 'default'):
+            """
+            Toggle speaking animation on a VRM character.
+
+            Args:
+                active: True to enable speaking animation
+                intensity: Speaking animation intensity (0.0 to 1.0)
+                noodling_id: Which noodling's viewport to animate
+            """
+            slot = self._get_slot(noodling_id)
+            viewport = self._vrm_viewports.get(slot)
+            if viewport:
+                viewport.set_speaking_mode(active, intensity)
+
+        # =================================================================
         # DIALOGUE DISPLAY
-        # =====================================================================
+        # =================================================================
 
         def show_play_header(self, title: str):
             """
@@ -482,45 +659,105 @@ if QT_AVAILABLE:
             """Clear the dialogue display."""
             self.dialogue_view.clear()
 
-        def append_guide_text(self, text: str):
+        # -- Noodling-aware dialogue methods (ensemble + single) --
+
+        def begin_noodling_text(self, noodling_id: str, name: Optional[str]):
             """
-            Append guide (assistant) text to the dialogue (all at once).
+            Begin a typed-text block for character-by-character delivery.
+
+            In ensemble mode with a name, inserts "Name: " prefix.
+            In single mode, inserts the guide icon prefix.
 
             Args:
-                text: Guide's message text (from assembly OUTGOING)
+                noodling_id: Identifier for the noodling
+                name: Display name (e.g. "Ajo", "Yuki"), or None
+            """
+            self._current_typing_noodling = noodling_id
+
+            cursor = self.dialogue_view.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+
+            color = self._noodling_colors.get(
+                noodling_id, self._noodling_colors['default']
+            )
+            fmt = QTextCharFormat()
+            fmt.setForeground(color)
+            cursor.setCharFormat(fmt)
+
+            if self._ensemble_mode and name:
+                cursor.insertText(f"{name}: ")
+            else:
+                cursor.insertText("\ua69c ")
+
+            self.dialogue_view.setTextCursor(cursor)
+
+        def end_noodling_text(self):
+            """Finalize a typed-text block (add trailing newlines)."""
+            self._current_typing_noodling = None
+
+            cursor = self.dialogue_view.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            cursor.insertText("\n\n")
+            self.dialogue_view.setTextCursor(cursor)
+
+        def append_noodling_text(self, noodling_id: str,
+                                 name: Optional[str], text: str):
+            """
+            Append noodling text all at once with optional name prefix.
+
+            In ensemble mode with a name, prefixes with "Name: ".
+            In single mode, prefixes with the guide icon.
+
+            Args:
+                noodling_id: Identifier for the noodling
+                name: Display name (e.g. "Ajo", "Yuki"), or None
+                text: The message text
             """
             cursor = self.dialogue_view.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
 
+            color = self._noodling_colors.get(
+                noodling_id, self._noodling_colors['default']
+            )
             fmt = QTextCharFormat()
-            fmt.setForeground(QColor(180, 180, 180))
+            fmt.setForeground(color)
             cursor.setCharFormat(fmt)
-            cursor.insertText(f"\ua69c {text}\n\n")
+
+            if self._ensemble_mode and name:
+                cursor.insertText(f"{name}: {text}\n\n")
+            else:
+                cursor.insertText(f"\ua69c {text}\n\n")
 
             self.dialogue_view.setTextCursor(cursor)
             self._scroll_to_bottom()
+
+        # -- Backward-compatible dialogue methods (single mode) --
+
+        def append_guide_text(self, text: str):
+            """
+            Append guide (assistant) text to the dialogue (all at once).
+
+            Backward-compatible wrapper around append_noodling_text().
+
+            Args:
+                text: Guide's message text (from assembly OUTGOING)
+            """
+            self.append_noodling_text('default', None, text)
 
         def begin_guide_text(self):
             """
             Begin a typed-text block for character-by-character delivery.
 
-            Inserts the guide icon prefix and positions the cursor for
-            subsequent append_character() calls. Call end_guide_text()
-            when the performance finishes.
+            Backward-compatible wrapper around begin_noodling_text().
             """
-            cursor = self.dialogue_view.textCursor()
-            cursor.movePosition(QTextCursor.MoveOperation.End)
-
-            fmt = QTextCharFormat()
-            fmt.setForeground(QColor(180, 180, 180))
-            cursor.setCharFormat(fmt)
-            cursor.insertText("\ua69c ")
-
-            self.dialogue_view.setTextCursor(cursor)
+            self.begin_noodling_text('default', None)
 
         def append_character(self, char: str):
             """
             Append a single character to the dialogue for typed-text effect.
+
+            Uses the color of the current typing noodling (set by
+            begin_noodling_text or begin_guide_text).
 
             Args:
                 char: Single character to append
@@ -528,8 +765,12 @@ if QT_AVAILABLE:
             cursor = self.dialogue_view.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
 
+            nid = self._current_typing_noodling or 'default'
+            color = self._noodling_colors.get(
+                nid, self._noodling_colors['default']
+            )
             fmt = QTextCharFormat()
-            fmt.setForeground(QColor(180, 180, 180))
+            fmt.setForeground(color)
             cursor.setCharFormat(fmt)
             cursor.insertText(char)
 
@@ -540,12 +781,9 @@ if QT_AVAILABLE:
             """
             Finalize a typed-text block (add trailing newlines).
 
-            Called by GuidePerformanceManager when PerformancePlayer finishes.
+            Backward-compatible wrapper around end_noodling_text().
             """
-            cursor = self.dialogue_view.textCursor()
-            cursor.movePosition(QTextCursor.MoveOperation.End)
-            cursor.insertText("\n\n")
-            self.dialogue_view.setTextCursor(cursor)
+            self.end_noodling_text()
 
         def append_user_text(self, text: str):
             """
@@ -582,9 +820,46 @@ if QT_AVAILABLE:
             scrollbar = self.dialogue_view.verticalScrollBar()
             scrollbar.setValue(scrollbar.maximum())
 
-        # =====================================================================
+        # =================================================================
+        # THINKING / BUSY STATE
+        # =================================================================
+
+        def set_thinking(self, noodling_id: str, name: Optional[str],
+                         thinking: bool):
+            """
+            Show or hide the thinking indicator with a noodling name.
+
+            Args:
+                noodling_id: Identifier for the noodling
+                name: Display name (e.g. "Ajo", "Yuki"), or None
+                thinking: True to show, False to hide
+            """
+            if thinking:
+                text = f"{name} is thinking..." if name else "Thinking..."
+                self.thinking_indicator.set_status(text)
+            else:
+                self.thinking_indicator.clear()
+
+        def set_busy(self, busy: bool, name: Optional[str] = None):
+            """
+            Toggle busy state (thinking indicator and input).
+
+            Args:
+                busy: True when assembly is executing, False when done
+                name: Optional noodling name for the thinking indicator
+            """
+            self.input_field.setEnabled(not busy)
+            self.send_button.setEnabled(not busy)
+            if busy:
+                text = f"{name} is thinking..." if name else "Thinking..."
+                self.thinking_indicator.set_status(text)
+            else:
+                self.thinking_indicator.clear()
+                self.input_field.setFocus()
+
+        # =================================================================
         # SENDING MESSAGES
-        # =====================================================================
+        # =================================================================
 
         def _on_send(self):
             """Handle user pressing Enter or clicking Send."""
@@ -603,23 +878,6 @@ if QT_AVAILABLE:
             # Signal for channel bus forwarding
             self.messageSent.emit(message)
 
-        def set_busy(self, busy: bool):
-            """
-            Toggle busy state (thinking indicator and input).
-
-            Called by GuidePerformanceManager during assembly execution.
-
-            Args:
-                busy: True when assembly is executing, False when done
-            """
-            self.input_field.setEnabled(not busy)
-            self.send_button.setEnabled(not busy)
-            if busy:
-                self.thinking_indicator.set_status("Thinking...")
-            else:
-                self.thinking_indicator.clear()
-                self.input_field.setFocus()
-
         def _show_error(self, text: str):
             """Show an error in the dialogue."""
             cursor = self.dialogue_view.textCursor()
@@ -631,9 +889,9 @@ if QT_AVAILABLE:
             self.dialogue_view.setTextCursor(cursor)
             self._scroll_to_bottom()
 
-        # =====================================================================
+        # =================================================================
         # LIFECYCLE
-        # =====================================================================
+        # =================================================================
 
         def closeEvent(self, event):
             """Clean up on close."""
@@ -658,16 +916,25 @@ if not QT_AVAILABLE:
         def show(self): pass
         def hide(self): pass
         def close(self): pass
-        def set_vrm(self, vrm_path): pass
-        def set_muscles(self, muscles): pass
-        def set_blend_shapes(self, shapes): pass
-        def set_busy(self, busy): pass
+        def set_vrm(self, vrm_path, noodling_id='default'): pass
+        def set_muscles(self, muscles, noodling_id='default'): pass
+        def set_blend_shapes(self, shapes, noodling_id='default'): pass
+        def set_speaking_mode(self, active, intensity=0.7,
+                              noodling_id='default'): pass
+        def set_busy(self, busy, name=None): pass
+        def set_thinking(self, noodling_id, name, thinking): pass
         def show_play_header(self, title): pass
         def clear_dialogue(self): pass
         def append_guide_text(self, text): pass
+        def append_noodling_text(self, noodling_id, name, text): pass
+        def begin_noodling_text(self, noodling_id, name): pass
+        def end_noodling_text(self): pass
+        def begin_guide_text(self): pass
+        def append_character(self, char): pass
+        def end_guide_text(self): pass
         def append_user_text(self, text): pass
 
 
-# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
-# જ⁀➴ ♡ Made with love. Use with love.
+# ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡
+# Made with love. Use with love.
 # Caitlyn Meeks 2026

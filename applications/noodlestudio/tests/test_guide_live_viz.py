@@ -15,7 +15,7 @@ from typing import Dict, Any
 from unittest.mock import MagicMock, patch
 import pytest
 
-from conftest import StubFacetsEditor, StubMainWindow, StubWindow
+from conftest import FakeLLMClient, StubFacetsEditor, StubMainWindow, StubWindow
 
 
 # =============================================================================
@@ -100,7 +100,6 @@ class TestStartEvents:
     def test_cycle_start_emitted(self, guide_manager):
         """cycle_start event is emitted when execution begins."""
         guide_manager._current_execution_id = "abc123"
-        guide_manager._last_user_message = "Hello Ajo"
 
         guide_manager._emit_execution_start_events()
 
@@ -112,8 +111,13 @@ class TestStartEvents:
 
     def test_incoming_facet_start_emitted(self, guide_manager):
         """facet_start for 'incoming' is emitted."""
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+
+        # Set up performer so manager can read _last_user_message
+        p = NoodlingPerformer('ajo', 'Ajo', FakeLLMClient())
+        p._last_user_message = "Hello Ajo"
+        guide_manager._performer = p
         guide_manager._current_execution_id = "abc123"
-        guide_manager._last_user_message = "Hello Ajo"
 
         guide_manager._emit_execution_start_events()
 
@@ -137,7 +141,6 @@ class TestStartEvents:
     def test_execution_id_consistency(self, guide_manager):
         """All start events share the same execution_id."""
         guide_manager._current_execution_id = "xyz789"
-        guide_manager._last_user_message = "test"
 
         guide_manager._emit_execution_start_events()
 
@@ -197,8 +200,7 @@ class TestCompleteEvents:
 
     def test_no_events_without_execution_id(self, guide_manager):
         """No completion events when execution_id is None."""
-        result = FakeExecutionResult()
-        guide_manager._emit_execution_complete_events(result)
+        guide_manager._emit_execution_complete_events()
 
         assert guide_manager._facets_editor.events == []
 
@@ -259,59 +261,57 @@ class TestMessageToEventsFlow:
 
     def test_message_creates_execution_id(self, guide_manager):
         """Sending a message creates a non-None execution_id."""
-        guide_manager._assembly = MagicMock()
-        guide_manager._executor = MagicMock()
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+
+        p = NoodlingPerformer('ajo', 'Ajo', FakeLLMClient())
+        p._assembly = True
+        p._executor = True
+        guide_manager._performer = p
 
         with patch(
-            'noodlestudio.runtime.ui.guide_performance_manager._AssemblyWorker'
+            'noodlestudio.runtime.ui.noodling_performer._AssemblyWorker'
         ) as MockWorker:
             mock_worker = MagicMock()
             MockWorker.return_value = mock_worker
 
-            guide_manager._on_user_message_for_assembly("Hello")
+            guide_manager._on_user_message("Hello")
 
             assert guide_manager._current_execution_id is not None
             assert len(guide_manager._current_execution_id) == 8
 
     def test_message_emits_start_events(self, guide_manager):
         """Sending a message emits start events to facets editor."""
-        guide_manager._assembly = MagicMock()
-        guide_manager._executor = MagicMock()
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+
+        p = NoodlingPerformer('ajo', 'Ajo', FakeLLMClient())
+        p._assembly = True
+        p._executor = True
+        guide_manager._performer = p
 
         with patch(
-            'noodlestudio.runtime.ui.guide_performance_manager._AssemblyWorker'
+            'noodlestudio.runtime.ui.noodling_performer._AssemblyWorker'
         ) as MockWorker:
             mock_worker = MagicMock()
             MockWorker.return_value = mock_worker
 
-            guide_manager._on_user_message_for_assembly("Hello")
+            guide_manager._on_user_message("Hello")
 
             # At least cycle_start and incoming facet_start should fire
             assert len(guide_manager._facets_editor.events) >= 2
 
-    def test_result_calls_completion_pipeline(self, guide_manager):
-        """Assembly result triggers the completion event pipeline."""
+    def test_execution_finished_calls_completion_pipeline(self, guide_manager):
+        """Manager's execution finish triggers the completion event pipeline."""
         guide_manager._current_execution_id = "abc123"
-        guide_manager._last_user_message = "Hello"
 
-        result = FakeExecutionResult(
-            response="Hi there!",
-            facet_outputs={
-                'response': {'out': 'Hi there!'},
-                'sentiment': {'out': '{"valence": 0.7}'},
-            }
-        )
-
-        with patch.object(guide_manager, '_emit_execution_complete_events') as mock_complete, \
-             patch.object(guide_manager, '_apply_affect'):
-            guide_manager._on_assembly_result(result)
-            mock_complete.assert_called_once_with(result)
+        with patch.object(guide_manager, '_emit_execution_complete_events') as mock_complete:
+            guide_manager._on_execution_finished()
+            mock_complete.assert_called_once()
 
     def test_error_emits_error_events(self, guide_manager):
         """Assembly error emits error events to facets editor."""
         guide_manager._current_execution_id = "abc123"
 
-        guide_manager._on_assembly_error("Connection timeout")
+        guide_manager._on_execution_error("Connection timeout")
 
         event_types = [e['subtype'] for e in guide_manager._facets_editor.events]
         assert 'facet_error' in event_types
@@ -353,8 +353,7 @@ class TestStaleExecutionGuard:
         """Completion events are skipped if execution_id has changed."""
         guide_manager._current_execution_id = None  # Already cleared
 
-        result = FakeExecutionResult()
-        guide_manager._emit_execution_complete_events(result)
+        guide_manager._emit_execution_complete_events()
 
         assert guide_manager._facets_editor.events == []
 

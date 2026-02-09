@@ -35,7 +35,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene,
     QGraphicsItem, QGraphicsLineItem, QPushButton, QLabel, QSpinBox,
-    QGraphicsTextItem
+    QGraphicsTextItem, QComboBox
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QPen, QBrush, QColor, QPainter, QFont
@@ -143,6 +143,10 @@ class FacetsEditorPanel(
         # Empty state message
         self.empty_state_label: Optional[QGraphicsTextItem] = None
 
+        # Ensemble noodling selector
+        self._ensemble_noodlings: List[Dict] = []  # [{id, name, assembly, assembly_path}]
+        self._selected_noodling_id: Optional[str] = None  # None = accept all events
+
         # WebSocket connection for execution event streaming (AUTOBAHN!)
         self.ws_connection = None
         self.ws_task = None
@@ -183,6 +187,36 @@ class FacetsEditorPanel(
         self.assembly_label.setStyleSheet("color: #CCCCCC; font-size: 11pt; font-weight: bold;")
         self.assembly_label.hide()  # Not shown - assembly name is redundant
         toolbar.addWidget(self.assembly_label)
+
+        # Noodling selector (visible in ensemble mode only)
+        self._noodling_selector = QComboBox()
+        self._noodling_selector.setFixedWidth(160)
+        self._noodling_selector.setToolTip("Select noodling to inspect")
+        self._noodling_selector.currentIndexChanged.connect(self._on_noodling_selected)
+        self._noodling_selector.setStyleSheet("""
+            QComboBox {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+            QComboBox:hover {
+                background-color: #4A4A4A;
+                border: 1px solid #777777;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #3A3A3A;
+                color: #CCCCCC;
+                selection-background-color: #555555;
+                border: 1px solid #555555;
+            }
+        """)
+        self._noodling_selector.hide()  # Hidden until ensemble mode
+        toolbar.addWidget(self._noodling_selector)
 
         toolbar.addStretch()
 
@@ -585,6 +619,74 @@ class FacetsEditorPanel(
                 return True
 
         return super().eventFilter(obj, event)
+
+    # =========================================================================
+    # ENSEMBLE NOODLING SELECTOR
+    # =========================================================================
+
+    def set_ensemble_noodlings(self, noodlings: list):
+        """
+        Set up the noodling selector for ensemble mode.
+
+        Populates the dropdown, shows it, and loads the first noodling's
+        assembly into the editor.
+
+        Args:
+            noodlings: List of dicts with 'id', 'name', 'assembly',
+                       'assembly_path' for each noodling in the ensemble.
+        """
+        self._ensemble_noodlings = noodlings
+        self._noodling_selector.blockSignals(True)
+        self._noodling_selector.clear()
+        for entry in noodlings:
+            self._noodling_selector.addItem(
+                entry['name'], userData=entry['id']
+            )
+        self._noodling_selector.blockSignals(False)
+        self._noodling_selector.show()
+
+        # Select and load the first noodling
+        if noodlings:
+            self._noodling_selector.setCurrentIndex(0)
+            self._on_noodling_selected(0)
+
+    def clear_ensemble_noodlings(self):
+        """
+        Clear the noodling selector and return to single mode.
+
+        Hides the dropdown and stops filtering events by noodling.
+        """
+        self._ensemble_noodlings = []
+        self._selected_noodling_id = None
+        self._noodling_selector.blockSignals(True)
+        self._noodling_selector.clear()
+        self._noodling_selector.blockSignals(False)
+        self._noodling_selector.hide()
+
+    def _on_noodling_selected(self, index: int):
+        """
+        Handle noodling selector dropdown change.
+
+        Loads the selected noodling's assembly into the editor and
+        sets the event filter to only show that noodling's events.
+
+        Args:
+            index: Combo box index of the selected noodling
+        """
+        if index < 0 or index >= len(self._ensemble_noodlings):
+            return
+
+        entry = self._ensemble_noodlings[index]
+        self._selected_noodling_id = entry['id']
+
+        # Load this noodling's assembly
+        assembly = entry.get('assembly')
+        assembly_path = entry.get('assembly_path')
+        if assembly and hasattr(self, 'load_assembly_from_data'):
+            self.load_assembly_from_data(
+                assembly, force_reload=True,
+                source_path=assembly_path
+            )
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.

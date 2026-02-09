@@ -1,13 +1,13 @@
-# ──────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 #   Tests for Guide Performance Manager
 #
 #   Tests for the orchestrator that coordinates performance
 #   lifecycle: window creation, assembly loading, demo mode,
 #   [D] button sync, and affect pipeline.
-# ──────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
-# ──────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 
 from unittest.mock import MagicMock, patch
 import pytest
@@ -21,8 +21,21 @@ from noodlestudio.runtime.ui.guide_performance_manager import (
 # The manager imports get_computer_use_controller locally, so patch at source
 CUC_PATCH = 'noodlestudio.core.computer_use_controller.get_computer_use_controller'
 
-# Patch _load_assembly to prevent FacetExecutor creation (requires event loop)
-LOAD_ASSEMBLY_PATCH = 'noodlestudio.runtime.ui.guide_performance_manager.GuidePerformanceManager._load_assembly'
+# Patch create_llm_client to prevent real provider config lookups
+CREATE_LLM_PATCH = 'noodlestudio.runtime.ui.guide_performance_manager.create_llm_client'
+
+# Patch NoodlingPerformer.load_assembly to prevent real assembly loading
+LOAD_ASSEMBLY_PATCH = 'noodlestudio.runtime.ui.noodling_performer.NoodlingPerformer.load_assembly'
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+class FakeLLMClient:
+    """Lightweight stand-in for HeadlessLLMClient."""
+    async def close(self):
+        pass
 
 
 # =============================================================================
@@ -62,27 +75,30 @@ def manager(parent_window, mock_panel):
 class TestPerformanceLifecycle:
     """Tests for start/stop performance."""
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_start_creates_window(self, mock_get_ctrl, mock_load, manager):
+    def test_start_creates_window(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
         """Starting a performance creates the window."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Test Play")
         assert manager.window is not None
         assert manager.is_active
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_start_enables_demo_mode(self, mock_get_ctrl, mock_load, manager):
+    def test_start_enables_demo_mode(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
         """Starting a performance enables demo mode."""
         mock_ctrl = MagicMock()
         mock_get_ctrl.return_value = mock_ctrl
         manager.start_performance("Test Play")
         mock_ctrl.demo_mode = True
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_stop_cleans_up(self, mock_get_ctrl, mock_load, manager):
+    def test_stop_cleans_up(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
         """Stopping cleans up window and demo mode."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Test Play")
@@ -91,9 +107,10 @@ class TestPerformanceLifecycle:
         assert not manager.is_active
         assert manager.window is None
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_stop_disables_demo_mode(self, mock_get_ctrl, mock_load, manager):
+    def test_stop_disables_demo_mode(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
         """Stopping disables demo mode on controller."""
         mock_ctrl = MagicMock()
         mock_get_ctrl.return_value = mock_ctrl
@@ -101,9 +118,10 @@ class TestPerformanceLifecycle:
         manager.stop_performance()
         assert mock_ctrl.demo_mode == False
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_is_active_property(self, mock_get_ctrl, mock_load, manager):
+    def test_is_active_property(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
         """is_active reflects performance state."""
         mock_get_ctrl.return_value = MagicMock()
         assert not manager.is_active
@@ -112,17 +130,19 @@ class TestPerformanceLifecycle:
         manager.stop_performance()
         assert not manager.is_active
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_start_without_vrm(self, mock_get_ctrl, mock_load, manager):
+    def test_start_without_vrm(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
         """Performance starts without VRM path."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Test Play", vrm_path=None)
         assert manager.is_active
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_double_start_stops_first(self, mock_get_ctrl, mock_load, manager):
+    def test_double_start_stops_first(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
         """Starting twice stops the first performance."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Play 1")
@@ -139,17 +159,19 @@ class TestPerformanceLifecycle:
 class TestDemoButtonSync:
     """Tests for [D] button synchronization."""
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_demo_button_checked_on_start(self, mock_get_ctrl, mock_load, manager, mock_panel):
+    def test_demo_button_checked_on_start(self, mock_get_ctrl, mock_create_llm, mock_load, manager, mock_panel):
         """[D] button is checked when performance starts."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Test Play")
         mock_panel.demo_mode_btn.setChecked.assert_called_with(True)
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_demo_button_unchecked_on_stop(self, mock_get_ctrl, mock_load, manager, mock_panel):
+    def test_demo_button_unchecked_on_stop(self, mock_get_ctrl, mock_create_llm, mock_load, manager, mock_panel):
         """[D] button is unchecked when performance stops."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Test Play")
@@ -164,9 +186,10 @@ class TestDemoButtonSync:
 class TestAssemblyWiring:
     """Tests for assembly loading and execution pipeline."""
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_header_shows_play_title(self, mock_get_ctrl, mock_load, manager):
+    def test_header_shows_play_title(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
         """Window header displays the play title."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Let's Consciousness!")
@@ -179,31 +202,29 @@ class TestAssemblyWiring:
         manager.set_guide_cue_handler(mock_handler)
         assert manager._guide_cue_handler is mock_handler
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_stop_clears_assembly_state(self, mock_get_ctrl, mock_load, manager):
-        """Stopping performance clears assembly, executor, and history."""
+    def test_stop_clears_performer(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
+        """Stopping performance clears performer and play pipeline."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Test Play")
-        manager._conversation_history.append({'role': 'user', 'content': 'test'})
+        assert manager._performer is not None
         manager.stop_performance()
-        assert manager._assembly is None
-        assert manager._executor is None
-        assert manager._conversation_history == []
+        assert manager._performer is None
 
-    @patch(LOAD_ASSEMBLY_PATCH, return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_message_submitted_without_assembly(self, mock_get_ctrl, mock_load, manager):
-        """Message submission without loaded assembly shows error."""
+    def test_message_submitted_without_performer(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
+        """Message submission without performer shows error."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Test Play")
-        manager._assembly = None
-        manager._executor = None
-        manager._on_user_message_for_assembly("Hello")
+        manager._performer = None
+        manager._on_user_message("Hello")
         text = manager.window.dialogue_view.toPlainText()
         assert "not loaded" in text.lower() or "error" in text.lower()
 
 
-# ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡
-# જ⁀➴ ♡ Made with love. Use with love.
+# Made with love. Use with love.
 # Caitlyn Meeks 2026

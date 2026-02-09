@@ -1,21 +1,26 @@
-# ──────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 #   Tests for Guide Assembly Execution
 #
 #   Tests that Ajo's cognition flows through the facet assembly
 #   system: assembly loading, FacetExecutor integration, sentiment
 #   -> affect pipeline, and conversation history.
-# ──────────────────────────────────────────────────────────────
+#
+#   Cognition logic lives in NoodlingPerformer. Tests exercise the
+#   performer directly for affect, result handling, and context
+#   building. Manager-level tests verify wiring (Brenda feedback).
+# ------------------------------------------------------------------
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
-# ──────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 
 import json
 from dataclasses import dataclass, field
 from typing import Dict, Any
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, patch
 import pytest
 
 from noodlestudio.core.facet_system import FacetAssembly
+from conftest import FakeLLMClient, SignalCollector, StubFacetsEditor, StubMainWindow
 
 
 # Path to Ajo's assembly YAML (relative to project root)
@@ -269,20 +274,30 @@ class TestAffectPipeline:
         boredom = max(0.0, (1.0 - arousal) * 0.3)
         assert abs(boredom - 0.21) < 0.001
 
-    def test_invalid_json_handled_gracefully(self, guide_manager):
+    def test_invalid_json_handled_gracefully(self, performer):
         """Invalid JSON from sentiment facet does not crash."""
+        collector = SignalCollector()
+        performer.affectReady.connect(collector)
+
         # Call _apply_affect with invalid JSON -- should not raise
-        guide_manager._apply_affect("not valid json {{{")
-        # Window's set_blend_shapes should NOT have been called
-        assert guide_manager._window.blend_shapes_calls == []
+        performer._apply_affect("not valid json {{{")
 
-    def test_missing_keys_use_defaults(self, guide_manager):
+        # affectReady should NOT have been emitted
+        assert collector.values == []
+
+    def test_missing_keys_use_defaults(self, performer):
         """Missing keys in sentiment JSON use defaults."""
-        # Only provide valence, omit arousal and dominance
-        guide_manager._apply_affect(json.dumps({"valence": 0.9}))
+        collector = SignalCollector()
+        performer.affectReady.connect(collector)
 
-        # Should still call set_blend_shapes (arousal/dominance default to 0.5)
-        assert len(guide_manager._window.blend_shapes_calls) == 1
+        # Only provide valence, omit arousal and dominance
+        performer._apply_affect(json.dumps({"valence": 0.9}))
+
+        # Should still emit affectReady (arousal/dominance default to 0.5)
+        assert len(collector.values) == 1
+        shapes = collector.values[0]
+        assert isinstance(shapes, dict)
+        assert len(shapes) > 0
 
 
 # =============================================================================
@@ -303,51 +318,60 @@ class FakeExecutionResult:
 
 
 class TestAssemblyResultHandling:
-    """Tests for _on_assembly_result processing."""
+    """Tests for NoodlingPerformer._on_assembly_result processing."""
 
-    def test_response_displayed_in_window(self, guide_manager):
-        """Assembly response is displayed via append_guide_text."""
+    def test_response_emits_signal(self, performer):
+        """Assembly response emits responseReady signal."""
+        collector = SignalCollector()
+        performer.responseReady.connect(collector)
+
         result = FakeExecutionResult(response="Hello from Ajo!")
-        guide_manager._on_assembly_result(result)
+        performer._on_assembly_result(result)
 
-        assert guide_manager._window.texts == ["Hello from Ajo!"]
+        assert collector.values == ["Hello from Ajo!"]
 
-    def test_busy_cleared_after_result(self, guide_manager):
-        """Window busy state is cleared after assembly result."""
-        result = FakeExecutionResult()
-        guide_manager._on_assembly_result(result)
+    def test_execution_finished_after_result(self, performer):
+        """executionFinished signal fires after plain text result."""
+        collector = SignalCollector()
+        performer.executionFinished.connect(collector)
 
-        assert False in guide_manager._window.busy_states
+        result = FakeExecutionResult(response="Hello!")
+        performer._on_assembly_result(result)
 
-    def test_conversation_history_updated(self, guide_manager):
+        assert len(collector.values) == 1
+
+    def test_conversation_history_updated(self, performer):
         """Conversation history grows after each exchange."""
-        guide_manager._last_user_message = "What are noodlings?"
+        performer._last_user_message = "What are noodlings?"
 
         result = FakeExecutionResult(response="Noodlings are cognitive agents!")
-        guide_manager._on_assembly_result(result)
+        performer._on_assembly_result(result)
 
-        assert len(guide_manager._conversation_history) == 2
-        assert guide_manager._conversation_history[0] == {
+        assert len(performer.conversation_history) == 2
+        assert performer.conversation_history[0] == {
             'role': 'user', 'content': 'What are noodlings?'
         }
-        assert guide_manager._conversation_history[1] == {
+        assert performer.conversation_history[1] == {
             'role': 'assistant', 'content': 'Noodlings are cognitive agents!'
         }
 
-    def test_history_accumulates_over_exchanges(self, guide_manager):
+    def test_history_accumulates_over_exchanges(self, performer):
         """Multiple exchanges accumulate in history."""
-        guide_manager._last_user_message = "Hello"
+        performer._last_user_message = "Hello"
         result1 = FakeExecutionResult(response="Hi there!")
-        guide_manager._on_assembly_result(result1)
+        performer._on_assembly_result(result1)
 
-        guide_manager._last_user_message = "What is NoodleStudio?"
+        performer._last_user_message = "What is NoodleStudio?"
         result2 = FakeExecutionResult(response="It's a cognitive IDE!")
-        guide_manager._on_assembly_result(result2)
+        performer._on_assembly_result(result2)
 
-        assert len(guide_manager._conversation_history) == 4
+        assert len(performer.conversation_history) == 4
 
-    def test_sentiment_drives_affect(self, guide_manager):
+    def test_sentiment_drives_affect(self, performer):
         """Sentiment facet output drives the affect pipeline."""
+        collector = SignalCollector()
+        performer.affectReady.connect(collector)
+
         sentiment_json = json.dumps({
             "valence": 0.8,
             "arousal": 0.6,
@@ -361,41 +385,63 @@ class TestAssemblyResultHandling:
                 'response': {'out': 'I love noodlings!'},
             }
         )
-        guide_manager._on_assembly_result(result)
+        performer._on_assembly_result(result)
 
-        assert len(guide_manager._window.blend_shapes_calls) == 1
-        shapes = guide_manager._window.blend_shapes_calls[0]
+        assert len(collector.values) == 1
+        shapes = collector.values[0]
         assert isinstance(shapes, dict)
 
-    def test_no_sentiment_output_skips_affect(self, guide_manager):
+    def test_no_sentiment_output_skips_affect(self, performer):
         """Missing sentiment output skips affect pipeline gracefully."""
+        collector = SignalCollector()
+        performer.affectReady.connect(collector)
+
         result = FakeExecutionResult(
             response="Just a response",
             facet_outputs={'response': {'out': 'Just a response'}}
         )
-        guide_manager._on_assembly_result(result)
+        performer._on_assembly_result(result)
 
-        assert guide_manager._window.blend_shapes_calls == []
+        assert collector.values == []
 
     def test_brenda_feedback_on_result(self, guide_manager):
-        """GuideCueHandler receives response for Brenda feedback."""
-        mock_handler = MagicMock()
-        guide_manager._guide_cue_handler = mock_handler
-        guide_manager._last_user_message = "Tell me about facets"
+        """GuideCueHandler receives response via manager's execution finish."""
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
 
-        result = FakeExecutionResult(response="Facets are cognitive nodes!")
-        guide_manager._on_assembly_result(result)
+        # Set up a performer with last response data
+        p = NoodlingPerformer('ajo', 'Ajo', FakeLLMClient())
+        p._last_response = "Facets are cognitive nodes!"
+        p._last_user_message = "Tell me about facets"
+        guide_manager._performer = p
 
-        mock_handler.report_response.assert_called_once_with(
+        # Stub cue handler that records calls
+        class StubCueHandler:
+            def __init__(self):
+                self.reported = []
+
+            def report_response(self, response, user_msg):
+                self.reported.append((response, user_msg))
+
+        handler = StubCueHandler()
+        guide_manager._guide_cue_handler = handler
+
+        # Trigger the execution finished handler
+        guide_manager._on_execution_finished()
+
+        assert len(handler.reported) == 1
+        assert handler.reported[0] == (
             "Facets are cognitive nodes!", "Tell me about facets"
         )
 
-    def test_empty_response_shows_error(self, guide_manager):
-        """Empty response shows error in window."""
-        result = FakeExecutionResult(response="[No output]")
-        guide_manager._on_assembly_result(result)
+    def test_empty_response_shows_error(self, performer):
+        """Empty response emits errorOccurred signal."""
+        collector = SignalCollector()
+        performer.errorOccurred.connect(collector)
 
-        assert len(guide_manager._window.errors) == 1
+        result = FakeExecutionResult(response="[No output]")
+        performer._on_assembly_result(result)
+
+        assert len(collector.values) == 1
 
 
 # =============================================================================
@@ -403,23 +449,23 @@ class TestAssemblyResultHandling:
 # =============================================================================
 
 class TestContextBuilding:
-    """Tests for execution context assembly."""
+    """Tests for execution context assembly (now in NoodlingPerformer)."""
 
-    def test_context_includes_history(self, guide_manager):
+    def test_context_includes_history(self, performer):
         """Execution context includes conversation history."""
-        guide_manager._assembly = MagicMock()
-        guide_manager._executor = MagicMock()
-        guide_manager._conversation_history = [
+        performer._assembly = True   # Truthy sentinel
+        performer._executor = True
+        performer._conversation_history = [
             {'role': 'user', 'content': 'previous message'}
         ]
 
         with patch(
-            'noodlestudio.runtime.ui.guide_performance_manager._AssemblyWorker'
+            'noodlestudio.runtime.ui.noodling_performer._AssemblyWorker'
         ) as MockWorker:
             mock_worker = MagicMock()
             MockWorker.return_value = mock_worker
 
-            guide_manager._on_user_message_for_assembly("Hello")
+            performer.execute("Hello")
 
             call_args = MockWorker.call_args
             context = call_args[0][3]  # 4th positional arg
@@ -429,23 +475,27 @@ class TestContextBuilding:
             assert 'previous message' in context['conversation_history']
 
     def test_context_includes_brenda_direction(self, guide_manager):
-        """Execution context includes Brenda direction when available."""
-        guide_manager._assembly = MagicMock()
-        guide_manager._executor = MagicMock()
+        """Manager passes Brenda direction as extra_context to performer."""
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
 
-        mock_handler = MagicMock()
-        mock_handler.build_system_prompt_addition.return_value = (
-            "Direct Ajo to welcome the user warmly."
-        )
-        guide_manager._guide_cue_handler = mock_handler
+        p = NoodlingPerformer('ajo', 'Ajo', FakeLLMClient())
+        p._assembly = True
+        p._executor = True
+        guide_manager._performer = p
+
+        class StubCueHandler:
+            def build_system_prompt_addition(self):
+                return "Direct Ajo to welcome the user warmly."
+
+        guide_manager._guide_cue_handler = StubCueHandler()
 
         with patch(
-            'noodlestudio.runtime.ui.guide_performance_manager._AssemblyWorker'
+            'noodlestudio.runtime.ui.noodling_performer._AssemblyWorker'
         ) as MockWorker:
             mock_worker = MagicMock()
             MockWorker.return_value = mock_worker
 
-            guide_manager._on_user_message_for_assembly("Hello")
+            guide_manager._on_user_message("Hello")
 
             context = MockWorker.call_args[0][3]
             assert 'brenda_direction' in context
@@ -453,16 +503,21 @@ class TestContextBuilding:
 
     def test_context_omits_direction_when_none(self, guide_manager):
         """Execution context omits brenda_direction when no handler."""
-        guide_manager._assembly = MagicMock()
-        guide_manager._executor = MagicMock()
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+
+        p = NoodlingPerformer('ajo', 'Ajo', FakeLLMClient())
+        p._assembly = True
+        p._executor = True
+        guide_manager._performer = p
+        guide_manager._guide_cue_handler = None
 
         with patch(
-            'noodlestudio.runtime.ui.guide_performance_manager._AssemblyWorker'
+            'noodlestudio.runtime.ui.noodling_performer._AssemblyWorker'
         ) as MockWorker:
             mock_worker = MagicMock()
             MockWorker.return_value = mock_worker
 
-            guide_manager._on_user_message_for_assembly("Hello")
+            guide_manager._on_user_message("Hello")
 
             context = MockWorker.call_args[0][3]
             assert 'brenda_direction' not in context
@@ -473,14 +528,16 @@ class TestContextBuilding:
 # =============================================================================
 
 class TestLLMClientCreation:
-    """Tests for _create_llm_client bridging editor settings."""
+    """Tests for create_llm_client utility function."""
 
     @patch('noodlestudio.core.model_label_manager.get_model_label_manager')
     @patch('noodlestudio.core.provider_manager.get_provider_manager')
     def test_creates_client_from_settings(
-        self, mock_get_provider, mock_get_label, guide_manager
+        self, mock_get_provider, mock_get_label
     ):
         """LLM client is created from editor provider/label settings."""
+        from noodlestudio.runtime.ui.noodling_performer import create_llm_client
+
         # Set up mock label manager
         label_mgr = MagicMock()
         label_mgr.get_model_for_label.side_effect = lambda label: {
@@ -500,7 +557,7 @@ class TestLLMClientCreation:
         mock_get_provider.return_value = provider_mgr
 
         with patch('noodlestudio.runtime.llm_client.HeadlessLLMClient') as MockClient:
-            client = guide_manager._create_llm_client()
+            client = create_llm_client()
 
             MockClient.assert_called_once()
             config = MockClient.call_args[0][0]
@@ -510,6 +567,5 @@ class TestLLMClientCreation:
             assert "SMALL" in config.model_labels
 
 
-# ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡
-# જ⁀➴ ♡ Made with love. Use with love.
+# Made with love. Use with love.
 # Caitlyn Meeks 2026

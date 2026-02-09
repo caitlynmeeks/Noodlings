@@ -14,9 +14,10 @@
 #   Guide Performance Manager
 #
 #   Orchestrates the lifecycle of guided play performances.
-#   Loads Ajo's facet assembly, creates a FacetExecutor, and
-#   routes user messages through the assembly pipeline. The
-#   window is a pure renderer; all cognition lives here.
+#   Delegates cognition to NoodlingPerformer instances and wires
+#   their signals to the rendering window and facets editor.
+#   Supports single-noodling mode (backward compatible) and
+#   ensemble mode (multiple noodlings on a shared stage).
 #
 # ──────────────────────────────────────────────────────────────
 # MODULE:   applications.noodlestudio.runtime.ui.guide_performance_manager
@@ -35,19 +36,18 @@
 # https://noodlings.ai
 # ──────────────────────────────────────────────────────────────
 
-import asyncio
-import json
 import logging
 import time
 import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from PyQt6.QtCore import QThread, QTimer, pyqtSignal
+from PyQt6.QtCore import QTimer
 
 from ..channels import ChannelBus, ChannelMessage
 from ..brenda import BrendaDirector, CHANNEL_USER_INPUT
 from ..guide_cue_handler import GuideCueHandler
+from .noodling_performer import NoodlingPerformer, create_llm_client
 
 logger = logging.getLogger(__name__)
 
@@ -55,51 +55,8 @@ logger = logging.getLogger(__name__)
 _GUIDE_VRM_RELATIVE = Path("noodlings/guide/Radiances/AjoMajo.vrm")
 _GUIDE_ASSEMBLY_RELATIVE = Path("noodlings/guide/assembly.yaml")
 
-
-# =============================================================================
-# Assembly Worker (QThread for async FacetExecutor.execute)
-# =============================================================================
-
-class _AssemblyWorker(QThread):
-    """Worker thread that executes a facet assembly in its own event loop.
-
-    Emits facetCompleted for each individual facet as it finishes, enabling
-    mood-first expression updates (Sentiment completes before Response).
-    """
-
-    resultReady = pyqtSignal(object)    # ExecutionResult
-    errorOccurred = pyqtSignal(str)     # Error message
-    facetCompleted = pyqtSignal(str, object)  # (facet_id, outputs_dict)
-
-    def __init__(self, executor, assembly, message: str, context: dict):
-        super().__init__()
-        self._executor = executor
-        self._assembly = assembly
-        self._message = message
-        self._context = context
-
-    def run(self):
-        """Execute the assembly in a dedicated asyncio event loop."""
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            def _on_facet_done(facet_id, outputs):
-                self.facetCompleted.emit(facet_id, outputs)
-
-            result = loop.run_until_complete(
-                self._executor.execute(
-                    self._assembly,
-                    incoming_data=self._message,
-                    context=self._context,
-                    on_facet_complete=_on_facet_done
-                )
-            )
-            self.resultReady.emit(result)
-        except Exception as e:
-            logger.error(f"Assembly execution failed: {e}")
-            self.errorOccurred.emit(str(e))
-        finally:
-            loop.close()
+# Yuki's assembly path (relative to studio_dir = applications/noodlestudio/)
+_YUKI_ASSEMBLY_RELATIVE = Path("library/noodlings/yuki_cyberfox/assembly.yaml")
 
 
 # =============================================================================
@@ -110,15 +67,14 @@ class GuidePerformanceManager:
     """
     Orchestrates the lifecycle of guided play performances.
 
-    Loads Ajo's facet assembly, creates a FacetExecutor with a
-    HeadlessLLMClient, and routes user messages through the assembly.
-    The window is a pure renderer -- all cognition lives here.
+    Delegates cognition to NoodlingPerformer and wires its signals
+    to the rendering window and facets editor. The window is a pure
+    renderer; all cognition lives in the performer.
 
     Coordinates:
     - GuidePerformanceWindow (floating VRM + dialogue panel)
-    - FacetExecutor (assembly execution engine)
-    - HeadlessLLMClient (LLM backend from editor settings)
-    - FACSMapper (sentiment -> VRM expressions)
+    - NoodlingPerformer (assembly execution, affect, typed text)
+    - FACSMapper (via performer -- sentiment -> VRM expressions)
     - ComputerUseController (demo mode for ghost cursor)
     - NoodleCode panel [D] button state
     - GuideCueHandler (Brenda direction injection)
@@ -141,16 +97,8 @@ class GuidePerformanceManager:
         self._window = None  # GuidePerformanceWindow
         self._noodle_code_panel = None
 
-        # Assembly execution
-        self._assembly = None       # FacetAssembly
-        self._assembly_path = None  # Path to assembly YAML (for editor)
-        self._executor = None       # FacetExecutor
-        self._llm_client = None     # HeadlessLLMClient
-        self._worker = None         # _AssemblyWorker (current execution)
-
-        # Conversation state
-        self._conversation_history: List[Dict] = []
-        self._last_user_message: str = ""
+        # Performer (owns assembly, executor, history, affect, playback)
+        self._performer = None  # NoodlingPerformer
 
         # Play system (created per-performance when play_path is provided)
         self._channel_bus = None
@@ -164,13 +112,17 @@ class GuidePerformanceManager:
         self._expression_test_index = 0
         self._expression_test_mapper = None
 
-        # Performance player (typed text delivery)
-        self._performance_player = None
-        self._sentiment_applied_early = False
-
         # Facets editor live visualization
         self._facets_editor = None         # Cached reference
         self._current_execution_id = None  # Current execution for event tracking
+
+        # Ensemble mode (two noodlings on shared stage)
+        self._ensemble_mode = False
+        self._performers = {}        # noodling_id -> NoodlingPerformer
+        self._turn_queue = []        # Remaining noodling_ids in current turn
+        self._turn_responses = {}    # noodling_id -> response from this round
+        self._pending_message = None # User message waiting for execution
+        self._active_noodling_id = 'default'  # Which noodling's events are emitted
 
         logger.info("GuidePerformanceManager initialized")
 
@@ -197,51 +149,7 @@ class GuidePerformanceManager:
         self._guide_cue_handler = handler
 
     # =========================================================================
-    # LLM CLIENT FROM EDITOR SETTINGS
-    # =========================================================================
-
-    def _create_llm_client(self):
-        """
-        Create a HeadlessLLMClient from the editor's provider settings.
-
-        Reads from ProviderManager and ModelLabelManager singletons so
-        Ajo respects whatever provider the user has configured.
-
-        Returns:
-            HeadlessLLMClient configured for facet execution
-        """
-        from noodlestudio.core.provider_manager import get_provider_manager
-        from noodlestudio.core.model_label_manager import get_model_label_manager
-        from noodlestudio.runtime.llm_client import HeadlessLLMClient, LLMConfig
-
-        label_mgr = get_model_label_manager()
-        provider_mgr = get_provider_manager()
-
-        # Get primary provider from Large label
-        provider_id, model_name = label_mgr.get_model_for_label("Large")
-        provider = provider_mgr.get_provider(provider_id) if provider_id else None
-
-        # Build SMALL/MEDIUM/LARGE -> actual model name mapping
-        model_labels = {}
-        for label in ["Small", "Medium", "Large"]:
-            pid, mname = label_mgr.get_model_for_label(label)
-            if mname:
-                model_labels[label.upper()] = mname
-
-        config = LLMConfig(
-            provider=provider.type if provider else "ollama",
-            model=model_name or "",
-            api_key=provider.api_key if provider else "",
-            base_url=provider.base_url if provider else "",
-            model_labels=model_labels
-        )
-
-        logger.info(f"LLM client: provider={config.provider}, labels={model_labels}")
-
-        return HeadlessLLMClient(config)
-
-    # =========================================================================
-    # ASSEMBLY LOADING
+    # ASSEMBLY DISCOVERY
     # =========================================================================
 
     def _discover_guide_assembly(self) -> Optional[str]:
@@ -266,55 +174,204 @@ class GuidePerformanceManager:
 
         return None
 
-    def _load_assembly(self) -> bool:
+    def _discover_yuki_assembly(self) -> Optional[str]:
         """
-        Load Ajo's facet assembly and create the execution pipeline.
+        Auto-discover Yuki's assembly YAML file.
 
         Returns:
-            True if assembly loaded successfully
+            Absolute path to Yuki's assembly.yaml, or None if not found
         """
-        from noodlestudio.core.facet_system import FacetAssembly
-        from noodlestudio.core.facet_executor import FacetExecutor
-
-        assembly_path = self._discover_guide_assembly()
-        if not assembly_path:
-            logger.warning("No assembly found, Ajo cannot think")
-            return False
-
         try:
-            self._assembly = FacetAssembly.load_yaml(assembly_path)
-            self._assembly_path = assembly_path
-            logger.info(f"Loaded assembly: {self._assembly.name} "
-                        f"({len(self._assembly.facets)} facets, "
-                        f"{len(self._assembly.connections)} connections)")
+            studio_dir = Path(__file__).resolve().parent.parent.parent.parent
+            assembly_path = studio_dir / _YUKI_ASSEMBLY_RELATIVE
+            if assembly_path.exists():
+                logger.info(f"Yuki assembly: {assembly_path}")
+                return str(assembly_path)
+            logger.warning(f"Yuki assembly not found at {assembly_path}")
         except Exception as e:
-            logger.error(f"Failed to load assembly: {e}")
-            logger.error(f"Assembly load failed: {e}")
-            return False
-
-        # Create LLM client from editor settings
-        try:
-            self._llm_client = self._create_llm_client()
-        except Exception as e:
-            logger.error(f"Failed to create LLM client: {e}")
-            logger.error(f"LLM client creation failed: {e}")
-            return False
-
-        # Create executor (event bus disabled -- it requires an asyncio loop
-        # in the main thread which conflicts with Qt. Enable only when the
-        # facets editor needs live visualization of guide execution.)
-        self._executor = FacetExecutor(
-            llm_client=self._llm_client,
-            channel_bus=self._channel_bus,
-            use_event_bus=False
-        )
-
-        logger.info("Assembly execution pipeline ready")
-        return True
+            logger.debug(f"Could not discover Yuki assembly: {e}")
+        return None
 
     # =========================================================================
     # PERFORMANCE LIFECYCLE
     # =========================================================================
+
+    def start_ensemble(self, play_title: str = "Ensemble"):
+        """
+        Start an ensemble performance with two noodlings on a shared stage.
+
+        Creates Ajo and Yuki performers, loads their assemblies, creates
+        a shared window with two VRM viewports, and wires turn-taking.
+
+        Args:
+            play_title: Title displayed in the window header
+        """
+        if self._window:
+            logger.warning("Performance already active, stopping first")
+            self.stop_performance()
+
+        self._ensemble_mode = True
+        self._set_demo_mode(True)
+
+        # Create shared LLM client
+        try:
+            llm_client = create_llm_client()
+        except Exception as e:
+            logger.error(f"Failed to create LLM client: {e}")
+            return
+
+        # --- Create Ajo performer ---
+        ajo_assembly = self._discover_guide_assembly()
+        if not ajo_assembly:
+            logger.error("Ajo assembly not found")
+            return
+
+        ajo = NoodlingPerformer(
+            noodling_id='ajo', name='Ajo', llm_client=llm_client
+        )
+        if not ajo.load_assembly(ajo_assembly):
+            logger.error("Failed to load Ajo assembly")
+            return
+
+        # --- Create Yuki performer (needs separate LLM client) ---
+        try:
+            yuki_llm = create_llm_client()
+        except Exception as e:
+            logger.error(f"Failed to create second LLM client: {e}")
+            return
+
+        yuki_assembly = self._discover_yuki_assembly()
+        if not yuki_assembly:
+            logger.error("Yuki assembly not found")
+            return
+
+        yuki = NoodlingPerformer(
+            noodling_id='yuki', name='Yuki', llm_client=yuki_llm
+        )
+        if not yuki.load_assembly(yuki_assembly):
+            logger.error("Failed to load Yuki assembly")
+            return
+
+        self._performers = {'ajo': ajo, 'yuki': yuki}
+        self._performer = ajo  # Primary performer for backward compat
+
+        # --- Create ensemble window ---
+        from .guide_performance_window import GuidePerformanceWindow
+
+        self._window = GuidePerformanceWindow(
+            parent_window=self._main_window,
+            ensemble_mode=True
+        )
+        self._play_title = play_title
+        self._window.show_play_header(play_title)
+
+        # Connect user message to ensemble handler
+        self._window.messageSubmitted.connect(self._on_user_message)
+
+        # Wire each performer to the window
+        for nid, performer in self._performers.items():
+            self._wire_ensemble_performer(performer, self._window, nid)
+
+        # Load VRM for Ajo (Yuki has no VRM yet -- shows placeholder)
+        ajo_vrm = self._discover_guide_vrm()
+        if ajo_vrm:
+            self._window.set_vrm(ajo_vrm, noodling_id='ajo')
+
+        self._window.show()
+
+        # Set up facets editor noodling selector + load Ajo's assembly
+        try:
+            facets_editor = getattr(self._main_window, 'facets_editor', None)
+            if facets_editor:
+                noodlings = [
+                    {'id': 'ajo', 'name': 'Ajo Majo',
+                     'assembly': ajo.assembly,
+                     'assembly_path': ajo.assembly_path},
+                    {'id': 'yuki', 'name': 'Yuki Cyberfox',
+                     'assembly': yuki.assembly,
+                     'assembly_path': yuki.assembly_path},
+                ]
+                if hasattr(facets_editor, 'set_ensemble_noodlings'):
+                    facets_editor.set_ensemble_noodlings(noodlings)
+                elif hasattr(facets_editor, 'load_assembly_from_data'):
+                    # Fallback: just load Ajo's assembly
+                    facets_editor.load_assembly_from_data(
+                        ajo.assembly, force_reload=True,
+                        source_path=ajo.assembly_path
+                    )
+
+                center_tabs = getattr(self._main_window, 'center_tabs', None)
+                if center_tabs:
+                    for i in range(center_tabs.count()):
+                        if center_tabs.tabText(i) == "Facets Editor":
+                            center_tabs.setCurrentIndex(i)
+                            break
+        except Exception as e:
+            logger.debug(f"Could not load assembly in editor: {e}")
+
+        logger.info(f"Ensemble started: {play_title} (Ajo + Yuki)")
+
+    def _wire_ensemble_performer(self, performer: NoodlingPerformer,
+                                  window, noodling_id: str):
+        """
+        Wire a performer's signals for ensemble mode.
+
+        Routes VRM updates to the correct viewport and dialogue text
+        includes the noodling name. Turn advancement happens on
+        executionFinished.
+
+        Args:
+            performer: NoodlingPerformer to wire
+            window: GuidePerformanceWindow (ensemble mode)
+            noodling_id: Identifier for routing
+        """
+        name = performer.name
+
+        # Affect -> VRM blend shapes (routed by noodling_id)
+        performer.affectReady.connect(
+            lambda shapes, nid=noodling_id: window.set_blend_shapes(
+                shapes, noodling_id=nid
+            )
+        )
+
+        # Plain text response (no performance script)
+        performer.responseReady.connect(
+            lambda text, nid=noodling_id, n=name: window.append_noodling_text(
+                nid, n, text
+            )
+        )
+
+        # Performance script -> typed text delivery with name prefix
+        performer.performanceReady.connect(
+            lambda script, nid=noodling_id, n=name: window.begin_noodling_text(
+                nid, n
+            )
+        )
+        performer.characterRevealed.connect(window.append_character)
+        performer.speakingStateChanged.connect(
+            lambda speaking, p=performer, nid=noodling_id: (
+                window.set_speaking_mode(
+                    speaking, p.speaking_intensity, noodling_id=nid
+                )
+            )
+        )
+        performer.performanceFinished.connect(
+            lambda nid=noodling_id: self._on_ensemble_performance_finished(nid)
+        )
+
+        # Execution lifecycle (turn-based)
+        performer.executionStarted.connect(
+            lambda n=name: window.set_busy(True, name=n)
+        )
+        performer.executionFinished.connect(
+            lambda nid=noodling_id: self._on_ensemble_turn_finished(nid)
+        )
+        performer.errorOccurred.connect(
+            lambda msg, nid=noodling_id: self._on_ensemble_error(nid, msg)
+        )
+
+        # Live viz: per-facet completion for facets editor
+        performer.facetCompleted.connect(self._on_facet_completed)
 
     def start_performance(self, play_title: str, vrm_path: Optional[str] = None,
                           play_path: Optional[str] = None):
@@ -340,8 +397,31 @@ class GuidePerformanceManager:
         if play_path:
             self._setup_play_pipeline(play_path)
 
-        # --- Load assembly and create execution pipeline ---
-        self._load_assembly()
+        # --- Create LLM client and performer ---
+        assembly_path = self._discover_guide_assembly()
+        if not assembly_path:
+            logger.warning("No assembly found, Ajo cannot think")
+            return
+
+        try:
+            llm_client = create_llm_client()
+        except Exception as e:
+            logger.error(f"Failed to create LLM client: {e}")
+            return
+
+        self._performer = NoodlingPerformer(
+            noodling_id='ajo',
+            name='Ajo',
+            llm_client=llm_client
+        )
+
+        if self._channel_bus:
+            self._performer.set_channel_bus(self._channel_bus)
+
+        if not self._performer.load_assembly(assembly_path):
+            logger.error("Failed to load assembly")
+            self._performer = None
+            return
 
         # Create the floating performance window
         from .guide_performance_window import GuidePerformanceWindow
@@ -354,7 +434,6 @@ class GuidePerformanceManager:
 
         # Wire guide cue handler (may have been set externally or by _setup_play_pipeline)
         if self._guide_cue_handler:
-            # Wire ComputerUseController to GuideCueHandler
             try:
                 from noodlestudio.core.computer_use_controller import (
                     get_computer_use_controller
@@ -366,8 +445,8 @@ class GuidePerformanceManager:
                     f"Could not wire ComputerUseController to GuideCueHandler: {e}"
                 )
 
-        # Connect user message signals
-        self._window.messageSubmitted.connect(self._on_user_message_for_assembly)
+        # Connect user message to manager (routes to performer)
+        self._window.messageSubmitted.connect(self._on_user_message)
 
         # Ctrl+Shift+F - FACS expression test mode
         from PyQt6.QtGui import QShortcut, QKeySequence
@@ -376,6 +455,9 @@ class GuidePerformanceManager:
 
         if self._channel_bus and hasattr(self._window, 'messageSent') and self._window.messageSent:
             self._window.messageSent.connect(self._on_user_message_for_channel)
+
+        # Wire performer signals to window
+        self._wire_performer_to_window(self._performer, self._window)
 
         # Load VRM -- use provided path, or auto-discover guide VRM
         if not vrm_path:
@@ -389,13 +471,14 @@ class GuidePerformanceManager:
         self._window.show()
 
         # Load assembly into facets editor for visibility
-        if self._assembly:
+        if self._performer.assembly:
             try:
                 facets_editor = getattr(self._main_window, 'facets_editor', None)
                 if facets_editor and hasattr(facets_editor, 'load_assembly_from_data'):
-                    source = str(self._assembly_path) if self._assembly_path else None
+                    source = self._performer.assembly_path
                     facets_editor.load_assembly_from_data(
-                        self._assembly, force_reload=True, source_path=source
+                        self._performer.assembly, force_reload=True,
+                        source_path=source
                     )
                     logger.info("Assembly loaded in facets editor")
 
@@ -415,6 +498,50 @@ class GuidePerformanceManager:
             logger.info(f"Brenda directing: {play_title}")
 
         logger.info(f"Performance started: {play_title}")
+
+    def _wire_performer_to_window(self, performer: NoodlingPerformer, window):
+        """
+        Connect a performer's signals to a window for rendering.
+
+        Args:
+            performer: NoodlingPerformer to wire
+            window: GuidePerformanceWindow to render into
+        """
+        # Affect -> VRM blend shapes
+        performer.affectReady.connect(
+            lambda shapes: window.set_blend_shapes(shapes)
+        )
+
+        # Plain text response (no performance script)
+        performer.responseReady.connect(
+            lambda text: window.append_guide_text(text)
+        )
+
+        # Performance script -> typed text delivery
+        performer.performanceReady.connect(
+            lambda script: window.begin_guide_text()
+        )
+        performer.characterRevealed.connect(window.append_character)
+        performer.speakingStateChanged.connect(
+            lambda speaking: self._on_speaking_state_changed(performer, speaking)
+        )
+        performer.performanceFinished.connect(
+            lambda: self._on_performance_finished()
+        )
+
+        # Execution lifecycle
+        performer.executionStarted.connect(
+            lambda: window.set_busy(True)
+        )
+        performer.executionFinished.connect(
+            lambda: self._on_execution_finished()
+        )
+        performer.errorOccurred.connect(
+            lambda msg: self._on_execution_error(msg)
+        )
+
+        # Live viz: per-facet completion for facets editor
+        performer.facetCompleted.connect(self._on_facet_completed)
 
     def _setup_play_pipeline(self, play_path: str):
         """
@@ -450,310 +577,213 @@ class GuidePerformanceManager:
         logger.info(f"Play pipeline ready: {path.stem}")
 
     # =========================================================================
-    # CONVERSATION HISTORY
-    # =========================================================================
-
-    def _format_history(self) -> str:
-        """
-        Format conversation history for injection into facet prompts.
-
-        Keeps the last 20 messages (10 exchanges) to avoid token bloat.
-
-        Returns:
-            Formatted conversation string, or "(No previous conversation)"
-        """
-        if not self._conversation_history:
-            return "(No previous conversation)"
-
-        lines = []
-        # Last 10 exchanges (20 messages)
-        recent = self._conversation_history[-20:]
-        for msg in recent:
-            role = "User" if msg['role'] == 'user' else "Ajo"
-            lines.append(f"{role}: {msg['content']}")
-        return "\n".join(lines)
-
-    # =========================================================================
     # MESSAGE HANDLING
     # =========================================================================
 
-    def _on_user_message_for_assembly(self, message: str):
+    def _on_user_message(self, message: str):
         """
-        Execute Ajo's assembly in response to a user message.
+        Route a user message to the performer(s) for assembly execution.
 
-        Runs on a worker thread via _AssemblyWorker so the UI stays responsive.
+        In single mode, sends directly to the performer.
+        In ensemble mode, starts turn-taking sequence.
 
         Args:
             message: The user's message text
         """
-        if not self._assembly or not self._executor:
+        if self._ensemble_mode:
+            self._on_user_message_ensemble(message)
+            return
+
+        if not self._performer:
             if self._window:
                 self._window._show_error("Assembly not loaded.")
                 self._window.set_busy(False)
             return
 
-        # Prevent overlapping executions
-        if self._worker and self._worker.isRunning():
-            return
-
-        self._last_user_message = message
-        self._sentiment_applied_early = False
-
-        # Stop any in-progress performance playback
-        if self._performance_player and self._performance_player.is_playing:
-            player.stop()
-
-        # Set window to busy state
-        if self._window:
-            self._window.set_busy(True)
-
-        # Build execution context
-        context = {
-            'conversation_history': self._format_history(),
-        }
-
-        # Inject Brenda direction if available
+        # Build extra context (Brenda direction)
+        extra_context = {}
         if self._guide_cue_handler:
             direction = self._guide_cue_handler.build_system_prompt_addition()
             if direction:
-                context['brenda_direction'] = direction
+                extra_context['brenda_direction'] = direction
 
-        # Execute assembly on worker thread
-        self._worker = _AssemblyWorker(
-            self._executor, self._assembly, message, context
-        )
-        self._worker.resultReady.connect(self._on_assembly_result)
-        self._worker.errorOccurred.connect(self._on_assembly_error)
-        self._worker.facetCompleted.connect(self._on_facet_completed)
-        self._worker.start()
+        # Execute via performer
+        self._performer.execute(message, extra_context if extra_context else None)
 
         # Emit live execution events for facets editor visualization
         self._current_execution_id = str(uuid.uuid4())[:8]
         self._emit_execution_start_events()
 
-    def _on_assembly_result(self, result):
+    # =========================================================================
+    # ENSEMBLE TURN-TAKING
+    # =========================================================================
+
+    def _on_user_message_ensemble(self, message: str):
         """
-        Handle completed assembly execution.
+        Start the ensemble turn-taking sequence.
 
-        Detects performance scripts from the Performance facet and routes
-        to the PerformancePlayer for typed text delivery. Falls back to
-        immediate text display for plain responses.
-
-        Drives expressions via affect pipeline (unless already applied
-        via mood-first per-facet callback), reports to Brenda, and
-        updates conversation history.
+        User types a message -> Ajo responds first -> Yuki responds next
+        (aware of what Ajo said) -> wait for user.
 
         Args:
-            result: ExecutionResult from FacetExecutor
+            message: The user's message text
         """
-        if not self._window:
+        if not self._performers:
+            if self._window:
+                self._window._show_error("No performers loaded.")
+                self._window.set_busy(False)
             return
 
-        # Extract raw response text for conversation history and Brenda.
-        # With the Performance facet, result.response is JSON (the performance
-        # script). The actual text lives in the Response facet's output.
-        raw_response = result.facet_outputs.get('response', {}).get('out', '')
-        outgoing_output = result.response
+        self._turn_responses = {}
+        self._turn_queue = list(self._performers.keys())  # ['ajo', 'yuki']
+        self._pending_message = message
 
-        # Check if outgoing output is a performance script
-        performance_script = None
-        if outgoing_output and outgoing_output != '[No output]':
-            try:
-                parsed = json.loads(outgoing_output)
-                if isinstance(parsed, dict) and parsed.get('type') == 'performance_script':
-                    performance_script = parsed
-                    # Use the text from the script for history/Brenda
-                    if not raw_response:
-                        raw_response = parsed.get('text', '')
-            except (json.JSONDecodeError, ValueError):
-                pass
+        # Start events are emitted per-noodling in _advance_ensemble_turn()
+        self._advance_ensemble_turn()
 
-        # Display the response
-        if performance_script:
-            self._play_performance(performance_script)
-        elif outgoing_output and outgoing_output != '[No output]':
-            # Plain text fallback (no Performance facet in assembly)
-            self._window.append_guide_text(outgoing_output)
-            raw_response = raw_response or outgoing_output
-        else:
-            self._window._show_error("No response generated.")
+    def _advance_ensemble_turn(self):
+        """Advance to the next noodling in the turn sequence."""
+        if not self._turn_queue:
+            # All turns complete
+            self._active_noodling_id = 'default'
+            if self._window:
+                self._window.set_busy(False)
+            self._emit_execution_complete_events()
+            return
 
-        # Drive expressions from sentiment facet output (skip if mood-first
-        # already applied it via _on_facet_completed)
-        if not self._sentiment_applied_early:
-            sentiment_raw = result.facet_outputs.get('sentiment', {})
-            sentiment_output = sentiment_raw.get('out')
-            logger.info(f"Sentiment facet outputs: {sentiment_raw}")
-            if sentiment_output:
-                self._apply_affect(sentiment_output)
-            else:
-                logger.warning("Sentiment facet produced no output")
+        nid = self._turn_queue.pop(0)
+        performer = self._performers.get(nid)
+        if not performer:
+            self._advance_ensemble_turn()
+            return
 
-        # Report to GuideCueHandler for Brenda feedback
-        if self._guide_cue_handler and raw_response and raw_response.strip():
+        # Tag events with this noodling's ID
+        self._active_noodling_id = nid
+        self._current_execution_id = str(uuid.uuid4())[:8]
+        self._emit_execution_start_events()
+
+        # Build extra context
+        extra_context = {}
+        if self._guide_cue_handler:
+            direction = self._guide_cue_handler.build_system_prompt_addition()
+            if direction:
+                extra_context['brenda_direction'] = direction
+
+        # Include previous noodlings' responses
+        for prev_nid, response in self._turn_responses.items():
+            extra_context[f'{prev_nid}_said'] = response
+
+        performer.execute(
+            self._pending_message,
+            extra_context if extra_context else None
+        )
+
+    def _on_ensemble_turn_finished(self, noodling_id: str):
+        """
+        Handle one noodling finishing its turn.
+
+        Stores the response and advances to the next noodling.
+
+        Args:
+            noodling_id: The noodling that just finished
+        """
+        performer = self._performers.get(noodling_id)
+        if performer:
+            self._turn_responses[noodling_id] = performer.last_response
+
+        self._advance_ensemble_turn()
+
+    def _on_ensemble_performance_finished(self, noodling_id: str):
+        """
+        Handle typed text playback finishing for an ensemble performer.
+
+        Finalizes the text block and turns off speaking animation.
+
+        Args:
+            noodling_id: The noodling whose performance finished
+        """
+        if self._window:
+            self._window.end_noodling_text()
+            self._window.set_speaking_mode(False, noodling_id=noodling_id)
+
+    def _on_ensemble_error(self, noodling_id: str, error_msg: str):
+        """
+        Handle assembly error for an ensemble performer.
+
+        Args:
+            noodling_id: The noodling that errored
+            error_msg: Error description
+        """
+        if self._window:
+            performer = self._performers.get(noodling_id)
+            name = performer.name if performer else noodling_id
+            self._window._show_error(f"{name}: {error_msg}")
+
+        # Emit live execution events for facets editor visualization
+        self._current_execution_id = str(uuid.uuid4())[:8]
+        self._emit_execution_start_events()
+
+    # =========================================================================
+    # PERFORMER SIGNAL HANDLERS
+    # =========================================================================
+
+    def _on_execution_finished(self):
+        """Handle completed assembly execution (covers both plain text and typed).
+
+        Clears window busy state, emits live viz completion events,
+        and reports to Brenda. For performance scripts, this fires
+        after PerformancePlayer finishes (via performanceFinished chain).
+        """
+        if self._window:
+            self._window.set_busy(False)
+
+        # Emit live viz completion events
+        self._emit_execution_complete_events()
+
+        # Report to Brenda for non-performance responses
+        # (performance responses report in _on_performance_finished)
+        if (self._guide_cue_handler and self._performer
+                and self._performer.last_response):
             self._guide_cue_handler.report_response(
-                raw_response.strip(), self._last_user_message
+                self._performer.last_response.strip(),
+                self._performer._last_user_message
             )
 
-        # Update conversation history with actual text (not performance JSON)
-        self._conversation_history.append({
-            'role': 'user', 'content': self._last_user_message
-        })
-        self._conversation_history.append({
-            'role': 'assistant', 'content': raw_response or outgoing_output
-        })
-
-        # Emit completion events for facets editor live visualization
-        self._emit_execution_complete_events(result)
-
-        # Clear busy state only if no performance is playing
-        # (PerformancePlayer will clear it when finished)
-        if not performance_script:
-            self._window.set_busy(False)
-        self._worker = None
-
-        logger.info(f"Assembly done: {result.total_time:.2f}s, "
-                    f"{result.total_tokens} tokens")
-
-    def _on_assembly_error(self, error_msg: str):
-        """
-        Handle assembly execution error.
+    def _on_execution_error(self, error_msg: str):
+        """Handle assembly execution error.
 
         Args:
             error_msg: Error description
         """
+        if self._window:
+            self._window._show_error(error_msg)
+            self._window.set_busy(False)
+
         # Emit error events for facets editor visualization
         self._emit_execution_error_events(error_msg)
 
-        if self._window:
-            self._window._show_error(f"Assembly error: {error_msg}")
-            self._window.set_busy(False)
-        self._worker = None
-        logger.error(f"Assembly error: {error_msg}")
-
-    # =========================================================================
-    # PER-FACET COMPLETION (MOOD-FIRST EXPRESSION)
-    # =========================================================================
-
-    def _on_facet_completed(self, facet_id: str, outputs: dict):
-        """
-        Handle individual facet completion for mood-first expression updates.
-
-        Called by _AssemblyWorker.facetCompleted signal as each facet finishes.
-        Sentiment completes in ~1s (SMALL model), while Response takes ~5-15s
-        (LARGE model). This lets us apply the expression change immediately
-        rather than waiting for the full assembly to complete.
-
-        Args:
-            facet_id: The ID of the completed facet
-            outputs: The facet's output dict
-        """
-        if facet_id == 'sentiment':
-            sentiment_output = outputs.get('out')
-            if sentiment_output:
-                self._apply_affect(sentiment_output)
-                self._sentiment_applied_early = True
-                logger.info("Mood-first: expression applied before response text")
-
-        # Emit per-facet live viz event (facet turns green immediately)
-        eid = self._current_execution_id
-        if eid:
-            self._emit_execution_event({
-                'type': 'facet_execution',
-                'subtype': 'facet_complete',
-                'source_id': facet_id,
-                'execution_id': eid,
-                'data': {'execution_id': eid, 'outputs': outputs}
-            })
-
-            # Emit data flow events for this facet's outgoing connections
-            if facet_id == 'sentiment':
-                self._emit_execution_event({
-                    'type': 'facet_execution',
-                    'subtype': 'data_flow',
-                    'from_facet': 'sentiment',
-                    'to_facet': 'outgoing',
-                    'execution_id': eid,
-                })
-            elif facet_id == 'response':
-                self._emit_execution_event({
-                    'type': 'facet_execution',
-                    'subtype': 'data_flow',
-                    'from_facet': 'response',
-                    'to_facet': 'performance',
-                    'execution_id': eid,
-                })
-                # Performance facet start (it runs immediately after response)
-                self._emit_execution_event({
-                    'type': 'facet_execution',
-                    'subtype': 'facet_start',
-                    'source_id': 'performance',
-                    'execution_id': eid,
-                    'data': {'execution_id': eid}
-                })
-            elif facet_id == 'performance':
-                self._emit_execution_event({
-                    'type': 'facet_execution',
-                    'subtype': 'data_flow',
-                    'from_facet': 'performance',
-                    'to_facet': 'outgoing',
-                    'execution_id': eid,
-                })
-
-    # =========================================================================
-    # PERFORMANCE PLAYBACK (TYPED TEXT DELIVERY)
-    # =========================================================================
-
-    def _play_performance(self, script: dict):
-        """
-        Play a performance script via PerformancePlayer.
-
-        Creates the player on first use and wires its signals to the
-        window and VRM viewport.
-
-        Args:
-            script: Performance script dict from the Performance facet
-        """
-        from .performance_player import PerformancePlayer
-
-        if not self._window:
-            return
-
-        # Create player on first use
-        if self._performance_player is None:
-            self._performance_player = PerformancePlayer()
-            self._performance_player.characterRevealed.connect(
-                self._window.append_character
-            )
-            self._performance_player.speakingStateChanged.connect(
-                self._on_speaking_state_changed
-            )
-            self._performance_player.finished.connect(
-                self._on_performance_finished
-            )
-
-        # Start typed text delivery
-        self._window.begin_guide_text()
-        self._performance_player.play(script)
-
-    def _on_speaking_state_changed(self, speaking: bool):
+    def _on_speaking_state_changed(self, performer: NoodlingPerformer,
+                                   speaking: bool):
         """
         Update VRM speaking animation in response to PerformancePlayer state.
 
         Args:
+            performer: The performer whose speaking state changed
             speaking: True when typing active, False on pause or finished
         """
         if self._window and self._window._vrm_viewport:
-            intensity = 0.7
-            if self._performance_player:
-                intensity = self._performance_player.speaking_intensity
+            intensity = performer.speaking_intensity
             self._window._vrm_viewport.set_speaking_mode(speaking, intensity)
 
     def _on_performance_finished(self):
-        """Handle completed performance playback."""
+        """Handle completed typed text playback.
+
+        Finalizes the typed-text block and turns off speaking animation.
+        Busy state and Brenda reporting are handled by _on_execution_finished
+        which fires after this (via the performer's signal chain).
+        """
         if self._window:
             self._window.end_guide_text()
-            self._window.set_busy(False)
 
         # Turn off speaking animation
         if self._window and self._window._vrm_viewport:
@@ -780,50 +810,67 @@ class GuidePerformanceManager:
         )
 
     # =========================================================================
-    # AFFECT PIPELINE
+    # PER-FACET COMPLETION (LIVE VIZ)
     # =========================================================================
 
-    def _apply_affect(self, affect_text: str):
+    def _on_facet_completed(self, facet_id: str, outputs: dict):
         """
-        Parse sentiment JSON and drive VRM expressions.
+        Handle individual facet completion for live visualization.
 
-        Runs the full affect pipeline:
-        sentiment JSON -> Affect -> FACSMapper -> VRM blendshapes
+        The mood-first expression and affect pipeline are already handled
+        inside NoodlingPerformer. This method only drives the facets editor
+        live visualization (node pulsing/coloring).
 
         Args:
-            affect_text: JSON string from the sentiment facet
+            facet_id: The ID of the completed facet
+            outputs: The facet's output dict
         """
-        logger.info(f"Raw sentiment text: {affect_text!r}")
-
-        try:
-            affect_data = json.loads(affect_text)
-            valence = float(affect_data.get('valence', 0.5))
-            arousal = float(affect_data.get('arousal', 0.5))
-            dominance = float(affect_data.get('dominance', 0.5))
-            logger.info(f"Affect parsed: valence={valence:.2f} arousal={arousal:.2f} "
-                        f"dominance={dominance:.2f}")
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.error(f"Affect JSON parse failed: {e}")
+        eid = self._current_execution_id
+        if not eid:
             return
 
-        from noodlestudio.runtime.facs_mapper import FACSMapper, Affect
+        # Facet turns green immediately
+        self._emit_execution_event({
+            'type': 'facet_execution',
+            'subtype': 'facet_complete',
+            'source_id': facet_id,
+            'execution_id': eid,
+            'data': {'execution_id': eid, 'outputs': outputs}
+        })
 
-        mapper = FACSMapper()
-        affect_state = Affect(
-            valence=valence * 2 - 1,  # Remap 0..1 to -1..1 for FACSMapper
-            arousal=arousal,
-            dominance=dominance,
-            sorrow=max(0.0, (1.0 - valence) * 0.5),
-            boredom=max(0.0, (1.0 - arousal) * 0.3)
-        )
-
-        vrm_shapes = mapper.map_affect_to_vrm(affect_state)
-        logger.info(f"VRM blend shapes ({len(vrm_shapes)}): {vrm_shapes}")
-
-        if self._window and vrm_shapes:
-            self._window.set_blend_shapes(vrm_shapes)
-        elif not vrm_shapes:
-            logger.warning("FACSMapper produced empty shapes")
+        # Emit data flow events for this facet's outgoing connections
+        if facet_id == 'sentiment':
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'data_flow',
+                'from_facet': 'sentiment',
+                'to_facet': 'outgoing',
+                'execution_id': eid,
+            })
+        elif facet_id == 'response':
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'data_flow',
+                'from_facet': 'response',
+                'to_facet': 'performance',
+                'execution_id': eid,
+            })
+            # Performance facet start (it runs immediately after response)
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'facet_start',
+                'source_id': 'performance',
+                'execution_id': eid,
+                'data': {'execution_id': eid}
+            })
+        elif facet_id == 'performance':
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'data_flow',
+                'from_facet': 'performance',
+                'to_facet': 'outgoing',
+                'execution_id': eid,
+            })
 
     # =========================================================================
     # FACS EXPRESSION TEST MODE
@@ -940,9 +987,14 @@ class GuidePerformanceManager:
         synchronously on the Qt main thread, exactly as
         _handle_execution_event expects.
 
+        In ensemble mode, each event is tagged with ``noodling_id`` so
+        the facets editor can filter events by the selected noodling.
+
         Args:
             event: Execution event dict matching the WebSocket protocol
         """
+        if 'noodling_id' not in event:
+            event['noodling_id'] = self._active_noodling_id
         editor = self._get_facets_editor()
         if editor and hasattr(editor, '_handle_execution_event'):
             editor._handle_execution_event(event)
@@ -958,6 +1010,10 @@ class GuidePerformanceManager:
         eid = self._current_execution_id
         if not eid:
             return
+
+        user_message = ''
+        if self._performer:
+            user_message = self._performer._last_user_message
 
         # Cycle begins
         self._emit_execution_event({
@@ -975,7 +1031,7 @@ class GuidePerformanceManager:
             'execution_id': eid,
             'data': {
                 'execution_id': eid,
-                'inputs': {'user_message': self._last_user_message}
+                'inputs': {'user_message': user_message}
             }
         })
 
@@ -991,7 +1047,7 @@ class GuidePerformanceManager:
                 'execution_id': eid,
                 'data': {
                     'execution_id': eid,
-                    'outputs': {'out': self._last_user_message}
+                    'outputs': {'out': user_message}
                 }
             })
 
@@ -1014,13 +1070,13 @@ class GuidePerformanceManager:
                     'execution_id': eid,
                     'data': {
                         'execution_id': eid,
-                        'inputs': {'in': self._last_user_message}
+                        'inputs': {'in': user_message}
                     }
                 })
 
         QTimer.singleShot(80, _after_incoming)
 
-    def _emit_execution_complete_events(self, result):
+    def _emit_execution_complete_events(self, result=None):
         """
         Emit events when assembly execution completes.
 
@@ -1029,7 +1085,7 @@ class GuidePerformanceManager:
         cycle_complete event.
 
         Args:
-            result: ExecutionResult from FacetExecutor
+            result: ExecutionResult from FacetExecutor (optional)
         """
         eid = self._current_execution_id
         if not eid:
@@ -1116,18 +1172,31 @@ class GuidePerformanceManager:
         """
         Stop the current performance.
 
-        Closes the floating window, stops the executor, stops Brenda,
+        Closes the floating window, stops all performers, stops Brenda,
         disables demo mode, and tears down the play pipeline.
         """
-        # Stop performance player
-        if self._performance_player:
-            self._performance_player.stop()
-            self._performance_player = None
+        # Stop all ensemble performers
+        if self._ensemble_mode:
+            for nid, performer in self._performers.items():
+                performer.stop()
+            self._performers = {}
+            self._turn_queue = []
+            self._turn_responses = {}
+            self._active_noodling_id = 'default'
+            self._ensemble_mode = False
 
-        # Stop any running worker
-        if self._worker and self._worker.isRunning():
-            self._worker.wait(2000)
-            self._worker = None
+            # Clear facets editor noodling selector
+            try:
+                editor = self._get_facets_editor()
+                if editor and hasattr(editor, 'clear_ensemble_noodlings'):
+                    editor.clear_ensemble_noodlings()
+            except Exception:
+                pass
+
+        # Stop primary performer
+        if self._performer:
+            self._performer.stop()
+            self._performer = None
 
         # Stop Brenda tick timer
         if self._tick_timer:
@@ -1138,22 +1207,6 @@ class GuidePerformanceManager:
         if self._director:
             self._director.stop()
             self._director = None
-
-        # Close LLM client session
-        if self._llm_client:
-            # HeadlessLLMClient.close() is async; schedule in a temp loop
-            try:
-                loop = asyncio.new_event_loop()
-                loop.run_until_complete(self._llm_client.close())
-                loop.close()
-            except Exception:
-                pass
-            self._llm_client = None
-
-        # Clear execution state
-        self._assembly = None
-        self._executor = None
-        self._conversation_history = []
 
         # Clear play pipeline references
         self._channel_bus = None
@@ -1235,6 +1288,6 @@ class GuidePerformanceManager:
                 logger.debug(f"Could not sync [D] button: {e}")
 
 
-# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
-# જ⁀➴ ♡ Made with love. Use with love.
+# ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡
+# Made with love. Use with love.
 # Caitlyn Meeks 2026

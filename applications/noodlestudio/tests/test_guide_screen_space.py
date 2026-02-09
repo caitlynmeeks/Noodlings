@@ -1,13 +1,13 @@
-# ──────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 #   Tests for Guide Screen Space Integration
 #
 #   Integration tests verifying the floating performance window
 #   remains visible during tab switches and can be launched
 #   via CLI flags.
-# ──────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
-# ──────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
 
 from unittest.mock import MagicMock, patch
 import pytest
@@ -24,6 +24,18 @@ from noodlestudio.runtime.ui.guide_performance_manager import (
 
 # Patch path for ComputerUseController
 CUC_PATCH = 'noodlestudio.core.computer_use_controller.get_computer_use_controller'
+
+# Patch create_llm_client to prevent real provider config lookups
+CREATE_LLM_PATCH = 'noodlestudio.runtime.ui.guide_performance_manager.create_llm_client'
+
+# Patch NoodlingPerformer.load_assembly to prevent real assembly loading
+LOAD_ASSEMBLY_PATCH = 'noodlestudio.runtime.ui.noodling_performer.NoodlingPerformer.load_assembly'
+
+
+class FakeLLMClient:
+    """Lightweight stand-in for HeadlessLLMClient."""
+    async def close(self):
+        pass
 
 
 # =============================================================================
@@ -56,9 +68,10 @@ def parent_window(qapp, qtbot):
 class TestGuideScreenSpace:
     """Tests for window visibility during UI interaction."""
 
-    @patch('noodlestudio.runtime.ui.guide_performance_manager.GuidePerformanceManager._load_assembly', return_value=False)
+    @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
+    @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_guide_visible_during_tab_switch(self, mock_get_ctrl, mock_load, parent_window, qtbot):
+    def test_guide_visible_during_tab_switch(self, mock_get_ctrl, mock_create_llm, mock_load, parent_window, qtbot):
         """Performance window remains visible when switching center tabs."""
         mock_ctrl = MagicMock()
         mock_get_ctrl.return_value = mock_ctrl
@@ -118,6 +131,5 @@ class TestPlayCLILaunch:
             sys.argv = original_argv
 
 
-# ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡
-# જ⁀➴ ♡ Made with love. Use with love.
+# Made with love. Use with love.
 # Caitlyn Meeks 2026

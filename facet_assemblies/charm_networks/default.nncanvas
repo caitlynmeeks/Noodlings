@@ -41,8 +41,8 @@
       "type": "LSTM",
       "name": "Fast LSTM",
       "position": [
-        331,
-        100
+        441,
+        62
       ],
       "params": {
         "input_dim": 5,

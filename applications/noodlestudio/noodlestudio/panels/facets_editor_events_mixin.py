@@ -677,10 +677,20 @@ class FacetsEditorEventsMixin:
         - facet_complete: Node finishes (brief bright, then idle)
         - data_flow: Animate packet along connection wire
         - convergence_wait: (future: show waiting state)
+
+        In ensemble mode, events are filtered by ``_selected_noodling_id``.
+        Only events matching the currently selected noodling are processed.
         """
         # CRITICAL: Skip event processing during scene transitions
         if self.scene_transition_lock:
             return  # Scene is being cleared/rebuilt, ignore all events
+
+        # Filter by selected noodling in ensemble mode
+        selected = getattr(self, '_selected_noodling_id', None)
+        if selected is not None:
+            event_nid = event.get('noodling_id')
+            if event_nid is not None and event_nid != selected:
+                return  # Event belongs to a different noodling
 
         event_type = event.get('type')
         event_subtype = event.get('subtype')
