@@ -484,7 +484,7 @@ if QT_AVAILABLE:
 
         def append_guide_text(self, text: str):
             """
-            Append guide (assistant) text to the dialogue.
+            Append guide (assistant) text to the dialogue (all at once).
 
             Args:
                 text: Guide's message text (from assembly OUTGOING)
@@ -499,6 +499,53 @@ if QT_AVAILABLE:
 
             self.dialogue_view.setTextCursor(cursor)
             self._scroll_to_bottom()
+
+        def begin_guide_text(self):
+            """
+            Begin a typed-text block for character-by-character delivery.
+
+            Inserts the guide icon prefix and positions the cursor for
+            subsequent append_character() calls. Call end_guide_text()
+            when the performance finishes.
+            """
+            cursor = self.dialogue_view.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+
+            fmt = QTextCharFormat()
+            fmt.setForeground(QColor(180, 180, 180))
+            cursor.setCharFormat(fmt)
+            cursor.insertText("\ua69c ")
+
+            self.dialogue_view.setTextCursor(cursor)
+
+        def append_character(self, char: str):
+            """
+            Append a single character to the dialogue for typed-text effect.
+
+            Args:
+                char: Single character to append
+            """
+            cursor = self.dialogue_view.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+
+            fmt = QTextCharFormat()
+            fmt.setForeground(QColor(180, 180, 180))
+            cursor.setCharFormat(fmt)
+            cursor.insertText(char)
+
+            self.dialogue_view.setTextCursor(cursor)
+            self._scroll_to_bottom()
+
+        def end_guide_text(self):
+            """
+            Finalize a typed-text block (add trailing newlines).
+
+            Called by GuidePerformanceManager when PerformancePlayer finishes.
+            """
+            cursor = self.dialogue_view.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            cursor.insertText("\n\n")
+            self.dialogue_view.setTextCursor(cursor)
 
         def append_user_text(self, text: str):
             """

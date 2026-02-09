@@ -61,10 +61,15 @@ _GUIDE_ASSEMBLY_RELATIVE = Path("noodlings/guide/assembly.yaml")
 # =============================================================================
 
 class _AssemblyWorker(QThread):
-    """Worker thread that executes a facet assembly in its own event loop."""
+    """Worker thread that executes a facet assembly in its own event loop.
+
+    Emits facetCompleted for each individual facet as it finishes, enabling
+    mood-first expression updates (Sentiment completes before Response).
+    """
 
     resultReady = pyqtSignal(object)    # ExecutionResult
     errorOccurred = pyqtSignal(str)     # Error message
+    facetCompleted = pyqtSignal(str, object)  # (facet_id, outputs_dict)
 
     def __init__(self, executor, assembly, message: str, context: dict):
         super().__init__()
@@ -78,11 +83,15 @@ class _AssemblyWorker(QThread):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
+            def _on_facet_done(facet_id, outputs):
+                self.facetCompleted.emit(facet_id, outputs)
+
             result = loop.run_until_complete(
                 self._executor.execute(
                     self._assembly,
                     incoming_data=self._message,
-                    context=self._context
+                    context=self._context,
+                    on_facet_complete=_on_facet_done
                 )
             )
             self.resultReady.emit(result)
@@ -154,6 +163,10 @@ class GuidePerformanceManager:
         self._expression_test_timer = None
         self._expression_test_index = 0
         self._expression_test_mapper = None
+
+        # Performance player (typed text delivery)
+        self._performance_player = None
+        self._sentiment_applied_early = False
 
         # Facets editor live visualization
         self._facets_editor = None         # Cached reference
@@ -484,6 +497,11 @@ class GuidePerformanceManager:
             return
 
         self._last_user_message = message
+        self._sentiment_applied_early = False
+
+        # Stop any in-progress performance playback
+        if self._performance_player and self._performance_player.is_playing:
+            player.stop()
 
         # Set window to busy state
         if self._window:
@@ -506,6 +524,7 @@ class GuidePerformanceManager:
         )
         self._worker.resultReady.connect(self._on_assembly_result)
         self._worker.errorOccurred.connect(self._on_assembly_error)
+        self._worker.facetCompleted.connect(self._on_facet_completed)
         self._worker.start()
 
         # Emit live execution events for facets editor visualization
@@ -516,8 +535,13 @@ class GuidePerformanceManager:
         """
         Handle completed assembly execution.
 
-        Displays the response, drives expressions via affect pipeline,
-        reports to Brenda, and updates conversation history.
+        Detects performance scripts from the Performance facet and routes
+        to the PerformancePlayer for typed text delivery. Falls back to
+        immediate text display for plain responses.
+
+        Drives expressions via affect pipeline (unless already applied
+        via mood-first per-facet callback), reports to Brenda, and
+        updates conversation history.
 
         Args:
             result: ExecutionResult from FacetExecutor
@@ -525,41 +549,67 @@ class GuidePerformanceManager:
         if not self._window:
             return
 
+        # Extract raw response text for conversation history and Brenda.
+        # With the Performance facet, result.response is JSON (the performance
+        # script). The actual text lives in the Response facet's output.
+        raw_response = result.facet_outputs.get('response', {}).get('out', '')
+        outgoing_output = result.response
+
+        # Check if outgoing output is a performance script
+        performance_script = None
+        if outgoing_output and outgoing_output != '[No output]':
+            try:
+                parsed = json.loads(outgoing_output)
+                if isinstance(parsed, dict) and parsed.get('type') == 'performance_script':
+                    performance_script = parsed
+                    # Use the text from the script for history/Brenda
+                    if not raw_response:
+                        raw_response = parsed.get('text', '')
+            except (json.JSONDecodeError, ValueError):
+                pass
+
         # Display the response
-        response = result.response
-        if response and response != '[No output]':
-            self._window.append_guide_text(response)
+        if performance_script:
+            self._play_performance(performance_script)
+        elif outgoing_output and outgoing_output != '[No output]':
+            # Plain text fallback (no Performance facet in assembly)
+            self._window.append_guide_text(outgoing_output)
+            raw_response = raw_response or outgoing_output
         else:
             self._window._show_error("No response generated.")
 
-        # Drive expressions from sentiment facet output
-        sentiment_raw = result.facet_outputs.get('sentiment', {})
-        sentiment_output = sentiment_raw.get('out')
-        logger.info(f"Sentiment facet outputs: {sentiment_raw}")
-        if sentiment_output:
-            self._apply_affect(sentiment_output)
-        else:
-            logger.warning("Sentiment facet produced no output")
+        # Drive expressions from sentiment facet output (skip if mood-first
+        # already applied it via _on_facet_completed)
+        if not self._sentiment_applied_early:
+            sentiment_raw = result.facet_outputs.get('sentiment', {})
+            sentiment_output = sentiment_raw.get('out')
+            logger.info(f"Sentiment facet outputs: {sentiment_raw}")
+            if sentiment_output:
+                self._apply_affect(sentiment_output)
+            else:
+                logger.warning("Sentiment facet produced no output")
 
         # Report to GuideCueHandler for Brenda feedback
-        if self._guide_cue_handler and response and response.strip():
+        if self._guide_cue_handler and raw_response and raw_response.strip():
             self._guide_cue_handler.report_response(
-                response.strip(), self._last_user_message
+                raw_response.strip(), self._last_user_message
             )
 
-        # Update conversation history
+        # Update conversation history with actual text (not performance JSON)
         self._conversation_history.append({
             'role': 'user', 'content': self._last_user_message
         })
         self._conversation_history.append({
-            'role': 'assistant', 'content': response
+            'role': 'assistant', 'content': raw_response or outgoing_output
         })
 
         # Emit completion events for facets editor live visualization
         self._emit_execution_complete_events(result)
 
-        # Clear busy state
-        self._window.set_busy(False)
+        # Clear busy state only if no performance is playing
+        # (PerformancePlayer will clear it when finished)
+        if not performance_script:
+            self._window.set_busy(False)
         self._worker = None
 
         logger.info(f"Assembly done: {result.total_time:.2f}s, "
@@ -580,6 +630,134 @@ class GuidePerformanceManager:
             self._window.set_busy(False)
         self._worker = None
         logger.error(f"Assembly error: {error_msg}")
+
+    # =========================================================================
+    # PER-FACET COMPLETION (MOOD-FIRST EXPRESSION)
+    # =========================================================================
+
+    def _on_facet_completed(self, facet_id: str, outputs: dict):
+        """
+        Handle individual facet completion for mood-first expression updates.
+
+        Called by _AssemblyWorker.facetCompleted signal as each facet finishes.
+        Sentiment completes in ~1s (SMALL model), while Response takes ~5-15s
+        (LARGE model). This lets us apply the expression change immediately
+        rather than waiting for the full assembly to complete.
+
+        Args:
+            facet_id: The ID of the completed facet
+            outputs: The facet's output dict
+        """
+        if facet_id == 'sentiment':
+            sentiment_output = outputs.get('out')
+            if sentiment_output:
+                self._apply_affect(sentiment_output)
+                self._sentiment_applied_early = True
+                logger.info("Mood-first: expression applied before response text")
+
+        # Emit per-facet live viz event (facet turns green immediately)
+        eid = self._current_execution_id
+        if eid:
+            self._emit_execution_event({
+                'type': 'facet_execution',
+                'subtype': 'facet_complete',
+                'source_id': facet_id,
+                'execution_id': eid,
+                'data': {'execution_id': eid, 'outputs': outputs}
+            })
+
+            # Emit data flow events for this facet's outgoing connections
+            if facet_id == 'sentiment':
+                self._emit_execution_event({
+                    'type': 'facet_execution',
+                    'subtype': 'data_flow',
+                    'from_facet': 'sentiment',
+                    'to_facet': 'outgoing',
+                    'execution_id': eid,
+                })
+            elif facet_id == 'response':
+                self._emit_execution_event({
+                    'type': 'facet_execution',
+                    'subtype': 'data_flow',
+                    'from_facet': 'response',
+                    'to_facet': 'performance',
+                    'execution_id': eid,
+                })
+                # Performance facet start (it runs immediately after response)
+                self._emit_execution_event({
+                    'type': 'facet_execution',
+                    'subtype': 'facet_start',
+                    'source_id': 'performance',
+                    'execution_id': eid,
+                    'data': {'execution_id': eid}
+                })
+            elif facet_id == 'performance':
+                self._emit_execution_event({
+                    'type': 'facet_execution',
+                    'subtype': 'data_flow',
+                    'from_facet': 'performance',
+                    'to_facet': 'outgoing',
+                    'execution_id': eid,
+                })
+
+    # =========================================================================
+    # PERFORMANCE PLAYBACK (TYPED TEXT DELIVERY)
+    # =========================================================================
+
+    def _play_performance(self, script: dict):
+        """
+        Play a performance script via PerformancePlayer.
+
+        Creates the player on first use and wires its signals to the
+        window and VRM viewport.
+
+        Args:
+            script: Performance script dict from the Performance facet
+        """
+        from .performance_player import PerformancePlayer
+
+        if not self._window:
+            return
+
+        # Create player on first use
+        if self._performance_player is None:
+            self._performance_player = PerformancePlayer()
+            self._performance_player.characterRevealed.connect(
+                self._window.append_character
+            )
+            self._performance_player.speakingStateChanged.connect(
+                self._on_speaking_state_changed
+            )
+            self._performance_player.finished.connect(
+                self._on_performance_finished
+            )
+
+        # Start typed text delivery
+        self._window.begin_guide_text()
+        self._performance_player.play(script)
+
+    def _on_speaking_state_changed(self, speaking: bool):
+        """
+        Update VRM speaking animation in response to PerformancePlayer state.
+
+        Args:
+            speaking: True when typing active, False on pause or finished
+        """
+        if self._window and self._window._vrm_viewport:
+            intensity = 0.7
+            if self._performance_player:
+                intensity = self._performance_player.speaking_intensity
+            self._window._vrm_viewport.set_speaking_mode(speaking, intensity)
+
+    def _on_performance_finished(self):
+        """Handle completed performance playback."""
+        if self._window:
+            self._window.end_guide_text()
+            self._window.set_busy(False)
+
+        # Turn off speaking animation
+        if self._window and self._window._vrm_viewport:
+            self._window._vrm_viewport.set_speaking_mode(False)
 
     def _on_user_message_for_channel(self, message: str):
         """
@@ -742,19 +920,17 @@ class GuidePerformanceManager:
         """
         Get the facets editor panel (cached).
 
-        Uses getattr for safety -- tests may create instances via __new__
-        without calling __init__, so attributes may not exist.
+        On first call, looks up ``main_window.facets_editor`` and caches
+        the result so subsequent calls are free.
 
         Returns:
             FacetsEditorPanel or None
         """
-        editor = getattr(self, '_facets_editor', None)
-        if editor is None:
-            main_window = getattr(self, '_main_window', None)
-            if main_window:
-                editor = getattr(main_window, 'facets_editor', None)
+        if self._facets_editor is None:
+            editor = getattr(self._main_window, 'facets_editor', None)
+            if editor is not None:
                 self._facets_editor = editor
-        return editor
+        return self._facets_editor
 
     def _emit_execution_event(self, event: dict):
         """
@@ -779,7 +955,7 @@ class GuidePerformanceManager:
         Sentiment facets start processing. They stay in 'processing' state
         (yellow pulse) until the result arrives from the worker thread.
         """
-        eid = getattr(self, '_current_execution_id', None)
+        eid = self._current_execution_id
         if not eid:
             return
 
@@ -848,36 +1024,16 @@ class GuidePerformanceManager:
         """
         Emit events when assembly execution completes.
 
-        Response and Sentiment turn green (complete), data flows to
-        OUTGOING, and the cycle finishes.
+        Individual facet completions are already emitted by _on_facet_completed
+        via the per-facet callback. This method handles OUTGOING and the
+        cycle_complete event.
 
         Args:
             result: ExecutionResult from FacetExecutor
         """
-        eid = getattr(self, '_current_execution_id', None)
+        eid = self._current_execution_id
         if not eid:
             return
-
-        # Response and Sentiment complete
-        for facet_id in ('response', 'sentiment'):
-            outputs = result.facet_outputs.get(facet_id, {})
-            self._emit_execution_event({
-                'type': 'facet_execution',
-                'subtype': 'facet_complete',
-                'source_id': facet_id,
-                'execution_id': eid,
-                'data': {'execution_id': eid, 'outputs': outputs}
-            })
-
-        # Data flows to OUTGOING
-        for source in ('response', 'sentiment'):
-            self._emit_execution_event({
-                'type': 'facet_execution',
-                'subtype': 'data_flow',
-                'from_facet': source,
-                'to_facet': 'outgoing',
-                'execution_id': eid,
-            })
 
         def _complete_outgoing():
             if self._current_execution_id != eid:
@@ -928,12 +1084,12 @@ class GuidePerformanceManager:
         Args:
             error_msg: Error description
         """
-        eid = getattr(self, '_current_execution_id', None)
+        eid = self._current_execution_id
         if not eid:
             return
 
         # Error on any processing facets
-        for facet_id in ('response', 'sentiment'):
+        for facet_id in ('response', 'sentiment', 'performance'):
             self._emit_execution_event({
                 'type': 'facet_execution',
                 'subtype': 'facet_error',
@@ -963,6 +1119,11 @@ class GuidePerformanceManager:
         Closes the floating window, stops the executor, stops Brenda,
         disables demo mode, and tears down the play pipeline.
         """
+        # Stop performance player
+        if self._performance_player:
+            self._performance_player.stop()
+            self._performance_player = None
+
         # Stop any running worker
         if self._worker and self._worker.isRunning():
             self._worker.wait(2000)

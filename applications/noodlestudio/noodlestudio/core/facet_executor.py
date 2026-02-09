@@ -35,7 +35,7 @@
 import asyncio
 import time
 import uuid
-from typing import Dict, Any, List, Set, Optional, Tuple
+from typing import Callable, Dict, Any, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict, deque
 import logging
@@ -1462,7 +1462,8 @@ class FacetExecutor:
         self,
         assembly: FacetAssembly,
         incoming_data: Any,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        on_facet_complete: Optional[Callable] = None
     ) -> ExecutionResult:
         """
         Execute facet assembly with parallel processing.
@@ -1471,6 +1472,9 @@ class FacetExecutor:
             assembly: Facet assembly to execute
             incoming_data: Input data (goes to INCOMING node)
             context: Execution context (agent info, etc.)
+            on_facet_complete: Optional callback(facet_id: str, outputs: dict)
+                called when each individual facet finishes, before the full
+                assembly completes. Useful for mood-first expression updates.
 
         Returns:
             ExecutionResult with final output and metadata
@@ -1478,15 +1482,16 @@ class FacetExecutor:
         # Serial mode lock (debug only)
         if self.execution_lock:
             async with self.execution_lock:
-                return await self._execute_internal(assembly, incoming_data, context)
+                return await self._execute_internal(assembly, incoming_data, context, on_facet_complete)
         else:
-            return await self._execute_internal(assembly, incoming_data, context)
+            return await self._execute_internal(assembly, incoming_data, context, on_facet_complete)
 
     async def _execute_internal(
         self,
         assembly: FacetAssembly,
         incoming_data: Any,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        on_facet_complete: Optional[Callable] = None
     ) -> ExecutionResult:
         """
         Internal execution implementation (wrapped by execute() for serial lock).
@@ -1654,8 +1659,15 @@ class FacetExecutor:
 
             # Execute filtered facets in parallel
             if facets_to_execute:
+                async def _run_facet_with_callback(facet, inputs, ctx, callback):
+                    """Execute a facet and fire per-facet callback on completion."""
+                    outputs = await self._execute_facet(facet, inputs, ctx)
+                    if callback:
+                        callback(facet.id, outputs)
+                    return outputs
+
                 tasks = [
-                    self._execute_facet(facet, inputs, context)
+                    _run_facet_with_callback(facet, inputs, context, on_facet_complete)
                     for facet, inputs in facets_to_execute
                 ]
                 results = await asyncio.gather(*tasks)

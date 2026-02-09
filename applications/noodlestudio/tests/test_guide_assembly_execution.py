@@ -47,9 +47,9 @@ class TestAssemblyStructure:
         assert assembly is not None
         assert assembly.name == "Guide Assembly"
 
-    def test_has_four_facets(self, assembly):
-        """Assembly has exactly 4 facets."""
-        assert len(assembly.facets) == 4
+    def test_has_five_facets(self, assembly):
+        """Assembly has exactly 5 facets (incoming, response, sentiment, performance, outgoing)."""
+        assert len(assembly.facets) == 5
 
     def test_has_incoming_facet(self, assembly):
         """Assembly has an INCOMING entry point."""
@@ -71,9 +71,9 @@ class TestAssemblyStructure:
         facet_ids = [f.id for f in assembly.facets]
         assert "outgoing" in facet_ids
 
-    def test_has_four_connections(self, assembly):
-        """Assembly has 4 connections (parallel fan-out from incoming)."""
-        assert len(assembly.connections) == 4
+    def test_has_five_connections(self, assembly):
+        """Assembly has 5 connections (parallel fan-out + performance chain)."""
+        assert len(assembly.connections) == 5
 
     def test_response_uses_large_model(self, assembly):
         """Response facet uses LARGE model label."""
@@ -97,15 +97,48 @@ class TestAssemblyStructure:
         assert "sentiment.in" in targets
 
     def test_outgoing_receives_both(self, assembly):
-        """Outgoing receives from both response and sentiment."""
+        """Outgoing receives from performance (text) and sentiment (affect)."""
         to_outgoing = [
             c for c in assembly.connections
             if c.to_facet == "outgoing"
         ]
         assert len(to_outgoing) == 2
         sources = {f"{c.from_facet}.{c.from_pad}" for c in to_outgoing}
-        assert "response.out" in sources
+        assert "performance.out" in sources
         assert "sentiment.out" in sources
+
+    def test_has_performance_facet(self, assembly):
+        """Assembly has a Performance ScriptedFacet."""
+        facet_ids = [f.id for f in assembly.facets]
+        assert "performance" in facet_ids
+        perf = next(f for f in assembly.facets if f.id == "performance")
+        assert perf.facet_type == "ScriptedFacet"
+
+    def test_response_feeds_performance(self, assembly):
+        """Response output feeds into Performance input."""
+        conn = [
+            c for c in assembly.connections
+            if c.from_facet == "response" and c.to_facet == "performance"
+        ]
+        assert len(conn) == 1
+        assert conn[0].from_pad == "out"
+        assert conn[0].to_pad == "in"
+
+    def test_performance_feeds_outgoing(self, assembly):
+        """Performance output feeds into OUTGOING input."""
+        conn = [
+            c for c in assembly.connections
+            if c.from_facet == "performance" and c.to_facet == "outgoing"
+        ]
+        assert len(conn) == 1
+        assert conn[0].from_pad == "out"
+        assert conn[0].to_pad == "in"
+
+    def test_self_description_in_prompt(self, assembly):
+        """Response facet prompt includes Ajo's physical appearance."""
+        response = next(f for f in assembly.facets if f.id == "response")
+        assert "axolotl" in response.prompt.lower()
+        assert "gill" in response.prompt.lower()
 
     def test_outgoing_has_affect_input(self, assembly):
         """Outgoing has an 'affect' input port for sentiment data."""
@@ -236,181 +269,133 @@ class TestAffectPipeline:
         boredom = max(0.0, (1.0 - arousal) * 0.3)
         assert abs(boredom - 0.21) < 0.001
 
-    def test_invalid_json_handled_gracefully(self):
+    def test_invalid_json_handled_gracefully(self, guide_manager):
         """Invalid JSON from sentiment facet does not crash."""
-        from noodlestudio.runtime.ui.guide_performance_manager import (
-            GuidePerformanceManager,
-        )
-        from PyQt6.QtWidgets import QMainWindow
-
-        # Create manager directly (don't start performance)
-        manager = GuidePerformanceManager.__new__(GuidePerformanceManager)
-        manager._window = MagicMock()
-
         # Call _apply_affect with invalid JSON -- should not raise
-        manager._apply_affect("not valid json {{{")
+        guide_manager._apply_affect("not valid json {{{")
         # Window's set_blend_shapes should NOT have been called
-        manager._window.set_blend_shapes.assert_not_called()
+        assert guide_manager._window.blend_shapes_calls == []
 
-    def test_missing_keys_use_defaults(self):
+    def test_missing_keys_use_defaults(self, guide_manager):
         """Missing keys in sentiment JSON use defaults."""
-        from noodlestudio.runtime.ui.guide_performance_manager import (
-            GuidePerformanceManager,
-        )
-
-        manager = GuidePerformanceManager.__new__(GuidePerformanceManager)
-        mock_window = MagicMock()
-        manager._window = mock_window
-
         # Only provide valence, omit arousal and dominance
-        manager._apply_affect(json.dumps({"valence": 0.9}))
+        guide_manager._apply_affect(json.dumps({"valence": 0.9}))
 
         # Should still call set_blend_shapes (arousal/dominance default to 0.5)
-        mock_window.set_blend_shapes.assert_called_once()
+        assert len(guide_manager._window.blend_shapes_calls) == 1
 
 
 # =============================================================================
 # Assembly Result Handling Tests
 # =============================================================================
 
+@dataclass
+class FakeExecutionResult:
+    """Lightweight stand-in for facet_executor.ExecutionResult."""
+    response: str = "Hello from assembly"
+    total_time: float = 0.5
+    total_tokens: int = 50
+    facets_executed: int = 2
+    facets_skipped: int = 0
+    facet_outputs: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    facet_times: Dict[str, float] = field(default_factory=dict)
+    facet_tokens: Dict[str, int] = field(default_factory=dict)
+
+
 class TestAssemblyResultHandling:
     """Tests for _on_assembly_result processing."""
 
-    @dataclass
-    class MockExecutionResult:
-        """Mock of facet_executor.ExecutionResult."""
-        response: str = "Hello from assembly"
-        total_time: float = 0.5
-        total_tokens: int = 50
-        facets_executed: int = 2
-        facets_skipped: int = 0
-        facet_outputs: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-        facet_times: Dict[str, float] = field(default_factory=dict)
-        facet_tokens: Dict[str, int] = field(default_factory=dict)
-
-    def _make_manager_with_window(self):
-        """Create a manager with a mock window for result handling."""
-        from noodlestudio.runtime.ui.guide_performance_manager import (
-            GuidePerformanceManager,
-        )
-
-        manager = GuidePerformanceManager.__new__(GuidePerformanceManager)
-        manager._window = MagicMock()
-        manager._conversation_history = []
-        manager._last_user_message = "Hello"
-        manager._guide_cue_handler = None
-        manager._worker = None
-        return manager
-
-    def test_response_displayed_in_window(self):
+    def test_response_displayed_in_window(self, guide_manager):
         """Assembly response is displayed via append_guide_text."""
-        manager = self._make_manager_with_window()
+        result = FakeExecutionResult(response="Hello from Ajo!")
+        guide_manager._on_assembly_result(result)
 
-        result = self.MockExecutionResult(response="Hello from Ajo!")
-        manager._on_assembly_result(result)
+        assert guide_manager._window.texts == ["Hello from Ajo!"]
 
-        manager._window.append_guide_text.assert_called_once_with("Hello from Ajo!")
-
-    def test_busy_cleared_after_result(self):
+    def test_busy_cleared_after_result(self, guide_manager):
         """Window busy state is cleared after assembly result."""
-        manager = self._make_manager_with_window()
+        result = FakeExecutionResult()
+        guide_manager._on_assembly_result(result)
 
-        result = self.MockExecutionResult()
-        manager._on_assembly_result(result)
+        assert False in guide_manager._window.busy_states
 
-        manager._window.set_busy.assert_called_once_with(False)
-
-    def test_conversation_history_updated(self):
+    def test_conversation_history_updated(self, guide_manager):
         """Conversation history grows after each exchange."""
-        manager = self._make_manager_with_window()
-        manager._last_user_message = "What are noodlings?"
+        guide_manager._last_user_message = "What are noodlings?"
 
-        result = self.MockExecutionResult(response="Noodlings are cognitive agents!")
-        manager._on_assembly_result(result)
+        result = FakeExecutionResult(response="Noodlings are cognitive agents!")
+        guide_manager._on_assembly_result(result)
 
-        assert len(manager._conversation_history) == 2
-        assert manager._conversation_history[0] == {
+        assert len(guide_manager._conversation_history) == 2
+        assert guide_manager._conversation_history[0] == {
             'role': 'user', 'content': 'What are noodlings?'
         }
-        assert manager._conversation_history[1] == {
+        assert guide_manager._conversation_history[1] == {
             'role': 'assistant', 'content': 'Noodlings are cognitive agents!'
         }
 
-    def test_history_accumulates_over_exchanges(self):
+    def test_history_accumulates_over_exchanges(self, guide_manager):
         """Multiple exchanges accumulate in history."""
-        manager = self._make_manager_with_window()
+        guide_manager._last_user_message = "Hello"
+        result1 = FakeExecutionResult(response="Hi there!")
+        guide_manager._on_assembly_result(result1)
 
-        # First exchange
-        manager._last_user_message = "Hello"
-        result1 = self.MockExecutionResult(response="Hi there!")
-        manager._on_assembly_result(result1)
+        guide_manager._last_user_message = "What is NoodleStudio?"
+        result2 = FakeExecutionResult(response="It's a cognitive IDE!")
+        guide_manager._on_assembly_result(result2)
 
-        # Second exchange
-        manager._last_user_message = "What is NoodleStudio?"
-        result2 = self.MockExecutionResult(response="It's a cognitive IDE!")
-        manager._on_assembly_result(result2)
+        assert len(guide_manager._conversation_history) == 4
 
-        assert len(manager._conversation_history) == 4
-
-    def test_sentiment_drives_affect(self):
+    def test_sentiment_drives_affect(self, guide_manager):
         """Sentiment facet output drives the affect pipeline."""
-        manager = self._make_manager_with_window()
-
         sentiment_json = json.dumps({
             "valence": 0.8,
             "arousal": 0.6,
             "dominance": 0.7
         })
 
-        result = self.MockExecutionResult(
+        result = FakeExecutionResult(
             response="I love noodlings!",
             facet_outputs={
                 'sentiment': {'out': sentiment_json},
                 'response': {'out': 'I love noodlings!'},
             }
         )
-        manager._on_assembly_result(result)
+        guide_manager._on_assembly_result(result)
 
-        # Window should have received blend shapes
-        manager._window.set_blend_shapes.assert_called_once()
-        shapes = manager._window.set_blend_shapes.call_args[0][0]
+        assert len(guide_manager._window.blend_shapes_calls) == 1
+        shapes = guide_manager._window.blend_shapes_calls[0]
         assert isinstance(shapes, dict)
 
-    def test_no_sentiment_output_skips_affect(self):
+    def test_no_sentiment_output_skips_affect(self, guide_manager):
         """Missing sentiment output skips affect pipeline gracefully."""
-        manager = self._make_manager_with_window()
-
-        result = self.MockExecutionResult(
+        result = FakeExecutionResult(
             response="Just a response",
             facet_outputs={'response': {'out': 'Just a response'}}
         )
-        manager._on_assembly_result(result)
+        guide_manager._on_assembly_result(result)
 
-        # set_blend_shapes should NOT have been called
-        manager._window.set_blend_shapes.assert_not_called()
+        assert guide_manager._window.blend_shapes_calls == []
 
-    def test_brenda_feedback_on_result(self):
+    def test_brenda_feedback_on_result(self, guide_manager):
         """GuideCueHandler receives response for Brenda feedback."""
-        manager = self._make_manager_with_window()
         mock_handler = MagicMock()
-        manager._guide_cue_handler = mock_handler
-        manager._last_user_message = "Tell me about facets"
+        guide_manager._guide_cue_handler = mock_handler
+        guide_manager._last_user_message = "Tell me about facets"
 
-        result = self.MockExecutionResult(response="Facets are cognitive nodes!")
-        manager._on_assembly_result(result)
+        result = FakeExecutionResult(response="Facets are cognitive nodes!")
+        guide_manager._on_assembly_result(result)
 
         mock_handler.report_response.assert_called_once_with(
             "Facets are cognitive nodes!", "Tell me about facets"
         )
 
-    def test_empty_response_shows_error(self):
+    def test_empty_response_shows_error(self, guide_manager):
         """Empty response shows error in window."""
-        manager = self._make_manager_with_window()
+        result = FakeExecutionResult(response="[No output]")
+        guide_manager._on_assembly_result(result)
 
-        result = self.MockExecutionResult(response="[No output]")
-        manager._on_assembly_result(result)
-
-        manager._window._show_error.assert_called_once()
+        assert len(guide_manager._window.errors) == 1
 
 
 # =============================================================================
@@ -420,33 +405,22 @@ class TestAssemblyResultHandling:
 class TestContextBuilding:
     """Tests for execution context assembly."""
 
-    def test_context_includes_history(self):
+    def test_context_includes_history(self, guide_manager):
         """Execution context includes conversation history."""
-        from noodlestudio.runtime.ui.guide_performance_manager import (
-            GuidePerformanceManager,
-        )
-
-        manager = GuidePerformanceManager.__new__(GuidePerformanceManager)
-        manager._window = MagicMock()
-        manager._assembly = MagicMock()
-        manager._executor = MagicMock()
-        manager._worker = None
-        manager._guide_cue_handler = None
-        manager._conversation_history = [
+        guide_manager._assembly = MagicMock()
+        guide_manager._executor = MagicMock()
+        guide_manager._conversation_history = [
             {'role': 'user', 'content': 'previous message'}
         ]
-        manager._last_user_message = ""
 
-        # Call the method -- it will create an _AssemblyWorker
         with patch(
             'noodlestudio.runtime.ui.guide_performance_manager._AssemblyWorker'
         ) as MockWorker:
             mock_worker = MagicMock()
             MockWorker.return_value = mock_worker
 
-            manager._on_user_message_for_assembly("Hello")
+            guide_manager._on_user_message_for_assembly("Hello")
 
-            # Check the context passed to _AssemblyWorker
             call_args = MockWorker.call_args
             context = call_args[0][3]  # 4th positional arg
             assert 'conversation_history' in context
@@ -454,26 +428,16 @@ class TestContextBuilding:
             assert isinstance(context['conversation_history'], str)
             assert 'previous message' in context['conversation_history']
 
-    def test_context_includes_brenda_direction(self):
+    def test_context_includes_brenda_direction(self, guide_manager):
         """Execution context includes Brenda direction when available."""
-        from noodlestudio.runtime.ui.guide_performance_manager import (
-            GuidePerformanceManager,
-        )
+        guide_manager._assembly = MagicMock()
+        guide_manager._executor = MagicMock()
 
-        manager = GuidePerformanceManager.__new__(GuidePerformanceManager)
-        manager._window = MagicMock()
-        manager._assembly = MagicMock()
-        manager._executor = MagicMock()
-        manager._worker = None
-        manager._conversation_history = []
-        manager._last_user_message = ""
-
-        # Set up guide cue handler with direction
         mock_handler = MagicMock()
         mock_handler.build_system_prompt_addition.return_value = (
             "Direct Ajo to welcome the user warmly."
         )
-        manager._guide_cue_handler = mock_handler
+        guide_manager._guide_cue_handler = mock_handler
 
         with patch(
             'noodlestudio.runtime.ui.guide_performance_manager._AssemblyWorker'
@@ -481,26 +445,16 @@ class TestContextBuilding:
             mock_worker = MagicMock()
             MockWorker.return_value = mock_worker
 
-            manager._on_user_message_for_assembly("Hello")
+            guide_manager._on_user_message_for_assembly("Hello")
 
             context = MockWorker.call_args[0][3]
             assert 'brenda_direction' in context
             assert "welcome the user" in context['brenda_direction']
 
-    def test_context_omits_direction_when_none(self):
+    def test_context_omits_direction_when_none(self, guide_manager):
         """Execution context omits brenda_direction when no handler."""
-        from noodlestudio.runtime.ui.guide_performance_manager import (
-            GuidePerformanceManager,
-        )
-
-        manager = GuidePerformanceManager.__new__(GuidePerformanceManager)
-        manager._window = MagicMock()
-        manager._assembly = MagicMock()
-        manager._executor = MagicMock()
-        manager._worker = None
-        manager._guide_cue_handler = None
-        manager._conversation_history = []
-        manager._last_user_message = ""
+        guide_manager._assembly = MagicMock()
+        guide_manager._executor = MagicMock()
 
         with patch(
             'noodlestudio.runtime.ui.guide_performance_manager._AssemblyWorker'
@@ -508,7 +462,7 @@ class TestContextBuilding:
             mock_worker = MagicMock()
             MockWorker.return_value = mock_worker
 
-            manager._on_user_message_for_assembly("Hello")
+            guide_manager._on_user_message_for_assembly("Hello")
 
             context = MockWorker.call_args[0][3]
             assert 'brenda_direction' not in context
@@ -524,11 +478,9 @@ class TestLLMClientCreation:
     @patch('noodlestudio.core.model_label_manager.get_model_label_manager')
     @patch('noodlestudio.core.provider_manager.get_provider_manager')
     def test_creates_client_from_settings(
-        self, mock_get_provider, mock_get_label
+        self, mock_get_provider, mock_get_label, guide_manager
     ):
         """LLM client is created from editor provider/label settings."""
-        from noodlestudio.runtime.llm_client import LLMConfig
-
         # Set up mock label manager
         label_mgr = MagicMock()
         label_mgr.get_model_for_label.side_effect = lambda label: {
@@ -547,16 +499,9 @@ class TestLLMClientCreation:
         provider_mgr.get_provider.return_value = mock_provider
         mock_get_provider.return_value = provider_mgr
 
-        from noodlestudio.runtime.ui.guide_performance_manager import (
-            GuidePerformanceManager,
-        )
-
-        manager = GuidePerformanceManager.__new__(GuidePerformanceManager)
-
         with patch('noodlestudio.runtime.llm_client.HeadlessLLMClient') as MockClient:
-            client = manager._create_llm_client()
+            client = guide_manager._create_llm_client()
 
-            # Verify HeadlessLLMClient was constructed with correct config
             MockClient.assert_called_once()
             config = MockClient.call_args[0][0]
             assert config.provider == "anthropic"

@@ -335,6 +335,10 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self._idle_muscles = {}      # Generated each tick from sine waves
             self._external_muscles = {}  # Set by set_muscles() from outside
 
+            # Speaking animation mode
+            self._speaking_mode = False
+            self._speaking_intensity = 0.0
+
             # Morph target blending (CPU-side)
             self._base_positions = None   # (N,3) original vertex positions
             self._base_normals = None     # (N,3) original vertex normals
@@ -1232,6 +1236,21 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self.poseApplied.emit(len(muscles))
             self.update()
 
+        def set_speaking_mode(self, active: bool, intensity: float = 0.7):
+            """
+            Toggle speaking animation mode.
+
+            When active, head idle amplitudes increase and jaw oscillates
+            rapidly to simulate speech. When inactive, returns to normal
+            idle immediately (sine waves provide smooth motion naturally).
+
+            Args:
+                active: True to enable speaking animation
+                intensity: Animation intensity multiplier (0.0 to 1.0)
+            """
+            self._speaking_mode = active
+            self._speaking_intensity = intensity if active else 0.0
+
         def set_blend_shapes(self, shapes: Dict[str, float]):
             """
             Apply blend shape weights via CPU morph target blending.
@@ -2095,6 +2114,46 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             muscles['RightArm.FrontBack'] = 0.03 * math.sin(t * two_pi / 5.9)
             muscles['LeftArm.DownUp'] = arm_rest + 0.02 * math.sin(t * two_pi / 8.3)
             muscles['RightArm.DownUp'] = arm_rest + 0.02 * math.sin(t * two_pi / 8.9)
+
+            # === SPEAKING ANIMATION (when active) ===
+            if self._speaking_mode and self._speaking_intensity > 0:
+                si = self._speaking_intensity
+
+                # Additive conversational head nods — two incommensurate
+                # frequencies so the motion never loops exactly.
+                # Primary nod at ~1.7 Hz (natural speech emphasis rhythm)
+                # Secondary nod at ~2.3 Hz (variation, prevents robotic feel)
+                nod = (0.08 * math.sin(t * two_pi * 1.7)
+                       + 0.04 * math.sin(t * two_pi * 2.3))
+                muscles['Head.NodDownUp'] += nod * si
+
+                # Slow empathetic tilt (~0.8 Hz) and address shifts (~1.1 Hz)
+                muscles['Head.TiltLeftRight'] += 0.04 * math.sin(t * two_pi * 0.8) * si
+                muscles['Head.TurnLeftRight'] += 0.03 * math.sin(t * two_pi * 1.1) * si
+
+                # Neck follows head at reduced amplitude for natural chain
+                muscles['Neck.NodDownUp'] += nod * si * 0.4
+                muscles['Neck.TiltLeftRight'] += 0.02 * math.sin(t * two_pi * 0.8) * si
+
+                # Shoulders — subtle asymmetric shrugs, as if gesturing
+                # Left and right at different frequencies for natural asymmetry
+                muscles['LeftShoulder.DownUp'] += 0.04 * math.sin(t * two_pi * 1.3) * si
+                muscles['RightShoulder.DownUp'] += 0.035 * math.sin(t * two_pi * 1.9) * si
+
+                # Upper arms — small conversational gesticulation
+                # FrontBack gives a subtle "talking with hands" feel
+                muscles['LeftArm.FrontBack'] += 0.05 * math.sin(t * two_pi * 1.1) * si
+                muscles['RightArm.FrontBack'] += 0.04 * math.sin(t * two_pi * 1.5) * si
+                # Slight outward spread when emphasising
+                muscles['LeftArm.InOut'] = 0.03 * math.sin(t * two_pi * 0.7) * si
+                muscles['RightArm.InOut'] = 0.025 * math.sin(t * two_pi * 0.9) * si
+
+                # Upper chest lifts slightly with speech energy
+                muscles['UpperChest.FrontBack'] += 0.03 * math.sin(t * two_pi * 1.7) * si
+
+                # Rapid jaw oscillation (~7 Hz, natural speech cadence)
+                jaw = abs(math.sin(t * two_pi * 7.0)) * si * 0.4
+                muscles['Jaw.Close'] = -jaw  # Negative = open
 
             return muscles
 

@@ -428,6 +428,28 @@ defaults read com.noodlings.ProviderManager "providers.anthropic.api_key"
 
 ---
 
+## Testing Policy (CRITICAL — Read This Before Writing Any Test)
+
+**NO MOCKS. NO STUBS. NO `__new__` BYPASS.**
+
+This is not a style preference. This was validated on Feb 9 2026 when a MagicMock in `test_performance_facet.py` hid a real production crash (`AffectAPI.to_dict()` missing). The test passed. Production crashed with the exact same error. The mock concealed the bug.
+
+**Rules:**
+
+1. **If something crashes in test setup, FIX THE REAL BUG.** Do not mock around it. The crash is telling you something is broken — that's the thing to fix.
+
+2. **No `__new__` bypass pattern.** Creating objects via `cls.__new__(cls)` without calling `__init__` produces half-initialized objects that need `getattr(self, '_foo', None)` guards in production code. This is test scaffolding leaking into production. Instead: call real `__init__` with dependency-injected fakes (lightweight real objects, not mocks).
+
+3. **No MagicMock / unittest.mock.patch for core objects.** MagicMock silently returns truthy values for any attribute access — it cannot detect missing methods, wrong signatures, or broken APIs. If you need a test double, write a minimal concrete class that implements the interface.
+
+4. **No `getattr` guards in production code to compensate for test fixtures.** If production code needs `getattr(self, '_foo', None)` because tests create objects without `__init__`, the tests are wrong, not the production code. Remove the guards and fix the tests.
+
+5. **Acceptable:** Dependency injection of lightweight real objects. `FakeLLMClient` that returns canned responses. `InMemoryChannelBus`. Real `__init__` with test-appropriate arguments. These test the real code paths.
+
+**The smell test:** If your test passes but you're not sure the production code would work the same way, your test is lying to you.
+
+---
+
 ## Style Rules (CRITICAL)
 
 - **NO EMOJIS** in code/docs/UI
@@ -533,7 +555,7 @@ defaults read com.noodlings.ProviderManager "providers.anthropic.api_key"
 ## Project Context
 
 **Creator:** Caitlyn (Unity employee #12, Asset Store creator)
-**Location:** Garcia River Forest cabin
+**Location:** Canary Islands (moved early 2026)
 **Hardware:** M3 Ultra 512GB
 
 **Mission:** Open-source alternative to "Consciousness-as-a-Service"

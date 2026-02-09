@@ -273,6 +273,118 @@ def temp_stage_dir(temp_project_dir):
 
     return stage_dir
 
+
+# ============================================================================
+# Guide Performance Manager Fixtures
+# ============================================================================
+
+class StubFacetsEditor:
+    """Lightweight stand-in for FacetsEditorPanel.
+
+    Records execution events for test assertions without any Qt
+    widget overhead.  Every test that needs to inspect live-viz
+    events reads ``editor.events`` instead of digging through
+    MagicMock call_args.
+    """
+
+    def __init__(self):
+        self.events: list[dict] = []
+
+    def _handle_execution_event(self, event: dict):
+        self.events.append(event)
+
+    def load_assembly_from_data(self, assembly, *, force_reload=False,
+                                source_path=None):
+        pass
+
+
+_SENTINEL = object()
+
+
+class StubMainWindow:
+    """Minimal stand-in for MainWindow.
+
+    Provides the three attributes GuidePerformanceManager actually
+    reads from main_window: ``facets_editor``, ``center_tabs``,
+    and acts as a valid parent reference.
+
+    Pass ``facets_editor=None`` explicitly to simulate a main window
+    with no facets editor.  Omit the argument to get a default
+    StubFacetsEditor automatically.
+    """
+
+    def __init__(self, facets_editor=_SENTINEL):
+        if facets_editor is _SENTINEL:
+            self.facets_editor = StubFacetsEditor()
+        else:
+            self.facets_editor = facets_editor
+        self.center_tabs = None  # Only used in start_performance tab switch
+
+
+class StubWindow:
+    """Lightweight stand-in for GuidePerformanceWindow.
+
+    Records method calls so tests can assert on them without
+    creating real Qt widgets.
+    """
+
+    def __init__(self):
+        self.texts: list[str] = []
+        self.errors: list[str] = []
+        self.busy_states: list[bool] = []
+        self.blend_shapes_calls: list[dict] = []
+        self._vrm_viewport = None
+        self._typed_chars: list[str] = []
+        self._text_blocks_begun = 0
+        self._text_blocks_ended = 0
+
+    def append_guide_text(self, text):
+        self.texts.append(text)
+
+    def _show_error(self, msg):
+        self.errors.append(msg)
+
+    def set_busy(self, busy):
+        self.busy_states.append(busy)
+
+    def set_blend_shapes(self, shapes):
+        self.blend_shapes_calls.append(shapes)
+
+    def begin_guide_text(self):
+        self._text_blocks_begun += 1
+
+    def append_character(self, char):
+        self._typed_chars.append(char)
+
+    def end_guide_text(self):
+        self._text_blocks_ended += 1
+
+    def show_play_header(self, title):
+        pass
+
+
+@pytest.fixture
+def guide_manager():
+    """Real GuidePerformanceManager with lightweight stub dependencies.
+
+    Calls real ``__init__``, so all attributes are properly set.
+    No MagicMock -- uses StubMainWindow, StubFacetsEditor, and
+    StubWindow for testable behaviour verification.
+    """
+    from noodlestudio.runtime.ui.guide_performance_manager import (
+        GuidePerformanceManager,
+    )
+
+    stub_editor = StubFacetsEditor()
+    stub_main = StubMainWindow(facets_editor=stub_editor)
+
+    manager = GuidePerformanceManager(stub_main)
+    manager._facets_editor = stub_editor  # Pre-cache to skip lookup
+    manager._window = StubWindow()
+
+    return manager
+
+
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.
 # Caitlyn Meeks 2026

@@ -512,6 +512,17 @@ class AffectAPI:
                 )
                 print(f"[AffectAPI] Momentum handoff complete")
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to JavaScript-compatible dict for context injection."""
+        return {
+            'loadTrack': '__affect_loadTrack__',
+            'createTrack': '__affect_createTrack__',
+            'createExampleTrack': '__affect_createExampleTrack__',
+            'getState': '__affect_getState__',
+            'setBlendMode': '__affect_setBlendMode__',
+            'inject': '__affect_inject__',
+        }
+
 
 # Singleton instance
 _affect_api: Optional[AffectAPI] = None
