@@ -223,8 +223,7 @@ class GuidePerformanceManager:
             model_labels=model_labels
         )
 
-        print(f"[GuidePerformance] LLM client: provider={config.provider}, "
-              f"labels={model_labels}", flush=True)
+        logger.info(f"LLM client: provider={config.provider}, labels={model_labels}")
 
         return HeadlessLLMClient(config)
 
@@ -245,10 +244,10 @@ class GuidePerformanceManager:
 
             assembly_path = project_root / _GUIDE_ASSEMBLY_RELATIVE
             if assembly_path.exists():
-                print(f"[GuidePerformance] Assembly: {assembly_path}", flush=True)
+                logger.info(f"Assembly: {assembly_path}")
                 return str(assembly_path)
 
-            print(f"[GuidePerformance] Assembly not found at {assembly_path}", flush=True)
+            logger.warning(f"Assembly not found at {assembly_path}")
         except Exception as e:
             logger.debug(f"Could not discover guide assembly: {e}")
 
@@ -266,18 +265,18 @@ class GuidePerformanceManager:
 
         assembly_path = self._discover_guide_assembly()
         if not assembly_path:
-            print("[GuidePerformance] No assembly found, Ajo cannot think", flush=True)
+            logger.warning("No assembly found, Ajo cannot think")
             return False
 
         try:
             self._assembly = FacetAssembly.load_yaml(assembly_path)
             self._assembly_path = assembly_path
-            print(f"[GuidePerformance] Loaded assembly: {self._assembly.name} "
-                  f"({len(self._assembly.facets)} facets, "
-                  f"{len(self._assembly.connections)} connections)", flush=True)
+            logger.info(f"Loaded assembly: {self._assembly.name} "
+                        f"({len(self._assembly.facets)} facets, "
+                        f"{len(self._assembly.connections)} connections)")
         except Exception as e:
             logger.error(f"Failed to load assembly: {e}")
-            print(f"[GuidePerformance] Assembly load failed: {e}", flush=True)
+            logger.error(f"Assembly load failed: {e}")
             return False
 
         # Create LLM client from editor settings
@@ -285,7 +284,7 @@ class GuidePerformanceManager:
             self._llm_client = self._create_llm_client()
         except Exception as e:
             logger.error(f"Failed to create LLM client: {e}")
-            print(f"[GuidePerformance] LLM client creation failed: {e}", flush=True)
+            logger.error(f"LLM client creation failed: {e}")
             return False
 
         # Create executor (event bus disabled -- it requires an asyncio loop
@@ -297,7 +296,7 @@ class GuidePerformanceManager:
             use_event_bus=False
         )
 
-        print("[GuidePerformance] Assembly execution pipeline ready", flush=True)
+        logger.info("Assembly execution pipeline ready")
         return True
 
     # =========================================================================
@@ -369,10 +368,10 @@ class GuidePerformanceManager:
         if not vrm_path:
             vrm_path = self._discover_guide_vrm()
         if vrm_path:
-            print(f"[GuidePerformance] Loading VRM: {vrm_path}", flush=True)
+            logger.info(f"Loading VRM: {vrm_path}")
             self._window.set_vrm(vrm_path)
         else:
-            print("[GuidePerformance] No VRM found", flush=True)
+            logger.warning("No VRM found")
 
         self._window.show()
 
@@ -385,7 +384,7 @@ class GuidePerformanceManager:
                     facets_editor.load_assembly_from_data(
                         self._assembly, force_reload=True, source_path=source
                     )
-                    print(f"[GuidePerformance] Assembly loaded in facets editor", flush=True)
+                    logger.info("Assembly loaded in facets editor")
 
                     # Switch to Facets Editor tab so user sees the graph
                     center_tabs = getattr(self._main_window, 'center_tabs', None)
@@ -395,12 +394,12 @@ class GuidePerformanceManager:
                                 center_tabs.setCurrentIndex(i)
                                 break
             except Exception as e:
-                print(f"[GuidePerformance] Could not load assembly in editor: {e}", flush=True)
+                logger.debug(f"Could not load assembly in editor: {e}")
 
         # Start Brenda after window is visible
         if self._director:
             self._director.start()
-            print(f"[GuidePerformance] Brenda directing: {play_title}", flush=True)
+            logger.info(f"Brenda directing: {play_title}")
 
         logger.info(f"Performance started: {play_title}")
 
@@ -413,7 +412,7 @@ class GuidePerformanceManager:
         """
         path = Path(play_path)
         if not path.exists():
-            print(f"[GuidePerformance] Play file not found: {play_path}", flush=True)
+            logger.warning(f"Play file not found: {play_path}")
             return
 
         # Create channel bus for this performance
@@ -422,7 +421,7 @@ class GuidePerformanceManager:
         # Create and load Brenda
         self._director = BrendaDirector(self._channel_bus)
         if not self._director.load_play(str(path)):
-            print(f"[GuidePerformance] Failed to load play: {play_path}", flush=True)
+            logger.error(f"Failed to load play: {play_path}")
             self._director = None
             self._channel_bus = None
             return
@@ -435,7 +434,31 @@ class GuidePerformanceManager:
         self._tick_timer.timeout.connect(self._director.tick)
         self._tick_timer.start(200)
 
-        print(f"[GuidePerformance] Play pipeline ready: {path.stem}", flush=True)
+        logger.info(f"Play pipeline ready: {path.stem}")
+
+    # =========================================================================
+    # CONVERSATION HISTORY
+    # =========================================================================
+
+    def _format_history(self) -> str:
+        """
+        Format conversation history for injection into facet prompts.
+
+        Keeps the last 20 messages (10 exchanges) to avoid token bloat.
+
+        Returns:
+            Formatted conversation string, or "(No previous conversation)"
+        """
+        if not self._conversation_history:
+            return "(No previous conversation)"
+
+        lines = []
+        # Last 10 exchanges (20 messages)
+        recent = self._conversation_history[-20:]
+        for msg in recent:
+            role = "User" if msg['role'] == 'user' else "Ajo"
+            lines.append(f"{role}: {msg['content']}")
+        return "\n".join(lines)
 
     # =========================================================================
     # MESSAGE HANDLING
@@ -468,7 +491,7 @@ class GuidePerformanceManager:
 
         # Build execution context
         context = {
-            'conversation_history': self._conversation_history,
+            'conversation_history': self._format_history(),
         }
 
         # Inject Brenda direction if available
@@ -512,11 +535,11 @@ class GuidePerformanceManager:
         # Drive expressions from sentiment facet output
         sentiment_raw = result.facet_outputs.get('sentiment', {})
         sentiment_output = sentiment_raw.get('out')
-        print(f"[AFFECT] Sentiment facet outputs: {sentiment_raw}", flush=True)
+        logger.info(f"Sentiment facet outputs: {sentiment_raw}")
         if sentiment_output:
             self._apply_affect(sentiment_output)
         else:
-            print("[AFFECT] Sentiment facet produced NO output", flush=True)
+            logger.warning("Sentiment facet produced no output")
 
         # Report to GuideCueHandler for Brenda feedback
         if self._guide_cue_handler and response and response.strip():
@@ -539,8 +562,8 @@ class GuidePerformanceManager:
         self._window.set_busy(False)
         self._worker = None
 
-        print(f"[GuidePerformance] Assembly done: {result.total_time:.2f}s, "
-              f"{result.total_tokens} tokens", flush=True)
+        logger.info(f"Assembly done: {result.total_time:.2f}s, "
+                    f"{result.total_tokens} tokens")
 
     def _on_assembly_error(self, error_msg: str):
         """
@@ -556,7 +579,7 @@ class GuidePerformanceManager:
             self._window._show_error(f"Assembly error: {error_msg}")
             self._window.set_busy(False)
         self._worker = None
-        print(f"[GuidePerformance] Assembly error: {error_msg}", flush=True)
+        logger.error(f"Assembly error: {error_msg}")
 
     def _on_user_message_for_channel(self, message: str):
         """
@@ -592,17 +615,17 @@ class GuidePerformanceManager:
         Args:
             affect_text: JSON string from the sentiment facet
         """
-        print(f"[AFFECT] Raw sentiment text: {affect_text!r}", flush=True)
+        logger.info(f"Raw sentiment text: {affect_text!r}")
 
         try:
             affect_data = json.loads(affect_text)
             valence = float(affect_data.get('valence', 0.5))
             arousal = float(affect_data.get('arousal', 0.5))
             dominance = float(affect_data.get('dominance', 0.5))
-            print(f"[AFFECT] Parsed: valence={valence:.2f} arousal={arousal:.2f} "
-                  f"dominance={dominance:.2f}", flush=True)
+            logger.info(f"Affect parsed: valence={valence:.2f} arousal={arousal:.2f} "
+                        f"dominance={dominance:.2f}")
         except (json.JSONDecodeError, ValueError, TypeError) as e:
-            print(f"[AFFECT] JSON parse FAILED: {e}", flush=True)
+            logger.error(f"Affect JSON parse failed: {e}")
             return
 
         from noodlestudio.runtime.facs_mapper import FACSMapper, Affect
@@ -617,12 +640,12 @@ class GuidePerformanceManager:
         )
 
         vrm_shapes = mapper.map_affect_to_vrm(affect_state)
-        print(f"[AFFECT] VRM blend shapes ({len(vrm_shapes)}): {vrm_shapes}", flush=True)
+        logger.info(f"VRM blend shapes ({len(vrm_shapes)}): {vrm_shapes}")
 
         if self._window and vrm_shapes:
             self._window.set_blend_shapes(vrm_shapes)
         elif not vrm_shapes:
-            print("[AFFECT] FACSMapper produced EMPTY shapes", flush=True)
+            logger.warning("FACSMapper produced empty shapes")
 
     # =========================================================================
     # FACS EXPRESSION TEST MODE
@@ -676,7 +699,7 @@ class GuidePerformanceManager:
 
         self._apply_test_expression()
         self._expression_test_timer.start(2500)
-        print("[FACS TEST] Started expression test cycle", flush=True)
+        logger.info("FACS test: started expression test cycle")
 
     def _stop_expression_test(self):
         """Stop test mode and reset to neutral."""
@@ -689,7 +712,7 @@ class GuidePerformanceManager:
         if self._window:
             self._window.set_blend_shapes(shapes)
             self._window.show_play_header(self._play_title or "Guide")
-        print("[FACS TEST] Stopped", flush=True)
+        logger.info("FACS test: stopped")
 
     def _next_test_expression(self):
         """Advance to the next test expression."""
@@ -709,7 +732,7 @@ class GuidePerformanceManager:
             self._window.set_blend_shapes(shapes)
             self._window.show_play_header(f"FACS Test: {name}")
 
-        print(f"[FACS TEST] {name}: {shapes}", flush=True)
+        logger.info(f"FACS test: {name}: {shapes}")
 
     # =========================================================================
     # FACETS EDITOR LIVE VISUALIZATION
@@ -1011,10 +1034,10 @@ class GuidePerformanceManager:
 
             vrm_path = project_root / _GUIDE_VRM_RELATIVE
             if vrm_path.exists():
-                print(f"[GuidePerformance] Auto-discovered VRM: {vrm_path}", flush=True)
+                logger.info(f"Auto-discovered VRM: {vrm_path}")
                 return str(vrm_path)
 
-            print(f"[GuidePerformance] VRM not found at {vrm_path}", flush=True)
+            logger.warning(f"VRM not found at {vrm_path}")
         except Exception as e:
             logger.debug(f"Could not discover guide VRM: {e}")
 

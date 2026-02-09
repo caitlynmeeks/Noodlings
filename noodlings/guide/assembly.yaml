@@ -48,6 +48,9 @@ facets:
 
       You genuinely love this stuff. Let that show.
 
+      Previous conversation:
+      {conversation_history}
+
       User says: {incoming_data}
     inputs:
       - name: "in"
@@ -66,6 +69,7 @@ facets:
     max_tokens: 80
     prompt: |
       Analyze the emotional tone of this conversation exchange.
+      Consider the conversation trajectory, not just the current message.
       Return ONLY a JSON object with these float values (0.0 to 1.0):
       {{"valence": 0.0, "arousal": 0.0, "dominance": 0.0}}
 
@@ -73,7 +77,10 @@ facets:
       arousal: 0=calm, 1=excited
       dominance: 0=submissive/uncertain, 1=confident/in-control
 
-      User said: {incoming_data}
+      Recent conversation:
+      {conversation_history}
+
+      Latest message from user: {incoming_data}
     inputs:
       - name: "in"
         type: "input"

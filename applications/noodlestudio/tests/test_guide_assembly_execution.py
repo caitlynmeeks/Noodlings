@@ -450,7 +450,9 @@ class TestContextBuilding:
             call_args = MockWorker.call_args
             context = call_args[0][3]  # 4th positional arg
             assert 'conversation_history' in context
-            assert len(context['conversation_history']) == 1
+            # History is now a formatted string for prompt injection
+            assert isinstance(context['conversation_history'], str)
+            assert 'previous message' in context['conversation_history']
 
     def test_context_includes_brenda_direction(self):
         """Execution context includes Brenda direction when available."""
