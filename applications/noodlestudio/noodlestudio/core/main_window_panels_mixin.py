@@ -495,6 +495,14 @@ class MainWindowPanelsMixin:
         The overlay is a top-level transparent window (not a child widget)
         so it can render above ALL windows including floating tool windows
         like the Guide Performance Window.
+
+        IMPORTANT: The overlay starts HIDDEN. On macOS, top-level windows
+        always receive input events from the WindowServer regardless of
+        WA_TransparentForMouseEvents (that attribute only works for child
+        widgets within a parent hierarchy). Showing the overlay in
+        "passthrough" mode creates an invisible glass pane that blocks
+        all input to the main window. The overlay is only shown when
+        the user activates edit mode via Shift+Tab.
         """
         from .annotation_overlay import AnnotationOverlay
 
@@ -514,13 +522,9 @@ class MainWindowPanelsMixin:
             Qt.WidgetAttribute.WA_NoSystemBackground, True
         )
 
-        # Position over main window
-        self.annotation_overlay.setGeometry(self.geometry())
-        self.annotation_overlay.show()
-        self.annotation_overlay.raise_()
-
-        # Start in passthrough mode (not intercepting clicks)
-        self.annotation_overlay.toggle_edit_mode()  # Turns off edit mode
+        # Start HIDDEN -- only shown when user enters edit mode (Shift+Tab)
+        self.annotation_overlay.visible_annotations = False
+        self.annotation_overlay.edit_mode = False
 
         # Install event filter to track main window geometry changes
         self.installEventFilter(self)
@@ -530,42 +534,46 @@ class MainWindowPanelsMixin:
         if obj == self and event.type() in (
             QEvent.Type.Resize, QEvent.Type.Move
         ):
-            if hasattr(self, 'annotation_overlay'):
+            if hasattr(self, 'annotation_overlay') and self.annotation_overlay.isVisible():
                 self.annotation_overlay.setGeometry(self.geometry())
         return super().eventFilter(obj, event)
 
     def _toggle_annotation_overlay(self):
-        """Toggle annotation overlay visibility and edit mode (Shift+Tab)."""
+        """Toggle annotation overlay edit mode (Shift+Tab).
+
+        Two-state toggle: Hidden <-> Edit Mode.
+
+        On macOS, top-level windows always receive input from the
+        WindowServer regardless of WA_TransparentForMouseEvents, so
+        a "view-only passthrough" state is not possible. The overlay
+        must be hidden when not editing. Screenshots still composite
+        annotations from memory even when the overlay is hidden.
+        """
         if not hasattr(self, 'annotation_overlay'):
             return
 
-        # If annotations are hidden, show them and enter edit mode
-        if not self.annotation_overlay.visible_annotations:
-            self.annotation_overlay.visible_annotations = True
-            self.annotation_overlay.edit_mode = True
-            self.annotation_overlay.setAttribute(
-                Qt.WidgetAttribute.WA_TransparentForMouseEvents, False
+        overlay = self.annotation_overlay
+
+        if not overlay.isVisible():
+            # Hidden -> Edit Mode: show overlay for annotation editing
+            overlay.visible_annotations = True
+            overlay.edit_mode = True
+            overlay.setGeometry(self.geometry())
+            overlay.show()
+            overlay.raise_()
+            overlay.activateWindow()
+            overlay.setFocus()
+            self.statusBar().showMessage(
+                "Annotations: EDIT MODE (right-click for tools, Shift+Tab to close)", 3000
             )
-            # Ensure overlay geometry matches main window
-            self.annotation_overlay.setGeometry(self.geometry())
-            self.annotation_overlay.show()
-            self.annotation_overlay.raise_()
-            self.annotation_overlay.activateWindow()
-            self.annotation_overlay.setFocus()
-            self.statusBar().showMessage("Annotations: EDIT MODE (right-click for tools)", 3000)
-        # If in edit mode, switch to view-only (passthrough)
-        elif self.annotation_overlay.edit_mode:
-            self.annotation_overlay.edit_mode = False
-            self.annotation_overlay.setAttribute(
-                Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
-            )
-            self.annotation_overlay.update()
-            self.statusBar().showMessage("Annotations: VIEW ONLY (Shift+Tab to edit/hide)", 3000)
-        # If view-only, hide annotations
         else:
-            self.annotation_overlay.visible_annotations = False
-            self.annotation_overlay.update()
-            self.statusBar().showMessage("Annotations: HIDDEN (Shift+Tab to show)", 3000)
+            # Edit Mode -> Hidden: hide overlay to restore input
+            overlay.edit_mode = False
+            overlay.hide()
+            # Keep visible_annotations True so screenshots still render them
+            self.statusBar().showMessage(
+                "Annotations: HIDDEN (Shift+Tab to edit)", 3000
+            )
 
     def _setup_shortcuts(self):
         """Setup keyboard shortcuts."""
@@ -617,11 +625,9 @@ class MainWindowPanelsMixin:
         overlay_was_visible = False
 
         # Temporarily hide annotation overlay so main grab excludes it
-        if overlay and overlay.visible_annotations:
+        if overlay and overlay.isVisible():
             overlay_was_visible = True
-            overlay.visible_annotations = False
-            overlay.update()
-            overlay.repaint()
+            overlay.hide()
 
         # 1. Grab main window (without annotations)
         pixmap = self.grab()
@@ -645,17 +651,28 @@ class MainWindowPanelsMixin:
             child_pixmap = widget.grab()
             painter.drawPixmap(rel_x, rel_y, child_pixmap)
 
-        # 3. Render annotation overlay ON TOP of everything
-        if overlay and overlay_was_visible:
+        # 3. Render annotations ON TOP of everything (from memory, even if
+        #    the overlay is hidden -- user draws annotations then hides the
+        #    overlay to work, but screenshots should still include them)
+        if overlay and overlay.annotations:
+            saved_visible = overlay.visible_annotations
             overlay.visible_annotations = True
-            overlay.update()
+            overlay.setGeometry(self.geometry())
 
             ann_pixmap = QPixmap(pixmap.size())
             ann_pixmap.fill(QtConst.GlobalColor.transparent)
             overlay.render(ann_pixmap)
             painter.drawPixmap(0, 0, ann_pixmap)
 
+            overlay.visible_annotations = saved_visible
+
         painter.end()
+
+        # Restore overlay visibility if it was showing (edit mode)
+        if overlay_was_visible:
+            overlay.show()
+            overlay.raise_()
+
         return pixmap
 
     def _take_debug_screenshot(self):

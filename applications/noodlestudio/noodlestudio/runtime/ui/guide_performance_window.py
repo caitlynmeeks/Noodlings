@@ -13,13 +13,11 @@
 #
 #   Guide Performance Window
 #
-#   Floating combined panel for guided play performances.
-#   Combines VRM character rendering, dialogue display, and user
-#   text input in a single always-on-top window that floats
-#   alongside the main NoodleSTUDIO window.
-#
-#   Designed to free NoodleCode for developer use while Guide
-#   (Ajo Majo) gets his own dedicated interaction surface.
+#   Pure renderer for a noodling's performance. Displays VRM
+#   character, receives text and affect from a facet assembly.
+#   Does NOT make LLM calls. Does NOT contain personality prompts.
+#   All cognition happens in the assembly, orchestrated by
+#   GuidePerformanceManager.
 #
 # ──────────────────────────────────────────────────────────────
 # MODULE:   applications.noodlestudio.runtime.ui.guide_performance_window
@@ -38,7 +36,6 @@
 # https://noodlings.ai
 # ──────────────────────────────────────────────────────────────
 
-import asyncio
 import logging
 from typing import Dict, Optional, Tuple
 
@@ -49,71 +46,13 @@ try:
         QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
         QTextEdit, QLineEdit, QPushButton, QLabel, QFrame
     )
-    from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, pyqtSlot
+    from PyQt6.QtCore import Qt, QTimer, pyqtSignal
     from PyQt6.QtGui import (
-        QFont, QTextCursor, QColor, QTextCharFormat, QMouseEvent
+        QTextCursor, QColor, QTextCharFormat, QMouseEvent
     )
     QT_AVAILABLE = True
 except ImportError:
     QT_AVAILABLE = False
-
-
-# =============================================================================
-# Async Worker (same pattern as NoodleCodePanel)
-# =============================================================================
-
-if QT_AVAILABLE:
-
-    class _GuideAsyncWorker(QThread):
-        """Worker thread for streaming LLM responses in the guide window."""
-        chunk_received = pyqtSignal(dict)
-        finished_signal = pyqtSignal()
-
-        def __init__(self, engine, message: str,
-                     system_prompt_override: str = ""):
-            super().__init__()
-            self.engine = engine
-            self.message = message
-            self.system_prompt_override = system_prompt_override
-            self._running = True
-
-        def run(self):
-            """Run the async message in a thread."""
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(self._process_message())
-            finally:
-                loop.close()
-
-        async def _process_message(self):
-            """Process message and emit chunks."""
-            try:
-                kwargs = {}
-                if self.system_prompt_override:
-                    kwargs["system_prompt_override"] = self.system_prompt_override
-
-                async for chunk in self.engine.send_message(self.message, **kwargs):
-                    if not self._running:
-                        break
-                    self.chunk_received.emit({
-                        'type': chunk.type,
-                        'content': chunk.content,
-                        'tool_name': chunk.tool_name,
-                        'tool_id': chunk.tool_id,
-                        'tool_input': chunk.tool_input
-                    })
-            except Exception as e:
-                self.chunk_received.emit({
-                    'type': 'error',
-                    'content': str(e)
-                })
-            finally:
-                self.finished_signal.emit()
-
-        def stop(self):
-            """Stop the worker."""
-            self._running = False
 
 
 # =============================================================================
@@ -231,7 +170,12 @@ if QT_AVAILABLE:
 
     class GuidePerformanceWindow(QMainWindow):
         """
-        Floating combined panel for guided play performances.
+        Pure renderer for a noodling's performance.
+
+        Displays VRM character, receives text and affect from a facet
+        assembly. Does NOT make LLM calls. Does NOT contain personality
+        prompts. All cognition happens in the assembly, orchestrated by
+        GuidePerformanceManager.
 
         Combines:
         - VRM character rendering (top)
@@ -239,18 +183,19 @@ if QT_AVAILABLE:
         - User text input (bottom)
 
         Floats alongside the main window, always visible regardless
-        of which center tab is active. Guide gets his own interaction
-        surface independent of NoodleCode.
+        of which center tab is active.
 
         Usage:
             window = GuidePerformanceWindow(parent_window=main_window)
-            window.set_engine(noodle_code_engine)
             window.set_vrm("/path/to/ajo.vrm")
             window.show_play_header("Let's Consciousness!")
             window.show()
         """
 
-        # Signal emitted when user sends a message
+        # Signal: user submitted a message for assembly execution
+        messageSubmitted = pyqtSignal(str)
+
+        # Signal: user sent a message (for channel bus forwarding)
         messageSent = pyqtSignal(str)
 
         def __init__(
@@ -272,17 +217,6 @@ if QT_AVAILABLE:
             self._size = size
             self._offset = offset
 
-            self.engine = None
-            self.worker = None
-            self._guide_cue_handler = None
-
-            # Drag state -- pauses follow-parent during user drag
-            self._user_dragging = False
-
-            # Streaming state
-            self._current_response = ""
-            self._response_started = False
-
             # Frameless, stays on top, no taskbar entry
             self.setWindowFlags(
                 Qt.WindowType.FramelessWindowHint |
@@ -293,10 +227,14 @@ if QT_AVAILABLE:
             self.setFixedSize(*size)
             self._build_ui()
 
-            # Timer to follow parent window position
-            self._follow_timer = QTimer()
-            self._follow_timer.timeout.connect(self._follow_parent)
-            self._follow_timer.start(50)
+            # Position once at the right edge of the parent, then stay put.
+            # The user can drag the window anywhere (including a second
+            # monitor) and it will remain there independently.
+            if parent_window:
+                geo = parent_window.geometry()
+                x = geo.right() - size[0] - offset[0]
+                y = geo.top() + offset[1]
+                self.move(x, y)
 
             # VRM viewport reference (created lazily when VRM is loaded)
             self._vrm_viewport = None
@@ -335,8 +273,6 @@ if QT_AVAILABLE:
                 font-weight: bold;
                 background: transparent;
             """)
-            self.header_label.dragStarted.connect(self._on_drag_start)
-            self.header_label.dragFinished.connect(self._on_drag_finish)
             header_layout.addWidget(self.header_label, stretch=1)
 
             close_btn = QPushButton("x")
@@ -445,78 +381,29 @@ if QT_AVAILABLE:
             input_layout.addWidget(self.input_field)
 
             self.send_button = QPushButton("Send")
-            self._is_stop_mode = False
-            self._update_send_button_style()
-            self.send_button.clicked.connect(self._on_send_or_stop)
+            self.send_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #4FC3F7;
+                    border: none;
+                    border-radius: 4px;
+                    color: #1A1A1A;
+                    padding: 6px 12px;
+                    font-weight: bold;
+                    font-size: 11px;
+                }
+                QPushButton:hover { background-color: #67D3FF; }
+                QPushButton:pressed { background-color: #3AA3D7; }
+                QPushButton:disabled {
+                    background-color: #3A3A3A;
+                    color: #666;
+                }
+            """)
+            self.send_button.clicked.connect(self._on_send)
             input_layout.addWidget(self.send_button)
 
             main_layout.addWidget(input_frame)
 
             self.setCentralWidget(container)
-
-        def _update_send_button_style(self):
-            """Update send/stop button appearance."""
-            if self._is_stop_mode:
-                self.send_button.setText("Stop")
-                self.send_button.setStyleSheet("""
-                    QPushButton {
-                        background-color: #E57373;
-                        border: none;
-                        border-radius: 4px;
-                        color: #1A1A1A;
-                        padding: 6px 12px;
-                        font-weight: bold;
-                        font-size: 11px;
-                    }
-                    QPushButton:hover { background-color: #EF9A9A; }
-                    QPushButton:pressed { background-color: #C55050; }
-                """)
-            else:
-                self.send_button.setText("Send")
-                self.send_button.setStyleSheet("""
-                    QPushButton {
-                        background-color: #4FC3F7;
-                        border: none;
-                        border-radius: 4px;
-                        color: #1A1A1A;
-                        padding: 6px 12px;
-                        font-weight: bold;
-                        font-size: 11px;
-                    }
-                    QPushButton:hover { background-color: #67D3FF; }
-                    QPushButton:pressed { background-color: #3AA3D7; }
-                    QPushButton:disabled {
-                        background-color: #3A3A3A;
-                        color: #666;
-                    }
-                """)
-
-        def _set_stop_mode(self, stop_mode: bool):
-            """Switch between Send and Stop button modes."""
-            self._is_stop_mode = stop_mode
-            self._update_send_button_style()
-
-        # =====================================================================
-        # ENGINE AND HANDLER WIRING
-        # =====================================================================
-
-        def set_engine(self, engine):
-            """
-            Set the NoodleCode engine for LLM communication.
-
-            Args:
-                engine: NoodleCodeEngine instance (shared with NoodleCode panel)
-            """
-            self.engine = engine
-
-        def set_guide_cue_handler(self, handler):
-            """
-            Set the GuideCueHandler for direction context.
-
-            Args:
-                handler: GuideCueHandler instance
-            """
-            self._guide_cue_handler = handler
 
         # =====================================================================
         # VRM
@@ -600,7 +487,7 @@ if QT_AVAILABLE:
             Append guide (assistant) text to the dialogue.
 
             Args:
-                text: Guide's message text
+                text: Guide's message text (from assembly OUTGOING)
             """
             cursor = self.dialogue_view.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
@@ -608,7 +495,7 @@ if QT_AVAILABLE:
             fmt = QTextCharFormat()
             fmt.setForeground(QColor(180, 180, 180))
             cursor.setCharFormat(fmt)
-            cursor.insertText(f"꩜ {text}\n\n")
+            cursor.insertText(f"\ua69c {text}\n\n")
 
             self.dialogue_view.setTextCursor(cursor)
             self._scroll_to_bottom()
@@ -640,19 +527,6 @@ if QT_AVAILABLE:
             self.dialogue_view.setTextCursor(cursor)
             self._scroll_to_bottom()
 
-        def _append_streaming_text(self, text: str):
-            """Append streaming text (continues current message, no prefix)."""
-            cursor = self.dialogue_view.textCursor()
-            cursor.movePosition(QTextCursor.MoveOperation.End)
-
-            fmt = QTextCharFormat()
-            fmt.setForeground(QColor(180, 180, 180))
-            cursor.setCharFormat(fmt)
-            cursor.insertText(text)
-
-            self.dialogue_view.setTextCursor(cursor)
-            self._scroll_to_bottom()
-
         def _scroll_to_bottom(self):
             """Scroll dialogue to bottom."""
             QTimer.singleShot(10, self._do_scroll)
@@ -665,136 +539,39 @@ if QT_AVAILABLE:
         # SENDING MESSAGES
         # =====================================================================
 
-        def _build_guide_system_prompt(self, direction: str) -> str:
-            """
-            Build a complete system prompt for Guide mode.
-
-            Replaces the NoodleCode persona with the Guide character
-            identity and injects Brenda's current direction.
-
-            Args:
-                direction: Output from GuideCueHandler.build_system_prompt_addition()
-
-            Returns:
-                Complete system prompt string for the LLM
-            """
-            return f"""You are Guide (also known as Ajo Majo), a friendly character in NoodleStudio.
-
-You are NOT NoodleCode. You are a warm, curious tutor who genuinely loves sharing
-the world of noodlings and NoodleStudio with new users. You have your own personality
--- you're enthusiastic but not pushy, knowledgeable but approachable.
-
-Keep your responses conversational and relatively concise. You're having a real
-conversation, not giving a lecture. Use natural language, not bullet points or
-markdown formatting.
-
-{direction}"""
-
         def _on_send(self):
             """Handle user pressing Enter or clicking Send."""
             message = self.input_field.text().strip()
             if not message:
                 return
 
-            if not self.engine:
-                self._show_error("Engine not initialized.")
-                return
-
             self.input_field.clear()
-            self.input_field.setEnabled(False)
-            self._set_stop_mode(True)
 
-            self.thinking_indicator.set_status("Considering...")
-
-            # Display user message and track for feedback
+            # Display user message
             self.append_user_text(message)
-            self._last_user_message = message
 
-            # Reset streaming state
-            self._current_response = ""
-            self._response_started = False
+            # Signal to manager for assembly execution
+            self.messageSubmitted.emit(message)
 
-            # Build Guide system prompt (replaces NoodleCode persona entirely)
-            system_prompt_override = ""
-            if self._guide_cue_handler:
-                direction = self._guide_cue_handler.build_system_prompt_addition()
-                system_prompt_override = self._build_guide_system_prompt(direction)
-                print(f"[GuideWindow] Guide prompt built, mode={self._guide_cue_handler.state.mode}, "
-                      f"has_cue={self._guide_cue_handler.state.current_cue is not None}, "
-                      f"prompt_len={len(system_prompt_override)}", flush=True)
-
-            # Start async worker
-            self.worker = _GuideAsyncWorker(self.engine, message, system_prompt_override)
-            self.worker.chunk_received.connect(self._on_chunk)
-            self.worker.finished_signal.connect(self._on_finished)
-            self.worker.start()
-
+            # Signal for channel bus forwarding
             self.messageSent.emit(message)
 
-        def _on_send_or_stop(self):
-            """Handle send/stop button click."""
-            if self._is_stop_mode:
-                self._stop_generation()
+        def set_busy(self, busy: bool):
+            """
+            Toggle busy state (thinking indicator and input).
+
+            Called by GuidePerformanceManager during assembly execution.
+
+            Args:
+                busy: True when assembly is executing, False when done
+            """
+            self.input_field.setEnabled(not busy)
+            self.send_button.setEnabled(not busy)
+            if busy:
+                self.thinking_indicator.set_status("Thinking...")
             else:
-                self._on_send()
-
-        def _stop_generation(self):
-            """Stop current generation."""
-            if self.worker:
-                self.worker.stop()
-                self.thinking_indicator.set_status("Stopping...")
-                self._append_streaming_text("\n[interrupted]\n\n")
-
-        @pyqtSlot(dict)
-        def _on_chunk(self, chunk: dict):
-            """Handle a streamed chunk from the LLM."""
-            chunk_type = chunk['type']
-            content = chunk.get('content', '')
-
-            if chunk_type == 'text':
-                self.thinking_indicator.set_status("Speaking...")
-
-                if not self._response_started:
-                    # Start new guide message with prefix
-                    cursor = self.dialogue_view.textCursor()
-                    cursor.movePosition(QTextCursor.MoveOperation.End)
-                    fmt = QTextCharFormat()
-                    fmt.setForeground(QColor(180, 180, 180))
-                    cursor.setCharFormat(fmt)
-                    cursor.insertText("꩜ ")
-                    self.dialogue_view.setTextCursor(cursor)
-                    self._response_started = True
-
-                self._append_streaming_text(content)
-                self._current_response += content
-
-            elif chunk_type == 'tool_use_start':
-                tool_name = chunk.get('tool_name', 'unknown')
-                self.thinking_indicator.set_status(f"Using {tool_name}...")
-
-            elif chunk_type == 'error':
-                self._append_streaming_text(f"\nError: {content}")
-
-            elif chunk_type == 'done':
-                self._append_streaming_text("\n\n")
                 self.thinking_indicator.clear()
-
-        def _on_finished(self):
-            """Handle worker finished."""
-            # Report response to GuideCueHandler for Brenda feedback
-            if (self._guide_cue_handler
-                    and self._current_response.strip()):
-                self._guide_cue_handler.report_response(
-                    self._current_response.strip(),
-                    getattr(self, '_last_user_message', "")
-                )
-
-            self._current_response = ""
-            self.thinking_indicator.clear()
-            self.input_field.setEnabled(True)
-            self._set_stop_mode(False)
-            self.input_field.setFocus()
-            self.worker = None
+                self.input_field.setFocus()
 
         def _show_error(self, text: str):
             """Show an error in the dialogue."""
@@ -808,54 +585,11 @@ markdown formatting.
             self._scroll_to_bottom()
 
         # =====================================================================
-        # POSITION TRACKING
-        # =====================================================================
-
-        def _on_drag_start(self):
-            """Pause follow-parent while user drags the window."""
-            self._user_dragging = True
-
-        def _on_drag_finish(self):
-            """Recalculate offset from parent after user drag, then resume tracking."""
-            if self.parent_window:
-                geo = self.parent_window.geometry()
-                pos = self.pos()
-                # Recalculate offset so window stays at user-chosen position
-                self._offset = (
-                    geo.right() - pos.x() - self._size[0],
-                    pos.y() - geo.top()
-                )
-            self._user_dragging = False
-
-        def _follow_parent(self):
-            """Update position to follow parent window (anchored inside right edge)."""
-            if self._user_dragging:
-                return
-
-            if self.parent_window and self.parent_window.isVisible():
-                geo = self.parent_window.geometry()
-
-                # Anchor inside the right edge of the parent window
-                # Inset from the right so it's visible even when maximized
-                x = geo.right() - self._size[0] - self._offset[0]
-                y = geo.top() + self._offset[1]
-                self.move(x, y)
-
-                if not self.isVisible():
-                    self.show()
-            else:
-                if self.isVisible():
-                    self.hide()
-
-        # =====================================================================
         # LIFECYCLE
         # =====================================================================
 
         def closeEvent(self, event):
             """Clean up on close."""
-            self._follow_timer.stop()
-            if self.worker:
-                self.worker.stop()
             super().closeEvent(event)
 
 
@@ -869,6 +603,7 @@ if not QT_AVAILABLE:
         """Stub when PyQt6 is not available."""
 
         messageSent = None
+        messageSubmitted = None
 
         def __init__(self, *args, **kwargs):
             logger.warning("GuidePerformanceWindow requires PyQt6")
@@ -876,11 +611,10 @@ if not QT_AVAILABLE:
         def show(self): pass
         def hide(self): pass
         def close(self): pass
-        def set_engine(self, engine): pass
-        def set_guide_cue_handler(self, handler): pass
         def set_vrm(self, vrm_path): pass
         def set_muscles(self, muscles): pass
         def set_blend_shapes(self, shapes): pass
+        def set_busy(self, busy): pass
         def show_play_header(self, title): pass
         def clear_dialogue(self): pass
         def append_guide_text(self, text): pass

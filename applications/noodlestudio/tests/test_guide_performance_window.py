@@ -4,6 +4,9 @@
 #   Tests for the floating combined panel that provides VRM
 #   character rendering, dialogue display, and user text input
 #   during guided play performances.
+#
+#   The window is a pure renderer -- it does NOT make LLM calls.
+#   All cognition is handled by GuidePerformanceManager.
 # ──────────────────────────────────────────────────────────────
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # (C) 2026 Caitlyn Meeks / Noodling Technologies, LLC
@@ -94,54 +97,35 @@ class TestWindowCreation:
 # Position Tracking Tests
 # =============================================================================
 
-class TestPositionTracking:
-    """Tests for parent window following."""
+class TestInitialPosition:
+    """Tests for initial window positioning."""
 
-    def test_follow_parent_positions_relative(self, guide_window, parent_window):
-        """Window positions itself inside parent's right edge."""
+    def test_positions_at_parent_right_edge(self, parent_window, qapp, qtbot):
+        """Window initially positions near the right edge of parent."""
         parent_window.move(100, 50)
         parent_window.show()
 
-        guide_window._follow_parent()
+        window = GuidePerformanceWindow(parent_window=parent_window)
+        qtbot.addWidget(window)
 
         geo = parent_window.geometry()
-        # Anchored inside right edge: right - width - x_offset
-        expected_x = geo.right() - guide_window._size[0] - guide_window._offset[0]
+        # Should be near the right edge (allow tolerance for WM)
+        assert abs(window.x() - (geo.right() - 350 - 20)) < 50
+        window.close()
 
-        # X position should match (allow small tolerance for WM)
-        assert abs(guide_window.x() - expected_x) < 50
-
-        # Y position: allow for window manager decoration offsets
-        expected_y = geo.top() + guide_window._offset[1]
-        assert abs(guide_window.y() - expected_y) < 50
-
-    def test_hides_when_parent_hidden(self, guide_window, parent_window):
-        """Window hides when parent is not visible."""
-        guide_window.show()
-        parent_window.hide()
-
-        guide_window._follow_parent()
-
-        assert not guide_window.isVisible()
-
-    def test_drag_pauses_follow(self, guide_window, parent_window):
-        """Follow-parent pauses during drag and resumes after."""
+    def test_stays_put_when_parent_moves(self, guide_window, parent_window):
+        """Window stays at its position when parent moves (independent)."""
         parent_window.move(100, 50)
         parent_window.show()
+        guide_window.show()
 
-        # Simulate drag start
-        guide_window._on_drag_start()
-        assert guide_window._user_dragging is True
+        original_pos = guide_window.pos()
 
-        # Move parent -- follow_parent should NOT reposition during drag
-        old_pos = guide_window.pos()
-        parent_window.move(500, 200)
-        guide_window._follow_parent()
-        assert guide_window.pos() == old_pos
+        # Move the parent window
+        parent_window.move(500, 300)
 
-        # Simulate drag finish -- should recalculate offset
-        guide_window._on_drag_finish()
-        assert guide_window._user_dragging is False
+        # Guide window should NOT have moved
+        assert guide_window.pos() == original_pos
 
 
 # =============================================================================
@@ -171,14 +155,6 @@ class TestDialogueDisplay:
         text = guide_window.dialogue_view.toPlainText()
         assert text.strip() == ""
 
-    def test_streaming_chunks_concatenate(self, guide_window):
-        """Multiple streaming chunks concatenate properly."""
-        guide_window._response_started = True
-        guide_window._append_streaming_text("Hello ")
-        guide_window._append_streaming_text("world")
-        text = guide_window.dialogue_view.toPlainText()
-        assert "Hello world" in text
-
     def test_play_header(self, guide_window):
         """Header displays play title."""
         guide_window.show_play_header("Let's Consciousness!")
@@ -186,39 +162,80 @@ class TestDialogueDisplay:
 
 
 # =============================================================================
-# Engine Wiring Tests
+# Signal Tests
 # =============================================================================
 
-class TestEngineWiring:
-    """Tests for engine and handler setup."""
+class TestSignals:
+    """Tests for window signals (pure renderer pattern)."""
 
-    def test_set_engine(self, guide_window):
-        """Engine can be set on the window."""
-        mock_engine = MagicMock()
-        guide_window.set_engine(mock_engine)
-        assert guide_window.engine is mock_engine
+    def test_message_submitted_signal(self, guide_window, qtbot):
+        """Sending a message emits messageSubmitted signal."""
+        guide_window.input_field.setText("Hello Guide")
 
-    def test_set_guide_cue_handler(self, guide_window):
-        """Guide cue handler can be set."""
-        mock_handler = MagicMock()
-        guide_window.set_guide_cue_handler(mock_handler)
-        assert guide_window._guide_cue_handler is mock_handler
+        with qtbot.waitSignal(guide_window.messageSubmitted, timeout=1000):
+            guide_window._on_send()
 
-    def test_send_without_engine_shows_error(self, guide_window):
-        """Sending without engine shows error message."""
-        guide_window.input_field.setText("test message")
+    def test_message_sent_signal(self, guide_window, qtbot):
+        """Sending a message emits messageSent signal for channel bus."""
+        guide_window.input_field.setText("Hello Guide")
+
+        with qtbot.waitSignal(guide_window.messageSent, timeout=1000):
+            guide_window._on_send()
+
+    def test_send_clears_input(self, guide_window):
+        """Sending a message clears the input field."""
+        guide_window.input_field.setText("Hello Guide")
+        guide_window._on_send()
+        assert guide_window.input_field.text() == ""
+
+    def test_send_displays_user_text(self, guide_window):
+        """Sending a message displays it in the dialogue."""
+        guide_window.input_field.setText("Hello Guide")
         guide_window._on_send()
         text = guide_window.dialogue_view.toPlainText()
-        assert "Error" in text
+        assert "Hello Guide" in text
 
-    def test_send_with_empty_input_does_nothing(self, guide_window):
-        """Sending with empty input is a no-op."""
-        mock_engine = MagicMock()
-        guide_window.set_engine(mock_engine)
+    def test_empty_send_does_nothing(self, guide_window, qtbot):
+        """Empty input does not emit signals."""
         guide_window.input_field.setText("")
+
+        # messageSubmitted should NOT fire
+        emitted = []
+        guide_window.messageSubmitted.connect(lambda msg: emitted.append(msg))
         guide_window._on_send()
-        # No worker should have been created
-        assert guide_window.worker is None
+        assert len(emitted) == 0
+
+
+# =============================================================================
+# Busy State Tests
+# =============================================================================
+
+class TestBusyState:
+    """Tests for set_busy() (controlled by manager during assembly execution)."""
+
+    def test_set_busy_disables_input(self, guide_window):
+        """set_busy(True) disables input field and send button."""
+        guide_window.set_busy(True)
+        assert not guide_window.input_field.isEnabled()
+        assert not guide_window.send_button.isEnabled()
+
+    def test_set_busy_shows_thinking(self, guide_window):
+        """set_busy(True) shows thinking indicator."""
+        guide_window.set_busy(True)
+        assert "Thinking" in guide_window.thinking_indicator.status_label.text()
+
+    def test_clear_busy_enables_input(self, guide_window):
+        """set_busy(False) re-enables input."""
+        guide_window.set_busy(True)
+        guide_window.set_busy(False)
+        assert guide_window.input_field.isEnabled()
+        assert guide_window.send_button.isEnabled()
+
+    def test_clear_busy_hides_thinking(self, guide_window):
+        """set_busy(False) stops the thinking indicator timer."""
+        guide_window.set_busy(True)
+        guide_window.set_busy(False)
+        assert not guide_window.thinking_indicator._timer.isActive()
 
 
 # =============================================================================
@@ -249,96 +266,17 @@ class TestVRMLoading:
 
 
 # =============================================================================
-# Input Interaction Tests
+# Error Display Tests
 # =============================================================================
 
-class TestInputInteraction:
-    """Tests for user input behavior."""
+class TestErrorDisplay:
+    """Tests for error message display."""
 
-    def test_input_field_sends_on_enter(self, guide_window, qtbot):
-        """Enter key triggers send and emits signal."""
-        mock_engine = MagicMock()
-
-        # Create a mock that returns an async iterator
-        async def mock_send(msg):
-            return
-            yield  # Make it an async generator
-
-        mock_engine.send_message = mock_send
-        guide_window.set_engine(mock_engine)
-
-        guide_window.input_field.setText("Hello Guide")
-
-        with qtbot.waitSignal(guide_window.messageSent, timeout=1000):
-            guide_window._on_send()
-
-    def test_stop_mode_toggle(self, guide_window):
-        """Send/Stop button toggles correctly."""
-        assert guide_window.send_button.text() == "Send"
-        guide_window._set_stop_mode(True)
-        assert guide_window.send_button.text() == "Stop"
-        guide_window._set_stop_mode(False)
-        assert guide_window.send_button.text() == "Send"
-
-
-# =============================================================================
-# Chunk Handling Tests
-# =============================================================================
-
-class TestChunkHandling:
-    """Tests for streaming chunk processing."""
-
-    def test_text_chunk_displays(self, guide_window):
-        """Text chunks appear in the dialogue."""
-        guide_window._on_chunk({
-            'type': 'text',
-            'content': 'Hello there',
-            'tool_name': None,
-            'tool_id': None,
-            'tool_input': None,
-        })
-        text = guide_window.dialogue_view.toPlainText()
-        assert "Hello there" in text
-
-    def test_error_chunk_displays(self, guide_window):
-        """Error chunks appear in the dialogue."""
-        guide_window._on_chunk({
-            'type': 'error',
-            'content': 'Something went wrong',
-            'tool_name': None,
-            'tool_id': None,
-            'tool_input': None,
-        })
+    def test_show_error(self, guide_window):
+        """_show_error displays error text in dialogue."""
+        guide_window._show_error("Something went wrong")
         text = guide_window.dialogue_view.toPlainText()
         assert "Something went wrong" in text
-
-    def test_tool_use_sets_indicator_status(self, guide_window):
-        """Tool use chunks set the thinking indicator status text."""
-        guide_window._on_chunk({
-            'type': 'tool_use_start',
-            'content': '',
-            'tool_name': 'read_file',
-            'tool_id': '123',
-            'tool_input': None,
-        })
-        # Check the status label text rather than visibility
-        # (visibility depends on parent widget being shown)
-        assert "read_file" in guide_window.thinking_indicator.status_label.text()
-
-    def test_done_chunk_clears_indicator(self, guide_window):
-        """Done chunk clears the thinking indicator."""
-        guide_window.thinking_indicator.set_status("Working...")
-        guide_window._on_chunk({
-            'type': 'done',
-            'content': '',
-            'tool_name': None,
-            'tool_id': None,
-            'tool_input': None,
-        })
-        # After done, indicator should be hidden
-        assert guide_window.thinking_indicator.status_label.text() == "Working..."
-        # The clear() hides it and stops the timer
-        assert not guide_window.thinking_indicator._timer.isActive()
 
 
 # ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡

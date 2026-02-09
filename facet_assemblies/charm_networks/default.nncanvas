@@ -128,8 +128,8 @@
       "type": "LSTM",
       "name": "Medium LSTM",
       "position": [
-        698,
-        280
+        615,
+        433
       ],
       "params": {
         "input_dim": 5,

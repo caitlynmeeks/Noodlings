@@ -56,15 +56,14 @@ def parent_window(qapp, qtbot):
 class TestGuideScreenSpace:
     """Tests for window visibility during UI interaction."""
 
+    @patch('noodlestudio.runtime.ui.guide_performance_manager.GuidePerformanceManager._load_assembly', return_value=False)
     @patch(CUC_PATCH)
-    def test_guide_visible_during_tab_switch(self, mock_get_ctrl, parent_window, qtbot):
+    def test_guide_visible_during_tab_switch(self, mock_get_ctrl, mock_load, parent_window, qtbot):
         """Performance window remains visible when switching center tabs."""
         mock_ctrl = MagicMock()
         mock_get_ctrl.return_value = mock_ctrl
 
         manager = GuidePerformanceManager(parent_window)
-        mock_engine = MagicMock()
-        manager.set_engine(mock_engine)
 
         parent_window.show()
         manager.start_performance("Test Play")

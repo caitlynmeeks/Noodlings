@@ -14,9 +14,9 @@
 #   Guide Performance Manager
 #
 #   Orchestrates the lifecycle of guided play performances.
-#   Creates/destroys the GuidePerformanceWindow, toggles demo
-#   mode on ComputerUseController, and syncs the [D] button
-#   state on NoodleCode panel.
+#   Loads Ajo's facet assembly, creates a FacetExecutor, and
+#   routes user messages through the assembly pipeline. The
+#   window is a pure renderer; all cognition lives here.
 #
 # ──────────────────────────────────────────────────────────────
 # MODULE:   applications.noodlestudio.runtime.ui.guide_performance_manager
@@ -35,12 +35,14 @@
 # https://noodlings.ai
 # ──────────────────────────────────────────────────────────────
 
+import asyncio
+import json
 import logging
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QThread, QTimer, pyqtSignal
 
 from ..channels import ChannelBus, ChannelMessage
 from ..brenda import BrendaDirector, CHANNEL_USER_INPUT
@@ -48,25 +50,73 @@ from ..guide_cue_handler import GuideCueHandler
 
 logger = logging.getLogger(__name__)
 
-# Well-known guide VRM location relative to project root
+# Well-known guide paths relative to project root
 _GUIDE_VRM_RELATIVE = Path("noodlings/guide/Radiances/AjoMajo.vrm")
+_GUIDE_ASSEMBLY_RELATIVE = Path("noodlings/guide/assembly.yaml")
 
+
+# =============================================================================
+# Assembly Worker (QThread for async FacetExecutor.execute)
+# =============================================================================
+
+class _AssemblyWorker(QThread):
+    """Worker thread that executes a facet assembly in its own event loop."""
+
+    resultReady = pyqtSignal(object)    # ExecutionResult
+    errorOccurred = pyqtSignal(str)     # Error message
+
+    def __init__(self, executor, assembly, message: str, context: dict):
+        super().__init__()
+        self._executor = executor
+        self._assembly = assembly
+        self._message = message
+        self._context = context
+
+    def run(self):
+        """Execute the assembly in a dedicated asyncio event loop."""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(
+                self._executor.execute(
+                    self._assembly,
+                    incoming_data=self._message,
+                    context=self._context
+                )
+            )
+            self.resultReady.emit(result)
+        except Exception as e:
+            logger.error(f"Assembly execution failed: {e}")
+            self.errorOccurred.emit(str(e))
+        finally:
+            loop.close()
+
+
+# =============================================================================
+# Guide Performance Manager
+# =============================================================================
 
 class GuidePerformanceManager:
     """
     Orchestrates the lifecycle of guided play performances.
 
+    Loads Ajo's facet assembly, creates a FacetExecutor with a
+    HeadlessLLMClient, and routes user messages through the assembly.
+    The window is a pure renderer -- all cognition lives here.
+
     Coordinates:
     - GuidePerformanceWindow (floating VRM + dialogue panel)
+    - FacetExecutor (assembly execution engine)
+    - HeadlessLLMClient (LLM backend from editor settings)
+    - FACSMapper (sentiment -> VRM expressions)
     - ComputerUseController (demo mode for ghost cursor)
     - NoodleCode panel [D] button state
     - GuideCueHandler (Brenda direction injection)
 
     Usage:
         manager = GuidePerformanceManager(main_window)
-        manager.set_engine(noodle_code_engine)
-        manager.start_performance("Let's Consciousness!", vrm_path="/path/to/ajo.vrm")
-        # ... performance runs ...
+        manager.start_performance("Ajo Alive", vrm_path="/path/to/ajo.vrm")
+        # ... user chats, assembly runs, expressions animate ...
         manager.stop_performance()
     """
 
@@ -79,29 +129,29 @@ class GuidePerformanceManager:
         """
         self._main_window = main_window
         self._window = None  # GuidePerformanceWindow
-        self._engine = None
-        self._guide_cue_handler = None
         self._noodle_code_panel = None
+
+        # Assembly execution
+        self._assembly = None       # FacetAssembly
+        self._executor = None       # FacetExecutor
+        self._llm_client = None     # HeadlessLLMClient
+        self._worker = None         # _AssemblyWorker (current execution)
+
+        # Conversation state
+        self._conversation_history: List[Dict] = []
+        self._last_user_message: str = ""
 
         # Play system (created per-performance when play_path is provided)
         self._channel_bus = None
-        self._director = None      # BrendaDirector
-        self._tick_timer = None    # QTimer for Brenda.tick()
+        self._director = None       # BrendaDirector
+        self._guide_cue_handler = None
+        self._tick_timer = None     # QTimer for Brenda.tick()
 
         logger.info("GuidePerformanceManager initialized")
 
     # =========================================================================
     # CONFIGURATION
     # =========================================================================
-
-    def set_engine(self, engine):
-        """
-        Set the NoodleCode engine for LLM communication.
-
-        Args:
-            engine: NoodleCodeEngine instance
-        """
-        self._engine = engine
 
     def set_noodle_code_panel(self, panel):
         """
@@ -122,6 +172,122 @@ class GuidePerformanceManager:
         self._guide_cue_handler = handler
 
     # =========================================================================
+    # LLM CLIENT FROM EDITOR SETTINGS
+    # =========================================================================
+
+    def _create_llm_client(self):
+        """
+        Create a HeadlessLLMClient from the editor's provider settings.
+
+        Reads from ProviderManager and ModelLabelManager singletons so
+        Ajo respects whatever provider the user has configured.
+
+        Returns:
+            HeadlessLLMClient configured for facet execution
+        """
+        from noodlestudio.core.provider_manager import get_provider_manager
+        from noodlestudio.core.model_label_manager import get_model_label_manager
+        from noodlestudio.runtime.llm_client import HeadlessLLMClient, LLMConfig
+
+        label_mgr = get_model_label_manager()
+        provider_mgr = get_provider_manager()
+
+        # Get primary provider from Large label
+        provider_id, model_name = label_mgr.get_model_for_label("Large")
+        provider = provider_mgr.get_provider(provider_id) if provider_id else None
+
+        # Build SMALL/MEDIUM/LARGE -> actual model name mapping
+        model_labels = {}
+        for label in ["Small", "Medium", "Large"]:
+            pid, mname = label_mgr.get_model_for_label(label)
+            if mname:
+                model_labels[label.upper()] = mname
+
+        config = LLMConfig(
+            provider=provider.type if provider else "ollama",
+            model=model_name or "",
+            api_key=provider.api_key if provider else "",
+            base_url=provider.base_url if provider else "",
+            model_labels=model_labels
+        )
+
+        print(f"[GuidePerformance] LLM client: provider={config.provider}, "
+              f"labels={model_labels}", flush=True)
+
+        return HeadlessLLMClient(config)
+
+    # =========================================================================
+    # ASSEMBLY LOADING
+    # =========================================================================
+
+    def _discover_guide_assembly(self) -> Optional[str]:
+        """
+        Auto-discover the guide assembly YAML file.
+
+        Returns:
+            Absolute path to assembly.yaml, or None if not found
+        """
+        try:
+            studio_dir = Path(__file__).resolve().parent.parent.parent.parent
+            project_root = studio_dir.parent.parent
+
+            assembly_path = project_root / _GUIDE_ASSEMBLY_RELATIVE
+            if assembly_path.exists():
+                print(f"[GuidePerformance] Assembly: {assembly_path}", flush=True)
+                return str(assembly_path)
+
+            print(f"[GuidePerformance] Assembly not found at {assembly_path}", flush=True)
+        except Exception as e:
+            logger.debug(f"Could not discover guide assembly: {e}")
+
+        return None
+
+    def _load_assembly(self) -> bool:
+        """
+        Load Ajo's facet assembly and create the execution pipeline.
+
+        Returns:
+            True if assembly loaded successfully
+        """
+        from noodlestudio.core.facet_system import FacetAssembly
+        from noodlestudio.core.facet_executor import FacetExecutor
+
+        assembly_path = self._discover_guide_assembly()
+        if not assembly_path:
+            print("[GuidePerformance] No assembly found, Ajo cannot think", flush=True)
+            return False
+
+        try:
+            self._assembly = FacetAssembly.load_yaml(assembly_path)
+            print(f"[GuidePerformance] Loaded assembly: {self._assembly.name} "
+                  f"({len(self._assembly.facets)} facets, "
+                  f"{len(self._assembly.connections)} connections)", flush=True)
+        except Exception as e:
+            logger.error(f"Failed to load assembly: {e}")
+            print(f"[GuidePerformance] Assembly load failed: {e}", flush=True)
+            return False
+
+        # Create LLM client from editor settings
+        try:
+            self._llm_client = self._create_llm_client()
+        except Exception as e:
+            logger.error(f"Failed to create LLM client: {e}")
+            print(f"[GuidePerformance] LLM client creation failed: {e}", flush=True)
+            return False
+
+        # Create executor (event bus disabled -- it requires an asyncio loop
+        # in the main thread which conflicts with Qt. Enable only when the
+        # facets editor needs live visualization of guide execution.)
+        self._executor = FacetExecutor(
+            llm_client=self._llm_client,
+            channel_bus=self._channel_bus,
+            use_event_bus=False
+        )
+
+        print("[GuidePerformance] Assembly execution pipeline ready", flush=True)
+        return True
+
+    # =========================================================================
     # PERFORMANCE LIFECYCLE
     # =========================================================================
 
@@ -130,15 +296,13 @@ class GuidePerformanceManager:
         """
         Start a guided performance.
 
-        Creates the floating window, enables demo mode, and optionally
-        loads a .play.yaml via BrendaDirector + GuideCueHandler.
+        Creates the floating window, loads the assembly, and enables
+        demo mode. Optionally loads a .play.yaml via BrendaDirector.
 
         Args:
             play_title: Title displayed in the window header
             vrm_path: Optional path to VRM character file
-            play_path: Optional path to .play.yaml file. When provided,
-                       creates the full play pipeline (ChannelBus ->
-                       BrendaDirector -> GuideCueHandler -> window).
+            play_path: Optional path to .play.yaml file
         """
         if self._window:
             logger.warning("Performance already active, stopping first")
@@ -151,6 +315,9 @@ class GuidePerformanceManager:
         if play_path:
             self._setup_play_pipeline(play_path)
 
+        # --- Load assembly and create execution pipeline ---
+        self._load_assembly()
+
         # Create the floating performance window
         from .guide_performance_window import GuidePerformanceWindow
 
@@ -159,15 +326,9 @@ class GuidePerformanceManager:
         )
         self._window.show_play_header(play_title)
 
-        # Wire engine
-        if self._engine:
-            self._window.set_engine(self._engine)
-
         # Wire guide cue handler (may have been set externally or by _setup_play_pipeline)
         if self._guide_cue_handler:
-            self._window.set_guide_cue_handler(self._guide_cue_handler)
-
-            # Also wire ComputerUseController to GuideCueHandler
+            # Wire ComputerUseController to GuideCueHandler
             try:
                 from noodlestudio.core.computer_use_controller import (
                     get_computer_use_controller
@@ -179,9 +340,11 @@ class GuidePerformanceManager:
                     f"Could not wire ComputerUseController to GuideCueHandler: {e}"
                 )
 
-        # Connect user input to channel bus for Brenda tracking
+        # Connect user message signals
+        self._window.messageSubmitted.connect(self._on_user_message_for_assembly)
+
         if self._channel_bus and hasattr(self._window, 'messageSent') and self._window.messageSent:
-            self._window.messageSent.connect(self._on_user_message)
+            self._window.messageSent.connect(self._on_user_message_for_channel)
 
         # Load VRM -- use provided path, or auto-discover guide VRM
         if not vrm_path:
@@ -194,7 +357,7 @@ class GuidePerformanceManager:
 
         self._window.show()
 
-        # Start Brenda after window is visible (so first cue arrives with UI ready)
+        # Start Brenda after window is visible
         if self._director:
             self._director.start()
             print(f"[GuidePerformance] Brenda directing: {play_title}", flush=True)
@@ -234,7 +397,114 @@ class GuidePerformanceManager:
 
         print(f"[GuidePerformance] Play pipeline ready: {path.stem}", flush=True)
 
-    def _on_user_message(self, message: str):
+    # =========================================================================
+    # MESSAGE HANDLING
+    # =========================================================================
+
+    def _on_user_message_for_assembly(self, message: str):
+        """
+        Execute Ajo's assembly in response to a user message.
+
+        Runs on a worker thread via _AssemblyWorker so the UI stays responsive.
+
+        Args:
+            message: The user's message text
+        """
+        if not self._assembly or not self._executor:
+            if self._window:
+                self._window._show_error("Assembly not loaded.")
+                self._window.set_busy(False)
+            return
+
+        # Prevent overlapping executions
+        if self._worker and self._worker.isRunning():
+            return
+
+        self._last_user_message = message
+
+        # Set window to busy state
+        if self._window:
+            self._window.set_busy(True)
+
+        # Build execution context
+        context = {
+            'conversation_history': self._conversation_history,
+        }
+
+        # Inject Brenda direction if available
+        if self._guide_cue_handler:
+            direction = self._guide_cue_handler.build_system_prompt_addition()
+            if direction:
+                context['brenda_direction'] = direction
+
+        # Execute assembly on worker thread
+        self._worker = _AssemblyWorker(
+            self._executor, self._assembly, message, context
+        )
+        self._worker.resultReady.connect(self._on_assembly_result)
+        self._worker.errorOccurred.connect(self._on_assembly_error)
+        self._worker.start()
+
+    def _on_assembly_result(self, result):
+        """
+        Handle completed assembly execution.
+
+        Displays the response, drives expressions via affect pipeline,
+        reports to Brenda, and updates conversation history.
+
+        Args:
+            result: ExecutionResult from FacetExecutor
+        """
+        if not self._window:
+            return
+
+        # Display the response
+        response = result.response
+        if response and response != '[No output]':
+            self._window.append_guide_text(response)
+        else:
+            self._window._show_error("No response generated.")
+
+        # Drive expressions from sentiment facet output
+        sentiment_output = result.facet_outputs.get('sentiment', {}).get('out')
+        if sentiment_output:
+            self._apply_affect(sentiment_output)
+
+        # Report to GuideCueHandler for Brenda feedback
+        if self._guide_cue_handler and response and response.strip():
+            self._guide_cue_handler.report_response(
+                response.strip(), self._last_user_message
+            )
+
+        # Update conversation history
+        self._conversation_history.append({
+            'role': 'user', 'content': self._last_user_message
+        })
+        self._conversation_history.append({
+            'role': 'assistant', 'content': response
+        })
+
+        # Clear busy state
+        self._window.set_busy(False)
+        self._worker = None
+
+        print(f"[GuidePerformance] Assembly done: {result.total_time:.2f}s, "
+              f"{result.total_tokens} tokens", flush=True)
+
+    def _on_assembly_error(self, error_msg: str):
+        """
+        Handle assembly execution error.
+
+        Args:
+            error_msg: Error description
+        """
+        if self._window:
+            self._window._show_error(f"Assembly error: {error_msg}")
+            self._window.set_busy(False)
+        self._worker = None
+        print(f"[GuidePerformance] Assembly error: {error_msg}", flush=True)
+
+    def _on_user_message_for_channel(self, message: str):
         """
         Forward user message to the channel bus so Brenda can track it.
 
@@ -254,13 +524,63 @@ class GuidePerformanceManager:
             )
         )
 
+    # =========================================================================
+    # AFFECT PIPELINE
+    # =========================================================================
+
+    def _apply_affect(self, affect_text: str):
+        """
+        Parse sentiment JSON and drive VRM expressions.
+
+        Runs the full affect pipeline:
+        sentiment JSON -> Affect -> FACSMapper -> VRM blendshapes
+
+        Args:
+            affect_text: JSON string from the sentiment facet
+        """
+        try:
+            affect_data = json.loads(affect_text)
+            valence = float(affect_data.get('valence', 0.5))
+            arousal = float(affect_data.get('arousal', 0.5))
+            dominance = float(affect_data.get('dominance', 0.5))
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            logger.debug(f"Could not parse affect: {e}")
+            return
+
+        from noodlestudio.runtime.facs_mapper import FACSMapper, Affect
+
+        mapper = FACSMapper()
+        affect_state = Affect(
+            valence=valence * 2 - 1,  # Remap 0..1 to -1..1 for FACSMapper
+            arousal=arousal,
+            dominance=dominance,
+            sorrow=max(0.0, (1.0 - valence) * 0.5),
+            boredom=max(0.0, (1.0 - arousal) * 0.3)
+        )
+
+        vrm_shapes = mapper.map_affect_to_vrm(affect_state)
+
+        if self._window and vrm_shapes:
+            self._window.set_blend_shapes(vrm_shapes)
+            print(f"[GuidePerformance] Affect: v={valence:.2f} a={arousal:.2f} "
+                  f"d={dominance:.2f} -> {len(vrm_shapes)} shapes", flush=True)
+
+    # =========================================================================
+    # PERFORMANCE LIFECYCLE (STOP)
+    # =========================================================================
+
     def stop_performance(self):
         """
         Stop the current performance.
 
-        Closes the floating window, stops Brenda, disables demo mode,
-        and tears down the play pipeline.
+        Closes the floating window, stops the executor, stops Brenda,
+        disables demo mode, and tears down the play pipeline.
         """
+        # Stop any running worker
+        if self._worker and self._worker.isRunning():
+            self._worker.wait(2000)
+            self._worker = None
+
         # Stop Brenda tick timer
         if self._tick_timer:
             self._tick_timer.stop()
@@ -270,6 +590,22 @@ class GuidePerformanceManager:
         if self._director:
             self._director.stop()
             self._director = None
+
+        # Close LLM client session
+        if self._llm_client:
+            # HeadlessLLMClient.close() is async; schedule in a temp loop
+            try:
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(self._llm_client.close())
+                loop.close()
+            except Exception:
+                pass
+            self._llm_client = None
+
+        # Clear execution state
+        self._assembly = None
+        self._executor = None
+        self._conversation_history = []
 
         # Clear play pipeline references
         self._channel_bus = None
@@ -302,14 +638,9 @@ class GuidePerformanceManager:
         """
         Auto-discover the guide character VRM file.
 
-        Looks for AjoMajo.vrm at the well-known path relative to the
-        project root (noodlings/guide/Radiances/AjoMajo.vrm).
-
         Returns:
             Absolute path to VRM file, or None if not found
         """
-        # Walk up from this file to find the project root
-        # noodlings_clean/applications/noodlestudio/noodlestudio/runtime/ui/
         try:
             studio_dir = Path(__file__).resolve().parent.parent.parent.parent
             project_root = studio_dir.parent.parent

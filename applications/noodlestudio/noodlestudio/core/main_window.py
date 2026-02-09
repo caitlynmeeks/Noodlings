@@ -148,11 +148,6 @@ class MainWindow(
 
         self.guide_performance_manager = GuidePerformanceManager(self)
 
-        # Wire engine from NoodleCode
-        engine = getattr(self, 'noodle_code_engine', None)
-        if engine:
-            self.guide_performance_manager.set_engine(engine)
-
         # Wire NoodleCode panel for [D] button sync
         panel = getattr(self, 'noodle_code_panel', None)
         if panel:
