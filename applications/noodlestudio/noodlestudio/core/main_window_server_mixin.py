@@ -32,16 +32,28 @@
 # https://noodlings.ai
 # ──────────────────────────────────────────────────────────────
 
+import logging
 import os
 import subprocess
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindowServerMixin:
     """Mixin providing server management for MainWindow."""
 
+    @staticmethod
+    def _cmush_dir() -> str:
+        """Return absolute path to the cmush application directory."""
+        return os.path.abspath(os.path.join(
+            os.path.dirname(__file__), '..', '..', '..', 'cmush'
+        ))
+
     def is_server_running(self) -> bool:
         """Check if noodleMUSH server is running."""
-        result = subprocess.run(['pgrep', '-f', 'python.*server.py'], capture_output=True)
+        result = subprocess.run(
+            ['pgrep', '-f', 'python.*cmush.*server.py'], capture_output=True
+        )
         return result.returncode == 0
 
     def on_server_toggled(self, enabled: bool):
@@ -50,6 +62,15 @@ class MainWindowServerMixin:
         self.enter_world_btn.setEnabled(False)
 
         if enabled:
+            cmush_dir = self._cmush_dir()
+            start_script = os.path.join(cmush_dir, 'start.sh')
+
+            if not os.path.exists(start_script):
+                logger.error(f"start.sh not found at {start_script}")
+                self.connection_label.setText("Server script not found")
+                self.enter_world_btn.setEnabled(False)
+                return
+
             # Build environment with project path if one is open
             env = os.environ.copy()
             if self.project_manager.is_project_open():
@@ -60,17 +81,23 @@ class MainWindowServerMixin:
             else:
                 self.connection_label.setText("Starting server (legacy mode)...")
 
-            # Start server with project environment
+            # Redirect output to log file for diagnostics
+            log_dir = os.path.join(cmush_dir, 'logs')
+            os.makedirs(log_dir, exist_ok=True)
+            log_path = os.path.join(log_dir, 'startup.log')
+            log_file = open(log_path, 'w')
+
             subprocess.Popen(
-                ['../cmush/start.sh'],
-                cwd='../cmush',
+                [start_script],
+                cwd=cmush_dir,
                 env=env,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stdout=log_file,
+                stderr=subprocess.STDOUT
             )
+            logger.info(f"Server launch output: {log_path}")
         else:
-            # Stop server
-            subprocess.run(['pkill', '-f', 'python.*server.py'])
+            # Stop server — use specific pattern to avoid killing unrelated processes
+            subprocess.run(['pkill', '-f', 'python.*cmush.*server.py'])
             self.connection_label.setText("Server stopped")
 
         # Update status after a delay (5 seconds for server startup)
@@ -113,6 +140,14 @@ class MainWindowServerMixin:
         # Update Enter World button state
         if hasattr(self, 'enter_world_btn'):
             self.enter_world_btn.setEnabled(running)
+
+        # Load MUSH web client when server comes up
+        if hasattr(self, 'web_view') and self.web_view:
+            if running:
+                from PyQt6.QtCore import QUrl
+                current_url = self.web_view.url().toString()
+                if 'localhost:8080' not in current_url:
+                    self.web_view.setUrl(QUrl("http://localhost:8080"))
 
         # Update World View
         if hasattr(self, 'world_view'):
