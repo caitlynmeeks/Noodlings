@@ -116,3 +116,47 @@ class TestDefaultProjectInstanceRefs:
             assert 'facets' in data, f"Assembly missing 'facets' field: {noodling}"
             assert len(data['facets']) >= 3, \
                 f"Assembly should have at least 3 facets: {noodling}"
+
+
+class TestFirstRunAutoOpen:
+    """First run with no recent projects should open the default project."""
+
+    def test_first_run_opens_default_project(self, qapp, tmp_path, monkeypatch):
+        """auto_open_last_project must copy and open default project on first run."""
+        from noodlestudio.core.project_manager import ProjectManager
+        from noodlestudio.core.main_window_project_mixin import MainWindowProjectMixin
+
+        # Build a minimal host that has the mixin
+        class StubProjectHost(MainWindowProjectMixin):
+            def __init__(self):
+                self.project_manager = ProjectManager()
+                self._recent_projects = []
+
+            def load_recent_projects(self):
+                return self._recent_projects
+
+            def save_recent_projects(self, projects):
+                self._recent_projects = projects
+
+            def update_recent_projects_menu(self):
+                pass
+
+        host = StubProjectHost()
+
+        # Monkeypatch user home to tmp_path so we don't pollute real Documents
+        monkeypatch.setattr(
+            os.path, 'expanduser',
+            lambda path: str(tmp_path) if path == '~' else os.path.expanduser(path)
+        )
+
+        host.auto_open_last_project()
+
+        # Verify project was copied and opened
+        dest = os.path.join(
+            str(tmp_path), 'Documents', 'NoodleStudio Projects',
+            'Welcome to NoodleStudio'
+        )
+        assert os.path.isdir(dest), f"Default project not copied to {dest}"
+        assert os.path.isfile(os.path.join(dest, 'project.noodleproj'))
+        assert host.project_manager.is_project_open(), \
+            "Project should be open after first-run auto-open"

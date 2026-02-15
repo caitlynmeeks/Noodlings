@@ -742,11 +742,34 @@ class MainWindowProjectMixin:
         self.update_recent_projects_menu()
 
     def auto_open_last_project(self):
-        """Automatically open the last opened project on startup."""
+        """Open last project, or default project on first run."""
         recent = self.load_recent_projects()
         if recent and os.path.exists(recent[0]):
             print(f"Auto-opening last project: {recent[0]}")
             self.project_manager.open_project(recent[0])
+            return
+
+        # First run: copy default project to user documents and open it
+        default_src = os.path.join(
+            os.path.dirname(__file__), '..', '..', 'library',
+            'Welcome to NoodleStudio'
+        )
+        default_src = os.path.abspath(default_src)
+        if not os.path.isdir(default_src):
+            return
+
+        user_projects_dir = os.path.join(
+            os.path.expanduser('~'), 'Documents', 'NoodleStudio Projects'
+        )
+        os.makedirs(user_projects_dir, exist_ok=True)
+        dest = os.path.join(user_projects_dir, 'Welcome to NoodleStudio')
+
+        if not os.path.exists(dest):
+            import shutil
+            shutil.copytree(default_src, dest)
+            print(f"Copied default project to {dest}")
+
+        self.project_manager.open_project(dest)
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.
