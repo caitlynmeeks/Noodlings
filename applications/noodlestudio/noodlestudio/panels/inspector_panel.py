@@ -89,6 +89,11 @@ class InspectorPanel(
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # Initialize base inspector state (property_fields, component_widgets,
+        # collapsible_states, is_loading, _bound_widgets)
+        self.init_base_inspector()
+
         self.current_entity = None
         self.current_agent_id = None  # Initialize to None explicitly
         self.current_facet = None  # Track if currently showing a facet
@@ -104,13 +109,6 @@ class InspectorPanel(
 
         # Flag to prevent refresh during save operations
         self.is_saving = False
-
-        # Flag to prevent re-entrant loading (e.g., double-tap)
-        self.is_loading = False
-
-        # Track component widgets for save operations
-        # Structure: {agent_id: {component_id: {field_name: widget}}}
-        self.component_widgets = {}
 
         # Track CollapsibleSection expanded state (like SceneHierarchy does)
         # Structure: {section_title: bool}
@@ -271,8 +269,8 @@ class InspectorPanel(
             basic_form.addRow("ID:", id_field)
 
             # Name (with undo)
-            name_field = self.create_bound_lineedit(facet, 'name', display_name='Name')
-            basic_form.addRow("Name:", name_field)
+            name_meta = PropertyMeta(name='name', prop_type=str, display_name='Name')
+            name_field = self.create_bound_lineedit(facet, name_meta, basic_form)
 
             # Type (read-only)
             type_field = QLineEdit(facet.facet_type)
@@ -281,8 +279,8 @@ class InspectorPanel(
             basic_form.addRow("Type:", type_field)
 
             # Enabled (with undo)
-            enabled_checkbox = self.create_bound_checkbox(facet, 'enabled', display_name='Enabled')
-            basic_form.addRow("Enabled:", enabled_checkbox)
+            enabled_meta = PropertyMeta(name='enabled', prop_type=bool, display_name='Enabled')
+            enabled_checkbox = self.create_bound_checkbox(facet, enabled_meta, basic_form)
 
             basic_section.set_content_layout(basic_form)
             self.properties_layout.addWidget(basic_section)
