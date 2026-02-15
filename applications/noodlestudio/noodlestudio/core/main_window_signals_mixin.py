@@ -35,6 +35,32 @@
 class MainWindowSignalsMixin:
     """Mixin providing signal handlers for MainWindow."""
 
+    def _on_entity_selected_for_performance(self, entity_type: str, entity_data: dict):
+        """Sync hierarchy noodling selection to performance window.
+
+        When a noodling instance is selected during an active ensemble
+        performance, highlights it in the window and switches the facets
+        editor to its assembly.
+        """
+        manager = getattr(self, 'guide_performance_manager', None)
+        if not manager or not manager.is_active:
+            return
+
+        if entity_type != 'noodling' or not entity_data:
+            return
+
+        # Extract noodling_id from instance path (directory name)
+        import os
+        path = entity_data.get('path', '')
+        if path:
+            noodling_id = os.path.basename(path)
+        else:
+            # Fallback: strip agent_ prefix from id
+            noodling_id = entity_data.get('id', '').replace('agent_', '')
+
+        if noodling_id:
+            manager.on_hierarchy_noodling_selected(noodling_id)
+
     def on_entity_selected_for_console(self, entity_type: str, entity_data: dict):
         """Update Console filter when entity is selected in hierarchy."""
         if not hasattr(self, 'console'):

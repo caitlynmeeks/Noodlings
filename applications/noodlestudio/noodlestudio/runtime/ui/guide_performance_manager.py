@@ -151,6 +151,34 @@ class GuidePerformanceManager:
         self._guide_cue_handler = handler
 
     # =========================================================================
+    # HIERARCHY SYNC
+    # =========================================================================
+
+    def on_hierarchy_noodling_selected(self, noodling_id: str):
+        """
+        Handle noodling selection from hierarchy during active performance.
+
+        Sets the selected performer as active speaker in the window and
+        switches the facets editor to their assembly.
+
+        Args:
+            noodling_id: The noodling instance ID (e.g. 'ajo', 'yuki')
+        """
+        if not self._ensemble_mode or not self._window:
+            return
+
+        performer = self._performers.get(noodling_id)
+        if not performer:
+            return
+
+        self._window.set_active_speaker(noodling_id)
+
+        # Switch facets editor to this performer's assembly
+        editor = self._get_facets_editor()
+        if editor and hasattr(editor, 'select_noodling'):
+            editor.select_noodling(noodling_id)
+
+    # =========================================================================
     # ASSEMBLY DISCOVERY
     # =========================================================================
 

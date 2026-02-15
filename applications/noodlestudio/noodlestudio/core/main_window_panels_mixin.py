@@ -190,7 +190,15 @@ class MainWindowPanelsMixin:
                 self.web_view = QWebEngineView()
                 self.web_view.setStyleSheet("background-color: #1a1a1a;")
                 self.web_view.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-                self.web_view.setUrl(QUrl("http://localhost:8080"))
+                self.web_view.setHtml(
+                    '<html><body style="background:#1a1a1a;color:#555;display:flex;'
+                    'align-items:center;justify-content:center;height:100vh;margin:0;'
+                    'font-family:monospace;">'
+                    '<div style="text-align:center;">'
+                    '<p>noodleMUSH</p>'
+                    '<p style="font-size:12px;">Start server to connect</p>'
+                    '</div></body></html>'
+                )
                 world_layout.addWidget(self.web_view)
             except ImportError as e:
                 print(f"[WebView] ImportError: {e}")
@@ -488,6 +496,17 @@ class MainWindowPanelsMixin:
                 traceback.print_exc()
 
         self.hierarchy.entitySelected.connect(safe_ui_canvas_select)
+
+        # Hierarchy -> Performance Window sync (noodling selection)
+        def safe_performance_select(entity_type, entity_data):
+            try:
+                self._on_entity_selected_for_performance(entity_type, entity_data)
+            except Exception as e:
+                import traceback
+                print(f"[SAFE WRAPPER] ERROR in _on_entity_selected_for_performance: {e}")
+                traceback.print_exc()
+
+        self.hierarchy.entitySelected.connect(safe_performance_select)
 
     def _setup_annotation_overlay(self):
         """Setup the annotation overlay for screenshot debugging with Claude.

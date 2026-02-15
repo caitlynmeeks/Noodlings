@@ -663,6 +663,24 @@ class FacetsEditorPanel(
         self._noodling_selector.blockSignals(False)
         self._noodling_selector.hide()
 
+    def select_noodling(self, noodling_id: str):
+        """
+        Select a noodling by ID in the ensemble selector.
+
+        Finds the matching combo box index and triggers the selection
+        handler to load the noodling's assembly.
+
+        Args:
+            noodling_id: The ID of the noodling to select
+        """
+        for i, entry in enumerate(self._ensemble_noodlings):
+            if entry['id'] == noodling_id:
+                self._noodling_selector.blockSignals(True)
+                self._noodling_selector.setCurrentIndex(i)
+                self._noodling_selector.blockSignals(False)
+                self._on_noodling_selected(i)
+                return
+
     def _on_noodling_selected(self, index: int):
         """
         Handle noodling selector dropdown change.

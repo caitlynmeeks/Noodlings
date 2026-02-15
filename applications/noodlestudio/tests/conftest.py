@@ -342,6 +342,12 @@ class StubFacetsEditor:
         if noodlings:
             self._selected_noodling_id = noodlings[0]['id']
 
+    def select_noodling(self, noodling_id: str):
+        for entry in self._ensemble_noodlings:
+            if entry['id'] == noodling_id:
+                self._selected_noodling_id = noodling_id
+                return
+
     def clear_ensemble_noodlings(self):
         self._ensemble_noodlings = []
         self._selected_noodling_id = None
@@ -421,6 +427,12 @@ class StubWindow:
 
     def set_speaking_mode(self, active, intensity=0.7, noodling_id='default'):
         self._speaking_mode_calls.append((active, intensity, noodling_id))
+
+    def set_performer_name(self, noodling_id, name):
+        pass
+
+    def set_active_speaker(self, noodling_id=None):
+        pass
 
     def show_play_header(self, title):
         pass
