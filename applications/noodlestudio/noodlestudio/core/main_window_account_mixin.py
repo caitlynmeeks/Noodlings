@@ -190,8 +190,9 @@ class MainWindowAccountMixin:
 
     def _on_connect_finished(self, success: bool):
         """Handle connection result."""
-        self.enter_world_btn.setEnabled(True)
-        self.enter_world_btn.setText("Enter World")
+        if hasattr(self, 'enter_world_btn') and self.enter_world_btn:
+            self.enter_world_btn.setEnabled(True)
+            self.enter_world_btn.setText("Enter World")
 
         avatar = getattr(self, '_pending_avatar', None)
         avatar_name = avatar.display_name if avatar and hasattr(avatar, 'display_name') else "avatar"

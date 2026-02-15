@@ -58,9 +58,6 @@ class MainWindowServerMixin:
 
     def on_server_toggled(self, enabled: bool):
         """Handle server toggle switch."""
-        # Disable Enter World while server state is changing
-        self.enter_world_btn.setEnabled(False)
-
         if enabled:
             cmush_dir = self._cmush_dir()
             start_script = os.path.join(cmush_dir, 'start.sh')
@@ -68,7 +65,6 @@ class MainWindowServerMixin:
             if not os.path.exists(start_script):
                 logger.error(f"start.sh not found at {start_script}")
                 self.connection_label.setText("Server script not found")
-                self.enter_world_btn.setEnabled(False)
                 return
 
             # Build environment with project path if one is open
