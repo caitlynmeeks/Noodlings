@@ -465,10 +465,6 @@ class MainWindowPanelsMixin:
         maximize_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
         maximize_shortcut.activated.connect(self.toggle_world_view_maximize)
 
-        # Cmd/Ctrl+Shift+G - SUMMON THE GOOSE
-        goose_shortcut = QShortcut(QKeySequence("Ctrl+Shift+G"), self)
-        goose_shortcut.activated.connect(self._summon_goose)
-
         # Cmd+Option+S - Screenshot for debugging with Claude
         # ApplicationShortcut so it works even when a floating window has focus
         screenshot_shortcut = QShortcut(QKeySequence("Ctrl+Alt+S"), self)

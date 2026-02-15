@@ -79,7 +79,7 @@ class MainWindow(
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        self.setWindowTitle("NoodleSTUDIO - Noodlings IDE")
+        self.setWindowTitle("NoodleStudio")
         self.resize(1400, 900)
 
         # Apply dark theme with darker gray background
@@ -100,12 +100,6 @@ class MainWindow(
         self.project_manager.projectOpened.connect(self.on_project_opened)
         self.project_manager.projectClosed.connect(self.on_project_closed)
 
-        # Goose system (The Origin)
-        from ..widgets.goose_widget import KonamiCodeDetector
-        self.konami_detector = KonamiCodeDetector()
-        self.konami_detector.goose_summoned.connect(self._summon_goose)
-        self.goose_active = False
-
         # Setup UI components (from mixins)
         self._setup_ui()
         self._setup_menu_bar()
@@ -118,29 +112,15 @@ class MainWindow(
         # Load last used layout (preserve workspace state)
         QTimer.singleShot(200, self.load_last_used_layout)
 
-        # Auto-open last project (restore workspace)
-        QTimer.singleShot(300, self.auto_open_last_project)
+        # NOTE: auto_open_last_project() is called from main.py after the
+        # splash screen, not from __init__. It shows a modal Project Chooser
+        # dialog (Logic Pro model), which must not fire on a timer during tests.
 
         # Show RNG status on startup
         QTimer.singleShot(500, self.show_startup_rng_status)
 
-        # Start cmush activity bridge for LLM visualization
-        QTimer.singleShot(600, self._start_activity_bridge)
-
-        # Auto-start MUSH server if setting is enabled
-        QTimer.singleShot(700, self._check_autostart_mush)
-
-        # Initialize Computer Use controller for Claude integration
-        QTimer.singleShot(800, self._init_computer_use)
-
-        # Initialize Guide Performance Manager (after computer use and panels)
-        QTimer.singleShot(900, self._init_guide_performance)
-
-    def _init_computer_use(self):
-        """Initialize Computer Use controller for Claude to see and interact with UI."""
-        from .computer_use_controller import get_computer_use_controller
-        controller = get_computer_use_controller()
-        controller.set_main_window(self)
+        # Initialize Guide Performance Manager (after panels)
+        QTimer.singleShot(600, self._init_guide_performance)
 
     def _init_guide_performance(self):
         """Initialize Guide Performance Manager for guided play support."""

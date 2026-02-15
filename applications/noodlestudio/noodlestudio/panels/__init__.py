@@ -32,10 +32,9 @@
 # https://noodlings.ai
 # ──────────────────────────────────────────────────────────────
 
-from .home_panel import HomePanel
 from .chat_panel import ChatPanel
 
-__all__ = ['HomePanel', 'ChatPanel']
+__all__ = ['ChatPanel']
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.

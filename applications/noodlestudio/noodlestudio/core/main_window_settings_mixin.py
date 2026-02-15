@@ -276,8 +276,7 @@ class MainWindowSettingsMixin:
     # ========== MISC EVENT HANDLERS ==========
 
     def keyPressEvent(self, event):
-        """Forward key events to Konami detector."""
-        self.konami_detector.key_pressed(event.key())
+        """Handle key press events."""
         super().keyPressEvent(event)
 
     def closeEvent(self, event):
@@ -289,27 +288,6 @@ class MainWindowSettingsMixin:
         except Exception as e:
             print(f"[MainWindow] Error auto-saving layout: {e}")
         super().closeEvent(event)
-
-    def _summon_goose(self):
-        """Summon the legendary goose to walk across the screen."""
-        from PyQt6.QtCore import QSettings
-
-        settings = QSettings("Noodlings", "NoodleStudio")
-        degoose_code = settings.value("degoosification_code", "")
-
-        if degoose_code:
-            self.statusBar().showMessage("Goose has been degoosified. Nice try!", 3000)
-            return
-
-        if self.goose_active:
-            return
-
-        from ..widgets.goose_widget import GooseWidget
-        self.goose_active = True
-
-        goose = GooseWidget(self)
-        goose.show()
-        goose.destroyed.connect(lambda: setattr(self, 'goose_active', False))
 
     def reload_world_view(self):
         """Reload World View with autologin (Ctrl+R)."""
