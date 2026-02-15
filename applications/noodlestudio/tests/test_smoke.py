@@ -107,13 +107,13 @@ class TestProjectSystem:
 
     def test_default_project_exists(self):
         """Default project directory must exist."""
-        project_dir = os.path.join(LIBRARY_DIR, 'Welcome to NoodleStudio')
+        project_dir = os.path.join(LIBRARY_DIR, 'templates', 'Getting Started')
         assert os.path.isdir(project_dir), f"Default project not found: {project_dir}"
         assert os.path.isfile(os.path.join(project_dir, 'project.noodleproj'))
 
     def test_default_project_has_noodlings(self):
         """Ajo and Yuki noodling templates must exist."""
-        project_dir = os.path.join(LIBRARY_DIR, 'Welcome to NoodleStudio')
+        project_dir = os.path.join(LIBRARY_DIR, 'templates', 'Getting Started')
         for noodling in ('ajo_majo', 'yuki_cyberfox'):
             noodling_dir = os.path.join(project_dir, 'Noodlings', noodling)
             assert os.path.isdir(noodling_dir), f"Noodling not found: {noodling_dir}"
@@ -123,7 +123,7 @@ class TestProjectSystem:
 
     def test_default_project_has_stage_instances(self):
         """Stage must have Ajo and Yuki instances."""
-        project_dir = os.path.join(LIBRARY_DIR, 'Welcome to NoodleStudio')
+        project_dir = os.path.join(LIBRARY_DIR, 'templates', 'Getting Started')
         instances_dir = os.path.join(
             project_dir, 'Stages', 'the_nexus', 'Instances'
         )
@@ -133,7 +133,7 @@ class TestProjectSystem:
 
     def test_instance_refs_resolve(self):
         """Instance noodling references must resolve to real directories."""
-        project_dir = os.path.join(LIBRARY_DIR, 'Welcome to NoodleStudio')
+        project_dir = os.path.join(LIBRARY_DIR, 'templates', 'Getting Started')
         instances_dir = os.path.join(
             project_dir, 'Stages', 'the_nexus', 'Instances'
         )
@@ -173,6 +173,43 @@ class TestStageSystem:
 
 
 # =====================================================================
+# Launch Flow (Template Discovery + Project Chooser)
+# =====================================================================
+
+class TestLaunchFlow:
+    """Template system and project chooser must work for first-run experience."""
+
+    def test_templates_directory_exists(self):
+        """library/templates/ must exist and contain valid templates."""
+        from noodlestudio.dialogs.project_chooser_dialog import _templates_dir
+        tdir = _templates_dir()
+        assert tdir.is_dir(), f"Templates directory not found: {tdir}"
+
+    def test_template_discovery_finds_templates(self):
+        """Template discovery must find at least Getting Started and Empty Project."""
+        from noodlestudio.dialogs.project_chooser_dialog import _discover_templates
+        templates = _discover_templates()
+        names = {t['name'] for t in templates}
+        assert 'Getting Started' in names, f"Missing Getting Started: {names}"
+        assert 'Empty Project' in names, f"Missing Empty Project: {names}"
+
+    def test_ajo_vrm_inside_template(self):
+        """Ajo's VRM must be inside the template, not an external reference."""
+        template_dir = os.path.join(LIBRARY_DIR, 'templates', 'Getting Started')
+        vrm = os.path.join(
+            template_dir, 'Noodlings', 'ajo_majo', 'Radiances', 'AjoMajo.vrm'
+        )
+        assert os.path.isfile(vrm), f"VRM not found in template: {vrm}"
+
+    def test_project_chooser_dialog_constructs(self, qapp):
+        """ProjectChooserDialog must construct without error."""
+        from noodlestudio.dialogs.project_chooser_dialog import ProjectChooserDialog
+        dialog = ProjectChooserDialog()
+        assert dialog.windowTitle() == "Choose a Project"
+        assert len(dialog._templates) >= 2
+
+
+# =====================================================================
 # Assembly Loading
 # =====================================================================
 
@@ -182,7 +219,7 @@ class TestAssemblyLoading:
     def test_ajo_assembly_parses(self):
         """Ajo's assembly.yaml must parse and have required fields."""
         assembly_path = os.path.join(
-            LIBRARY_DIR, 'Welcome to NoodleStudio',
+            LIBRARY_DIR, 'templates', 'Getting Started',
             'Noodlings', 'ajo_majo', 'assembly.yaml'
         )
         with open(assembly_path) as f:
@@ -194,7 +231,7 @@ class TestAssemblyLoading:
     def test_yuki_assembly_parses(self):
         """Yuki's assembly.yaml must parse and have required fields."""
         assembly_path = os.path.join(
-            LIBRARY_DIR, 'Welcome to NoodleStudio',
+            LIBRARY_DIR, 'templates', 'Getting Started',
             'Noodlings', 'yuki_cyberfox', 'assembly.yaml'
         )
         with open(assembly_path) as f:
@@ -212,9 +249,87 @@ class TestAssemblyLoading:
 
         manager = GuidePerformanceManager(StubMainWindow())
         stage_path = os.path.join(
-            LIBRARY_DIR, 'Welcome to NoodleStudio', 'Stages', 'the_nexus'
+            LIBRARY_DIR, 'templates', 'Getting Started', 'Stages', 'the_nexus'
         )
         instances = manager._discover_stage_instances(stage_path)
         assert len(instances) == 2
         ids = {i['noodling_id'] for i in instances}
         assert ids == {'ajo', 'yuki'}
+
+
+# =====================================================================
+# MVP Surface (Phase A verification)
+# =====================================================================
+
+class TestMVPSurface:
+    """Verify the app launches with only MVP panels and menus.
+
+    These tests lock down the Phase A renovation: deferred panels are
+    None, deferred menus are gone, status bar is clean, and the default
+    center tab is Facets Editor.
+    """
+
+    @pytest.fixture(autouse=True, scope='class')
+    def _create_window(self, qapp):
+        """Create MainWindow once for all MVP surface tests."""
+        from noodlestudio.core.main_window import MainWindow
+        cls = type(self)
+        cls._window = MainWindow()
+        yield
+        cls._window.close()
+
+    @property
+    def window(self):
+        return type(self)._window
+
+    def test_mvp_panels_instantiated(self):
+        """All 10 MVP panels exist as non-None attributes."""
+        for attr in ('hierarchy', 'assets', 'facets_editor', 'neural_canvas',
+                     'settings_panel', 'noodle_code_panel', 'inspector',
+                     'console', 'profiler_panel', 'cognitive_cycles'):
+            assert getattr(self.window, attr, None) is not None, \
+                f"MVP panel missing: {attr}"
+
+    def test_deferred_panels_are_none(self):
+        """Deferred panels are None, not instantiated."""
+        for attr in ('spatial_view', 'gaussian_viewer', 'ui_canvas_editor',
+                     'web_view', 'world_view'):
+            assert getattr(self.window, attr) is None, \
+                f"Deferred panel should be None: {attr}"
+
+    def test_no_account_menu(self):
+        """Account menu does not exist in the menu bar."""
+        menu_titles = [a.text() for a in self.window.menuBar().actions()]
+        assert '&Account' not in menu_titles, \
+            f"Account menu should not exist: {menu_titles}"
+
+    def test_no_component_menu(self):
+        """Component menu does not exist in the menu bar."""
+        menu_titles = [a.text() for a in self.window.menuBar().actions()]
+        assert '&Component' not in menu_titles, \
+            f"Component menu should not exist: {menu_titles}"
+
+    def test_no_auth_in_status_bar(self):
+        """Status bar has no auth/avatar/enter-world widgets."""
+        assert not hasattr(self.window, 'account_status_widget')
+        assert not hasattr(self.window, 'avatar_dropdown')
+        assert not hasattr(self.window, 'enter_world_btn')
+
+    def test_default_center_tab_is_facets_editor(self):
+        """Default center tab is Facets Editor, not NoodleCode."""
+        tabs = self.window.center_tabs
+        current = tabs.tabText(tabs.currentIndex())
+        assert current == "Facets Editor", \
+            f"Default tab should be 'Facets Editor', got '{current}'"
+
+    def test_no_build_menu_items(self):
+        """File menu has no Build Settings or Build Application items."""
+        file_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == '&File':
+                file_menu = action.menu()
+                break
+        assert file_menu is not None, "File menu not found"
+        item_texts = [a.text() for a in file_menu.actions()]
+        assert 'Build Settings...' not in item_texts
+        assert 'Build Application...' not in item_texts
