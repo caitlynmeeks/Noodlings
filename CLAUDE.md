@@ -2,7 +2,7 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: February 12, 2026
+**Last Updated**: February 15, 2026
 **Machine**: jiji (migrated from caledonia M3 Ultra, Feb 2026)
 
 ---
@@ -70,7 +70,9 @@ Handoff documents from the discuss session live in:
 
 | Date | File | Summary |
 |------|------|---------|
-| Feb 12 | `infrastructure-repair-and-stage-integration-handoff-2026-02-12.md` | **CRITICAL** - Fix server path, inspector init, stage dropdown, wire noodlings to stage instances, smoke tests |
+| Feb 15 | `launch-ux-and-hierarchy-decoupling-2026-02-15.md` | **ACTIVE** - Hierarchy decoupling from server, console lazy connect, window title, self-contained templates (Unity model), Project Chooser dialog (Logic Pro model). 6 commits. |
+| Feb 15 | `infrastructure-repair-sprint-complete-2026-02-15.md` | **DONE** - All 11 infrastructure repair commits landed. 1438 tests, 0 failures. STOP LIST cleared. |
+| Feb 12 | `infrastructure-repair-and-stage-integration-handoff-2026-02-12.md` | **DONE** - Original handoff for the repair sprint (completed above) |
 | Jan 14 | `visual-verification-spec.md` | Baseline comparison, SSIM diff, `assert_visual` action |
 | Jan 14 | `human-ui-test-plan.md` | Visual verification tests - what humans should SEE |
 

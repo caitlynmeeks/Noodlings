@@ -1,0 +1,6 @@
+name: "Default Stage"
+description: "An empty stage"
+created: "2026-02-15T00:00:00Z"
+geometry:
+  bounds: [-10, -10, 10, 10]
+spawn_point: [0, 0, 0]

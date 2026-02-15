@@ -341,13 +341,11 @@ class InspectorPanel(
     def _auto_save_facet_assembly(self):
         """Auto-save the current facet assembly to its YAML file."""
         try:
-            # Get the facets editor panel to access current assembly
             main_window = self.window()
             if hasattr(main_window, 'facets_editor'):
-                assembly = main_window.facets_editor.current_assembly
-                if assembly and hasattr(assembly, 'filepath') and assembly.filepath:
-                    assembly.save_yaml(assembly.filepath)
-                    print(f"[Inspector] Auto-saved facet assembly to {assembly.filepath}")
+                editor = main_window.facets_editor
+                if hasattr(editor, '_save_assembly_to_disk'):
+                    editor._save_assembly_to_disk()
         except Exception as e:
             print(f"[Inspector] Error auto-saving facet assembly: {e}")
 

@@ -38,6 +38,8 @@ import shutil
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 from datetime import datetime
+
+import yaml
 from PyQt6.QtCore import QObject, pyqtSignal
 
 
@@ -130,8 +132,7 @@ class ProjectManager(QObject):
             }
 
             metadata_path = os.path.join(project_path, "project.noodleproj")
-            with open(metadata_path, 'w') as f:
-                json.dump(metadata, f, indent=2)
+            self._write_yaml(metadata_path, metadata)
 
             # Create .gitignore
             gitignore_content = """# NoodleStudio Project
@@ -280,7 +281,7 @@ context.noodle.scene.findByType("noodling")  // Query entities
                 return False
 
             with open(metadata_path, 'r') as f:
-                metadata = json.load(f)
+                metadata = yaml.safe_load(f) or {}
 
             # Close current project if any
             if self.current_project_path:
@@ -292,8 +293,7 @@ context.noodle.scene.findByType("noodling")  // Query entities
 
             # Update last opened timestamp
             metadata["last_opened"] = self._get_timestamp()
-            with open(metadata_path, 'w') as f:
-                json.dump(metadata, f, indent=2)
+            self._write_yaml(metadata_path, metadata)
 
             self.projectOpened.emit(project_path)
 
@@ -327,8 +327,7 @@ context.noodle.scene.findByType("noodling")  // Query entities
         try:
             self._metadata["modified"] = self._get_timestamp()
             metadata_path = os.path.join(self.current_project_path, "project.noodleproj")
-            with open(metadata_path, 'w') as f:
-                json.dump(self._metadata, f, indent=2)
+            self._write_yaml(metadata_path, self._metadata)
             self.projectModified.emit()
             return True
         except Exception as e:
@@ -936,7 +935,6 @@ context.noodle.scene.findByType("noodling")  // Query entities
 
     def _write_yaml(self, path: str, data: Dict):
         """Write data to YAML file."""
-        import yaml
         with open(path, 'w') as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False,
                      allow_unicode=True)

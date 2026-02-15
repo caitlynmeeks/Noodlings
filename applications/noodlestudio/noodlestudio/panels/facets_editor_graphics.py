@@ -642,6 +642,15 @@ class FacetNodeGraphics(QGraphicsRectItem):
             # Normal click
             super().mousePressEvent(event)
 
+    def mouseDoubleClickEvent(self, event):
+        """Double-click NeuralCanvasFacet to open its .nncanvas in Neural Canvas panel."""
+        if self.facet.facet_type == "NeuralCanvasFacet" and self.facet.nncanvas_path:
+            if self.editor_panel and hasattr(self.editor_panel, '_open_neural_canvas'):
+                self.editor_panel._open_neural_canvas(self.facet.nncanvas_path)
+                event.accept()
+                return
+        super().mouseDoubleClickEvent(event)
+
     def contextMenuEvent(self, event):
         """
         Handle context menu events on the node itself.

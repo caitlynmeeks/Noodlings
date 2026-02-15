@@ -567,5 +567,49 @@ class TestLLMClientCreation:
             assert "SMALL" in config.model_labels
 
 
+# =============================================================================
+# Pause Gate Tests (B.4)
+# =============================================================================
+
+class TestPauseGate:
+    """B.4: Paused performers must not execute turns."""
+
+    def test_paused_performer_skips_execute(self, performer):
+        """When paused, execute() returns without spawning a worker."""
+        performer._assembly = True   # Truthy sentinel
+        performer._executor = True
+        performer.set_paused(True)
+
+        with patch(
+            'noodlestudio.runtime.ui.noodling_performer._AssemblyWorker'
+        ) as MockWorker:
+            performer.execute("Hello")
+            MockWorker.assert_not_called()
+
+    def test_resumed_performer_executes(self, performer):
+        """After resume, execute() spawns a worker normally."""
+        performer._assembly = True
+        performer._executor = True
+        performer.set_paused(True)
+        performer.set_paused(False)  # Resume
+
+        with patch(
+            'noodlestudio.runtime.ui.noodling_performer._AssemblyWorker'
+        ) as MockWorker:
+            mock_worker = MagicMock()
+            MockWorker.return_value = mock_worker
+
+            performer.execute("Hello")
+            MockWorker.assert_called_once()
+
+    def test_paused_property(self, performer):
+        """Paused property reflects set_paused() state."""
+        assert not performer.paused
+        performer.set_paused(True)
+        assert performer.paused
+        performer.set_paused(False)
+        assert not performer.paused
+
+
 # Made with love. Use with love.
 # Caitlyn Meeks 2026

@@ -259,15 +259,32 @@ class MainWindowProjectMixin:
             )
 
     def save_project(self):
-        """Save the current project."""
+        """Save the current project and cascade to all dirty subsystems."""
         if not self.project_manager.is_project_open():
             QMessageBox.warning(self, "No Project", "No project is open.")
             return
 
-        if self.project_manager.save_project():
-            self.statusBar().showMessage("Project saved", 3000)
-        else:
+        if not self.project_manager.save_project():
             QMessageBox.warning(self, "Error", "Failed to save project.")
+            return
+
+        # Cascade: flush all dirty editors
+        # 1. Facets editor -- save current assembly to disk
+        editor = getattr(self, 'facets_editor', None)
+        if editor and hasattr(editor, 'save_if_dirty'):
+            editor.save_if_dirty()
+
+        # 2. Neural canvas -- save current graph to disk
+        canvas = getattr(self, 'neural_canvas', None)
+        if canvas and hasattr(canvas, 'save_if_dirty'):
+            canvas.save_if_dirty()
+
+        # 3. Inspector -- flush any pending property changes
+        inspector = getattr(self, 'inspector', None)
+        if inspector and hasattr(inspector, 'save_changes'):
+            inspector.save_changes()
+
+        self.statusBar().showMessage("Project saved", 3000)
 
     def save_stage(self):
         """Save the current stage hierarchy."""
@@ -282,6 +299,38 @@ class MainWindowProjectMixin:
                 QMessageBox.warning(self, "Error", "Failed to save stage.")
         else:
             QMessageBox.warning(self, "Error", "Scene hierarchy not available.")
+
+    def _on_play_toggled(self, checked: bool):
+        """Play/Stop toggle for the current stage."""
+        manager = getattr(self, 'guide_performance_manager', None)
+        if not manager:
+            self.statusBar().showMessage("Performance manager not ready", 3000)
+            if hasattr(self, '_play_button'):
+                self._play_button.setChecked(False)
+            return
+
+        if checked:
+            # Start performance from current stage
+            hierarchy = getattr(self, 'hierarchy', None)
+            if not hierarchy or not getattr(hierarchy, 'current_stage', None):
+                self.statusBar().showMessage("No stage selected", 3000)
+                self._play_button.setChecked(False)
+                return
+
+            stage_path = self.project_manager.get_stage_path(hierarchy.current_stage)
+            if not stage_path:
+                self.statusBar().showMessage("Stage path not found", 3000)
+                self._play_button.setChecked(False)
+                return
+
+            manager.start_ensemble_from_stage(stage_path, hierarchy.current_stage)
+            self._play_button.setText("Stop")
+            self.statusBar().showMessage("Playing...", 3000)
+        else:
+            # Stop performance
+            manager.stop_performance()
+            self._play_button.setText("Play")
+            self.statusBar().showMessage("Stopped", 3000)
 
     def import_noodling_folder(self):
         """Import a noodling folder into the current project."""

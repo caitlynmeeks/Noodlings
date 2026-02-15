@@ -189,20 +189,8 @@ class SceneHierarchyUtilsMixin:
     # =========================================================================
 
     def set_server_state(self, running: bool):
-        """Update hierarchy based on server state."""
-        print(f"[SceneHierarchy] set_server_state({running})")
+        """Track server state. Hierarchy populates from disk, not the server."""
         self._server_running = running
-
-        if running:
-            # Server online - enable tree and refresh to show full hierarchy
-            self.tree.setEnabled(True)
-            self.tree.setStyleSheet(self.tree.styleSheet().replace("color: #666;", "color: #D2D2D2;"))
-        else:
-            # Server offline - show offline message instead of full tree
-            self.tree.setEnabled(True)  # Keep enabled so user can see the message
-
-        # Refresh to show appropriate content based on server state
-        self.refresh_scene()
 
     def _gray_out_item(self, item):
         """Recursively gray out an item and its children."""

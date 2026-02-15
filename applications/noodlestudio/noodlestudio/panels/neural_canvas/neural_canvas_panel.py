@@ -622,6 +622,14 @@ class NeuralCanvasPanel(QWidget):
                     ))
                 break  # Only show the first one
 
+    def save_if_dirty(self):
+        """Save current graph quietly if a file is loaded. Called by Ctrl+S cascade."""
+        if self.current_filepath and self.graph:
+            try:
+                self.graph.to_json(self.current_filepath)
+            except Exception as e:
+                print(f"[NeuralCanvas] Error in save cascade: {e}")
+
     def _on_save(self):
         """Save to current file."""
         if self.current_filepath:

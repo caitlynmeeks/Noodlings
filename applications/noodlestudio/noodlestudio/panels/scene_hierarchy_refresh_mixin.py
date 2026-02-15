@@ -77,8 +77,6 @@ class SceneHierarchyRefreshMixin:
 
             if not is_open:
                 self._show_no_project_message()
-            elif not self._server_running:
-                self._show_server_offline_message()
             else:
                 self._refresh_from_project()
 
@@ -97,11 +95,6 @@ class SceneHierarchyRefreshMixin:
     def _show_no_project_message(self):
         """Show message when no project is open."""
         self.status_label.setText("No project open\nFile > Open Project...")
-        self.status_label.show()
-
-    def _show_server_offline_message(self):
-        """Show message when project is open but server is offline."""
-        self.status_label.setText("Server offline\nToggle server in status bar to view stage")
         self.status_label.show()
 
     def _refresh_from_project(self):

@@ -44,7 +44,7 @@ class TestStageInstanceDiscovery:
         """Default project stage must yield Ajo and Yuki instances."""
         manager = self._make_manager()
         stage_path = os.path.join(
-            LIBRARY_DIR, 'Welcome to NoodleStudio', 'Stages', 'the_nexus'
+            LIBRARY_DIR, 'templates', 'Getting Started', 'Stages', 'the_nexus'
         )
         instances = manager._discover_stage_instances(stage_path)
 
@@ -56,7 +56,7 @@ class TestStageInstanceDiscovery:
         """Instance names must come from instance.yaml overrides."""
         manager = self._make_manager()
         stage_path = os.path.join(
-            LIBRARY_DIR, 'Welcome to NoodleStudio', 'Stages', 'the_nexus'
+            LIBRARY_DIR, 'templates', 'Getting Started', 'Stages', 'the_nexus'
         )
         instances = manager._discover_stage_instances(stage_path)
         names = {i['noodling_id']: i['name'] for i in instances}
@@ -68,7 +68,7 @@ class TestStageInstanceDiscovery:
         """Each instance's assembly_path must point to a real, parseable file."""
         manager = self._make_manager()
         stage_path = os.path.join(
-            LIBRARY_DIR, 'Welcome to NoodleStudio', 'Stages', 'the_nexus'
+            LIBRARY_DIR, 'templates', 'Getting Started', 'Stages', 'the_nexus'
         )
         instances = manager._discover_stage_instances(stage_path)
 
@@ -86,7 +86,7 @@ class TestStageInstanceDiscovery:
         """Ajo's noodling.yaml has vrm_path; it must be resolved."""
         manager = self._make_manager()
         stage_path = os.path.join(
-            LIBRARY_DIR, 'Welcome to NoodleStudio', 'Stages', 'the_nexus'
+            LIBRARY_DIR, 'templates', 'Getting Started', 'Stages', 'the_nexus'
         )
         instances = manager._discover_stage_instances(stage_path)
         ajo = next(i for i in instances if i['noodling_id'] == 'ajo')
@@ -120,11 +120,11 @@ class TestStageInstanceWithTmpProject:
         """Build a temp project with instances pointing to real assemblies."""
         # Find real assembly files
         ajo_assembly = os.path.join(
-            LIBRARY_DIR, 'Welcome to NoodleStudio',
+            LIBRARY_DIR, 'templates', 'Getting Started',
             'Noodlings', 'ajo_majo', 'assembly.yaml'
         )
         yuki_assembly = os.path.join(
-            LIBRARY_DIR, 'Welcome to NoodleStudio',
+            LIBRARY_DIR, 'templates', 'Getting Started',
             'Noodlings', 'yuki_cyberfox', 'assembly.yaml'
         )
 

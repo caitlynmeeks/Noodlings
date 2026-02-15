@@ -115,11 +115,25 @@ class MainWindowMenusMixin:
         help_menu.addAction(self._create_action("About NoodleStudio", slot=self.show_about))
 
     def _setup_tool_bar(self):
-        """Create tool bar."""
+        """Create tool bar with Play/Stop button."""
+        from PyQt6.QtWidgets import QPushButton
+        from PyQt6.QtCore import QSize
+
         tool_bar = self.addToolBar("Main Toolbar")
-        tool_bar.setObjectName("MainToolbar")  # Required for saveState
-        # Hide legacy buttons for now
-        tool_bar.setVisible(False)
+        tool_bar.setObjectName("MainToolbar")
+        tool_bar.setMovable(False)
+
+        # Play/Stop toggle button
+        self._play_button = QPushButton("Play")
+        self._play_button.setCheckable(True)
+        self._play_button.setFixedSize(QSize(64, 28))
+        self._play_button.setStyleSheet(
+            "QPushButton { background: #333; color: #ccc; border: 1px solid #555; "
+            "border-radius: 4px; font-weight: bold; } "
+            "QPushButton:checked { background: #4a7a4a; color: #eee; }"
+        )
+        self._play_button.toggled.connect(self._on_play_toggled)
+        tool_bar.addWidget(self._play_button)
 
     def _create_action(
         self,

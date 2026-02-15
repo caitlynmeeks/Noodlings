@@ -490,7 +490,7 @@ class EntityInspectorMixin:
     # ========== SAVE METHODS ==========
 
     def save_changes(self):
-        """Save edited properties back to noodleMUSH/disk."""
+        """Save edited properties to disk."""
         if not self.current_entity:
             return
 
@@ -512,7 +512,11 @@ class EntityInspectorMixin:
             QTimer.singleShot(2500, lambda: setattr(self, 'is_saving', False))
 
     def _save_noodling_changes(self, entity_data):
-        """Save noodling property changes."""
+        """Save noodling property changes to YAML files on disk.
+
+        Name -> instance.yaml overrides (instance-level display name)
+        Description -> recipe.yaml (template-level character data)
+        """
         agent_id = entity_data.get('id', '')
         updates = {}
 
@@ -523,20 +527,94 @@ class EntityInspectorMixin:
         if 'description' in self.property_fields:
             updates['description'] = self.property_fields['description'].toPlainText()
 
-        # Emit signal immediately for UI sync (regardless of server state)
+        # Emit signal immediately for UI sync
         if 'name' in updates:
             self.nameChanged.emit('noodling', agent_id, updates['name'])
 
-        # Then try to persist to server
+        # Persist name to instance.yaml overrides
+        instance_path = entity_data.get('path', '')
+        if instance_path and 'name' in updates:
+            self._save_name_to_instance(instance_path, updates['name'])
+
+        # Persist description to recipe.yaml
+        if 'description' in updates:
+            recipe_path = self._resolve_recipe_path(entity_data)
+            if recipe_path:
+                self._save_description_to_recipe(recipe_path, updates['description'])
+
+    def _save_name_to_instance(self, instance_path, new_name):
+        """Write name override to instance.yaml (read-modify-write)."""
+        inst_yaml = os.path.join(instance_path, 'instance.yaml')
+        if not os.path.exists(inst_yaml):
+            return
+
         try:
-            url = f"{self.api_base}/agents/{agent_id}/update"
-            response = requests.post(url, json=updates, timeout=2)
-            if response.status_code == 200:
-                print(f"Saved changes for {agent_id}")
-            else:
-                print(f"Error saving to server: {response.json().get('error', 'Unknown error')}")
+            with open(inst_yaml, 'r') as f:
+                inst_data = yaml.safe_load(f) or {}
+
+            if 'overrides' not in inst_data:
+                inst_data['overrides'] = {}
+            inst_data['overrides']['name'] = new_name
+
+            with open(inst_yaml, 'w') as f:
+                yaml.dump(inst_data, f, default_flow_style=False)
+
+            print(f"[Inspector] Saved name to instance: {inst_yaml}")
+
         except Exception as e:
-            print(f"Server offline - changes saved locally: {e}")
+            print(f"[Inspector] Error saving name to instance: {e}")
+
+    def _save_description_to_recipe(self, recipe_path, new_description):
+        """Write description to recipe.yaml (read-modify-write)."""
+        try:
+            with open(recipe_path, 'r') as f:
+                recipe_data = yaml.safe_load(f) or {}
+
+            recipe_data['description'] = new_description
+
+            with open(recipe_path, 'w') as f:
+                yaml.dump(recipe_data, f, default_flow_style=False)
+
+            print(f"[Inspector] Saved description to recipe: {recipe_path}")
+
+        except Exception as e:
+            print(f"[Inspector] Error saving description to recipe: {e}")
+
+    def _resolve_recipe_path(self, entity_data):
+        """Resolve the recipe.yaml path for a noodling entity.
+
+        Uses the same resolution logic as _load_noodling_recipe:
+        instance_path -> up 4 dirs -> project_root -> Library/Noodlings/{ref}/recipe.yaml
+        Falls back to app-wide library.
+        """
+        noodling_ref = entity_data.get('noodling_ref', '')
+        instance_path = entity_data.get('path', '')
+
+        if not noodling_ref or not instance_path:
+            return None
+
+        # Project library: instance_path is Stages/{stage}/Instances/{id}
+        # Go up 4 levels to project root
+        project_root = instance_path
+        for _ in range(4):
+            project_root = os.path.dirname(project_root)
+
+        library_recipe = os.path.join(
+            project_root, 'Library', 'Noodlings', noodling_ref, 'recipe.yaml'
+        )
+
+        if os.path.exists(library_recipe):
+            return library_recipe
+
+        # Fallback to app-wide library
+        app_library = os.path.join(
+            os.path.dirname(__file__), '..', '..', 'library', 'noodlings',
+            noodling_ref, 'recipe.yaml'
+        )
+        if os.path.exists(app_library):
+            return app_library
+
+        return None
 
     def _save_prop_changes(self, entity_type, entity_data):
         """Save prop/prim property changes."""

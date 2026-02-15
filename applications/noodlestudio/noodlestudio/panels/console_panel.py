@@ -153,8 +153,12 @@ class ConsolePanel(QWidget):
         # Initialize UI directly on this widget
         self.init_ui(self)
 
-        # Start WebSocket connection in background thread
-        self.start_log_stream()
+        # Quiet initial state -- connection deferred until server starts.
+        # The server mixin calls console.reconnect() when the server comes up.
+        self.ws_worker = None
+        self.log_text.append(
+            "<span style='color: #666;'>[Console] Server not running</span>"
+        )
 
     def init_ui(self, widget):
         layout = QVBoxLayout(widget)
@@ -384,21 +388,15 @@ class ConsolePanel(QWidget):
 
     def start_log_stream(self):
         """Start WebSocket connection to noodleMUSH logs."""
-        self.log_text.append("[Console] Connecting to noodleMUSH logs...")
-        self.log_text.append(f"[Console] WebSocket: {self.ws_url}")
-
-        # Start WebSocket worker thread
         self.ws_worker = WebSocketWorker(self.ws_url)
         self.ws_worker.logReceived.connect(self.on_log_received)
         self.ws_worker.connected.connect(self.on_connection_changed)
         self.ws_worker.start()
 
-        self.log_text.append("[Console] Log streaming started")
-
     def reconnect(self):
         """Reconnect to noodleMUSH logs (when server restarts)."""
         # Stop existing worker if any
-        if hasattr(self, 'ws_worker'):
+        if self.ws_worker is not None:
             if self.ws_worker.isRunning():
                 self.ws_worker.stop()
                 self.ws_worker.wait(1000)  # Wait up to 1 second

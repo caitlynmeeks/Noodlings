@@ -62,24 +62,9 @@ class FacetsEditorAssemblyMixin:
         # CRITICAL: Lock BEFORE auto-save to prevent re-entrancy during YAML loading
         self.scene_transition_lock = True
 
-        # Auto-save previous assembly before switching (if positions changed)
+        # Auto-save previous assembly before switching
         if self.current_assembly and self.current_assembly_name:
-            try:
-                import os
-                assembly_dir = os.path.join(os.path.dirname(__file__), '../facet_assemblies')
-                for filename in os.listdir(assembly_dir):
-                    if filename.endswith('.yaml'):
-                        try:
-                            from ..core.facet_system import FacetAssembly
-                            test_path = os.path.join(assembly_dir, filename)
-                            test_assembly = FacetAssembly.load_yaml(test_path)
-                            if test_assembly.name == self.current_assembly_name:
-                                self.current_assembly.save_yaml(test_path)
-                                break
-                        except:
-                            pass
-            except:
-                pass  # Silent auto-save failure
+            self._save_assembly_to_disk()
 
         # Hide empty state message if showing
         self.hide_empty_state()
@@ -219,6 +204,10 @@ class FacetsEditorAssemblyMixin:
                 self.current_assembly.save_yaml(self.current_assembly_path)
         except Exception:
             pass  # Silent save errors
+
+    def save_if_dirty(self):
+        """Save current assembly if one is loaded. Called by Ctrl+S cascade."""
+        self._save_assembly_to_disk()
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.

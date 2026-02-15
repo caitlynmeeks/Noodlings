@@ -337,6 +337,9 @@ class FacetsEditorEventsMixin:
                 if isinstance(item, FacetNodeGraphics) and item.facet.id == facet.id:
                     if item.field_widgets:  # If fields currently visible, refresh them
                         item.show_fields(force=True)
+            # Persist to disk
+            if hasattr(self, '_save_assembly_to_disk'):
+                self._save_assembly_to_disk()
 
         editor.textApplied.connect(on_applied)
 
@@ -349,69 +352,109 @@ class FacetsEditorEventsMixin:
         # Show as modal dialog
         editor.exec()
 
+    # ========== NEURAL CANVAS BRIDGE ==========
+
+    def _open_neural_canvas(self, nncanvas_path: str):
+        """Open a .nncanvas file in the Neural Canvas panel.
+
+        Resolves the path relative to the current project root,
+        then tells the neural canvas panel to load the file.
+
+        Args:
+            nncanvas_path: Path to .nncanvas file (may be relative to project)
+        """
+        import os
+
+        # Resolve relative path against project root
+        if not os.path.isabs(nncanvas_path):
+            main_window = self.window()
+            pm = getattr(main_window, 'project_manager', None)
+            if pm and pm.current_project_path:
+                nncanvas_path = os.path.join(pm.current_project_path, nncanvas_path)
+
+        if not os.path.exists(nncanvas_path):
+            print(f"[FacetsEditor] Neural canvas file not found: {nncanvas_path}")
+            return
+
+        # Find the neural canvas panel and load the file
+        main_window = self.window()
+        canvas = getattr(main_window, 'neural_canvas', None)
+        if canvas and hasattr(canvas, '_load_from_file'):
+            canvas._load_from_file(nncanvas_path)
+            # Switch to the neural canvas tab if using tabbed center
+            center_tabs = getattr(main_window, 'center_tabs', None)
+            if center_tabs:
+                idx = center_tabs.indexOf(canvas)
+                if idx >= 0:
+                    center_tabs.setCurrentIndex(idx)
+        else:
+            print(f"[FacetsEditor] Neural canvas panel not available")
+
     # ========== COGNITION CONTROL ==========
 
     def toggle_pause_cognition(self, checked: bool):
-        """Toggle cognitive processing pause for the current agent."""
+        """Toggle cognitive processing pause for the current agent.
+
+        Sets the paused flag on the local NoodlingPerformer so that
+        execute() becomes a no-op while paused.
+        """
         if not self.current_agent_id:
             QMessageBox.warning(self, "No Agent", "No agent is currently loaded in the Facets Editor.")
             self.pause_button.setChecked(False)
             return
 
-        try:
-            if checked:
-                # PAUSING: Request immediate freeze (mid-cycle pause for debugging)
-                url = f"{self.api_base}/cognition/pause"
-                response = requests.post(url, json={
-                    'paused': True,
-                    'agent_id': self.current_agent_id,
-                    'freeze_mode': 'immediate'  # Freeze mid-cycle for inspection
-                }, timeout=5)
+        # Find the performer through the performance manager
+        performer = self._find_performer(self.current_agent_id)
 
-                if response.status_code == 200:
-                    self.cognition_paused = True
-                    self.pause_button.setText("Resume Cognition")
-                    self.bottom_pause_btn.setText(">")
-                    self.bottom_pause_btn.setChecked(True)
+        if checked:
+            # PAUSING
+            if performer:
+                performer.set_paused(True)
 
-                    # Update Stage panel to reflect pause state
-                    self._update_stage_pause_state(True)
+            self.cognition_paused = True
+            self.pause_button.setText("Resume Cognition")
+            self.bottom_pause_btn.setText(">")
+            self.bottom_pause_btn.setChecked(True)
 
-                    # Refresh all visible fields to show output as editable
-                    for node in self.node_graphics.values():
-                        if node.field_widgets:  # If fields currently visible, refresh them
-                            node.show_fields(force=True)
-                else:
-                    QMessageBox.warning(self, "Pause Failed", f"Failed to pause cognition: {response.status_code}")
-                    self.pause_button.setChecked(False)
-                    self.bottom_pause_btn.setChecked(False)
+            # Update Stage panel to reflect pause state
+            self._update_stage_pause_state(True)
 
-            else:
-                # RESUMING: Apply edits and resume cognition
-                url = f"{self.api_base}/cognition/pause"
-                response = requests.post(url, json={'paused': False, 'agent_id': self.current_agent_id}, timeout=2)
+            # Refresh all visible fields to show output as editable
+            for node in self.node_graphics.values():
+                if node.field_widgets:
+                    node.show_fields(force=True)
+        else:
+            # RESUMING
+            if performer:
+                performer.set_paused(False)
 
-                if response.status_code == 200:
-                    self.cognition_paused = False
-                    self.pause_button.setText("Pause Cognition")
-                    self.bottom_pause_btn.setText("||")
-                    self.bottom_pause_btn.setChecked(False)
+            self.cognition_paused = False
+            self.pause_button.setText("Pause Cognition")
+            self.bottom_pause_btn.setText("||")
+            self.bottom_pause_btn.setChecked(False)
 
-                    # Update Stage panel to reflect resume state
-                    self._update_stage_pause_state(False)
+            # Update Stage panel to reflect resume state
+            self._update_stage_pause_state(False)
 
-                    # Refresh all visible fields to show output as read-only again
-                    for node in self.node_graphics.values():
-                        if node.field_widgets:  # If fields currently visible, refresh them
-                            node.show_fields(force=True)
-                else:
-                    QMessageBox.warning(self, "Resume Failed", f"Failed to resume cognition: {response.status_code}")
-                    self.pause_button.setChecked(True)
-                    self.bottom_pause_btn.setChecked(True)
+            # Refresh all visible fields to show output as read-only again
+            for node in self.node_graphics.values():
+                if node.field_widgets:
+                    node.show_fields(force=True)
 
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Pause/resume error: {str(e)}")
-            self.pause_button.setChecked(not checked)  # Revert button state
+    def _find_performer(self, agent_id: str):
+        """Find the NoodlingPerformer for an agent through the main window."""
+        widget = self.parent()
+        while widget and not hasattr(widget, 'guide_performance_manager'):
+            widget = widget.parent() if hasattr(widget, 'parent') else None
+
+        if widget and hasattr(widget, 'guide_performance_manager'):
+            manager = widget.guide_performance_manager
+            if manager and hasattr(manager, '_performers'):
+                # Strip 'agent_' prefix to match performer noodling_id
+                noodling_id = agent_id.replace('agent_', '')
+                return manager._performers.get(noodling_id)
+
+        return None
 
     def set_current_agent(self, agent_id: str):
         """

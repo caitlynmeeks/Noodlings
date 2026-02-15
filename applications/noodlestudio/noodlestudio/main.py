@@ -383,6 +383,11 @@ def main():
             time.sleep(0.01)
         splash.finish(window)
 
+    # Auto-open: show Project Chooser unless CLI flags override
+    # Must happen BEFORE showMaximized so the window isn't visible behind the dialog
+    if not args.project and not args.play and not args.ensemble:
+        window.auto_open_last_project()
+
     # Show main window maximized
     window.showMaximized()
 

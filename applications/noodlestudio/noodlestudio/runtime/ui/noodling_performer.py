@@ -224,6 +224,9 @@ class NoodlingPerformer(QObject):
         # Channel bus reference (set by manager for channel publishing)
         self._channel_bus = None
 
+        # Pause gate: when True, execute() returns immediately
+        self._paused = False
+
         logger.info(f"NoodlingPerformer[{noodling_id}] initialized: {name}")
 
     # =========================================================================
@@ -239,6 +242,16 @@ class NoodlingPerformer(QObject):
     def name(self) -> str:
         """Display name for this noodling."""
         return self._name
+
+    @property
+    def paused(self) -> bool:
+        """Whether this performer's cognition is paused."""
+        return self._paused
+
+    def set_paused(self, paused: bool):
+        """Set the pause state. When paused, execute() is a no-op."""
+        self._paused = paused
+        logger.info(f"NoodlingPerformer[{self._noodling_id}] {'paused' if paused else 'resumed'}")
 
     @property
     def last_response(self) -> str:
@@ -358,6 +371,10 @@ class NoodlingPerformer(QObject):
         """
         if not self._assembly or not self._executor:
             self.errorOccurred.emit("Assembly not loaded.")
+            return
+
+        # Pause gate: don't execute while paused
+        if self._paused:
             return
 
         # Prevent overlapping executions
