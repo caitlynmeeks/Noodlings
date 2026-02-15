@@ -52,6 +52,7 @@ class SceneHierarchyStageMixin:
         try:
             # Check if project is open - use new format
             if self.project_manager and self.project_manager.is_project_open():
+                self.stage_selector.setEnabled(True)
                 stages = self.project_manager.list_stages()
 
                 for stage_name in stages:
@@ -81,23 +82,9 @@ class SceneHierarchyStageMixin:
                     self.stage_selector.setCurrentIndex(0)
 
             else:
-                # Legacy mode - load from rooms.json
-                rooms_path = os.path.join(
-                    os.path.dirname(__file__),
-                    "../../../cmush/world/rooms.json"
-                )
-                if os.path.exists(rooms_path):
-                    with open(rooms_path, 'r') as f:
-                        rooms_data = json.load(f)
-
-                    for room_id, room_data in rooms_data.items():
-                        room_name = room_data.get('name', room_id)
-                        display_text = f"{room_name} ({room_id})"
-                        self.stage_selector.addItem(display_text, room_id)
-
-                        # Select current room
-                        if room_id == self.current_room:
-                            self.stage_selector.setCurrentText(display_text)
+                # No project open — show placeholder
+                self.stage_selector.addItem("(No project open)", None)
+                self.stage_selector.setEnabled(False)
 
         except Exception as e:
             print(f"Error populating stage selector: {e}")
