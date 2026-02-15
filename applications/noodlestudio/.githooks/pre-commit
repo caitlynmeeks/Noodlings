@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# ------------------------------------------------------------------
+#   Pre-commit Hook: NoodleStudio Smoke Tests
+#
+#   Blocks commits if the smoke test suite fails. Install by running:
+#     git config core.hooksPath applications/noodlestudio/.githooks
+#
+#   To bypass in emergencies:
+#     git commit --no-verify
+# ------------------------------------------------------------------
+
+set -euo pipefail
+
+STUDIO_DIR="$(git rev-parse --show-toplevel)/applications/noodlestudio"
+
+echo "[pre-commit] Running NoodleStudio smoke tests..."
+
+cd "$STUDIO_DIR"
+PYTHONPATH=".:../.." ../../venv/bin/python -m pytest tests/test_smoke.py --tb=short -q
+
+echo "[pre-commit] Smoke tests passed."
