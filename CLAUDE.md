@@ -2,25 +2,77 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: February 6, 2026
+**Last Updated**: February 12, 2026
+**Machine**: jiji (migrated from caledonia M3 Ultra, Feb 2026)
+
+---
+
+## DEVELOPMENT DISCIPLINE (READ THIS FIRST)
+
+**Canonical reference:** `docs/development/discipline.md` — test tiers, pipeline testing, signal wiring rules, fixture hygiene, handoff verification protocol, manual smoke walk checklist. Read it. Follow it.
+
+NoodleStudio is production-grade software on par with Blender or Unity. Caity is a former early Unity employee who built the Asset Store. This is not a hobby project. Every commit must leave the application healthier than you found it.
+
+### The February 2026 Lesson
+
+During Phase 2/3 development (ensemble dynamics), Hero Claude built a beautiful performance demo while the project system, server pipeline, inspector, and stage system rotted underneath — because those systems had **0% integration test coverage**. One wrong directory path (`..` x4 instead of x3) silently broke the entire server cascade, and nobody caught it because no test verified the path resolved correctly.
+
+**This must never happen again.**
+
+### Rules of Engagement
+
+1. **Smoke tests before every commit.** Run `tests/test_smoke.py` before committing. If it fails, the commit is blocked. No exceptions.
+
+2. **Every bug fix gets a test FIRST.** Write the failing test, then fix the code. The test proves the bug existed and proves it's fixed. If you can't write a test for it, you don't understand it well enough to fix it.
+
+3. **Feature work must not break existing systems.** When building something new, run the full test suite regularly. If you touch a file, verify the systems that depend on it still work. If you're adding a new facet feature, make sure the inspector still loads. If you're changing the performance window, make sure the stage system still functions.
+
+4. **Test the trunk, not just the leaves.** Unit tests for individual components are necessary but insufficient. Integration tests for the CONNECTION POINTS between systems are what catch real failures:
+   - Server path resolution → server startup → WebSocket connection
+   - Project open → stage discovery → hierarchy population
+   - Facet selection → inspector binding → property display
+   - Stage instance → assembly loading → performer creation
+
+5. **No monkeypatches. No workarounds.** If something is broken, fix the root cause. Do not work around it. Do not add `getattr` guards. Do not suppress exceptions. Do not redirect to `/dev/null`.
+
+6. **Understand before you touch.** Read the code you're about to modify. Understand the data flow. Know what depends on it. If a mixin initializes attributes, make sure the class that uses it actually calls the initializer.
+
+7. **Path resolution must be tested.** Any code that constructs paths with `os.path.join` and `..` traversals MUST have a test that verifies the path resolves to a real directory. This is the single most common silent failure in our codebase.
+
+8. **Signal connections must be tested.** When wiring Qt signals between panels (hierarchy → inspector, facets editor → live viz), write a test that emits the signal and verifies the receiver responds. Signal disconnections are invisible until a user clicks something.
+
+### Smoke Test Suite
+
+```bash
+cd applications/noodlestudio
+python -m pytest tests/test_smoke.py -v
+```
+
+The smoke test suite covers: server path resolution, inspector initialization, project structure, stage instances, assembly loading, dropdown states. Run it before EVERY commit.
+
+### Full Regression
+
+```bash
+cd applications/noodlestudio
+python -m pytest tests/ -v
+```
+
+Run after any significant change. Aim for full green before pushing.
 
 ---
 
 ## HANDOFFS FROM DISCUSS CLAUDE (Check These First!)
 
 Handoff documents from the discuss session live in:
-`/Users/thistlequell/git/claudechat/projects/handoffs/`
+`/Users/caitlyn/git/claudechat_dev/projects/handoffs/`
 
 **Current Priority Handoffs:**
 
 | Date | File | Summary |
 |------|------|---------|
-| Jan 14 | `visual-verification-spec.md` | **HIGH PRIORITY** - Baseline comparison, SSIM diff, `assert_visual` action - fixes blind testing |
-| Jan 14 | `ajo-display-and-asset-workflow-handoff.md` | RESOLVED (texture rendering) - VRM textures fixed Feb 6. Remaining: no "Add to Stage" UX |
+| Feb 12 | `infrastructure-repair-and-stage-integration-handoff-2026-02-12.md` | **CRITICAL** - Fix server path, inspector init, stage dropdown, wire noodlings to stage instances, smoke tests |
+| Jan 14 | `visual-verification-spec.md` | Baseline comparison, SSIM diff, `assert_visual` action |
 | Jan 14 | `human-ui-test-plan.md` | Visual verification tests - what humans should SEE |
-| Jan 14 | `web-browser-panel-spec.md` | Future: embedded browser with human-in-the-loop |
-| Jan 13 | `hero-claude-demo-play-handoff.md` | Demo play ready to run |
-| Jan 13 | `demo-play-for-hero-claude.yaml` | 10-beat demo play file |
 
 **Read these when starting a session** - they contain context from Caity's discuss sessions.
 
@@ -255,27 +307,6 @@ PYTHONPATH=.:../.. python -m noodlestudio.runtime \
 
 ---
 
-## NEXT: Phase 7D - Custom Component System
-
-**Goal:** Allow users to create reusable custom components.
-
-**Composite Components (YAML):**
-```yaml
-type: CompositeComponent
-name: LoginForm
-properties:
-  - name: title
-    type: string
-    default: "Login"
-template:
-  type: Panel
-  children:
-    - type: Label
-      text: "${title}"
-```
-
-**Key files to create:** `runtime/ui/composite_loader.py`
-
 ---
 
 ## RECENT: Computer Use QA System (Jan 11, 2026)
@@ -299,27 +330,73 @@ ai_verify_ui(verify="Inspector shows 3 properties")
 
 ---
 
-## BACKLOG
+## BACKLOG (Post-Core Stability)
 
-### Inspector UX
-- Unity-style numeric drag-to-scroll on labels
+These are deferred until the core infrastructure is solid and tested:
 
-### Undo/Redo for UI Edits
-- `AddUIComponentCommand`, `DeleteUIComponentCommand`
-
-### Additional Build Targets
-- Windows .exe (PyInstaller)
-- Linux binary
-
-### Admin Dashboard - Issue Credits UI
-File: `backend/admin-dashboard/src/routes/users/[id]/+page.svelte`
-
-### Trained Gaussian Quality
-OpenSplat-trained Gaussians have background artifacts.
+- Inspector UX: Unity-style numeric drag-to-scroll on labels
+- Undo/Redo for UI Edits
+- Protected default asset pattern (read-only assemblies)
+- LLM streaming through assembly
+- Voice sounds (Animal Crossing style)
+- RAG-backed lore books per character
+- CharmNetwork → VRM affect pipeline
 
 ---
 
 ## Core Architecture
+
+### Project → Stage → Instance Pipeline (CRITICAL)
+
+This is the backbone. If it breaks, everything breaks.
+
+```
+Project (project.noodleproj)
+  └─ Stages/{name}/
+       ├─ stage.yaml (metadata, geometry, spawn point)
+       ├─ Zones/*.zone.yaml (spatial regions)
+       ├─ Instances/{name}/ (noodling placements)
+       │    ├─ instance.yaml (noodling: relative path to template, overrides)
+       │    └─ state.json (runtime affect, memories)
+       └─ Props/{name}/ (world objects)
+
+Noodling Templates (Noodlings/{name}/)
+  ├─ noodling.yaml (manifest)
+  ├─ recipe.yaml (personality, affect baseline, LLM config)
+  └─ assembly.yaml (facet topology: INCOMING → facets → OUTGOING)
+```
+
+**Instance is NOT a copy.** It's a reference + overrides. Assembly and recipe load from the template at runtime.
+
+**Stage hierarchy tree** shows the contents of the current stage (zones, noodling instances, props). Selection emits `entitySelected` signal → routes to inspector, console, and facets editor.
+
+### Server Pipeline (CRITICAL)
+
+```
+NoodleStudio (Qt app)
+  ├─ main_window_server_mixin.py → launches start.sh
+  │    └─ _cmush_dir() resolves to applications/cmush/
+  │
+  └─ start.sh (applications/cmush/)
+       ├─ HTTP server :8080 (serves web client from cmush/web/)
+       └─ WebSocket server :8765 (MUSH commands, chat, events)
+
+Text View (QWebEngineView) → http://localhost:8080
+Console (WebSocket) → ws://localhost:8765
+```
+
+**If `_cmush_dir()` resolves wrong, NOTHING works.** Test it.
+
+### Auth Pipeline
+
+```
+Sign In → LoginDialog → OAuth (Google/GitHub/Apple)
+  → Cloudflare Worker (noodlings-api.caitsters.workers.dev)
+  → Token stored locally (~/.noodlings/session.json)
+  → Enter World → AvatarPicker → web view loads MUSH client with token
+```
+
+Backend is Cloudflare Workers + D1 database + KV sessions. Production URL: `https://noodlings-api.caitsters.workers.dev`
 
 ### Affect Model: PAD + Boredom + Sorrow
 5-dimensional continuous affect (NO discrete emotion labels):
@@ -330,6 +407,18 @@ OpenSplat-trained Gaussians have background artifacts.
 Visual node graphs defining how Noodlings think:
 ```
 INCOMING -> CHARM_NET -> CONTEXT_INTELLIGENCE -> Cognitive facets -> OUTGOING
+```
+
+### Ensemble Performance System
+
+```
+GuidePerformanceManager
+  ├─ NoodlingPerformer (one per noodling, owns assembly + executor)
+  ├─ GuidePerformanceWindow (pure renderer: VRM viewports + dialogue)
+  └─ Turn-taking: User → Ajo → Yuki → wait
+
+Noodlings MUST be stage instances (Stages/{stage}/Instances/).
+Performance manager loads from stage, NOT hardcoded paths.
 ```
 
 ### Component System
@@ -348,12 +437,18 @@ RadianceComponent -> GaussianRenderer (gsplat-mps GPU, 120 FPS) -> GaussianViewe
 
 ```bash
 cd applications/noodlestudio
-PYTHONPATH=.:../.. pytest              # Run all (~900 tests)
-PYTHONPATH=.:../.. pytest -v           # Verbose
-PYTHONPATH=.:../.. pytest -k "test_ui" # By pattern
+
+# Smoke tests (run before EVERY commit)
+python -m pytest tests/test_smoke.py -v
+
+# Full suite (~1700 tests)
+python -m pytest tests/ -v
+
+# By pattern
+python -m pytest tests/ -k "ensemble" -v
 ```
 
-**Before committing:** ALL tests must pass.
+**Before committing:** Smoke tests MUST pass. Full suite SHOULD pass. If a full-suite test fails and it's unrelated to your change, investigate — don't ignore it.
 
 ---
 
@@ -361,7 +456,7 @@ PYTHONPATH=.:../.. pytest -k "test_ui" # By pattern
 
 ### Environment Setup
 ```bash
-cd /Users/thistlequell/git/noodlings_clean
+cd /Users/caitlyn/git/noodlings_clean
 source venv/bin/activate
 ```
 
@@ -464,31 +559,58 @@ This is not a style preference. This was validated on Feb 9 2026 when a MagicMoc
 
 ## Quick Reference
 
+### Core Infrastructure (touch with care)
 | What | Where |
 |------|-------|
+| **Project Manager** | `core/project_manager.py` |
+| **Server Mixin** | `core/main_window_server_mixin.py` |
+| **Account Mixin** | `core/main_window_account_mixin.py` |
+| **Project Mixin** | `core/main_window_project_mixin.py` |
+| **Panels Mixin** | `core/main_window_panels_mixin.py` |
+| **Signals Mixin** | `core/main_window_signals_mixin.py` |
+| **Scene Hierarchy** | `panels/scene_hierarchy.py` + mixins |
+| **Inspector Panel** | `panels/inspector_panel.py` |
+| **Inspector Base** | `panels/inspector_base.py` |
+| **Property Binding** | `core/property_binding.py` (PropertyMeta) |
+| **Scene Node/Graph** | `core/scene_node.py`, `core/scene_graph.py` |
+| **Smoke Tests** | `tests/test_smoke.py` |
+
+### Performance & Cognition
+| What | Where |
+|------|-------|
+| **Performance Manager** | `runtime/ui/guide_performance_manager.py` |
+| **Performance Window** | `runtime/ui/guide_performance_window.py` |
+| **Noodling Performer** | `runtime/ui/noodling_performer.py` |
+| **Performance Player** | `runtime/ui/performance_player.py` |
+| **Facet Executor** | `core/facet_executor.py` |
+| **Facet Editor** | `panels/facets_editor_panel.py` + mixins |
 | **LLM Client** | `runtime/llm_client.py` |
-| **Runtime CLI** | `runtime/cli.py` |
-| **UI Canvas (runtime)** | `runtime/ui/` |
-| **UI Components** | `runtime/ui/components/` |
-| **UI Event Dispatcher** | `runtime/ui/event_dispatcher.py` |
-| **UI Script Executor** | `runtime/ui/script_executor.py` |
-| **UI Canvas Designer** | `panels/ui_canvas_editor_panel.py` |
-| **Build system** | `appbuilder/` |
-| **Facet editor** | `panels/facets_editor_panel.py` |
-| **Scene hierarchy** | `panels/scene_hierarchy.py` |
-| **Cognitive Cycles** | `panels/cognitive_cycles_panel_v2.py` |
+
+### World & Communication
+| What | Where |
+|------|-------|
 | **Channel Bus** | `runtime/channels.py` |
 | **World Channels** | `runtime/world_channels.py` |
 | **Brenda Director** | `runtime/brenda.py` |
 | **Guide Cue Handler** | `runtime/guide_cue_handler.py` |
-| **Computer Use** | `core/computer_use_controller.py` |
-| **Ghost Cursor** | `core/ghost_cursor.py` |
-| **UI Test Runner** | `testing/ui_test_runner.py` |
+| **cmush Server** | `../../cmush/server.py` |
+| **cmush Startup** | `../../cmush/start.sh` |
+
+### Rendering & Animation
+| What | Where |
+|------|-------|
 | **VRM Viewport** | `runtime/ui/components/vrm_viewport.py` |
 | **VRM Parser** | `core/semantic_world/vrm_parser.py` |
-| **Guide Performance Window** | `runtime/ui/guide_performance_window.py` |
-| **Guide Performance Manager** | `runtime/ui/guide_performance_manager.py` |
-| **Unity Package Exporter** | `core/noodling_package_exporter.py` |
+| **UI Components** | `runtime/ui/components/` |
+| **Gaussian Renderer** | `core/semantic_world/gaussian_renderer.py` |
+
+### Other
+| What | Where |
+|------|-------|
+| **Computer Use** | `core/computer_use_controller.py` |
+| **Build System** | `appbuilder/` |
+| **Unity Exporter** | `core/noodling_package_exporter.py` |
+| **UI Test Runner** | `testing/ui_test_runner.py` |
 
 ---
 
@@ -554,11 +676,29 @@ This is not a style preference. This was validated on Feb 9 2026 when a MagicMoc
 
 ## Project Context
 
-**Creator:** Caitlyn (Unity employee #12, Asset Store creator)
+**Creator:** Caitlyn (Caity) Meeks — Unity early employee, launched the Asset Store
 **Location:** Canary Islands (moved early 2026)
-**Hardware:** M3 Ultra 512GB
+**Machine:** jiji (migrated from caledonia M3 Ultra 512GB, Feb 2026)
+**Mission:** Open-source "Unity for Cognition" — build and observe cognitive simulations
 
-**Mission:** Open-source alternative to "Consciousness-as-a-Service"
+**Caity's standards:** 30+ years of production software development. Christopher Alexander's Timeless Way of Building applied to software. Every piece of code is a careful decision made over hundreds of hours. Respect it. Do not rush. Do not write monkeypatches. Everything must reflect Unity quality.
+
+---
+
+## STOP LIST (Do Not Build Until Core Is Solid)
+
+Before adding ANY new feature, verify:
+1. Server starts when toggled (smoke test)
+2. Inspector loads facet properties (smoke test)
+3. Default project opens with noodlings on stage (smoke test)
+4. Ensemble loads from stage instances, not hardcoded paths
+5. All smoke tests pass
+
+If any of these fail, fix them FIRST. No new features on a broken foundation.
+
+Do not work on: Gaussian features, enterprise tier, quantum nodes, Museum of Minds, Windows/Linux builds, asset marketplace, new UI panels, multi-provider routing beyond what works now.
+
+**The question: "Are noodlings real stage instances? Are two noodlings talking on a real stage? No? Then not yet."**
 
 ---
 
