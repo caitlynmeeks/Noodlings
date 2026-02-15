@@ -45,26 +45,8 @@ class MainWindowProjectMixin:
     """Mixin providing project management for MainWindow."""
 
     def new_project(self):
-        """Create a new NoodleStudio project."""
-        project_name, ok = QInputDialog.getText(
-            self, "New Project", "Project Name:", text="New Project"
-        )
-        if not ok or not project_name:
-            return
-
-        parent_dir = QFileDialog.getExistingDirectory(
-            self, "Choose Project Location", os.path.expanduser("~/Documents")
-        )
-        if not parent_dir:
-            return
-
-        if self.project_manager.create_project(parent_dir, project_name):
-            self.statusBar().showMessage(f"Created project: {project_name}", 3000)
-        else:
-            QMessageBox.warning(
-                self, "Error",
-                "Failed to create project.\nProject may already exist at that location."
-            )
+        """Show Project Chooser dialog for creating/opening projects."""
+        self._show_project_chooser()
 
     def open_project(self):
         """Open an existing NoodleStudio project."""
@@ -84,15 +66,29 @@ class MainWindowProjectMixin:
                 "Failed to open project.\nNot a valid NoodleStudio project."
             )
 
+    def _update_window_title(self, _text=None):
+        """Update window title to reflect current project and stage."""
+        parts = ["NoodleStudio"]
+        if self.project_manager.is_project_open():
+            parts.append(self.project_manager.current_project_name)
+            # Get stage display name from the stage selector (not the internal key)
+            if hasattr(self, 'hierarchy') and self.hierarchy.current_stage:
+                selector_text = self.hierarchy.stage_selector.currentText()
+                # Stage selector format is "Display Name (dir_key)"
+                if ' (' in selector_text:
+                    stage_display = selector_text.split(' (')[0]
+                else:
+                    stage_display = selector_text
+                if stage_display:
+                    parts.append(stage_display)
+        self.setWindowTitle(" \u2014 ".join(parts))
+
     def on_project_opened(self, project_path: str):
         """Handle project opened event."""
         try:
             import subprocess
             # Stop server when switching projects
             subprocess.run(['pkill', '-f', 'python.*server.py'])
-
-            # Update window title
-            self.setWindowTitle(f"NoodleSTUDIO - {self.project_manager.current_project_name}")
 
             # Save to recent projects
             self.add_to_recent_projects(project_path)
@@ -102,8 +98,8 @@ class MainWindowProjectMixin:
             if hasattr(self, 'assets'):
                 self.assets.refresh()
 
-            # Show offline card (server is stopped)
-            if hasattr(self, 'world_view'):
+            # Show offline card (server is stopped, deferred in MVP)
+            if hasattr(self, 'world_view') and self.world_view:
                 self.world_view.show_offline_card()
 
             # Refresh hierarchy with new project structure
@@ -112,11 +108,22 @@ class MainWindowProjectMixin:
                 self.hierarchy.populate_stage_selector()
                 self.hierarchy.refresh_scene()
                 self.hierarchy.set_server_state(False)
+                # Update title when stage changes
+                try:
+                    self.hierarchy.stage_selector.currentTextChanged.disconnect(
+                        self._update_window_title)
+                except (TypeError, RuntimeError):
+                    pass  # Not yet connected
+                self.hierarchy.stage_selector.currentTextChanged.connect(
+                    self._update_window_title)
+
+            # Update window title (after hierarchy is populated with stage info)
+            self._update_window_title()
 
             QTimer.singleShot(500, self.update_connection_status)
 
-            # Refresh spatial view
-            if hasattr(self, 'spatial_view'):
+            # Refresh spatial view (deferred in MVP)
+            if hasattr(self, 'spatial_view') and self.spatial_view:
                 self.spatial_view.set_project_manager(self.project_manager)
 
             # Update Noodle Code with project path
@@ -136,7 +143,7 @@ class MainWindowProjectMixin:
 
     def on_project_closed(self):
         """Handle project closed event."""
-        self.setWindowTitle("NoodleSTUDIO - Noodlings IDE")
+        self._update_window_title()
 
         if hasattr(self, 'assets'):
             self.assets.refresh()
@@ -742,34 +749,27 @@ class MainWindowProjectMixin:
         self.update_recent_projects_menu()
 
     def auto_open_last_project(self):
-        """Open last project, or default project on first run."""
-        recent = self.load_recent_projects()
-        if recent and os.path.exists(recent[0]):
-            print(f"Auto-opening last project: {recent[0]}")
-            self.project_manager.open_project(recent[0])
-            return
+        """Always show chooser on launch (Logic Pro model)."""
+        self._show_project_chooser()
 
-        # First run: copy default project to user documents and open it
-        default_src = os.path.join(
-            os.path.dirname(__file__), '..', '..', 'library',
-            'Welcome to NoodleStudio'
+    def _show_project_chooser(self):
+        """Show the Project Chooser dialog (Logic Pro model: hide editor until project chosen)."""
+        from ..dialogs.project_chooser_dialog import ProjectChooserDialog
+        was_visible = self.isVisible()
+        if was_visible:
+            self.hide()
+        dialog = ProjectChooserDialog(
+            recent_projects=self.load_recent_projects(),
+            parent=self
         )
-        default_src = os.path.abspath(default_src)
-        if not os.path.isdir(default_src):
-            return
+        dialog.projectSelected.connect(self._on_project_chosen)
+        dialog.exec()
+        if was_visible:
+            self.show()
 
-        user_projects_dir = os.path.join(
-            os.path.expanduser('~'), 'Documents', 'NoodleStudio Projects'
-        )
-        os.makedirs(user_projects_dir, exist_ok=True)
-        dest = os.path.join(user_projects_dir, 'Welcome to NoodleStudio')
-
-        if not os.path.exists(dest):
-            import shutil
-            shutil.copytree(default_src, dest)
-            print(f"Copied default project to {dest}")
-
-        self.project_manager.open_project(dest)
+    def _on_project_chosen(self, project_path: str):
+        """Handle project selection from chooser dialog."""
+        self.project_manager.open_project(project_path)
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.

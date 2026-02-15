@@ -153,8 +153,8 @@ class MainWindowServerMixin:
                 if 'localhost:8080' not in current_url:
                     self.web_view.setUrl(QUrl("http://localhost:8080"))
 
-        # Update World View
-        if hasattr(self, 'world_view'):
+        # Update World View (deferred in MVP)
+        if hasattr(self, 'world_view') and self.world_view:
             self.world_view.set_server_state(running)
 
         # Update Hierarchy (gray out if offline)

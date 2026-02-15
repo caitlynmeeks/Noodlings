@@ -330,7 +330,7 @@ class MainWindowSettingsMixin:
 
     def toggle_world_view_maximize(self):
         """Toggle World View between maximized and normal (Ctrl+M)."""
-        if hasattr(self, 'world_view'):
+        if hasattr(self, 'world_view') and self.world_view:
             self.world_view.toggle_maximize()
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡

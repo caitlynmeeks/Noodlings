@@ -115,11 +115,9 @@ class MainWindowPanelsMixin:
         from ..panels.console_panel import ConsolePanel
         from ..panels.profiler_panel import ProfilerPanel
         from ..panels.cognitive_cycles_panel_v2 import CognitiveCyclesPanel
-        from ..panels.gaussian_viewer_panel import GaussianViewerPanel
         from ..panels.settings_panel import SettingsPanel
         from ..panels.noodle_code_panel import NoodleCodePanel
         from .noodle_code_engine import NoodleCodeEngine
-        from ..panels.ui_canvas_editor_panel import UICanvasEditorPanel
 
         # LEFT COLUMN: Tabbed widget for Hierarchy + Assets
         left_tabs = QTabWidget()
@@ -168,64 +166,9 @@ class MainWindowPanelsMixin:
             QTabBar::tab:selected { background: #3E3E3E; color: #D2D2D2; }
         """)
 
-        # World View tab (WebView)
-        world_widget = QWidget()
-        world_layout = QVBoxLayout(world_widget)
-        world_layout.setContentsMargins(0, 0, 0, 0)
-        world_layout.setSpacing(0)
-
-        # Skip WebEngine in test environment (crashes during pytest)
-        import os
-        in_test_mode = "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules
-
-        if in_test_mode:
-            placeholder = QLabel("WebEngine disabled in test mode")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet("color: #666; font-size: 12px;")
-            world_layout.addWidget(placeholder)
-            self.web_view = None
-        else:
-            try:
-                from PyQt6.QtWebEngineWidgets import QWebEngineView
-                self.web_view = QWebEngineView()
-                self.web_view.setStyleSheet("background-color: #1a1a1a;")
-                self.web_view.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-                self.web_view.setHtml(
-                    '<html><body style="background:#1a1a1a;color:#555;display:flex;'
-                    'align-items:center;justify-content:center;height:100vh;margin:0;'
-                    'font-family:monospace;">'
-                    '<div style="text-align:center;">'
-                    '<p>noodleMUSH</p>'
-                    '<p style="font-size:12px;">Start server to connect</p>'
-                    '</div></body></html>'
-                )
-                world_layout.addWidget(self.web_view)
-            except ImportError as e:
-                print(f"[WebView] ImportError: {e}")
-                placeholder = QLabel("WebEngine not available\nInstall: pip install PyQt6-WebEngine")
-                placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                placeholder.setStyleSheet("color: #999; font-size: 14px;")
-                world_layout.addWidget(placeholder)
-                self.web_view = None
-            except Exception as e:
-                print(f"[WebView] Unexpected error initializing WebEngine: {e}")
-                import traceback
-                traceback.print_exc()
-                placeholder = QLabel(f"WebEngine error:\n{e}")
-                placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                placeholder.setStyleSheet("color: #FF6666; font-size: 12px;")
-                placeholder.setWordWrap(True)
-                world_layout.addWidget(placeholder)
-                self.web_view = None
-
-        center_tabs.addTab(world_widget, "Text View")
-
-        # Spatial View tab
-        from ..panels.spatial_view_panel import SpatialViewPanel
-        self.spatial_view = SpatialViewPanel()
-        self.spatial_view.set_project_manager(self.project_manager)
-        self.spatial_view.zoneSelected.connect(self._on_zone_selected)
-        center_tabs.addTab(self.spatial_view, "Spatial View")
+        # -- DEFERRED (MVP): Text View, Spatial View, Gaussian Viewer, UI Canvas
+        self.web_view = None
+        self.spatial_view = None
 
         # Facets Editor tab
         from ..panels.facets_editor_panel import FacetsEditorPanel
@@ -237,18 +180,13 @@ class MainWindowPanelsMixin:
         self.neural_canvas = NeuralCanvasPanel()
         center_tabs.addTab(self.neural_canvas, "Neural Canvas")
 
-        # Gaussian Viewer tab
-        self.gaussian_viewer = GaussianViewerPanel()
-        center_tabs.addTab(self.gaussian_viewer, "Gaussian Viewer")
+        self.gaussian_viewer = None
 
         # Settings tab
         self.settings_panel = SettingsPanel()
         center_tabs.addTab(self.settings_panel, "Settings")
 
-        # UI Canvas Editor tab
-        self.ui_canvas_editor = UICanvasEditorPanel()
-        self.ui_canvas_editor.set_project_manager(self.project_manager)
-        center_tabs.addTab(self.ui_canvas_editor, "UI Canvas")
+        self.ui_canvas_editor = None
 
         # Keep reference to model manager for backward compatibility
         self.model_manager = self.settings_panel.get_model_manager_panel()
@@ -256,8 +194,7 @@ class MainWindowPanelsMixin:
         # Store reference to center tabs
         self.center_tabs = center_tabs
 
-        # Create WorldView stub for compatibility
-        self.world_view = self._create_world_view_stub(self.web_view)
+        self.world_view = None
 
         # RIGHT COLUMN: Inspector
         right_tabs = QTabWidget()
@@ -320,7 +257,12 @@ class MainWindowPanelsMixin:
         )
         self.noodle_code_panel.set_engine(self.noodle_code_engine)
         center_tabs.insertTab(0, self.noodle_code_panel, "Noodle Code")  # Leftmost
-        center_tabs.setCurrentIndex(0)  # Default to Noodle Code
+
+        # Default to Facets Editor
+        for i in range(center_tabs.count()):
+            if center_tabs.tabText(i) == "Facets Editor":
+                center_tabs.setCurrentIndex(i)
+                break
 
         # Create splitters
         top_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -366,75 +308,6 @@ class MainWindowPanelsMixin:
         # Check server state
         QTimer.singleShot(200, self.update_connection_status)
 
-    def _create_world_view_stub(self, web_view):
-        """Create a stub object for WorldView compatibility."""
-        class WorldViewStub:
-            def __init__(self, web_view):
-                self.web_view = web_view
-
-            def show(self):
-                pass
-
-            def hide(self):
-                pass
-
-            def isVisible(self):
-                return True
-
-            def raise_(self):
-                pass
-
-            def set_server_state(self, running):
-                if not running:
-                    self.show_offline_card()
-                else:
-                    if self.web_view:
-                        self.web_view.setUrl(QUrl("http://localhost:8080"))
-
-            def reload(self):
-                if self.web_view:
-                    self.web_view.reload()
-
-            def toggle_maximize(self):
-                pass
-
-            def show_offline_card(self):
-                """Show offline placeholder when server is not running."""
-                if self.web_view:
-                    offline_html = """
-                    <html>
-                    <head>
-                        <style>
-                            body {
-                                background: #1a1a1a; color: #999;
-                                font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                                display: flex; align-items: center; justify-content: center;
-                                height: 100vh; margin: 0;
-                            }
-                            .card {
-                                text-align: center; padding: 40px;
-                                background: #2d2d2d; border-radius: 8px; border: 2px solid #3e3e3e;
-                            }
-                            .icon { font-size: 64px; margin-bottom: 20px; }
-                            h1 { color: #ccc; font-size: 24px; margin-bottom: 10px; }
-                            p { color: #888; font-size: 14px; margin: 5px 0; }
-                            .hint { margin-top: 20px; font-size: 12px; color: #666; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="card">
-                            <div class="icon">-</div>
-                            <h1>noodleMUSH Server Offline</h1>
-                            <p>Please start the server to view the world</p>
-                            <p class="hint">Toggle the server switch in the bottom right</p>
-                        </div>
-                    </body>
-                    </html>
-                    """
-                    self.web_view.setHtml(offline_html)
-
-        return WorldViewStub(web_view)
-
     def _connect_panel_signals(self):
         """Connect all panel signals with error handling wrappers."""
         def safe_inspector_load(entity_type, entity_data):
@@ -472,30 +345,12 @@ class MainWindowPanelsMixin:
         self.hierarchy.entitySelected.connect(safe_console_select)
         self.hierarchy.entitySelected.connect(safe_facets_select)
 
-        # Gaussian Viewer connections
-        self.gaussian_viewer.radianceLoaded.connect(self._on_radiance_loaded)
-        self.gaussian_viewer.meshImported.connect(self._on_mesh_imported)
-
         # Inspector connections
         self.inspector.nameChanged.connect(self._on_inspector_name_changed)
 
         # Assets Panel connections
         self.assets.assetRenamed.connect(self._on_asset_renamed)
         self.assets.assetSelected.connect(self._on_asset_selected)
-
-        # UI Canvas Editor connections
-        self.ui_canvas_editor.component_selected.connect(self._on_ui_component_selected)
-
-        # UI entity selection from Stage -> Canvas Editor
-        def safe_ui_canvas_select(entity_type, entity_data):
-            try:
-                self._on_ui_entity_selected_for_canvas_editor(entity_type, entity_data)
-            except Exception as e:
-                import traceback
-                print(f"[SAFE WRAPPER] ERROR in _on_ui_entity_selected_for_canvas_editor: {e}")
-                traceback.print_exc()
-
-        self.hierarchy.entitySelected.connect(safe_ui_canvas_select)
 
         # Hierarchy -> Performance Window sync (noodling selection)
         def safe_performance_select(entity_type, entity_data):
@@ -941,11 +796,11 @@ class MainWindowPanelsMixin:
         else:
             print("No last layout saved, using default panel arrangement")
 
-        # Always default to Noodle Code tab after layout restore
+        # Always default to Facets Editor tab after layout restore
         center_tabs = getattr(self, 'center_tabs', None)
         if center_tabs:
             for i in range(center_tabs.count()):
-                if center_tabs.tabText(i) == "Noodle Code":
+                if center_tabs.tabText(i) == "Facets Editor":
                     center_tabs.setCurrentIndex(i)
                     break
 

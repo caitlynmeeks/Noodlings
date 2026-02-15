@@ -224,53 +224,6 @@ class MainWindowSignalsMixin:
             self.inspector._neural_node_param_widgets = {}
             self.inspector.clear_inspector()
 
-    def _on_radiance_loaded(self, path: str, component):
-        """Handle radiance loaded in Gaussian Viewer - show in Inspector."""
-        from pathlib import Path
-
-        entity_data = {
-            'name': Path(path).stem,
-            'path': path,
-            'component': component,
-            'on_change': lambda: self.gaussian_viewer._request_full_render()
-        }
-
-        self.inspector.load_entity('radiance', entity_data)
-
-        # Connect inspector's bone signals to viewer
-        if hasattr(self.inspector, '_radiance_inspector') and self.inspector._radiance_inspector:
-            ri = self.inspector._radiance_inspector
-            try:
-                ri.focusBoneRequested.disconnect()
-            except TypeError:
-                pass
-            try:
-                ri.boneSelected.disconnect()
-            except TypeError:
-                pass
-            try:
-                ri.requestViewerFocus.disconnect()
-            except TypeError:
-                pass
-            try:
-                self.gaussian_viewer.boneSelectionChanged.disconnect()
-            except TypeError:
-                pass
-            ri.focusBoneRequested.connect(self.gaussian_viewer.focus_on_bone)
-            self.gaussian_viewer.boneSelectionChanged.connect(ri.set_selected_bone)
-            ri.boneSelected.connect(self.gaussian_viewer.set_bone_selection)
-            ri.requestViewerFocus.connect(self.gaussian_viewer.setFocus)
-
-        # Add to Assets panel
-        if hasattr(self, 'assets'):
-            self.assets.add_loaded_radiance(path, component)
-
-    def _on_mesh_imported(self, source_path: str, mesh_type: str, output_radiance_path: str):
-        """Handle mesh imported in Gaussian Viewer - add to Assets panel."""
-        if hasattr(self, 'assets'):
-            metadata = {'radiance_path': output_radiance_path}
-            self.assets.add_loaded_mesh(source_path, mesh_type, metadata)
-
     def _on_inspector_name_changed(self, entity_type: str, entity_id: str, new_name: str):
         """Handle name change in Inspector - update Stage View tree item."""
         if hasattr(self, 'hierarchy') and self.hierarchy:
@@ -304,64 +257,7 @@ class MainWindowSignalsMixin:
         if hasattr(self, 'inspector'):
             self.inspector.load_entity('zone', zone_data)
 
-    def _on_ui_component_selected(self, component):
-        """Handle UI component selection from UI Canvas Editor."""
-        # Update Inspector
-        if hasattr(self, 'inspector') and self.inspector:
-            if hasattr(self.inspector, 'load_ui_component'):
-                self.inspector.load_ui_component(component)
 
-        # Sync selection to Stage hierarchy (bidirectional)
-        if hasattr(self, 'scene_hierarchy') and self.scene_hierarchy:
-            if component:
-                # Select the matching item in Stage hierarchy
-                if hasattr(self.scene_hierarchy, 'select_ui_component_by_name'):
-                    self.scene_hierarchy.select_ui_component_by_name(component.name)
-            else:
-                # Clear selection when nothing selected in Canvas
-                if hasattr(self.scene_hierarchy, 'clear_ui_selection'):
-                    self.scene_hierarchy.clear_ui_selection()
-
-    def _on_ui_entity_selected_for_canvas_editor(self, entity_type, entity_data):
-        """Handle UI entity selection from Stage hierarchy - load into canvas editor."""
-        from pathlib import Path
-
-        if entity_type == 'ui':
-            # Load the UI canvas file into the editor
-            ui_path = entity_data.get('path')
-            if ui_path and hasattr(self, 'ui_canvas_editor'):
-                self.ui_canvas_editor.load_ui_file(Path(ui_path))
-                # Switch to UI Canvas tab
-                if hasattr(self, 'center_tabs'):
-                    for i in range(self.center_tabs.count()):
-                        if self.center_tabs.tabText(i) == "UI Canvas":
-                            self.center_tabs.setCurrentIndex(i)
-                            break
-        elif entity_type == 'ui_component':
-            # Load parent canvas if not already loaded, then select component
-            ui_path = entity_data.get('path')
-            component = entity_data.get('component')
-            if ui_path and hasattr(self, 'ui_canvas_editor'):
-                # Load the canvas if not already showing this file
-                current_path = getattr(self.ui_canvas_editor.view, 'ui_file_path', None)
-                if current_path is None or str(current_path) != str(ui_path):
-                    self.ui_canvas_editor.load_ui_file(Path(ui_path))
-
-                # Select the component in the canvas view
-                if component and hasattr(self.ui_canvas_editor.view, 'component_items'):
-                    comp_name = component.name
-                    if comp_name in self.ui_canvas_editor.view.component_items:
-                        self.ui_canvas_editor.view.canvas_scene.clearSelection()
-                        item = self.ui_canvas_editor.view.component_items[comp_name]
-                        item.setSelected(True)
-
-                # Switch to UI Canvas tab
-                if hasattr(self, 'center_tabs'):
-                    for i in range(self.center_tabs.count()):
-                        if self.center_tabs.tabText(i) == "UI Canvas":
-                            self.center_tabs.setCurrentIndex(i)
-                            break
-
-# ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
+#♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.
 # Caitlyn Meeks 2026
