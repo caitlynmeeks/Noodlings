@@ -66,28 +66,9 @@ class MainWindowMenusMixin:
         file_menu.addAction(self._create_action("&Save Project", "Ctrl+S", slot=self.save_project))
         file_menu.addAction(self._create_action("Save Sta&ge", "Ctrl+Shift+S", slot=self.save_stage))
 
-        # Import section
+        # Import
         file_menu.addSeparator()
-        file_menu.addSection("Import")
         file_menu.addAction(self._create_action("Import Noodling Folder...", slot=self.import_noodling_folder))
-        file_menu.addAction(self._create_action("Import USD Layer (.usda)...", slot=self.import_usd_layer))
-
-        # Export section
-        file_menu.addSeparator()
-        file_menu.addSection("Export")
-        file_menu.addAction(self._create_action("Export Noodling...", slot=self.export_noodling))
-        file_menu.addAction(self._create_action("Export to Unity Package...", slot=self.export_unity_package))
-        file_menu.addAction(self._create_action("Export Stage to USD (.usda)...", slot=self.export_stage_to_usd))
-
-        # Build section
-        file_menu.addSeparator()
-        file_menu.addSection("Build")
-        file_menu.addAction(self._create_action("Build Settings...", "Ctrl+Shift+B", slot=self.show_build_settings))
-        file_menu.addAction(self._create_action("Build Application...", "Ctrl+B", slot=self.build_application))
-
-        # Migration tool
-        file_menu.addSeparator()
-        file_menu.addAction(self._create_action("Migrate Legacy Data...", slot=self.migrate_legacy_data))
 
         # Developer tools
         file_menu.addSeparator()
@@ -113,40 +94,15 @@ class MainWindowMenusMixin:
         self.redo_action.setShortcut("Ctrl+Shift+Z")
         edit_menu.addAction(self.redo_action)
 
-        edit_menu.addSeparator()
-
-        # Standard edit operations (for future use)
-        edit_menu.addAction(self._create_action("Cu&t", "Ctrl+X"))
-        edit_menu.addAction(self._create_action("&Copy", "Ctrl+C"))
-        edit_menu.addAction(self._create_action("&Paste", "Ctrl+V"))
-        edit_menu.addAction(self._create_action("&Delete", "Delete"))
-
         # ===== VIEW MENU =====
         view_menu = menu_bar.addMenu("&View")
         # Layout is locked - panels always visible
-
-        # ===== COMPONENT MENU =====
-        component_menu = menu_bar.addMenu("&Component")
-        component_menu.addAction(self._create_action("Add Script...", slot=lambda: self.add_component("custom")))
 
         # ===== WINDOW MENU =====
         window_menu = menu_bar.addMenu("&Window")
         window_menu.addAction(self._create_action("Minimize", "Ctrl+M", self.showMinimized))
         window_menu.addAction(self._create_action("Zoom", slot=self.showMaximized))
         window_menu.addSeparator()
-
-        # ===== ACCOUNT MENU =====
-        account_menu = menu_bar.addMenu("&Account")
-        account_menu.addAction(self._create_action("Sign In...", slot=self.show_login_dialog))
-        account_menu.addAction(self._create_action("Account Info...", slot=self.show_account_info))
-        account_menu.addSeparator()
-        self.enter_world_action = self._create_action("Enter World...", "Ctrl+W", slot=self.enter_world)
-        account_menu.addAction(self.enter_world_action)
-        account_menu.addAction(self._create_action("Manage Avatars...", slot=self.manage_avatars))
-        account_menu.addSeparator()
-        account_menu.addAction(self._create_action("My Noodlings (Cloud)", slot=self.show_cloud_noodlings))
-        account_menu.addSeparator()
-        account_menu.addAction(self._create_action("Sign Out", slot=self.sign_out))
 
         # ===== HELP MENU =====
         help_menu = menu_bar.addMenu("&Help")
