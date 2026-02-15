@@ -32,7 +32,7 @@
 # https://noodlings.ai
 # ──────────────────────────────────────────────────────────────
 
-from typing import Dict, Any
+from typing import Optional, Dict, Any
 from .neural_node import NeuralNode, NodeType, Port, DataType, WeightInfo
 
 

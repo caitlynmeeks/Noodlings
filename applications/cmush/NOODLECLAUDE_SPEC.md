@@ -48,7 +48,7 @@ Claude can register new user identities by editing `world/users.json`:
 }
 ```
 
-**File Location:** `/Users/thistlequell/git/noodlings_clean/applications/cmush/world/users.json`
+**File Location:** `/Users/caitlyn/git/noodlings_clean/applications/cmush/world/users.json`
 
 **Fields:**
 - `uid`: Unique identifier (format: `user_<name>`)
@@ -324,7 +324,7 @@ agent.remove_cognitive_transistor('MoodTransistor')
 
 #### Recipe Location
 ```
-/Users/thistlequell/git/noodlings_clean/applications/cmush/recipes/
+/Users/caitlyn/git/noodlings_clean/applications/cmush/recipes/
 ```
 
 #### Recipe Format (YAML)

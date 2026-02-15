@@ -1,12 +1,12 @@
 {
   "mcpServers": {
     "noodlemush": {
-      "command": "/Users/thistlequell/git/consilience/venv/bin/python3",
+      "command": "/Users/caitlyn/git/noodlings_clean/venv/bin/python3",
       "args": [
-        "/Users/thistlequell/git/noodlings_clean/applications/cmush/mcp_server.py"
+        "/Users/caitlyn/git/noodlings_clean/applications/cmush/mcp_server.py"
       ],
       "env": {
-        "PYTHONPATH": "/Users/thistlequell/git/noodlings_clean/applications/cmush"
+        "PYTHONPATH": "/Users/caitlyn/git/noodlings_clean/applications/cmush"
       }
     }
   }

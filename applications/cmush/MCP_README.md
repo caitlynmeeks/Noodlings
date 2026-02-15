@@ -17,9 +17,9 @@ Add this configuration to your Claude Desktop config file (`~/Library/Applicatio
 {
   "mcpServers": {
     "noodlemush": {
-      "command": "/Users/thistlequell/git/consilience/venv/bin/python3",
+      "command": "/Users/caitlyn/git/noodlings_clean/venv/bin/python3",
       "args": [
-        "/Users/thistlequell/git/noodlings_clean/applications/cmush/mcp_server.py"
+        "/Users/caitlyn/git/noodlings_clean/applications/cmush/mcp_server.py"
       ]
     }
   }
@@ -30,7 +30,7 @@ Add this configuration to your Claude Desktop config file (`~/Library/Applicatio
 
 4. **Start NoodleMUSH**:
 ```bash
-cd /Users/thistlequell/git/noodlings_clean/applications/cmush
+cd /Users/caitlyn/git/noodlings_clean/applications/cmush
 ./start.sh
 ```
 

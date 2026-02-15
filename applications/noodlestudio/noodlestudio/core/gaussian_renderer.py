@@ -48,7 +48,7 @@ GSPLAT_AVAILABLE = False
 try:
     import sys
     # Add gsplat-mps to path if needed
-    gsplat_path = "/Users/thistlequell/git/gsplat-mps"
+    gsplat_path = "/Users/caitlyn/git/gsplat-mps"
     if gsplat_path not in sys.path:
         sys.path.insert(0, gsplat_path)
 

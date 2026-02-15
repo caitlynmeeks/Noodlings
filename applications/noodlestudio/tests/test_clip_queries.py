@@ -176,7 +176,7 @@ def test_with_real_radiance():
     # Try multiple possible paths
     possible_paths = [
         Path(__file__).parent.parent.parent.parent.parent / "external/vrm_samples/alicia_textured.radiance",
-        Path("/Users/thistlequell/git/noodlings_clean/external/vrm_samples/alicia_textured.radiance"),
+        Path("/Users/caitlyn/git/noodlings_clean/external/vrm_samples/alicia_textured.radiance"),
     ]
     radiance_path = None
     for p in possible_paths:

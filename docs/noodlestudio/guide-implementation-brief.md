@@ -78,7 +78,7 @@ Noodlings/guide/
 Use the existing tool:
 
 ```bash
-cd /Users/thistlequell/git/noodlings_clean
+cd /Users/caitlyn/git/noodlings_clean
 PYTHONPATH=.:../.. python3 -m noodlestudio.tools.vrm_to_radiance \
   Noodlings/guide/Radiances/AjoMajo.vrm \
   -o Noodlings/guide/Radiances/ajo_majo.radiance \
@@ -491,7 +491,7 @@ Start here. Do these in order:
 
 ### 1. Convert the VRM (5 min)
 ```bash
-cd /Users/thistlequell/git/noodlings_clean
+cd /Users/caitlyn/git/noodlings_clean
 PYTHONPATH=.:../.. python3 -m noodlestudio.tools.vrm_to_radiance \
   Noodlings/guide/Radiances/AjoMajo.vrm \
   -o Noodlings/guide/Radiances/ajo_majo.radiance \

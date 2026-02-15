@@ -11,7 +11,7 @@
 ### Step 1: Launch NoodleStudio
 
 ```bash
-cd /Users/thistlequell/git/noodlings_clean/applications/noodlestudio
+cd /Users/caitlyn/git/noodlings_clean/applications/noodlestudio
 open NoodleStudio.app
 ```
 
@@ -125,7 +125,7 @@ Expected: Shinto perspective on tech-nature harmony
 If server is running:
 
 ```bash
-cd /Users/thistlequell/git/noodlings_clean/applications/cmush
+cd /Users/caitlyn/git/noodlings_clean/applications/cmush
 
 # Send spawn command via WebSocket
 # (requires websockets module)

@@ -10,7 +10,7 @@
 ## Phase 1: Plant Memory and Save
 
 ```bash
-cd /Users/thistlequell/git/noodlings_clean/applications/cmush
+cd /Users/caitlyn/git/noodlings_clean/applications/cmush
 source ../../venv/bin/activate
 python3 -c "
 import asyncio
@@ -136,7 +136,7 @@ sys.exit(0 if success else 1)
 
 ```bash
 # Run full cross-session test (requires manual restart)
-cd /Users/thistlequell/git/noodlings_clean/applications/cmush
+cd /Users/caitlyn/git/noodlings_clean/applications/cmush
 
 echo "Phase 1: Planting memory..."
 python3 test_cross_session_part1.py

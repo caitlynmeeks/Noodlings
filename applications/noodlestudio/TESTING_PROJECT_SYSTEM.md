@@ -3,7 +3,7 @@
 ## Step 1: Launch NoodleStudio
 
 ```bash
-cd /Users/thistlequell/git/noodlings_clean/applications/noodlestudio
+cd /Users/caitlyn/git/noodlings_clean/applications/noodlestudio
 ./launch.sh
 ```
 
@@ -50,7 +50,7 @@ We need to add an import feature! Let me add that now...
 Actually, let's manually copy the ensemble for now:
 
 ```bash
-cp /Users/thistlequell/git/noodlings_clean/applications/cmush/ensembles/ethics_council.ensemble \
+cp /Users/caitlyn/git/noodlings_clean/applications/cmush/ensembles/ethics_council.ensemble \
    ~/Documents/EthicsCouncil/Assets/Ensembles/
 ```
 

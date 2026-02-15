@@ -64,7 +64,7 @@ cd applications/noodlestudio
 
 ```bash
 # From Claude Code or CI scripts
-cd /Users/thistlequell/git/noodlings_clean/applications/noodlestudio
+cd /Users/caitlyn/git/noodlings_clean/applications/noodlestudio
 ./launch_with_log.sh --no-splash --execute "run the smoke tests"
 
 # Direct Python invocation

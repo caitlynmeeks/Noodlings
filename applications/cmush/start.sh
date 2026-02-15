@@ -30,11 +30,11 @@ $PYTHON -m http.server 8080 --bind 0.0.0.0 &
 HTTP_PID=$!
 cd ..
 
+# Register cleanup BEFORE starting blocking server
+trap "kill $HTTP_PID 2>/dev/null" EXIT
+
 # Start WebSocket server (with logging)
 echo "Starting WebSocket server on port 8765..."
 LOG_FILE="logs/server_$(date +%Y%m%d_%H%M%S).log"
 mkdir -p logs
 $PYTHON server.py 2>&1 | tee "$LOG_FILE"
-
-# Cleanup on exit
-trap "kill $HTTP_PID 2>/dev/null" EXIT

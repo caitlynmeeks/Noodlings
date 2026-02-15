@@ -957,7 +957,7 @@ class ComputerUseController(QObject):
     # KEY PRESS - Thread safe
     # =========================================================================
 
-    def _parse_key_combo(self, key_string: str) -> Tuple[Qt.Key, Qt.KeyboardModifiers]:
+    def _parse_key_combo(self, key_string: str) -> Tuple[Qt.Key, Qt.KeyboardModifier]:
         """Parse a key combination string like 'ctrl+shift+s'."""
         parts = key_string.lower().split('+')
         modifiers = Qt.KeyboardModifier.NoModifier

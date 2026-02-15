@@ -20,7 +20,7 @@ Your `.gitignore` now includes:
 
 ### **Step 1**: Create `.env` file
 ```bash
-cd /Users/thistlequell/git/noodlings_clean/applications/cmush
+cd /Users/caitlyn/git/noodlings_clean/applications/cmush
 cp .env.example .env
 ```
 

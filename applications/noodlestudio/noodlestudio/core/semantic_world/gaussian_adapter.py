@@ -802,7 +802,7 @@ class GaussianGenerator:
         # Common locations
         candidates = [
             Path.home() / "git/noodlings_clean/external/ml-sharp/venv/bin/sharp",
-            Path("/Users/thistlequell/git/noodlings_clean/external/ml-sharp/venv/bin/sharp"),
+            Path("/Users/caitlyn/git/noodlings_clean/external/ml-sharp/venv/bin/sharp"),
         ]
         for c in candidates:
             if c.exists():
@@ -813,7 +813,7 @@ class GaussianGenerator:
         """Find OpenSplat executable."""
         candidates = [
             Path.home() / "git/noodlings_clean/external/OpenSplat/build/opensplat",
-            Path("/Users/thistlequell/git/noodlings_clean/external/OpenSplat/build/opensplat"),
+            Path("/Users/caitlyn/git/noodlings_clean/external/OpenSplat/build/opensplat"),
         ]
         for c in candidates:
             if c.exists():

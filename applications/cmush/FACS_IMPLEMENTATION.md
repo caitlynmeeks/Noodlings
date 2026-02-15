@@ -191,7 +191,7 @@ FACS_COOLDOWN = 5.0
 ### Automated Test
 
 ```bash
-cd /Users/thistlequell/git/noodlings_clean
+cd /Users/caitlyn/git/noodlings_clean
 source venv/bin/activate
 python3 noodlings/utils/facs_mapping.py
 ```

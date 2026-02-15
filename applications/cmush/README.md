@@ -44,7 +44,7 @@ noodleMUSH integrates the Noodlings consciousness architecture with a persistent
 ### Setup
 
 ```bash
-cd /Users/thistlequell/git/consilience/applications/cmush
+cd /Users/caitlyn/git/noodlings_clean/applications/cmush
 
 # Install dependencies
 pip3 install -r requirements.txt

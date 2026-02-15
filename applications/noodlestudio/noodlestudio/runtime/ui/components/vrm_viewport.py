@@ -38,6 +38,13 @@ import math
 from typing import Any, Dict, Optional, Tuple, List
 from dataclasses import dataclass, field
 
+# Disable PyOpenGL strict error checking (M3 Max/Sequoia compatibility)
+try:
+    import OpenGL
+    OpenGL.ERROR_CHECKING = False
+except ImportError:
+    pass
+
 from ..component import UIComponent, register_component
 
 logger = logging.getLogger(__name__)

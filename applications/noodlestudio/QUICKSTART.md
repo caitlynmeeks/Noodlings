@@ -12,7 +12,7 @@ Get started building NoodleSTUDIO in 30 minutes.
 ## Step 1: Setup Environment
 
 ```bash
-cd /Users/thistlequell/git/noodlings_clean/applications/noodleSTUDIO
+cd /Users/caitlyn/git/noodlings_clean/applications/noodleSTUDIO
 
 # Create virtual environment
 python3 -m venv venv
@@ -347,13 +347,13 @@ __all__ = ['ChatPanel']
 
 1. **Start noodleMUSH** in another terminal:
    ```bash
-   cd /Users/thistlequell/git/noodlings_clean/applications/cmush
+   cd /Users/caitlyn/git/noodlings_clean/applications/cmush
    ./start.sh
    ```
 
 2. **Launch NoodleSTUDIO**:
    ```bash
-   cd /Users/thistlequell/git/noodlings_clean/applications/noodleSTUDIO
+   cd /Users/caitlyn/git/noodlings_clean/applications/noodleSTUDIO
    python run_studio.py
    ```
 
