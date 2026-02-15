@@ -293,8 +293,8 @@ class InspectorBaseMixin:
         """Create a spinbox bound to an object property."""
         spin = QSpinBox()
         spin.setRange(
-            int(meta.min_value) if meta.min_value is not None else -999999,
-            int(meta.max_value) if meta.max_value is not None else 999999
+            int(meta.minimum) if meta.minimum is not None else -999999,
+            int(meta.maximum) if meta.maximum is not None else 999999
         )
         spin.setValue(int(getattr(obj, meta.name, 0)))
         spin.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
@@ -317,8 +317,8 @@ class InspectorBaseMixin:
         """Create a double spinbox bound to an object property."""
         spin = QDoubleSpinBox()
         spin.setRange(
-            meta.min_value if meta.min_value is not None else -999999.0,
-            meta.max_value if meta.max_value is not None else 999999.0
+            meta.minimum if meta.minimum is not None else -999999.0,
+            meta.maximum if meta.maximum is not None else 999999.0
         )
         spin.setDecimals(3)
         spin.setSingleStep(0.1)
@@ -431,18 +431,18 @@ class InspectorBaseMixin:
 
     def create_widget_for_property(self, obj, meta: PropertyMeta):
         """Create appropriate widget based on property metadata."""
-        # Returns (widget, label) - caller adds to layout
-        if meta.property_type == 'int':
+        # Returns widget - caller adds to layout
+        if meta.prop_type is int:
             return self.create_bound_spinbox(obj, meta, QFormLayout())
-        elif meta.property_type == 'float':
+        elif meta.prop_type is float:
             return self.create_bound_double_spinbox(obj, meta, QFormLayout())
-        elif meta.property_type == 'bool':
+        elif meta.prop_type is bool:
             return self.create_bound_checkbox(obj, meta, QFormLayout())
-        elif meta.property_type == 'str' and meta.choices:
+        elif meta.prop_type is str and meta.choices:
             return self.create_bound_combobox(obj, meta, QFormLayout())
-        elif meta.property_type == 'str':
+        elif meta.prop_type is str:
             return self.create_bound_lineedit(obj, meta, QFormLayout())
-        elif meta.property_type == 'text':
+        elif meta.multiline:
             return self.create_bound_textedit(obj, meta, QFormLayout())
         return None
 

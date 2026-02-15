@@ -365,6 +365,7 @@ class PropertyMeta:
         choices: Optional[list] = None,
         multiline: bool = False,
         code_language: Optional[str] = None,
+        hidden: bool = False,
     ):
         """
         Define property metadata.
@@ -381,6 +382,7 @@ class PropertyMeta:
             choices: List of valid values for enum/choice types
             multiline: True for multiline text
             code_language: Language for code editor ('javascript', 'python')
+            hidden: If True, property is not shown in inspector
         """
         self.name = name
         self.prop_type = prop_type
@@ -393,6 +395,7 @@ class PropertyMeta:
         self.choices = choices
         self.multiline = multiline
         self.code_language = code_language
+        self.hidden = hidden
 
     def get_widget_type(self) -> Type[QWidget]:
         """Determine appropriate widget type for this property."""
