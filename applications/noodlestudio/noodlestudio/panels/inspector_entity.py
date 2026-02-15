@@ -509,6 +509,10 @@ class EntityInspectorMixin:
                 self._save_zone_changes(entity_data)
 
         finally:
+            # Invalidate the same-entity skip guard so re-selection
+            # reloads fresh from disk (description edits don't change
+            # name/id, so the guard would otherwise block reload)
+            self.current_entity = None
             QTimer.singleShot(2500, lambda: setattr(self, 'is_saving', False))
 
     def _save_noodling_changes(self, entity_data):
@@ -583,9 +587,9 @@ class EntityInspectorMixin:
     def _resolve_recipe_path(self, entity_data):
         """Resolve the recipe.yaml path for a noodling entity.
 
-        Uses the same resolution logic as _load_noodling_recipe:
-        instance_path -> up 4 dirs -> project_root -> Library/Noodlings/{ref}/recipe.yaml
-        Falls back to app-wide library.
+        noodling_ref is a relative path from the instance directory
+        (e.g. '../../../../Noodlings/ajo_majo'). Resolve it to find
+        the noodling template directory, then look for recipe.yaml.
         """
         noodling_ref = entity_data.get('noodling_ref', '')
         instance_path = entity_data.get('path', '')
@@ -593,23 +597,17 @@ class EntityInspectorMixin:
         if not noodling_ref or not instance_path:
             return None
 
-        # Project library: instance_path is Stages/{stage}/Instances/{id}
-        # Go up 4 levels to project root
-        project_root = instance_path
-        for _ in range(4):
-            project_root = os.path.dirname(project_root)
+        # Primary: resolve relative path from instance directory
+        noodling_dir = os.path.normpath(os.path.join(instance_path, noodling_ref))
+        recipe = os.path.join(noodling_dir, 'recipe.yaml')
+        if os.path.exists(recipe):
+            return recipe
 
-        library_recipe = os.path.join(
-            project_root, 'Library', 'Noodlings', noodling_ref, 'recipe.yaml'
-        )
-
-        if os.path.exists(library_recipe):
-            return library_recipe
-
-        # Fallback to app-wide library
+        # Fallback: bundled library (simple name, not relative path)
+        simple_name = os.path.basename(noodling_ref)
         app_library = os.path.join(
             os.path.dirname(__file__), '..', '..', 'library', 'noodlings',
-            noodling_ref, 'recipe.yaml'
+            simple_name, 'recipe.yaml'
         )
         if os.path.exists(app_library):
             return app_library

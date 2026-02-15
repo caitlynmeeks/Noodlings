@@ -181,6 +181,23 @@ class MergeableCommand(StudioCommand):
         return False
 
 
+class SetPropertyCommand(StudioCommand):
+    """Set a property on a target object (with undo support)."""
+
+    def __init__(self, target, property_name: str, old_value, new_value):
+        super().__init__(f"Set {property_name}")
+        self.target = target
+        self.property_name = property_name
+        self.old_value = old_value
+        self.new_value = new_value
+
+    def _do(self):
+        setattr(self.target, self.property_name, self.new_value)
+
+    def _undo(self):
+        setattr(self.target, self.property_name, self.old_value)
+
+
 # Command IDs for different command types (used for merge compatibility)
 # Each command type needs a unique ID > 0 for merging to work
 class CommandID:

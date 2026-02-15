@@ -87,18 +87,24 @@ def _create_temp_project(tmp_path, noodling_ref='test_noodling'):
     )
 
 
-def _make_entity_data(instance_path, noodling_ref='test_noodling'):
-    """Build entity_data dict matching what the hierarchy provides."""
+def _make_entity_data(instance_path, noodling_ref=None):
+    """Build entity_data dict matching what the hierarchy provides.
+
+    noodling_ref is read from instance.yaml's 'noodling' field (the
+    relative path), matching the real hierarchy code.
+    """
     inst_yaml = os.path.join(instance_path, 'instance.yaml')
     with open(inst_yaml) as f:
         inst_data = yaml.safe_load(f)
+
+    ref = noodling_ref or inst_data.get('noodling', '')
 
     return {
         'type': 'noodling',
         'id': f'agent_{os.path.basename(instance_path)}',
         'name': inst_data.get('overrides', {}).get('name', 'Unknown'),
         'path': instance_path,
-        'noodling_ref': noodling_ref,
+        'noodling_ref': ref,
         'zone': inst_data.get('overrides', {}).get('zone', 'default'),
         'data': inst_data,
         'node_id': 'test_node_001',

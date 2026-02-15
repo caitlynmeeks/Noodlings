@@ -85,80 +85,51 @@ class MainWindowSignalsMixin:
 
         if entity_type == 'noodling':
             self._load_facet_assembly_for_noodling(entity_data)
+        else:
+            self.facets_editor.clear_editor()
 
     def _load_facet_assembly_for_noodling(self, entity_data: dict):
-        """Load the facet assembly for a noodling entity."""
+        """Load the facet assembly for a noodling entity.
+
+        Resolves the assembly path from the noodling template directory,
+        using the instance path + noodling_ref relative path from instance.yaml.
+        """
         import os
-        import yaml
         from ..core.facet_system import FacetAssembly
 
         agent_id = entity_data.get('id', '')
         if not agent_id:
             return
 
-        agent_full_data = entity_data.get('data', {})
+        instance_path = entity_data.get('path', '')
+        noodling_ref = entity_data.get('noodling_ref', '')
 
-        # Try multiple locations where facet_assembly might be
-        facet_assembly_config = (
-            entity_data.get('facet_assembly') or
-            agent_full_data.get('facet_assembly') or
-            agent_full_data.get('config', {}).get('facet_assembly')
-        )
+        assembly_path = None
 
-        ref = None
-        if facet_assembly_config:
-            if isinstance(facet_assembly_config, str):
-                ref = facet_assembly_config
-            elif isinstance(facet_assembly_config, dict):
-                ref = facet_assembly_config.get('ref')
+        # Primary: resolve from instance path + noodling_ref (relative path)
+        # noodling_ref is e.g. "../../../../Noodlings/ajo_majo"
+        if noodling_ref and instance_path:
+            noodling_dir = os.path.normpath(os.path.join(instance_path, noodling_ref))
+            candidate = os.path.join(noodling_dir, 'assembly.yaml')
+            if os.path.exists(candidate):
+                assembly_path = candidate
 
-        # If not found in instance data, load from recipe.yaml
-        if not ref:
-            noodling_ref = entity_data.get('noodling_ref') or agent_full_data.get('noodling', '')
-            instance_path = entity_data.get('path', '')
-
-            if noodling_ref and instance_path:
-                project_root = instance_path
-                for _ in range(4):
-                    project_root = os.path.dirname(project_root)
-
-                library_recipe = os.path.join(
-                    project_root, 'Library', 'Noodlings', noodling_ref, 'recipe.yaml'
-                )
-
-                recipe_path = None
-                if os.path.exists(library_recipe):
-                    recipe_path = library_recipe
-                else:
-                    app_library = os.path.join(
-                        os.path.dirname(__file__), '..', '..', 'library', 'noodlings',
-                        noodling_ref, 'recipe.yaml'
-                    )
-                    if os.path.exists(app_library):
-                        recipe_path = app_library
-
-                if recipe_path:
-                    try:
-                        with open(recipe_path, 'r') as f:
-                            recipe_data = yaml.safe_load(f) or {}
-                        ref = recipe_data.get('facet_assembly')
-                    except Exception as e:
-                        print(f"[Facets Editor] Error loading recipe: {e}")
-
-        # Fallback to default
-        if not ref:
-            ref = "library/empty_noodling"
-
-        # Resolve assembly path
-        noodlestudio_dir = os.path.join(os.path.dirname(__file__), '../..')
-
-        if ref.startswith('library/'):
-            template_name = ref.replace('library/', '')
-            assembly_path = os.path.join(
-                noodlestudio_dir, 'library/noodlings', template_name, 'assembly.yaml'
+        # Fallback: bundled library (for templates that use simple names)
+        if not assembly_path and noodling_ref:
+            simple_name = os.path.basename(noodling_ref)
+            noodlestudio_dir = os.path.join(os.path.dirname(__file__), '../..')
+            candidate = os.path.join(
+                noodlestudio_dir, 'library', 'noodlings', simple_name, 'assembly.yaml'
             )
-        else:
-            assembly_path = os.path.join(noodlestudio_dir, 'facet_assemblies', f'{ref}.yaml')
+            if os.path.exists(candidate):
+                assembly_path = candidate
+
+        # Last resort: empty noodling
+        if not assembly_path:
+            noodlestudio_dir = os.path.join(os.path.dirname(__file__), '../..')
+            assembly_path = os.path.join(
+                noodlestudio_dir, 'library', 'noodlings', 'empty_noodling', 'assembly.yaml'
+            )
 
         if os.path.exists(assembly_path):
             try:
@@ -169,8 +140,10 @@ class MainWindowSignalsMixin:
                 self.facets_editor.set_current_agent(agent_id)
             except Exception as e:
                 import traceback
-                print(f"[Facets Editor] Error loading facet assembly: {e}")
+                print(f"[Facets Editor] Error loading assembly: {e}")
                 traceback.print_exc()
+        else:
+            print(f"[Facets Editor] Assembly not found for {agent_id}: {assembly_path}")
 
     def _on_neural_canvas_node_selected(self, node_id: str):
         """Handle node selection in Neural Canvas - show in Inspector."""

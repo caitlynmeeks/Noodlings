@@ -267,3 +267,210 @@ class TestPerformerPauseIntegration:
             p.set_paused(False)
             p.execute("Hello again")
             assert MockWorker.call_count == 1, "Resumed performer must execute"
+
+
+# ------------------------------------------------------------------
+#   B.9: Manual Smoke Walk Bug Fix Tests
+# ------------------------------------------------------------------
+
+class TestInspectorReloadAfterSave:
+    """B.9.1: Inspector must reload entity after save_changes invalidates cache."""
+
+    def test_description_persists_on_reselection(self, qapp, tmp_path):
+        """Edit description, save, re-select same noodling -- value must match."""
+        from PyQt6.QtWidgets import QLineEdit, QTextEdit
+        from PyQt6.QtCore import pyqtSignal, QObject
+
+        from noodlestudio.panels.inspector_entity import EntityInspectorMixin
+
+        # Create temp project
+        project_root = tmp_path / 'TestProject'
+        noodling_dir = project_root / 'Noodlings' / 'test_noodling'
+        noodling_dir.mkdir(parents=True)
+        recipe_path = noodling_dir / 'recipe.yaml'
+        recipe_path.write_text(yaml.dump({
+            'name': 'test',
+            'description': 'Original',
+            'personality': {'openness': 0.5},
+        }, default_flow_style=False))
+
+        inst_dir = project_root / 'Stages' / 's' / 'Instances' / 'i'
+        inst_dir.mkdir(parents=True)
+        (inst_dir / 'instance.yaml').write_text(yaml.dump({
+            'noodling': '../../../../Noodlings/test_noodling',
+            'overrides': {'name': 'Test'},
+        }, default_flow_style=False))
+
+        entity_data = {
+            'type': 'noodling', 'id': 'agent_i', 'name': 'Test',
+            'path': str(inst_dir),
+            'noodling_ref': '../../../../Noodlings/test_noodling',
+            'data': yaml.safe_load((inst_dir / 'instance.yaml').read_text()),
+        }
+
+        class FakeSignalHost(QObject):
+            nameChanged = pyqtSignal(str, str, str)
+
+        host = FakeSignalHost()
+
+        class InspectorHost(EntityInspectorMixin):
+            pass
+
+        inspector = InspectorHost()
+        inspector.nameChanged = host.nameChanged
+        inspector.current_entity = ('noodling', entity_data)
+        inspector.is_saving = False
+
+        inspector.property_fields = {
+            'name': QLineEdit("Test"),
+            'description': QTextEdit("Edited description"),
+        }
+        inspector.save_changes()
+
+        # After save, current_entity must be invalidated
+        assert inspector.current_entity is None, \
+            "save_changes() must invalidate current_entity so re-selection reloads"
+
+        # Verify disk has the edit
+        with open(str(recipe_path)) as f:
+            recipe = yaml.safe_load(f)
+        assert recipe['description'] == 'Edited description'
+
+
+class TestFacetsEditorSelectionWiring:
+    """B.9.2: Hierarchy selection must load correct assembly in facets editor."""
+
+    def test_assembly_resolves_from_instance_path(self, qapp, tmp_path):
+        """Assembly path resolves via instance_path + noodling_ref relative path."""
+        from noodlestudio.core.facet_system import FacetAssembly, Facet
+
+        # Create project with noodling and assembly
+        project_root = tmp_path / 'TestProject'
+        noodling_dir = project_root / 'Noodlings' / 'ajo_majo'
+        noodling_dir.mkdir(parents=True)
+
+        assembly = FacetAssembly(name="ajo_assembly")
+        assembly.facets = [
+            Facet(id="in", facet_type="INCOMING", name="In", prompt="",
+                  position={'x': 0, 'y': 0}),
+            Facet(id="out", facet_type="OUTGOING", name="Out", prompt="",
+                  position={'x': 200, 'y': 0}),
+        ]
+        assembly.save_yaml(str(noodling_dir / 'assembly.yaml'))
+
+        inst_dir = project_root / 'Stages' / 'the_nexus' / 'Instances' / 'ajo'
+        inst_dir.mkdir(parents=True)
+
+        entity_data = {
+            'id': 'agent_ajo',
+            'path': str(inst_dir),
+            'noodling_ref': '../../../../Noodlings/ajo_majo',
+        }
+
+        # Resolve assembly path the same way _load_facet_assembly_for_noodling does
+        noodling_resolved = os.path.normpath(
+            os.path.join(entity_data['path'], entity_data['noodling_ref'])
+        )
+        assembly_path = os.path.join(noodling_resolved, 'assembly.yaml')
+
+        assert os.path.exists(assembly_path), \
+            f"Assembly must resolve from instance path + noodling_ref: {assembly_path}"
+
+        loaded = FacetAssembly.load_yaml(assembly_path)
+        assert loaded.name == "ajo_assembly"
+
+
+class TestFacetRenameCommand:
+    """B.9.3: SetPropertyCommand must exist and work for facet renames."""
+
+    def test_set_property_command_exists(self, qapp):
+        """SetPropertyCommand can be imported from base_command."""
+        from noodlestudio.core.commands.base_command import SetPropertyCommand
+        assert SetPropertyCommand is not None
+
+    def test_set_property_command_do_undo(self, qapp):
+        """SetPropertyCommand sets and reverts property correctly."""
+        from noodlestudio.core.commands.base_command import SetPropertyCommand
+
+        class Target:
+            name = "Original"
+
+        t = Target()
+        cmd = SetPropertyCommand(t, 'name', 'Original', 'Renamed')
+        cmd._do()
+        assert t.name == 'Renamed'
+        cmd._undo()
+        assert t.name == 'Original'
+
+    def test_generic_property_command_import_succeeds(self, qapp):
+        """SetPropertyCommand import no longer raises ImportError."""
+        from noodlestudio.core.commands.base_command import SetPropertyCommand
+        assert hasattr(SetPropertyCommand, '_do')
+        assert hasattr(SetPropertyCommand, '_undo')
+
+
+class TestFacetsEditorClearsOnNonNoodling:
+    """B.9.4: Facets editor must clear when non-noodling entity is selected."""
+
+    def test_zone_selection_clears_facets_editor(self, qapp):
+        """Selecting a zone in hierarchy must clear the facets editor."""
+        from noodlestudio.core.main_window_signals_mixin import MainWindowSignalsMixin
+
+        cleared = False
+
+        class StubEditor:
+            def clear_editor(self):
+                nonlocal cleared
+                cleared = True
+
+        class StubHost(MainWindowSignalsMixin):
+            def __init__(self):
+                self.facets_editor = StubEditor()
+
+        host = StubHost()
+        host.on_entity_selected_for_facets_editor('zone', {'id': 'zone_main'})
+
+        assert cleared, "Selecting a zone must clear the facets editor"
+
+    def test_prop_selection_clears_facets_editor(self, qapp):
+        """Selecting a prop in hierarchy must clear the facets editor."""
+        from noodlestudio.core.main_window_signals_mixin import MainWindowSignalsMixin
+
+        cleared = False
+
+        class StubEditor:
+            def clear_editor(self):
+                nonlocal cleared
+                cleared = True
+
+        class StubHost(MainWindowSignalsMixin):
+            def __init__(self):
+                self.facets_editor = StubEditor()
+
+        host = StubHost()
+        host.on_entity_selected_for_facets_editor('prop', {'id': 'prop_tree'})
+
+        assert cleared, "Selecting a prop must clear the facets editor"
+
+    def test_noodling_selection_does_not_clear(self, qapp):
+        """Selecting a noodling must NOT clear -- it loads an assembly."""
+        from noodlestudio.core.main_window_signals_mixin import MainWindowSignalsMixin
+
+        cleared = False
+
+        class StubEditor:
+            def clear_editor(self):
+                nonlocal cleared
+                cleared = True
+
+        class StubHost(MainWindowSignalsMixin):
+            def __init__(self):
+                self.facets_editor = StubEditor()
+
+            def _load_facet_assembly_for_noodling(self, entity_data):
+                pass  # Stub - just verify clear_editor is NOT called
+
+        host = StubHost()
+        host.on_entity_selected_for_facets_editor('noodling', {'id': 'agent_ajo'})
+
+        assert not cleared, "Selecting a noodling must not clear the facets editor"

@@ -67,8 +67,8 @@ facets:
     description: 40-D temporal memory (h_fast + h_medium + h_slow)
     required: true
   position:
-    x: 355.8045292594723
-    y: 214.92233808662775
+    x: 416.80452925947225
+    y: 172.92233808662775
   color: '#888888'
   enabled: true
   locked: true
