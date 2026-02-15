@@ -1,0 +1,5 @@
+name: "Main"
+description: "Primary interaction zone"
+bounds:
+  min: [-10, 0, -10]
+  max: [10, 10, 10]

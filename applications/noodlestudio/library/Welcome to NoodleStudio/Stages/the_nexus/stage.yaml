@@ -1,0 +1,8 @@
+name: "The Nexus"
+description: "A shared space where noodlings meet and converse"
+geometry:
+  bounds:
+    x: [-50, 50]
+    y: [-10, 30]
+    z: [-50, 50]
+  spawn_point: [0, 0, 0]

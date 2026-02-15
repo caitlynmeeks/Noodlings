@@ -1,0 +1,9 @@
+{
+  "affect": {
+    "valence": 0.3,
+    "arousal": 0.4,
+    "dominance": 0.5,
+    "boredom": 0.0,
+    "sorrow": 0.0
+  }
+}
