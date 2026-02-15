@@ -121,7 +121,9 @@ class MainWindowServerMixin:
                     }
                 """)
             if hasattr(self, 'server_toggle'):
+                self.server_toggle.blockSignals(True)
                 self.server_toggle.setChecked(True)
+                self.server_toggle.blockSignals(False)
         else:
             if hasattr(self, 'connection_label'):
                 self.connection_label.setText("Server offline")
@@ -135,7 +137,9 @@ class MainWindowServerMixin:
                     }
                 """)
             if hasattr(self, 'server_toggle'):
+                self.server_toggle.blockSignals(True)
                 self.server_toggle.setChecked(False)
+                self.server_toggle.blockSignals(False)
 
         # Update Enter World button state
         if hasattr(self, 'enter_world_btn'):
