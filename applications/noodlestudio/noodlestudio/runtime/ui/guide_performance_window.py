@@ -203,6 +203,9 @@ if QT_AVAILABLE:
         # Signal: user sent a message (for channel bus forwarding)
         messageSent = pyqtSignal(str)
 
+        # Signal: user clicked a performer name in the ensemble name bar
+        noodlingSelected = pyqtSignal(str)
+
         def __init__(
             self,
             parent_window: QMainWindow,
@@ -237,6 +240,10 @@ if QT_AVAILABLE:
             )
 
             self.setFixedSize(*size)
+
+            # Pre-init state needed by _build_ui / _build_ensemble_vrm_area
+            self._performer_labels = {}
+
             self._build_ui()
 
             # Position once at the right edge of the parent, then stay put.
@@ -467,6 +474,31 @@ if QT_AVAILABLE:
 
         def _build_ensemble_vrm_area(self, main_layout: QVBoxLayout):
             """Build the ensemble VRM viewport area (two viewports side by side)."""
+            # --- Performer name bar ---
+            name_bar = QFrame()
+            name_bar.setFixedHeight(28)
+            name_bar.setStyleSheet(
+                "QFrame { background-color: #0A0A0C; border: none; }"
+            )
+            name_bar_layout = QHBoxLayout(name_bar)
+            name_bar_layout.setContentsMargins(8, 2, 8, 2)
+            name_bar_layout.setSpacing(8)
+
+            for slot_key in ('left', 'right'):
+                label = QLabel("\u2014")
+                label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                label.setCursor(Qt.CursorShape.PointingHandCursor)
+                label.setStyleSheet(
+                    "color: #555; font-size: 11px; font-weight: bold; "
+                    "background: transparent; padding: 2px 12px;"
+                )
+                label.installEventFilter(self)
+                name_bar_layout.addWidget(label, stretch=1)
+                self._performer_labels[slot_key] = label
+
+            main_layout.addWidget(name_bar)
+
+            # --- VRM viewports ---
             vrm_row = QFrame()
             vrm_row.setFixedHeight(280)
             vrm_row.setStyleSheet(
@@ -537,6 +569,51 @@ if QT_AVAILABLE:
 
             # All slots taken — return left as fallback
             return 'left'
+
+        # =================================================================
+        # PERFORMER NAME BAR
+        # =================================================================
+
+        def set_performer_name(self, noodling_id: str, name: str):
+            """Set the display name for a noodling's stage slot."""
+            slot = self._get_slot(noodling_id)
+            label = self._performer_labels.get(slot)
+            if label:
+                label.setText(name)
+                label.setStyleSheet(
+                    "color: #D2D2D2; font-size: 11px; font-weight: bold; "
+                    "background: transparent; padding: 2px 12px;"
+                )
+
+        def set_active_speaker(self, noodling_id: str = None):
+            """Highlight which noodling is currently speaking/thinking."""
+            for slot, label in self._performer_labels.items():
+                if noodling_id and self._noodling_to_slot.get(noodling_id) == slot:
+                    label.setStyleSheet(
+                        "color: #E8C547; font-size: 11px; font-weight: bold; "
+                        "background: #1A1A0A; border-radius: 3px; "
+                        "padding: 2px 12px;"
+                    )
+                else:
+                    label.setStyleSheet(
+                        "color: #888; font-size: 11px; font-weight: bold; "
+                        "background: transparent; padding: 2px 12px;"
+                    )
+
+        def eventFilter(self, obj, event):
+            """Handle clicks on performer name labels."""
+            from PyQt6.QtCore import QEvent
+            if event.type() == QEvent.Type.MouseButtonPress:
+                # Check if the clicked object is a performer label
+                for slot, label in self._performer_labels.items():
+                    if obj is label:
+                        # Reverse lookup: slot -> noodling_id
+                        for nid, s in self._noodling_to_slot.items():
+                            if s == slot:
+                                self.noodlingSelected.emit(nid)
+                                return True
+                        break
+            return super().eventFilter(obj, event)
 
         # =================================================================
         # VRM
