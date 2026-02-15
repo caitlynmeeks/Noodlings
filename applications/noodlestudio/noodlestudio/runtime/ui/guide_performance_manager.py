@@ -42,6 +42,8 @@ import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import yaml
+
 from PyQt6.QtCore import QTimer
 
 from ..channels import ChannelBus, ChannelMessage
@@ -193,8 +195,221 @@ class GuidePerformanceManager:
         return None
 
     # =========================================================================
+    # STAGE INSTANCE DISCOVERY
+    # =========================================================================
+
+    def _discover_stage_instances(self, stage_path: str) -> List[dict]:
+        """
+        Discover noodling instances from a stage directory.
+
+        Reads the ``Instances/`` subdirectory and parses each
+        ``instance.yaml`` to resolve noodling template paths.
+
+        Args:
+            stage_path: Absolute path to a stage directory
+                        (e.g. ``…/Stages/the_nexus``)
+
+        Returns:
+            List of dicts, each containing:
+            - ``noodling_id``: Directory name (used as performer key)
+            - ``name``: Display name (from overrides or dir name)
+            - ``assembly_path``: Absolute path to assembly.yaml
+            - ``noodling_path``: Absolute path to noodling template dir
+            - ``vrm_path``: Absolute path to VRM file (or None)
+        """
+        instances_dir = Path(stage_path) / 'Instances'
+        if not instances_dir.is_dir():
+            return []
+
+        results = []
+        for instance_dir in sorted(instances_dir.iterdir()):
+            if not instance_dir.is_dir():
+                continue
+
+            instance_yaml = instance_dir / 'instance.yaml'
+            if not instance_yaml.exists():
+                continue
+
+            with open(instance_yaml) as f:
+                data = yaml.safe_load(f)
+
+            noodling_ref = data.get('noodling', '')
+            noodling_path = (instance_dir / noodling_ref).resolve()
+
+            if not noodling_path.is_dir():
+                logger.warning(
+                    f"Noodling template not found: {noodling_path} "
+                    f"(from instance {instance_dir.name})"
+                )
+                continue
+
+            assembly_path = noodling_path / 'assembly.yaml'
+            if not assembly_path.exists():
+                logger.warning(f"No assembly.yaml in {noodling_path}")
+                continue
+
+            # Display name from overrides, falling back to dir name
+            name = data.get('overrides', {}).get('name', instance_dir.name)
+
+            # Look for VRM path in noodling.yaml
+            vrm_path = None
+            noodling_yaml = noodling_path / 'noodling.yaml'
+            if noodling_yaml.exists():
+                with open(noodling_yaml) as f:
+                    noodling_data = yaml.safe_load(f)
+                vrm_ref = noodling_data.get('vrm_path', '')
+                if vrm_ref:
+                    vrm_resolved = (noodling_path / vrm_ref).resolve()
+                    if vrm_resolved.exists():
+                        vrm_path = str(vrm_resolved)
+
+            results.append({
+                'noodling_id': instance_dir.name,
+                'name': name,
+                'assembly_path': str(assembly_path),
+                'noodling_path': str(noodling_path),
+                'vrm_path': vrm_path,
+            })
+
+        return results
+
+    # =========================================================================
     # PERFORMANCE LIFECYCLE
     # =========================================================================
+
+    def start_ensemble_from_stage(self, stage_path: str,
+                                   play_title: str = "Ensemble"):
+        """
+        Start an ensemble performance from stage instance definitions.
+
+        Reads the ``Instances/`` directory in the given stage, resolves
+        each noodling template, loads assemblies, creates performers,
+        and opens the performance window. If only one instance is found,
+        starts a single-performer performance instead.
+
+        Args:
+            stage_path: Absolute path to the stage directory
+            play_title: Title displayed in the window header
+        """
+        instances = self._discover_stage_instances(stage_path)
+        if not instances:
+            logger.error(f"No valid instances found in {stage_path}")
+            return
+
+        if self._window:
+            logger.warning("Performance already active, stopping first")
+            self.stop_performance()
+
+        ensemble = len(instances) > 1
+        self._ensemble_mode = ensemble
+        self._set_demo_mode(True)
+
+        # Create performers for each instance
+        performers = {}
+        for info in instances:
+            try:
+                llm_client = create_llm_client()
+            except Exception as e:
+                logger.error(
+                    f"Failed to create LLM client for {info['name']}: {e}"
+                )
+                continue
+
+            performer = NoodlingPerformer(
+                noodling_id=info['noodling_id'],
+                name=info['name'],
+                llm_client=llm_client
+            )
+            if performer.load_assembly(info['assembly_path']):
+                performers[info['noodling_id']] = performer
+            else:
+                logger.error(
+                    f"Failed to load assembly for {info['name']}"
+                )
+
+        if not performers:
+            logger.error("No performers could be created")
+            return
+
+        self._performers = performers
+        # Primary performer for backward compat (first in order)
+        self._performer = next(iter(performers.values()))
+
+        # Create window
+        from .guide_performance_window import GuidePerformanceWindow
+
+        self._window = GuidePerformanceWindow(
+            parent_window=self._main_window,
+            ensemble_mode=ensemble
+        )
+        self._play_title = play_title
+        self._window.show_play_header(play_title)
+
+        # Connect user message
+        self._window.messageSubmitted.connect(self._on_user_message)
+
+        # Wire each performer
+        for nid, performer in performers.items():
+            if ensemble:
+                self._wire_ensemble_performer(performer, self._window, nid)
+            else:
+                self._wire_performer_to_window(performer, self._window)
+
+        # Load VRM files from stage instance data
+        for info in instances:
+            if info['vrm_path']:
+                if ensemble:
+                    self._window.set_vrm(
+                        info['vrm_path'],
+                        noodling_id=info['noodling_id']
+                    )
+                else:
+                    self._window.set_vrm(info['vrm_path'])
+
+        self._window.show()
+
+        # Set performer names in ensemble mode
+        if ensemble:
+            for info in instances:
+                self._window.set_performer_name(
+                    info['noodling_id'], info['name']
+                )
+
+        # Set up facets editor
+        try:
+            facets_editor = getattr(self._main_window, 'facets_editor', None)
+            if facets_editor:
+                if ensemble and hasattr(facets_editor, 'set_ensemble_noodlings'):
+                    noodlings = [
+                        {
+                            'id': nid,
+                            'name': p.name,
+                            'assembly': p.assembly,
+                            'assembly_path': p.assembly_path,
+                        }
+                        for nid, p in performers.items()
+                    ]
+                    facets_editor.set_ensemble_noodlings(noodlings)
+                elif hasattr(facets_editor, 'load_assembly_from_data'):
+                    first = self._performer
+                    facets_editor.load_assembly_from_data(
+                        first.assembly, force_reload=True,
+                        source_path=first.assembly_path
+                    )
+
+                center_tabs = getattr(self._main_window, 'center_tabs', None)
+                if center_tabs:
+                    for i in range(center_tabs.count()):
+                        if center_tabs.tabText(i) == "Facets Editor":
+                            center_tabs.setCurrentIndex(i)
+                            break
+        except Exception as e:
+            logger.debug(f"Could not load assembly in editor: {e}")
+
+        logger.info(
+            f"Ensemble from stage started: {play_title} "
+            f"({', '.join(p.name for p in performers.values())})"
+        )
 
     def start_ensemble(self, play_title: str = "Ensemble"):
         """
@@ -278,6 +493,10 @@ class GuidePerformanceManager:
             self._window.set_vrm(ajo_vrm, noodling_id='ajo')
 
         self._window.show()
+
+        # Set performer names in stage view
+        self._window.set_performer_name('ajo', 'Ajo Majo')
+        self._window.set_performer_name('yuki', 'Yuki Cyberfox')
 
         # Set up facets editor noodling selector + load Ajo's assembly
         try:
@@ -647,6 +866,7 @@ class GuidePerformanceManager:
             # All turns complete
             self._active_noodling_id = 'default'
             if self._window:
+                self._window.set_active_speaker(None)
                 self._window.set_busy(False)
             self._emit_execution_complete_events()
             return
@@ -656,6 +876,10 @@ class GuidePerformanceManager:
         if not performer:
             self._advance_ensemble_turn()
             return
+
+        # Highlight active speaker in stage view
+        if self._window:
+            self._window.set_active_speaker(nid)
 
         # Tag events with this noodling's ID
         self._active_noodling_id = nid
