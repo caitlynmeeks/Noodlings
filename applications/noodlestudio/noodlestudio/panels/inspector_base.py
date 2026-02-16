@@ -304,6 +304,7 @@ class InspectorBaseMixin:
                 return
             old_val = getattr(obj, meta.name, 0)
             if old_val != val:
+                setattr(obj, meta.name, val)
                 self._push_generic_property_command(obj, meta.name, old_val, val)
 
         spin.valueChanged.connect(on_change)
@@ -330,6 +331,7 @@ class InspectorBaseMixin:
                 return
             old_val = getattr(obj, meta.name, 0.0)
             if abs(old_val - val) > 0.0001:
+                setattr(obj, meta.name, val)
                 self._push_generic_property_command(obj, meta.name, old_val, val)
 
         spin.valueChanged.connect(on_change)
@@ -358,6 +360,7 @@ class InspectorBaseMixin:
                 return
             old_val = getattr(obj, meta.name, '')
             if old_val != text:
+                setattr(obj, meta.name, text)
                 self._push_generic_property_command(obj, meta.name, old_val, text)
 
         combo.currentTextChanged.connect(on_change)
@@ -380,6 +383,7 @@ class InspectorBaseMixin:
             new_val = text_edit.toPlainText()
             old_val = getattr(obj, meta.name, '')
             if old_val != new_val:
+                setattr(obj, meta.name, new_val)
                 self._push_generic_property_command(obj, meta.name, old_val, new_val)
 
         text_edit.focusOutEvent = lambda e: (on_focus_out(), QTextEdit.focusOutEvent(text_edit, e))
@@ -401,6 +405,7 @@ class InspectorBaseMixin:
             new_val = state == Qt.CheckState.Checked.value
             old_val = getattr(obj, meta.name, False)
             if old_val != new_val:
+                setattr(obj, meta.name, new_val)
                 self._push_generic_property_command(obj, meta.name, old_val, new_val)
 
         checkbox.stateChanged.connect(on_change)
@@ -422,6 +427,7 @@ class InspectorBaseMixin:
             new_val = line_edit.text()
             old_val = getattr(obj, meta.name, '')
             if old_val != new_val:
+                setattr(obj, meta.name, new_val)
                 self._push_generic_property_command(obj, meta.name, old_val, new_val)
 
         line_edit.editingFinished.connect(on_editing_finished)

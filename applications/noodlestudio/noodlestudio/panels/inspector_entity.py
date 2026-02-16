@@ -102,25 +102,12 @@ class EntityInspectorMixin:
 
         self.properties_layout.addWidget(basics_group)
 
-        # ===== AFFECT BASELINE (5D Continuous - PAD + Boredom + Sorrow) =====
-        affect = recipe_data.get('affect_baseline', {})
-        if affect:
-            affect_group = self.create_property_group("Affect Baseline")
-            self.add_text_field(affect_group, "Valence", f"{affect.get('valence', 0.0):.2f}", read_only=True)
-            self.add_text_field(affect_group, "Arousal", f"{affect.get('arousal', 0.5):.2f}", read_only=True)
-            self.add_text_field(affect_group, "Dominance", f"{affect.get('dominance', 0.5):.2f}", read_only=True)
-            self.add_text_field(affect_group, "Boredom", f"{affect.get('boredom', 0.0):.2f}", read_only=True)
-            self.add_text_field(affect_group, "Sorrow", f"{affect.get('sorrow', 0.0):.2f}", read_only=True)
-            self.properties_layout.addWidget(affect_group)
+        # NOTE: Affect Baseline removed from inspector -- affect is computed
+        # dynamically by charm networks, not set by static spinners.
+        # Data remains in recipe.yaml for cmush/exporter compatibility.
 
-        # NOTE: LLM Configuration removed - models are now per-facet in assemblies
-
-        # ===== FACET DROPDOWN SELECTOR =====
-        if hasattr(self, '_add_facet_dropdown_selector'):
-            try:
-                self._add_facet_dropdown_selector(agent_id, entity_data)
-            except Exception as e:
-                print(f"[Inspector] ERROR creating facet dropdown: {e}")
+        # NOTE: Facet dropdown removed -- facets get a dedicated inspector
+        # view when clicked in the facets editor (B.10.5 _load_facet_standalone).
 
         # ===== COMPONENTS SECTION =====
         if hasattr(self, 'create_components_section_new') and hasattr(self, '_current_components'):
@@ -134,34 +121,17 @@ class EntityInspectorMixin:
         self.properties_layout.addStretch()
 
     def _load_noodling_recipe(self, entity_data, agent) -> dict:
-        """Load recipe data from YAML file."""
+        """Load recipe data from YAML file.
+
+        Uses _resolve_recipe_path() -- the same path resolution used by save --
+        so that load and save always agree on which file to use.
+        """
         recipe_data = {}
         try:
-            noodling_ref = entity_data.get('noodling_ref') or agent.get('noodling', '')
-            instance_path = entity_data.get('path', '')
-
-            if noodling_ref and instance_path:
-                # Project mode: Load from Library/Noodlings/{noodling_ref}/recipe.yaml
-                # Instance path: Project/Stages/StageName/Instances/uuid
-                project_root = instance_path
-                for _ in range(4):
-                    project_root = os.path.dirname(project_root)
-
-                library_recipe = os.path.join(
-                    project_root, 'Library', 'Noodlings', noodling_ref, 'recipe.yaml'
-                )
-
-                if os.path.exists(library_recipe):
-                    with open(library_recipe, 'r') as f:
-                        recipe_data = yaml.safe_load(f) or {}
-                else:
-                    # Fallback to app-wide library
-                    app_library = os.path.join(
-                        os.path.dirname(__file__), '..', '..', 'library', 'noodlings', noodling_ref, 'recipe.yaml'
-                    )
-                    if os.path.exists(app_library):
-                        with open(app_library, 'r') as f:
-                            recipe_data = yaml.safe_load(f) or {}
+            recipe_path = self._resolve_recipe_path(entity_data)
+            if recipe_path and os.path.exists(recipe_path):
+                with open(recipe_path, 'r') as f:
+                    recipe_data = yaml.safe_load(f) or {}
 
             # Apply overrides from instance
             overrides = agent.get('overrides', {})

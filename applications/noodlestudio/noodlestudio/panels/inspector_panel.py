@@ -189,88 +189,52 @@ class InspectorPanel(
 
     def load_facet(self, facet):
         """
-        Load and display facet properties for editing.
+        Load dedicated facet inspector view.
 
-        NEW BEHAVIOR (Dropdown Model):
-        - If agent loaded -> Sync dropdown to selected facet
-        - If facet is None -> Reset dropdown to "(none)"
-        - Agent basics always stay visible
-        - NEVER rebuild inspector if agent already loaded
+        Unity pattern: click a component in the scene -> inspector shows
+        that component's properties. Replaces full inspector content.
 
         Args:
             facet: Facet object from facet_system.py (None to deselect)
         """
         if facet is None:
-            # Facet deselected - reset dropdown
-            print("[Inspector] Facet deselected - resetting dropdown")
-            try:
-                if hasattr(self, 'facet_dropdown') and self.facet_dropdown:
-                    self.facet_dropdown.setCurrentIndex(0)  # (none)
-                self.current_facet = None
-            except Exception as e:
-                print(f"[Inspector] Error resetting dropdown: {e}")
+            self.current_facet = None
+            # Restore noodling view if available
+            if self.last_entity_type and self.last_entity_data:
+                self.current_entity = None  # Force past same-entity guard
+                self.load_entity(self.last_entity_type, self.last_entity_data)
             return
 
-        try:
-            self.current_facet = facet
-            print(f"[Inspector] Facet selected from graph: {facet.name} (ID: {facet.id})")
-
-            # Check if agent is already loaded (has dropdown)
-            if hasattr(self, 'facet_dropdown') and self.facet_dropdown:
-                print(f"[Inspector] Agent already loaded - syncing dropdown")
-                # Sync dropdown to match selected facet
-                for i in range(self.facet_dropdown.count()):
-                    if self.facet_dropdown.itemData(i) == facet.id:
-                        self.facet_dropdown.setCurrentIndex(i)
-                        print(f"[Inspector] Synced dropdown to: {facet.name}")
-                        return
-
-                # Facet not found in dropdown - might be from different agent
-                print(f"[Inspector] Warning: Facet '{facet.name}' not in current agent's dropdown")
-                return
-
-            # No agent loaded - show standalone facet view
-            print(f"[Inspector] No agent loaded - using standalone facet view")
-            self._load_facet_standalone(facet)
-
-        except Exception as e:
-            print(f"[Inspector] Error loading facet: {e}")
-            import traceback
-            traceback.print_exc()
+        self._load_facet_standalone(facet)
 
     def _load_facet_standalone(self, facet):
         """
-        Load facet in standalone mode using PropertyBinding system.
+        Build dedicated facet inspector view with full type-specific properties.
 
-        Uses the PropertyRegistry to auto-generate UI with undo support.
-
-        Args:
-            facet: Facet object from facet_system.py
+        Replaces all inspector content. When a noodling is re-selected in
+        the hierarchy, load_entity() restores the noodling view.
         """
-        try:
-            self.clear_inspector()
-            self.current_facet = facet
-            self.entity_header.setText(f"Facet: {facet.name}")
-        except Exception as e:
-            print(f"[Inspector] Error in standalone facet load: {e}")
-            import traceback
-            traceback.print_exc()
-            return
+        from PyQt6.QtWidgets import QComboBox
+
+        self.clear_inspector()
+        self.current_facet = facet
+        self.current_entity = None  # Allow noodling reload on re-selection
+        self.entity_header.setText(f"Facet: {facet.name}")
 
         try:
-            # Basic Properties section (read-only info + basic editable)
+            # --- Basic Properties ---
             basic_section = CollapsibleSection("Basic Properties")
             basic_form = QFormLayout()
+
+            # Name (editable with undo)
+            name_meta = PropertyMeta(name='name', prop_type=str, display_name='Name')
+            self.create_bound_lineedit(facet, name_meta, basic_form)
 
             # ID (read-only)
             id_field = QLineEdit(facet.id)
             id_field.setReadOnly(True)
             id_field.setStyleSheet("color: #888;")
             basic_form.addRow("ID:", id_field)
-
-            # Name (with undo)
-            name_meta = PropertyMeta(name='name', prop_type=str, display_name='Name')
-            name_field = self.create_bound_lineedit(facet, name_meta, basic_form)
 
             # Type (read-only)
             type_field = QLineEdit(facet.facet_type)
@@ -280,37 +244,35 @@ class InspectorPanel(
 
             # Enabled (with undo)
             enabled_meta = PropertyMeta(name='enabled', prop_type=bool, display_name='Enabled')
-            enabled_checkbox = self.create_bound_checkbox(facet, enabled_meta, basic_form)
+            self.create_bound_checkbox(facet, enabled_meta, basic_form)
 
             basic_section.set_content_layout(basic_form)
             self.properties_layout.addWidget(basic_section)
 
-            # Type-specific Configuration section
-            # Uses PropertyRegistry to auto-generate widgets with undo
-            props = property_registry.get_properties(facet.facet_type, include_base=False)
-            if props:
-                config_section = CollapsibleSection(f"{facet.facet_type} Configuration")
-                config_form = QFormLayout()
+            # --- Type-specific Properties ---
+            # Non-LLM types get their own sections; everything else
+            # (LLM, LLMFacet, IntuitionFacet, EmotionFacet, etc.)
+            # defaults to LLM configuration since all cognitive facets
+            # have prompt, model, temperature, max_tokens.
+            if facet.facet_type == "NeuralCanvasFacet":
+                self._build_neural_canvas_facet_section(facet)
+            elif facet.facet_type == "CharmNetworkFacet":
+                charm_section = CollapsibleSection("Charm Network")
+                charm_form = QFormLayout()
+                info = QLabel("Neural affect model (PAD + boredom + sorrow)")
+                info.setStyleSheet("color: #888888; font-style: italic;")
+                charm_form.addRow(info)
+                charm_section.set_content_layout(charm_form)
+                self.properties_layout.addWidget(charm_section)
+            elif facet.facet_type == "ScriptedFacet":
+                self._build_scripted_facet_section(facet)
+            elif facet.facet_type in ("INCOMING", "OUTGOING"):
+                pass  # Terminal nodes have no extra configuration
+            else:
+                # LLM Configuration for all cognitive/LLM facets
+                self._build_llm_facet_section(facet)
 
-                for prop_name, meta in props.items():
-                    widget = self.create_widget_for_property(facet, meta)
-                    config_form.addRow(f"{meta.display_name}:", widget)
-
-                # Add template variables hint for prompt fields
-                if 'prompt' in props:
-                    variables_hint = QLabel(
-                        "Variables: {incoming_data}, {observations}, "
-                        "{affect_valence:.2f}, {affect_arousal:.2f}, {affect_dominance:.2f}, "
-                        "{affect_boredom:.2f}, {affect_sorrow:.2f}"
-                    )
-                    variables_hint.setStyleSheet("color: #666666; font-size: 9px; font-style: italic;")
-                    variables_hint.setWordWrap(True)
-                    config_form.addRow(variables_hint)
-
-                config_section.set_content_layout(config_form)
-                self.properties_layout.addWidget(config_section)
-
-            # Inputs/Outputs (informational, read-only)
+            # --- Inputs & Outputs ---
             io_section = CollapsibleSection("Inputs & Outputs")
             io_form = QFormLayout()
 
@@ -328,6 +290,9 @@ class InspectorPanel(
 
             self.properties_layout.addStretch()
 
+            # Execution data if available
+            self._add_execution_data_section(facet)
+
         except Exception as e:
             print(f"[Inspector] Error building facet properties UI: {e}")
             import traceback
@@ -337,6 +302,208 @@ class InspectorPanel(
             error_label.setStyleSheet("color: #FF6B6B;")
             error_label.setWordWrap(True)
             self.properties_layout.addWidget(error_label)
+
+    # ========== TYPE-SPECIFIC FACET SECTION BUILDERS ==========
+
+    def _build_llm_facet_section(self, facet):
+        """Build LLM Configuration section: Model, Temperature, Max Tokens, Prompt."""
+        from PyQt6.QtWidgets import QComboBox
+
+        llm_section = CollapsibleSection("LLM Configuration")
+        llm_form = QFormLayout()
+
+        # Model dropdown
+        model_combo = QComboBox()
+        model_combo.addItems(["Small", "Medium", "Large"])
+        model_combo.setStyleSheet("""
+            QComboBox {
+                background: #3e3e3e; color: #D2D2D2;
+                border: 1px solid #555555; padding: 4px 8px;
+                padding-right: 25px; border-radius: 3px; min-width: 100px;
+            }
+            QComboBox:hover { border: 1px solid #666666; }
+            QComboBox::drop-down {
+                subcontrol-origin: padding; subcontrol-position: top right;
+                width: 20px; border-left: 1px solid #555555;
+            }
+            QComboBox::down-arrow {
+                image: none; border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 6px solid #D2D2D2;
+                width: 0px; height: 0px; margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background: #3e3e3e; color: #D2D2D2;
+                selection-background-color: #555555; border: 1px solid #555555;
+            }
+        """)
+
+        current_model = facet.model or "Medium"
+        index = model_combo.findText(
+            current_model.title() if isinstance(current_model, str) else str(current_model),
+            Qt.MatchFlag.MatchFixedString
+        )
+        if index < 0:
+            index = model_combo.findText(
+                str(current_model).upper(), Qt.MatchFlag.MatchFixedString
+            )
+        if index >= 0:
+            model_combo.setCurrentIndex(index)
+
+        model_combo._last_value = facet.model or "Medium"
+
+        def on_model_changed(text, f=facet, combo=model_combo):
+            old_val = getattr(combo, '_last_value', f.model)
+            new_val = text.upper()
+            setattr(f, 'model', new_val)
+            self._push_facet_property_command(f, 'model', old_val, new_val)
+            combo._last_value = new_val
+
+        model_combo.currentTextChanged.connect(on_model_changed)
+        llm_form.addRow("Model:", model_combo)
+
+        # Temperature
+        temp_spin = QDoubleSpinBox()
+        temp_spin.setRange(0.0, 2.0)
+        temp_spin.setSingleStep(0.1)
+        initial_temp = facet.temperature or 0.7
+        temp_spin.setValue(initial_temp)
+        temp_spin._last_value = initial_temp
+
+        def on_temp_changed(val, f=facet, spin=temp_spin):
+            old_val = getattr(spin, '_last_value', f.temperature)
+            setattr(f, 'temperature', val)
+            self._push_facet_property_command(f, 'temperature', old_val, val)
+            spin._last_value = val
+
+        temp_spin.valueChanged.connect(on_temp_changed)
+        llm_form.addRow("Temperature:", temp_spin)
+
+        # Max Tokens
+        tokens_spin = QSpinBox()
+        tokens_spin.setRange(1, 4096)
+        initial_tokens = facet.max_tokens or 150
+        tokens_spin.setValue(initial_tokens)
+        tokens_spin._last_value = initial_tokens
+
+        def on_tokens_changed(val, f=facet, spin=tokens_spin):
+            old_val = getattr(spin, '_last_value', f.max_tokens)
+            setattr(f, 'max_tokens', val)
+            self._push_facet_property_command(f, 'max_tokens', old_val, val)
+            spin._last_value = val
+
+        tokens_spin.valueChanged.connect(on_tokens_changed)
+        llm_form.addRow("Max Tokens:", tokens_spin)
+
+        # Prompt (with floating editor on Cmd+Click)
+        prompt_edit = ClickableTextEdit(
+            field_name=f"{facet.name} - Prompt",
+            on_apply_callback=lambda text, f=facet: (
+                setattr(f, 'prompt', text),
+                self._push_facet_property_command(f, 'prompt', f.prompt, text)
+            )
+        )
+        prompt_edit.setPlainText(facet.prompt or "")
+        prompt_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+        prompt_edit.setMaximumHeight(150)
+        prompt_edit._baseline_value = facet.prompt or ""
+
+        def on_prompt_changed(edit=prompt_edit, f=facet):
+            new_text = edit.toPlainText()
+            old_text = getattr(edit, '_baseline_value', '')
+            setattr(f, 'prompt', new_text)
+            self._push_facet_property_command(f, 'prompt', old_text, new_text)
+
+        prompt_edit.textChanged.connect(on_prompt_changed)
+        llm_form.addRow("Prompt:", prompt_edit)
+
+        llm_section.set_content_layout(llm_form)
+        self.properties_layout.addWidget(llm_section)
+
+    def _build_neural_canvas_facet_section(self, facet):
+        """Build NeuralCanvasFacet section: NNCanvas path with browse button."""
+        nc_section = CollapsibleSection("Neural Canvas")
+        nc_form = QFormLayout()
+
+        path_layout = QHBoxLayout()
+        path_edit = QLineEdit(facet.nncanvas_path or "")
+        path_edit.setPlaceholderText("Path to .nncanvas file...")
+        path_edit.setStyleSheet("background-color: #2D2D2D; color: #D2D2D2; padding: 4px;")
+        path_edit._baseline_value = facet.nncanvas_path or ""
+
+        def on_path_changed(text, edit=path_edit, f=facet):
+            old_val = getattr(edit, '_baseline_value', '')
+            if text != old_val:
+                f.nncanvas_path = text
+                self._push_facet_property_command(f, 'nncanvas_path', old_val, text)
+                edit._baseline_value = text
+
+        path_edit.editingFinished.connect(lambda: on_path_changed(path_edit.text()))
+        path_layout.addWidget(path_edit)
+
+        browse_btn = QPushButton("Browse...")
+        browse_btn.setMaximumWidth(80)
+        browse_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #404040; color: #D2D2D2;
+                border: 1px solid #555555; padding: 4px 8px;
+            }
+            QPushButton:hover { background-color: #505050; }
+        """)
+
+        def browse_nncanvas():
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "Select NNCanvas File", "",
+                "NNCanvas Files (*.nncanvas);;All Files (*)"
+            )
+            if file_path:
+                path_edit.setText(file_path)
+                on_path_changed(file_path)
+
+        browse_btn.clicked.connect(browse_nncanvas)
+        path_layout.addWidget(browse_btn)
+
+        path_widget = QWidget()
+        path_widget.setLayout(path_layout)
+        nc_form.addRow("NNCanvas Path:", path_widget)
+
+        info_label = QLabel("Visual neural network from NeuralCanvas editor")
+        info_label.setStyleSheet("color: #9C27B0; font-style: italic;")
+        nc_form.addRow(info_label)
+
+        nc_section.set_content_layout(nc_form)
+        self.properties_layout.addWidget(nc_section)
+
+    def _build_scripted_facet_section(self, facet):
+        """Build ScriptedFacet section: salience script editor."""
+        script_section = CollapsibleSection("Script")
+        script_form = QFormLayout()
+
+        script_edit = ClickableTextEdit(
+            field_name=f"{facet.name} - Salience Script",
+            on_apply_callback=lambda text, f=facet: (
+                setattr(f, 'salience_script', text),
+                self._push_facet_property_command(f, 'salience_script', f.salience_script, text)
+            )
+        )
+        script_edit.setPlainText(facet.salience_script or "")
+        script_edit.setStyleSheet(
+            "background-color: #1E1E1E; color: #D2D2D2; padding: 4px; font-family: 'Courier New';"
+        )
+        script_edit.setMaximumHeight(150)
+        script_edit._baseline_value = facet.salience_script or ""
+
+        def on_script_changed(edit=script_edit, f=facet):
+            new_text = edit.toPlainText()
+            old_text = getattr(edit, '_baseline_value', '')
+            setattr(f, 'salience_script', new_text)
+            self._push_facet_property_command(f, 'salience_script', old_text, new_text)
+
+        script_edit.textChanged.connect(on_script_changed)
+        script_form.addRow("Salience Script:", script_edit)
+
+        script_section.set_content_layout(script_form)
+        self.properties_layout.addWidget(script_section)
 
     def _auto_save_facet_assembly(self):
         """Auto-save the current facet assembly to its YAML file."""
@@ -473,63 +640,50 @@ class InspectorPanel(
 
     def _get_agent_assembly(self, agent_id: str, agent_data: dict):
         """
-        Load agent's facet assembly from YAML file.
+        Load agent's facet assembly from the noodling template directory.
+
+        Resolves the assembly path from entity_data's instance path + noodling_ref,
+        matching the same pattern used by the facets editor
+        (_load_facet_assembly_for_noodling in main_window_signals_mixin).
 
         Args:
             agent_id: Agent ID (UUID like "agent_a56e0ac2...")
-            agent_data: Agent data dict (or full entity_data with 'data' nested)
+            agent_data: Entity data dict with 'path' and 'noodling_ref'
 
         Returns:
             FacetAssembly or None if not found
         """
         try:
             from ..core.facet_system import FacetAssembly
-
-            # Get the actual agent dict (might be nested in 'data')
-            agent = agent_data.get('data', agent_data)
-
-            # Get facet_assembly reference from config (like Facets Editor does)
-            config = agent.get('config', {})
-            facet_assembly_ref = config.get('facet_assembly')
-
-            # Handle both string and dict formats
-            if isinstance(facet_assembly_ref, dict):
-                facet_assembly_ref = facet_assembly_ref.get('ref')
-
-            if not facet_assembly_ref:
-                print(f"[Inspector] No facet_assembly in agent config for: {agent_id}")
-                return None
-
-            print(f"[Inspector] _get_agent_assembly: facet_assembly_ref='{facet_assembly_ref}' from config")
-
-            # Use __file__ based path resolution (CWD-independent)
             import os
-            # Try facet_assemblies directory first (new location)
-            assembly_path = os.path.join(
-                os.path.dirname(__file__),
-                '../../facet_assemblies',
-                f'{facet_assembly_ref}.yaml'
-            )
-            print(f"[Inspector] PRIMARY path: {assembly_path}")
-            print(f"[Inspector] PRIMARY exists? {os.path.exists(assembly_path)}")
 
-            if not os.path.exists(assembly_path):
-                # Fallback: check cmush/recipes for embedded assemblies
-                assembly_path = os.path.join(
-                    os.path.dirname(__file__),
-                    '../../../cmush/recipes',
-                    f'{facet_assembly_ref}.yaml'
+            instance_path = agent_data.get('path', '')
+            noodling_ref = agent_data.get('noodling_ref', '')
+
+            assembly_path = None
+
+            # Primary: resolve from instance path + noodling_ref (relative path)
+            if noodling_ref and instance_path:
+                noodling_dir = os.path.normpath(os.path.join(instance_path, noodling_ref))
+                candidate = os.path.join(noodling_dir, 'assembly.yaml')
+                if os.path.exists(candidate):
+                    assembly_path = candidate
+
+            # Fallback: bundled library (for templates with simple names)
+            if not assembly_path and noodling_ref:
+                simple_name = os.path.basename(noodling_ref)
+                noodlestudio_dir = os.path.join(os.path.dirname(__file__), '../..')
+                candidate = os.path.join(
+                    noodlestudio_dir, 'library', 'noodlings', simple_name, 'assembly.yaml'
                 )
-                print(f"[Inspector] FALLBACK path: {assembly_path}")
-                print(f"[Inspector] FALLBACK exists? {os.path.exists(assembly_path)}")
+                if os.path.exists(candidate):
+                    assembly_path = candidate
 
-            if not os.path.exists(assembly_path):
-                print(f"[Inspector] No facet assembly found for '{facet_assembly_ref}'")
+            if not assembly_path:
+                print(f"[Inspector] No assembly found for {agent_id}")
                 return None
 
-            print(f"[Inspector] Loading assembly from: {assembly_path}")
             assembly = FacetAssembly.load_yaml(str(assembly_path))
-            print(f"[Inspector] SUCCESS - Loaded assembly '{assembly.name}' with {len(assembly.facets)} facets")
             return assembly
 
         except Exception as e:
@@ -982,7 +1136,7 @@ class InspectorPanel(
                 active_label.setStyleSheet("color: #FFD700; margin-top: 8px;")
                 exec_section.content.layout().addRow(active_label)
 
-            self.facet_properties_layout.addWidget(exec_section)
+            self.properties_layout.addWidget(exec_section)
 
         except Exception as e:
             print(f"[Inspector] Error building execution data section: {e}")
@@ -1037,10 +1191,11 @@ class InspectorPanel(
                 print(f"[DIAGNOSTIC] SKIPPING load_entity - same entity already loaded")
                 return
 
-        # CRITICAL: Store a COPY of entity_data to avoid reference mutation
-        # (Stage View modifies entity_data dict before emitting, which would
-        # corrupt our comparison on next load if we held a reference)
-        self.current_entity = (entity_type, entity_data.copy())
+        # CRITICAL: Don't reload if save is in progress (guard BEFORE assignment
+        # to prevent current_entity from being set without a full reload)
+        if self.is_saving:
+            print(f"[DIAGNOSTIC] SKIPPING load_entity - save in progress")
+            return
 
         # CRITICAL: Don't reload if a text widget has focus (user is editing)
         focused_widget = QApplication.focusWidget()
@@ -1048,10 +1203,13 @@ class InspectorPanel(
             print(f"[DIAGNOSTIC] SKIPPING load_entity - text widget has focus")
             return
 
-        # CRITICAL: Don't reload if save is in progress
-        if self.is_saving:
-            print(f"[DIAGNOSTIC] SKIPPING load_entity - save in progress")
-            return
+        # CRITICAL: Store a COPY of entity_data to avoid reference mutation
+        # (Stage View modifies entity_data dict before emitting, which would
+        # corrupt our comparison on next load if we held a reference)
+        # NOTE: This MUST come after all guards -- if a guard returns early,
+        # current_entity must stay at its previous value so the skip guard
+        # at lines 1030-1038 doesn't incorrectly match on next selection.
+        self.current_entity = (entity_type, entity_data.copy())
 
         # Set loading flag to prevent re-entrance
         self.is_loading = True
@@ -1059,6 +1217,9 @@ class InspectorPanel(
         try:
             # CRITICAL: Save CollapsibleSection expanded state before destroying widgets
             self._save_collapsible_states()
+
+            # Clear facet mode when loading an entity
+            self.current_facet = None
 
             # Clear existing properties
             while self.properties_layout.count():

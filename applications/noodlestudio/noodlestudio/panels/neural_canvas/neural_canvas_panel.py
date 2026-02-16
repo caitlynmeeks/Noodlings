@@ -86,8 +86,9 @@ class NeuralCanvasPanel(QWidget):
         # Setup keyboard shortcuts
         self._init_shortcuts()
 
-        # Load default topology
-        self._load_default_topology()
+        # Panel starts empty -- user opens a .nncanvas via double-click
+        self.graph.name = "No neural canvas loaded"
+        self._update_status_bar()
 
     def _init_ui(self):
         """Initialize UI components."""

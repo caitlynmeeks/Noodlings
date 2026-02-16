@@ -482,6 +482,12 @@ class FacetsEditorPanel(
         # Unlock scene - safe to process events now
         self.scene_transition_lock = False
 
+    def refresh_node_for_facet(self, facet_id: str):
+        """Repaint a single facet node (e.g., after rename in inspector)."""
+        node = self.node_graphics.get(facet_id)
+        if node:
+            node.update()
+
     def clear_editor(self):
         """Clear editor when nothing is selected (alias for show_empty_state)."""
         self.show_empty_state()

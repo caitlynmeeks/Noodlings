@@ -500,6 +500,7 @@ class GenericPropertyCommand(MergeableCommand):
     def _do(self):
         """Apply the new value."""
         # On first execution, the property is already set by the widget
+        # (setattr called in create_bound_* before pushing command)
         # Just save to disk
         if self._first_redo:
             self._save_to_disk()
@@ -507,21 +508,51 @@ class GenericPropertyCommand(MergeableCommand):
             setattr(self.obj, self.property_name, self.new_value)
             self._refresh_widget()
             self._save_to_disk()
+        self._notify_facets_editor()
 
     def _undo(self):
         """Restore the old value."""
         setattr(self.obj, self.property_name, self.old_value)
         self._refresh_widget()
         self._save_to_disk()
+        self._notify_facets_editor()
 
     def _refresh_widget(self):
-        """Refresh the bound widget to show current value."""
-        # Find and refresh any binding for this property
+        """Refresh the bound widget to show current value.
+
+        Checks two widget registries:
+        1. _binding_manager (PropertyBinding objects from PropertyBindingManager)
+        2. _bound_widgets (dict from create_bound_lineedit/spinbox/etc.)
+        """
+        from PyQt6.QtWidgets import QLineEdit, QTextEdit, QSpinBox, QDoubleSpinBox, QCheckBox, QComboBox
+
+        # Try binding manager first
         if hasattr(self.inspector, '_binding_manager'):
             for binding in self.inspector._binding_manager.get_bindings_for_object(self.obj):
                 if binding.property_name == self.property_name:
                     binding.refresh_from_model()
-                    break
+                    return
+
+        # Fall back to _bound_widgets (used by create_bound_lineedit etc.)
+        if hasattr(self.inspector, '_bound_widgets'):
+            widget = self.inspector._bound_widgets.get(self.property_name)
+            if widget is not None:
+                current_value = getattr(self.obj, self.property_name, '')
+                try:
+                    if isinstance(widget, QLineEdit):
+                        widget.setText(str(current_value))
+                    elif isinstance(widget, QTextEdit):
+                        widget.setPlainText(str(current_value))
+                    elif isinstance(widget, QDoubleSpinBox):
+                        widget.setValue(float(current_value))
+                    elif isinstance(widget, QSpinBox):
+                        widget.setValue(int(current_value))
+                    elif isinstance(widget, QCheckBox):
+                        widget.setChecked(bool(current_value))
+                    elif isinstance(widget, QComboBox):
+                        widget.setCurrentText(str(current_value))
+                except (RuntimeError, ValueError):
+                    pass  # Widget may have been deleted
 
     def _save_to_disk(self):
         """Persist the change to disk."""
@@ -529,6 +560,17 @@ class GenericPropertyCommand(MergeableCommand):
         if hasattr(self.obj, 'id') and hasattr(self.inspector, '_auto_save_facet_assembly'):
             self.inspector._auto_save_facet_assembly()
         # For other objects, they should implement their own persistence
+
+    def _notify_facets_editor(self):
+        """Tell the facets editor to repaint the affected node."""
+        if self.property_name != 'name' or not hasattr(self.obj, 'id'):
+            return
+        try:
+            main_window = self.inspector.window()
+            if hasattr(main_window, 'facets_editor') and main_window.facets_editor:
+                main_window.facets_editor.refresh_node_for_facet(self.obj.id)
+        except Exception:
+            pass
 
     def id(self) -> int:
         """Return command ID for merge compatibility."""

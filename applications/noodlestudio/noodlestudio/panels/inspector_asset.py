@@ -693,7 +693,7 @@ class AssetInspectorMixin:
         """Open neural canvas in editor."""
         main_window = self.window()
         if hasattr(main_window, 'neural_canvas'):
-            main_window.neural_canvas.load_canvas(path)
+            main_window.neural_canvas._load_from_file(path)
             if hasattr(main_window, 'center_tabs'):
                 for i in range(main_window.center_tabs.count()):
                     if 'Neural' in main_window.center_tabs.tabText(i):

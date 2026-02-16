@@ -33,6 +33,7 @@
 # ──────────────────────────────────────────────────────────────
 
 import json
+import os
 import asyncio
 import requests
 from typing import Optional
@@ -287,6 +288,12 @@ class FacetsEditorEventsMixin:
             position={'x': scene_pos.x(), 'y': scene_pos.y()}
         )
 
+        # NeuralCanvasFacet: auto-create a blank .nncanvas file
+        if facet_type == "NeuralCanvasFacet":
+            nncanvas_path = self._create_blank_nncanvas(facet_id, display_name)
+            if nncanvas_path:
+                facet.nncanvas_path = nncanvas_path
+
         # Add default pads based on type
         if facet_type == "ConvergenceFacet":
             facet.add_input_pad("input1", "First input")
@@ -306,6 +313,59 @@ class FacetsEditorEventsMixin:
             facet_name=display_name
         )
         undo_manager.push(cmd)
+
+    def _create_blank_nncanvas(self, facet_id: str, display_name: str):
+        """Create a blank .nncanvas file for a new NeuralCanvasFacet.
+
+        Returns a project-relative path (e.g. 'Noodlings/ajo_majo/charm_network_cf55c29f.nncanvas')
+        so that _open_neural_canvas() can resolve it against the project root.
+        Returns None if the assembly has no known disk location.
+        """
+        import json
+        import re
+        from datetime import datetime
+
+        if not self.current_assembly_path:
+            return None
+
+        assembly_dir = os.path.dirname(self.current_assembly_path)
+        # Strip non-alphanumeric chars (keep underscores) for clean filenames
+        safe_name = re.sub(r'[^a-z0-9_]', '', display_name.lower().replace(' ', '_'))
+        if not safe_name:
+            safe_name = 'neural_canvas'
+        nncanvas_filename = f"{safe_name}_{facet_id[:8]}.nncanvas"
+        nncanvas_abs_path = os.path.join(assembly_dir, nncanvas_filename)
+
+        blank_canvas = {
+            "version": "1.0",
+            "name": display_name,
+            "description": "",
+            "metadata": {
+                "created": datetime.now().isoformat(),
+                "modified": None,
+                "author": "",
+                "total_parameters": 0
+            },
+            "nodes": [],
+            "connections": [],
+            "hidden_states": {},
+            "export_targets": {"mlx": False, "pytorch": False, "onnx": False}
+        }
+
+        try:
+            with open(nncanvas_abs_path, 'w') as f:
+                json.dump(blank_canvas, f, indent=2)
+            print(f"[FacetsEditor] Created .nncanvas: {nncanvas_abs_path}")
+        except Exception as e:
+            print(f"[FacetsEditor] Failed to create .nncanvas: {e}")
+            return None
+
+        # Return project-relative path so _open_neural_canvas() resolves correctly
+        main_window = self.window()
+        pm = getattr(main_window, 'project_manager', None)
+        if pm and getattr(pm, 'current_project_path', None):
+            return os.path.relpath(nncanvas_abs_path, pm.current_project_path)
+        return nncanvas_filename
 
     # ========== FLOATING EDITOR ==========
 
