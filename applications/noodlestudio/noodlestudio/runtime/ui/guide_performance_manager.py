@@ -126,6 +126,10 @@ class GuidePerformanceManager:
         self._pending_message = None # User message waiting for execution
         self._active_noodling_id = 'default'  # Which noodling's events are emitted
 
+        # Stage metadata (populated by _discover_stage_instances)
+        self._stage_description = None   # str from stage.yaml
+        self._instance_metadata = {}     # noodling_id -> discovery dict
+
         logger.info("GuidePerformanceManager initialized")
 
     # =========================================================================
@@ -232,6 +236,8 @@ class GuidePerformanceManager:
 
         Reads the ``Instances/`` subdirectory and parses each
         ``instance.yaml`` to resolve noodling template paths.
+        Also loads stage.yaml description and stores it on
+        ``self._stage_description``.
 
         Args:
             stage_path: Absolute path to a stage directory
@@ -244,8 +250,23 @@ class GuidePerformanceManager:
             - ``assembly_path``: Absolute path to assembly.yaml
             - ``noodling_path``: Absolute path to noodling template dir
             - ``vrm_path``: Absolute path to VRM file (or None)
+            - ``description``: One-liner from noodling.yaml (or None)
+            - ``appearance``: Prose block from recipe.yaml (or None)
+            - ``affect_baseline``: PAD baseline dict from recipe.yaml (or None)
         """
-        instances_dir = Path(stage_path) / 'Instances'
+        stage_dir = Path(stage_path)
+
+        # Load stage description
+        stage_yaml = stage_dir / 'stage.yaml'
+        if stage_yaml.exists():
+            try:
+                with open(stage_yaml) as f:
+                    stage_data = yaml.safe_load(f)
+                self._stage_description = stage_data.get('description')
+            except Exception as e:
+                logger.warning(f"Could not read stage.yaml: {e}")
+
+        instances_dir = stage_dir / 'Instances'
         if not instances_dir.is_dir():
             return []
 
@@ -279,17 +300,47 @@ class GuidePerformanceManager:
             # Display name from overrides, falling back to dir name
             name = data.get('overrides', {}).get('name', instance_dir.name)
 
-            # Look for VRM path in noodling.yaml
+            # Load noodling.yaml for VRM path and description
             vrm_path = None
+            description = None
             noodling_yaml = noodling_path / 'noodling.yaml'
             if noodling_yaml.exists():
                 with open(noodling_yaml) as f:
                     noodling_data = yaml.safe_load(f)
+                description = noodling_data.get('description')
                 vrm_ref = noodling_data.get('vrm_path', '')
                 if vrm_ref:
                     vrm_resolved = (noodling_path / vrm_ref).resolve()
                     if vrm_resolved.exists():
                         vrm_path = str(vrm_resolved)
+
+            # Load recipe.yaml for appearance and affect baseline
+            appearance = None
+            affect_baseline = None
+            recipe_yaml = noodling_path / 'recipe.yaml'
+            if recipe_yaml.exists():
+                try:
+                    with open(recipe_yaml) as f:
+                        recipe_data = yaml.safe_load(f)
+                    appearance = recipe_data.get('appearance')
+                    if appearance and isinstance(appearance, str):
+                        appearance = appearance.strip()
+
+                    # Extract PAD baseline from affect dimensions
+                    affect = recipe_data.get('affect', {})
+                    dimensions = affect.get('dimensions', [])
+                    if dimensions:
+                        affect_baseline = {}
+                        for dim in dimensions:
+                            dim_name = dim.get('name')
+                            baseline = dim.get('baseline')
+                            if dim_name and baseline is not None:
+                                affect_baseline[dim_name] = baseline
+                except Exception as e:
+                    logger.warning(
+                        f"Could not read recipe.yaml for "
+                        f"{instance_dir.name}: {e}"
+                    )
 
             results.append({
                 'noodling_id': instance_dir.name,
@@ -297,6 +348,9 @@ class GuidePerformanceManager:
                 'assembly_path': str(assembly_path),
                 'noodling_path': str(noodling_path),
                 'vrm_path': vrm_path,
+                'description': description,
+                'appearance': appearance,
+                'affect_baseline': affect_baseline,
             })
 
         return results
@@ -331,6 +385,11 @@ class GuidePerformanceManager:
         ensemble = len(instances) > 1
         self._ensemble_mode = ensemble
         self._set_demo_mode(True)
+
+        # Store instance metadata for ensemble awareness
+        self._instance_metadata = {
+            info['noodling_id']: info for info in instances
+        }
 
         # Create performers for each instance
         performers = {}
@@ -1436,6 +1495,8 @@ class GuidePerformanceManager:
             self._turn_responses = {}
             self._active_noodling_id = 'default'
             self._ensemble_mode = False
+            self._stage_description = None
+            self._instance_metadata = {}
 
             # Clear facets editor noodling selector
             try:
