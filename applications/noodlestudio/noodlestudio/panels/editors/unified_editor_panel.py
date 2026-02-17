@@ -3,7 +3,14 @@
 Hosts a stack of domain views (assembly editor, neural canvas, etc.).
 Only the top view is visible. Navigation via double-click (dive in)
 and breadcrumb bar (ascend). Each view implements DepthViewProtocol.
+
+C.6: Facade methods matching old FacetsEditorPanel API so the main
+window can call the same methods on this panel. Delegates to the root
+AssemblyEditorView on the stack.
 """
+
+import os
+from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
@@ -35,6 +42,11 @@ class UnifiedEditorPanel(QWidget):
     facetSelected = pyqtSignal(object)
     assemblyModified = pyqtSignal()
     depthChanged = pyqtSignal(int)
+
+    # NC depth view forwarding signals (connected when NC view is pushed)
+    ncNodeSelected = pyqtSignal(str)
+    ncParamChanged = pyqtSignal(str, str, object)
+    ncGraphLoaded = pyqtSignal()
 
     # Class-level depth view registry: facet_type_name -> view_class
     _depth_view_registry = {}
@@ -97,6 +109,15 @@ class UnifiedEditorPanel(QWidget):
         # Auto-wire depth navigation signal if the view supports it
         if hasattr(view, 'containerDoubleClicked'):
             view.containerDoubleClicked.connect(self._on_container_double_clicked)
+
+        # Auto-wire facetSelected forwarding from assembly views
+        if hasattr(view, 'facetSelected'):
+            view.facetSelected.connect(self.facetSelected)
+        if hasattr(view, 'assemblyModified'):
+            view.assemblyModified.connect(self.assemblyModified)
+
+        # Auto-wire NC signal forwarding from depth views
+        self._connect_nc_signals(view)
 
         # Push frame
         frame = _StackFrame(view, breadcrumb_label, context or {})
@@ -243,15 +264,231 @@ class UnifiedEditorPanel(QWidget):
         """Save a view's data, disconnect signals, and remove from the layout."""
         if hasattr(frame.view, "save_data"):
             frame.view.save_data()
-        # Disconnect depth navigation signal to prevent stale connections
-        if hasattr(frame.view, 'containerDoubleClicked'):
-            try:
-                frame.view.containerDoubleClicked.disconnect(
-                    self._on_container_double_clicked
-                )
-            except (TypeError, RuntimeError):
-                pass  # Already disconnected or view being destroyed
+
+        # Disconnect all auto-wired signals
+        for signal_name in ('containerDoubleClicked', 'facetSelected', 'assemblyModified'):
+            if hasattr(frame.view, signal_name):
+                try:
+                    sig = getattr(frame.view, signal_name)
+                    sig.disconnect()
+                except (TypeError, RuntimeError):
+                    pass
+
+        # Disconnect NC forwarding signals
+        self._disconnect_nc_signals(frame.view)
+
         frame.view.hide()
         self._view_layout.removeWidget(frame.view)
         frame.view.setParent(None)
         frame.view.deleteLater()
+
+    def _connect_nc_signals(self, view):
+        """Connect NC panel signals from a NeuralCanvasDepthView for forwarding."""
+        panel = getattr(view, '_panel', None)
+        if panel is None:
+            return
+        if hasattr(panel, 'node_selected'):
+            panel.node_selected.connect(self.ncNodeSelected)
+        if hasattr(panel, 'graph_loaded'):
+            panel.graph_loaded.connect(self.ncGraphLoaded)
+        canvas_view = getattr(panel, 'canvas_view', None)
+        if canvas_view and hasattr(canvas_view, 'node_param_changed'):
+            canvas_view.node_param_changed.connect(self.ncParamChanged)
+
+    def _disconnect_nc_signals(self, view):
+        """Disconnect NC panel signals when a depth view is popped."""
+        panel = getattr(view, '_panel', None)
+        if panel is None:
+            return
+        for sig_name in ('node_selected', 'graph_loaded'):
+            if hasattr(panel, sig_name):
+                try:
+                    getattr(panel, sig_name).disconnect()
+                except (TypeError, RuntimeError):
+                    pass
+        canvas_view = getattr(panel, 'canvas_view', None)
+        if canvas_view and hasattr(canvas_view, 'node_param_changed'):
+            try:
+                canvas_view.node_param_changed.disconnect()
+            except (TypeError, RuntimeError):
+                pass
+
+    # ==================== Facade API (C.6) ====================
+    #
+    # These methods match the old FacetsEditorPanel interface so the
+    # main window can call the same methods during parallel testing.
+    # Each delegates to the root AssemblyEditorView on the stack.
+
+    def _root_view(self):
+        """Return the root (level 0) AssemblyEditorView, or None."""
+        from .assembly_editor_view import AssemblyEditorView
+        if self._stack and isinstance(self._stack[0].view, AssemblyEditorView):
+            return self._stack[0].view
+        return None
+
+    def _ensure_root_view(self):
+        """Create and push an AssemblyEditorView if the stack is empty."""
+        from .assembly_editor_view import AssemblyEditorView
+        if not self._stack or not isinstance(self._stack[0].view, AssemblyEditorView):
+            view = AssemblyEditorView(parent=self._view_container)
+            self.push_view(view, "assembly")
+        return self._root_view()
+
+    # -- Assembly loading --
+
+    def load_assembly_from_data(self, assembly, force_reload=False,
+                                source_path=None):
+        """Load a parsed FacetAssembly into the editor.
+
+        If the stack is empty, creates a root AssemblyEditorView first.
+        Pops any depth views back to root before loading.
+        """
+        if self.depth() > 1:
+            self.pop_to(0)
+
+        root = self._ensure_root_view()
+        if root:
+            root.load_assembly_from_data(
+                assembly, source_path=source_path, force_reload=force_reload
+            )
+
+    def clear_editor(self):
+        """Show empty state (no noodling selected)."""
+        self.clear_stack()
+
+    def set_current_agent(self, agent_id: str):
+        """Store the current agent ID for pause/resume."""
+        root = self._root_view()
+        if root:
+            root.current_agent_id = agent_id
+
+    def load_assembly(self, assembly_path):
+        """Load assembly from a file path (used by soft_restart)."""
+        from ...core.facet_system import FacetAssembly
+
+        path = str(assembly_path)
+        if not os.path.exists(path):
+            return
+
+        assembly = FacetAssembly.load_yaml(path)
+        if assembly:
+            self.load_assembly_from_data(
+                assembly, source_path=path, force_reload=True
+            )
+
+    # -- Ensemble --
+
+    def set_ensemble_noodlings(self, noodlings: list):
+        """Configure the noodling selector for ensemble mode."""
+        root = self._ensure_root_view()
+        if root and hasattr(root, 'set_ensemble_noodlings'):
+            root.set_ensemble_noodlings(noodlings)
+
+    def clear_ensemble_noodlings(self):
+        """Hide the noodling selector, return to single mode."""
+        root = self._root_view()
+        if root and hasattr(root, 'clear_ensemble_noodlings'):
+            root.clear_ensemble_noodlings()
+
+    def select_noodling(self, noodling_id: str):
+        """Programmatic noodling selection (turn-taking)."""
+        root = self._root_view()
+        if root and hasattr(root, 'select_noodling'):
+            root.select_noodling(noodling_id)
+
+    # -- Execution events --
+
+    def _handle_execution_event(self, event: dict):
+        """Forward execution event to the root AssemblyEditorView."""
+        root = self._root_view()
+        if root and hasattr(root, '_handle_execution_event'):
+            root._handle_execution_event(event)
+
+    # -- Save --
+
+    def save_if_dirty(self):
+        """Save all views in the stack."""
+        self.save_all()
+
+    def _save_assembly_to_disk(self):
+        """Persist the root assembly to disk."""
+        root = self._root_view()
+        if root and hasattr(root, '_save_assembly_to_disk'):
+            root._save_assembly_to_disk()
+
+    # -- Refresh --
+
+    def refresh_node_for_facet(self, facet_id: str):
+        """Refresh a specific node's visual after external property change."""
+        root = self._root_view()
+        if root and hasattr(root, 'refresh_node_for_facet'):
+            root.refresh_node_for_facet(facet_id)
+
+    # -- Pause state --
+
+    def set_pause_state(self, paused: bool):
+        """Set cognition pause state on the root view."""
+        root = self._root_view()
+        if root is None:
+            return
+        root.cognition_paused = paused
+        if hasattr(root, '_pause_button'):
+            root._pause_button.setChecked(paused)
+
+    # -- NC graph access --
+
+    def get_current_nc_graph(self):
+        """Return the NC graph from the current depth view, if applicable."""
+        top = self.current_view()
+        panel = getattr(top, '_panel', None)
+        if panel and hasattr(panel, 'graph'):
+            return panel.graph
+        return None
+
+    # -- Properties for inspector / external access --
+
+    @property
+    def current_assembly(self):
+        """The loaded FacetAssembly, or None."""
+        root = self._root_view()
+        return root._assembly if root else None
+
+    @property
+    def current_assembly_path(self) -> Optional[str]:
+        """Path to the loaded assembly YAML, or None."""
+        root = self._root_view()
+        return root._assembly_path if root else None
+
+    @property
+    def current_agent_id(self) -> Optional[str]:
+        """The current agent ID for pause/resume."""
+        root = self._root_view()
+        return root.current_agent_id if root else None
+
+    @property
+    def node_graphics(self) -> dict:
+        """Map of facet_id -> FacetNodeItem (for inspector execution I/O)."""
+        root = self._root_view()
+        return root._node_items if root else {}
+
+    @property
+    def cognition_paused(self) -> bool:
+        root = self._root_view()
+        return root.cognition_paused if root else False
+
+    @cognition_paused.setter
+    def cognition_paused(self, value: bool):
+        root = self._root_view()
+        if root:
+            root.cognition_paused = value
+
+    @property
+    def pause_button(self):
+        """The pause/resume QPushButton (for scene_hierarchy_utils_mixin)."""
+        root = self._root_view()
+        return root._pause_button if root and hasattr(root, '_pause_button') else None
+
+    @property
+    def bottom_pause_btn(self):
+        """Compatibility stub -- returns the same pause button."""
+        return self.pause_button

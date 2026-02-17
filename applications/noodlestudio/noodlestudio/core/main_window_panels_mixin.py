@@ -182,6 +182,11 @@ class MainWindowPanelsMixin:
 
         self.gaussian_viewer = None
 
+        # Unified Editor tab (C.6 parallel testing -- will replace FE + NC in C.7)
+        from ..panels.editors import UnifiedEditorPanel
+        self.unified_editor = UnifiedEditorPanel()
+        center_tabs.addTab(self.unified_editor, "Assembly")
+
         # Settings tab
         self.settings_panel = SettingsPanel()
         center_tabs.addTab(self.settings_panel, "Settings")
@@ -344,6 +349,20 @@ class MainWindowPanelsMixin:
 
         self.hierarchy.entitySelected.connect(safe_console_select)
         self.hierarchy.entitySelected.connect(safe_facets_select)
+
+        # Unified editor parallel wiring (C.6)
+        self.unified_editor.facetSelected.connect(
+            lambda facet: self.inspector.load_facet(facet)
+        )
+        self.unified_editor.ncNodeSelected.connect(
+            self._on_nc_depth_node_selected
+        )
+        self.unified_editor.ncParamChanged.connect(
+            self._on_neural_canvas_param_changed
+        )
+        self.unified_editor.ncGraphLoaded.connect(
+            self._on_neural_canvas_graph_loaded
+        )
 
         # Inspector connections
         self.inspector.nameChanged.connect(self._on_inspector_name_changed)

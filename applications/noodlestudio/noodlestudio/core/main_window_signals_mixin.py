@@ -145,21 +145,18 @@ class MainWindowSignalsMixin:
         else:
             print(f"[Facets Editor] Assembly not found for {agent_id}: {assembly_path}")
 
-    def _on_neural_canvas_node_selected(self, node_id: str):
-        """Handle node selection in Neural Canvas - show in Inspector."""
-        if not node_id:
-            self.inspector.clear_inspector()
-            return
+    @staticmethod
+    def _build_neural_node_entity_data(node) -> dict:
+        """Build inspector entity_data dict from a neural canvas node.
 
-        node = self.neural_canvas.graph.get_node_by_id(node_id)
-        if not node:
-            return
-
+        Shared by both the standalone NC handler and the unified editor
+        NC depth view handler.
+        """
         from ..core.neural_canvas.node_definitions import NODE_DEFINITIONS
         default_params = NODE_DEFINITIONS.get(node.type, {}).get('params', {})
         merged_params = {**default_params, **node.params}
 
-        entity_data = {
+        return {
             'id': node.id,
             'name': node.name,
             'type': node.type.value,
@@ -180,6 +177,38 @@ class MainWindowSignalsMixin:
             'tags': node.tags
         }
 
+    def _on_neural_canvas_node_selected(self, node_id: str):
+        """Handle node selection in standalone Neural Canvas - show in Inspector."""
+        if not node_id:
+            self.inspector.clear_inspector()
+            return
+
+        node = self.neural_canvas.graph.get_node_by_id(node_id)
+        if not node:
+            return
+
+        entity_data = self._build_neural_node_entity_data(node)
+        self.inspector.load_entity('neural_node', entity_data)
+
+    def _on_nc_depth_node_selected(self, node_id: str):
+        """Handle node selection from NC depth view inside unified editor."""
+        if not node_id:
+            self.inspector.clear_inspector()
+            return
+
+        editor = getattr(self, 'unified_editor', None)
+        if not editor:
+            return
+
+        graph = editor.get_current_nc_graph()
+        if not graph:
+            return
+
+        node = graph.get_node_by_id(node_id)
+        if not node:
+            return
+
+        entity_data = self._build_neural_node_entity_data(node)
         self.inspector.load_entity('neural_node', entity_data)
 
     def _on_neural_canvas_param_changed(self, node_id: str, param_name: str, new_value):
