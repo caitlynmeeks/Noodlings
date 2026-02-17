@@ -3,9 +3,6 @@
 Provides a dropdown (QComboBox) to switch between noodlings in ensemble
 mode. Sets _selected_noodling_id which the execution mixin uses to
 filter events.
-
-Ported from facets_editor_panel.py (set_ensemble_noodlings,
-clear_ensemble_noodlings, select_noodling, _on_noodling_selected).
 """
 
 from typing import Optional, List, Dict

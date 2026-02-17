@@ -3,11 +3,6 @@
 Handles execution events delivered directly by GuidePerformanceManager
 (no WebSocket -- events arrive synchronously on the Qt main thread via
 _emit_execution_event -> _handle_execution_event).
-
-Ported from facets_editor_events_mixin.py, stripped of:
-- WebSocket threading (not needed, direct delivery)
-- Field widget expansion (new view uses floating editor)
-- Neural canvas opening (handled by depth navigation)
 """
 
 import os

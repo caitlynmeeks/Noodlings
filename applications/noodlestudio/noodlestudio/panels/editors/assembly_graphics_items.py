@@ -1,12 +1,10 @@
 """Graphics items for the Assembly Editor view.
 
-Ported from facets_editor_graphics.py with these changes:
 - Port items implement shared_wire_mixin duck-typing contract
   (get_parent_node_id, get_port_name, get_scene_position, is_output)
-- Grid snap reads from the owning view, not by traversing scene().views()
+- Grid snap reads from the owning view
 - Execution animation: processing pulse, complete flash, error flash,
-  quantum collapse, wire data packets (C.4)
-- No dependency on FacetsEditorPanel
+  quantum collapse, wire data packets
 """
 
 from PyQt6.QtWidgets import (

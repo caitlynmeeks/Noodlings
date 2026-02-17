@@ -4,9 +4,7 @@ Hosts a stack of domain views (assembly editor, neural canvas, etc.).
 Only the top view is visible. Navigation via double-click (dive in)
 and breadcrumb bar (ascend). Each view implements DepthViewProtocol.
 
-C.6: Facade methods matching old FacetsEditorPanel API so the main
-window can call the same methods on this panel. Delegates to the root
-AssemblyEditorView on the stack.
+Facade methods delegate to the root AssemblyEditorView on the stack.
 """
 
 import os
@@ -346,9 +344,7 @@ class UnifiedEditorPanel(QWidget):
 
     # ==================== Facade API (C.6) ====================
     #
-    # These methods match the old FacetsEditorPanel interface so the
-    # main window can call the same methods during parallel testing.
-    # Each delegates to the root AssemblyEditorView on the stack.
+    # Facade methods delegating to the root AssemblyEditorView on the stack.
 
     def _root_view(self):
         """Return the root (level 0) AssemblyEditorView, or None."""

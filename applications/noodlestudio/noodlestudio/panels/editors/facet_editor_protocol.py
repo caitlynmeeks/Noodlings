@@ -1,9 +1,7 @@
 """Protocol for facet editor undo command integration.
 
 Defines the interface that undo commands (facet_commands.py) call back
-into the editor. Both FacetsEditorPanel (old) and AssemblyEditorView (new)
-implement this protocol, so commands work with either editor during the
-transition period.
+into the editor. AssemblyEditorView implements this protocol.
 """
 
 from typing import Protocol, Dict, Any, Tuple

@@ -162,7 +162,7 @@ class UITestTargetResolver:
         panel_map = {
             'stage': ['stage_panel', 'StagePanel', 'stage'],
             'hierarchy': ['hierarchy', 'hierarchy_panel', 'HierarchyPanel', 'scene_hierarchy'],
-            'facets': ['facets_panel', 'FacetsEditorPanel', 'facets_editor', 'assembly'],
+            'facets': ['unified_editor', 'assembly_editor', 'assembly'],
             'inspector': ['inspector', 'inspector_panel', 'InspectorPanel'],
             'neural_canvas': ['neural_canvas_panel', 'NeuralCanvasPanel', 'nncanvas'],
             'assembly': ['unified_editor', 'UnifiedEditorPanel', 'assembly_editor'],

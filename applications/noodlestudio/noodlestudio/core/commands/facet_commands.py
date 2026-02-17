@@ -508,14 +508,14 @@ class GenericPropertyCommand(MergeableCommand):
             setattr(self.obj, self.property_name, self.new_value)
             self._refresh_widget()
             self._save_to_disk()
-        self._notify_facets_editor()
+        self._notify_editor()
 
     def _undo(self):
         """Restore the old value."""
         setattr(self.obj, self.property_name, self.old_value)
         self._refresh_widget()
         self._save_to_disk()
-        self._notify_facets_editor()
+        self._notify_editor()
 
     def _refresh_widget(self):
         """Refresh the bound widget to show current value.
@@ -561,14 +561,14 @@ class GenericPropertyCommand(MergeableCommand):
             self.inspector._auto_save_facet_assembly()
         # For other objects, they should implement their own persistence
 
-    def _notify_facets_editor(self):
-        """Tell the facets editor to repaint the affected node."""
+    def _notify_editor(self):
+        """Tell the assembly editor to repaint the affected node."""
         if self.property_name != 'name' or not hasattr(self.obj, 'id'):
             return
         try:
             main_window = self.inspector.window()
-            if hasattr(main_window, 'facets_editor') and main_window.facets_editor:
-                main_window.facets_editor.refresh_node_for_facet(self.obj.id)
+            if hasattr(main_window, 'unified_editor') and main_window.unified_editor:
+                main_window.unified_editor.refresh_node_for_facet(self.obj.id)
         except Exception:
             pass
 

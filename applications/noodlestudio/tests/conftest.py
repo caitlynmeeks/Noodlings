@@ -368,12 +368,9 @@ class StubMainWindow:
     StubFacetsEditor automatically.
     """
 
-    def __init__(self, facets_editor=_SENTINEL, unified_editor=_SENTINEL):
-        # Support both old and new kwarg for backward compat in tests
+    def __init__(self, unified_editor=_SENTINEL):
         if unified_editor is not _SENTINEL:
             self.unified_editor = unified_editor
-        elif facets_editor is not _SENTINEL:
-            self.unified_editor = facets_editor
         else:
             self.unified_editor = StubFacetsEditor()
         self.center_tabs = None  # Only used in start_performance tab switch

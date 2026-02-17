@@ -42,10 +42,10 @@ def _create_ensemble_manager():
     )
 
     stub_editor = StubFacetsEditor()
-    stub_main = StubMainWindow(facets_editor=stub_editor)
+    stub_main = StubMainWindow(unified_editor=stub_editor)
 
     manager = GuidePerformanceManager(stub_main)
-    manager._facets_editor = stub_editor
+    manager._assembly_editor = stub_editor
     return manager
 
 

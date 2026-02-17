@@ -145,22 +145,24 @@ class TestFacetRenameUpdatesModel:
         assert facet.model == "LARGE", "combobox must setattr on model"
 
 
-class TestFacetsEditorRefreshNode:
-    """B.10.1b: FacetsEditorPanel must have refresh_node_for_facet method."""
+class TestEditorRefreshNode:
+    """B.10.1b: Assembly editor must have refresh_node_for_facet method."""
 
     def test_refresh_method_exists(self, qapp):
-        """FacetsEditorPanel must expose refresh_node_for_facet."""
-        from noodlestudio.panels.facets_editor_panel import FacetsEditorPanel
+        """AssemblyEditorView must expose refresh_node_for_facet."""
+        from noodlestudio.panels.editors.assembly_editor_view import AssemblyEditorView
 
-        editor = FacetsEditorPanel()
+        editor = AssemblyEditorView()
         assert hasattr(editor, 'refresh_node_for_facet')
+        editor.close()
 
     def test_refresh_unknown_id_no_crash(self, qapp):
         """Calling refresh with unknown facet ID must not raise."""
-        from noodlestudio.panels.facets_editor_panel import FacetsEditorPanel
+        from noodlestudio.panels.editors.assembly_editor_view import AssemblyEditorView
 
-        editor = FacetsEditorPanel()
+        editor = AssemblyEditorView()
         editor.refresh_node_for_facet("nonexistent_id")
+        editor.close()
 
 
 # =====================================================================
@@ -326,17 +328,19 @@ class TestNeuralCanvasFacetCreation:
 
     def test_create_blank_nncanvas_creates_file(self, qapp, tmp_path):
         """_create_blank_nncanvas produces a valid .nncanvas JSON file."""
-        from noodlestudio.panels.facets_editor_panel import FacetsEditorPanel
+        from noodlestudio.panels.editors.assembly_editor_view import AssemblyEditorView
+        from noodlestudio.core.facet_system import FacetAssembly
 
         noodling_dir = tmp_path / "Noodlings" / "ajo"
         noodling_dir.mkdir(parents=True)
         assembly_path = str(noodling_dir / "assembly.yaml")
 
-        with open(assembly_path, 'w') as f:
-            f.write("name: test\nfacets: []\n")
+        assembly = FacetAssembly(name="test")
+        assembly.save_yaml(assembly_path)
 
-        editor = FacetsEditorPanel()
-        editor.current_assembly_path = assembly_path
+        editor = AssemblyEditorView()
+        editor._assembly_path = assembly_path
+        editor._assembly = assembly
 
         result = editor._create_blank_nncanvas("abcdef1234567890", "My Charm Network")
         assert result is not None
@@ -353,33 +357,38 @@ class TestNeuralCanvasFacetCreation:
         assert data['name'] == 'My Charm Network'
         assert data['nodes'] == []
         assert data['connections'] == []
+        editor.close()
 
     def test_create_blank_nncanvas_returns_none_without_path(self, qapp):
         """Without assembly path, _create_blank_nncanvas returns None."""
-        from noodlestudio.panels.facets_editor_panel import FacetsEditorPanel
+        from noodlestudio.panels.editors.assembly_editor_view import AssemblyEditorView
 
-        editor = FacetsEditorPanel()
-        editor.current_assembly_path = None
+        editor = AssemblyEditorView()
+        editor._assembly_path = None
 
         result = editor._create_blank_nncanvas("abc123", "Test")
         assert result is None
+        editor.close()
 
     def test_create_blank_nncanvas_clean_filename(self, qapp, tmp_path):
         """Filenames must not contain parentheses or special characters."""
-        from noodlestudio.panels.facets_editor_panel import FacetsEditorPanel
+        from noodlestudio.panels.editors.assembly_editor_view import AssemblyEditorView
+        from noodlestudio.core.facet_system import FacetAssembly
 
         assembly_path = str(tmp_path / "assembly.yaml")
-        with open(assembly_path, 'w') as f:
-            f.write("name: test\nfacets: []\n")
+        assembly = FacetAssembly(name="test")
+        assembly.save_yaml(assembly_path)
 
-        editor = FacetsEditorPanel()
-        editor.current_assembly_path = assembly_path
+        editor = AssemblyEditorView()
+        editor._assembly_path = assembly_path
+        editor._assembly = assembly
 
         result = editor._create_blank_nncanvas("abcdef12", "Neural Canvas (NNCanvas)")
         assert result is not None
         basename = os.path.basename(result)
         assert '(' not in basename, f"Filename must not contain parens: {basename}"
         assert ')' not in basename, f"Filename must not contain parens: {basename}"
+        editor.close()
 
     def test_facet_with_nncanvas_path_is_not_dead(self):
         """Facet with nncanvas_path set allows double-click bridge."""

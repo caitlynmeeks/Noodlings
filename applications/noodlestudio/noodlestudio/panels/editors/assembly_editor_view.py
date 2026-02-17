@@ -7,9 +7,8 @@ and FacetEditorProtocol for undo command integration.
 Execution visualization (C.4): node pulsing, wire data packets, sound
 effects, ensemble noodling selector, cognition pause/resume.
 
-This view will be pushed onto UnifiedEditorPanel as the root (level 0)
-view. It replaces the rendering and interaction of the old
-FacetsEditorPanel while the old panel remains untouched until C.7/C.8.
+This view is the root (level 0) view of UnifiedEditorPanel, handling
+facet assembly rendering and interaction.
 """
 
 import os
@@ -1138,7 +1137,7 @@ class AssemblyEditorView(
         Returns a project-relative path so depth navigation can resolve it,
         or None if the assembly has no known disk location.
 
-        Ported from FacetsEditorPanel._create_blank_nncanvas (B.10).
+        Creates a blank .nncanvas file alongside the assembly YAML.
         """
         import json
         import re
