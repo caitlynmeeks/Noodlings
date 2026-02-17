@@ -94,6 +94,10 @@ class UnifiedEditorPanel(QWidget):
         self._view_layout.addWidget(view)
         view.show()
 
+        # Auto-wire depth navigation signal if the view supports it
+        if hasattr(view, 'containerDoubleClicked'):
+            view.containerDoubleClicked.connect(self._on_container_double_clicked)
+
         # Push frame
         frame = _StackFrame(view, breadcrumb_label, context or {})
         self._stack.append(frame)
@@ -198,6 +202,20 @@ class UnifiedEditorPanel(QWidget):
 
         self.push_view(view, breadcrumb_label, ctx)
 
+    # ==================== Depth navigation dispatch ====================
+
+    def _on_container_double_clicked(self, facet_type: str, data_path: str,
+                                     label: str):
+        """Handle containerDoubleClicked from any depth view.
+
+        Inherits context from the current top stack frame so that
+        project_root and other metadata flow from parent to child.
+        """
+        ctx = {}
+        if self._stack:
+            ctx = dict(self._stack[-1].context)
+        self.on_double_click_container(facet_type, data_path, label, ctx)
+
     # ==================== Key handling ====================
 
     def keyPressEvent(self, event: QKeyEvent):
@@ -222,9 +240,17 @@ class UnifiedEditorPanel(QWidget):
         self._breadcrumb.set_path(labels)
 
     def _save_and_remove_view(self, frame: _StackFrame):
-        """Save a view's data and remove it from the layout."""
+        """Save a view's data, disconnect signals, and remove from the layout."""
         if hasattr(frame.view, "save_data"):
             frame.view.save_data()
+        # Disconnect depth navigation signal to prevent stale connections
+        if hasattr(frame.view, 'containerDoubleClicked'):
+            try:
+                frame.view.containerDoubleClicked.disconnect(
+                    self._on_container_double_clicked
+                )
+            except (TypeError, RuntimeError):
+                pass  # Already disconnected or view being destroyed
         frame.view.hide()
         self._view_layout.removeWidget(frame.view)
         frame.view.setParent(None)
