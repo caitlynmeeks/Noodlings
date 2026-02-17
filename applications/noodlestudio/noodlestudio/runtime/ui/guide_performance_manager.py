@@ -126,6 +126,9 @@ class GuidePerformanceManager:
         self._pending_message = None # User message waiting for execution
         self._active_noodling_id = 'default'  # Which noodling's events are emitted
 
+        # Ensemble conversation history (chronological all-speaker transcript)
+        self._ensemble_history: List[Dict] = []
+
         # Stage metadata (populated by _discover_stage_instances)
         self._stage_description = None   # str from stage.yaml
         self._instance_metadata = {}     # noodling_id -> discovery dict
@@ -944,8 +947,34 @@ class GuidePerformanceManager:
         self._turn_queue = list(self._performers.keys())  # ['ajo', 'yuki']
         self._pending_message = message
 
+        # Record user message in shared ensemble history
+        self._ensemble_history.append({
+            'role': 'User',
+            'content': message,
+        })
+
         # Start events are emitted per-noodling in _advance_ensemble_turn()
         self._advance_ensemble_turn()
+
+    def _format_ensemble_history(self) -> str:
+        """
+        Format the shared ensemble history for injection into prompts.
+
+        Returns the last 30 messages as a chronological transcript with
+        speaker names. Keeps the window small to avoid token bloat while
+        giving each noodling full awareness of the conversation.
+
+        Returns:
+            Formatted transcript string, or "(No previous conversation)"
+        """
+        if not self._ensemble_history:
+            return "(No previous conversation)"
+
+        recent = self._ensemble_history[-30:]
+        lines = []
+        for msg in recent:
+            lines.append(f"{msg['role']}: {msg['content']}")
+        return "\n".join(lines)
 
     def _advance_ensemble_turn(self):
         """Advance to the next noodling in the turn sequence."""
@@ -1001,6 +1030,13 @@ class GuidePerformanceManager:
         performer = self._performers.get(noodling_id)
         if performer:
             self._turn_responses[noodling_id] = performer.last_response
+
+            # Record noodling response in shared ensemble history
+            if performer.last_response:
+                self._ensemble_history.append({
+                    'role': performer.name,
+                    'content': performer.last_response,
+                })
 
         self._advance_ensemble_turn()
 
@@ -1495,6 +1531,7 @@ class GuidePerformanceManager:
             self._turn_responses = {}
             self._active_noodling_id = 'default'
             self._ensemble_mode = False
+            self._ensemble_history = []
             self._stage_description = None
             self._instance_metadata = {}
 

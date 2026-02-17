@@ -320,3 +320,225 @@ class TestStageInstanceWithTmpProject:
         manager._discover_stage_instances(str(stage_dir))
 
         assert manager._stage_description == 'A cozy test stage'
+
+
+class TestEnsembleHistory:
+    """Shared ensemble history must accumulate user and noodling messages."""
+
+    def _make_manager(self):
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from conftest import StubMainWindow, StubWindow, FakeLLMClient
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        manager._ensemble_mode = True
+        manager._window = StubWindow()
+
+        # Create performers with fake LLM clients
+        ajo = NoodlingPerformer(
+            noodling_id='ajo', name='Ajo Majo',
+            llm_client=FakeLLMClient()
+        )
+        krampus = NoodlingPerformer(
+            noodling_id='krampus', name='Krampus',
+            llm_client=FakeLLMClient()
+        )
+        juanita = NoodlingPerformer(
+            noodling_id='juanita', name='Juanita',
+            llm_client=FakeLLMClient()
+        )
+
+        manager._performers = {
+            'ajo': ajo, 'krampus': krampus, 'juanita': juanita
+        }
+        manager._performer = ajo
+
+        return manager
+
+    def test_ensemble_history_starts_empty(self):
+        """Manager must start with empty ensemble history."""
+        manager = self._make_manager()
+        assert manager._ensemble_history == []
+
+    def test_user_message_appended_to_history(self):
+        """User message must be recorded in ensemble history."""
+        manager = self._make_manager()
+
+        # Call the ensemble message handler (it will try to execute,
+        # but we only care about the history append here)
+        manager._on_user_message_ensemble("Hello everyone!")
+
+        assert len(manager._ensemble_history) == 1
+        assert manager._ensemble_history[0]['role'] == 'User'
+        assert manager._ensemble_history[0]['content'] == 'Hello everyone!'
+
+    def test_noodling_response_appended_to_history(self):
+        """Noodling response must be recorded in ensemble history on turn finish."""
+        manager = self._make_manager()
+
+        # Simulate a noodling producing a response
+        manager._performers['ajo']._last_response = "Hello! *wiggles gills*"
+        manager._on_ensemble_turn_finished('ajo')
+
+        # Find the noodling entry (skip any empty entries)
+        noodling_entries = [
+            e for e in manager._ensemble_history if e['role'] != 'User'
+        ]
+        assert len(noodling_entries) == 1
+        assert noodling_entries[0]['role'] == 'Ajo Majo'
+        assert noodling_entries[0]['content'] == "Hello! *wiggles gills*"
+
+    def test_ensemble_history_chronological_order(self):
+        """History must be chronological: user, then each noodling in turn order."""
+        manager = self._make_manager()
+
+        # Simulate a full round: user message -> 3 noodling responses
+        manager._on_user_message_ensemble("What do you see?")
+
+        # Simulate each turn finishing with a response
+        manager._performers['ajo']._last_response = "I see the nexus!"
+        # Stop the advance chain by clearing the turn queue first,
+        # then manually appending
+        manager._turn_queue = []
+        manager._on_ensemble_turn_finished('ajo')
+
+        manager._performers['krampus']._last_response = "Krampus sees ALL."
+        manager._on_ensemble_turn_finished('krampus')
+
+        manager._performers['juanita']._last_response = "Fascinating."
+        manager._on_ensemble_turn_finished('juanita')
+
+        roles = [e['role'] for e in manager._ensemble_history]
+        assert roles == ['User', 'Ajo Majo', 'Krampus', 'Juanita']
+
+    def test_format_ensemble_history_empty(self):
+        """Empty history must format as placeholder text."""
+        manager = self._make_manager()
+        assert manager._format_ensemble_history() == "(No previous conversation)"
+
+    def test_format_ensemble_history_with_messages(self):
+        """Formatted history must include speaker names and content."""
+        manager = self._make_manager()
+        manager._ensemble_history = [
+            {'role': 'User', 'content': 'Hello!'},
+            {'role': 'Ajo Majo', 'content': 'Hi there!'},
+            {'role': 'Krampus', 'content': 'Greetings.'},
+        ]
+
+        formatted = manager._format_ensemble_history()
+        assert "User: Hello!" in formatted
+        assert "Ajo Majo: Hi there!" in formatted
+        assert "Krampus: Greetings." in formatted
+
+    def test_format_ensemble_history_limit_30(self):
+        """History must be limited to the last 30 messages."""
+        manager = self._make_manager()
+        for i in range(50):
+            manager._ensemble_history.append({
+                'role': 'User', 'content': f'Message {i}'
+            })
+
+        formatted = manager._format_ensemble_history()
+        lines = formatted.strip().split('\n')
+        assert len(lines) == 30
+        # First line should be message 20 (50 - 30 = 20)
+        assert 'Message 20' in lines[0]
+        assert 'Message 49' in lines[-1]
+
+    def test_ensemble_history_cleared_on_stop(self):
+        """Ensemble history must be cleared when performance stops."""
+        manager = self._make_manager()
+        manager._ensemble_history = [
+            {'role': 'User', 'content': 'Hello!'},
+        ]
+
+        manager.stop_performance()
+
+        assert manager._ensemble_history == []
+
+    def test_empty_response_not_appended(self):
+        """Noodling with empty response must not add entry to history."""
+        manager = self._make_manager()
+        manager._performers['ajo']._last_response = ""
+        manager._turn_queue = []
+        manager._on_ensemble_turn_finished('ajo')
+
+        noodling_entries = [
+            e for e in manager._ensemble_history if e['role'] != 'User'
+        ]
+        assert len(noodling_entries) == 0
+
+
+class TestPerformerAffectStorage:
+    """NoodlingPerformer must store PAD values from _apply_affect."""
+
+    def _make_performer(self):
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+        from conftest import FakeLLMClient
+
+        return NoodlingPerformer(
+            noodling_id='ajo', name='Ajo Majo',
+            llm_client=FakeLLMClient()
+        )
+
+    def test_last_affect_initially_none(self):
+        """Performer must start with no stored affect."""
+        performer = self._make_performer()
+        assert performer.last_affect is None
+
+    def test_last_affect_stored_after_apply(self):
+        """_apply_affect must store parsed PAD values."""
+        import json
+        performer = self._make_performer()
+
+        affect_json = json.dumps({
+            'valence': 0.8, 'arousal': 0.6, 'dominance': 0.5
+        })
+        performer._apply_affect(affect_json)
+
+        assert performer.last_affect is not None
+        assert performer.last_affect['valence'] == 0.8
+        assert performer.last_affect['arousal'] == 0.6
+        assert performer.last_affect['dominance'] == 0.5
+
+    def test_last_affect_updates_on_subsequent_calls(self):
+        """Each _apply_affect call must overwrite previous values."""
+        import json
+        performer = self._make_performer()
+
+        performer._apply_affect(json.dumps({
+            'valence': 0.8, 'arousal': 0.6, 'dominance': 0.5
+        }))
+        performer._apply_affect(json.dumps({
+            'valence': 0.2, 'arousal': 0.9, 'dominance': 0.3
+        }))
+
+        assert performer.last_affect['valence'] == 0.2
+        assert performer.last_affect['arousal'] == 0.9
+
+    def test_last_affect_not_set_on_invalid_json(self):
+        """Invalid JSON must not overwrite previous affect."""
+        import json
+        performer = self._make_performer()
+
+        performer._apply_affect(json.dumps({
+            'valence': 0.8, 'arousal': 0.6, 'dominance': 0.5
+        }))
+        performer._apply_affect("not valid json")
+
+        # Previous values must be preserved
+        assert performer.last_affect['valence'] == 0.8
+
+    def test_last_affect_cleared_on_stop(self):
+        """Performer.stop() must clear stored affect."""
+        import json
+        performer = self._make_performer()
+
+        performer._apply_affect(json.dumps({
+            'valence': 0.8, 'arousal': 0.6, 'dominance': 0.5
+        }))
+        performer.stop()
+
+        assert performer.last_affect is None

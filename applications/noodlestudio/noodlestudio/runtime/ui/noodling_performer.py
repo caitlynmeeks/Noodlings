@@ -218,6 +218,9 @@ class NoodlingPerformer(QObject):
         # Mood-first tracking
         self._sentiment_applied_early = False
 
+        # Stored affect state (populated by _apply_affect)
+        self._last_pad_values: Optional[Dict] = None
+
         # Performance player (created lazily)
         self._performance_player = None
 
@@ -277,6 +280,16 @@ class NoodlingPerformer(QObject):
     def is_executing(self) -> bool:
         """Whether an assembly execution is in progress."""
         return self._worker is not None and self._worker.isRunning()
+
+    @property
+    def last_affect(self) -> Optional[Dict]:
+        """Most recent PAD values from the sentiment facet.
+
+        Returns a dict with ``valence``, ``arousal``, ``dominance`` keys
+        (raw values as parsed from the Mood Reader output), or None if
+        no affect has been applied yet.
+        """
+        return self._last_pad_values
 
     # =========================================================================
     # CHANNEL BUS
@@ -555,6 +568,13 @@ class NoodlingPerformer(QObject):
             logger.error(f"[{self._noodling_id}] Affect JSON parse failed: {e}")
             return
 
+        # Store raw PAD values for ensemble cross-pollination
+        self._last_pad_values = {
+            'valence': valence,
+            'arousal': arousal,
+            'dominance': dominance,
+        }
+
         from noodlestudio.runtime.facs_mapper import FACSMapper, Affect
 
         mapper = FACSMapper()
@@ -645,6 +665,7 @@ class NoodlingPerformer(QObject):
         self._assembly = None
         self._executor = None
         self._conversation_history = []
+        self._last_pad_values = None
 
         logger.info(f"[{self._noodling_id}] Performer stopped")
 
