@@ -229,7 +229,7 @@ if QT_AVAILABLE:
 
             # In ensemble mode with default single-mode size, widen
             if ensemble_mode and size == (350, 600):
-                size = (650, 650)
+                size = (900, 650)
             self._size = size
 
             # Frameless, stays on top, no taskbar entry
@@ -264,8 +264,9 @@ if QT_AVAILABLE:
 
             # Noodling text colors for dialogue (noodling_id -> QColor)
             self._noodling_colors = {
-                'ajo': QColor(176, 176, 176),     # #B0B0B0 warm gray
-                'yuki': QColor(144, 160, 176),    # #90A0B0 cooler gray
+                'ajo': QColor(176, 176, 176),       # #B0B0B0 warm gray
+                'krampus': QColor(176, 160, 144),    # #B0A090 warm brownish gray
+                'juanita': QColor(160, 176, 160),    # #A0B0A0 subtle sage gray
                 'default': QColor(176, 176, 176),
             }
 
@@ -473,7 +474,7 @@ if QT_AVAILABLE:
             main_layout.addWidget(self.vrm_container)
 
         def _build_ensemble_vrm_area(self, main_layout: QVBoxLayout):
-            """Build the ensemble VRM viewport area (two viewports side by side)."""
+            """Build the ensemble VRM viewport area (N viewports side by side)."""
             # --- Performer name bar ---
             name_bar = QFrame()
             name_bar.setFixedHeight(28)
@@ -484,7 +485,7 @@ if QT_AVAILABLE:
             name_bar_layout.setContentsMargins(8, 2, 8, 2)
             name_bar_layout.setSpacing(8)
 
-            for slot_key in ('left', 'right'):
+            for slot_key in ('left', 'center', 'right'):
                 label = QLabel("\u2014")
                 label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 label.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -508,7 +509,7 @@ if QT_AVAILABLE:
             vrm_row_layout.setContentsMargins(0, 0, 0, 0)
             vrm_row_layout.setSpacing(1)
 
-            for slot_key in ('left', 'right'):
+            for slot_key in ('left', 'center', 'right'):
                 slot_container = QFrame()
                 slot_container.setStyleSheet(
                     "QFrame { background-color: #020204; border: none; }"
@@ -544,8 +545,8 @@ if QT_AVAILABLE:
             Get the container slot key for a noodling_id.
 
             In single mode, always returns 'default'.
-            In ensemble mode, assigns noodling_ids to 'left'/'right' slots
-            in the order they are first seen.
+            In ensemble mode, assigns noodling_ids to 'left'/'center'/'right'
+            slots in the order they are first seen.
 
             Args:
                 noodling_id: Identifier for the noodling
@@ -562,7 +563,7 @@ if QT_AVAILABLE:
 
             # Assign next available slot
             used_slots = set(self._noodling_to_slot.values())
-            for slot in ('left', 'right'):
+            for slot in ('left', 'center', 'right'):
                 if slot not in used_slots:
                     self._noodling_to_slot[noodling_id] = slot
                     return slot

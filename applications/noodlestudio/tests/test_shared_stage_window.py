@@ -147,19 +147,19 @@ class TestSingleModeCompat:
 # =============================================================================
 
 class TestEnsembleLayout:
-    """Ensemble mode creates two VRM viewports side by side."""
+    """Ensemble mode creates three VRM viewports side by side."""
 
     def test_ensemble_mode_flag(self, ensemble_window):
         """Ensemble mode is correctly set."""
         assert ensemble_window.ensemble_mode
 
     def test_ensemble_size_auto_widens(self, parent_window, qtbot):
-        """Ensemble mode with default size auto-widens to 650x650."""
+        """Ensemble mode with default size auto-widens to 900x650."""
         window = GuidePerformanceWindow(
             parent_window=parent_window, ensemble_mode=True
         )
         qtbot.addWidget(window)
-        assert window._size == (650, 650)
+        assert window._size == (900, 650)
         window.close()
 
     def test_ensemble_custom_size_respected(self, parent_window, qtbot):
@@ -173,15 +173,17 @@ class TestEnsembleLayout:
         assert window._size == (800, 700)
         window.close()
 
-    def test_ensemble_has_two_containers(self, ensemble_window):
-        """Ensemble mode creates left and right VRM containers."""
+    def test_ensemble_has_three_containers(self, ensemble_window):
+        """Ensemble mode creates left, center, and right VRM containers."""
         assert 'left' in ensemble_window._vrm_containers
+        assert 'center' in ensemble_window._vrm_containers
         assert 'right' in ensemble_window._vrm_containers
-        assert len(ensemble_window._vrm_containers) == 2
+        assert len(ensemble_window._vrm_containers) == 3
 
-    def test_ensemble_has_two_placeholders(self, ensemble_window):
-        """Ensemble mode creates left and right placeholders."""
+    def test_ensemble_has_three_placeholders(self, ensemble_window):
+        """Ensemble mode creates left, center, and right placeholders."""
         assert 'left' in ensemble_window._vrm_placeholders
+        assert 'center' in ensemble_window._vrm_placeholders
         assert 'right' in ensemble_window._vrm_placeholders
 
     def test_ensemble_vrm_row_height(self, ensemble_window):
@@ -206,12 +208,20 @@ class TestVRMSlotAssignment:
         assert slot == 'left'
         assert ensemble_window._noodling_to_slot['ajo'] == 'left'
 
-    def test_second_noodling_gets_right(self, ensemble_window):
-        """Second noodling_id is assigned to right slot."""
+    def test_second_noodling_gets_center(self, ensemble_window):
+        """Second noodling_id is assigned to center slot."""
         ensemble_window._get_slot('ajo')
-        slot = ensemble_window._get_slot('yuki')
+        slot = ensemble_window._get_slot('krampus')
+        assert slot == 'center'
+        assert ensemble_window._noodling_to_slot['krampus'] == 'center'
+
+    def test_third_noodling_gets_right(self, ensemble_window):
+        """Third noodling_id is assigned to right slot."""
+        ensemble_window._get_slot('ajo')
+        ensemble_window._get_slot('krampus')
+        slot = ensemble_window._get_slot('juanita')
         assert slot == 'right'
-        assert ensemble_window._noodling_to_slot['yuki'] == 'right'
+        assert ensemble_window._noodling_to_slot['juanita'] == 'right'
 
     def test_same_noodling_returns_same_slot(self, ensemble_window):
         """Calling _get_slot twice with same id returns same slot."""
@@ -219,11 +229,12 @@ class TestVRMSlotAssignment:
         slot2 = ensemble_window._get_slot('ajo')
         assert slot1 == slot2
 
-    def test_third_noodling_falls_back_to_left(self, ensemble_window):
-        """Third noodling_id falls back to left (all slots taken)."""
+    def test_fourth_noodling_falls_back_to_left(self, ensemble_window):
+        """Fourth noodling_id falls back to left (all slots taken)."""
         ensemble_window._get_slot('ajo')
-        ensemble_window._get_slot('yuki')
-        slot = ensemble_window._get_slot('three')
+        ensemble_window._get_slot('krampus')
+        ensemble_window._get_slot('juanita')
+        slot = ensemble_window._get_slot('four')
         assert slot == 'left'
 
     def test_single_mode_ignores_noodling_id(self, single_window):
@@ -297,12 +308,19 @@ class TestNoodlingColors:
         assert color.green() == 176
         assert color.blue() == 176
 
-    def test_yuki_color(self, ensemble_window):
-        """Yuki's color is cooler gray (#90A0B0)."""
-        color = ensemble_window._noodling_colors['yuki']
-        assert color.red() == 144
+    def test_krampus_color(self, ensemble_window):
+        """Krampus color is warm brownish gray (#B0A090)."""
+        color = ensemble_window._noodling_colors['krampus']
+        assert color.red() == 176
         assert color.green() == 160
-        assert color.blue() == 176
+        assert color.blue() == 144
+
+    def test_juanita_color(self, ensemble_window):
+        """Juanita color is subtle sage gray (#A0B0A0)."""
+        color = ensemble_window._noodling_colors['juanita']
+        assert color.red() == 160
+        assert color.green() == 176
+        assert color.blue() == 160
 
     def test_typing_noodling_tracked(self, ensemble_window):
         """Current typing noodling is tracked for append_character color."""
