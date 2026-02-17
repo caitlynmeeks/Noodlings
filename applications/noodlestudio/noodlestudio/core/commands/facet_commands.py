@@ -39,7 +39,7 @@ from .base_command import StudioCommand, MergeableCommand, CommandID
 
 if TYPE_CHECKING:
     from ..facet_system import Facet, FacetConnection, FacetAssembly
-    from ...panels.facets_editor_panel import FacetsEditorPanel
+    from ...panels.editors.facet_editor_protocol import FacetEditorProtocol
     from ...panels.inspector_panel import InspectorPanel
 
 
@@ -54,7 +54,7 @@ class MoveFacetCommand(MergeableCommand):
 
     def __init__(
         self,
-        editor: 'FacetsEditorPanel',
+        editor: 'FacetEditorProtocol',
         facet_id: str,
         old_pos: Tuple[float, float],
         new_pos: Tuple[float, float],
@@ -64,7 +64,7 @@ class MoveFacetCommand(MergeableCommand):
         Initialize move command.
 
         Args:
-            editor: Reference to FacetsEditorPanel
+            editor: FacetEditorProtocol-compatible editor
             facet_id: UUID of facet being moved
             old_pos: Position before move (x, y)
             new_pos: Position after move (x, y)
@@ -119,7 +119,7 @@ class CreateFacetCommand(StudioCommand):
 
     def __init__(
         self,
-        editor: 'FacetsEditorPanel',
+        editor: 'FacetEditorProtocol',
         facet_data: Dict[str, Any],
         facet_name: str = ""
     ):
@@ -127,7 +127,7 @@ class CreateFacetCommand(StudioCommand):
         Initialize create command.
 
         Args:
-            editor: Reference to FacetsEditorPanel
+            editor: FacetEditorProtocol-compatible editor
             facet_data: Serialized facet data (from Facet.to_dict())
             facet_name: Display name for undo text
         """
@@ -152,7 +152,7 @@ class DeleteFacetCommand(StudioCommand):
 
     def __init__(
         self,
-        editor: 'FacetsEditorPanel',
+        editor: 'FacetEditorProtocol',
         facet_data: Dict[str, Any],
         connections_data: list,
         facet_name: str = ""
@@ -161,7 +161,7 @@ class DeleteFacetCommand(StudioCommand):
         Initialize delete command.
 
         Args:
-            editor: Reference to FacetsEditorPanel
+            editor: FacetEditorProtocol-compatible editor
             facet_data: Serialized facet data (for restoration)
             connections_data: List of connection dicts involving this facet
             facet_name: Display name for undo text
@@ -190,7 +190,7 @@ class EditFacetPropertyCommand(StudioCommand):
 
     def __init__(
         self,
-        editor: 'FacetsEditorPanel',
+        editor: 'FacetEditorProtocol',
         facet_id: str,
         property_name: str,
         old_value: Any,
@@ -201,7 +201,7 @@ class EditFacetPropertyCommand(StudioCommand):
         Initialize edit command.
 
         Args:
-            editor: Reference to FacetsEditorPanel
+            editor: FacetEditorProtocol-compatible editor
             facet_id: UUID of facet being edited
             property_name: Name of property (e.g., 'prompt', 'model', 'temperature')
             old_value: Value before edit
@@ -240,7 +240,7 @@ class CreateConnectionCommand(StudioCommand):
 
     def __init__(
         self,
-        editor: 'FacetsEditorPanel',
+        editor: 'FacetEditorProtocol',
         from_facet: str,
         from_pad: str,
         to_facet: str,
@@ -250,7 +250,7 @@ class CreateConnectionCommand(StudioCommand):
         Initialize connection create command.
 
         Args:
-            editor: Reference to FacetsEditorPanel
+            editor: FacetEditorProtocol-compatible editor
             from_facet: Source facet ID
             from_pad: Source pad name
             to_facet: Destination facet ID
@@ -284,7 +284,7 @@ class DeleteConnectionCommand(StudioCommand):
 
     def __init__(
         self,
-        editor: 'FacetsEditorPanel',
+        editor: 'FacetEditorProtocol',
         from_facet: str,
         from_pad: str,
         to_facet: str,
@@ -294,7 +294,7 @@ class DeleteConnectionCommand(StudioCommand):
         Initialize connection delete command.
 
         Args:
-            editor: Reference to FacetsEditorPanel
+            editor: FacetEditorProtocol-compatible editor
             from_facet: Source facet ID
             from_pad: Source pad name
             to_facet: Destination facet ID
@@ -328,7 +328,7 @@ class ToggleLockCommand(StudioCommand):
 
     def __init__(
         self,
-        editor: 'FacetsEditorPanel',
+        editor: 'FacetEditorProtocol',
         facet_id: str,
         was_locked: bool,
         facet_name: str = ""
@@ -337,7 +337,7 @@ class ToggleLockCommand(StudioCommand):
         Initialize lock toggle command.
 
         Args:
-            editor: Reference to FacetsEditorPanel
+            editor: FacetEditorProtocol-compatible editor
             facet_id: UUID of facet
             was_locked: Lock state before toggle
             facet_name: Display name for undo text
