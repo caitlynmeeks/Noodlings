@@ -4,6 +4,9 @@ A QGraphicsView subclass that renders facet assemblies using the shared
 editor mixins from C.1. Implements DepthViewProtocol for the depth stack
 and FacetEditorProtocol for undo command integration.
 
+Execution visualization (C.4): node pulsing, wire data packets, sound
+effects, ensemble noodling selector, cognition pause/resume.
+
 This view will be pushed onto UnifiedEditorPanel as the root (level 0)
 view. It replaces the rendering and interaction of the old
 FacetsEditorPanel while the old panel remains untouched until C.7/C.8.
@@ -12,7 +15,10 @@ FacetsEditorPanel while the old panel remains untouched until C.7/C.8.
 import os
 from typing import Optional, Dict, Any, List, Tuple
 
-from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QMenu
+from PyQt6.QtWidgets import (
+    QGraphicsView, QGraphicsScene, QMenu, QHBoxLayout, QWidget,
+    QPushButton, QVBoxLayout,
+)
 from PyQt6.QtCore import Qt, pyqtSignal, QPointF
 from PyQt6.QtGui import QColor, QCursor
 
@@ -28,9 +34,13 @@ from .shared_layout_mixin import SharedLayoutMixin
 from .shared_view_ops_mixin import SharedViewOpsMixin
 from .shared_wire_mixin import SharedWireMixin
 from .shared_clipboard_mixin import SharedClipboardMixin
+from .assembly_execution_mixin import AssemblyExecutionMixin
+from .assembly_ensemble_mixin import AssemblyEnsembleMixin
 
 
 class AssemblyEditorView(
+    AssemblyExecutionMixin,
+    AssemblyEnsembleMixin,
     SharedInputMixin,
     SharedGridMixin,
     SharedLayoutMixin,
@@ -64,6 +74,8 @@ class AssemblyEditorView(
         self._init_view_ops_state()
         self._init_wire_state()
         self._init_clipboard_state()
+        self._init_execution_state()
+        self._init_ensemble_state()
 
         # Scene
         self._scene = QGraphicsScene(self)
@@ -97,6 +109,62 @@ class AssemblyEditorView(
         # Selection signal
         self._scene.selectionChanged.connect(self._on_selection_changed)
         self._selection_connected = True
+
+        # Toolbar (sound toggle, pause, ensemble selector)
+        self._toolbar_layout = self._create_toolbar()
+
+    def _create_toolbar(self) -> Optional[QHBoxLayout]:
+        """Create overlay toolbar with sound, pause, and ensemble controls.
+
+        Returns the layout so it can be embedded in a parent container
+        (e.g. UnifiedEditorPanel toolbar area). Returns None if this view
+        is standalone (no parent widget with a layout to attach to).
+        """
+        toolbar = QHBoxLayout()
+        toolbar.setContentsMargins(4, 2, 4, 2)
+        toolbar.setSpacing(6)
+
+        # Sound toggle
+        self._sound_button = QPushButton("Sound On")
+        self._sound_button.setCheckable(True)
+        self._sound_button.setChecked(True)
+        self._sound_button.setFixedWidth(80)
+        self._sound_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A; color: #CCCCCC;
+                border: 1px solid #555; border-radius: 3px;
+                padding: 2px 6px; font-size: 11px;
+            }
+            QPushButton:checked { background-color: #4A4A4A; }
+        """)
+        self._sound_button.toggled.connect(self.toggle_sound)
+        toolbar.addWidget(self._sound_button)
+
+        # Pause/resume
+        self._pause_button = QPushButton("Pause")
+        self._pause_button.setCheckable(True)
+        self._pause_button.setFixedWidth(80)
+        self._pause_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A; color: #CCCCCC;
+                border: 1px solid #555; border-radius: 3px;
+                padding: 2px 6px; font-size: 11px;
+            }
+            QPushButton:checked { background-color: #5A3A3A; }
+        """)
+        self._pause_button.toggled.connect(self.toggle_pause_cognition)
+        toolbar.addWidget(self._pause_button)
+
+        # Ensemble noodling selector (created by ensemble mixin, hidden by default)
+        toolbar.addWidget(self._noodling_selector)
+
+        toolbar.addStretch()
+
+        return toolbar
+
+    def get_toolbar_layout(self) -> Optional[QHBoxLayout]:
+        """Return the toolbar layout for embedding in a parent container."""
+        return self._toolbar_layout
 
     # ================================================================
     # DepthViewProtocol
@@ -135,8 +203,18 @@ class AssemblyEditorView(
     # ================================================================
 
     def load_assembly_from_data(self, assembly: FacetAssembly,
-                                source_path: Optional[str] = None):
-        """Load an already-parsed assembly object (used by tests and signals)."""
+                                source_path: Optional[str] = None,
+                                force_reload: bool = False):
+        """Load an already-parsed assembly object (used by tests and signals).
+
+        Args:
+            assembly: Parsed FacetAssembly object.
+            source_path: Path to the assembly YAML on disk.
+            force_reload: If True, reload even if same assembly is loaded
+                          (used by ensemble noodling switching).
+        """
+        if not force_reload and self._assembly is assembly:
+            return
         self._assembly = assembly
         self._assembly_path = source_path
         self._assembly_name = assembly.name
@@ -145,16 +223,20 @@ class AssemblyEditorView(
 
     def _render_assembly(self):
         """Clear the scene and rebuild all nodes and wires."""
-        # Stop any existing animation timers on nodes
+        self.scene_transition_lock = True
+
+        # Stop any existing animation timers on nodes and wires
         for node in self._node_items.values():
-            if hasattr(node, 'animation_timer') and node.animation_timer:
-                node.animation_timer.stop()
+            node.stop_animation()
+        for wire in self._wire_items:
+            wire.stop_animation()
 
         self._scene.clear()
         self._node_items.clear()
         self._wire_items.clear()
 
         if self._assembly is None:
+            self.scene_transition_lock = False
             return
 
         # Create node items
@@ -185,6 +267,8 @@ class AssemblyEditorView(
 
         # Center view
         self.centerOn(QPointF(500, 350))
+
+        self.scene_transition_lock = False
 
     def _sync_positions_to_data(self):
         """Write current graphics positions back into the data model."""

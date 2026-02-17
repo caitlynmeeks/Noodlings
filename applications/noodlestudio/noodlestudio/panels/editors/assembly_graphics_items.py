@@ -4,14 +4,15 @@ Ported from facets_editor_graphics.py with these changes:
 - Port items implement shared_wire_mixin duck-typing contract
   (get_parent_node_id, get_port_name, get_scene_position, is_output)
 - Grid snap reads from the owning view, not by traversing scene().views()
-- Execution animation timers are stubs (wired in C.4)
+- Execution animation: processing pulse, complete flash, error flash,
+  quantum collapse, wire data packets (C.4)
 - No dependency on FacetsEditorPanel
 """
 
 from PyQt6.QtWidgets import (
     QGraphicsItem, QGraphicsRectItem, QGraphicsTextItem, QGraphicsEllipseItem
 )
-from PyQt6.QtCore import Qt, QRectF, QPointF
+from PyQt6.QtCore import Qt, QRectF, QPointF, QTimer
 from PyQt6.QtGui import (
     QPen, QBrush, QColor, QPainter, QFont, QPainterPath
 )
@@ -184,6 +185,8 @@ class FacetNodeItem(QGraphicsRectItem):
         self.setBrush(QBrush(QColor("#3a3a3a")))
         self.setPen(QPen(QColor("#555555"), 2))
 
+        # Save defaults for animation reset
+        self.base_brush = QBrush(QColor("#3a3a3a"))
         self.default_pen = QPen(QColor("#555555"), 2)
         self.selected_pen = QPen(QColor("#FFFFFF"), 3)
 
@@ -212,8 +215,18 @@ class FacetNodeItem(QGraphicsRectItem):
         self.input_pads: Dict[str, FacetPortItem] = {}
         self.output_pads: Dict[str, FacetPortItem] = {}
 
-        # Execution state (visual only -- animation timers in C.4)
+        # Execution state and animation
         self.execution_state = "idle"
+        self.animation_timer: Optional[QTimer] = None
+        self.pulse_phase: float = 0.0
+        self.error_flash_count: int = 0
+        self.collapse_flash_alpha: float = 0.0
+
+        # Cycle tracking for multi-cycle overlap display
+        self.active_cycles: List[Tuple[str, QColor, Optional[Dict]]] = []
+        self.cycle_data: Dict[str, Dict[str, Any]] = {}
+        self.last_inputs: Optional[Dict] = None
+        self.last_outputs: Optional[Dict] = None
 
         # Drag tracking for undo
         self.drag_start_pos: Optional[Tuple[float, float]] = None
@@ -259,7 +272,7 @@ class FacetNodeItem(QGraphicsRectItem):
         return rect.adjusted(-6, -6, 6, 6)
 
     def paint(self, painter: QPainter, option, widget=None):
-        """Render Blender-style node: gray body + colored header."""
+        """Render Blender-style node: gray body + colored header + cycle badges."""
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self.rect()
 
@@ -296,6 +309,41 @@ class FacetNodeItem(QGraphicsRectItem):
         type_rect = QRectF(rect.x() + 80, rect.y() + 6, rect.width() - 90, 14)
         painter.drawText(type_rect, Qt.AlignmentFlag.AlignRight, self.facet.facet_type)
 
+        # Cycle ID badges (bottom-right, stacked vertically)
+        if self.active_cycles:
+            badge_height = 14
+            badge_spacing = 2
+            cycles_copy = list(self.active_cycles)
+
+            for i, cycle_data in enumerate(cycles_copy):
+                if not cycle_data or len(cycle_data) < 2:
+                    continue
+
+                cycle_id, cycle_color = cycle_data[0], cycle_data[1]
+                if not cycle_id:
+                    continue
+
+                badge_text = str(cycle_id)[:8]
+
+                # Stack upward from bottom
+                stack_offset = (
+                    (len(cycles_copy) - 1 - i) * (badge_height + badge_spacing)
+                )
+                badge_y = rect.height() - 16 - stack_offset
+
+                badge_rect = QRectF(
+                    rect.width() - 60, badge_y, 56, badge_height
+                )
+                painter.setBrush(QBrush(cycle_color or QColor("#00BFFF")))
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.drawRoundedRect(badge_rect, 3, 3)
+
+                painter.setPen(QColor("#000000"))
+                painter.setFont(QFont("Arial", 7))
+                painter.drawText(
+                    badge_rect, Qt.AlignmentFlag.AlignCenter, badge_text
+                )
+
     def itemChange(self, change, value):
         """Handle position changes for grid snap and wire updates."""
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
@@ -322,9 +370,125 @@ class FacetNodeItem(QGraphicsRectItem):
 
         return super().itemChange(change, value)
 
+    # ================================================================
+    # Execution state machine
+    # ================================================================
+
     def set_execution_state(self, state: str):
-        """Set execution visualization state. Animation timers wired in C.4."""
+        """Set execution visualization state with animation.
+
+        States:
+            idle: Default appearance, no animation.
+            processing: Pulsing border (60ms tick, square wave).
+            complete: Brief brightness flash (200ms), auto-return to idle.
+            error: Flashing red border (100ms, 5 cycles), auto-return to idle.
+            quantum_collapse: Purple flash fading over 200ms.
+        """
+        if self.execution_state == state:
+            return
+
         self.execution_state = state
+
+        # Stop any running animation timer
+        if self.animation_timer:
+            self.animation_timer.stop()
+            self.animation_timer = None
+
+        if state == "idle":
+            self.setBrush(self.base_brush)
+            self.setPen(self.default_pen)
+            self.update()
+
+        elif state == "processing":
+            self.setBrush(self.base_brush)
+            self.pulse_phase = 0.0
+            self.animation_timer = QTimer()
+            self.animation_timer.timeout.connect(self._pulse_border)
+            self.animation_timer.start(60)
+
+        elif state == "complete":
+            self.setBrush(QBrush(QColor("#5A5A5A")))
+            self.update()
+            QTimer.singleShot(200, lambda: self.set_execution_state("idle"))
+
+        elif state == "error":
+            self.error_flash_count = 0
+            self.animation_timer = QTimer()
+            self.animation_timer.timeout.connect(self._flash_error_border)
+            self.animation_timer.start(100)
+
+        elif state == "quantum_collapse":
+            self.collapse_flash_alpha = 1.0
+            self.animation_timer = QTimer()
+            self.animation_timer.timeout.connect(self._fade_quantum_flash)
+            self.animation_timer.start(20)
+            QTimer.singleShot(200, lambda: self.set_execution_state("idle"))
+
+    def _pulse_border(self):
+        """Geometric border pulse (square wave, not sine)."""
+        self.pulse_phase += 0.2
+        if self.pulse_phase >= 1.0:
+            self.pulse_phase = 0.0
+
+        # Square wave brightness
+        brightness = 255 if self.pulse_phase >= 0.5 else 170
+
+        pen_width = 3 if self.isSelected() else 2
+        self.setPen(QPen(QColor(brightness, brightness, brightness), pen_width))
+        self.update()
+
+    def _flash_error_border(self):
+        """Flashing red border -- 5 cycles (10 flashes) then return to idle."""
+        self.error_flash_count += 1
+
+        if self.error_flash_count % 2 == 0:
+            self.setBrush(QBrush(QColor("#FF4444")))
+            self.setPen(QPen(QColor("#FF0000"), 3))
+        else:
+            self.setBrush(QBrush(QColor("#8B0000")))
+            self.setPen(QPen(QColor("#660000"), 2))
+
+        self.update()
+
+        if self.error_flash_count >= 10:
+            if self.animation_timer:
+                self.animation_timer.stop()
+                self.animation_timer = None
+            self.error_flash_count = 0
+            self.setBrush(self.base_brush)
+            self.setPen(self.default_pen)
+            self.execution_state = "idle"
+            self.update()
+
+    def _fade_quantum_flash(self):
+        """Fade quantum collapse flash (linear over 200ms)."""
+        self.collapse_flash_alpha -= 0.1
+
+        if self.collapse_flash_alpha <= 0.0:
+            self.collapse_flash_alpha = 0.0
+            if self.animation_timer:
+                self.animation_timer.stop()
+                self.animation_timer = None
+            self.setBrush(self.base_brush)
+            self.setPen(self.default_pen)
+        else:
+            a = self.collapse_flash_alpha
+            r = int(147 * a + 58 * (1 - a))
+            g = int(112 * a + 58 * (1 - a))
+            b = int(219 * a + 58 * (1 - a))
+            self.setBrush(QBrush(QColor(r, g, b)))
+
+            border = int(255 * a)
+            self.setPen(QPen(QColor(border, border, 255), 3))
+
+        self.update()
+
+    def stop_animation(self):
+        """Stop any running animation timer (cleanup before removal)."""
+        if self.animation_timer:
+            self.animation_timer.stop()
+            self.animation_timer = None
+        self.execution_state = "idle"
 
     def set_status(self, status: str):
         """Update status indicator color."""
@@ -399,9 +563,10 @@ class FacetConnectionItem(QGraphicsItem):
 
         self.setZValue(-1)
 
-        # Packet animation stub (wired in C.4)
-        self.packet_progress = 0.0
-        self.packet_animating = False
+        # Packet animation
+        self.packet_progress: float = 0.0
+        self.packet_animating: bool = False
+        self.packet_timer: Optional[QTimer] = None
 
     def boundingRect(self) -> QRectF:
         start = self.from_port.get_scene_position()
@@ -461,11 +626,58 @@ class FacetConnectionItem(QGraphicsItem):
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawPath(arrow_path)
 
+        # Data packet (geometric white square, Kraftwerk style)
+        if self.packet_animating and 0.0 <= self.packet_progress <= 1.0:
+            packet_pos = path.pointAtPercent(self.packet_progress)
+            packet_size = 12
+            painter.setBrush(QBrush(QColor("#FFFFFF")))
+            painter.setPen(QPen(QColor("#CCAA00"), 2))
+            painter.drawRect(QRectF(
+                packet_pos.x() - packet_size / 2,
+                packet_pos.y() - packet_size / 2,
+                packet_size,
+                packet_size
+            ))
+
     def update_path(self):
         """Force repaint after port positions change."""
         self.prepareGeometryChange()
         self.update()
 
     def animate_data_flow(self):
-        """Stub for data packet animation (wired in C.4)."""
-        pass
+        """Animate data packet flowing through connection wire.
+
+        Kraftwerk style: linear motion, geometric square packet, 300ms duration.
+        """
+        if self.packet_animating:
+            return  # Already animating
+
+        self.packet_animating = True
+        self.packet_progress = 0.0
+
+        self.packet_timer = QTimer()
+        self.packet_timer.timeout.connect(self._advance_packet)
+        self.packet_timer.start(16)  # ~60fps
+
+    def _advance_packet(self):
+        """Advance packet along Bezier curve (linear motion)."""
+        self.packet_progress += 0.05  # 5% per frame = ~300ms total
+
+        if self.packet_progress >= 1.0:
+            self.packet_progress = 1.0
+            self.packet_animating = False
+            if self.packet_timer:
+                self.packet_timer.stop()
+                self.packet_timer = None
+            QTimer.singleShot(100, lambda: self.update())
+
+        self.prepareGeometryChange()
+        self.update()
+
+    def stop_animation(self):
+        """Stop any running packet animation (cleanup)."""
+        if self.packet_timer:
+            self.packet_timer.stop()
+            self.packet_timer = None
+        self.packet_animating = False
+        self.packet_progress = 0.0
