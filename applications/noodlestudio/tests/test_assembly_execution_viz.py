@@ -560,7 +560,11 @@ class TestEnsembleSelector:
         ]
         loaded_view.set_ensemble_noodlings(noodlings)
 
-        assert loaded_view._noodling_selector.isVisible()
+        # Use isHidden() -- isVisible() requires the full ancestor chain
+        # (toolbar widget) to be shown, which only happens when embedded
+        # in UnifiedEditorPanel. The mixin's API controls show/hide on
+        # the selector itself.
+        assert not loaded_view._noodling_selector.isHidden()
         assert loaded_view._noodling_selector.count() == 2
         assert loaded_view._noodling_selector.itemText(0) == 'Ajo Majo'
         assert loaded_view._noodling_selector.itemText(1) == 'Yuki Cyberfox'
@@ -572,10 +576,10 @@ class TestEnsembleSelector:
             {'id': 'ajo', 'name': 'Ajo Majo', 'assembly': None, 'assembly_path': None},
         ]
         loaded_view.set_ensemble_noodlings(noodlings)
-        assert loaded_view._noodling_selector.isVisible()
+        assert not loaded_view._noodling_selector.isHidden()
 
         loaded_view.clear_ensemble_noodlings()
-        assert not loaded_view._noodling_selector.isVisible()
+        assert loaded_view._noodling_selector.isHidden()
         assert loaded_view._noodling_selector.count() == 0
         assert loaded_view._selected_noodling_id is None
 

@@ -316,7 +316,7 @@ class SignalCollector:
 # ============================================================================
 
 class StubFacetsEditor:
-    """Lightweight stand-in for FacetsEditorPanel.
+    """Lightweight stand-in for UnifiedEditorPanel.
 
     Records execution events for test assertions without any Qt
     widget overhead.  Every test that needs to inspect live-viz
@@ -359,20 +359,23 @@ _SENTINEL = object()
 class StubMainWindow:
     """Minimal stand-in for MainWindow.
 
-    Provides the three attributes GuidePerformanceManager actually
-    reads from main_window: ``facets_editor``, ``center_tabs``,
-    and acts as a valid parent reference.
+    Provides the attributes GuidePerformanceManager actually reads
+    from main_window: ``unified_editor``, ``center_tabs``, and acts
+    as a valid parent reference.
 
-    Pass ``facets_editor=None`` explicitly to simulate a main window
-    with no facets editor.  Omit the argument to get a default
+    Pass ``unified_editor=None`` explicitly to simulate a main window
+    with no editor.  Omit the argument to get a default
     StubFacetsEditor automatically.
     """
 
-    def __init__(self, facets_editor=_SENTINEL):
-        if facets_editor is _SENTINEL:
-            self.facets_editor = StubFacetsEditor()
+    def __init__(self, facets_editor=_SENTINEL, unified_editor=_SENTINEL):
+        # Support both old and new kwarg for backward compat in tests
+        if unified_editor is not _SENTINEL:
+            self.unified_editor = unified_editor
+        elif facets_editor is not _SENTINEL:
+            self.unified_editor = facets_editor
         else:
-            self.facets_editor = facets_editor
+            self.unified_editor = StubFacetsEditor()
         self.center_tabs = None  # Only used in start_performance tab switch
 
 
@@ -457,10 +460,10 @@ def guide_manager():
     )
 
     stub_editor = StubFacetsEditor()
-    stub_main = StubMainWindow(facets_editor=stub_editor)
+    stub_main = StubMainWindow(unified_editor=stub_editor)
 
     manager = GuidePerformanceManager(stub_main)
-    manager._facets_editor = stub_editor  # Pre-cache to skip lookup
+    manager._assembly_editor = stub_editor  # Pre-cache to skip lookup
     manager._window = StubWindow()
 
     return manager

@@ -230,26 +230,34 @@ class SceneHierarchyUtilsMixin:
                 # Update tracked state
                 self.agent_pause_states[agent_id] = new_pause_state
 
-                # Notify Facets Editor if it's editing this agent
+                # Notify assembly editor if it's editing this agent
                 # (Need to emit signal or call parent)
                 if hasattr(self, 'parent') and self.parent():
                     main_window = self.parent()
-                    while main_window and not hasattr(main_window, 'facets_editor'):
+                    while main_window and not hasattr(main_window, 'unified_editor'):
                         main_window = main_window.parent() if hasattr(main_window, 'parent') else None
 
-                    if main_window and hasattr(main_window, 'facets_editor'):
-                        facets_editor = main_window.facets_editor
-                        if facets_editor.current_agent_id == agent_id:
-                            # Update Facets Editor pause state
-                            facets_editor.cognition_paused = new_pause_state
-                            facets_editor.pause_button.setChecked(new_pause_state)
-                            facets_editor.bottom_pause_btn.setChecked(new_pause_state)
+                    editor = getattr(main_window, 'unified_editor', None) if main_window else None
+                    if editor:
+                        if getattr(editor, 'current_agent_id', None) == agent_id:
+                            # Update assembly editor pause state
+                            editor.cognition_paused = new_pause_state
+                            pause_btn = getattr(editor, 'pause_button', None)
+                            bottom_btn = getattr(editor, 'bottom_pause_btn', None)
+                            if pause_btn:
+                                pause_btn.setChecked(new_pause_state)
+                            if bottom_btn:
+                                bottom_btn.setChecked(new_pause_state)
                             if new_pause_state:
-                                facets_editor.pause_button.setText("> Resume Cognition")
-                                facets_editor.bottom_pause_btn.setText(">")
+                                if pause_btn:
+                                    pause_btn.setText("> Resume Cognition")
+                                if bottom_btn:
+                                    bottom_btn.setText(">")
                             else:
-                                facets_editor.pause_button.setText("|| Pause Cognition")
-                                facets_editor.bottom_pause_btn.setText("||")
+                                if pause_btn:
+                                    pause_btn.setText("|| Pause Cognition")
+                                if bottom_btn:
+                                    bottom_btn.setText("||")
 
                 # Refresh tree to update icon
                 self.refresh_scene()

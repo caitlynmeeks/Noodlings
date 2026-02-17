@@ -170,19 +170,9 @@ class MainWindowPanelsMixin:
         self.web_view = None
         self.spatial_view = None
 
-        # Facets Editor tab
-        from ..panels.facets_editor_panel import FacetsEditorPanel
-        self.facets_editor = FacetsEditorPanel()
-        center_tabs.addTab(self.facets_editor, "Facets Editor")
-
-        # Neural Canvas tab
-        from ..panels.neural_canvas import NeuralCanvasPanel
-        self.neural_canvas = NeuralCanvasPanel()
-        center_tabs.addTab(self.neural_canvas, "Neural Canvas")
-
         self.gaussian_viewer = None
 
-        # Unified Editor tab (C.6 parallel testing -- will replace FE + NC in C.7)
+        # Unified Editor (replaces old Facets Editor + Neural Canvas tabs)
         from ..panels.editors import UnifiedEditorPanel
         self.unified_editor = UnifiedEditorPanel()
         center_tabs.addTab(self.unified_editor, "Assembly")
@@ -263,9 +253,9 @@ class MainWindowPanelsMixin:
         self.noodle_code_panel.set_engine(self.noodle_code_engine)
         center_tabs.insertTab(0, self.noodle_code_panel, "Noodle Code")  # Leftmost
 
-        # Default to Facets Editor
+        # Default to Assembly tab (Unified Editor)
         for i in range(center_tabs.count()):
-            if center_tabs.tabText(i) == "Facets Editor":
+            if center_tabs.tabText(i) == "Assembly":
                 center_tabs.setCurrentIndex(i)
                 break
 
@@ -340,17 +330,11 @@ class MainWindowPanelsMixin:
                 traceback.print_exc()
 
         self.hierarchy.entitySelected.connect(safe_inspector_load)
-        self.facets_editor.facetSelected.connect(lambda facet: self.inspector.load_facet(facet))
-
-        # Neural Canvas connections
-        self.neural_canvas.node_selected.connect(self._on_neural_canvas_node_selected)
-        self.neural_canvas.canvas_view.node_param_changed.connect(self._on_neural_canvas_param_changed)
-        self.neural_canvas.graph_loaded.connect(self._on_neural_canvas_graph_loaded)
 
         self.hierarchy.entitySelected.connect(safe_console_select)
         self.hierarchy.entitySelected.connect(safe_facets_select)
 
-        # Unified editor parallel wiring (C.6)
+        # Unified editor signal wiring (C.7)
         self.unified_editor.facetSelected.connect(
             lambda facet: self.inspector.load_facet(facet)
         )
@@ -811,11 +795,11 @@ class MainWindowPanelsMixin:
         else:
             print("No last layout saved, using default panel arrangement")
 
-        # Always default to Facets Editor tab after layout restore
+        # Always default to Assembly tab after layout restore
         center_tabs = getattr(self, 'center_tabs', None)
         if center_tabs:
             for i in range(center_tabs.count()):
-                if center_tabs.tabText(i) == "Facets Editor":
+                if center_tabs.tabText(i) == "Assembly":
                     center_tabs.setCurrentIndex(i)
                     break
 

@@ -150,11 +150,11 @@ def save_restart_state(main_window, reason: str = "User requested") -> bool:
         state.window_geometry = main_window.saveGeometry().toBase64().data().decode()
         state.window_state = main_window.saveState().toBase64().data().decode()
 
-        # Facets editor state
-        if hasattr(main_window, 'facets_editor'):
-            fe = main_window.facets_editor
-            if hasattr(fe, 'current_assembly_path') and fe.current_assembly_path:
-                state.facets_assembly_path = str(fe.current_assembly_path)
+        # Assembly editor state
+        editor = getattr(main_window, 'unified_editor', None)
+        if editor:
+            if hasattr(editor, 'current_assembly_path') and editor.current_assembly_path:
+                state.facets_assembly_path = str(editor.current_assembly_path)
 
         # Save to file
         STATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -250,11 +250,12 @@ def restore_state(main_window, state: RestartState):
                                 if isinstance(bottom_widget, QTabWidget):
                                     bottom_widget.setCurrentIndex(state.bottom_tab_index)
 
-                        # Restore facets editor assembly
-                        if state.facets_assembly_path and hasattr(main_window, 'facets_editor'):
+                        # Restore assembly editor state
+                        editor = getattr(main_window, 'unified_editor', None)
+                        if state.facets_assembly_path and editor:
                             assembly_path = Path(state.facets_assembly_path)
                             if assembly_path.exists():
-                                main_window.facets_editor.load_assembly(assembly_path)
+                                editor.load_assembly(assembly_path)
 
                         # TODO: Restore selection (requires entity to be loaded)
                         # if state.selected_entity_type and state.selected_entity_id:

@@ -114,8 +114,8 @@ class GuidePerformanceManager:
         self._expression_test_index = 0
         self._expression_test_mapper = None
 
-        # Facets editor live visualization
-        self._facets_editor = None         # Cached reference
+        # Assembly editor live visualization
+        self._assembly_editor = None       # Cached reference
         self._current_execution_id = None  # Current execution for event tracking
 
         # Ensemble mode (two noodlings on shared stage)
@@ -403,11 +403,11 @@ class GuidePerformanceManager:
                     info['noodling_id'], info['name']
                 )
 
-        # Set up facets editor
+        # Set up assembly editor
         try:
-            facets_editor = getattr(self._main_window, 'facets_editor', None)
-            if facets_editor:
-                if ensemble and hasattr(facets_editor, 'set_ensemble_noodlings'):
+            editor = getattr(self._main_window, 'unified_editor', None)
+            if editor:
+                if ensemble and hasattr(editor, 'set_ensemble_noodlings'):
                     noodlings = [
                         {
                             'id': nid,
@@ -417,10 +417,10 @@ class GuidePerformanceManager:
                         }
                         for nid, p in performers.items()
                     ]
-                    facets_editor.set_ensemble_noodlings(noodlings)
-                elif hasattr(facets_editor, 'load_assembly_from_data'):
+                    editor.set_ensemble_noodlings(noodlings)
+                elif hasattr(editor, 'load_assembly_from_data'):
                     first = self._performer
-                    facets_editor.load_assembly_from_data(
+                    editor.load_assembly_from_data(
                         first.assembly, force_reload=True,
                         source_path=first.assembly_path
                     )
@@ -428,7 +428,7 @@ class GuidePerformanceManager:
                 center_tabs = getattr(self._main_window, 'center_tabs', None)
                 if center_tabs:
                     for i in range(center_tabs.count()):
-                        if center_tabs.tabText(i) == "Facets Editor":
+                        if center_tabs.tabText(i) == "Assembly":
                             center_tabs.setCurrentIndex(i)
                             break
         except Exception as e:
@@ -526,10 +526,10 @@ class GuidePerformanceManager:
         self._window.set_performer_name('ajo', 'Ajo Majo')
         self._window.set_performer_name('yuki', 'Yuki Cyberfox')
 
-        # Set up facets editor noodling selector + load Ajo's assembly
+        # Set up assembly editor noodling selector + load Ajo's assembly
         try:
-            facets_editor = getattr(self._main_window, 'facets_editor', None)
-            if facets_editor:
+            editor = getattr(self._main_window, 'unified_editor', None)
+            if editor:
                 noodlings = [
                     {'id': 'ajo', 'name': 'Ajo Majo',
                      'assembly': ajo.assembly,
@@ -538,11 +538,11 @@ class GuidePerformanceManager:
                      'assembly': yuki.assembly,
                      'assembly_path': yuki.assembly_path},
                 ]
-                if hasattr(facets_editor, 'set_ensemble_noodlings'):
-                    facets_editor.set_ensemble_noodlings(noodlings)
-                elif hasattr(facets_editor, 'load_assembly_from_data'):
+                if hasattr(editor, 'set_ensemble_noodlings'):
+                    editor.set_ensemble_noodlings(noodlings)
+                elif hasattr(editor, 'load_assembly_from_data'):
                     # Fallback: just load Ajo's assembly
-                    facets_editor.load_assembly_from_data(
+                    editor.load_assembly_from_data(
                         ajo.assembly, force_reload=True,
                         source_path=ajo.assembly_path
                     )
@@ -550,7 +550,7 @@ class GuidePerformanceManager:
                 center_tabs = getattr(self._main_window, 'center_tabs', None)
                 if center_tabs:
                     for i in range(center_tabs.count()):
-                        if center_tabs.tabText(i) == "Facets Editor":
+                        if center_tabs.tabText(i) == "Assembly":
                             center_tabs.setCurrentIndex(i)
                             break
         except Exception as e:
@@ -717,23 +717,23 @@ class GuidePerformanceManager:
 
         self._window.show()
 
-        # Load assembly into facets editor for visibility
+        # Load assembly into editor for visibility
         if self._performer.assembly:
             try:
-                facets_editor = getattr(self._main_window, 'facets_editor', None)
-                if facets_editor and hasattr(facets_editor, 'load_assembly_from_data'):
+                editor = getattr(self._main_window, 'unified_editor', None)
+                if editor and hasattr(editor, 'load_assembly_from_data'):
                     source = self._performer.assembly_path
-                    facets_editor.load_assembly_from_data(
+                    editor.load_assembly_from_data(
                         self._performer.assembly, force_reload=True,
                         source_path=source
                     )
-                    logger.info("Assembly loaded in facets editor")
+                    logger.info("Assembly loaded in editor")
 
-                    # Switch to Facets Editor tab so user sees the graph
+                    # Switch to Assembly tab so user sees the graph
                     center_tabs = getattr(self._main_window, 'center_tabs', None)
                     if center_tabs:
                         for i in range(center_tabs.count()):
-                            if center_tabs.tabText(i) == "Facets Editor":
+                            if center_tabs.tabText(i) == "Assembly":
                                 center_tabs.setCurrentIndex(i)
                                 break
             except Exception as e:
@@ -1217,19 +1217,19 @@ class GuidePerformanceManager:
 
     def _get_facets_editor(self):
         """
-        Get the facets editor panel (cached).
+        Get the assembly editor panel (cached).
 
-        On first call, looks up ``main_window.facets_editor`` and caches
+        On first call, looks up ``main_window.unified_editor`` and caches
         the result so subsequent calls are free.
 
         Returns:
-            FacetsEditorPanel or None
+            UnifiedEditorPanel or None
         """
-        if self._facets_editor is None:
-            editor = getattr(self._main_window, 'facets_editor', None)
+        if self._assembly_editor is None:
+            editor = getattr(self._main_window, 'unified_editor', None)
             if editor is not None:
-                self._facets_editor = editor
-        return self._facets_editor
+                self._assembly_editor = editor
+        return self._assembly_editor
 
     def _emit_execution_event(self, event: dict):
         """

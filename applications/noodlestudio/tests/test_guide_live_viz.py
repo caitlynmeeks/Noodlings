@@ -54,12 +54,12 @@ class TestEventDelivery:
 
         guide_manager._emit_execution_event(event)
 
-        assert guide_manager._facets_editor.events == [event]
+        assert guide_manager._assembly_editor.events == [event]
 
     def test_no_crash_without_editor(self, guide_manager):
         """No crash when facets editor is not available."""
-        guide_manager._facets_editor = None
-        guide_manager._main_window.facets_editor = None
+        guide_manager._assembly_editor = None
+        guide_manager._main_window.unified_editor = None
 
         # Should not raise
         guide_manager._emit_execution_event(
@@ -72,22 +72,22 @@ class TestEventDelivery:
             GuidePerformanceManager,
         )
 
-        stub_main = StubMainWindow(facets_editor=None)
+        stub_main = StubMainWindow(unified_editor=None)
         manager = GuidePerformanceManager(stub_main)
-        manager._facets_editor = None
+        manager._assembly_editor = None
 
         editor = manager._get_facets_editor()
         assert editor is None
 
     def test_editor_cached_after_first_lookup(self, guide_manager):
         """Facets editor is cached after first successful lookup."""
-        guide_manager._facets_editor = None  # Force re-lookup
+        guide_manager._assembly_editor = None  # Force re-lookup
 
         editor1 = guide_manager._get_facets_editor()
         editor2 = guide_manager._get_facets_editor()
 
         assert editor1 is editor2
-        assert editor1 is guide_manager._main_window.facets_editor
+        assert editor1 is guide_manager._main_window.unified_editor
 
 
 # =============================================================================
@@ -103,7 +103,7 @@ class TestStartEvents:
 
         guide_manager._emit_execution_start_events()
 
-        events = guide_manager._facets_editor.events
+        events = guide_manager._assembly_editor.events
         assert len(events) >= 1
         assert events[0]['type'] == 'facet_execution'
         assert events[0]['subtype'] == 'cycle_start'
@@ -121,7 +121,7 @@ class TestStartEvents:
 
         guide_manager._emit_execution_start_events()
 
-        events = guide_manager._facets_editor.events
+        events = guide_manager._assembly_editor.events
         start_events = [
             e for e in events
             if e.get('subtype') == 'facet_start'
@@ -136,7 +136,7 @@ class TestStartEvents:
 
         guide_manager._emit_execution_start_events()
 
-        assert guide_manager._facets_editor.events == []
+        assert guide_manager._assembly_editor.events == []
 
     def test_execution_id_consistency(self, guide_manager):
         """All start events share the same execution_id."""
@@ -144,7 +144,7 @@ class TestStartEvents:
 
         guide_manager._emit_execution_start_events()
 
-        for event in guide_manager._facets_editor.events:
+        for event in guide_manager._assembly_editor.events:
             eid = event.get('execution_id') or event.get('data', {}).get('execution_id')
             assert eid == "xyz789", f"Event {event['subtype']} has wrong execution_id"
 
@@ -164,7 +164,7 @@ class TestCompleteEvents:
         guide_manager._on_facet_completed('sentiment', {'out': '{"valence": 0.8}'})
 
         complete_events = _events_by_subtype(
-            guide_manager._facets_editor.events, 'facet_complete'
+            guide_manager._assembly_editor.events, 'facet_complete'
         )
         facet_ids = {e['source_id'] for e in complete_events}
         assert 'response' in facet_ids
@@ -178,7 +178,7 @@ class TestCompleteEvents:
         guide_manager._on_facet_completed('response', {'out': 'Hello!'})
 
         flow_events = _events_by_subtype(
-            guide_manager._facets_editor.events, 'data_flow'
+            guide_manager._assembly_editor.events, 'data_flow'
         )
         from_facets = {e['from_facet'] for e in flow_events}
         assert 'sentiment' in from_facets
@@ -191,7 +191,7 @@ class TestCompleteEvents:
         guide_manager._on_facet_completed('response', {'out': 'Ajo says hi'})
 
         complete_events = [
-            e for e in guide_manager._facets_editor.events
+            e for e in guide_manager._assembly_editor.events
             if e.get('subtype') == 'facet_complete'
             and e.get('source_id') == 'response'
         ]
@@ -202,7 +202,7 @@ class TestCompleteEvents:
         """No completion events when execution_id is None."""
         guide_manager._emit_execution_complete_events()
 
-        assert guide_manager._facets_editor.events == []
+        assert guide_manager._assembly_editor.events == []
 
 
 # =============================================================================
@@ -219,7 +219,7 @@ class TestErrorEvents:
         guide_manager._emit_execution_error_events("LLM timeout")
 
         error_events = _events_by_subtype(
-            guide_manager._facets_editor.events, 'facet_error'
+            guide_manager._assembly_editor.events, 'facet_error'
         )
         assert len(error_events) == 3
         facet_ids = {e['source_id'] for e in error_events}
@@ -234,7 +234,7 @@ class TestErrorEvents:
 
         guide_manager._emit_execution_error_events("fail")
 
-        last_event = guide_manager._facets_editor.events[-1]
+        last_event = guide_manager._assembly_editor.events[-1]
         assert last_event['subtype'] == 'cycle_complete'
 
     def test_execution_id_cleared_after_error(self, guide_manager):
@@ -249,7 +249,7 @@ class TestErrorEvents:
         """No error events when execution_id is None."""
         guide_manager._emit_execution_error_events("fail")
 
-        assert guide_manager._facets_editor.events == []
+        assert guide_manager._assembly_editor.events == []
 
 
 # =============================================================================
@@ -297,7 +297,7 @@ class TestMessageToEventsFlow:
             guide_manager._on_user_message("Hello")
 
             # At least cycle_start and incoming facet_start should fire
-            assert len(guide_manager._facets_editor.events) >= 2
+            assert len(guide_manager._assembly_editor.events) >= 2
 
     def test_execution_finished_calls_completion_pipeline(self, guide_manager):
         """Manager's execution finish triggers the completion event pipeline."""
@@ -313,7 +313,7 @@ class TestMessageToEventsFlow:
 
         guide_manager._on_execution_error("Connection timeout")
 
-        event_types = [e['subtype'] for e in guide_manager._facets_editor.events]
+        event_types = [e['subtype'] for e in guide_manager._assembly_editor.events]
         assert 'facet_error' in event_types
         assert 'cycle_complete' in event_types
 
@@ -323,23 +323,23 @@ class TestMessageToEventsFlow:
 # =============================================================================
 
 class TestTabSwitching:
-    """Tests for Facets Editor tab activation on performance start."""
+    """Tests for Assembly tab activation on performance start."""
 
     def test_tab_switch_code_path(self):
-        """Verify tab switching logic finds Facets Editor tab."""
+        """Verify tab switching logic finds Assembly tab."""
         # Simulate the tab switching logic from start_performance
         mock_tabs = MagicMock()
-        mock_tabs.count.return_value = 5
+        mock_tabs.count.return_value = 4
         mock_tabs.tabText.side_effect = [
-            "Noodle Code", "Text View", "Spatial View", "Facets Editor", "Settings"
+            "Noodle Code", "Assembly", "Settings", "Extra"
         ]
 
         for i in range(mock_tabs.count()):
-            if mock_tabs.tabText(i) == "Facets Editor":
+            if mock_tabs.tabText(i) == "Assembly":
                 mock_tabs.setCurrentIndex(i)
                 break
 
-        mock_tabs.setCurrentIndex.assert_called_once_with(3)
+        mock_tabs.setCurrentIndex.assert_called_once_with(1)
 
 
 # =============================================================================
@@ -355,13 +355,13 @@ class TestStaleExecutionGuard:
 
         guide_manager._emit_execution_complete_events()
 
-        assert guide_manager._facets_editor.events == []
+        assert guide_manager._assembly_editor.events == []
 
     def test_error_events_skipped_when_id_cleared(self, guide_manager):
         """Error events are skipped if execution_id is already None."""
         guide_manager._emit_execution_error_events("fail")
 
-        assert guide_manager._facets_editor.events == []
+        assert guide_manager._assembly_editor.events == []
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~

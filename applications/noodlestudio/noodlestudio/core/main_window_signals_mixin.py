@@ -75,18 +75,19 @@ class MainWindowSignalsMixin:
             self.console.set_selected_entities([entity_id])
 
     def on_entity_selected_for_facets_editor(self, entity_type: str, entity_data: dict):
-        """Update Facets Editor when a noodling is selected in hierarchy."""
-        if not hasattr(self, 'facets_editor'):
+        """Update assembly editor when a noodling is selected in hierarchy."""
+        editor = getattr(self, 'unified_editor', None)
+        if not editor:
             return
 
         if entity_type is None or entity_data is None:
-            self.facets_editor.clear_editor()
+            editor.clear_editor()
             return
 
         if entity_type == 'noodling':
             self._load_facet_assembly_for_noodling(entity_data)
         else:
-            self.facets_editor.clear_editor()
+            editor.clear_editor()
 
     def _load_facet_assembly_for_noodling(self, entity_data: dict):
         """Load the facet assembly for a noodling entity.
@@ -134,16 +135,16 @@ class MainWindowSignalsMixin:
         if os.path.exists(assembly_path):
             try:
                 assembly = FacetAssembly.load_yaml(assembly_path)
-                self.facets_editor.load_assembly_from_data(
+                self.unified_editor.load_assembly_from_data(
                     assembly, force_reload=True, source_path=assembly_path
                 )
-                self.facets_editor.set_current_agent(agent_id)
+                self.unified_editor.set_current_agent(agent_id)
             except Exception as e:
                 import traceback
-                print(f"[Facets Editor] Error loading assembly: {e}")
+                print(f"[Assembly Editor] Error loading assembly: {e}")
                 traceback.print_exc()
         else:
-            print(f"[Facets Editor] Assembly not found for {agent_id}: {assembly_path}")
+            print(f"[Assembly Editor] Assembly not found for {agent_id}: {assembly_path}")
 
     @staticmethod
     def _build_neural_node_entity_data(node) -> dict:

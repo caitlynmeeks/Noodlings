@@ -111,16 +111,18 @@ class AssemblyEditorView(
         self._selection_connected = True
 
         # Toolbar (sound toggle, pause, ensemble selector)
-        self._toolbar_layout = self._create_toolbar()
+        self._toolbar_widget = self._create_toolbar()
 
-    def _create_toolbar(self) -> Optional[QHBoxLayout]:
-        """Create overlay toolbar with sound, pause, and ensemble controls.
+    def _create_toolbar(self) -> QWidget:
+        """Create toolbar widget with sound, pause, and ensemble controls.
 
-        Returns the layout so it can be embedded in a parent container
-        (e.g. UnifiedEditorPanel toolbar area). Returns None if this view
-        is standalone (no parent widget with a layout to attach to).
+        Returns a QWidget so UnifiedEditorPanel can embed/swap it easily.
         """
-        toolbar = QHBoxLayout()
+        toolbar_widget = QWidget()
+        toolbar_widget.setStyleSheet(
+            "background-color: #333333; border-bottom: 1px solid #444444;"
+        )
+        toolbar = QHBoxLayout(toolbar_widget)
         toolbar.setContentsMargins(4, 2, 4, 2)
         toolbar.setSpacing(6)
 
@@ -160,11 +162,11 @@ class AssemblyEditorView(
 
         toolbar.addStretch()
 
-        return toolbar
+        return toolbar_widget
 
-    def get_toolbar_layout(self) -> Optional[QHBoxLayout]:
-        """Return the toolbar layout for embedding in a parent container."""
-        return self._toolbar_layout
+    def get_toolbar_widget(self) -> Optional[QWidget]:
+        """Return the toolbar widget for embedding in a parent container."""
+        return self._toolbar_widget
 
     # ================================================================
     # DepthViewProtocol
@@ -865,6 +867,12 @@ class AssemblyEditorView(
             position={'x': scene_pos.x(), 'y': scene_pos.y()}
         )
 
+        # Auto-create .nncanvas file for NeuralCanvasFacet (ported from old FE)
+        if facet_type == "NeuralCanvasFacet":
+            nncanvas_path = self._create_blank_nncanvas(facet_id, display_name)
+            if nncanvas_path:
+                facet.nncanvas_path = nncanvas_path
+
         if facet_type == "ConvergenceFacet":
             facet.add_input_pad("input1", "First input")
             facet.add_input_pad("input2", "Second input")
@@ -1089,3 +1097,56 @@ class AssemblyEditorView(
         node = self._node_items.get(facet_id)
         if node:
             node.update()
+
+    def _create_blank_nncanvas(self, facet_id: str, display_name: str):
+        """Create a blank .nncanvas file for a new NeuralCanvasFacet.
+
+        Returns a project-relative path so depth navigation can resolve it,
+        or None if the assembly has no known disk location.
+
+        Ported from FacetsEditorPanel._create_blank_nncanvas (B.10).
+        """
+        import json
+        import re
+        from datetime import datetime
+
+        if not self._assembly_path:
+            return None
+
+        assembly_dir = os.path.dirname(self._assembly_path)
+        safe_name = re.sub(r'[^a-z0-9_]', '', display_name.lower().replace(' ', '_'))
+        if not safe_name:
+            safe_name = 'neural_canvas'
+        nncanvas_filename = f"{safe_name}_{facet_id[:8]}.nncanvas"
+        nncanvas_abs_path = os.path.join(assembly_dir, nncanvas_filename)
+
+        blank_canvas = {
+            "version": "1.0",
+            "name": display_name,
+            "description": "",
+            "metadata": {
+                "created": datetime.now().isoformat(),
+                "modified": None,
+                "author": "",
+                "total_parameters": 0
+            },
+            "nodes": [],
+            "connections": [],
+            "hidden_states": {},
+            "export_targets": {"mlx": False, "pytorch": False, "onnx": False}
+        }
+
+        try:
+            with open(nncanvas_abs_path, 'w') as f:
+                json.dump(blank_canvas, f, indent=2)
+            print(f"[AssemblyEditor] Created .nncanvas: {nncanvas_abs_path}")
+        except Exception as e:
+            print(f"[AssemblyEditor] Failed to create .nncanvas: {e}")
+            return None
+
+        # Return project-relative path if possible
+        main_window = self.window()
+        pm = getattr(main_window, 'project_manager', None)
+        if pm and getattr(pm, 'current_project_path', None):
+            return os.path.relpath(nncanvas_abs_path, pm.current_project_path)
+        return nncanvas_filename

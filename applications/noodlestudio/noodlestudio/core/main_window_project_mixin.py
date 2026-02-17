@@ -269,15 +269,10 @@ class MainWindowProjectMixin:
             return
 
         # Cascade: flush all dirty editors
-        # 1. Facets editor -- save current assembly to disk
-        editor = getattr(self, 'facets_editor', None)
+        # 1. Unified editor -- save all depth views (assembly + NC)
+        editor = getattr(self, 'unified_editor', None)
         if editor and hasattr(editor, 'save_if_dirty'):
             editor.save_if_dirty()
-
-        # 2. Neural canvas -- save current graph to disk
-        canvas = getattr(self, 'neural_canvas', None)
-        if canvas and hasattr(canvas, 'save_if_dirty'):
-            canvas.save_if_dirty()
 
         # 3. Inspector -- flush any pending property changes
         inspector = getattr(self, 'inspector', None)

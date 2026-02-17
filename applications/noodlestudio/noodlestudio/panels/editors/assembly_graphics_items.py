@@ -541,7 +541,7 @@ class FacetNodeItem(QGraphicsRectItem):
             view = scene.views()[0]
             if hasattr(view, '_show_context_menu'):
                 view_pos = view.mapFromScene(event.scenePos())
-                view._show_context_menu(view_pos.toPoint())
+                view._show_context_menu(view_pos)
 
 
 # ============================================================================

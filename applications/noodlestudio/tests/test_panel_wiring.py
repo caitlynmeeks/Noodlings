@@ -108,10 +108,10 @@ def mock_prop_data():
 class TestNoodlingSelectionToFacetEditor:
     """Test that selecting a Noodling in Stage View loads its assembly in Facet Editor."""
 
-    def test_facets_editor_exists(self, main_window):
-        """Verify Facets Editor panel exists on MainWindow."""
-        assert hasattr(main_window, 'facets_editor'), "MainWindow missing facets_editor"
-        assert main_window.facets_editor is not None
+    def test_unified_editor_exists(self, main_window):
+        """Verify Unified Editor panel exists on MainWindow."""
+        assert hasattr(main_window, 'unified_editor'), "MainWindow missing unified_editor"
+        assert main_window.unified_editor is not None
 
     def test_hierarchy_exists(self, main_window):
         """Verify Stage View (hierarchy) panel exists."""
@@ -126,7 +126,7 @@ class TestNoodlingSelectionToFacetEditor:
     def test_noodling_selection_triggers_facet_load(self, main_window, mock_noodling_data, qtbot):
         """Selecting a noodling should load its facet assembly."""
         # Clear any existing state
-        main_window.facets_editor.clear_editor()
+        main_window.unified_editor.clear_editor()
 
         # Emit the entitySelected signal as if user clicked a noodling
         main_window.hierarchy.entitySelected.emit('noodling', mock_noodling_data)
@@ -134,13 +134,13 @@ class TestNoodlingSelectionToFacetEditor:
         # Process events
         qtbot.wait(100)
 
-        # Check that facets editor received and loaded an assembly
+        # Check that unified editor received and loaded an assembly
         # After selection, current_assembly should not be None (assembly was loaded)
-        assert main_window.facets_editor.current_assembly is not None, \
+        assert main_window.unified_editor.current_assembly is not None, \
             "Facet assembly should be loaded when noodling is selected"
 
     def test_deselection_clears_facet_editor(self, main_window, mock_noodling_data, qtbot):
-        """Deselecting (empty selection) should clear the facet editor."""
+        """Deselecting (empty selection) should clear the editor."""
         # First select something
         main_window.hierarchy.entitySelected.emit('noodling', mock_noodling_data)
         qtbot.wait(50)
@@ -149,9 +149,9 @@ class TestNoodlingSelectionToFacetEditor:
         main_window.hierarchy.entitySelected.emit('', {})
         qtbot.wait(50)
 
-        # Facet editor should be cleared
+        # Editor should be cleared
         # Check that there's no current agent or the editor is empty
-        current_agent = getattr(main_window.facets_editor, '_current_agent_id', None)
+        current_agent = getattr(main_window.unified_editor, '_current_agent_id', None)
         # After clear, _current_agent_id should be None or empty
         # This depends on implementation - adjust assertion as needed
 
@@ -347,16 +347,16 @@ class TestSignalConnections:
         # Check inspector's current mode or loaded entity
         # This depends on inspector implementation
 
-    def test_hierarchy_to_facets_editor_connection(self, main_window, mock_noodling_data, qtbot):
-        """Selecting noodling should update facets editor."""
+    def test_hierarchy_to_unified_editor_connection(self, main_window, mock_noodling_data, qtbot):
+        """Selecting noodling should update unified editor."""
         # Clear first
-        main_window.facets_editor.clear_editor()
+        main_window.unified_editor.clear_editor()
 
         main_window.hierarchy.entitySelected.emit('noodling', mock_noodling_data)
         qtbot.wait(100)
 
-        # Facets editor should show an assembly after noodling selection
-        assert main_window.facets_editor.current_assembly is not None, \
+        # Unified editor should show an assembly after noodling selection
+        assert main_window.unified_editor.current_assembly is not None, \
             "Selecting noodling should load facet assembly"
 
 

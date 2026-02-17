@@ -39,9 +39,9 @@ class TestHierarchySelectsSpeaker:
         from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
 
         editor = StubFacetsEditor()
-        main_window = StubMainWindow(facets_editor=editor)
+        main_window = StubMainWindow(unified_editor=editor)
         manager = GuidePerformanceManager(main_window)
-        manager._facets_editor = editor
+        manager._assembly_editor = editor
 
         # Create stub window that tracks active speaker
         window = StubWindow()

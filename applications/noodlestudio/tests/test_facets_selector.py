@@ -29,10 +29,10 @@ def _create_manager_with_editor():
     )
 
     editor = StubFacetsEditor()
-    main = StubMainWindow(facets_editor=editor)
+    main = StubMainWindow(unified_editor=editor)
 
     manager = GuidePerformanceManager(main)
-    manager._facets_editor = editor
+    manager._assembly_editor = editor
     manager._window = StubWindow()
     return manager, editor
 
@@ -376,9 +376,9 @@ class TestManagerEnsembleWiring:
         from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
 
         editor = StubFacetsEditor()
-        main = StubMainWindow(facets_editor=editor)
+        main = StubMainWindow(unified_editor=editor)
         manager = GuidePerformanceManager(main)
-        manager._facets_editor = editor
+        manager._assembly_editor = editor
 
         # Set up ensemble manually (bypass real assembly loading)
         ajo = NoodlingPerformer('ajo', 'Ajo', FakeLLMClient())
@@ -416,9 +416,9 @@ class TestManagerEnsembleWiring:
         from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
 
         editor = StubFacetsEditor()
-        main = StubMainWindow(facets_editor=editor)
+        main = StubMainWindow(unified_editor=editor)
         manager = GuidePerformanceManager(main)
-        manager._facets_editor = editor
+        manager._assembly_editor = editor
 
         ajo = NoodlingPerformer('ajo', 'Ajo', FakeLLMClient())
         ajo._assembly = True

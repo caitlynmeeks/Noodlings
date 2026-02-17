@@ -283,8 +283,8 @@ class TestMVPSurface:
         return type(self)._window
 
     def test_mvp_panels_instantiated(self):
-        """All 10 MVP panels exist as non-None attributes."""
-        for attr in ('hierarchy', 'assets', 'facets_editor', 'neural_canvas',
+        """All MVP panels exist as non-None attributes."""
+        for attr in ('hierarchy', 'assets', 'unified_editor',
                      'settings_panel', 'noodle_code_panel', 'inspector',
                      'console', 'profiler_panel', 'cognitive_cycles'):
             assert getattr(self.window, attr, None) is not None, \
@@ -315,12 +315,12 @@ class TestMVPSurface:
         assert not hasattr(self.window, 'avatar_dropdown')
         assert not hasattr(self.window, 'enter_world_btn')
 
-    def test_default_center_tab_is_facets_editor(self):
-        """Default center tab is Facets Editor, not NoodleCode."""
+    def test_default_center_tab_is_assembly(self):
+        """Default center tab is Assembly (Unified Editor)."""
         tabs = self.window.center_tabs
         current = tabs.tabText(tabs.currentIndex())
-        assert current == "Facets Editor", \
-            f"Default tab should be 'Facets Editor', got '{current}'"
+        assert current == "Assembly", \
+            f"Default tab should be 'Assembly', got '{current}'"
 
     def test_no_build_menu_items(self):
         """File menu has no Build Settings or Build Application items."""

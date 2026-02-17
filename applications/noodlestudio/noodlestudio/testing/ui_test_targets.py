@@ -162,9 +162,10 @@ class UITestTargetResolver:
         panel_map = {
             'stage': ['stage_panel', 'StagePanel', 'stage'],
             'hierarchy': ['hierarchy', 'hierarchy_panel', 'HierarchyPanel', 'scene_hierarchy'],
-            'facets': ['facets_panel', 'FacetsEditorPanel', 'facets_editor'],
+            'facets': ['facets_panel', 'FacetsEditorPanel', 'facets_editor', 'assembly'],
             'inspector': ['inspector', 'inspector_panel', 'InspectorPanel'],
             'neural_canvas': ['neural_canvas_panel', 'NeuralCanvasPanel', 'nncanvas'],
+            'assembly': ['unified_editor', 'UnifiedEditorPanel', 'assembly_editor'],
             'chat': ['chat_panel', 'ChatPanel', 'conversation'],
             'console': ['console_panel', 'ConsolePanel', 'console'],
             'noodlecode': ['noodle_code_panel', 'NoodleCodePanel', 'noodlecode'],
@@ -337,8 +338,8 @@ class UITestTargetResolver:
     # ═══════════════════════════════════════════════════════════
 
     async def _resolve_facet_node(self, node_name: str) -> Tuple[int, int]:
-        """Find a facet node in the Facets editor."""
-        facets_panel = getattr(self.window, 'facets_panel', None)
+        """Find a facet node in the assembly editor."""
+        facets_panel = getattr(self.window, 'unified_editor', None)
         if facets_panel is None:
             facets_panel = self.window.findChild(QWidget, 'facets_editor')
 

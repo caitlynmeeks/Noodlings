@@ -60,7 +60,7 @@ class TestSaveCascade:
         class StubHost(MainWindowProjectMixin):
             def __init__(self):
                 self.project_manager = pm
-                self.facets_editor = StubEditor()
+                self.unified_editor = StubEditor()
 
             def statusBar(self):
                 return StubStatusBar()
@@ -68,39 +68,7 @@ class TestSaveCascade:
         host = StubHost()
         host.save_project()
 
-        assert save_called, "save_project() must cascade to facets_editor.save_if_dirty()"
-
-    def test_save_project_cascades_to_neural_canvas(self, qapp, tmp_path):
-        """save_project() must call neural_canvas.save_if_dirty()."""
-        from noodlestudio.core.project_manager import ProjectManager
-        from noodlestudio.core.main_window_project_mixin import MainWindowProjectMixin
-
-        canvas_saved = False
-
-        class StubCanvas:
-            def save_if_dirty(self):
-                nonlocal canvas_saved
-                canvas_saved = True
-
-        class StubStatusBar:
-            def showMessage(self, msg, timeout=0):
-                pass
-
-        pm = ProjectManager()
-        pm.create_project(str(tmp_path), 'test_project')
-
-        class StubHost(MainWindowProjectMixin):
-            def __init__(self):
-                self.project_manager = pm
-                self.neural_canvas = StubCanvas()
-
-            def statusBar(self):
-                return StubStatusBar()
-
-        host = StubHost()
-        host.save_project()
-
-        assert canvas_saved, "save_project() must cascade to neural_canvas.save_if_dirty()"
+        assert save_called, "save_project() must cascade to unified_editor.save_if_dirty()"
 
 
 class TestInspectorDiskRoundTrip:
@@ -425,15 +393,15 @@ class TestFacetsEditorClearsOnNonNoodling:
 
         class StubHost(MainWindowSignalsMixin):
             def __init__(self):
-                self.facets_editor = StubEditor()
+                self.unified_editor = StubEditor()
 
         host = StubHost()
         host.on_entity_selected_for_facets_editor('zone', {'id': 'zone_main'})
 
-        assert cleared, "Selecting a zone must clear the facets editor"
+        assert cleared, "Selecting a zone must clear the assembly editor"
 
     def test_prop_selection_clears_facets_editor(self, qapp):
-        """Selecting a prop in hierarchy must clear the facets editor."""
+        """Selecting a prop in hierarchy must clear the assembly editor."""
         from noodlestudio.core.main_window_signals_mixin import MainWindowSignalsMixin
 
         cleared = False
@@ -445,12 +413,12 @@ class TestFacetsEditorClearsOnNonNoodling:
 
         class StubHost(MainWindowSignalsMixin):
             def __init__(self):
-                self.facets_editor = StubEditor()
+                self.unified_editor = StubEditor()
 
         host = StubHost()
         host.on_entity_selected_for_facets_editor('prop', {'id': 'prop_tree'})
 
-        assert cleared, "Selecting a prop must clear the facets editor"
+        assert cleared, "Selecting a prop must clear the assembly editor"
 
     def test_noodling_selection_does_not_clear(self, qapp):
         """Selecting a noodling must NOT clear -- it loads an assembly."""
@@ -465,7 +433,7 @@ class TestFacetsEditorClearsOnNonNoodling:
 
         class StubHost(MainWindowSignalsMixin):
             def __init__(self):
-                self.facets_editor = StubEditor()
+                self.unified_editor = StubEditor()
 
             def _load_facet_assembly_for_noodling(self, entity_data):
                 pass  # Stub - just verify clear_editor is NOT called

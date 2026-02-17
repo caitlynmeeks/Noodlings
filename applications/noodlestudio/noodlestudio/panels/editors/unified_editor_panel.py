@@ -66,6 +66,13 @@ class UnifiedEditorPanel(QWidget):
         self._breadcrumb.segmentClicked.connect(self._on_breadcrumb_clicked)
         layout.addWidget(self._breadcrumb)
 
+        # Toolbar area (holds the current view's toolbar widget)
+        self._toolbar_area = QVBoxLayout()
+        self._toolbar_area.setContentsMargins(0, 0, 0, 0)
+        self._toolbar_area.setSpacing(0)
+        layout.addLayout(self._toolbar_area)
+        self._current_toolbar = None
+
         # View container (views are added/removed here)
         self._view_container = QWidget()
         self._view_layout = QVBoxLayout(self._view_container)
@@ -119,6 +126,9 @@ class UnifiedEditorPanel(QWidget):
         # Auto-wire NC signal forwarding from depth views
         self._connect_nc_signals(view)
 
+        # Embed the view's toolbar if it provides one
+        self._swap_toolbar(view)
+
         # Push frame
         frame = _StackFrame(view, breadcrumb_label, context or {})
         self._stack.append(frame)
@@ -142,9 +152,12 @@ class UnifiedEditorPanel(QWidget):
             frame = self._stack.pop()
             self._save_and_remove_view(frame)
 
-        # Show the new top
+        # Show the new top and swap toolbar
         if self._stack:
             self._stack[-1].view.show()
+            self._swap_toolbar(self._stack[-1].view)
+        else:
+            self._clear_toolbar()
 
         self._update_breadcrumb()
         self.depthChanged.emit(len(self._stack))
@@ -171,6 +184,7 @@ class UnifiedEditorPanel(QWidget):
             frame = self._stack.pop()
             self._save_and_remove_view(frame)
 
+        self._clear_toolbar()
         self._empty_label.show()
         self._update_breadcrumb()
         self.depthChanged.emit(0)
@@ -259,6 +273,23 @@ class UnifiedEditorPanel(QWidget):
             return
         labels = [frame.label for frame in self._stack]
         self._breadcrumb.set_path(labels)
+
+    def _swap_toolbar(self, view):
+        """Show the toolbar for the given view, hiding any previous toolbar."""
+        self._clear_toolbar()
+        if hasattr(view, 'get_toolbar_widget'):
+            toolbar = view.get_toolbar_widget()
+            if toolbar is not None:
+                self._toolbar_area.addWidget(toolbar)
+                toolbar.show()
+                self._current_toolbar = toolbar
+
+    def _clear_toolbar(self):
+        """Hide and remove the current toolbar from the toolbar area."""
+        if self._current_toolbar is not None:
+            self._current_toolbar.hide()
+            self._toolbar_area.removeWidget(self._current_toolbar)
+            self._current_toolbar = None
 
     def _save_and_remove_view(self, frame: _StackFrame):
         """Save a view's data, disconnect signals, and remove from the layout."""

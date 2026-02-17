@@ -509,10 +509,9 @@ class InspectorPanel(
         """Auto-save the current facet assembly to its YAML file."""
         try:
             main_window = self.window()
-            if hasattr(main_window, 'facets_editor'):
-                editor = main_window.facets_editor
-                if hasattr(editor, '_save_assembly_to_disk'):
-                    editor._save_assembly_to_disk()
+            editor = getattr(main_window, 'unified_editor', None)
+            if editor and hasattr(editor, '_save_assembly_to_disk'):
+                editor._save_assembly_to_disk()
         except Exception as e:
             print(f"[Inspector] Error auto-saving facet assembly: {e}")
 
@@ -527,10 +526,11 @@ class InspectorPanel(
         """
         # Get the facet from the current assembly
         main_window = self.window()
-        if not hasattr(main_window, 'facets_editor'):
+        editor = getattr(main_window, 'unified_editor', None)
+        if not editor:
             return
 
-        assembly = main_window.facets_editor.current_assembly
+        assembly = editor.current_assembly
         if not assembly:
             return
 
@@ -1036,23 +1036,20 @@ class InspectorPanel(
         import json
 
         try:
-            # Find facets editor to get node graphics
+            # Find assembly editor to get node graphics
             main_window = self.window()
-            if not main_window or not hasattr(main_window, 'facets_editor'):
-                return
-
-            facets_editor = main_window.facets_editor
-            if not facets_editor:
+            editor = getattr(main_window, 'unified_editor', None)
+            if not editor:
                 return
 
             # Check if node_graphics exists and has this facet
-            if not hasattr(facets_editor, 'node_graphics') or not facets_editor.node_graphics:
+            if not hasattr(editor, 'node_graphics') or not editor.node_graphics:
                 return
 
-            if facet.id not in facets_editor.node_graphics:
+            if facet.id not in editor.node_graphics:
                 return
 
-            node = facets_editor.node_graphics[facet.id]
+            node = editor.node_graphics[facet.id]
             if not node:
                 return
 
@@ -1747,17 +1744,19 @@ class InspectorPanel(
             pass  # Silently ignore update failures
 
     def open_facet_editor(self, agent_id: str):
-        """Open Facets Editor tab with agent's assembly loaded."""
+        """Open Assembly tab with agent's assembly loaded."""
         main_window = self.window()
-        if hasattr(main_window, 'facets_editor'):
-            # Switch to Facets Editor tab
+        editor = getattr(main_window, 'unified_editor', None)
+        if editor:
+            # Switch to Assembly tab
             if hasattr(main_window, 'center_tabs'):
                 for i in range(main_window.center_tabs.count()):
-                    if 'Facets' in main_window.center_tabs.tabText(i):
+                    if main_window.center_tabs.tabText(i) == "Assembly":
                         main_window.center_tabs.setCurrentIndex(i)
                         break
             # Load agent's assembly
-            main_window.facets_editor.load_agent_assembly(agent_id)
+            if hasattr(editor, 'load_agent_assembly'):
+                editor.load_agent_assembly(agent_id)
 
     def create_metadata_component(self, obj_id: str) -> CollapsibleSection:
         """Create arbitrary metadata editor for prims."""

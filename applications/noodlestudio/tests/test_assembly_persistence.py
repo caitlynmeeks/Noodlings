@@ -193,7 +193,7 @@ class TestInspectorAutoSave:
         # Build a stub main window
         class StubMainWindow:
             def __init__(self):
-                self.facets_editor = stub_editor
+                self.unified_editor = stub_editor
 
         # Build the inspector and call auto-save
         from noodlestudio.panels.inspector_panel import InspectorPanel

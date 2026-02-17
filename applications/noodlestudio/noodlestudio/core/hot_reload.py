@@ -126,7 +126,7 @@ class HotReloadManager(QObject):
         'noodlestudio.panels.scene_hierarchy',
         'noodlestudio.panels.assets_panel',
         'noodlestudio.panels.console_panel',
-        'noodlestudio.panels.facets_editor_panel',
+        'noodlestudio.panels.editors.unified_editor_panel',
         'noodlestudio.panels.gaussian_viewer_panel',
         'noodlestudio.panels.noodle_code_panel',
         'noodlestudio.panels.settings_panel',
