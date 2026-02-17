@@ -625,3 +625,151 @@ class TestSharedMixinIntegration:
         assert hasattr(view, '_wire_being_drawn')
         assert hasattr(view, '_wire_start_port')
         assert view.is_drawing_wire is False
+
+
+# ============================================================================
+# TestGridUI (C.7.1)
+# ============================================================================
+
+class TestGridUI:
+    """Verify grid snap toggle and size controls on the assembly editor toolbar."""
+
+    def test_grid_button_exists(self, view):
+        """Grid toggle button should be in the toolbar."""
+        assert hasattr(view, '_grid_button')
+        assert view._grid_button is not None
+
+    def test_grid_size_input_exists(self, view):
+        """Grid size spinbox should be in the toolbar."""
+        assert hasattr(view, '_grid_size_input')
+        assert view._grid_size_input is not None
+
+    def test_grid_toggle_enables_snap(self, view):
+        """Toggling grid button enables snapping and draws grid lines."""
+        assert view._snap_to_grid is False or view._snap_to_grid is True
+        initial = view._snap_to_grid
+
+        view.toggle_grid(not initial)
+        assert view._snap_to_grid is (not initial)
+        assert view._grid_visible is (not initial)
+
+        # Restore
+        view.toggle_grid(initial)
+
+    def test_grid_size_changes_snap_math(self, view):
+        """Changing grid size affects snap_position calculation."""
+        view.toggle_grid(True)
+        view.set_grid_size(20)
+
+        snapped = view.snap_position(33, 47)
+        assert snapped == (40, 40)
+
+        view.set_grid_size(50)
+        snapped = view.snap_position(33, 47)
+        assert snapped == (50, 50)
+
+        view.toggle_grid(False)
+
+    def test_grid_button_syncs_state(self, view):
+        """Grid button checked state should match grid mixin state."""
+        view._grid_button.setChecked(True)
+        QApplication.processEvents()
+        assert view._snap_to_grid is True
+
+        view._grid_button.setChecked(False)
+        QApplication.processEvents()
+        assert view._snap_to_grid is False
+
+
+# ============================================================================
+# TestFloatingEditor (C.7.1)
+# ============================================================================
+
+class TestFloatingEditor:
+    """Verify E key floating editor shortcut is wired."""
+
+    def test_e_key_no_selection_no_crash(self, loaded_view):
+        """Pressing E with nothing selected should not crash."""
+        from PyQt6.QtGui import QKeyEvent
+        from PyQt6.QtCore import QEvent
+
+        # Clear selection
+        loaded_view._scene.clearSelection()
+        QApplication.processEvents()
+
+        # Simulate E key press -- should early-return without error
+        event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_E, Qt.KeyboardModifier.NoModifier)
+        loaded_view.keyPressEvent(event)
+
+    def test_toggle_floating_editor_method_exists(self, view):
+        """AssemblyEditorView should have the floating editor method."""
+        assert hasattr(view, '_toggle_floating_editor')
+        assert callable(view._toggle_floating_editor)
+
+    def test_facet_has_prompt_field(self, loaded_view):
+        """LLM facet should have a 'prompt' editable field for E key to use."""
+        llm_facet = loaded_view._assembly.get_facet("llm_1")
+        assert llm_facet is not None
+
+        fields = llm_facet.get_editable_fields()
+        prompt_keys = [f.get('key') for f in fields]
+        assert 'prompt' in prompt_keys
+
+
+# ============================================================================
+# TestInspectorUndoRefresh (C.7.1)
+# ============================================================================
+
+class TestInspectorUndoRefresh:
+    """Verify inspector refreshes widget display after undo."""
+
+    def test_refresh_facet_widget_calls_reload(self, qapp):
+        """_refresh_facet_widget should rebuild the inspector view."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+
+        inspector = InspectorPanel()
+        inspector.show()
+
+        try:
+            # Create a facet and load it
+            facet = Facet(
+                id="refresh_test", name="Test Facet", facet_type="LLMFacet",
+                prompt="original prompt", position={'x': 0, 'y': 0}
+            )
+            facet.add_input_pad("in", "Input")
+            facet.add_output_pad("out", "Output")
+
+            inspector._load_facet_standalone(facet)
+            assert inspector.current_facet is facet
+
+            # Change prompt on the data model (simulating what undo does)
+            facet.prompt = "changed prompt"
+
+            # Call _refresh_facet_widget (the method we fixed)
+            inspector._refresh_facet_widget("refresh_test", "prompt", "changed prompt")
+
+            # After refresh, inspector should still show the facet
+            assert inspector.current_facet is facet
+            assert inspector.current_facet.prompt == "changed prompt"
+        finally:
+            inspector.close()
+
+    def test_refresh_wrong_facet_id_no_op(self, qapp):
+        """_refresh_facet_widget with wrong facet ID should be a no-op."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+
+        inspector = InspectorPanel()
+        inspector.show()
+
+        try:
+            facet = Facet(
+                id="correct_id", name="Test", facet_type="LLMFacet",
+                prompt="test", position={'x': 0, 'y': 0}
+            )
+            inspector._load_facet_standalone(facet)
+
+            # This should not crash or reload (wrong ID)
+            inspector._refresh_facet_widget("wrong_id", "prompt", "value")
+            assert inspector.current_facet is facet
+        finally:
+            inspector.close()

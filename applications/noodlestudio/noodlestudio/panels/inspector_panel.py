@@ -559,14 +559,12 @@ class InspectorPanel(
         """
         Update widget display after undo/redo changes property.
 
-        This finds and updates the specific widget showing this property.
+        Rebuilds the facet inspector view from current data. The data model
+        is already updated (setattr was called before this), so rebuilding
+        the widgets shows the correct values with fresh baseline trackers.
         """
-        # For now, we don't have widget tracking - the widget will show
-        # stale data until user re-selects the facet. This is acceptable
-        # for initial implementation.
-        #
-        # TODO: Track widgets by (facet_id, property_name) for live updates
-        pass
+        if self.current_facet and self.current_facet.id == facet_id:
+            self._load_facet_standalone(self.current_facet)
 
     def _push_facet_property_command(self, facet, property_name: str, old_value, new_value):
         """

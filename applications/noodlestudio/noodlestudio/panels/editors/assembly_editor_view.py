@@ -17,7 +17,7 @@ from typing import Optional, Dict, Any, List, Tuple
 
 from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QMenu, QHBoxLayout, QWidget,
-    QPushButton, QVBoxLayout,
+    QPushButton, QVBoxLayout, QSpinBox,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPointF
 from PyQt6.QtGui import QColor, QCursor
@@ -159,6 +159,40 @@ class AssemblyEditorView(
 
         # Ensemble noodling selector (created by ensemble mixin, hidden by default)
         toolbar.addWidget(self._noodling_selector)
+
+        # Grid snap toggle
+        self._grid_button = QPushButton("Grid")
+        self._grid_button.setFixedWidth(50)
+        self._grid_button.setCheckable(True)
+        self._grid_button.setChecked(self._snap_to_grid)
+        self._grid_button.setToolTip("Toggle grid snapping")
+        self._grid_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3A3A3A; color: #CCCCCC;
+                border: 1px solid #555; border-radius: 3px;
+                padding: 2px 6px; font-size: 11px;
+            }
+            QPushButton:checked { background-color: #4A4A4A; border: 1px solid #888; }
+        """)
+        self._grid_button.toggled.connect(self.toggle_grid)
+        toolbar.addWidget(self._grid_button)
+
+        # Grid size spinbox
+        self._grid_size_input = QSpinBox()
+        self._grid_size_input.setRange(5, 100)
+        self._grid_size_input.setValue(self._grid_size)
+        self._grid_size_input.setSuffix("px")
+        self._grid_size_input.setFixedWidth(70)
+        self._grid_size_input.setToolTip("Grid size in pixels")
+        self._grid_size_input.setStyleSheet("""
+            QSpinBox {
+                background-color: #3A3A3A; color: #CCCCCC;
+                border: 1px solid #555; border-radius: 3px; padding: 2px;
+            }
+            QSpinBox:hover { background-color: #4A4A4A; border: 1px solid #777; }
+        """)
+        self._grid_size_input.valueChanged.connect(self.set_grid_size)
+        toolbar.addWidget(self._grid_size_input)
 
         toolbar.addStretch()
 
