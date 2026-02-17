@@ -1,0 +1,13 @@
+name: "Juanita"
+description: "A girl from Lanzarote who explores her world with daily wonder and asks the exact right question"
+author: "noodlings.ai"
+version: "1.0.0"
+created: "2026-02-17T00:00:00Z"
+
+# VRM asset is self-contained within the noodling directory
+vrm_path: "Radiances/Juanita.vrm"
+
+tags:
+  - juanita
+  - lanzarote
+  - explorer

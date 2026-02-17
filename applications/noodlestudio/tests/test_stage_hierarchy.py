@@ -112,7 +112,7 @@ class TestHierarchyWithoutServer:
         )
 
     def test_hierarchy_shows_instances_from_stage(self, qapp, project_copy):
-        """Hierarchy must show Ajo and Yuki from the default project."""
+        """Hierarchy must show Ajo, Krampus, and Juanita from the default project."""
         from noodlestudio.panels.scene_hierarchy import SceneHierarchy
         from noodlestudio.core.project_manager import ProjectManager
 
@@ -132,8 +132,11 @@ class TestHierarchyWithoutServer:
         assert any('Ajo' in n for n in names), (
             f"Expected 'Ajo' in hierarchy items, got: {names}"
         )
-        assert any('Yuki' in n for n in names), (
-            f"Expected 'Yuki' in hierarchy items, got: {names}"
+        assert any('Krampus' in n for n in names), (
+            f"Expected 'Krampus' in hierarchy items, got: {names}"
+        )
+        assert any('Juanita' in n for n in names), (
+            f"Expected 'Juanita' in hierarchy items, got: {names}"
         )
 
     def test_hierarchy_no_duplicate_items(self, qapp, project_copy):

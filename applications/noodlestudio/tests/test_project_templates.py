@@ -71,8 +71,8 @@ class TestGettingStartedTemplate:
         return str(_templates_dir() / 'Getting Started')
 
     def test_noodlings_exist(self, template_path):
-        """Ajo and Yuki noodling templates must exist with required files."""
-        for noodling in ('ajo_majo', 'yuki_cyberfox'):
+        """Ajo, Krampus, and Juanita noodling templates must exist with required files."""
+        for noodling in ('ajo_majo', 'krampus', 'juanita'):
             noodling_dir = os.path.join(template_path, 'Noodlings', noodling)
             assert os.path.isdir(noodling_dir), f"Missing noodling: {noodling}"
             for filename in ('assembly.yaml', 'recipe.yaml', 'noodling.yaml'):
@@ -101,7 +101,7 @@ class TestGettingStartedTemplate:
         instances_dir = os.path.join(
             template_path, 'Stages', 'the_nexus', 'Instances'
         )
-        for instance_name in ('ajo', 'yuki'):
+        for instance_name in ('ajo', 'krampus', 'juanita'):
             instance_path = os.path.join(
                 instances_dir, instance_name, 'instance.yaml'
             )
@@ -168,7 +168,7 @@ class TestCreateFromTemplate:
         dest = create_project_from_template(
             template, 'CopyTest', str(tmp_path)
         )
-        for noodling in ('ajo_majo', 'yuki_cyberfox'):
+        for noodling in ('ajo_majo', 'krampus', 'juanita'):
             assert os.path.isdir(os.path.join(dest, 'Noodlings', noodling))
 
     def test_vrm_copied_into_project(self, tmp_path):

@@ -112,9 +112,9 @@ class TestProjectSystem:
         assert os.path.isfile(os.path.join(project_dir, 'project.noodleproj'))
 
     def test_default_project_has_noodlings(self):
-        """Ajo and Yuki noodling templates must exist."""
+        """Ajo, Krampus, and Juanita noodling templates must exist."""
         project_dir = os.path.join(LIBRARY_DIR, 'templates', 'Getting Started')
-        for noodling in ('ajo_majo', 'yuki_cyberfox'):
+        for noodling in ('ajo_majo', 'krampus', 'juanita'):
             noodling_dir = os.path.join(project_dir, 'Noodlings', noodling)
             assert os.path.isdir(noodling_dir), f"Noodling not found: {noodling_dir}"
             assert os.path.isfile(os.path.join(noodling_dir, 'assembly.yaml'))
@@ -122,14 +122,15 @@ class TestProjectSystem:
             assert os.path.isfile(os.path.join(noodling_dir, 'noodling.yaml'))
 
     def test_default_project_has_stage_instances(self):
-        """Stage must have Ajo and Yuki instances."""
+        """Stage must have Ajo, Krampus, and Juanita instances."""
         project_dir = os.path.join(LIBRARY_DIR, 'templates', 'Getting Started')
         instances_dir = os.path.join(
             project_dir, 'Stages', 'the_nexus', 'Instances'
         )
         assert os.path.isdir(instances_dir)
         assert os.path.isdir(os.path.join(instances_dir, 'ajo'))
-        assert os.path.isdir(os.path.join(instances_dir, 'yuki'))
+        assert os.path.isdir(os.path.join(instances_dir, 'krampus'))
+        assert os.path.isdir(os.path.join(instances_dir, 'juanita'))
 
     def test_instance_refs_resolve(self):
         """Instance noodling references must resolve to real directories."""
@@ -137,7 +138,7 @@ class TestProjectSystem:
         instances_dir = os.path.join(
             project_dir, 'Stages', 'the_nexus', 'Instances'
         )
-        for instance_name in ('ajo', 'yuki'):
+        for instance_name in ('ajo', 'krampus', 'juanita'):
             instance_path = os.path.join(
                 instances_dir, instance_name, 'instance.yaml'
             )
@@ -214,7 +215,7 @@ class TestLaunchFlow:
 # =====================================================================
 
 class TestAssemblyLoading:
-    """Ajo and Yuki assemblies must parse without error."""
+    """Ajo, Krampus, and Juanita assemblies must parse without error."""
 
     def test_ajo_assembly_parses(self):
         """Ajo's assembly.yaml must parse and have required fields."""
@@ -228,11 +229,23 @@ class TestAssemblyLoading:
         assert 'facets' in data
         assert len(data['facets']) >= 3
 
-    def test_yuki_assembly_parses(self):
-        """Yuki's assembly.yaml must parse and have required fields."""
+    def test_krampus_assembly_parses(self):
+        """Krampus assembly.yaml must parse and have required fields."""
         assembly_path = os.path.join(
             LIBRARY_DIR, 'templates', 'Getting Started',
-            'Noodlings', 'yuki_cyberfox', 'assembly.yaml'
+            'Noodlings', 'krampus', 'assembly.yaml'
+        )
+        with open(assembly_path) as f:
+            data = yaml.safe_load(f)
+        assert 'name' in data
+        assert 'facets' in data
+        assert len(data['facets']) >= 3
+
+    def test_juanita_assembly_parses(self):
+        """Juanita assembly.yaml must parse and have required fields."""
+        assembly_path = os.path.join(
+            LIBRARY_DIR, 'templates', 'Getting Started',
+            'Noodlings', 'juanita', 'assembly.yaml'
         )
         with open(assembly_path) as f:
             data = yaml.safe_load(f)
@@ -241,7 +254,7 @@ class TestAssemblyLoading:
         assert len(data['facets']) >= 3
 
     def test_stage_instance_discovery(self):
-        """_discover_stage_instances must find both noodlings."""
+        """_discover_stage_instances must find all three noodlings."""
         from noodlestudio.runtime.ui.guide_performance_manager import (
             GuidePerformanceManager,
         )
@@ -252,9 +265,9 @@ class TestAssemblyLoading:
             LIBRARY_DIR, 'templates', 'Getting Started', 'Stages', 'the_nexus'
         )
         instances = manager._discover_stage_instances(stage_path)
-        assert len(instances) == 2
+        assert len(instances) == 3
         ids = {i['noodling_id'] for i in instances}
-        assert ids == {'ajo', 'yuki'}
+        assert ids == {'ajo', 'krampus', 'juanita'}
 
 
 # =====================================================================

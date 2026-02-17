@@ -41,9 +41,9 @@ class TestDefaultProjectStructure:
             "project.noodleproj not found"
 
     def test_default_project_has_noodling_templates(self):
-        """Default project must contain Ajo and Yuki noodling templates."""
+        """Default project must contain Ajo, Krampus, and Juanita noodling templates."""
         project_dir = os.path.join(LIBRARY_DIR, 'templates', 'Getting Started')
-        for noodling in ('ajo_majo', 'yuki_cyberfox'):
+        for noodling in ('ajo_majo', 'krampus', 'juanita'):
             noodling_dir = os.path.join(project_dir, 'Noodlings', noodling)
             assert os.path.isdir(noodling_dir), f"Noodling dir not found: {noodling_dir}"
             assert os.path.isfile(os.path.join(noodling_dir, 'assembly.yaml')), \
@@ -61,7 +61,8 @@ class TestDefaultProjectStructure:
         )
         assert os.path.isdir(instances_dir), f"Instances dir not found: {instances_dir}"
         assert os.path.isdir(os.path.join(instances_dir, 'ajo'))
-        assert os.path.isdir(os.path.join(instances_dir, 'yuki'))
+        assert os.path.isdir(os.path.join(instances_dir, 'krampus'))
+        assert os.path.isdir(os.path.join(instances_dir, 'juanita'))
 
     def test_default_project_stage_yaml_valid(self):
         """Stage YAML must parse and contain expected fields."""
@@ -84,7 +85,7 @@ class TestDefaultProjectInstanceRefs:
         instances_dir = os.path.join(
             project_dir, 'Stages', 'the_nexus', 'Instances'
         )
-        for instance_name in ('ajo', 'yuki'):
+        for instance_name in ('ajo', 'krampus', 'juanita'):
             instance_path = os.path.join(
                 instances_dir, instance_name, 'instance.yaml'
             )
@@ -106,7 +107,7 @@ class TestDefaultProjectInstanceRefs:
     def test_assemblies_parse_without_error(self):
         """Assembly YAMLs in the default project must parse correctly."""
         project_dir = os.path.join(LIBRARY_DIR, 'templates', 'Getting Started')
-        for noodling in ('ajo_majo', 'yuki_cyberfox'):
+        for noodling in ('ajo_majo', 'krampus', 'juanita'):
             assembly_path = os.path.join(
                 project_dir, 'Noodlings', noodling, 'assembly.yaml'
             )

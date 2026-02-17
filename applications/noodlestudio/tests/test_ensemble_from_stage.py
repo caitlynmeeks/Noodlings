@@ -40,20 +40,20 @@ class TestStageInstanceDiscovery:
         from conftest import StubMainWindow
         return GuidePerformanceManager(StubMainWindow())
 
-    def test_discovers_two_instances_from_default_project(self):
-        """Default project stage must yield Ajo and Yuki instances."""
+    def test_discovers_three_instances_from_default_project(self):
+        """Default project stage must yield Ajo, Krampus, and Juanita instances."""
         manager = self._make_manager()
         stage_path = os.path.join(
             LIBRARY_DIR, 'templates', 'Getting Started', 'Stages', 'the_nexus'
         )
         instances = manager._discover_stage_instances(stage_path)
 
-        assert len(instances) == 2
+        assert len(instances) == 3
         ids = {i['noodling_id'] for i in instances}
-        assert ids == {'ajo', 'yuki'}
+        assert ids == {'ajo', 'krampus', 'juanita'}
 
     def test_instance_names_from_overrides(self):
-        """Instance names must come from instance.yaml overrides."""
+        """Instance names must come from instance.yaml overrides (3 noodlings)."""
         manager = self._make_manager()
         stage_path = os.path.join(
             LIBRARY_DIR, 'templates', 'Getting Started', 'Stages', 'the_nexus'
@@ -62,7 +62,8 @@ class TestStageInstanceDiscovery:
         names = {i['noodling_id']: i['name'] for i in instances}
 
         assert names['ajo'] == 'Ajo Majo'
-        assert names['yuki'] == 'Yuki Cyberfox'
+        assert names['krampus'] == 'Krampus'
+        assert names['juanita'] == 'Juanita'
 
     def test_assembly_paths_resolve_to_real_files(self):
         """Each instance's assembly_path must point to a real, parseable file."""
@@ -123,14 +124,14 @@ class TestStageInstanceWithTmpProject:
             LIBRARY_DIR, 'templates', 'Getting Started',
             'Noodlings', 'ajo_majo', 'assembly.yaml'
         )
-        yuki_assembly = os.path.join(
+        krampus_assembly = os.path.join(
             LIBRARY_DIR, 'templates', 'Getting Started',
-            'Noodlings', 'yuki_cyberfox', 'assembly.yaml'
+            'Noodlings', 'krampus', 'assembly.yaml'
         )
 
         # Create noodling template dirs with symlinked assemblies
         noodlings_dir = tmp_path / 'Noodlings'
-        for name, src_assembly in [('alpha', ajo_assembly), ('beta', yuki_assembly)]:
+        for name, src_assembly in [('alpha', ajo_assembly), ('beta', krampus_assembly)]:
             noodling_dir = noodlings_dir / name
             noodling_dir.mkdir(parents=True)
             # Copy the assembly (not symlink, for portability)

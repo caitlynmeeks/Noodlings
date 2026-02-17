@@ -1,0 +1,6 @@
+noodling: ../../../../Noodlings/krampus
+overrides:
+  name: "Krampus"
+  position: [2, 0, 0]
+  zone: "main"
+created: "2026-02-17T00:00:00Z"
