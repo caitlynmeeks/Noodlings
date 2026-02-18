@@ -2,7 +2,7 @@
 
 AI assistant guidance for working with Noodlings Multi-Timescale Affective Agents.
 
-**Last Updated**: February 15, 2026
+**Last Updated**: February 18, 2026
 **Machine**: jiji (migrated from caledonia M3 Ultra, Feb 2026)
 
 ---
@@ -70,88 +70,89 @@ Handoff documents from the discuss session live in:
 
 | Date | File | Summary |
 |------|------|---------|
-| Feb 15 | `launch-ux-and-hierarchy-decoupling-2026-02-15.md` | **ACTIVE** - Hierarchy decoupling from server, console lazy connect, window title, self-contained templates (Unity model), Project Chooser dialog (Logic Pro model). 6 commits. |
-| Feb 15 | `infrastructure-repair-sprint-complete-2026-02-15.md` | **DONE** - All 11 infrastructure repair commits landed. 1438 tests, 0 failures. STOP LIST cleared. |
-| Feb 12 | `infrastructure-repair-and-stage-integration-handoff-2026-02-12.md` | **DONE** - Original handoff for the repair sprint (completed above) |
+| Feb 17 | `phase-d-new-characters-2026-02-17.md` | **ACTIVE** - Phase D: New characters, wiring fixes, test hardening, docs. D.1-D.2 done, D.3 done, D.4 in progress. |
+| Feb 17 | `phase-d1.5-ensemble-awareness-2026-02-17.md` | **DONE** - Ensemble awareness, CharmNetworkEMA, speaker spotlight, performance inspector. 7 commits. |
+| Feb 15 | `launch-ux-and-hierarchy-decoupling-2026-02-15.md` | **DONE** - Hierarchy decoupling, console lazy connect, self-contained templates. |
+| Feb 15 | `infrastructure-repair-sprint-complete-2026-02-15.md` | **DONE** - All 11 infrastructure repair commits landed. 1438 tests, 0 failures. |
 | Jan 14 | `visual-verification-spec.md` | Baseline comparison, SSIM diff, `assert_visual` action |
-| Jan 14 | `human-ui-test-plan.md` | Visual verification tests - what humans should SEE |
 
 **Read these when starting a session** - they contain context from Caity's discuss sessions.
 
 ---
 
-## RECENT: GPU Skeletal Skinning (Feb 6, 2026)
+## RECENT: Phase D — New Characters + Ensemble Awareness (Feb 16-18, 2026)
 
-VRM avatars now have GPU skeletal animation. The vertex shader blends up to 4 bone transforms per vertex. At rest pose, skinning matrices equal identity so the mesh renders identically to unskinned. When muscles are applied via `set_muscles()`, PoseRetargeter converts to bone rotations, hierarchy walk computes world transforms, and `skinMatrix[i] = worldTransform[i] * inverseBind[i]` is uploaded to the GPU.
+### D.1: Three-Noodling Ensemble
 
-**Skinning pipeline:**
-```
-set_muscles() -> PoseRetargeter -> bone euler rotations
-    -> BFS hierarchy walk -> world transforms
-    -> skinMatrix = world * inverseBind -> glUniformMatrix4fv -> GPU
-```
+Three characters perform together on a shared stage: **Ajo** (guide), **Krampus** (seven-year-old Alpine Krampus kid), **Juanita** (explorer from Lanzarote). Each has their own assembly (INCOMING → Response LLM + Mood Reader → Performance → OUTGOING), recipe, and VRM avatar.
 
-**Key changes:**
-- Vertex shader: `aBoneIndices` (ivec4), `aBoneWeights` (vec4), `uBoneMatrices[128]`
-- `_create_mesh_buffers()`: uploads joint indices (location 3) and weights (location 4)
-- `_compute_bone_matrices()`: BFS hierarchy, quat/euler math, world * inverse_bind
-- `_apply_pose()`: wired through PoseRetargeter
-- Raw ctypes `glUniformMatrix4fv` wrapper (PyOpenGL 3.14 workaround)
-- Inverse bind matrices stored on `Skeleton.inverse_bind_matrices`
+**Turn-taking:** User → Ajo → Krampus → Juanita → wait (round-robin from `_turn_queue`).
+
+**Ensemble window:** 3-slot layout (each VRM viewport 433px wide).
+
+### D.1.5: Ensemble Awareness
+
+Noodlings now perceive each other. Each sees the others' appearance and mood, shares conversation history, and knows their stage context.
+
+**CharmNetworkEMA** (`runtime/charm_network_ema.py`): 3-timescale affect smoothing:
+- Fast (alpha=0.7): moment-to-moment reactions
+- Medium (alpha=0.15): conversational mood
+- Slow (alpha=0.03): character baseline drift
+
+**Key additions:**
+- Perception context injected into LLM prompts (appearance, mood of others)
+- Speaker spotlight: active VRM full brightness, others dimmed
+- Performance facet inspector: typing speed + speaking intensity spinboxes
+- Charm network depth view in unified editor
 
 **Key files:**
 | File | Purpose |
 |------|---------|
-| `runtime/ui/components/vrm_viewport.py` | Skinning shader, bone matrix computation, VBO upload |
-| `core/semantic_world/vrm_parser.py` | Inverse bind matrix storage on Skeleton |
-| `tests/test_vrm_gpu_skinning.py` | 30 tests (math, hierarchy, skinning matrices, retargeter) |
+| `runtime/charm_network_ema.py` | CharmNetworkEMA class |
+| `tests/test_ensemble_awareness.py` | 35 tests |
+| `tests/test_charm_network_ema.py` | 30 tests |
 
-**Tests:** `tests/test_vrm_gpu_skinning.py` (30 tests)
+### D.2: Wiring Fixes
 
-**Launching Guide Performance Window (VRM preview):**
-```bash
-cd applications/noodlestudio
-../../venv/bin/python3 -m noodlestudio.main --no-splash --play "Title Here"
-```
-VRM auto-discovers from `noodlings/guide/Radiances/AjoMajo.vrm`. The `--play` flag opens the Guide Performance Window with the VRM character. There is no menu option to open it manually.
+- `noodlingSelected` signal wired from performance window to panels (D.2a)
+- `--ensemble` CLI uses stage instances instead of hardcoded paths (D.2b)
+- File > Close Project menu action (D.2c)
 
 ---
 
-## RECENT: VRM Texture Rendering + Idle Animation (Feb 6, 2026)
+## RECENT: Phase C — Unified Editor (Feb 15-16, 2026)
 
-VRM avatars now render with per-material textures and diffuse colors instead of the previous flat tan hardcoded color. Idle breathing animation gives the guide character life without requiring GPU skinning.
+The old monolithic FacetsEditorPanel (7 files, ~4K lines) was replaced by a **depth-stack based unified editor** with breadcrumb navigation and plugin-based depth views.
 
-**Rendering pipeline:**
+**Architecture:**
 ```
-All meshes -> sorted by material -> 1 combined VAO -> N draw calls (per material group)
-                                     each binds diffuse texture + sets diffuse color
-```
-
-**Idle animation:**
-```
-QTimer (60fps) -> _tick_idle -> _build_model_matrix -> repaint
-    Y position: bob (amplitude 0.01, period 4s)
-    Y scale: breathing pulse (amplitude 0.02, period 3.5s)
+UnifiedEditorPanel (stack shell)
+  └─ AssemblyEditorView (root: QGraphicsView, 8 mixins)
+       └─ push_view() → NeuralCanvasDepthView / CharmNetworkDepthView / ...
 ```
 
-**Key changes:**
-- Fragment shader: `uDiffuseTex` sampler, `uHasTexture` toggle, alpha cutout (`discard < 0.5`)
-- `_create_mesh_buffers()`: sorts meshes by material, tracks per-material draw groups
-- `_load_textures()`: decodes VRM texture bytes via QImage, uploads via raw ctypes (PyOpenGL 3.1.0 + Python 3.14 workaround)
-- `_draw_mesh()`: per-material loop with texture binding and cached uniform locations
-- `_build_model_matrix()`: two out-of-phase sine waves for natural idle motion
+**Depth navigation:** Double-click a container facet → pushes a depth view onto the stack. Backspace or breadcrumb click → pops back. Each view implements `DepthProtocol` (load_data, save_data, get_breadcrumb_label).
 
-**PyOpenGL workaround:** `glGenTextures` / `glBindTexture` / `glTexImage2D` use raw ctypes calls via the macOS OpenGL framework because PyOpenGL 3.1.0 + OpenGL_accelerate 3.1.10 has a broken array-type handler on Python 3.14 (CArgObject errors).
+**Plugin registry:** New container facet types register view classes without modifying core:
+```python
+UnifiedEditorPanel.register_depth_view("NeuralCanvasFacet", NeuralCanvasDepthView)
+UnifiedEditorPanel.register_depth_view("CharmNetworkEMA", CharmNetworkDepthView)
+```
+
+**Execution visualization:** Node pulsing, wire packet animations, sound effects. Events delivered synchronously on Qt main thread from GuidePerformanceManager.
 
 **Key files:**
 | File | Purpose |
 |------|---------|
-| `runtime/ui/components/vrm_viewport.py` | All rendering changes |
-| `tests/test_vrm_texture_rendering.py` | 21 tests (material groups, idle animation, fallback colors) |
+| `panels/editors/unified_editor_panel.py` | Stack shell, breadcrumb, signal forwarding |
+| `panels/editors/assembly_editor_view.py` | Root visual editor (8 mixins) |
+| `panels/editors/depth_protocol.py` | Interface for stackable views |
+| `panels/editors/assembly_execution_mixin.py` | Execution viz (pulsing, packets, sound) |
+| `panels/editors/assembly_ensemble_mixin.py` | Noodling selector for ensemble filtering |
+| `panels/editors/neural_canvas_depth_view.py` | NC adapter |
+| `panels/editors/charm_network_depth_view.py` | CharmNetworkEMA depth view |
 
-**Tests:** `tests/test_vrm_texture_rendering.py` (21 tests)
-
-**Future:** GPU skinning (per-bone matrices, inverse bind, weighted vertex transforms) remains a separate milestone.
+**Deleted (C.8):** `facets_editor_panel.py` and 6 related files — fully replaced.
 
 ---
 
@@ -342,7 +343,7 @@ These are deferred until the core infrastructure is solid and tested:
 - LLM streaming through assembly
 - Voice sounds (Animal Crossing style)
 - RAG-backed lore books per character
-- CharmNetwork → VRM affect pipeline
+- CharmNetworkEMA → VRM blend shape pipeline (EMA smoothing done; VRM wiring pending)
 
 ---
 
@@ -410,17 +411,20 @@ Visual node graphs defining how Noodlings think:
 ```
 INCOMING -> CHARM_NET -> CONTEXT_INTELLIGENCE -> Cognitive facets -> OUTGOING
 ```
+Edited via the **Unified Editor** (depth-stack panel with breadcrumb navigation). Container facets (Neural Canvas, CharmNetworkEMA) open as depth views.
 
 ### Ensemble Performance System
 
 ```
 GuidePerformanceManager
-  ├─ NoodlingPerformer (one per noodling, owns assembly + executor)
-  ├─ GuidePerformanceWindow (pure renderer: VRM viewports + dialogue)
-  └─ Turn-taking: User → Ajo → Yuki → wait
+  ├─ NoodlingPerformer (one per noodling, owns assembly + executor + CharmNetworkEMA)
+  ├─ GuidePerformanceWindow (pure renderer: 3-slot VRM viewports + dialogue)
+  ├─ Turn-taking: User → Ajo → Krampus → Juanita → wait (round-robin)
+  └─ Ensemble awareness: shared history, perception context, speaker spotlight
 
 Noodlings MUST be stage instances (Stages/{stage}/Instances/).
 Performance manager loads from stage, NOT hardcoded paths.
+--ensemble CLI flag starts ensemble from the current stage's instances.
 ```
 
 ### Component System
@@ -443,7 +447,7 @@ cd applications/noodlestudio
 # Smoke tests (run before EVERY commit)
 python -m pytest tests/test_smoke.py -v
 
-# Full suite (~1700 tests)
+# Full suite (~1881 tests)
 python -m pytest tests/ -v
 
 # By pattern
@@ -577,6 +581,17 @@ This is not a style preference. This was validated on Feb 9 2026 when a MagicMoc
 | **Scene Node/Graph** | `core/scene_node.py`, `core/scene_graph.py` |
 | **Smoke Tests** | `tests/test_smoke.py` |
 
+### Unified Editor
+| What | Where |
+|------|-------|
+| **Unified Editor Panel** | `panels/editors/unified_editor_panel.py` |
+| **Assembly Editor View** | `panels/editors/assembly_editor_view.py` |
+| **Depth Protocol** | `panels/editors/depth_protocol.py` |
+| **Execution Viz Mixin** | `panels/editors/assembly_execution_mixin.py` |
+| **Ensemble Mixin** | `panels/editors/assembly_ensemble_mixin.py` |
+| **NC Depth View** | `panels/editors/neural_canvas_depth_view.py` |
+| **Charm Depth View** | `panels/editors/charm_network_depth_view.py` |
+
 ### Performance & Cognition
 | What | Where |
 |------|-------|
@@ -585,7 +600,7 @@ This is not a style preference. This was validated on Feb 9 2026 when a MagicMoc
 | **Noodling Performer** | `runtime/ui/noodling_performer.py` |
 | **Performance Player** | `runtime/ui/performance_player.py` |
 | **Facet Executor** | `core/facet_executor.py` |
-| **Facet Editor** | `panels/facets_editor_panel.py` + mixins |
+| **CharmNetworkEMA** | `runtime/charm_network_ema.py` |
 | **LLM Client** | `runtime/llm_client.py` |
 
 ### World & Communication
@@ -617,6 +632,20 @@ This is not a style preference. This was validated on Feb 9 2026 when a MagicMoc
 ---
 
 ## Completed Systems (Jan-Feb 2026)
+
+**Feb 16-18 (Phase C + D):**
+- Unified Editor: depth-stack panel with breadcrumb navigation, plugin registry
+- AssemblyEditorView: 8-mixin composition (input, grid, layout, view ops, wire, clipboard, execution, ensemble)
+- Execution visualization: node pulsing, wire packet animations, sound effects
+- Neural Canvas and CharmNetworkEMA depth views
+- Three-noodling ensemble: Ajo, Krampus, Juanita on shared stage
+- CharmNetworkEMA: 3-timescale affect smoothing (fast/medium/slow)
+- Ensemble awareness: perception context, shared history, speaker spotlight
+- Performance facet inspector: typing speed + speaking intensity
+- Wiring fixes: noodlingSelected signal, --ensemble CLI from stage instances, Close Project
+- Old FacetsEditorPanel (7 files) fully deleted and replaced
+- Test hardening: QPushButton teardown race fix, __new__ bypass cleanup, splash timing fix
+- 1881 tests, 0 failures
 
 **Feb 6:**
 - VRM per-material texture rendering (diffuse textures + colors)
@@ -693,14 +722,15 @@ Before adding ANY new feature, verify:
 1. Server starts when toggled (smoke test)
 2. Inspector loads facet properties (smoke test)
 3. Default project opens with noodlings on stage (smoke test)
-4. Ensemble loads from stage instances, not hardcoded paths
+4. Ensemble loads from stage instances, not hardcoded paths (verified D.2b)
 5. All smoke tests pass
+6. Full suite passes (1881 tests, 0 failures as of Feb 18)
 
 If any of these fail, fix them FIRST. No new features on a broken foundation.
 
-Do not work on: Gaussian features, enterprise tier, quantum nodes, Museum of Minds, Windows/Linux builds, asset marketplace, new UI panels, multi-provider routing beyond what works now.
+Do not work on: Gaussian features, enterprise tier, quantum nodes, Museum of Minds, Windows/Linux builds, asset marketplace, multi-provider routing beyond what works now.
 
-**The question: "Are noodlings real stage instances? Are two noodlings talking on a real stage? No? Then not yet."**
+**Status (Feb 18):** All STOP LIST conditions currently pass. Three noodlings (Ajo, Krampus, Juanita) are real stage instances talking on a real stage.
 
 ---
 

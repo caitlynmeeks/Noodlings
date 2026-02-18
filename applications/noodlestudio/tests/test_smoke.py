@@ -44,22 +44,14 @@ class TestServerInfrastructure:
         """_cmush_dir() path must resolve to a real directory."""
         from noodlestudio.core.main_window_server_mixin import MainWindowServerMixin
 
-        class Stub(MainWindowServerMixin):
-            pass
-
-        stub = object.__new__(Stub)
-        path = stub._cmush_dir()
+        path = MainWindowServerMixin._cmush_dir()
         assert os.path.isdir(path), f"cmush dir does not exist: {path}"
 
     def test_start_sh_exists_and_is_executable(self):
         """start.sh must exist in the cmush directory and be executable."""
         from noodlestudio.core.main_window_server_mixin import MainWindowServerMixin
 
-        class Stub(MainWindowServerMixin):
-            pass
-
-        stub = object.__new__(Stub)
-        path = stub._cmush_dir()
+        path = MainWindowServerMixin._cmush_dir()
         start_sh = os.path.join(path, 'start.sh')
         assert os.path.isfile(start_sh), f"start.sh not found: {start_sh}"
         mode = os.stat(start_sh).st_mode

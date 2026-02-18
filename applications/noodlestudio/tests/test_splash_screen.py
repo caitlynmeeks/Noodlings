@@ -219,23 +219,21 @@ class TestSplashScreen:
     def test_skip_triggers_fade_out(self, qtbot):
         """Skip method triggers fade out."""
         from noodlestudio.widgets.splash_screen import SplashScreen
-        splash = SplashScreen()
+        from PyQt6.QtWidgets import QApplication
+        # Use zero-duration fade so animation completes in a single event
+        # loop tick (QPropertyAnimation stalls in degraded event loops
+        # after many prior tests have created/destroyed widgets).
+        splash = SplashScreen({'fade_out': 0.0})
         qtbot.addWidget(splash)
-
-        fade_out_signals = []
-        splash.fade_out_complete.connect(lambda: fade_out_signals.append(True))
 
         # Start showing
         splash.show()
         splash._opacity_effect.setOpacity(1.0)
 
-        # Skip
-        splash.skip()
-
-        # Wait for fade out
-        qtbot.waitUntil(lambda: len(fade_out_signals) > 0, timeout=2000)
-
-        assert len(fade_out_signals) == 1
+        # Skip and wait for the completion signal
+        with qtbot.waitSignal(splash.fade_out_complete, timeout=3000):
+            splash.skip()
+            QApplication.processEvents()
 
     def test_create_default_splash(self, qtbot):
         """create_default_splash returns valid splash."""

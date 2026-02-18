@@ -160,6 +160,13 @@ class APIKeySettingsWidget(QWidget):
         """)
         self._copy_btn.clicked.connect(self._copy_key)
         self._copy_btn.setEnabled(False)
+
+        # Timer for resetting copy button feedback (parented to self so it
+        # auto-destroys when the widget is deleted -- prevents accessing a
+        # deleted QPushButton if the timer fires during teardown).
+        self._copy_reset_timer = QTimer(self)
+        self._copy_reset_timer.setSingleShot(True)
+        self._copy_reset_timer.timeout.connect(self._reset_copy_button)
         copy_layout.addWidget(self._copy_btn)
         copy_layout.addStretch()
         key_layout.addLayout(copy_layout)
@@ -328,7 +335,6 @@ class APIKeySettingsWidget(QWidget):
             clipboard.setText(self._api_key)
 
             # Visual feedback
-            original_text = self._copy_btn.text()
             self._copy_btn.setText("Copied!")
             self._copy_btn.setStyleSheet("""
                 QPushButton {
@@ -341,11 +347,11 @@ class APIKeySettingsWidget(QWidget):
             """)
 
             # Reset after 2 seconds
-            QTimer.singleShot(2000, lambda: self._reset_copy_button(original_text))
+            self._copy_reset_timer.start(2000)
 
-    def _reset_copy_button(self, text: str):
+    def _reset_copy_button(self):
         """Reset copy button to original state."""
-        self._copy_btn.setText(text)
+        self._copy_btn.setText("Copy")
         self._copy_btn.setStyleSheet("""
             QPushButton {
                 background: #4a4a4a;
