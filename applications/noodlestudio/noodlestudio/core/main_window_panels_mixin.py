@@ -350,6 +350,9 @@ class MainWindowPanelsMixin:
 
         # Inspector connections
         self.inspector.nameChanged.connect(self._on_inspector_name_changed)
+        self.inspector.noodlingPropertyChanged.connect(
+            self._on_noodling_property_changed
+        )
 
         # Assets Panel connections
         self.assets.assetRenamed.connect(self._on_asset_renamed)

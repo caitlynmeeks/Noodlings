@@ -37,6 +37,7 @@
 # ──────────────────────────────────────────────────────────────
 
 import logging
+import os
 import time
 import uuid
 from pathlib import Path
@@ -300,8 +301,11 @@ class GuidePerformanceManager:
                 logger.warning(f"No assembly.yaml in {noodling_path}")
                 continue
 
-            # Display name from overrides, falling back to dir name
-            name = data.get('overrides', {}).get('name', instance_dir.name)
+            # Read instance overrides
+            overrides = data.get('overrides', {})
+            name = overrides.get('name', instance_dir.name)
+            ensemble_active = overrides.get('ensemble_active', True)
+            visible = overrides.get('visible', True)
 
             # Load noodling.yaml for VRM path and description
             vrm_path = None
@@ -316,6 +320,13 @@ class GuidePerformanceManager:
                     vrm_resolved = (noodling_path / vrm_ref).resolve()
                     if vrm_resolved.exists():
                         vrm_path = str(vrm_resolved)
+
+            # Instance-level VRM override takes priority
+            vrm_override = overrides.get('vrm_path', '')
+            if vrm_override:
+                vrm_resolved = (instance_dir / vrm_override).resolve()
+                if vrm_resolved.exists():
+                    vrm_path = str(vrm_resolved)
 
             # Load recipe.yaml for appearance and affect baseline
             appearance = None
@@ -354,6 +365,8 @@ class GuidePerformanceManager:
                 'description': description,
                 'appearance': appearance,
                 'affect_baseline': affect_baseline,
+                'ensemble_active': ensemble_active,
+                'visible': visible,
             })
 
         return results
@@ -470,6 +483,21 @@ class GuidePerformanceManager:
                 self._window.set_performer_name(
                     info['noodling_id'], info['name']
                 )
+
+        # Apply ensemble_active and visible from instance overrides
+        for info in instances:
+            nid = info['noodling_id']
+            # Pause performers that are not ensemble-active
+            if not info.get('ensemble_active', True):
+                performer = self._performers.get(nid)
+                if performer:
+                    performer.set_paused(True)
+            # Hide non-visible containers
+            if not info.get('visible', True) and ensemble:
+                slot = self._window._get_slot(nid)
+                container = self._window._vrm_containers.get(slot)
+                if container:
+                    container.setVisible(False)
 
         # Set up assembly editor
         try:
@@ -955,7 +983,10 @@ class GuidePerformanceManager:
             return
 
         self._turn_responses = {}
-        self._turn_queue = list(self._performers.keys())  # ['ajo', 'yuki']
+        # Only queue performers that are not paused (ensemble_active = ON)
+        self._turn_queue = [
+            nid for nid, p in self._performers.items() if not p.paused
+        ]
         self._pending_message = message
 
         # Record user message in shared ensemble history
@@ -1089,7 +1120,8 @@ class GuidePerformanceManager:
 
         nid = self._turn_queue.pop(0)
         performer = self._performers.get(nid)
-        if not performer:
+        if not performer or performer.paused:
+            # Skip missing or paused performers (ensemble_active = OFF)
             self._advance_ensemble_turn()
             return
 
@@ -1690,6 +1722,71 @@ class GuidePerformanceManager:
     def window(self):
         """The current GuidePerformanceWindow (or None)."""
         return self._window
+
+    # =========================================================================
+    # RUNTIME PROPERTY UPDATES (from Inspector)
+    # =========================================================================
+
+    def update_vrm(self, noodling_id: str, vrm_path: str):
+        """Hot-swap VRM for a noodling during active performance.
+
+        Args:
+            noodling_id: Instance directory name
+            vrm_path: Absolute path to new VRM file, or '' to clear
+        """
+        if not self._window:
+            return
+
+        if vrm_path and os.path.exists(vrm_path):
+            if self._ensemble_mode:
+                self._window.set_vrm(vrm_path, noodling_id=noodling_id)
+            else:
+                self._window.set_vrm(vrm_path)
+            logger.info(f"VRM swapped for {noodling_id}: {vrm_path}")
+        else:
+            logger.info(f"VRM cleared for {noodling_id}")
+
+    def set_ensemble_active(self, noodling_id: str, active: bool):
+        """Toggle ensemble participation for a noodling during performance.
+
+        When active=False, pauses the performer so it is skipped in
+        turn-taking. When active=True, resumes it.
+
+        Args:
+            noodling_id: Instance directory name
+            active: Whether to include in turn-taking
+        """
+        performer = self._performers.get(noodling_id)
+        if not performer:
+            return
+
+        performer.set_paused(not active)
+        logger.info(
+            f"Ensemble {'activated' if active else 'deactivated'} "
+            f"for {noodling_id}"
+        )
+
+    def set_visible(self, noodling_id: str, visible: bool):
+        """Toggle stage visibility for a noodling during performance.
+
+        Hides/shows the VRM viewport container. The performer remains
+        alive — an invisible noodling can still speak in the ensemble.
+
+        Args:
+            noodling_id: Instance directory name
+            visible: Whether to render VRM in performance window
+        """
+        if not self._window or not self._ensemble_mode:
+            return
+
+        slot = self._window._get_slot(noodling_id)
+        container = self._window._vrm_containers.get(slot)
+        if container:
+            container.setVisible(visible)
+            logger.info(
+                f"Visibility {'shown' if visible else 'hidden'} "
+                f"for {noodling_id} (slot={slot})"
+            )
 
     # =========================================================================
     # VRM DISCOVERY

@@ -232,6 +232,27 @@ class MainWindowSignalsMixin:
         if hasattr(self, 'hierarchy') and self.hierarchy:
             self.hierarchy.update_entity_name(entity_type, entity_id, new_name)
 
+    def _on_noodling_property_changed(self, agent_id: str, prop_name: str, value):
+        """Handle noodling property change from Inspector.
+
+        Routes to GuidePerformanceManager when a performance is active.
+        Properties are already persisted to instance.yaml by the inspector;
+        this method handles the runtime (live performance) side.
+        """
+        manager = getattr(self, 'guide_performance_manager', None)
+        if not manager or not manager.is_active:
+            return
+
+        # Strip agent_ prefix to get noodling_id (instance dir name)
+        noodling_id = agent_id.replace('agent_', '')
+
+        if prop_name == 'vrm_path':
+            manager.update_vrm(noodling_id, value)
+        elif prop_name == 'ensemble_active':
+            manager.set_ensemble_active(noodling_id, value)
+        elif prop_name == 'visible':
+            manager.set_visible(noodling_id, value)
+
     def _on_asset_renamed(self, asset_type: str, asset_id: str, new_name: str):
         """Handle name change in Assets Panel."""
         print(f"[MainWindow] Asset renamed: {asset_type}/{asset_id} -> {new_name}")
