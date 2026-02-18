@@ -84,7 +84,7 @@ def parse_args():
     parser.add_argument(
         '--ensemble',
         action='store_true',
-        help='Launch ensemble mode with Ajo and Yuki on a shared stage'
+        help='Launch ensemble mode from current stage instances'
     )
 
     parser.add_argument(
@@ -463,14 +463,28 @@ def main():
     # Launch ensemble if specified via CLI
     if args.ensemble:
         def launch_ensemble():
-            """Launch ensemble mode with Ajo and Yuki."""
+            """Launch ensemble from the current stage's instances."""
             manager = getattr(window, 'guide_performance_manager', None)
             if not manager:
                 print("[CLI] Warning: GuidePerformanceManager not found, retrying in 2s...", flush=True)
                 QTimer.singleShot(2000, launch_ensemble)
                 return
 
-            print("[CLI] Launching ensemble: Ajo + Yuki", flush=True)
+            # Discover stage path from project
+            hierarchy = getattr(window, 'hierarchy', None)
+            pm = getattr(window, 'project_manager', None)
+            stage_name = getattr(hierarchy, 'current_stage', None) if hierarchy else None
+
+            if pm and stage_name:
+                stage_path = pm.get_stage_path(stage_name)
+                if stage_path:
+                    print(f"[CLI] Launching ensemble from stage: {stage_name}", flush=True)
+                    manager.start_ensemble_from_stage(stage_path, f"Ensemble: {stage_name}")
+                    print("[CLI] Ensemble window active", flush=True)
+                    return
+
+            # Fallback to hardcoded ensemble if stage not found
+            print("[CLI] No stage found, falling back to hardcoded ensemble", flush=True)
             manager.start_ensemble("Ensemble: Ajo + Yuki")
             print("[CLI] Ensemble window active", flush=True)
 
