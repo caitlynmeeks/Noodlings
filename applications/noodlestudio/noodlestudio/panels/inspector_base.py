@@ -261,6 +261,30 @@ class InspectorBaseMixin:
         group.content.layout().addRow(f"{label}:", combo)
         return combo
 
+    def add_checkbox_field(self, group: QGroupBox, label: str, checked: bool, on_change=None):
+        """Add a checkbox field to a property group.
+
+        Args:
+            group: CollapsibleSection to add to
+            label: Label text (e.g. "Ensemble Active")
+            checked: Initial checked state
+            on_change: Optional callback(bool) on state change
+
+        Returns:
+            QCheckBox widget
+        """
+        checkbox = QCheckBox()
+        checkbox.setChecked(checked)
+        checkbox.setStyleSheet("QCheckBox { color: #D2D2D2; }")
+
+        if on_change:
+            checkbox.stateChanged.connect(
+                lambda state: on_change(state == Qt.CheckState.Checked.value)
+            )
+
+        group.content.layout().addRow(f"{label}:", checkbox)
+        return checkbox
+
     def add_slider_field(self, group: QGroupBox, label: str, value: float, min_val: float, max_val: float):
         """Add a slider with value display."""
         from PyQt6.QtWidgets import QSlider

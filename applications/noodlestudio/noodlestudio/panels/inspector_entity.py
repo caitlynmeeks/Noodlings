@@ -100,6 +100,30 @@ class EntityInspectorMixin:
         description = recipe_data.get('description', agent.get('description', 'An empty noodling...'))
         self.property_fields['description'] = self.add_text_area(basics_group, "Description", description)
 
+        # ===== VRM MODEL (dropdown) =====
+        vrm_items = self._discover_vrm_for_dropdown()
+        vrm_options = ['(None)'] + [item['name'] for item in vrm_items]
+        current_vrm = self._get_current_vrm_name(entity_data, vrm_items)
+
+        self.property_fields['vrm_model'] = self.add_dropdown_field(
+            basics_group, "VRM Model", current_vrm, vrm_options,
+            on_change=lambda name: self._on_vrm_changed(name, entity_data, vrm_items)
+        )
+
+        # ===== ENSEMBLE ACTIVE (checkbox) =====
+        ensemble_active = self._get_instance_override(entity_data, 'ensemble_active', False)
+        self.property_fields['ensemble_active'] = self.add_checkbox_field(
+            basics_group, "Ensemble Active", ensemble_active,
+            on_change=lambda checked: self._on_ensemble_active_changed(checked, entity_data)
+        )
+
+        # ===== VISIBLE ON STAGE (checkbox) =====
+        visible = self._get_instance_override(entity_data, 'visible', True)
+        self.property_fields['visible'] = self.add_checkbox_field(
+            basics_group, "Visible on Stage", visible,
+            on_change=lambda checked: self._on_visible_changed(checked, entity_data)
+        )
+
         self.properties_layout.addWidget(basics_group)
 
         # NOTE: Affect Baseline removed from inspector -- affect is computed
@@ -144,6 +168,142 @@ class EntityInspectorMixin:
             print(f"[Inspector] Error loading recipe: {e}")
 
         return recipe_data
+
+    # ========== VRM / ENSEMBLE / VISIBILITY HELPERS ==========
+
+    def _discover_vrm_for_dropdown(self) -> list:
+        """Get VRM file list for the dropdown.
+
+        Uses vrm_discovery.discover_vrm_files() with the current project root.
+        """
+        from noodlestudio.core.vrm_discovery import discover_vrm_files
+        project_root = self._get_project_root()
+        return discover_vrm_files(project_root)
+
+    def _get_project_root(self) -> str:
+        """Get current project root path from main window's project manager."""
+        try:
+            main_window = self.window()
+            if hasattr(main_window, 'project_manager'):
+                pm = main_window.project_manager
+                if pm and hasattr(pm, 'current_project_path'):
+                    return pm.current_project_path
+        except Exception:
+            pass
+        return None
+
+    def _get_current_vrm_name(self, entity_data: dict, vrm_items: list) -> str:
+        """Resolve current VRM display name from instance or template.
+
+        Checks instance override 'vrm_path' first (absolute or relative),
+        then falls back to the template noodling.yaml vrm_path.
+        Matches against vrm_items to find the display name.
+        """
+        instance_path = entity_data.get('path', '')
+
+        # Check instance override first
+        vrm_override = self._get_instance_override(entity_data, 'vrm_path', '')
+        if vrm_override and instance_path:
+            abs_vrm = os.path.normpath(os.path.join(instance_path, vrm_override))
+            for item in vrm_items:
+                if os.path.normpath(item['path']) == abs_vrm:
+                    return item['name']
+
+        # Fall back to noodling template's vrm_path
+        noodling_ref = entity_data.get('noodling_ref', '')
+        if noodling_ref and instance_path:
+            noodling_dir = os.path.normpath(os.path.join(instance_path, noodling_ref))
+            noodling_yaml = os.path.join(noodling_dir, 'noodling.yaml')
+            if os.path.exists(noodling_yaml):
+                try:
+                    with open(noodling_yaml) as f:
+                        data = yaml.safe_load(f) or {}
+                    vrm_ref = data.get('vrm_path', '')
+                    if vrm_ref:
+                        abs_vrm = os.path.normpath(os.path.join(noodling_dir, vrm_ref))
+                        for item in vrm_items:
+                            if os.path.normpath(item['path']) == abs_vrm:
+                                return item['name']
+                except Exception:
+                    pass
+
+        return '(None)'
+
+    def _get_instance_override(self, entity_data: dict, key: str, default):
+        """Read a value from instance.yaml overrides."""
+        data = entity_data.get('data', {})
+        overrides = data.get('overrides', {})
+        return overrides.get(key, default)
+
+    def _on_vrm_changed(self, vrm_name: str, entity_data: dict, vrm_items: list):
+        """Handle VRM dropdown change."""
+        if self.is_loading:
+            return
+        instance_path = entity_data.get('path', '')
+        if not instance_path:
+            return
+
+        if vrm_name == '(None)':
+            vrm_rel_path = ''
+            abs_vrm_path = ''
+        else:
+            # Find the selected VRM item
+            selected = next((item for item in vrm_items if item['name'] == vrm_name), None)
+            if not selected:
+                return
+            # Store relative path from instance directory to VRM
+            vrm_rel_path = os.path.relpath(selected['path'], instance_path)
+            abs_vrm_path = selected['path']
+
+        self._save_instance_override(instance_path, 'vrm_path', vrm_rel_path)
+        # Signal for runtime wiring
+        agent_id = entity_data.get('id', '')
+        if hasattr(self, 'noodlingPropertyChanged'):
+            self.noodlingPropertyChanged.emit(agent_id, 'vrm_path', abs_vrm_path)
+
+    def _on_ensemble_active_changed(self, checked: bool, entity_data: dict):
+        """Handle ensemble active checkbox change."""
+        if self.is_loading:
+            return
+        instance_path = entity_data.get('path', '')
+        if instance_path:
+            self._save_instance_override(instance_path, 'ensemble_active', checked)
+            agent_id = entity_data.get('id', '')
+            if hasattr(self, 'noodlingPropertyChanged'):
+                self.noodlingPropertyChanged.emit(agent_id, 'ensemble_active', checked)
+
+    def _on_visible_changed(self, checked: bool, entity_data: dict):
+        """Handle visible on stage checkbox change."""
+        if self.is_loading:
+            return
+        instance_path = entity_data.get('path', '')
+        if instance_path:
+            self._save_instance_override(instance_path, 'visible', checked)
+            agent_id = entity_data.get('id', '')
+            if hasattr(self, 'noodlingPropertyChanged'):
+                self.noodlingPropertyChanged.emit(agent_id, 'visible', checked)
+
+    def _save_instance_override(self, instance_path: str, key: str, value):
+        """Write a single override to instance.yaml (read-modify-write)."""
+        inst_yaml = os.path.join(instance_path, 'instance.yaml')
+        if not os.path.exists(inst_yaml):
+            return
+
+        try:
+            with open(inst_yaml, 'r') as f:
+                inst_data = yaml.safe_load(f) or {}
+
+            if 'overrides' not in inst_data:
+                inst_data['overrides'] = {}
+            inst_data['overrides'][key] = value
+
+            with open(inst_yaml, 'w') as f:
+                yaml.dump(inst_data, f, default_flow_style=False)
+
+            print(f"[Inspector] Saved override {key} to instance: {inst_yaml}")
+
+        except Exception as e:
+            print(f"[Inspector] Error saving override to instance: {e}")
 
     # ========== ZONE PROPERTIES ==========
 

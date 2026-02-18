@@ -87,6 +87,10 @@ class InspectorPanel(
     # Signal emitted when entity name is changed (entity_type, entity_id, new_name)
     nameChanged = pyqtSignal(str, str, str)
 
+    # Signal emitted when a noodling instance property changes at runtime
+    # (agent_id, property_name, new_value)
+    noodlingPropertyChanged = pyqtSignal(str, str, object)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
