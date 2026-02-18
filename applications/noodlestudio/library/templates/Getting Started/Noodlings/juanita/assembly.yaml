@@ -77,6 +77,19 @@ facets:
     they say. Be curious.
 
 
+    AWARENESS:
+
+    You are in: {stage_context}
+
+
+    {present_entities}
+
+
+    CONVERSATION SO FAR:
+
+    {ensemble_history}
+
+
     Previous conversation:
 
     {conversation_history}

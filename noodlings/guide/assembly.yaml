@@ -102,6 +102,19 @@ facets:
     should be rare and light -- a flicker, not a monologue.
 
 
+    AWARENESS:
+
+    You are in: {stage_context}
+
+
+    {present_entities}
+
+
+    CONVERSATION SO FAR:
+
+    {ensemble_history}
+
+
     Previous conversation:
 
     {conversation_history}

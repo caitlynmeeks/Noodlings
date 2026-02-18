@@ -976,6 +976,96 @@ class GuidePerformanceManager:
             lines.append(f"{msg['role']}: {msg['content']}")
         return "\n".join(lines)
 
+    def _format_present_entities(self, exclude_nid: str) -> str:
+        """
+        Format descriptions of other noodlings for awareness injection.
+
+        Builds a prose block like:
+            Also here with you:
+            - Ajo Majo: A small chibi axolotl... Currently seems happy and energetic.
+            - Krampus: A seven-year-old boy... Currently seems determined.
+
+        Args:
+            exclude_nid: Noodling ID to exclude (you don't describe yourself)
+
+        Returns:
+            Formatted entity descriptions, or empty string if alone
+        """
+        lines = []
+        for nid, meta in self._instance_metadata.items():
+            if nid == exclude_nid:
+                continue
+
+            name = meta.get('name', nid)
+            # Prefer appearance (richer prose), fall back to description
+            desc = meta.get('appearance') or meta.get('description') or ''
+
+            # Append current mood if available
+            performer = self._performers.get(nid)
+            mood_str = ''
+            if performer and performer.last_affect:
+                mood_str = self._describe_affect(performer.last_affect)
+
+            if desc and mood_str:
+                lines.append(f"- {name}: {desc} Currently seems {mood_str}.")
+            elif desc:
+                lines.append(f"- {name}: {desc}")
+            elif mood_str:
+                lines.append(f"- {name}: Currently seems {mood_str}.")
+            else:
+                lines.append(f"- {name}")
+
+        if not lines:
+            return ""
+        return "Also here with you:\n" + "\n".join(lines)
+
+    @staticmethod
+    def _describe_affect(pad: Dict) -> str:
+        """
+        Convert PAD values to a brief natural-language mood description.
+
+        Args:
+            pad: Dict with valence, arousal, dominance (0..1 range from
+                 current Mood Reader; will shift to -1..1 valence in Part 2)
+
+        Returns:
+            Brief mood phrase (e.g. "happy and energetic")
+        """
+        valence = pad.get('valence', 0.5)
+        arousal = pad.get('arousal', 0.5)
+        dominance = pad.get('dominance', 0.5)
+
+        # Valence descriptor
+        if valence > 0.7:
+            v_word = 'happy'
+        elif valence > 0.55:
+            v_word = 'pleasant'
+        elif valence > 0.4:
+            v_word = 'neutral'
+        elif valence > 0.25:
+            v_word = 'subdued'
+        else:
+            v_word = 'unhappy'
+
+        # Arousal descriptor
+        if arousal > 0.7:
+            a_word = 'energetic'
+        elif arousal > 0.5:
+            a_word = 'engaged'
+        elif arousal > 0.3:
+            a_word = 'calm'
+        else:
+            a_word = 'quiet'
+
+        # Dominance modifier (only if notably high or low)
+        d_mod = ''
+        if dominance > 0.7:
+            d_mod = ' and confident'
+        elif dominance < 0.3:
+            d_mod = ' and uncertain'
+
+        return f"{v_word} and {a_word}{d_mod}"
+
     def _advance_ensemble_turn(self):
         """Advance to the next noodling in the turn sequence."""
         if not self._turn_queue:
@@ -1002,21 +1092,31 @@ class GuidePerformanceManager:
         self._current_execution_id = str(uuid.uuid4())[:8]
         self._emit_execution_start_events()
 
-        # Build extra context
-        extra_context = {}
+        # Build rich perception context
+        extra_context = {
+            'stage_context': self._stage_description or '',
+            'present_entities': self._format_present_entities(nid),
+            'ensemble_history': self._format_ensemble_history(),
+            'conversation_history': self._format_ensemble_history(),
+        }
+
         if self._guide_cue_handler:
             direction = self._guide_cue_handler.build_system_prompt_addition()
             if direction:
                 extra_context['brenda_direction'] = direction
 
-        # Include previous noodlings' responses
+        # Include previous noodlings' responses from this round
         for prev_nid, response in self._turn_responses.items():
             extra_context[f'{prev_nid}_said'] = response
 
-        performer.execute(
-            self._pending_message,
-            extra_context if extra_context else None
-        )
+        # Add mood cross-pollination (other noodlings' affect state)
+        for other_nid, other_performer in self._performers.items():
+            if other_nid != nid and other_performer.last_affect:
+                extra_context[f'{other_nid}_mood'] = self._describe_affect(
+                    other_performer.last_affect
+                )
+
+        performer.execute(self._pending_message, extra_context)
 
     def _on_ensemble_turn_finished(self, noodling_id: str):
         """
