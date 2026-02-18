@@ -52,9 +52,9 @@ class TestAssemblyStructure:
         assert assembly is not None
         assert assembly.name == "Guide Assembly"
 
-    def test_has_five_facets(self, assembly):
-        """Assembly has exactly 5 facets (incoming, response, sentiment, performance, outgoing)."""
-        assert len(assembly.facets) == 5
+    def test_has_six_facets(self, assembly):
+        """Assembly has 6 facets (incoming, response, sentiment, charm, performance, outgoing)."""
+        assert len(assembly.facets) == 6
 
     def test_has_incoming_facet(self, assembly):
         """Assembly has an INCOMING entry point."""
@@ -76,9 +76,9 @@ class TestAssemblyStructure:
         facet_ids = [f.id for f in assembly.facets]
         assert "outgoing" in facet_ids
 
-    def test_has_five_connections(self, assembly):
-        """Assembly has 5 connections (parallel fan-out + performance chain)."""
-        assert len(assembly.connections) == 5
+    def test_has_six_connections(self, assembly):
+        """Assembly has 6 connections (fan-out + charm network + performance chain)."""
+        assert len(assembly.connections) == 6
 
     def test_response_uses_large_model(self, assembly):
         """Response facet uses LARGE model label."""
@@ -102,7 +102,7 @@ class TestAssemblyStructure:
         assert "sentiment.in" in targets
 
     def test_outgoing_receives_both(self, assembly):
-        """Outgoing receives from performance (text) and sentiment (affect)."""
+        """Outgoing receives from performance (text) and charm (affect)."""
         to_outgoing = [
             c for c in assembly.connections
             if c.to_facet == "outgoing"
@@ -110,7 +110,7 @@ class TestAssemblyStructure:
         assert len(to_outgoing) == 2
         sources = {f"{c.from_facet}.{c.from_pad}" for c in to_outgoing}
         assert "performance.out" in sources
-        assert "sentiment.out" in sources
+        assert "charm.out" in sources
 
     def test_has_performance_facet(self, assembly):
         """Assembly has a Performance ScriptedFacet."""

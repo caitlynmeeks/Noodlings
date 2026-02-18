@@ -692,24 +692,25 @@ class TestDedicatedFacetInspector:
         assert path_found, "Must show NNCanvas path field"
 
     def test_charm_network_facet_section(self, qapp):
-        """CharmNetworkFacet must show info label."""
+        """CharmNetworkFacet must show EMA baseline section."""
         from noodlestudio.panels.inspector_panel import InspectorPanel
         from noodlestudio.core.facet_system import Facet
-        from PyQt6.QtWidgets import QLabel
+        from noodlestudio.widgets.collapsible_section import CollapsibleSection
 
         panel = InspectorPanel(None)
         facet = Facet(
             id="test_charm",
             name="Charm Network",
             facet_type="CharmNetworkFacet",
-            prompt=""
+            prompt="valence:0.5,arousal:0.5,dominance:0.5"
         )
 
         panel.load_facet(facet)
 
-        labels = panel.properties_widget.findChildren(QLabel)
-        info_found = any("affect model" in lbl.text().lower() for lbl in labels)
-        assert info_found, "Must show charm network info label"
+        sections = panel.properties_widget.findChildren(CollapsibleSection)
+        section_titles = [s.title_text for s in sections]
+        assert "Charm Network" in section_titles, \
+            "Must show Charm Network section"
 
 
 # =====================================================================
