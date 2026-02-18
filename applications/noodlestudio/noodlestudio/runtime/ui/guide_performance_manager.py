@@ -1025,24 +1025,23 @@ class GuidePerformanceManager:
         Convert PAD values to a brief natural-language mood description.
 
         Args:
-            pad: Dict with valence, arousal, dominance (0..1 range from
-                 current Mood Reader; will shift to -1..1 valence in Part 2)
+            pad: Dict with valence (-1..1), arousal (0..1), dominance (0..1)
 
         Returns:
             Brief mood phrase (e.g. "happy and energetic")
         """
-        valence = pad.get('valence', 0.5)
+        valence = pad.get('valence', 0.0)
         arousal = pad.get('arousal', 0.5)
         dominance = pad.get('dominance', 0.5)
 
-        # Valence descriptor
-        if valence > 0.7:
+        # Valence descriptor (-1..1 range)
+        if valence > 0.4:
             v_word = 'happy'
-        elif valence > 0.55:
+        elif valence > 0.1:
             v_word = 'pleasant'
-        elif valence > 0.4:
+        elif valence > -0.1:
             v_word = 'neutral'
-        elif valence > 0.25:
+        elif valence > -0.4:
             v_word = 'subdued'
         else:
             v_word = 'unhappy'

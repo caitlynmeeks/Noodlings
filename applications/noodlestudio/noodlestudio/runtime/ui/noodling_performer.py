@@ -579,10 +579,10 @@ class NoodlingPerformer(QObject):
 
         mapper = FACSMapper()
         affect_state = Affect(
-            valence=valence * 2 - 1,  # Remap 0..1 to -1..1 for FACSMapper
+            valence=valence,  # Mood Reader outputs -1..1 natively
             arousal=arousal,
             dominance=dominance,
-            sorrow=max(0.0, (1.0 - valence) * 0.5),
+            sorrow=max(0.0, -valence * 0.5),   # Derived from negative valence
             boredom=max(0.0, (1.0 - arousal) * 0.3)
         )
 

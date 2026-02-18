@@ -43,6 +43,7 @@ import logging
 from .facet_system import Facet, FacetAssembly, FacetConnection
 from ..runtime.channels import ChannelMessage, ChannelBus
 from .charm_network_facet import CharmNetworkFacet, CharmNetworkOutput
+from ..runtime.charm_network_ema import CharmNetworkEMA
 from .neural_canvas_facet import NeuralCanvasFacet
 from .scripted_facet import ScriptedFacet, ScriptContext
 from .transformer_facet import TransformerFacet, TransformerOutput
@@ -371,6 +372,24 @@ class FacetExecutor:
                 self.singleton_facets['charm_network'] = CharmNetworkFacet(checkpoint_path)
                 logger.info("[FacetExecutor] Created singleton CharmNetworkFacet")
             return self.singleton_facets['charm_network']
+
+        elif facet.facet_type == "CharmNetworkEMA":
+            # Singleton: Multi-timescale EMA affect (stateful across turns)
+            key = f"charm_ema_{facet.id}"
+            if key not in self.singleton_facets:
+                # Parse baseline from facet prompt (YAML: "valence:0.7,arousal:0.5,dominance:0.4")
+                baseline = {'valence': 0.0, 'arousal': 0.5, 'dominance': 0.5}
+                if facet.prompt:
+                    for part in facet.prompt.split(','):
+                        if ':' in part:
+                            k, v = part.strip().split(':', 1)
+                            try:
+                                baseline[k.strip()] = float(v.strip())
+                            except ValueError:
+                                pass
+                self.singleton_facets[key] = CharmNetworkEMA(baseline)
+                logger.info(f"[FacetExecutor] Created singleton CharmNetworkEMA: {facet.id} (baseline={baseline})")
+            return self.singleton_facets[key]
 
         elif facet.facet_type == "NeuralCanvasFacet":
             # Singleton: Loads .nncanvas file and executes NeuralGraph
@@ -796,7 +815,7 @@ class FacetExecutor:
             return "INCOMING"
         elif facet_name == "OUTGOING":
             return "OUTGOING"
-        elif facet_type == "CharmNetworkFacet":
+        elif facet_type in ("CharmNetworkFacet", "CharmNetworkEMA"):
             return "NEURAL"
         elif facet_type == "TransformerFacet":
             return "NEURAL"  # Also neural computation
@@ -869,6 +888,28 @@ class FacetExecutor:
         if facet.facet_type in ("SpecialNode", "INCOMING", "OUTGOING"):
             # INCOMING/OUTGOING - just pass through
             outputs = {'out': inputs.get('in', inputs)}
+            token_count = 0
+
+        elif facet.facet_type == "CharmNetworkEMA":
+            # EMA charm network: multi-timescale affect smoothing
+            # Input: 3-D PAD JSON string from Mood Reader (via 'in' pad)
+            import json as _json
+            pad_input = inputs.get('in', inputs.get('affect_in', ''))
+
+            # Parse PAD from JSON string or dict
+            if isinstance(pad_input, str):
+                try:
+                    pad_input = _json.loads(pad_input)
+                except (ValueError, TypeError):
+                    pad_input = {}
+            if not isinstance(pad_input, dict):
+                pad_input = {}
+
+            # Run EMA update
+            blended = instance.update(pad_input)
+
+            # Output as JSON string (for OUTGOING.affect consumption)
+            outputs = {'out': _json.dumps(blended)}
             token_count = 0
 
         elif facet.facet_type == "CharmNetworkFacet":

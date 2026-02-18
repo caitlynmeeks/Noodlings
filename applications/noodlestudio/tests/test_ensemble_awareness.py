@@ -211,9 +211,9 @@ class TestMoodCrossPollination:
         """After Ajo's turn sets affect, Krampus should see Ajo's mood."""
         manager = _make_ensemble_manager()
 
-        # Simulate Ajo having responded with a mood
+        # Simulate Ajo having responded with a mood (-1..1 valence)
         manager._performers['ajo']._last_pad_values = {
-            'valence': 0.8, 'arousal': 0.7, 'dominance': 0.5
+            'valence': 0.6, 'arousal': 0.7, 'dominance': 0.5
         }
 
         manager._turn_queue = ['krampus']
@@ -232,7 +232,7 @@ class TestMoodCrossPollination:
         """A noodling's own mood must NOT be in its context."""
         manager = _make_ensemble_manager()
         manager._performers['ajo']._last_pad_values = {
-            'valence': 0.8, 'arousal': 0.7, 'dominance': 0.5
+            'valence': 0.6, 'arousal': 0.7, 'dominance': 0.5
         }
 
         manager._turn_queue = ['ajo']
@@ -249,7 +249,7 @@ class TestMoodCrossPollination:
         """present_entities must include mood phrasing when affect is available."""
         manager = _make_ensemble_manager()
         manager._performers['krampus']._last_pad_values = {
-            'valence': 0.8, 'arousal': 0.8, 'dominance': 0.5
+            'valence': 0.6, 'arousal': 0.8, 'dominance': 0.5
         }
 
         manager._turn_queue = ['ajo']
@@ -316,7 +316,7 @@ class TestDescribeAffect:
             GuidePerformanceManager,
         )
         result = GuidePerformanceManager._describe_affect(
-            {'valence': 0.8, 'arousal': 0.8, 'dominance': 0.5}
+            {'valence': 0.7, 'arousal': 0.8, 'dominance': 0.5}
         )
         assert 'happy' in result
         assert 'energetic' in result
@@ -326,7 +326,7 @@ class TestDescribeAffect:
             GuidePerformanceManager,
         )
         result = GuidePerformanceManager._describe_affect(
-            {'valence': 0.1, 'arousal': 0.1, 'dominance': 0.5}
+            {'valence': -0.7, 'arousal': 0.1, 'dominance': 0.5}
         )
         assert 'unhappy' in result
         assert 'quiet' in result
@@ -336,7 +336,7 @@ class TestDescribeAffect:
             GuidePerformanceManager,
         )
         result = GuidePerformanceManager._describe_affect(
-            {'valence': 0.5, 'arousal': 0.5, 'dominance': 0.9}
+            {'valence': 0.0, 'arousal': 0.5, 'dominance': 0.9}
         )
         assert 'confident' in result
 
@@ -345,7 +345,7 @@ class TestDescribeAffect:
             GuidePerformanceManager,
         )
         result = GuidePerformanceManager._describe_affect(
-            {'valence': 0.5, 'arousal': 0.5, 'dominance': 0.1}
+            {'valence': 0.0, 'arousal': 0.5, 'dominance': 0.1}
         )
         assert 'uncertain' in result
 
