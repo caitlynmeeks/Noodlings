@@ -767,7 +767,10 @@ class TestNoAffectBaselineInNoodlingInspector:
         )
 
     def test_no_facet_dropdown_in_noodling_inspector(self, qapp, tmp_path):
-        """Noodling inspector must not contain a facet dropdown."""
+        """Noodling inspector must not contain a facet dropdown.
+
+        The only QComboBox allowed is the VRM Model dropdown (Phase F).
+        """
         from noodlestudio.panels.inspector_panel import InspectorPanel
         from PyQt6.QtWidgets import QComboBox
 
@@ -784,11 +787,16 @@ class TestNoAffectBaselineInNoodlingInspector:
         panel = InspectorPanel(None)
         panel.load_entity('noodling', entity_data)
 
-        # No QComboBox should exist in the noodling inspector
+        # Exactly 1 QComboBox (the VRM Model dropdown from Phase F)
         combos = panel.properties_widget.findChildren(QComboBox)
-        assert len(combos) == 0, (
-            f"Noodling inspector must not contain a facet dropdown. "
+        assert len(combos) == 1, (
+            f"Noodling inspector should have exactly 1 QComboBox (VRM Model). "
             f"Found {len(combos)} QComboBox(es)"
+        )
+        # Verify it's the VRM dropdown, not a facet dropdown
+        vrm_combo = combos[0]
+        assert vrm_combo.findText('(None)') >= 0, (
+            "The QComboBox should be the VRM Model dropdown with '(None)' option"
         )
 
     def test_noodling_inspector_still_shows_basics(self, qapp, tmp_path):

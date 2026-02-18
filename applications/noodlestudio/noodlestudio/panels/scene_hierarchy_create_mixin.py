@@ -203,6 +203,8 @@ class SceneHierarchyCreateMixin:
                 'zone': 'default',
                 'position': [0, 0, 0],
                 'rotation': [0, 0, 0],
+                'ensemble_active': False,  # Not in conversation until user enables
+                'visible': True,           # Show on stage (name card if no VRM)
             }
         }
 
