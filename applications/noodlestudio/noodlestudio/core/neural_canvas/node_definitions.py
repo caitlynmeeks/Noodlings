@@ -798,6 +798,129 @@ PARAMS:
         'icon': '🎭'
     },
 
+    # ------------------------------------------------------------------
+    # Affect processing (EMA charm network building blocks)
+    # ------------------------------------------------------------------
+
+    NodeType.EMA_FILTER: {
+        'name': 'EMA Filter',
+        'description': 'Exponential moving average filter for affect smoothing',
+        'how_it_works': '''EMA FILTER - Temporal Affect Smoothing
+
+An exponential moving average (EMA) smooths noisy affect signals
+over time. The alpha parameter controls how reactive the filter is:
+
+  smoothed = alpha * new_input + (1 - alpha) * previous_smoothed
+
+HIGH ALPHA (e.g. 0.7 "Fast"):
+  Tracks rapid changes. A sudden laugh immediately shifts the output.
+  Responds within 1-2 conversational turns.
+
+LOW ALPHA (e.g. 0.03 "Slow"):
+  Nearly inert. Captures the long-term emotional baseline.
+  Takes dozens of turns to shift significantly.
+
+The CharmNetwork EMA uses three timescales in parallel:
+  Fast (0.7)   -- moment-to-moment reactions
+  Medium (0.15) -- conversational mood
+  Slow (0.03)  -- session-level drift
+
+PARAMS:
+- alpha: Smoothing factor (0 = frozen, 1 = no smoothing)
+- label: Human-readable timescale name''',
+        'params': {
+            'alpha': 0.7,
+            'label': 'Fast'
+        },
+        'inputs': {
+            'affect_in': Port('affect_in', DataType.AFFECT, shape=(3,), label='PAD (3-D)')
+        },
+        'outputs': {
+            'affect_out': Port('affect_out', DataType.AFFECT, shape=(3,), label='Smoothed PAD')
+        },
+        'weights': {},
+        'color': '#5A5A5A',  # Lighter gray (fast timescale)
+        'icon': '~'
+    },
+
+    NodeType.WEIGHTED_BLEND: {
+        'name': 'Weighted Blend',
+        'description': 'Combine multiple affect signals with weighted average',
+        'how_it_works': '''WEIGHTED BLEND - Multi-Timescale Fusion
+
+Combines affect signals from multiple timescales into a single
+output using weighted averaging.
+
+DEFAULT WEIGHTS:
+  Fast:   0.5 (50%) -- immediate reactions dominate
+  Medium: 0.3 (30%) -- conversational mood contributes
+  Slow:   0.2 (20%) -- baseline provides stability
+
+The weights determine character temperament:
+  A reactive character might use [0.7, 0.2, 0.1]
+  A stoic character might use [0.2, 0.3, 0.5]
+
+PARAMS:
+- weights: List of blend factors (must sum to ~1.0)''',
+        'params': {
+            'weights': [0.5, 0.3, 0.2]
+        },
+        'inputs': {
+            'fast': Port('fast', DataType.AFFECT, shape=(3,), label='Fast PAD'),
+            'medium': Port('medium', DataType.AFFECT, shape=(3,), label='Medium PAD'),
+            'slow': Port('slow', DataType.AFFECT, shape=(3,), label='Slow PAD')
+        },
+        'outputs': {
+            'blended': Port('blended', DataType.AFFECT, shape=(3,), label='Blended PAD')
+        },
+        'weights': {},
+        'color': '#3A5A5A',  # Teal-gray (same family as STATE_CONCAT)
+        'icon': '='
+    },
+
+    NodeType.BASELINE_DRIFT: {
+        'name': 'Baseline Drift',
+        'description': 'Gentle drift toward a character baseline',
+        'how_it_works': '''BASELINE DRIFT - Character Homeostasis
+
+Nudges the affect signal gently toward a character's natural
+baseline. This prevents noodlings from drifting permanently
+into extreme emotional states.
+
+  output = input + rate * (target - input)
+
+With a small rate (e.g. 0.05), the drift is barely perceptible
+turn-to-turn but accumulates over a conversation. A cheerful
+character (high valence baseline) will naturally recover from
+sad moments. A nervous character (high arousal baseline) will
+re-elevate after calm exchanges.
+
+PARAMS:
+- target_valence: Baseline valence (-1 to +1)
+- target_arousal: Baseline arousal (0 to 1)
+- target_dominance: Baseline dominance (0 to 1)
+- rate: Drift speed (0 = no drift, 1 = snap to baseline)''',
+        'params': {
+            'target_valence': 0.7,
+            'target_arousal': 0.5,
+            'target_dominance': 0.4,
+            'rate': 0.05
+        },
+        'inputs': {
+            'affect_in': Port('affect_in', DataType.AFFECT, shape=(3,), label='Current PAD')
+        },
+        'outputs': {
+            'affect_out': Port('affect_out', DataType.AFFECT, shape=(3,), label='Drifted PAD')
+        },
+        'weights': {},
+        'color': '#5A4A3A',  # Warm gray
+        'icon': '>'
+    },
+
+    # ------------------------------------------------------------------
+    # Quantum/Experimental
+    # ------------------------------------------------------------------
+
     NodeType.QUANTUM_MICROTUBULE: {
         'name': 'Quantum Microtubule',
         'description': 'Penrose-Hameroff quantum consciousness layer',

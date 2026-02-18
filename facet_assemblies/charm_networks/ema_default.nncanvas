@@ -1,0 +1,293 @@
+{
+  "version": "1.0",
+  "name": "CharmNetwork EMA",
+  "description": "Three-timescale exponential moving average affect processor. Fast (alpha=0.7) tracks immediate reactions, Medium (alpha=0.15) captures conversational mood, Slow (alpha=0.03) holds session-level drift. Blended with weights [0.5, 0.3, 0.2] and nudged toward character baseline.",
+  "metadata": {
+    "created": "2026-02-18T14:00:00.000000",
+    "modified": "2026-02-18T14:00:00.000000",
+    "author": "Caity",
+    "total_parameters": 0
+  },
+  "nodes": [
+    {
+      "id": "mood-input",
+      "type": "INPUT",
+      "name": "Mood Input",
+      "position": [100, 250],
+      "params": {
+        "output_dim": 3
+      },
+      "inputs": {},
+      "outputs": {
+        "affect": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "label": "PAD (3-D)"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A5A3A",
+      "tags": [],
+      "description": "3-D PAD vector from Mood Reader (valence, arousal, dominance)"
+    },
+    {
+      "id": "ema-fast",
+      "type": "EMA_FILTER",
+      "name": "Fast",
+      "position": [400, 100],
+      "params": {
+        "alpha": 0.7,
+        "label": "Fast"
+      },
+      "inputs": {
+        "affect_in": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "required": true,
+          "label": "PAD (3-D)"
+        }
+      },
+      "outputs": {
+        "affect_out": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "label": "Smoothed PAD"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A5A5A",
+      "tags": [],
+      "description": "Immediate reactions (1-2 turns). High alpha = fast tracking."
+    },
+    {
+      "id": "ema-medium",
+      "type": "EMA_FILTER",
+      "name": "Medium",
+      "position": [400, 250],
+      "params": {
+        "alpha": 0.15,
+        "label": "Medium"
+      },
+      "inputs": {
+        "affect_in": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "required": true,
+          "label": "PAD (3-D)"
+        }
+      },
+      "outputs": {
+        "affect_out": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "label": "Smoothed PAD"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#4A4A4A",
+      "tags": [],
+      "description": "Conversational mood (~10 turns). Moderate smoothing."
+    },
+    {
+      "id": "ema-slow",
+      "type": "EMA_FILTER",
+      "name": "Slow",
+      "position": [400, 400],
+      "params": {
+        "alpha": 0.03,
+        "label": "Slow"
+      },
+      "inputs": {
+        "affect_in": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "required": true,
+          "label": "PAD (3-D)"
+        }
+      },
+      "outputs": {
+        "affect_out": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "label": "Smoothed PAD"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A3A3A",
+      "tags": [],
+      "description": "Session-level drift. Nearly inert, captures long-term baseline."
+    },
+    {
+      "id": "blend",
+      "type": "WEIGHTED_BLEND",
+      "name": "Blend",
+      "position": [700, 250],
+      "params": {
+        "weights": [0.5, 0.3, 0.2]
+      },
+      "inputs": {
+        "fast": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "required": true,
+          "label": "Fast PAD"
+        },
+        "medium": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "required": true,
+          "label": "Medium PAD"
+        },
+        "slow": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "required": true,
+          "label": "Slow PAD"
+        }
+      },
+      "outputs": {
+        "blended": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "label": "Blended PAD"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A5A5A",
+      "tags": [],
+      "description": "Weighted average: 50% fast + 30% medium + 20% slow"
+    },
+    {
+      "id": "baseline",
+      "type": "BASELINE_DRIFT",
+      "name": "Baseline",
+      "position": [1000, 250],
+      "params": {
+        "target_valence": 0.7,
+        "target_arousal": 0.5,
+        "target_dominance": 0.4,
+        "rate": 0.05
+      },
+      "inputs": {
+        "affect_in": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "required": true,
+          "label": "Current PAD"
+        }
+      },
+      "outputs": {
+        "affect_out": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "label": "Drifted PAD"
+        }
+      },
+      "weights": {},
+      "collapsed": false,
+      "color": "#5A4A3A",
+      "tags": [],
+      "description": "Gentle drift toward character baseline (rate=0.05 per turn)"
+    },
+    {
+      "id": "output",
+      "type": "OUTPUT",
+      "name": "Output",
+      "position": [1300, 250],
+      "params": {},
+      "inputs": {
+        "affect_in": {
+          "data_type": "AFFECT",
+          "shape": [3],
+          "required": true,
+          "label": "Final PAD"
+        }
+      },
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#3A5A3A",
+      "tags": [],
+      "description": "Final 3-D PAD vector to FACS mapper"
+    },
+    {
+      "id": "comment-ema",
+      "type": "COMMENT",
+      "name": "EMA Charm Network",
+      "position": [100, 450],
+      "params": {
+        "text": "Three-timescale EMA affect processor.\nFast (0.7) reacts instantly. Medium (0.15) holds mood. Slow (0.03) drifts.\nBlended 50/30/20 and nudged toward character baseline.\n\nSwap to LSTM/GRU: replace this file with default.nncanvas.",
+        "width": 380,
+        "height": null
+      },
+      "inputs": {},
+      "outputs": {},
+      "weights": {},
+      "collapsed": false,
+      "color": "#5c4a3d",
+      "tags": [],
+      "description": "Floating explanatory text (functionally inert)"
+    }
+  ],
+  "connections": [
+    {
+      "from_node": "mood-input",
+      "from_port": "affect",
+      "to_node": "ema-fast",
+      "to_port": "affect_in"
+    },
+    {
+      "from_node": "mood-input",
+      "from_port": "affect",
+      "to_node": "ema-medium",
+      "to_port": "affect_in"
+    },
+    {
+      "from_node": "mood-input",
+      "from_port": "affect",
+      "to_node": "ema-slow",
+      "to_port": "affect_in"
+    },
+    {
+      "from_node": "ema-fast",
+      "from_port": "affect_out",
+      "to_node": "blend",
+      "to_port": "fast"
+    },
+    {
+      "from_node": "ema-medium",
+      "from_port": "affect_out",
+      "to_node": "blend",
+      "to_port": "medium"
+    },
+    {
+      "from_node": "ema-slow",
+      "from_port": "affect_out",
+      "to_node": "blend",
+      "to_port": "slow"
+    },
+    {
+      "from_node": "blend",
+      "from_port": "blended",
+      "to_node": "baseline",
+      "to_port": "affect_in"
+    },
+    {
+      "from_node": "baseline",
+      "from_port": "affect_out",
+      "to_node": "output",
+      "to_port": "affect_in"
+    }
+  ],
+  "hidden_states": {},
+  "export_targets": {
+    "mlx": false,
+    "pytorch": false,
+    "onnx": false
+  }
+}

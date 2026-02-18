@@ -530,10 +530,12 @@ class FacetNodeItem(QGraphicsRectItem):
                 event.accept()
                 return
         if self.facet.facet_type == "CharmNetworkEMA":
+            # Prefer nncanvas_path (renders as node graph) over prompt (old dashboard)
+            data_path = self.facet.nncanvas_path or self.facet.prompt or ''
             if self._editor_view and hasattr(self._editor_view, 'containerDoubleClicked'):
                 self._editor_view.containerDoubleClicked.emit(
                     self.facet.facet_type,
-                    self.facet.prompt or '',
+                    data_path,
                     self.facet.name
                 )
                 event.accept()

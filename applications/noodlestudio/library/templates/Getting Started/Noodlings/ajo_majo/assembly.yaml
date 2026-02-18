@@ -231,6 +231,7 @@ facets:
   name: Charm Network
   type: CharmNetworkEMA
   prompt: 'valence:0.7,arousal:0.5,dominance:0.4'
+  nncanvas_path: facet_assemblies/charm_networks/ema_default.nncanvas
   model: SMALL
   temperature: 0.7
   max_tokens: 150

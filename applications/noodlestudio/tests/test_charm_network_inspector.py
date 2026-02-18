@@ -206,89 +206,12 @@ class TestDepthNavigationRegistry:
         view_class = UnifiedEditorPanel.get_registered_view_class("CharmNetworkEMA")
         assert view_class is not None
 
-    def test_registry_returns_correct_class(self):
+    def test_registry_returns_neural_canvas_depth_view(self):
+        """Phase E: CharmNetworkEMA now maps to NeuralCanvasDepthView."""
         from noodlestudio.panels.editors import UnifiedEditorPanel
-        from noodlestudio.panels.editors.charm_network_depth_view import CharmNetworkDepthView
+        from noodlestudio.panels.editors.neural_canvas_depth_view import NeuralCanvasDepthView
         view_class = UnifiedEditorPanel.get_registered_view_class("CharmNetworkEMA")
-        assert view_class is CharmNetworkDepthView
-
-
-# ======================================================================
-# Depth view protocol
-# ======================================================================
-
-class TestDepthViewProtocol:
-    """CharmNetworkDepthView must implement DepthViewProtocol."""
-
-    def test_has_load_data(self):
-        from noodlestudio.panels.editors.charm_network_depth_view import CharmNetworkDepthView
-        assert hasattr(CharmNetworkDepthView, 'load_data')
-
-    def test_has_save_data(self):
-        from noodlestudio.panels.editors.charm_network_depth_view import CharmNetworkDepthView
-        assert hasattr(CharmNetworkDepthView, 'save_data')
-
-    def test_has_get_breadcrumb_label(self):
-        from noodlestudio.panels.editors.charm_network_depth_view import CharmNetworkDepthView
-        assert hasattr(CharmNetworkDepthView, 'get_breadcrumb_label')
-
-    def test_has_has_unsaved_changes(self):
-        from noodlestudio.panels.editors.charm_network_depth_view import CharmNetworkDepthView
-        assert hasattr(CharmNetworkDepthView, 'has_unsaved_changes')
-
-    def test_breadcrumb_label(self, qapp):
-        from noodlestudio.panels.editors.charm_network_depth_view import CharmNetworkDepthView
-        view = CharmNetworkDepthView()
-        assert view.get_breadcrumb_label() == "Charm Network"
-
-    def test_no_unsaved_changes(self, qapp):
-        from noodlestudio.panels.editors.charm_network_depth_view import CharmNetworkDepthView
-        view = CharmNetworkDepthView()
-        assert view.has_unsaved_changes() is False
-
-    def test_load_data_sets_baseline(self, qapp):
-        from noodlestudio.panels.editors.charm_network_depth_view import CharmNetworkDepthView
-        view = CharmNetworkDepthView()
-        view.load_data('valence:0.7,arousal:0.5,dominance:0.4', {})
-        assert view._baseline['valence'] == pytest.approx(0.7)
-        assert view._baseline['arousal'] == pytest.approx(0.5)
-        assert view._baseline['dominance'] == pytest.approx(0.4)
-
-    def test_load_data_with_noodling_name(self, qapp):
-        from noodlestudio.panels.editors.charm_network_depth_view import CharmNetworkDepthView
-        view = CharmNetworkDepthView()
-        view.load_data('valence:0.7,arousal:0.5,dominance:0.4',
-                        {'noodling_name': 'Ajo Majo'})
-        assert "Ajo Majo" in view._title.text()
-
-
-# ======================================================================
-# PAD bar widget
-# ======================================================================
-
-class TestPADBar:
-    """Custom PAD bar must handle bipolar (valence) and unipolar ranges."""
-
-    def test_valence_bar_is_bipolar(self, qapp):
-        from noodlestudio.panels.editors.charm_network_depth_view import _PADBar
-        bar = _PADBar('valence', 0.5)
-        assert bar._bipolar is True
-
-    def test_arousal_bar_is_unipolar(self, qapp):
-        from noodlestudio.panels.editors.charm_network_depth_view import _PADBar
-        bar = _PADBar('arousal', 0.5)
-        assert bar._bipolar is False
-
-    def test_dominance_bar_is_unipolar(self, qapp):
-        from noodlestudio.panels.editors.charm_network_depth_view import _PADBar
-        bar = _PADBar('dominance', 0.5)
-        assert bar._bipolar is False
-
-    def test_set_value_updates(self, qapp):
-        from noodlestudio.panels.editors.charm_network_depth_view import _PADBar
-        bar = _PADBar('valence', 0.0)
-        bar.set_value(-0.7)
-        assert bar._value == pytest.approx(-0.7)
+        assert view_class is NeuralCanvasDepthView
 
 
 # ======================================================================

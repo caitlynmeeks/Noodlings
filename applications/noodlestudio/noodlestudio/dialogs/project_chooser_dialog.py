@@ -134,11 +134,6 @@ def create_project_from_template(
 # Dialog
 # ========================================================================
 
-_DEFAULT_PROJECTS_DIR = os.path.join(
-    os.path.expanduser('~'), 'Documents', 'NoodleStudio Projects'
-)
-
-
 class ProjectChooserDialog(QDialog):
     """
     Logic Pro-style project chooser.
@@ -183,7 +178,6 @@ class ProjectChooserDialog(QDialog):
             QListWidget {
                 background-color: #2a2a2a;
                 border: none;
-                border-right: 1px solid #444;
                 color: #D2D2D2;
                 font-size: 12px;
                 padding-top: 8px;
@@ -248,17 +242,20 @@ class ProjectChooserDialog(QDialog):
 
     def _make_template_card(self, tmpl: dict) -> QFrame:
         card = QFrame()
+        card.setObjectName("templateCard")
         card.setFixedSize(240, 80)
         card.setCursor(Qt.CursorShape.PointingHandCursor)
         card.setStyleSheet("""
-            QFrame {
+            QFrame#templateCard {
                 background-color: #3a3a3a;
-                border: none;
-                border-radius: 4px;
+                border: 2px solid transparent;
+                border-radius: 6px;
+                padding: 2px;
             }
-            QFrame:hover {
+            QFrame#templateCard:hover {
                 background-color: #444;
             }
+            QLabel { border: none; }
         """)
         card.setProperty('template_path', tmpl['path'])
         card.setProperty('template_name', tmpl['name'])
@@ -267,12 +264,12 @@ class ProjectChooserDialog(QDialog):
         vbox.setContentsMargins(12, 10, 12, 10)
 
         name_label = QLabel(tmpl['name'])
-        name_label.setStyleSheet("color: #D2D2D2; font-size: 13px; font-weight: bold;")
+        name_label.setStyleSheet("color: #D2D2D2; font-size: 13px; font-weight: bold; border: none;")
         vbox.addWidget(name_label)
 
         if tmpl.get('description'):
             desc = QLabel(tmpl['description'])
-            desc.setStyleSheet("color: #888; font-size: 10px;")
+            desc.setStyleSheet("color: #999; font-size: 10px; border: none;")
             desc.setWordWrap(True)
             vbox.addWidget(desc)
 
@@ -291,22 +288,26 @@ class ProjectChooserDialog(QDialog):
         for card in self._stack.widget(0).findChildren(QFrame):
             if card.property('template_path') == tmpl['path']:
                 card.setStyleSheet("""
-                    QFrame {
-                        background-color: #444;
-                        border: none;
-                        border-radius: 4px;
+                    QFrame#templateCard {
+                        background-color: #3a3a3a;
+                        border: 2px solid #4A9EFF;
+                        border-radius: 6px;
+                        padding: 2px;
                     }
+                    QLabel { border: none; }
                 """)
             elif card.property('template_path'):
                 card.setStyleSheet("""
-                    QFrame {
+                    QFrame#templateCard {
                         background-color: #3a3a3a;
-                        border: none;
-                        border-radius: 4px;
+                        border: 2px solid transparent;
+                        border-radius: 6px;
+                        padding: 2px;
                     }
-                    QFrame:hover {
+                    QFrame#templateCard:hover {
                         background-color: #444;
                     }
+                    QLabel { border: none; }
                 """)
 
     # ----------------------------------------------------------------
@@ -327,7 +328,8 @@ class ProjectChooserDialog(QDialog):
         self._recent_list.setStyleSheet("""
             QListWidget {
                 background-color: #2e2e2e;
-                border: 1px solid #444;
+                border: none;
+                border-radius: 4px;
                 color: #D2D2D2;
                 font-size: 12px;
             }
@@ -377,7 +379,7 @@ class ProjectChooserDialog(QDialog):
 
     def _build_bottom_bar(self) -> QWidget:
         bottom = QWidget()
-        bottom.setStyleSheet("background-color: #2a2a2a; border-top: 1px solid #444;")
+        bottom.setStyleSheet("background-color: #2a2a2a;")
         layout = QHBoxLayout(bottom)
         layout.setContentsMargins(16, 12, 16, 12)
         layout.setSpacing(8)
@@ -409,7 +411,7 @@ class ProjectChooserDialog(QDialog):
             QPushButton {
                 background-color: #3a3a3a;
                 color: #D2D2D2;
-                border: 1px solid #555;
+                border: none;
                 padding: 6px;
                 border-radius: 3px;
             }
@@ -422,15 +424,15 @@ class ProjectChooserDialog(QDialog):
         self._action_btn.setFixedWidth(80)
         self._action_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4a4a4a;
-                color: #D2D2D2;
-                border: 1px solid #666;
+                background-color: #2D6CDF;
+                color: #FFFFFF;
+                border: none;
                 padding: 6px;
                 border-radius: 3px;
                 font-weight: bold;
             }
-            QPushButton:hover { background-color: #555; }
-            QPushButton:disabled { color: #666; }
+            QPushButton:hover { background-color: #3A7BEF; }
+            QPushButton:disabled { background-color: #3a3a3a; color: #666; border: 1px solid #555; }
         """)
         self._action_btn.setEnabled(False)
         self._action_btn.clicked.connect(self._on_action)
@@ -464,7 +466,7 @@ class ProjectChooserDialog(QDialog):
     def _on_open_existing(self):
         """Open an existing project via native directory picker."""
         path = QFileDialog.getExistingDirectory(
-            self, "Open Project", _DEFAULT_PROJECTS_DIR
+            self, "Open Project", os.path.expanduser('~/Documents')
         )
         if path:
             if os.path.exists(os.path.join(path, 'project.noodleproj')):
@@ -498,7 +500,10 @@ class ProjectChooserDialog(QDialog):
             return
 
         # Native Save dialog — user names the project and picks location
-        default_path = os.path.join(_DEFAULT_PROJECTS_DIR, "My Project")
+        default_path = os.path.join(
+            os.path.expanduser('~/Documents'),
+            self._selected_template['name']
+        )
         path, _ = QFileDialog.getSaveFileName(
             self, "Save New Project", default_path, ""
         )

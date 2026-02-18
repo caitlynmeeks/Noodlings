@@ -79,6 +79,11 @@ class NodeType(Enum):
     STATE_SPLIT = "STATE_SPLIT"
     AFFECT_HEAD = "AFFECT_HEAD"
 
+    # Affect processing (EMA charm network building blocks)
+    EMA_FILTER = "EMA_FILTER"
+    WEIGHTED_BLEND = "WEIGHTED_BLEND"
+    BASELINE_DRIFT = "BASELINE_DRIFT"
+
     # Quantum/Experimental
     QUANTUM_MICROTUBULE = "QUANTUM_MICROTUBULE"
     IBM_QUANTUM = "IBM_QUANTUM"

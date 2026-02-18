@@ -700,8 +700,8 @@ class NodeGraphicsItem(QGraphicsItem):
         header_height = 24
         header_rect = QRectF(0, 0, self.width, header_height)
 
-        # Get node type color (rich, earthy tones)
-        header_color = QColor(get_node_color(self.node.type))
+        # Get node color (per-node override from .nncanvas, then type default)
+        header_color = QColor(self.node.color or get_node_color(self.node.type))
         painter.setBrush(QBrush(header_color))
         painter.drawRect(header_rect)  # Sharp rectangle, not rounded
 

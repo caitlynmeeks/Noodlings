@@ -114,6 +114,9 @@ class NodePalettePanel(QWidget):
         self._add_group(scroll_layout, "Utility", [
             NodeType.STATE_CONCAT, NodeType.STATE_SPLIT, NodeType.AFFECT_HEAD
         ])
+        self._add_group(scroll_layout, "Affect Processing", [
+            NodeType.EMA_FILTER, NodeType.WEIGHTED_BLEND, NodeType.BASELINE_DRIFT
+        ])
         self._add_group(scroll_layout, "Quantum", [
             NodeType.QUANTUM_MICROTUBULE,
             NodeType.IBM_QUANTUM,

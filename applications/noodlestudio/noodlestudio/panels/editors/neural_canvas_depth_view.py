@@ -2,7 +2,7 @@
 
 Wraps the existing NeuralCanvasPanel as a depth view that can be pushed
 onto the UnifiedEditorPanel's view stack when the user double-clicks a
-NeuralCanvasFacet node at the assembly level.
+NeuralCanvasFacet or CharmNetworkEMA node at the assembly level.
 """
 
 import os
@@ -74,7 +74,13 @@ class NeuralCanvasDepthView(QWidget):
 
     @staticmethod
     def _resolve_path(data_path: str, context: dict) -> str:
-        """Resolve a potentially-relative .nncanvas path against the project root.
+        """Resolve a potentially-relative .nncanvas path.
+
+        Search order:
+        1. Absolute path -- return as-is
+        2. Relative to project_root (from context) -- if file exists there
+        3. Relative to repo root (facet_assemblies/ lives there)
+        4. Fall back to project_root join (may not exist yet)
 
         Args:
             data_path: Path from the Facet's nncanvas_path field.
@@ -85,7 +91,26 @@ class NeuralCanvasDepthView(QWidget):
         """
         if os.path.isabs(data_path):
             return data_path
+
         project_root = context.get('project_root', '')
+
+        # Check project_root first (if provided and file exists)
+        if project_root:
+            candidate = os.path.join(project_root, data_path)
+            if os.path.exists(candidate):
+                return candidate
+
+        # Check repo root: editors/ -> panels/ -> noodlestudio/ ->
+        # noodlestudio/ -> applications/ -> repo root (5 levels)
+        repo_root = os.path.normpath(os.path.join(
+            os.path.dirname(__file__), '..', '..', '..', '..', '..'
+        ))
+        candidate = os.path.join(repo_root, data_path)
+        if os.path.exists(candidate):
+            return candidate
+
+        # Fall back: join with project_root (path may be created later)
         if project_root:
             return os.path.join(project_root, data_path)
+
         return data_path

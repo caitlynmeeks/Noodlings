@@ -200,9 +200,10 @@ class SceneHierarchyContextMenuMixin:
                 # Note: Folders are for Assets panel, not Stage View
                 # Stage View shows scene entities only (zones, noodlings, props, ui)
         else:
-            # Empty space - show rez options only if project is open AND server is running
+            # Empty space - show rez options if project is open and a stage is selected
+            # (Rez operations are filesystem-only, no server needed)
             if self.project_manager and self.project_manager.is_project_open():
-                if self._server_running and self.current_stage:
+                if self.current_stage:
                     create_menu = menu.addMenu("Rez")
                     create_menu.addAction("New Noodling", _safe_callback(lambda: self.create_empty_noodling()))
                     create_menu.addAction("New Prim", _safe_callback(lambda: self.create_empty_prim()))
@@ -212,12 +213,8 @@ class SceneHierarchyContextMenuMixin:
 
                     menu.addSeparator()
                     menu.addAction("Import Prim...", _safe_callback(lambda: self.import_prim()))
-                elif not self._server_running:
-                    # Server offline
-                    info_action = menu.addAction("Start server to create items")
-                    info_action.setEnabled(False)
                 else:
-                    # Server running but no stage selected
+                    # No stage selected
                     info_action = menu.addAction("Create a stage first (File > New Stage)")
                     info_action.setEnabled(False)
             else:
