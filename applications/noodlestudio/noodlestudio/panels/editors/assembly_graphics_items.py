@@ -518,13 +518,22 @@ class FacetNodeItem(QGraphicsRectItem):
             self.drag_start_pos = None
 
     def mouseDoubleClickEvent(self, event):
-        """Double-click on NeuralCanvasFacet opens depth navigation."""
+        """Double-click on container facets opens depth navigation."""
         if (self.facet.facet_type == "NeuralCanvasFacet" and
                 getattr(self.facet, 'nncanvas_path', None)):
             if self._editor_view and hasattr(self._editor_view, 'containerDoubleClicked'):
                 self._editor_view.containerDoubleClicked.emit(
                     self.facet.facet_type,
                     self.facet.nncanvas_path,
+                    self.facet.name
+                )
+                event.accept()
+                return
+        if self.facet.facet_type == "CharmNetworkEMA":
+            if self._editor_view and hasattr(self._editor_view, 'containerDoubleClicked'):
+                self._editor_view.containerDoubleClicked.emit(
+                    self.facet.facet_type,
+                    self.facet.prompt or '',
                     self.facet.name
                 )
                 event.accept()

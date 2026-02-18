@@ -256,14 +256,8 @@ class InspectorPanel(
             # have prompt, model, temperature, max_tokens.
             if facet.facet_type == "NeuralCanvasFacet":
                 self._build_neural_canvas_facet_section(facet)
-            elif facet.facet_type == "CharmNetworkFacet":
-                charm_section = CollapsibleSection("Charm Network")
-                charm_form = QFormLayout()
-                info = QLabel("Neural affect model (PAD + boredom + sorrow)")
-                info.setStyleSheet("color: #888888; font-style: italic;")
-                charm_form.addRow(info)
-                charm_section.set_content_layout(charm_form)
-                self.properties_layout.addWidget(charm_section)
+            elif facet.facet_type in ("CharmNetworkFacet", "CharmNetworkEMA"):
+                self._build_charm_network_ema_section(facet)
             elif facet.facet_type == "ScriptedFacet":
                 self._build_scripted_facet_section(facet)
             elif facet.facet_type in ("INCOMING", "OUTGOING"):
@@ -511,6 +505,155 @@ class InspectorPanel(
                 f'\\g<1>{value:.1f}', prompt)
         return prompt
 
+    # ------------------------------------------------------------------
+    # Charm Network EMA helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _parse_charm_baseline(prompt: str) -> dict:
+        """Extract baseline PAD values from CharmNetworkEMA prompt string.
+
+        Expected format: 'valence:0.7,arousal:0.5,dominance:0.4'
+        """
+        import re
+        baseline = {'valence': 0.0, 'arousal': 0.5, 'dominance': 0.5}
+        if not prompt:
+            return baseline
+        for key in ('valence', 'arousal', 'dominance'):
+            m = re.search(rf'{key}:\s*([-\d.]+)', prompt)
+            if m:
+                baseline[key] = float(m.group(1))
+        return baseline
+
+    @staticmethod
+    def _update_charm_baseline(prompt: str, key: str, value: float) -> str:
+        """Replace a baseline PAD value in the CharmNetworkEMA prompt string."""
+        import re
+        return re.sub(
+            rf'({key}:\s*)[-\d.]+',
+            rf'\g<1>{value:.2f}',
+            prompt or ''
+        )
+
+    def _build_charm_network_ema_section(self, facet):
+        """Build Charm Network section: baseline spinboxes, current state, parameters.
+
+        Replaces the LLM Configuration section that was incorrectly shown
+        because CharmNetworkEMA fell through the type dispatch.
+        """
+        baseline = self._parse_charm_baseline(facet.prompt)
+
+        # -- Baseline section (editable) --
+        baseline_section = CollapsibleSection("Charm Network")
+        baseline_form = QFormLayout()
+
+        desc = QLabel("Multi-timescale affect smoothing (EMA).\n"
+                       "Baseline is the emotional home state.")
+        desc.setStyleSheet("color: #888; font-size: 9pt;")
+        desc.setWordWrap(True)
+        baseline_form.addRow(desc)
+
+        spinbox_style = ("QDoubleSpinBox { background: #2D2D2D; color: #D2D2D2; "
+                         "border: 1px solid #555; padding: 4px; }")
+
+        # Valence: -1.0 to +1.0
+        valence_spin = QDoubleSpinBox()
+        valence_spin.setRange(-1.0, 1.0)
+        valence_spin.setSingleStep(0.05)
+        valence_spin.setDecimals(2)
+        valence_spin.setValue(baseline.get('valence', 0.0))
+        valence_spin.setToolTip("Baseline valence (-1 negative .. +1 positive)")
+        valence_spin.setStyleSheet(spinbox_style)
+        valence_spin._last_value = valence_spin.value()
+
+        def on_valence_changed(val, f=facet, spin=valence_spin):
+            old_prompt = f.prompt
+            f.prompt = self._update_charm_baseline(f.prompt, 'valence', val)
+            self._push_facet_property_command(f, 'prompt', old_prompt, f.prompt)
+            spin._last_value = val
+
+        valence_spin.valueChanged.connect(on_valence_changed)
+        baseline_form.addRow("Valence:", valence_spin)
+
+        # Arousal: 0.0 to 1.0
+        arousal_spin = QDoubleSpinBox()
+        arousal_spin.setRange(0.0, 1.0)
+        arousal_spin.setSingleStep(0.05)
+        arousal_spin.setDecimals(2)
+        arousal_spin.setValue(baseline.get('arousal', 0.5))
+        arousal_spin.setToolTip("Baseline arousal (0 calm .. 1 activated)")
+        arousal_spin.setStyleSheet(spinbox_style)
+        arousal_spin._last_value = arousal_spin.value()
+
+        def on_arousal_changed(val, f=facet, spin=arousal_spin):
+            old_prompt = f.prompt
+            f.prompt = self._update_charm_baseline(f.prompt, 'arousal', val)
+            self._push_facet_property_command(f, 'prompt', old_prompt, f.prompt)
+            spin._last_value = val
+
+        arousal_spin.valueChanged.connect(on_arousal_changed)
+        baseline_form.addRow("Arousal:", arousal_spin)
+
+        # Dominance: 0.0 to 1.0
+        dominance_spin = QDoubleSpinBox()
+        dominance_spin.setRange(0.0, 1.0)
+        dominance_spin.setSingleStep(0.05)
+        dominance_spin.setDecimals(2)
+        dominance_spin.setValue(baseline.get('dominance', 0.5))
+        dominance_spin.setToolTip("Baseline dominance (0 submissive .. 1 in-control)")
+        dominance_spin.setStyleSheet(spinbox_style)
+        dominance_spin._last_value = dominance_spin.value()
+
+        def on_dominance_changed(val, f=facet, spin=dominance_spin):
+            old_prompt = f.prompt
+            f.prompt = self._update_charm_baseline(f.prompt, 'dominance', val)
+            self._push_facet_property_command(f, 'prompt', old_prompt, f.prompt)
+            spin._last_value = val
+
+        dominance_spin.valueChanged.connect(on_dominance_changed)
+        baseline_form.addRow("Dominance:", dominance_spin)
+
+        baseline_section.set_content_layout(baseline_form)
+        self.properties_layout.addWidget(baseline_section)
+
+        # -- Current State section (read-only) --
+        state_section = CollapsibleSection("Current State")
+        state_form = QFormLayout()
+
+        label_style = "color: #AAA; font-size: 9pt; font-family: 'Monaco', 'Consolas', monospace;"
+
+        # Show baseline values initially (updates after execution)
+        for layer_name in ("Output", "Fast (0.7)", "Medium (0.15)", "Slow (0.03)"):
+            v = baseline.get('valence', 0.0)
+            a = baseline.get('arousal', 0.5)
+            d = baseline.get('dominance', 0.5)
+            lbl = QLabel(f"V:{v:+.2f}  A:{a:.2f}  D:{d:.2f}")
+            lbl.setStyleSheet(label_style)
+            state_form.addRow(f"{layer_name}:", lbl)
+
+        state_section.set_content_layout(state_form)
+        self.properties_layout.addWidget(state_section)
+
+        # -- Parameters section (collapsed, read-only info) --
+        params_section = CollapsibleSection("Parameters")
+        params_section.set_expanded(False)
+        params_form = QFormLayout()
+
+        param_label_style = "color: #888; font-size: 9pt;"
+        for label, value in [
+            ("Fast alpha", "0.70"),
+            ("Medium alpha", "0.15"),
+            ("Slow alpha", "0.03"),
+            ("Blend weights", "0.50 / 0.30 / 0.20"),
+            ("Drift rate", "0.05"),
+        ]:
+            lbl = QLabel(value)
+            lbl.setStyleSheet(param_label_style)
+            params_form.addRow(f"{label}:", lbl)
+
+        params_section.set_content_layout(params_form)
+        self.properties_layout.addWidget(params_section)
+
     def _build_scripted_facet_section(self, facet):
         """Build ScriptedFacet section -- friendly controls for Performance facets."""
         if self._is_performance_facet(facet):
@@ -620,7 +763,7 @@ class InspectorPanel(
 
         # -- Advanced: raw script (collapsed by default) --
         advanced_section = CollapsibleSection("Advanced Script")
-        advanced_section.toggle_button.setChecked(False)  # Start collapsed
+        advanced_section.set_expanded(False)  # Start collapsed
         advanced_form = QFormLayout()
 
         script_edit = ClickableTextEdit(
@@ -941,7 +1084,7 @@ class InspectorPanel(
 
     def _load_facet_properties_inline(self, facet):
         """Load facet properties into the inline container (below dropdown)."""
-        from PyQt6.QtWidgets import QComboBox, QCheckBox
+        from PyQt6.QtWidgets import QComboBox, QCheckBox, QDoubleSpinBox
 
         # Clear existing properties
         self._clear_facet_properties_inline()
@@ -1070,11 +1213,66 @@ class InspectorPanel(
             prompt_edit.textChanged.connect(on_prompt_changed)
             props_layout.addRow("Prompt:", prompt_edit)
 
-        # CharmNetworkFacet
-        elif facet.facet_type == "CharmNetworkFacet":
-            info_label = QLabel("Neural affect model (PAD + boredom + sorrow)")
-            info_label.setStyleSheet("color: #888888; font-style: italic;")
-            props_layout.addRow(info_label)
+        # CharmNetworkFacet / CharmNetworkEMA
+        elif facet.facet_type in ("CharmNetworkFacet", "CharmNetworkEMA"):
+            baseline = self._parse_charm_baseline(facet.prompt)
+            spinbox_style = ("QDoubleSpinBox { background: #2D2D2D; color: #D2D2D2; "
+                             "border: 1px solid #555; padding: 4px; }")
+
+            desc = QLabel("Multi-timescale affect (EMA)")
+            desc.setStyleSheet("color: #888; font-size: 9pt;")
+            props_layout.addRow(desc)
+
+            valence_spin = QDoubleSpinBox()
+            valence_spin.setRange(-1.0, 1.0)
+            valence_spin.setSingleStep(0.05)
+            valence_spin.setDecimals(2)
+            valence_spin.setValue(baseline.get('valence', 0.0))
+            valence_spin.setStyleSheet(spinbox_style)
+            valence_spin._last_value = valence_spin.value()
+
+            def on_v_changed(val, f=facet, spin=valence_spin):
+                old_prompt = f.prompt
+                f.prompt = self._update_charm_baseline(f.prompt, 'valence', val)
+                self._push_facet_property_command(f, 'prompt', old_prompt, f.prompt)
+                spin._last_value = val
+
+            valence_spin.valueChanged.connect(on_v_changed)
+            props_layout.addRow("Valence:", valence_spin)
+
+            arousal_spin = QDoubleSpinBox()
+            arousal_spin.setRange(0.0, 1.0)
+            arousal_spin.setSingleStep(0.05)
+            arousal_spin.setDecimals(2)
+            arousal_spin.setValue(baseline.get('arousal', 0.5))
+            arousal_spin.setStyleSheet(spinbox_style)
+            arousal_spin._last_value = arousal_spin.value()
+
+            def on_a_changed(val, f=facet, spin=arousal_spin):
+                old_prompt = f.prompt
+                f.prompt = self._update_charm_baseline(f.prompt, 'arousal', val)
+                self._push_facet_property_command(f, 'prompt', old_prompt, f.prompt)
+                spin._last_value = val
+
+            arousal_spin.valueChanged.connect(on_a_changed)
+            props_layout.addRow("Arousal:", arousal_spin)
+
+            dominance_spin = QDoubleSpinBox()
+            dominance_spin.setRange(0.0, 1.0)
+            dominance_spin.setSingleStep(0.05)
+            dominance_spin.setDecimals(2)
+            dominance_spin.setValue(baseline.get('dominance', 0.5))
+            dominance_spin.setStyleSheet(spinbox_style)
+            dominance_spin._last_value = dominance_spin.value()
+
+            def on_d_changed(val, f=facet, spin=dominance_spin):
+                old_prompt = f.prompt
+                f.prompt = self._update_charm_baseline(f.prompt, 'dominance', val)
+                self._push_facet_property_command(f, 'prompt', old_prompt, f.prompt)
+                spin._last_value = val
+
+            dominance_spin.valueChanged.connect(on_d_changed)
+            props_layout.addRow("Dominance:", dominance_spin)
 
         # NeuralCanvasFacet
         elif facet.facet_type == "NeuralCanvasFacet":
