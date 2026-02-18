@@ -499,3 +499,128 @@ class TestSpeakerSpotlight:
 
         # Krampus turn queued, but turn_queue was modified
         assert manager._window._active_speaker_calls[-1] == 'krampus'
+
+
+# ====================================================================
+# Performance Facet Inspector
+# ====================================================================
+
+class TestPerformanceFacetInspector:
+    """Verify Performance facet detection, param parsing, and round-trip."""
+
+    def _make_performance_prompt(self, base_delay=35, intensity=0.7):
+        """Minimal Performance facet JS prompt for testing."""
+        return (
+            "// Performance Facet -- Animal Crossing style text delivery\n"
+            "function process(inputs, context) {\n"
+            "  var text = inputs['in'] || '';\n"
+            f"  var base_delay = {base_delay};\n"
+            "  var pauses = {'.': 220, '!': 250, '?': 250};\n"
+            f"  var speaking_intensity = {intensity};\n"
+            "  return {out: JSON.stringify({type: 'performance_script', text: text})};\n"
+            "}\n"
+        )
+
+    def test_is_performance_facet_true(self):
+        """Performance facets detected by 'performance_script' in prompt."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+        from noodlestudio.core.facet_system import Facet
+
+        facet = Facet(
+            id='perf', name='Performance', facet_type='ScriptedFacet',
+            prompt=self._make_performance_prompt())
+        assert InspectorPanel._is_performance_facet(facet)
+
+    def test_is_performance_facet_false_for_generic(self):
+        """Generic ScriptedFacets must NOT be detected as Performance."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+        from noodlestudio.core.facet_system import Facet
+
+        facet = Facet(
+            id='generic', name='SalienceGate', facet_type='ScriptedFacet',
+            prompt='function compute_salience(inputs) { return 0.5; }')
+        assert not InspectorPanel._is_performance_facet(facet)
+
+    def test_parse_performance_params_base_delay(self):
+        """base_delay extracted correctly from JS code."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+
+        prompt = self._make_performance_prompt(base_delay=45)
+        params = InspectorPanel._parse_performance_params(prompt)
+        assert params['base_delay'] == 45
+
+    def test_parse_performance_params_speaking_intensity(self):
+        """speaking_intensity extracted correctly from JS code."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+
+        prompt = self._make_performance_prompt(intensity=0.5)
+        params = InspectorPanel._parse_performance_params(prompt)
+        assert params['speaking_intensity'] == 0.5
+
+    def test_update_base_delay(self):
+        """Updating base_delay round-trips through JS code."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+
+        prompt = self._make_performance_prompt(base_delay=35)
+        updated = InspectorPanel._update_performance_param(
+            prompt, 'base_delay', 50)
+        params = InspectorPanel._parse_performance_params(updated)
+        assert params['base_delay'] == 50
+
+    def test_update_speaking_intensity(self):
+        """Updating speaking_intensity round-trips through JS code."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+
+        prompt = self._make_performance_prompt(intensity=0.7)
+        updated = InspectorPanel._update_performance_param(
+            prompt, 'speaking_intensity', 0.3)
+        params = InspectorPanel._parse_performance_params(updated)
+        assert params['speaking_intensity'] == 0.3
+
+    def test_update_preserves_rest_of_script(self):
+        """Parameter updates must not disturb other JS code."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+
+        prompt = self._make_performance_prompt(base_delay=35, intensity=0.7)
+        updated = InspectorPanel._update_performance_param(
+            prompt, 'base_delay', 60)
+        # speaking_intensity should be untouched
+        params = InspectorPanel._parse_performance_params(updated)
+        assert params['speaking_intensity'] == 0.7
+        # The performance_script marker must survive
+        assert 'performance_script' in updated
+
+    def _load_ajo_assembly(self):
+        """Load Ajo's real assembly YAML, skip if not found."""
+        from noodlestudio.core.facet_system import FacetAssembly, Facet
+
+        ajo_path = os.path.join(
+            os.path.dirname(__file__), '..', '..', '..',
+            'noodlings', 'guide', 'assembly.yaml')
+        if not os.path.exists(ajo_path):
+            pytest.skip("Ajo assembly not found")
+
+        with open(ajo_path) as f:
+            data = yaml.safe_load(f)
+        return FacetAssembly.from_dict(data)
+
+    def test_real_assembly_performance_facet_detected(self):
+        """Ajo's real assembly Performance facet must be detected."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+
+        assembly = self._load_ajo_assembly()
+        perf_facets = [f for f in assembly.facets
+                       if InspectorPanel._is_performance_facet(f)]
+        assert len(perf_facets) == 1
+        assert perf_facets[0].name == 'Performance'
+
+    def test_real_assembly_params_parsed(self):
+        """Ajo's real Performance facet params parse correctly."""
+        from noodlestudio.panels.inspector_panel import InspectorPanel
+
+        assembly = self._load_ajo_assembly()
+        perf = [f for f in assembly.facets
+                if InspectorPanel._is_performance_facet(f)][0]
+        params = InspectorPanel._parse_performance_params(perf.prompt)
+        assert params['base_delay'] == 35
+        assert params['speaking_intensity'] == 0.7

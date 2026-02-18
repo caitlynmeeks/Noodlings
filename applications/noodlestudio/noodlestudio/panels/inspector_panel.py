@@ -474,8 +474,50 @@ class InspectorPanel(
         nc_section.set_content_layout(nc_form)
         self.properties_layout.addWidget(nc_section)
 
+    # ------------------------------------------------------------------
+    # Performance facet helpers (ScriptedFacet with typing timing)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _is_performance_facet(facet) -> bool:
+        """Detect whether a ScriptedFacet is a Performance (typing timer)."""
+        return (facet.facet_type == "ScriptedFacet"
+                and 'performance_script' in (facet.prompt or ''))
+
+    @staticmethod
+    def _parse_performance_params(prompt: str) -> dict:
+        """Extract tunable timing values from Performance facet JS code."""
+        import re
+        params = {}
+        m = re.search(r'var\s+base_delay\s*=\s*(\d+)', prompt or '')
+        if m:
+            params['base_delay'] = int(m.group(1))
+        m = re.search(r'var\s+speaking_intensity\s*=\s*([\d.]+)', prompt or '')
+        if m:
+            params['speaking_intensity'] = float(m.group(1))
+        return params
+
+    @staticmethod
+    def _update_performance_param(prompt: str, param: str, value) -> str:
+        """Replace a timing parameter value in Performance facet JS code."""
+        import re
+        if param == 'base_delay':
+            return re.sub(
+                r'(var\s+base_delay\s*=\s*)\d+',
+                f'\\g<1>{int(value)}', prompt)
+        elif param == 'speaking_intensity':
+            return re.sub(
+                r'(var\s+speaking_intensity\s*=\s*)[\d.]+',
+                f'\\g<1>{value:.1f}', prompt)
+        return prompt
+
     def _build_scripted_facet_section(self, facet):
-        """Build ScriptedFacet section: salience script editor."""
+        """Build ScriptedFacet section -- friendly controls for Performance facets."""
+        if self._is_performance_facet(facet):
+            self._build_performance_facet_section(facet)
+            return
+
+        # Generic ScriptedFacet: salience script editor
         script_section = CollapsibleSection("Script")
         script_form = QFormLayout()
 
@@ -504,6 +546,109 @@ class InspectorPanel(
 
         script_section.set_content_layout(script_form)
         self.properties_layout.addWidget(script_section)
+
+    def _build_performance_facet_section(self, facet):
+        """Build friendly inspector for Performance ScriptedFacet.
+
+        Shows typing speed and speaking intensity as first-class controls
+        instead of raw JavaScript code.
+        """
+        from PyQt6.QtWidgets import QSpinBox, QDoubleSpinBox
+
+        params = self._parse_performance_params(facet.prompt)
+
+        perf_section = CollapsibleSection("Performance Timing")
+        perf_form = QFormLayout()
+
+        # -- Typing Speed (base_delay in ms) --
+        speed_spin = QSpinBox()
+        speed_spin.setRange(20, 80)
+        speed_spin.setSuffix(" ms")
+        speed_spin.setValue(params.get('base_delay', 35))
+        speed_spin.setToolTip("Milliseconds per character (lower = faster typing)")
+        speed_spin.setStyleSheet(
+            "QSpinBox { background: #2D2D2D; color: #D2D2D2; "
+            "border: 1px solid #555; padding: 4px; }"
+        )
+        speed_spin._last_value = speed_spin.value()
+
+        def on_speed_changed(val, f=facet, spin=speed_spin):
+            old_val = spin._last_value
+            old_prompt = f.prompt
+            f.prompt = self._update_performance_param(f.prompt, 'base_delay', val)
+            self._push_facet_property_command(f, 'prompt', old_prompt, f.prompt)
+            spin._last_value = val
+
+        speed_spin.valueChanged.connect(on_speed_changed)
+        perf_form.addRow("Typing Speed:", speed_spin)
+
+        # -- Speaking Intensity (0.0 - 1.0) --
+        intensity_spin = QDoubleSpinBox()
+        intensity_spin.setRange(0.0, 1.0)
+        intensity_spin.setSingleStep(0.1)
+        intensity_spin.setDecimals(1)
+        intensity_spin.setValue(params.get('speaking_intensity', 0.7))
+        intensity_spin.setToolTip("VRM mouth animation intensity while speaking")
+        intensity_spin.setStyleSheet(
+            "QDoubleSpinBox { background: #2D2D2D; color: #D2D2D2; "
+            "border: 1px solid #555; padding: 4px; }"
+        )
+        intensity_spin._last_value = intensity_spin.value()
+
+        def on_intensity_changed(val, f=facet, spin=intensity_spin):
+            old_val = spin._last_value
+            old_prompt = f.prompt
+            f.prompt = self._update_performance_param(
+                f.prompt, 'speaking_intensity', val)
+            self._push_facet_property_command(f, 'prompt', old_prompt, f.prompt)
+            spin._last_value = val
+
+        intensity_spin.valueChanged.connect(on_intensity_changed)
+        perf_form.addRow("Speaking Intensity:", intensity_spin)
+
+        # -- Punctuation pause info (read-only) --
+        pause_label = QLabel(
+            "Punctuation pauses: .  !  ?  ,  :  ;\n"
+            "Edit the script below for custom pause values."
+        )
+        pause_label.setStyleSheet("color: #888; font-size: 9pt;")
+        pause_label.setWordWrap(True)
+        perf_form.addRow(pause_label)
+
+        perf_section.set_content_layout(perf_form)
+        self.properties_layout.addWidget(perf_section)
+
+        # -- Advanced: raw script (collapsed by default) --
+        advanced_section = CollapsibleSection("Advanced Script")
+        advanced_section.toggle_button.setChecked(False)  # Start collapsed
+        advanced_form = QFormLayout()
+
+        script_edit = ClickableTextEdit(
+            field_name=f"{facet.name} - Script",
+            on_apply_callback=lambda text, f=facet: (
+                setattr(f, 'prompt', text),
+                self._push_facet_property_command(f, 'prompt', f.prompt, text)
+            )
+        )
+        script_edit.setPlainText(facet.prompt or "")
+        script_edit.setStyleSheet(
+            "background-color: #1E1E1E; color: #D2D2D2; "
+            "padding: 4px; font-family: 'Courier New';"
+        )
+        script_edit.setMaximumHeight(150)
+        script_edit._baseline_value = facet.prompt or ""
+
+        def on_script_changed(edit=script_edit, f=facet):
+            new_text = edit.toPlainText()
+            old_text = getattr(edit, '_baseline_value', '')
+            setattr(f, 'prompt', new_text)
+            self._push_facet_property_command(f, 'prompt', old_text, new_text)
+
+        script_edit.textChanged.connect(on_script_changed)
+        advanced_form.addRow("Script:", script_edit)
+
+        advanced_section.set_content_layout(advanced_form)
+        self.properties_layout.addWidget(advanced_section)
 
     def _auto_save_facet_assembly(self):
         """Auto-save the current facet assembly to its YAML file."""
@@ -990,26 +1135,80 @@ class InspectorPanel(
 
         # ScriptedFacet (with undo support)
         elif facet.facet_type == "ScriptedFacet":
-            script_edit = ClickableTextEdit(
-                field_name=f"{facet.name} - Salience Script",
-                on_apply_callback=lambda text, f=facet: (
-                    setattr(f, 'salience_script', text),
-                    self._push_facet_property_command(f, 'salience_script', f.salience_script, text)
+            if self._is_performance_facet(facet):
+                # Performance facet: friendly timing controls
+                from PyQt6.QtWidgets import QSpinBox, QDoubleSpinBox
+                params = self._parse_performance_params(facet.prompt)
+
+                speed_spin = QSpinBox()
+                speed_spin.setRange(20, 80)
+                speed_spin.setSuffix(" ms")
+                speed_spin.setValue(params.get('base_delay', 35))
+                speed_spin.setToolTip("Milliseconds per character")
+                speed_spin.setStyleSheet(
+                    "QSpinBox { background: #2D2D2D; color: #D2D2D2; "
+                    "border: 1px solid #555; padding: 4px; }")
+                speed_spin._last_value = speed_spin.value()
+
+                def on_speed_changed(val, f=facet, spin=speed_spin):
+                    old_prompt = f.prompt
+                    f.prompt = self._update_performance_param(
+                        f.prompt, 'base_delay', val)
+                    self._push_facet_property_command(
+                        f, 'prompt', old_prompt, f.prompt)
+                    spin._last_value = val
+
+                speed_spin.valueChanged.connect(on_speed_changed)
+                props_layout.addRow("Typing Speed:", speed_spin)
+
+                intensity_spin = QDoubleSpinBox()
+                intensity_spin.setRange(0.0, 1.0)
+                intensity_spin.setSingleStep(0.1)
+                intensity_spin.setDecimals(1)
+                intensity_spin.setValue(
+                    params.get('speaking_intensity', 0.7))
+                intensity_spin.setToolTip("VRM mouth animation intensity")
+                intensity_spin.setStyleSheet(
+                    "QDoubleSpinBox { background: #2D2D2D; color: #D2D2D2; "
+                    "border: 1px solid #555; padding: 4px; }")
+                intensity_spin._last_value = intensity_spin.value()
+
+                def on_intensity_changed(val, f=facet, spin=intensity_spin):
+                    old_prompt = f.prompt
+                    f.prompt = self._update_performance_param(
+                        f.prompt, 'speaking_intensity', val)
+                    self._push_facet_property_command(
+                        f, 'prompt', old_prompt, f.prompt)
+                    spin._last_value = val
+
+                intensity_spin.valueChanged.connect(on_intensity_changed)
+                props_layout.addRow("Speaking Intensity:", intensity_spin)
+            else:
+                # Generic ScriptedFacet: salience script editor
+                script_edit = ClickableTextEdit(
+                    field_name=f"{facet.name} - Salience Script",
+                    on_apply_callback=lambda text, f=facet: (
+                        setattr(f, 'salience_script', text),
+                        self._push_facet_property_command(
+                            f, 'salience_script', f.salience_script, text)
+                    )
                 )
-            )
-            script_edit.setPlainText(facet.salience_script or "")
-            script_edit.setStyleSheet("background-color: #1E1E1E; color: #D2D2D2; padding: 4px; font-family: 'Courier New';")
-            script_edit.setMaximumHeight(150)
-            script_edit._baseline_value = facet.salience_script or ""  # Track baseline for undo
+                script_edit.setPlainText(facet.salience_script or "")
+                script_edit.setStyleSheet(
+                    "background-color: #1E1E1E; color: #D2D2D2; "
+                    "padding: 4px; font-family: 'Courier New';")
+                script_edit.setMaximumHeight(150)
+                script_edit._baseline_value = facet.salience_script or ""
 
-            def on_script_changed(edit=script_edit, f=facet):
-                new_text = edit.toPlainText()
-                old_text = getattr(edit, '_baseline_value', '')
-                setattr(f, 'salience_script', new_text)
-                self._push_facet_property_command(f, 'salience_script', old_text, new_text)
+                def on_script_changed(edit=script_edit, f=facet):
+                    new_text = edit.toPlainText()
+                    old_text = getattr(edit, '_baseline_value', '')
+                    setattr(f, 'salience_script', new_text)
+                    self._push_facet_property_command(
+                        f, 'salience_script', old_text, new_text)
 
-            script_edit.textChanged.connect(on_script_changed)
-            props_layout.addRow("Salience Script:", script_edit)
+                script_edit.textChanged.connect(on_script_changed)
+                props_layout.addRow("Salience Script:", script_edit)
 
         # Generic
         else:
