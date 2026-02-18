@@ -53,6 +53,10 @@ class MainWindowMenusMixin:
         self.recent_projects_menu = file_menu.addMenu("Recent Projects")
         self.update_recent_projects_menu()
 
+        file_menu.addAction(self._create_action(
+            "&Close Project", slot=self._close_project
+        ))
+
         file_menu.addSeparator()
 
         # Create new stage (requires server)

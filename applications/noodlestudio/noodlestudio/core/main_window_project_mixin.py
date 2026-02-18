@@ -48,6 +48,13 @@ class MainWindowProjectMixin:
         """Show Project Chooser dialog for creating/opening projects."""
         self._show_project_chooser()
 
+    def _close_project(self):
+        """Close the current project and return to empty state."""
+        if not self.project_manager.is_project_open():
+            return
+        self.project_manager.close_project()
+        self.statusBar().showMessage("Project closed", 3000)
+
     def open_project(self):
         """Open an existing NoodleStudio project."""
         project_path = QFileDialog.getExistingDirectory(
