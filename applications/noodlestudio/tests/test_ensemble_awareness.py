@@ -447,3 +447,55 @@ class TestSoloModeFallback:
         # Solo mode should NOT have ensemble-specific keys
         assert 'ensemble_history' not in captured
         assert 'present_entities' not in captured
+
+
+class TestSpeakerSpotlight:
+    """set_active_speaker must be called during turn-taking for spotlight."""
+
+    def test_speaker_set_on_each_turn(self):
+        """Each noodling's turn must set them as active speaker."""
+        manager = _make_ensemble_manager()
+        manager._turn_queue = ['ajo', 'krampus']
+        manager._pending_message = "Hello"
+        manager._turn_responses = {}
+
+        # Capture execute calls instead of actually executing
+        for nid in manager._performers:
+            manager._performers[nid].execute = lambda msg, ctx=None: None
+
+        manager._advance_ensemble_turn()  # Ajo's turn
+
+        calls = manager._window._active_speaker_calls
+        assert calls[-1] == 'ajo'
+
+    def test_speaker_cleared_when_all_turns_done(self):
+        """After all turns complete, speaker must be set to None."""
+        manager = _make_ensemble_manager()
+        manager._turn_queue = []  # All turns done
+        manager._pending_message = "Hello"
+
+        manager._advance_ensemble_turn()
+
+        calls = manager._window._active_speaker_calls
+        assert calls[-1] is None
+
+    def test_speaker_changes_between_noodlings(self):
+        """Active speaker must change as turns advance."""
+        manager = _make_ensemble_manager()
+        manager._turn_queue = ['ajo', 'krampus']
+        manager._pending_message = "Hello"
+        manager._turn_responses = {}
+
+        for nid in manager._performers:
+            manager._performers[nid].execute = lambda msg, ctx=None: None
+
+        # First turn: Ajo
+        manager._advance_ensemble_turn()
+        assert manager._window._active_speaker_calls[-1] == 'ajo'
+
+        # Simulate Ajo finishing, advance to Krampus
+        manager._performers['ajo']._last_response = "Hi!"
+        manager._on_ensemble_turn_finished('ajo')
+
+        # Krampus turn queued, but turn_queue was modified
+        assert manager._window._active_speaker_calls[-1] == 'krampus'

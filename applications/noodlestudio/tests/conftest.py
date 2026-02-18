@@ -432,7 +432,9 @@ class StubWindow:
         pass
 
     def set_active_speaker(self, noodling_id=None):
-        pass
+        if not hasattr(self, '_active_speaker_calls'):
+            self._active_speaker_calls = []
+        self._active_speaker_calls.append(noodling_id)
 
     def show_play_header(self, title):
         pass

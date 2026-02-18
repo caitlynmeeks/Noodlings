@@ -587,9 +587,15 @@ if QT_AVAILABLE:
                 )
 
         def set_active_speaker(self, noodling_id: str = None):
-            """Highlight which noodling is currently speaking/thinking."""
+            """Highlight which noodling is currently speaking/thinking.
+
+            Sets name label styling and dims non-speaking VRM containers
+            for a subtle stage-light spotlight effect.
+            """
+            active_slot = self._noodling_to_slot.get(noodling_id) if noodling_id else None
+
             for slot, label in self._performer_labels.items():
-                if noodling_id and self._noodling_to_slot.get(noodling_id) == slot:
+                if active_slot == slot:
                     label.setStyleSheet(
                         "color: #E8C547; font-size: 11px; font-weight: bold; "
                         "background: #1A1A0A; border-radius: 3px; "
@@ -599,6 +605,26 @@ if QT_AVAILABLE:
                     label.setStyleSheet(
                         "color: #888; font-size: 11px; font-weight: bold; "
                         "background: transparent; padding: 2px 12px;"
+                    )
+
+            # Dim non-speaking VRM containers (subtle background shift)
+            for slot, container in self._vrm_containers.items():
+                if slot == 'default':
+                    continue  # Single mode container, skip
+                if noodling_id is None:
+                    # No speaker -- restore all containers to normal
+                    container.setStyleSheet(
+                        "QFrame { background-color: #020204; border: none; }"
+                    )
+                elif slot == active_slot:
+                    # Active speaker -- full brightness
+                    container.setStyleSheet(
+                        "QFrame { background-color: #020204; border: none; }"
+                    )
+                else:
+                    # Non-speaker -- subtle dim
+                    container.setStyleSheet(
+                        "QFrame { background-color: #010102; border: none; }"
                     )
 
         def eventFilter(self, obj, event):
