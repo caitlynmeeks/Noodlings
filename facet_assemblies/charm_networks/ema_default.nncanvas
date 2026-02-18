@@ -3,8 +3,8 @@
   "name": "CharmNetwork EMA",
   "description": "Three-timescale exponential moving average affect processor. Fast (alpha=0.7) tracks immediate reactions, Medium (alpha=0.15) captures conversational mood, Slow (alpha=0.03) holds session-level drift. Blended with weights [0.5, 0.3, 0.2] and nudged toward character baseline.",
   "metadata": {
-    "created": "2026-02-18T14:00:00.000000",
-    "modified": "2026-02-18T14:00:00.000000",
+    "created": "2026-02-18T14:00:00",
+    "modified": "2026-02-18T14:00:00",
     "author": "Caity",
     "total_parameters": 0
   },
@@ -13,7 +13,10 @@
       "id": "mood-input",
       "type": "INPUT",
       "name": "Mood Input",
-      "position": [100, 250],
+      "position": [
+        100,
+        250
+      ],
       "params": {
         "output_dim": 3
       },
@@ -21,7 +24,9 @@
       "outputs": {
         "affect": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "label": "PAD (3-D)"
         }
       },
@@ -35,7 +40,10 @@
       "id": "ema-fast",
       "type": "EMA_FILTER",
       "name": "Fast",
-      "position": [400, 100],
+      "position": [
+        400,
+        100
+      ],
       "params": {
         "alpha": 0.7,
         "label": "Fast"
@@ -43,7 +51,9 @@
       "inputs": {
         "affect_in": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "required": true,
           "label": "PAD (3-D)"
         }
@@ -51,7 +61,9 @@
       "outputs": {
         "affect_out": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "label": "Smoothed PAD"
         }
       },
@@ -65,7 +77,10 @@
       "id": "ema-medium",
       "type": "EMA_FILTER",
       "name": "Medium",
-      "position": [400, 250],
+      "position": [
+        400,
+        250
+      ],
       "params": {
         "alpha": 0.15,
         "label": "Medium"
@@ -73,7 +88,9 @@
       "inputs": {
         "affect_in": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "required": true,
           "label": "PAD (3-D)"
         }
@@ -81,7 +98,9 @@
       "outputs": {
         "affect_out": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "label": "Smoothed PAD"
         }
       },
@@ -95,7 +114,10 @@
       "id": "ema-slow",
       "type": "EMA_FILTER",
       "name": "Slow",
-      "position": [400, 400],
+      "position": [
+        400,
+        400
+      ],
       "params": {
         "alpha": 0.03,
         "label": "Slow"
@@ -103,7 +125,9 @@
       "inputs": {
         "affect_in": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "required": true,
           "label": "PAD (3-D)"
         }
@@ -111,7 +135,9 @@
       "outputs": {
         "affect_out": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "label": "Smoothed PAD"
         }
       },
@@ -125,26 +151,39 @@
       "id": "blend",
       "type": "WEIGHTED_BLEND",
       "name": "Blend",
-      "position": [700, 250],
+      "position": [
+        700,
+        250
+      ],
       "params": {
-        "weights": [0.5, 0.3, 0.2]
+        "weights": [
+          0.5,
+          0.3,
+          0.2
+        ]
       },
       "inputs": {
         "fast": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "required": true,
           "label": "Fast PAD"
         },
         "medium": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "required": true,
           "label": "Medium PAD"
         },
         "slow": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "required": true,
           "label": "Slow PAD"
         }
@@ -152,7 +191,9 @@
       "outputs": {
         "blended": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "label": "Blended PAD"
         }
       },
@@ -166,7 +207,10 @@
       "id": "baseline",
       "type": "BASELINE_DRIFT",
       "name": "Baseline",
-      "position": [1000, 250],
+      "position": [
+        1000,
+        250
+      ],
       "params": {
         "target_valence": 0.7,
         "target_arousal": 0.5,
@@ -176,7 +220,9 @@
       "inputs": {
         "affect_in": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "required": true,
           "label": "Current PAD"
         }
@@ -184,7 +230,9 @@
       "outputs": {
         "affect_out": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "label": "Drifted PAD"
         }
       },
@@ -198,12 +246,17 @@
       "id": "output",
       "type": "OUTPUT",
       "name": "Output",
-      "position": [1300, 250],
+      "position": [
+        1300,
+        250
+      ],
       "params": {},
       "inputs": {
         "affect_in": {
           "data_type": "AFFECT",
-          "shape": [3],
+          "shape": [
+            3
+          ],
           "required": true,
           "label": "Final PAD"
         }
@@ -219,7 +272,10 @@
       "id": "comment-ema",
       "type": "COMMENT",
       "name": "EMA Charm Network",
-      "position": [100, 450],
+      "position": [
+        60,
+        560
+      ],
       "params": {
         "text": "Three-timescale EMA affect processor.\nFast (0.7) reacts instantly. Medium (0.15) holds mood. Slow (0.03) drifts.\nBlended 50/30/20 and nudged toward character baseline.\n\nSwap to LSTM/GRU: replace this file with default.nncanvas.",
         "width": 380,
