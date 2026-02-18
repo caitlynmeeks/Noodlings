@@ -438,6 +438,12 @@ class GuidePerformanceManager:
         # Connect user message
         self._window.messageSubmitted.connect(self._on_user_message)
 
+        # Connect performer name click -> hierarchy selection routing
+        if ensemble:
+            self._window.noodlingSelected.connect(
+                self.on_hierarchy_noodling_selected
+            )
+
         # Wire each performer
         for nid, performer in performers.items():
             if ensemble:
@@ -572,6 +578,11 @@ class GuidePerformanceManager:
 
         # Connect user message to ensemble handler
         self._window.messageSubmitted.connect(self._on_user_message)
+
+        # Connect performer name click -> hierarchy selection routing
+        self._window.noodlingSelected.connect(
+            self.on_hierarchy_noodling_selected
+        )
 
         # Wire each performer to the window
         for nid, performer in self._performers.items():
