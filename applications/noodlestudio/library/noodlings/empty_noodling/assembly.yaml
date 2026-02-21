@@ -67,8 +67,8 @@ facets:
     description: 40-D temporal memory (h_fast + h_medium + h_slow)
     required: true
   position:
-    x: 416.80452925947225
-    y: 172.92233808662775
+    x: 442.80452925947225
+    y: 392.92233808662775
   color: '#888888'
   enabled: true
   locked: true
@@ -202,75 +202,6 @@ facets:
   position:
     x: 100.0
     y: 640.0
-  color: '#64B5F6'
-  enabled: true
-  locked: false
-- id: 88f1802d-79b7-4a54-82e2-8dba7e6b6d7f
-  name: Social Context Facet
-  type: SocialFacet
-  prompt: 'TODO: Define prompt for Social Context Facet'
-  model: SMALL
-  temperature: 0.7
-  max_tokens: 150
-  inputs:
-  - name: in
-    type: input
-    description: Input
-    required: true
-  outputs:
-  - name: out
-    type: output
-    description: Output
-    required: true
-  position:
-    x: 100.0
-    y: 100.0
-  color: '#64B5F6'
-  enabled: true
-  locked: false
-- id: bf0de916-aa4b-4257-a928-ba076be96f9f
-  name: AND
-  type: LogicAndFacet
-  prompt: 'TODO: Define prompt for AND'
-  model: SMALL
-  temperature: 0.7
-  max_tokens: 150
-  inputs:
-  - name: in
-    type: input
-    description: Input
-    required: true
-  outputs:
-  - name: out
-    type: output
-    description: Output
-    required: true
-  position:
-    x: 180.21698035670258
-    y: 404.11112024328105
-  color: '#64B5F6'
-  enabled: true
-  locked: false
-- id: dd73457b-bd24-45ff-9a3d-020765d6a61e
-  name: Emotion Facet
-  type: EmotionFacet
-  prompt: 'TODO: Define prompt for Emotion Facet'
-  model: SMALL
-  temperature: 0.7
-  max_tokens: 150
-  inputs:
-  - name: in
-    type: input
-    description: Input
-    required: true
-  outputs:
-  - name: out
-    type: output
-    description: Output
-    required: true
-  position:
-    x: 565.5677017756428
-    y: 374.17733720717195
   color: '#64B5F6'
   enabled: true
   locked: false

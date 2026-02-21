@@ -72,6 +72,10 @@ class LLMConfig:
                 self.base_url = "https://api.openai.com/v1"
             elif self.provider == "openrouter":
                 self.base_url = "https://openrouter.ai/api/v1"
+            elif self.provider == "lmstudio":
+                self.base_url = "http://localhost:1234/v1"
+            elif self.provider == "custom":
+                self.base_url = "http://localhost:8080/v1"
 
         # Get API key from environment if not provided
         if not self.api_key:
@@ -224,9 +228,13 @@ class HeadlessLLMClient:
         temperature: float,
         max_tokens: int
     ) -> Tuple[str, int]:
-        """Generate using OpenAI-compatible API (Ollama, OpenAI, OpenRouter)."""
+        """Generate using OpenAI-compatible API (Ollama, OpenAI, OpenRouter, LMStudio)."""
         async with self._semaphore:
-            url = f"{self.config.base_url}/chat/completions"
+            base = self.config.base_url.rstrip("/")
+            if base.endswith("/v1"):
+                url = f"{base}/chat/completions"
+            else:
+                url = f"{base}/v1/chat/completions"
 
             headers = {
                 "Content-Type": "application/json",
@@ -361,7 +369,11 @@ class HeadlessLLMClient:
         Bills the user's Noodlings account via credits.
         """
         async with self._semaphore:
-            url = f"{self.config.base_url}/chat/completions"
+            base = self.config.base_url.rstrip("/")
+            if base.endswith("/v1"):
+                url = f"{base}/chat/completions"
+            else:
+                url = f"{base}/v1/chat/completions"
 
             headers = {
                 "Content-Type": "application/json",

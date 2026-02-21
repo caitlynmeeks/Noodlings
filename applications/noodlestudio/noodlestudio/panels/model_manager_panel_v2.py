@@ -253,22 +253,6 @@ class ProviderConfigDialog(QDialog):
             """)
             form.addRow("Base URL:", self.base_url_input)
 
-        # Port (if needed)
-        if self.provider_config.type in ["lmstudio"]:
-            self.port_input = QSpinBox()
-            self.port_input.setRange(1, 65535)
-            self.port_input.setValue(self.provider_config.port or 1234)
-            self.port_input.setStyleSheet("""
-                QSpinBox {
-                    background: #3e3e3e;
-                    color: #D2D2D2;
-                    border: 1px solid #555555;
-                    padding: 6px;
-                    border-radius: 3px;
-                }
-            """)
-            form.addRow("Port:", self.port_input)
-
         # Ollama concurrency settings
         if self.provider_config.type == "ollama":
             # Separator
@@ -387,9 +371,6 @@ class ProviderConfigDialog(QDialog):
 
         if hasattr(self, 'base_url_input'):
             self.provider_config.base_url = self.base_url_input.text() or None
-
-        if hasattr(self, 'port_input'):
-            self.provider_config.port = self.port_input.value()
 
         # Ollama concurrency settings
         if hasattr(self, 'num_parallel_input'):

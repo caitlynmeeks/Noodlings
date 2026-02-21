@@ -575,7 +575,7 @@ Project path: {self.project_path}"""
         if provider_type == "anthropic":
             async for chunk in self._call_anthropic(model_id, api_key, system_prompt):
                 yield chunk
-        elif provider_type in ["openai", "openrouter", "ollama"]:
+        elif provider_type in ["openai", "openrouter", "ollama", "lmstudio", "custom"]:
             async for chunk in self._call_openai_compatible(model_id, base_url, api_key, provider_type, system_prompt):
                 yield chunk
         else:
