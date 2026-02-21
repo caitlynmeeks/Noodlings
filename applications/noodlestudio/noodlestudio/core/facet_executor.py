@@ -830,7 +830,8 @@ class FacetExecutor:
         self,
         facet: Facet,
         inputs: Dict[str, Any],
-        context: Dict[str, Any]
+        context: Dict[str, Any],
+        on_stream_token: Optional[Callable] = None
     ) -> Dict[str, Any]:
         """
         Execute a single facet.
@@ -839,6 +840,7 @@ class FacetExecutor:
             facet: Facet to execute
             inputs: Input values from connected pads
             context: Execution context (cycle, agent info, etc.)
+            on_stream_token: Optional callback(facet_id, text) for streaming delivery
 
         Returns:
             Dict of output values
@@ -1721,15 +1723,15 @@ class FacetExecutor:
 
             # Execute filtered facets in parallel
             if facets_to_execute:
-                async def _run_facet_with_callback(facet, inputs, ctx, callback):
+                async def _run_facet_with_callback(facet, inputs, ctx, callback, stream_cb):
                     """Execute a facet and fire per-facet callback on completion."""
-                    outputs = await self._execute_facet(facet, inputs, ctx)
+                    outputs = await self._execute_facet(facet, inputs, ctx, on_stream_token=stream_cb)
                     if callback:
                         callback(facet.id, outputs)
                     return outputs
 
                 tasks = [
-                    _run_facet_with_callback(facet, inputs, context, on_facet_complete)
+                    _run_facet_with_callback(facet, inputs, context, on_facet_complete, on_stream_token)
                     for facet, inputs in facets_to_execute
                 ]
                 results = await asyncio.gather(*tasks)
