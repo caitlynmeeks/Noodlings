@@ -163,3 +163,103 @@ if QT_AVAILABLE:
             if speaking != self._is_speaking:
                 self._is_speaking = speaking
                 self.speakingStateChanged.emit(speaking)
+
+        # =================================================================
+        # STREAMING MODE
+        #
+        # For stream_animated delivery: tokens arrive incrementally from
+        # the LLM. We buffer them and reveal character-by-character with
+        # natural typing delays (matching the buffered mode's timing).
+        # =================================================================
+
+        def start_streaming(self):
+            """Initialize streaming state. Call before feeding tokens."""
+            self.stop()
+            self._stream_buffer = ""
+            self._stream_done = False
+            self._stream_timer = QTimer(self)
+            self._stream_timer.setSingleShot(True)
+            self._stream_timer.timeout.connect(self._reveal_next_streaming)
+            self._stream_started = False
+
+        def append_text(self, text: str):
+            """
+            Buffer incoming tokens from streaming LLM.
+
+            Starts character reveal when 3+ chars are buffered.
+            """
+            self._stream_buffer += text
+            # Start revealing once we have enough to avoid stutter
+            if not self._stream_started and len(self._stream_buffer) >= 3:
+                self._stream_started = True
+                self._set_speaking(True)
+                self._reveal_next_streaming()
+
+        def finish_streaming(self):
+            """Mark stream as done. Drains remaining buffer."""
+            self._stream_done = True
+            # If we never started (very short response), start now
+            if not self._stream_started and self._stream_buffer:
+                self._stream_started = True
+                self._set_speaking(True)
+                self._reveal_next_streaming()
+
+        def _reveal_next_streaming(self):
+            """Pop a char from buffer, emit with typing delay, retry if buffer empty."""
+            if not self._stream_buffer:
+                if self._stream_done:
+                    # All done
+                    self._set_speaking(False)
+                    self.finished.emit()
+                    return
+                else:
+                    # Buffer empty but stream ongoing -- wait and retry
+                    self._stream_timer.start(50)
+                    return
+
+            char = self._stream_buffer[0]
+            self._stream_buffer = self._stream_buffer[1:]
+
+            self.characterRevealed.emit(char)
+
+            delay = self._char_delay(char)
+
+            # Manage speaking state based on delay
+            if delay >= _PAUSE_THRESHOLD_MS:
+                if self._is_speaking:
+                    self._set_speaking(False)
+            else:
+                if not self._is_speaking:
+                    self._set_speaking(True)
+
+            # Schedule next character
+            self._stream_timer.start(delay)
+
+        @staticmethod
+        def _char_delay(char: str) -> int:
+            """
+            Calculate per-character delay in ms.
+
+            Timing rules matching the buffered Performance ScriptedFacet:
+            - Base: 35ms
+            - Period: 220ms
+            - Exclamation/Question: 250ms
+            - Comma: 120ms
+            - Colon/Semicolon: 150ms
+            - Newline: 300ms
+            - Space: 21ms
+            """
+            if char == '.':
+                return 220
+            elif char in ('!', '?'):
+                return 250
+            elif char == ',':
+                return 120
+            elif char in (':', ';'):
+                return 150
+            elif char == '\n':
+                return 300
+            elif char == ' ':
+                return 21
+            else:
+                return 35

@@ -140,6 +140,7 @@ class Facet:
     model: str = "SMALL"   # Which LLM label to use (SMALL/MEDIUM/LARGE)
     temperature: float = 0.7             # Sampling temperature
     max_tokens: int = 150                # Max output length
+    delivery: str = "buffered"           # Delivery mode: buffered, stream_animated, stream_raw
 
     # Scripting API - Dynamic salience control
     salience_script: Optional[str] = None  # JavaScript code for continuous salience computation
@@ -190,6 +191,9 @@ class Facet:
         # Include nncanvas_path for NeuralCanvasFacet types
         if self.nncanvas_path:
             result['nncanvas_path'] = self.nncanvas_path
+        # Only include delivery when non-default (keeps existing YAMLs clean)
+        if self.delivery and self.delivery != "buffered":
+            result['delivery'] = self.delivery
         return result
 
     @staticmethod
@@ -203,6 +207,7 @@ class Facet:
             model=data.get('model', 'SMALL'),
             temperature=data.get('temperature', 0.7),
             max_tokens=data.get('max_tokens', 150),
+            delivery=data.get('delivery', 'buffered'),
             salience_script=data.get('salience_script'),  # Load salience script if present
             nncanvas_path=data.get('nncanvas_path'),  # Load nncanvas_path for NeuralCanvasFacet
             input_pads=[FacetPad.from_dict(p) for p in data.get('inputs', [])],

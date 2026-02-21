@@ -63,6 +63,7 @@ class _AssemblyWorker(QThread):
     resultReady = pyqtSignal(object)    # ExecutionResult
     errorOccurred = pyqtSignal(str)     # Error message
     facetCompleted = pyqtSignal(str, object)  # (facet_id, outputs_dict)
+    streamTokenReady = pyqtSignal(str, str)   # (facet_id, text) for streaming delivery
 
     def __init__(self, executor, assembly, message: str, context: dict):
         super().__init__()
@@ -79,12 +80,16 @@ class _AssemblyWorker(QThread):
             def _on_facet_done(facet_id, outputs):
                 self.facetCompleted.emit(facet_id, outputs)
 
+            def _on_stream_token(facet_id, text):
+                self.streamTokenReady.emit(facet_id, text)
+
             result = loop.run_until_complete(
                 self._executor.execute(
                     self._assembly,
                     incoming_data=self._message,
                     context=self._context,
-                    on_facet_complete=_on_facet_done
+                    on_facet_complete=_on_facet_done,
+                    on_stream_token=_on_stream_token
                 )
             )
             self.resultReady.emit(result)
@@ -127,12 +132,18 @@ def create_llm_client():
         if mname:
             model_labels[label.upper()] = mname
 
+    # Read thinking modes for all labels
+    thinking_modes = {}
+    for label in label_mgr.get_all_labels():
+        thinking_modes[label.upper()] = label_mgr.get_thinking_mode(label)
+
     config = LLMConfig(
         provider=provider.type if provider else "ollama",
         model=model_name or "",
         api_key=provider.api_key if provider else "",
         base_url=provider.base_url if provider else "",
-        model_labels=model_labels
+        model_labels=model_labels,
+        thinking_modes=thinking_modes
     )
 
     logger.info(f"LLM client: provider={config.provider}, labels={model_labels}")
@@ -220,6 +231,10 @@ class NoodlingPerformer(QObject):
 
         # Stored affect state (populated by _apply_affect)
         self._last_pad_values: Optional[Dict] = None
+
+        # Streaming delivery state
+        self._streaming_mode: Optional[str] = None
+        self._streaming_first_token: bool = True
 
         # Performance player (created lazily)
         self._performance_player = None
@@ -401,6 +416,15 @@ class NoodlingPerformer(QObject):
         if self._performance_player and self._performance_player.is_playing:
             self._performance_player.stop()
 
+        # Detect streaming delivery mode from the Response facet
+        self._streaming_mode = None
+        self._streaming_first_token = True
+        if self._assembly and hasattr(self._assembly, 'facets'):
+            for facet in self._assembly.facets:
+                if facet.id == 'response' and hasattr(facet, 'delivery'):
+                    if facet.delivery in ('stream_animated', 'stream_raw'):
+                        self._streaming_mode = facet.delivery
+
         self.executionStarted.emit()
 
         # Build execution context
@@ -417,6 +441,11 @@ class NoodlingPerformer(QObject):
         self._worker.resultReady.connect(self._on_assembly_result)
         self._worker.errorOccurred.connect(self._on_assembly_error)
         self._worker.facetCompleted.connect(self._on_facet_completed)
+
+        # Wire streaming if delivery mode is streaming
+        if self._streaming_mode:
+            self._worker.streamTokenReady.connect(self._on_stream_token)
+
         self._worker.start()
 
     # =========================================================================
@@ -454,9 +483,19 @@ class NoodlingPerformer(QObject):
         self._last_response = raw_response or outgoing_output or ''
 
         # Emit response signal
-        if performance_script:
-            self._play_performance(performance_script)
+        if self._streaming_mode and not self._streaming_first_token:
+            # Streaming was active -- tokens already delivered via _on_stream_token.
+            # Just finish the streaming playback.
+            if self._streaming_mode == 'stream_animated' and self._performance_player:
+                self._performance_player.finish_streaming()
+            elif self._streaming_mode == 'stream_raw':
+                self.executionFinished.emit()
+        elif performance_script:
+            # Name prefix FIRST (begin_noodling_text inserts "Name: "),
+            # then start character reveal. Previous order caused first
+            # char to appear before the name prefix.
             self.performanceReady.emit(performance_script)
+            self._play_performance(performance_script)
         elif outgoing_output and outgoing_output != '[No output]':
             self.responseReady.emit(outgoing_output)
             raw_response = raw_response or outgoing_output
@@ -539,6 +578,60 @@ class NoodlingPerformer(QObject):
 
         # Forward to live viz
         self.facetCompleted.emit(facet_id, outputs)
+
+    # =========================================================================
+    # STREAMING DELIVERY
+    # =========================================================================
+
+    def _on_stream_token(self, facet_id: str, text: str):
+        """
+        Handle streaming text token from the LLM.
+
+        For stream_animated: emit performanceReady on first token (name prefix
+        first), then feed tokens to PerformancePlayer for typed reveal.
+        For stream_raw: emit chars directly via characterRevealed.
+
+        Args:
+            facet_id: The facet that produced this token
+            text: The text chunk from the LLM
+        """
+        if not text:
+            return
+
+        if self._streaming_first_token:
+            self._streaming_first_token = False
+            # Emit performanceReady on first token so the name prefix is inserted
+            stub_script = {
+                'type': 'performance_script',
+                'text': '',
+                'characters': [],
+                'speaking_intensity': 0.7
+            }
+            self.performanceReady.emit(stub_script)
+
+            if self._streaming_mode == 'stream_animated':
+                # Initialize the performance player for streaming
+                from .performance_player import PerformancePlayer
+                if self._performance_player is None:
+                    self._performance_player = PerformancePlayer()
+                    self._performance_player.characterRevealed.connect(
+                        self.characterRevealed
+                    )
+                    self._performance_player.speakingStateChanged.connect(
+                        self.speakingStateChanged
+                    )
+                    self._performance_player.finished.connect(
+                        self._on_performance_finished
+                    )
+                self._performance_player.start_streaming()
+
+        if self._streaming_mode == 'stream_animated':
+            if self._performance_player:
+                self._performance_player.append_text(text)
+        elif self._streaming_mode == 'stream_raw':
+            # Emit characters directly, no typing animation
+            for char in text:
+                self.characterRevealed.emit(char)
 
     # =========================================================================
     # AFFECT PIPELINE

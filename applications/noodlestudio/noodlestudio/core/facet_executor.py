@@ -1296,13 +1296,29 @@ class FacetExecutor:
                     else:
                         system_prompt = base_system_prompt
 
-                    response_text, llm_token_count = await self.llm_client.generate_with_tokens(
-                        prompt=formatted_prompt,
-                        system_prompt=system_prompt,
-                        model=facet.model if facet.model else None,
-                        temperature=facet.temperature,
-                        max_tokens=facet.max_tokens
-                    )
+                    # Dispatch on delivery mode
+                    if facet.delivery in ('stream_animated', 'stream_raw') and on_stream_token:
+                        def _token_cb(text, fid=facet.id):
+                            on_stream_token(fid, text)
+
+                        response_text, llm_token_count = await self.llm_client.generate_stream(
+                            prompt=formatted_prompt,
+                            system_prompt=system_prompt,
+                            model=facet.model if facet.model else None,
+                            temperature=facet.temperature,
+                            max_tokens=facet.max_tokens,
+                            on_token=_token_cb,
+                            label=facet.model if facet.model else None
+                        )
+                    else:
+                        response_text, llm_token_count = await self.llm_client.generate_with_tokens(
+                            prompt=formatted_prompt,
+                            system_prompt=system_prompt,
+                            model=facet.model if facet.model else None,
+                            temperature=facet.temperature,
+                            max_tokens=facet.max_tokens,
+                            label=facet.model if facet.model else None
+                        )
                     token_count = llm_token_count
 
                     # Clear LLM status on success
@@ -1504,7 +1520,8 @@ class FacetExecutor:
         assembly: FacetAssembly,
         incoming_data: Any,
         context: Optional[Dict[str, Any]] = None,
-        on_facet_complete: Optional[Callable] = None
+        on_facet_complete: Optional[Callable] = None,
+        on_stream_token: Optional[Callable] = None
     ) -> ExecutionResult:
         """
         Execute facet assembly with parallel processing.
@@ -1516,6 +1533,9 @@ class FacetExecutor:
             on_facet_complete: Optional callback(facet_id: str, outputs: dict)
                 called when each individual facet finishes, before the full
                 assembly completes. Useful for mood-first expression updates.
+            on_stream_token: Optional callback(facet_id: str, text: str)
+                called for each streaming text chunk from LLM facets with
+                delivery mode 'stream_animated' or 'stream_raw'.
 
         Returns:
             ExecutionResult with final output and metadata
@@ -1523,16 +1543,17 @@ class FacetExecutor:
         # Serial mode lock (debug only)
         if self.execution_lock:
             async with self.execution_lock:
-                return await self._execute_internal(assembly, incoming_data, context, on_facet_complete)
+                return await self._execute_internal(assembly, incoming_data, context, on_facet_complete, on_stream_token)
         else:
-            return await self._execute_internal(assembly, incoming_data, context, on_facet_complete)
+            return await self._execute_internal(assembly, incoming_data, context, on_facet_complete, on_stream_token)
 
     async def _execute_internal(
         self,
         assembly: FacetAssembly,
         incoming_data: Any,
         context: Optional[Dict[str, Any]] = None,
-        on_facet_complete: Optional[Callable] = None
+        on_facet_complete: Optional[Callable] = None,
+        on_stream_token: Optional[Callable] = None
     ) -> ExecutionResult:
         """
         Internal execution implementation (wrapped by execute() for serial lock).

@@ -368,6 +368,16 @@ Project path: {self.project_path}"""
 
         return base_prompt + profile_prompt + noodle_code_context
 
+    def _is_thinking_enabled(self) -> bool:
+        """Check if thinking mode is enabled for the Noodle Code label."""
+        if not self.model_label_manager:
+            return True
+        # Check "Noodle Code" label first, fall back to "Large"
+        provider_id, _ = self.model_label_manager.get_noodle_code_model()
+        if provider_id:
+            return self.model_label_manager.get_thinking_mode("Noodle Code")
+        return self.model_label_manager.get_thinking_mode("Large")
+
     def _get_model_config(self) -> tuple[str, str, str, Optional[str]]:
         """
         Get model configuration from user settings.
@@ -790,6 +800,12 @@ Project path: {self.project_path}"""
                         # Text content
                         if "content" in delta and delta["content"]:
                             yield StreamChunk(type="text", content=delta["content"])
+
+                        # Reasoning content (thinking models like Kimi 2.5 via LMStudio)
+                        # Only yield when thinking mode is ON for this label
+                        if "reasoning_content" in delta and delta["reasoning_content"]:
+                            if self._is_thinking_enabled():
+                                yield StreamChunk(type="text", content=delta["reasoning_content"])
 
                         # Tool calls
                         if "tool_calls" in delta:

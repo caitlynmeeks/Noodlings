@@ -154,13 +154,16 @@ class ModelLabelManager(QObject):
         """
         # print(f"DEBUG set_model_for_label: label='{label}', provider='{provider_id}', model='{model_name}'")
 
+        # Preserve existing thinking mode when changing model
+        existing_thinking = self._read_thinking_mode(label)
+
         # Store unassigned labels with special marker (so they appear in get_all_labels)
         if provider_id is None or model_name is None:
-            data = {"provider": "", "model": ""}
+            data = {"provider": "", "model": "", "thinking": existing_thinking}
             self.settings.setValue(f"labels/{label}", json.dumps(data))
         else:
             # Store as JSON
-            data = {"provider": provider_id, "model": model_name}
+            data = {"provider": provider_id, "model": model_name, "thinking": existing_thinking}
             json_str = json.dumps(data)
             # print(f"DEBUG: Storing JSON: {json_str}")
             self.settings.setValue(f"labels/{label}", json_str)
@@ -173,6 +176,60 @@ class ModelLabelManager(QObject):
 
         if emit_signal:
             self.mappingsChanged.emit()
+
+    def _read_thinking_mode(self, label: str) -> bool:
+        """Read the thinking mode from stored JSON for a label.
+
+        Returns True (default) if not set or label doesn't exist.
+        """
+        value = self.settings.value(f"labels/{label}", None)
+        if value is None:
+            return True
+        try:
+            if isinstance(value, str):
+                data = json.loads(value)
+            else:
+                data = value
+            return data.get("thinking", True)
+        except (json.JSONDecodeError, AttributeError):
+            return True
+
+    def get_thinking_mode(self, label: str) -> bool:
+        """
+        Get whether thinking/chain-of-thought is enabled for a label.
+
+        Args:
+            label: Label name (e.g., "Large", "Noodle Code")
+
+        Returns:
+            True if thinking is enabled (default), False if suppressed
+        """
+        return self._read_thinking_mode(label)
+
+    def set_thinking_mode(self, label: str, enabled: bool):
+        """
+        Set thinking mode for a label.
+
+        Args:
+            label: Label name
+            enabled: True to allow chain-of-thought, False to suppress
+        """
+        value = self.settings.value(f"labels/{label}", None)
+        if value is None:
+            return
+
+        try:
+            if isinstance(value, str):
+                data = json.loads(value)
+            else:
+                data = value
+        except (json.JSONDecodeError, AttributeError):
+            data = {"provider": "", "model": ""}
+
+        data["thinking"] = enabled
+        self.settings.setValue(f"labels/{label}", json.dumps(data))
+        self.settings.sync()
+        self.mappingsChanged.emit()
 
     def get_label_for_model(self, provider_id: str, model_name: str) -> Optional[str]:
         """

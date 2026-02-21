@@ -34,10 +34,12 @@
 
 import aiohttp
 import asyncio
+import json
 import os
 import logging
-from typing import Dict, Any, Optional, List, Tuple
-from dataclasses import dataclass
+import re
+from typing import Callable, Dict, Any, Optional, List, Tuple
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +58,14 @@ class LLMConfig:
     # Model label mapping (SMALL/MEDIUM/LARGE -> actual model)
     model_labels: Dict[str, str] = None
 
+    # Thinking mode per label (label -> bool). None = all enabled (default).
+    thinking_modes: Dict[str, bool] = None
+
     def __post_init__(self):
         if self.model_labels is None:
             self.model_labels = {}
+        if self.thinking_modes is None:
+            self.thinking_modes = {}
 
         # Set defaults based on provider
         if not self.base_url:
@@ -177,13 +184,29 @@ class HeadlessLLMClient:
         }
         return defaults.get(self.config.provider, "gpt-4o-mini")
 
+    def _is_thinking_enabled(self, label: Optional[str]) -> bool:
+        """Check if thinking mode is enabled for a given model label.
+
+        Returns True (default) when no label is provided or when thinking_modes
+        has no entry for the label.
+        """
+        if not label or not self.config.thinking_modes:
+            return True
+        # Normalize label for lookup (check both as-is and uppercase)
+        if label in self.config.thinking_modes:
+            return self.config.thinking_modes[label]
+        if label.upper() in self.config.thinking_modes:
+            return self.config.thinking_modes[label.upper()]
+        return True
+
     async def generate_with_tokens(
         self,
         prompt: str,
         system_prompt: str = "You are a helpful assistant.",
         model: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 400
+        max_tokens: int = 400,
+        label: Optional[str] = None
     ) -> Tuple[str, int]:
         """
         Generate text with token count tracking.
@@ -196,6 +219,7 @@ class HeadlessLLMClient:
             model: Model label or name (optional)
             temperature: Sampling temperature
             max_tokens: Maximum tokens to generate
+            label: Model label for thinking mode lookup (optional)
 
         Returns:
             Tuple of (generated_text, token_count)
@@ -204,21 +228,34 @@ class HeadlessLLMClient:
 
         resolved_model = self._resolve_model(model)
 
+        # When thinking is OFF: hint in system prompt + will strip tags after
+        thinking_enabled = self._is_thinking_enabled(label or model)
+        if not thinking_enabled:
+            system_prompt = system_prompt + "\n\nRespond directly without chain-of-thought reasoning."
+
         # Route to provider-specific implementation
         if self.config.provider == "anthropic":
-            return await self._generate_anthropic(
+            text, tokens = await self._generate_anthropic(
                 prompt, system_prompt, resolved_model, temperature, max_tokens
             )
         elif self.config.provider == "noodlerouter":
             # NoodleROUTER uses OpenAI-compatible format
-            return await self._generate_noodlerouter(
+            text, tokens = await self._generate_noodlerouter(
                 prompt, system_prompt, resolved_model, temperature, max_tokens
             )
         else:
             # OpenAI-compatible (Ollama, OpenAI, OpenRouter)
-            return await self._generate_openai_compatible(
+            text, tokens = await self._generate_openai_compatible(
                 prompt, system_prompt, resolved_model, temperature, max_tokens
             )
+
+        # Strip thinking tags unless thinking mode is explicitly enabled
+        # for a known label. Default behavior (no label) always strips
+        # for backward compatibility.
+        if not thinking_enabled or not label:
+            text = self._strip_thinking_tags(text)
+
+        return text, tokens
 
     async def _generate_openai_compatible(
         self,
@@ -274,14 +311,20 @@ class HeadlessLLMClient:
 
                     data = await resp.json()
 
-                    # Extract response text
-                    response_text = data['choices'][0]['message']['content']
+                    # Extract response text, handling thinking models
+                    message = data['choices'][0]['message']
+                    response_text = message.get('content') or ''
+
+                    # Discard reasoning_content (thinking models like Kimi 2.5)
+                    # Some models return content=None with only reasoning_content
+                    if not response_text and 'reasoning_content' in message:
+                        logger.debug("Content was None/empty, reasoning_content discarded")
 
                     # Extract token count
                     token_count = data.get('usage', {}).get('total_tokens', 0)
 
-                    # Strip thinking tags if present
-                    response_text = self._strip_thinking_tags(response_text)
+                    # Tag stripping is handled by generate_with_tokens()
+                    # based on thinking mode (ON preserves, OFF strips)
 
                     logger.debug(f"LLM response ({token_count} tokens): {response_text[:100]}...")
 
@@ -415,12 +458,16 @@ class HeadlessLLMClient:
 
                     data = await resp.json()
 
-                    # OpenAI-compatible response format
-                    response_text = data['choices'][0]['message']['content']
+                    # OpenAI-compatible response format (handle thinking models)
+                    message = data['choices'][0]['message']
+                    response_text = message.get('content') or ''
                     token_count = data.get('usage', {}).get('total_tokens', 0)
 
-                    # Strip thinking tags if present
-                    response_text = self._strip_thinking_tags(response_text)
+                    # Discard reasoning_content from thinking models
+                    if not response_text and 'reasoning_content' in message:
+                        logger.debug("NoodleROUTER: content was None/empty, reasoning_content discarded")
+
+                    # Tag stripping handled by generate_with_tokens() based on thinking mode
 
                     logger.debug(f"NoodleROUTER response ({token_count} tokens): {response_text[:100]}...")
 
@@ -431,12 +478,23 @@ class HeadlessLLMClient:
                 raise
 
     def _strip_thinking_tags(self, text: str) -> str:
-        """Strip <thinking> tags from LLM response."""
+        """Strip thinking/reasoning tags from LLM response.
+
+        Handles multiple tag variants used by different thinking models:
+        - <thinking>/<think>: DeepSeek R1, Qwen QwQ
+        - <reasoning>: Kimi 2.5 via LMStudio
+        - <reflection>: Some reasoning models
+        - <inner_thoughts>/<analysis>: Other CoT wrappers
+        """
         import re
 
         patterns = [
             r'<thinking>.*?</thinking>',
             r'<think>.*?</think>',
+            r'<reasoning>.*?</reasoning>',
+            r'<reflection>.*?</reflection>',
+            r'<inner_thoughts>.*?</inner_thoughts>',
+            r'<analysis>.*?</analysis>',
         ]
 
         result = text
@@ -472,6 +530,273 @@ class HeadlessLLMClient:
             prompt, system_prompt, model, temperature, max_tokens
         )
         return text
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        system_prompt: str = "You are a helpful assistant.",
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 400,
+        on_token: Optional[Callable[[str], None]] = None,
+        label: Optional[str] = None
+    ) -> Tuple[str, int]:
+        """
+        Generate text via streaming, calling on_token for each chunk.
+
+        Args:
+            prompt: User prompt
+            system_prompt: System message
+            model: Model label or name
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens
+            on_token: Callback for each text chunk
+            label: Model label for thinking mode lookup
+
+        Returns:
+            Tuple of (full_text, token_count)
+        """
+        await self._ensure_session()
+
+        resolved_model = self._resolve_model(model)
+        thinking_enabled = self._is_thinking_enabled(label or model)
+
+        if not thinking_enabled:
+            system_prompt = system_prompt + "\n\nRespond directly without chain-of-thought reasoning."
+
+        # Build the tag filter for streaming
+        tag_filter = ThinkingTagFilter(suppress=not thinking_enabled)
+
+        base = self.config.base_url.rstrip("/")
+        if base.endswith("/v1"):
+            url = f"{base}/chat/completions"
+        else:
+            url = f"{base}/v1/chat/completions"
+
+        headers = {"Content-Type": "application/json"}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+        if self.config.provider == "openrouter":
+            headers["HTTP-Referer"] = "https://noodlings.ai"
+            headers["X-Title"] = "NoodleStudio Runtime"
+
+        payload = {
+            "model": resolved_model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True
+        }
+
+        full_text = ""
+        token_count = 0
+
+        try:
+            async with self.session.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=self.config.timeout)
+            ) as resp:
+                if resp.status != 200:
+                    text = await resp.text()
+                    logger.error(f"Stream API error {resp.status}: {text}")
+                    # Fall back to buffered
+                    return await self.generate_with_tokens(
+                        prompt, system_prompt, model, temperature, max_tokens, label=label
+                    )
+
+                buffer = ""
+                async for raw_line in resp.content:
+                    line = raw_line.decode('utf-8', errors='replace').strip()
+                    if not line.startswith("data: "):
+                        continue
+
+                    data_str = line[6:]
+                    if data_str == "[DONE]":
+                        break
+
+                    try:
+                        event = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        continue
+
+                    choices = event.get("choices", [])
+                    if not choices:
+                        # Check for usage in final event
+                        if "usage" in event:
+                            token_count = event["usage"].get("total_tokens", 0)
+                        continue
+
+                    delta = choices[0].get("delta", {})
+
+                    # Extract text from content or reasoning_content
+                    chunk = ""
+                    if "content" in delta and delta["content"]:
+                        chunk = delta["content"]
+                    elif "reasoning_content" in delta and delta["reasoning_content"]:
+                        if thinking_enabled:
+                            chunk = delta["reasoning_content"]
+
+                    if chunk:
+                        # Run through tag filter
+                        filtered = tag_filter.feed(chunk)
+                        if filtered and on_token:
+                            on_token(filtered)
+                        full_text += filtered
+
+                # Flush any remaining buffered content
+                remaining = tag_filter.flush()
+                if remaining and on_token:
+                    on_token(remaining)
+                full_text += remaining
+
+                # Get token count from usage if available
+                if token_count == 0:
+                    # Estimate from text length
+                    token_count = len(full_text) // 4
+
+        except Exception as e:
+            logger.error(f"Streaming failed, falling back to buffered: {e}")
+            return await self.generate_with_tokens(
+                prompt, system_prompt, model, temperature, max_tokens, label=label
+            )
+
+        return full_text, token_count
+
+
+class ThinkingTagFilter:
+    """
+    State machine that filters thinking tags from a stream of text chunks.
+
+    Handles tags split across chunk boundaries (e.g., '<thi' + 'nk>').
+    When suppress=True, content between opening and closing tags is discarded.
+    When suppress=False, all text passes through unchanged.
+    """
+
+    # Tag names to filter
+    TAG_NAMES = ['think', 'thinking', 'reasoning', 'reflection', 'inner_thoughts', 'analysis']
+
+    def __init__(self, suppress: bool = True):
+        self._suppress = suppress
+        self._buffer = ""         # Partial tag buffer
+        self._inside_tag = False  # Whether we're inside a thinking tag
+        self._tag_name = ""       # Current tag we're matching
+
+    def feed(self, text: str) -> str:
+        """
+        Feed a text chunk through the filter.
+
+        Returns text that should be output (may be empty if inside a tag).
+        """
+        if not self._suppress:
+            return text
+
+        output = []
+        self._buffer += text
+
+        while self._buffer:
+            if self._inside_tag:
+                # Look for closing tag
+                close_tag = f"</{self._tag_name}>"
+                close_idx = self._buffer.lower().find(close_tag.lower())
+                if close_idx >= 0:
+                    # Found closing tag -- discard everything up to and including it
+                    self._buffer = self._buffer[close_idx + len(close_tag):]
+                    self._inside_tag = False
+                    self._tag_name = ""
+                elif self._could_contain_partial_close():
+                    # Buffer might contain start of closing tag -- wait for more data
+                    break
+                else:
+                    # No closing tag anywhere -- discard entire buffer
+                    self._buffer = ""
+                    break
+            else:
+                # Look for opening tag
+                best_idx = -1
+                best_name = ""
+                for name in self.TAG_NAMES:
+                    open_tag = f"<{name}>"
+                    idx = self._buffer.lower().find(open_tag.lower())
+                    if idx >= 0 and (best_idx < 0 or idx < best_idx):
+                        best_idx = idx
+                        best_name = name
+
+                if best_idx >= 0:
+                    # Found opening tag -- output text before it
+                    output.append(self._buffer[:best_idx])
+                    open_tag = f"<{best_name}>"
+                    self._buffer = self._buffer[best_idx + len(open_tag):]
+                    self._inside_tag = True
+                    self._tag_name = best_name
+                elif self._could_contain_partial_open():
+                    # Buffer might contain start of opening tag -- output safe prefix
+                    # Keep last N chars that could be start of a tag
+                    safe_end = self._find_safe_output_end()
+                    if safe_end > 0:
+                        output.append(self._buffer[:safe_end])
+                        self._buffer = self._buffer[safe_end:]
+                    break
+                else:
+                    # No tag found -- output everything
+                    output.append(self._buffer)
+                    self._buffer = ""
+
+        return "".join(output)
+
+    def flush(self) -> str:
+        """Flush remaining buffer. Call when stream is done."""
+        if not self._suppress:
+            result = self._buffer
+            self._buffer = ""
+            return result
+
+        if self._inside_tag:
+            # Unclosed tag -- discard remaining buffer
+            self._buffer = ""
+            return ""
+
+        result = self._buffer
+        self._buffer = ""
+        return result
+
+    def _could_contain_partial_open(self) -> bool:
+        """Check if buffer ends with a partial opening tag."""
+        lower = self._buffer.lower()
+        # Check if buffer ends with '<' or '<t' or '<th' etc.
+        for i in range(1, min(len(lower), 20)):
+            suffix = lower[-i:]
+            if suffix.startswith('<'):
+                for name in self.TAG_NAMES:
+                    tag = f"<{name}>"
+                    if tag.startswith(suffix):
+                        return True
+        return False
+
+    def _could_contain_partial_close(self) -> bool:
+        """Check if buffer might contain start of a closing tag."""
+        if not self._tag_name:
+            return False
+        close_tag = f"</{self._tag_name}>"
+        lower = self._buffer.lower()
+        for i in range(1, min(len(lower) + 1, len(close_tag))):
+            suffix = lower[-i:]
+            if close_tag.lower().startswith(suffix):
+                return True
+        return False
+
+    def _find_safe_output_end(self) -> int:
+        """Find the last position in buffer that's safe to output (before any partial tag)."""
+        lower = self._buffer.lower()
+        # Find last '<' that could be start of a tag
+        for i in range(len(lower) - 1, -1, -1):
+            if lower[i] == '<':
+                return i
+        return len(lower)
 
 
 def create_llm_client_from_env() -> HeadlessLLMClient:

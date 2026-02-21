@@ -393,6 +393,59 @@ class InspectorPanel(
         tokens_spin.valueChanged.connect(on_tokens_changed)
         llm_form.addRow("Max Tokens:", tokens_spin)
 
+        # Delivery mode dropdown
+        from PyQt6.QtWidgets import QComboBox as _QComboBox
+        delivery_combo = _QComboBox()
+        delivery_combo.addItems(["Buffered", "Stream Animated", "Stream Raw"])
+        delivery_combo.setStyleSheet("""
+            QComboBox {
+                background: #3e3e3e; color: #D2D2D2;
+                border: 1px solid #555555; padding: 4px 8px;
+                padding-right: 25px; border-radius: 3px; min-width: 100px;
+            }
+            QComboBox:hover { border: 1px solid #666666; }
+            QComboBox::drop-down {
+                subcontrol-origin: padding; subcontrol-position: top right;
+                width: 20px; border-left: 1px solid #555555;
+            }
+            QComboBox::down-arrow {
+                image: none; border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 6px solid #D2D2D2;
+                width: 0px; height: 0px; margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background: #3e3e3e; color: #D2D2D2;
+                selection-background-color: #555555; border: 1px solid #555555;
+            }
+        """)
+
+        # Map internal values to display text
+        _delivery_display = {
+            "buffered": "Buffered",
+            "stream_animated": "Stream Animated",
+            "stream_raw": "Stream Raw"
+        }
+        _delivery_internal = {v: k for k, v in _delivery_display.items()}
+
+        current_delivery = getattr(facet, 'delivery', 'buffered') or 'buffered'
+        display_text = _delivery_display.get(current_delivery, "Buffered")
+        idx = delivery_combo.findText(display_text, Qt.MatchFlag.MatchFixedString)
+        if idx >= 0:
+            delivery_combo.setCurrentIndex(idx)
+
+        delivery_combo._last_value = current_delivery
+
+        def on_delivery_changed(text, f=facet, combo=delivery_combo):
+            old_val = getattr(combo, '_last_value', 'buffered')
+            new_val = _delivery_internal.get(text, 'buffered')
+            setattr(f, 'delivery', new_val)
+            self._push_facet_property_command(f, 'delivery', old_val, new_val)
+            combo._last_value = new_val
+
+        delivery_combo.currentTextChanged.connect(on_delivery_changed)
+        llm_form.addRow("Delivery:", delivery_combo)
+
         # Prompt (with floating editor on Cmd+Click)
         prompt_edit = ClickableTextEdit(
             field_name=f"{facet.name} - Prompt",
