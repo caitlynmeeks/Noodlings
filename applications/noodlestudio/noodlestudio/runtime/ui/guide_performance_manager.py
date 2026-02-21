@@ -464,7 +464,7 @@ class GuidePerformanceManager:
             else:
                 self._wire_performer_to_window(performer, self._window)
 
-        # Load VRM files from stage instance data
+        # Load VRM files or show name cards from stage instance data
         for info in instances:
             if info['vrm_path']:
                 if ensemble:
@@ -474,6 +474,10 @@ class GuidePerformanceManager:
                     )
                 else:
                     self._window.set_vrm(info['vrm_path'])
+            elif ensemble:
+                self._window.show_name_card(
+                    info['noodling_id'], info['name']
+                )
 
         self._window.show()
 
@@ -1744,7 +1748,11 @@ class GuidePerformanceManager:
                 self._window.set_vrm(vrm_path)
             logger.info(f"VRM swapped for {noodling_id}: {vrm_path}")
         else:
-            logger.info(f"VRM cleared for {noodling_id}")
+            # Show name card when VRM is cleared
+            performer = self._performers.get(noodling_id)
+            name = performer.name if performer else noodling_id
+            self._window.show_name_card(noodling_id, name)
+            logger.info(f"VRM cleared for {noodling_id}, showing name card")
 
     def set_ensemble_active(self, noodling_id: str, active: bool):
         """Toggle ensemble participation for a noodling during performance.

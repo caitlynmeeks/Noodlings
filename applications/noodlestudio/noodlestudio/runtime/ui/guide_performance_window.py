@@ -715,6 +715,50 @@ if QT_AVAILABLE:
                 if placeholder:
                     placeholder.setText(f"VRM load failed: {e}")
 
+        def show_name_card(self, noodling_id: str, noodling_name: str):
+            """Show a name card for a noodling without a VRM.
+
+            Displays the noodling's name on a dark card in the viewport
+            slot, like a Zoom call with camera off.
+
+            Args:
+                noodling_id: Instance identifier
+                noodling_name: Display name for the card
+            """
+            slot = self._get_slot(noodling_id)
+            slot_layout = self._vrm_container_layouts.get(slot)
+
+            if not slot_layout:
+                logger.warning(f"No container for name card slot '{slot}'")
+                return
+
+            # Remove existing viewport if any
+            old_viewport = self._vrm_viewports.get(slot)
+            if old_viewport:
+                old_viewport.setParent(None)
+                self._vrm_viewports[slot] = None
+
+            # Get or recreate placeholder
+            placeholder = self._vrm_placeholders.get(slot)
+            if placeholder is None:
+                placeholder = QLabel()
+                placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                slot_layout.addWidget(placeholder)
+                self._vrm_placeholders[slot] = placeholder
+
+            placeholder.setText(noodling_name)
+            placeholder.setStyleSheet(
+                "QLabel {"
+                "  color: #D2D2D2;"
+                "  background: #2a2a2a;"
+                "  font-size: 18px;"
+                "  font-weight: 500;"
+                "}"
+            )
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.show()
+            logger.info(f"Name card shown for {noodling_id}: {noodling_name}")
+
         def set_muscles(self, muscles: Dict[str, float],
                         noodling_id: str = 'default'):
             """Apply muscle values to a VRM character."""
@@ -1021,6 +1065,7 @@ if not QT_AVAILABLE:
         def hide(self): pass
         def close(self): pass
         def set_vrm(self, vrm_path, noodling_id='default'): pass
+        def show_name_card(self, noodling_id, noodling_name): pass
         def set_muscles(self, muscles, noodling_id='default'): pass
         def set_blend_shapes(self, shapes, noodling_id='default'): pass
         def set_speaking_mode(self, active, intensity=0.7,
