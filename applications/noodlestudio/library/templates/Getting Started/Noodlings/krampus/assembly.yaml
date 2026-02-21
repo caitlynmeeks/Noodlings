@@ -97,6 +97,7 @@ facets:
   model: LARGE
   temperature: 0.7
   max_tokens: 300
+  delivery: stream_animated
   inputs:
   - name: in
     type: input
