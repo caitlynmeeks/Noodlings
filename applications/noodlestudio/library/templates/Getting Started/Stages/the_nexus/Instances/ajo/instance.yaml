@@ -3,4 +3,5 @@ overrides:
   name: "Ajo Majo"
   position: [-2, 0, 0]
   zone: "main"
+  mark: behind_counter
 created: "2026-02-15T00:00:00Z"

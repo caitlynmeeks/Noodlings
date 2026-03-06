@@ -1,0 +1,15 @@
+id: window_seat
+name: Window Seat
+perspective: >
+  You're sitting at the window table. The glass is cool beside
+  you. Outside, the laurel forest is close enough to touch if the
+  window were open. The carved words on the table are under your
+  elbow. You can see the counter and whoever is behind it. The
+  fireplace is across the room -- warm light, not warm air. The
+  door is to your right.
+can_see:
+- window_table
+- front_windows
+- counter
+- fireplace
+- door

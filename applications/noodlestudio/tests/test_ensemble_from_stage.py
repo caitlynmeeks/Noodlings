@@ -167,8 +167,8 @@ class TestStageInstanceDiscovery:
         assert manager._stage_description is None
         manager._discover_stage_instances(stage_path)
         assert manager._stage_description is not None
-        assert 'shared space' in manager._stage_description.lower() or \
-               'noodlings' in manager._stage_description.lower()
+        assert 'cafe' in manager._stage_description.lower() or \
+               'caldera' in manager._stage_description.lower()
 
     def test_empty_stage_returns_no_instances(self, tmp_path):
         """A stage with no Instances/ directory must return empty list."""

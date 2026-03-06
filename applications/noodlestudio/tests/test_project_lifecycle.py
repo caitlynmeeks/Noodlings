@@ -72,7 +72,7 @@ class TestDefaultProjectStructure:
         )
         with open(stage_yaml) as f:
             data = yaml.safe_load(f)
-        assert data['name'] == 'The Nexus'
+        assert data['name'] == 'Hearthwood Cafe'
         assert 'geometry' in data
 
 

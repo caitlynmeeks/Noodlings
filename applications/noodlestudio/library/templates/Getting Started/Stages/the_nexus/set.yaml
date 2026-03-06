@@ -1,0 +1,56 @@
+name: Hearthwood Cafe
+description: >
+  A small cafe with stone walls and heavy timber beams, tucked into
+  the edge of a volcanic caldera. The air smells of roasted coffee,
+  pine resin, and warm bread. A fireplace crackles in the corner,
+  throwing soft light across mismatched wooden tables and chairs.
+  The front windows look out onto a laurel forest that climbs the
+  caldera slope. Shelves along the walls hold jars of local honey,
+  stacked ceramic cups, and a few dog-eared paperbacks that nobody
+  ever finishes. It's the kind of place where you sit down for one
+  coffee and stay for three.
+objects:
+- id: fireplace
+  name: Stone Fireplace
+  description: >
+    River stones stacked into a wide hearth. A low fire burns
+    steady. The mantel holds a row of small carved animals --
+    a lizard, a goat, a bird -- that someone made by hand.
+- id: counter
+  name: Counter
+  description: >
+    Worn volcanic stone top, smooth from years of elbows. An
+    old brass espresso machine hisses and ticks. Cups hang
+    from hooks underneath. A jar of brown sugar with a bent
+    spoon.
+- id: chalkboard
+  name: Chalkboard Menu
+  description: >
+    Hung above the counter. Today's specials in colored chalk:
+    cortado, barraquito, volcanic dust latte. Someone drew a
+    tiny axolotl in the bottom corner.
+- id: window_table
+  name: Window Table
+  description: >
+    A small table by the front window, slightly wobbly. The
+    surface is scratched and stained. Someone carved 'the wind
+    remembers' into the wood with a pen knife. Through the
+    window: laurel trees, morning fog, the caldera rim.
+- id: front_windows
+  name: Front Windows
+  description: >
+    Wide, slightly fogged. The laurel forest presses close
+    outside -- dark green leaves, twisted trunks. Beyond the
+    trees, the caldera rim rises against the sky.
+- id: door
+  name: Front Door
+  description: >
+    Heavy wood, propped open with a volcanic rock. A string
+    of small brass bells hangs from the handle. They ring
+    when someone enters.
+- id: bookshelf
+  name: Bookshelf
+  description: >
+    A narrow shelf beside the fireplace. Paperbacks, a
+    tide table, someone's forgotten reading glasses, a
+    postcard from Fuerteventura with no message on the back.

@@ -245,6 +245,49 @@ class TestAssemblyLoading:
         assert 'facets' in data
         assert len(data['facets']) >= 3
 
+    def test_set_yaml_exists_in_default_template(self):
+        """Default stage must have a set.yaml with scene objects."""
+        set_path = os.path.join(
+            LIBRARY_DIR, 'templates', 'Getting Started',
+            'Stages', 'the_nexus', 'set.yaml'
+        )
+        assert os.path.isfile(set_path), f"set.yaml not found: {set_path}"
+        with open(set_path) as f:
+            data = yaml.safe_load(f)
+        assert 'objects' in data
+        assert len(data['objects']) == 7
+
+    def test_marks_directory_has_marks(self):
+        """Default stage must have 3 blocking marks."""
+        marks_dir = os.path.join(
+            LIBRARY_DIR, 'templates', 'Getting Started',
+            'Stages', 'the_nexus', 'Marks'
+        )
+        assert os.path.isdir(marks_dir)
+        marks = [f for f in os.listdir(marks_dir) if f.endswith('.mark.yaml')]
+        assert len(marks) == 3
+        mark_names = {f.replace('.mark.yaml', '') for f in marks}
+        assert mark_names == {'behind_counter', 'window_seat', 'by_the_fire'}
+
+    def test_instances_have_mark_overrides(self):
+        """Each noodling instance must have a mark override."""
+        instances_dir = os.path.join(
+            LIBRARY_DIR, 'templates', 'Getting Started',
+            'Stages', 'the_nexus', 'Instances'
+        )
+        expected = {
+            'ajo': 'behind_counter',
+            'juanita': 'window_seat',
+            'krampus': 'by_the_fire',
+        }
+        for instance_name, expected_mark in expected.items():
+            instance_path = os.path.join(instances_dir, instance_name, 'instance.yaml')
+            with open(instance_path) as f:
+                data = yaml.safe_load(f)
+            mark = data.get('overrides', {}).get('mark', '')
+            assert mark == expected_mark, \
+                f"{instance_name}: expected mark '{expected_mark}', got '{mark}'"
+
     def test_stage_instance_discovery(self):
         """_discover_stage_instances must find all three noodlings."""
         from noodlestudio.runtime.ui.guide_performance_manager import (

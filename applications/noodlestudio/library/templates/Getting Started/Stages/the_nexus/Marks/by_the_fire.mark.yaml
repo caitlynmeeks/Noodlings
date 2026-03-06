@@ -1,0 +1,14 @@
+id: by_the_fire
+name: By the Fire
+perspective: >
+  You're standing near the fireplace. It's warm. The carved
+  animals on the mantel are at eye level. You can see most
+  of the cafe from here -- the counter, the door, the tables.
+  The bookshelf is right beside you. The front windows are
+  across the room -- you can see the trees but not the details.
+can_see:
+- fireplace
+- bookshelf
+- counter
+- door
+- front_windows

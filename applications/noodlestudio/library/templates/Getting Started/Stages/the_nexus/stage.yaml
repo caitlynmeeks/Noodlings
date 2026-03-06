@@ -1,5 +1,5 @@
-name: "The Nexus"
-description: "A shared space where noodlings meet and converse"
+name: "Hearthwood Cafe"
+description: "A small cafe with stone walls and heavy timber beams, tucked into the edge of a volcanic caldera."
 geometry:
   bounds:
     x: [-50, 50]

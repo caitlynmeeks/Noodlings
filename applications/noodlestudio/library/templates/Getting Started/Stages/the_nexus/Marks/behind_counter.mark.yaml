@@ -1,0 +1,16 @@
+id: behind_counter
+name: Behind the Counter
+perspective: >
+  You're behind the counter, your place. The espresso machine
+  is warm beside you. You can see every table, every face that
+  comes through the door. The chalkboard menu is above and
+  behind you -- you know what it says without looking. The fire
+  is across the room but you can feel its warmth from here.
+can_see:
+- counter
+- chalkboard
+- fireplace
+- front_windows
+- door
+- window_table
+- bookshelf
