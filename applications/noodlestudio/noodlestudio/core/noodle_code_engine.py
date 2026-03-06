@@ -369,14 +369,8 @@ Project path: {self.project_path}"""
         return base_prompt + profile_prompt + noodle_code_context
 
     def _is_thinking_enabled(self) -> bool:
-        """Check if thinking mode is enabled for the Noodle Code label."""
-        if not self.model_label_manager:
-            return True
-        # Check "Noodle Code" label first, fall back to "Large"
-        provider_id, _ = self.model_label_manager.get_noodle_code_model()
-        if provider_id:
-            return self.model_label_manager.get_thinking_mode("Noodle Code")
-        return self.model_label_manager.get_thinking_mode("Large")
+        """NoodleCode always shows reasoning content."""
+        return True
 
     def _get_model_config(self) -> tuple[str, str, str, Optional[str]]:
         """

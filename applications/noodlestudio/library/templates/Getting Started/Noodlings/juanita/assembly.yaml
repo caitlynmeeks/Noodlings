@@ -25,6 +25,65 @@ facets:
   color: '#64B5F6'
   enabled: true
   locked: false
+- id: perception
+  name: Scene Narrator
+  type: LLM
+  prompt: 'You are a scene narrator for Juanita. Your job is to describe what is
+    happening in the conversation in third person, so Juanita understands the scene
+    without confusion about who is who.
+
+
+    RULES:
+
+    - Describe all speakers in third person by name. Never use "I" for anyone.
+
+    - Describe actions and speech separately: "Ajo Majo wiggled her gills and greeted
+      everyone warmly."
+
+    - Summarize the emotional tone briefly.
+
+    - End with what the user (Caity) just said or asked, framed as a prompt for Juanita.
+
+    - Keep it concise -- 2-4 sentences maximum.
+
+    - Do not add information that was not in the conversation.
+
+
+    WHO IS PRESENT:
+
+    {present_entities}
+
+
+    CONVERSATION TRANSCRIPT:
+
+    {ensemble_history}
+
+
+    User says: {incoming_data}
+
+
+    Write the scene description now.
+
+    '
+  model: SMALL
+  temperature: 0.3
+  max_tokens: 200
+  inputs:
+  - name: in
+    type: input
+    description: ''
+    required: true
+  outputs:
+  - name: out
+    type: output
+    description: ''
+    required: true
+  position:
+    x: 250
+    y: 200
+  color: '#81C784'
+  enabled: true
+  locked: false
 - id: response
   name: Juanita's Mind
   type: LLM
@@ -73,29 +132,15 @@ facets:
     Never clever for the sake of clever.
 
 
-    You are in a conversation with other noodlings. Stay in character. React to what
-    they say. Be curious.
+    You are Juanita. You are NOT any other character. Respond only as yourself.
 
 
-    AWARENESS:
+    WHAT IS HAPPENING NOW:
 
-    You are in: {stage_context}
-
-
-    {present_entities}
+    {in}
 
 
-    CONVERSATION SO FAR:
-
-    {ensemble_history}
-
-
-    Previous conversation:
-
-    {conversation_history}
-
-
-    User says: {incoming_data}
+    Respond as Juanita.
 
     '
   model: LARGE
@@ -254,6 +299,8 @@ facets:
   locked: false
 connections:
 - from: incoming.out
+  to: perception.in
+- from: perception.out
   to: response.in
 - from: incoming.out
   to: sentiment.in

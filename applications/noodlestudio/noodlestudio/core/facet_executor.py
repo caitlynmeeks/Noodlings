@@ -1270,7 +1270,10 @@ class FacetExecutor:
                     formatted_prompt = facet.prompt
 
                 # Call LLM with facet parameters (use generate_with_tokens for tracking)
-                print(f"[FacetExecutor] 📞 Calling LLM for {facet.name} (model={facet.model}, temp={facet.temperature}, max_tokens={facet.max_tokens})")
+                _delivery = getattr(facet, 'delivery', 'buffered')
+                _prefix = getattr(facet, 'model_prefix', None)
+                _prefix_str = f", prefix='{_prefix}'" if _prefix else ""
+                print(f"[FacetExecutor] 📞 Calling LLM for {facet.name} (model={facet.model}, temp={facet.temperature}, max_tokens={facet.max_tokens}, delivery={_delivery}{_prefix_str})")
 
                 # Track activity for ambient visualization
                 from .model_activity_tracker import get_model_activity_tracker
@@ -1298,6 +1301,9 @@ class FacetExecutor:
                     else:
                         system_prompt = base_system_prompt
 
+                    # Read per-facet prefix override (None = use label default)
+                    facet_prefix = getattr(facet, 'model_prefix', None)
+
                     # Dispatch on delivery mode
                     if facet.delivery in ('stream_animated', 'stream_raw') and on_stream_token:
                         def _token_cb(text, fid=facet.id):
@@ -1310,7 +1316,8 @@ class FacetExecutor:
                             temperature=facet.temperature,
                             max_tokens=facet.max_tokens,
                             on_token=_token_cb,
-                            label=facet.model if facet.model else None
+                            label=facet.model if facet.model else None,
+                            facet_prefix=facet_prefix
                         )
                     else:
                         response_text, llm_token_count = await self.llm_client.generate_with_tokens(
@@ -1319,8 +1326,14 @@ class FacetExecutor:
                             model=facet.model if facet.model else None,
                             temperature=facet.temperature,
                             max_tokens=facet.max_tokens,
-                            label=facet.model if facet.model else None
+                            label=facet.model if facet.model else None,
+                            facet_prefix=facet_prefix
                         )
+                    # Defense in depth: strip thinking tags from all facet outputs.
+                    # The prefix asks the model not to think; this catches leaks.
+                    # Prevents inter-facet contamination (e.g., Perception -> Response).
+                    response_text = self.llm_client.strip_thinking_tags(response_text)
+
                     token_count = llm_token_count
 
                     # Clear LLM status on success
@@ -1742,10 +1755,21 @@ class FacetExecutor:
                     pending.remove(facet.id)
                     logger.info(f"[LOOP DEBUG] ✅ Executed {facet.id}, removed from pending")
 
-                    # DEBUG: Log facet outputs
+                    # DEBUG: Log facet outputs with truncated values
                     if outputs:
-                        logger.info(f"[{facet.name}] outputs: {list(outputs.keys())}")
-                        print(f"[FacetExecutor] [{facet.name}] produced outputs: {list(outputs.keys())}")
+                        for _key, _val in outputs.items():
+                            if isinstance(_val, str):
+                                _preview = _val[:120].replace('\n', ' ')
+                                _len = len(_val)
+                                _suffix = f"... ({_len} chars)" if _len > 120 else ""
+                                print(f"[FacetExecutor] [{facet.name}] {_key}: \"{_preview}{_suffix}\"")
+                                logger.info(f"[{facet.name}] {_key}: \"{_preview}{_suffix}\"")
+                            else:
+                                print(f"[FacetExecutor] [{facet.name}] {_key}: <{type(_val).__name__}>")
+                                logger.info(f"[{facet.name}] {_key}: <{type(_val).__name__}>")
+                    else:
+                        print(f"[FacetExecutor] [{facet.name}] produced NO outputs")
+                        logger.info(f"[{facet.name}] produced NO outputs")
 
                     # DEBUG: Log CONVERGENCE inputs to diagnose template variable issue
                     if facet.name == "Response Convergence":

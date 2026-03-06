@@ -807,6 +807,18 @@ if QT_AVAILABLE:
             """Clear the dialogue display."""
             self.dialogue_view.clear()
 
+        def display_narration(self, text: str):
+            """Display narration text -- no speaker, dimmed italic."""
+            cursor = self.dialogue_view.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            fmt = QTextCharFormat()
+            fmt.setForeground(QColor(136, 136, 136))  # #888
+            fmt.setFontItalic(True)
+            cursor.setCharFormat(fmt)
+            cursor.insertText(f"{text}\n\n")
+            self.dialogue_view.setTextCursor(cursor)
+            self._scroll_to_bottom()
+
         # -- Noodling-aware dialogue methods (ensemble + single) --
 
         def begin_noodling_text(self, noodling_id: str, name: Optional[str]):
@@ -1074,6 +1086,7 @@ if not QT_AVAILABLE:
         def set_thinking(self, noodling_id, name, thinking): pass
         def show_play_header(self, title): pass
         def clear_dialogue(self): pass
+        def display_narration(self, text): pass
         def append_guide_text(self, text): pass
         def append_noodling_text(self, noodling_id, name, text): pass
         def begin_noodling_text(self, noodling_id, name): pass

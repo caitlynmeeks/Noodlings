@@ -304,6 +304,32 @@ class TestAssemblyLoading:
         ids = {i['noodling_id'] for i in instances}
         assert ids == {'ajo', 'krampus', 'juanita'}
 
+    def test_set_yaml_has_opening_beats(self):
+        """Default set.yaml must have an opening scene with 8 beats."""
+        set_path = os.path.join(
+            LIBRARY_DIR, 'templates', 'Getting Started',
+            'Stages', 'the_nexus', 'set.yaml'
+        )
+        with open(set_path) as f:
+            data = yaml.safe_load(f)
+        opening = data.get('opening')
+        assert opening is not None, "set.yaml missing opening section"
+        assert opening['mode'] == 'live'
+        assert len(opening['beats']) == 8
+
+    def test_marks_have_activities(self):
+        """All 3 blocking marks must have non-empty activity fields."""
+        from noodlestudio.core.set_dressing import load_marks
+        marks_dir = os.path.join(
+            LIBRARY_DIR, 'templates', 'Getting Started',
+            'Stages', 'the_nexus'
+        )
+        marks = load_marks(marks_dir)
+        assert len(marks) == 3
+        for mark in marks:
+            assert mark.activity.strip(), \
+                f"Mark '{mark.id}' has empty activity"
+
 
 # =====================================================================
 # MVP Surface (Phase A verification)

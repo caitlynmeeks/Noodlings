@@ -18,8 +18,8 @@
 # ------------------------------------------------------------------
 
 from PyQt6.QtWidgets import (
-    QLabel, QTextEdit, QPushButton, QCheckBox, QWidget,
-    QVBoxLayout, QHBoxLayout,
+    QLabel, QTextEdit, QPlainTextEdit, QPushButton, QCheckBox, QWidget,
+    QVBoxLayout, QHBoxLayout, QComboBox,
 )
 from PyQt6.QtCore import Qt
 import os
@@ -84,6 +84,10 @@ class SetDressingInspectorMixin:
         objects_group.content.layout().addRow(count_label)
 
         self.properties_layout.addWidget(objects_group)
+
+        # ===== OPENING SCENE =====
+        self._build_opening_scene_section(entity_data, stage_set, stage_path)
+
         self.properties_layout.addStretch()
 
     # ========== BLOCKING MARK PROPERTIES ==========
@@ -117,6 +121,21 @@ class SetDressingInspectorMixin:
         persp_edit.setTabChangesFocus(True)
         mark_group.content.layout().addRow("Perspective:", persp_edit)
         self.property_fields['mark_perspective'] = persp_edit
+
+        # Activity (what the noodling is doing at this mark)
+        activity_edit = QTextEdit(mark.activity)
+        activity_edit.setStyleSheet(
+            "background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+        activity_edit.setMaximumHeight(80)
+        activity_edit.setTabChangesFocus(True)
+        activity_edit.setPlaceholderText(
+            "What is the noodling doing here? (used in opening scene)")
+        activity_edit.textChanged.connect(
+            lambda mp=mark_path, m=mark:
+                self._on_mark_activity_changed(mp, m)
+        )
+        mark_group.content.layout().addRow("Activity:", activity_edit)
+        self.property_fields['mark_activity'] = activity_edit
 
         self.properties_layout.addWidget(mark_group)
 
@@ -159,3 +178,324 @@ class SetDressingInspectorMixin:
 
         if mark_path and os.path.exists(mark_path):
             save_mark(mark_path, mark)
+
+    def _on_mark_activity_changed(self, mark_path, mark):
+        """Handle activity text change -- update mark and save."""
+        from noodlestudio.core.set_dressing import save_mark
+
+        if self.is_loading:
+            return
+
+        activity_edit = self.property_fields.get('mark_activity')
+        if activity_edit:
+            mark.activity = activity_edit.toPlainText()
+
+        if mark_path and os.path.exists(mark_path):
+            save_mark(mark_path, mark)
+
+    # ========== OPENING SCENE SECTION (on Set inspector) ==========
+
+    def _build_opening_scene_section(self, entity_data, stage_set, stage_path):
+        """Build the Opening Scene inspector section on the Set view.
+
+        Shows mode dropdown. In 'live' mode: beat list editor.
+        In 'narrated' mode: narration text area.
+        In 'silent' mode: informational label.
+        """
+        from noodlestudio.core.set_dressing import (
+            OpeningScene, OpeningBeat, save_set,
+        )
+
+        opening = stage_set.opening or OpeningScene()
+
+        opening_group = self.create_property_group("Opening Scene")
+
+        # Mode dropdown
+        mode_combo = QComboBox()
+        mode_combo.addItems(['silent', 'live', 'narrated'])
+        mode_combo.setCurrentText(opening.mode)
+        mode_combo.setStyleSheet(
+            "QComboBox { background-color: #1E1E1E; color: #D2D2D2; "
+            "padding: 4px; border: 1px solid #3A3A3A; }")
+        opening_group.content.layout().addRow("Mode:", mode_combo)
+        self.property_fields['opening_mode'] = mode_combo
+
+        # Container for mode-specific widgets
+        mode_container = QWidget()
+        mode_layout = QVBoxLayout(mode_container)
+        mode_layout.setContentsMargins(0, 0, 0, 0)
+        mode_layout.setSpacing(4)
+        opening_group.content.layout().addRow(mode_container)
+
+        # Build beat list widget (for live mode)
+        beat_list_widget = self._build_beat_list_widget(
+            opening, stage_set, stage_path)
+
+        # Build narration widget (for narrated mode)
+        narration_edit = QTextEdit(opening.narration)
+        narration_edit.setStyleSheet(
+            "background-color: #1E1E1E; color: #D2D2D2; padding: 4px;")
+        narration_edit.setMaximumHeight(120)
+        narration_edit.setTabChangesFocus(True)
+        narration_edit.setPlaceholderText("Narration text...")
+        self.property_fields['opening_narration'] = narration_edit
+
+        # Silent label
+        silent_label = QLabel("No opening scene. Ensemble starts silent.")
+        silent_label.setStyleSheet("color: #666; font-style: italic;")
+        silent_label.setWordWrap(True)
+
+        mode_layout.addWidget(beat_list_widget)
+        mode_layout.addWidget(narration_edit)
+        mode_layout.addWidget(silent_label)
+
+        # Store refs for visibility toggling
+        self._opening_beat_list = beat_list_widget
+        self._opening_narration_edit = narration_edit
+        self._opening_silent_label = silent_label
+
+        def _update_mode_visibility(mode_text=None):
+            if mode_text is None:
+                mode_text = mode_combo.currentText()
+            beat_list_widget.setVisible(mode_text == 'live')
+            narration_edit.setVisible(mode_text == 'narrated')
+            silent_label.setVisible(mode_text == 'silent')
+
+        _update_mode_visibility(opening.mode)
+
+        def _on_mode_changed(mode_text):
+            if self.is_loading:
+                return
+            _update_mode_visibility(mode_text)
+            opening.mode = mode_text
+            if stage_set.opening is None:
+                stage_set.opening = opening
+            if stage_path and os.path.exists(stage_path):
+                save_set(stage_path, stage_set)
+
+        mode_combo.currentTextChanged.connect(_on_mode_changed)
+
+        # Wire narration save
+        def _on_narration_changed():
+            if self.is_loading:
+                return
+            opening.narration = narration_edit.toPlainText()
+            if stage_set.opening is None:
+                stage_set.opening = opening
+            if stage_path and os.path.exists(stage_path):
+                save_set(stage_path, stage_set)
+
+        narration_edit.textChanged.connect(_on_narration_changed)
+
+        self.properties_layout.addWidget(opening_group)
+
+    def _build_beat_list_widget(self, opening, stage_set, stage_path):
+        """Build the beat list editor for live mode."""
+        from noodlestudio.core.set_dressing import (
+            OpeningBeat, save_set,
+        )
+
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 4, 0, 0)
+        layout.setSpacing(4)
+
+        # Discover noodling instance IDs from stage
+        instance_ids = []
+        if stage_path:
+            instances_dir = os.path.join(stage_path, 'Instances')
+            if os.path.isdir(instances_dir):
+                for name in sorted(os.listdir(instances_dir)):
+                    if os.path.isdir(os.path.join(instances_dir, name)):
+                        instance_ids.append(name)
+
+        self._opening_beat_rows = []
+
+        def _rebuild_beats():
+            """Refresh the beat list from opening.beats."""
+            # Clear existing rows
+            for row_widget in self._opening_beat_rows:
+                row_widget.setParent(None)
+            self._opening_beat_rows = []
+
+            for i, beat in enumerate(opening.beats):
+                row = self._build_beat_row(
+                    i, beat, opening, instance_ids, stage_set, stage_path,
+                    _rebuild_beats)
+                layout.insertWidget(layout.count() - 1, row)
+                self._opening_beat_rows.append(row)
+
+        # Add beat button
+        add_btn = QPushButton("+ Add Beat")
+        add_btn.setStyleSheet(
+            "QPushButton { background-color: #2A2A2A; color: #888; "
+            "border: 1px solid #3A3A3A; padding: 4px 8px; } "
+            "QPushButton:hover { color: #D2D2D2; }")
+        add_btn.setFixedHeight(26)
+
+        def _add_beat():
+            from noodlestudio.core.set_dressing import save_set
+            new_beat = OpeningBeat(
+                beat_type='cue',
+                noodling=instance_ids[0] if instance_ids else '',
+                cue='',
+            )
+            opening.beats.append(new_beat)
+            if stage_set.opening is None:
+                stage_set.opening = opening
+            if stage_path and os.path.exists(stage_path):
+                save_set(stage_path, stage_set)
+            _rebuild_beats()
+
+        add_btn.clicked.connect(_add_beat)
+        layout.addWidget(add_btn)
+
+        # Build initial rows
+        _rebuild_beats()
+
+        return container
+
+    def _build_beat_row(self, index, beat, opening, instance_ids,
+                        stage_set, stage_path, rebuild_callback):
+        """Build a single beat row in the beat list editor."""
+        from noodlestudio.core.set_dressing import OpeningBeat, save_set
+
+        row = QWidget()
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(4)
+
+        # Beat type selector (noodling dropdown or special types)
+        type_combo = QComboBox()
+        type_combo.setFixedWidth(120)
+        type_combo.setStyleSheet(
+            "QComboBox { background-color: #1E1E1E; color: #D2D2D2; "
+            "padding: 2px; border: 1px solid #3A3A3A; font-size: 11px; }")
+
+        # Populate: noodling IDs + special types
+        for nid in instance_ids:
+            type_combo.addItem(nid, nid)
+        type_combo.addItem("-- pause --", "__pause__")
+        type_combo.addItem("-- narration --", "__narration__")
+
+        # Set current selection
+        if beat.beat_type == 'cue':
+            idx = type_combo.findData(beat.noodling)
+            if idx >= 0:
+                type_combo.setCurrentIndex(idx)
+        elif beat.beat_type == 'pause':
+            type_combo.setCurrentIndex(type_combo.findData("__pause__"))
+        elif beat.beat_type == 'narration':
+            type_combo.setCurrentIndex(type_combo.findData("__narration__"))
+
+        row_layout.addWidget(type_combo)
+
+        # Cue/text editor
+        text_edit = QPlainTextEdit()
+        text_edit.setStyleSheet(
+            "QPlainTextEdit { background-color: #1E1E1E; color: #D2D2D2; "
+            "padding: 2px; border: 1px solid #3A3A3A; font-size: 11px; }")
+        text_edit.setMaximumHeight(50)
+        text_edit.setTabChangesFocus(True)
+
+        if beat.beat_type == 'cue':
+            text_edit.setPlainText(beat.cue)
+        elif beat.beat_type == 'narration':
+            text_edit.setPlainText(beat.text)
+        elif beat.beat_type == 'pause':
+            text_edit.setPlainText(str(beat.duration))
+
+        row_layout.addWidget(text_edit, stretch=1)
+
+        # Move up / move down / delete buttons
+        up_btn = QPushButton("^")
+        up_btn.setFixedSize(22, 22)
+        up_btn.setStyleSheet(
+            "QPushButton { background: #2A2A2A; color: #888; border: none; } "
+            "QPushButton:hover { color: #D2D2D2; }")
+        down_btn = QPushButton("v")
+        down_btn.setFixedSize(22, 22)
+        down_btn.setStyleSheet(
+            "QPushButton { background: #2A2A2A; color: #888; border: none; } "
+            "QPushButton:hover { color: #D2D2D2; }")
+        del_btn = QPushButton("x")
+        del_btn.setFixedSize(22, 22)
+        del_btn.setStyleSheet(
+            "QPushButton { background: #2A2A2A; color: #888; border: none; } "
+            "QPushButton:hover { color: #CC6666; }")
+
+        row_layout.addWidget(up_btn)
+        row_layout.addWidget(down_btn)
+        row_layout.addWidget(del_btn)
+
+        def _save():
+            if stage_set.opening is None:
+                stage_set.opening = opening
+            if stage_path and os.path.exists(stage_path):
+                save_set(stage_path, stage_set)
+
+        def _on_type_changed(combo_index):
+            if self.is_loading:
+                return
+            data = type_combo.currentData()
+            if data == '__pause__':
+                beat.beat_type = 'pause'
+                beat.noodling = ''
+                beat.cue = ''
+                beat.text = ''
+                beat.duration = 1.0
+                text_edit.setPlainText('1.0')
+            elif data == '__narration__':
+                beat.beat_type = 'narration'
+                beat.noodling = ''
+                beat.cue = ''
+                beat.duration = 1.0
+                text_edit.setPlainText(beat.text)
+            else:
+                beat.beat_type = 'cue'
+                beat.noodling = data
+                beat.text = ''
+                beat.duration = 1.0
+            _save()
+
+        def _on_text_changed():
+            if self.is_loading:
+                return
+            txt = text_edit.toPlainText()
+            if beat.beat_type == 'cue':
+                beat.cue = txt
+            elif beat.beat_type == 'narration':
+                beat.text = txt
+            elif beat.beat_type == 'pause':
+                try:
+                    beat.duration = float(txt)
+                except ValueError:
+                    pass
+            _save()
+
+        def _move_up():
+            if index > 0:
+                opening.beats[index], opening.beats[index - 1] = (
+                    opening.beats[index - 1], opening.beats[index])
+                _save()
+                rebuild_callback()
+
+        def _move_down():
+            if index < len(opening.beats) - 1:
+                opening.beats[index], opening.beats[index + 1] = (
+                    opening.beats[index + 1], opening.beats[index])
+                _save()
+                rebuild_callback()
+
+        def _delete():
+            opening.beats.pop(index)
+            _save()
+            rebuild_callback()
+
+        type_combo.currentIndexChanged.connect(_on_type_changed)
+        text_edit.textChanged.connect(_on_text_changed)
+        up_btn.clicked.connect(_move_up)
+        down_btn.clicked.connect(_move_down)
+        del_btn.clicked.connect(_delete)
+
+        return row

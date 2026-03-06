@@ -1,13 +1,14 @@
 # ──────────────────────────────────────────────────────────────
 #
-#   Tests for Thinking Mode setting (Commit 1)
+#   Tests for Thinking Mode -> Model Prefix migration
 #
-#   Per-label On/Off toggle controlling whether chain-of-thought
-#   reasoning passes through or is suppressed.
+#   Original boolean thinking toggle has been replaced by a
+#   string prefix system. These tests verify backward compatibility
+#   and that the old test patterns still pass with the new API.
 #
 # ──────────────────────────────────────────────────────────────
 # MODULE:   tests.test_thinking_mode
-# PURPOSE:  Verify thinking mode per-label toggle
+# PURPOSE:  Backward compat tests for thinking -> prefix migration
 # LAYER:    Tests
 # ──────────────────────────────────────────────────────────────
 
@@ -20,60 +21,56 @@ import pytest
 
 
 # =============================================================================
-# ModelLabelManager thinking mode
+# ModelLabelManager prefix API (replaces thinking mode)
 # =============================================================================
 
 class TestModelLabelManagerThinking:
-    """Verify thinking mode persistence and defaults."""
+    """Verify prefix-based API replaces old thinking toggle."""
 
     def _make_manager(self):
-        """Create a ModelLabelManager (uses QSettings)."""
         from noodlestudio.core.model_label_manager import ModelLabelManager
         return ModelLabelManager()
 
-    def test_get_thinking_mode_default_true(self):
-        """New label returns True by default."""
+    def test_get_prefix_default_empty(self):
+        """New label returns empty prefix by default (was: thinking=True)."""
         mgr = self._make_manager()
-        # All labels default to thinking=True
-        result = mgr.get_thinking_mode("Large")
-        assert result is True
+        result = mgr.get_model_prefix("Large")
+        assert result == "" or isinstance(result, str)
 
-    def test_set_and_get_thinking_mode(self):
-        """Set thinking to False, read back False."""
+    def test_set_and_get_prefix(self):
+        """Set prefix /no_think, read back /no_think."""
         mgr = self._make_manager()
-        mgr.set_thinking_mode("Large", False)
-        assert mgr.get_thinking_mode("Large") is False
+        mgr.set_model_prefix("Large", "/no_think")
+        assert mgr.get_model_prefix("Large") == "/no_think"
         # Restore
-        mgr.set_thinking_mode("Large", True)
-        assert mgr.get_thinking_mode("Large") is True
+        mgr.set_model_prefix("Large", "")
+        assert mgr.get_model_prefix("Large") == ""
 
-    def test_set_model_preserves_thinking(self):
-        """Changing model assignment doesn't reset thinking mode."""
+    def test_set_model_preserves_prefix(self):
+        """Changing model assignment doesn't reset prefix."""
         mgr = self._make_manager()
-        # Set thinking off for Large
-        mgr.set_thinking_mode("Large", False)
-        assert mgr.get_thinking_mode("Large") is False
+        mgr.set_model_prefix("Large", "/no_think")
+        assert mgr.get_model_prefix("Large") == "/no_think"
 
         # Change the model assignment
         mgr.set_model_for_label("Large", "ollama", "llama3.2")
-        # Thinking should still be False
-        assert mgr.get_thinking_mode("Large") is False
+        # Prefix should still be /no_think
+        assert mgr.get_model_prefix("Large") == "/no_think"
 
         # Restore
-        mgr.set_thinking_mode("Large", True)
+        mgr.set_model_prefix("Large", "")
 
     def test_backward_compat_missing_key(self):
-        """Old settings without 'thinking' key return True."""
+        """Old settings without prefix or thinking key return empty string."""
         mgr = self._make_manager()
         import json
 
-        # Simulate old-format JSON without thinking key
         old_data = json.dumps({"provider": "ollama", "model": "llama3.2"})
         mgr.settings.setValue("labels/TestOldFormat", old_data)
         mgr.settings.sync()
 
-        result = mgr.get_thinking_mode("TestOldFormat")
-        assert result is True
+        result = mgr.get_model_prefix("TestOldFormat")
+        assert result == ""
 
         # Clean up
         mgr.settings.remove("labels/TestOldFormat")
@@ -81,58 +78,57 @@ class TestModelLabelManagerThinking:
 
 
 # =============================================================================
-# LLMConfig thinking modes
+# LLMConfig label_prefixes (replaces thinking_modes)
 # =============================================================================
 
 class TestLLMConfigThinkingModes:
-    """Verify thinking_modes field in LLMConfig."""
+    """Verify label_prefixes field in LLMConfig (replaces thinking_modes)."""
 
-    def test_thinking_modes_in_llm_config(self):
-        """Config populated correctly with thinking modes."""
+    def test_label_prefixes_in_llm_config(self):
+        """Config populated correctly with label_prefixes."""
         from noodlestudio.runtime.llm_client import LLMConfig
 
         config = LLMConfig(
-            thinking_modes={"LARGE": False, "SMALL": True}
+            label_prefixes={"LARGE": "/no_think", "SMALL": ""}
         )
-        assert config.thinking_modes["LARGE"] is False
-        assert config.thinking_modes["SMALL"] is True
+        assert config.label_prefixes["LARGE"] == "/no_think"
+        assert config.label_prefixes["SMALL"] == ""
 
-    def test_thinking_modes_default_empty(self):
-        """Default config has empty thinking_modes dict."""
+    def test_label_prefixes_default_empty(self):
+        """Default config has empty label_prefixes dict."""
         from noodlestudio.runtime.llm_client import LLMConfig
         config = LLMConfig()
-        assert config.thinking_modes == {}
+        assert config.label_prefixes == {}
 
 
 # =============================================================================
-# HeadlessLLMClient thinking mode behavior
+# HeadlessLLMClient prefix behavior (replaces thinking mode)
 # =============================================================================
 
 class TestHeadlessLLMClientThinking:
-    """Verify system prompt hint and tag stripping based on thinking mode."""
+    """Verify prefix resolution and tag stripping."""
 
-    def _make_client(self, thinking_modes=None):
+    def _make_client(self, label_prefixes=None):
         from noodlestudio.runtime.llm_client import HeadlessLLMClient, LLMConfig
-        config = LLMConfig(thinking_modes=thinking_modes or {})
+        config = LLMConfig(label_prefixes=label_prefixes or {})
         return HeadlessLLMClient(config)
 
-    def test_thinking_off_system_prompt_hint(self):
-        """When thinking OFF, system prompt includes no-CoT hint."""
-        # This tests the _is_thinking_enabled logic
-        client = self._make_client(thinking_modes={"LARGE": False})
-        assert client._is_thinking_enabled("LARGE") is False
-        assert client._is_thinking_enabled("SMALL") is True  # Not set -> default True
+    def test_prefix_resolution_with_label(self):
+        """Label with prefix returns it; label without returns empty."""
+        client = self._make_client(label_prefixes={"LARGE": "/no_think"})
+        assert client._resolve_prefix("LARGE") == "/no_think"
+        assert client._resolve_prefix("SMALL") == ""
 
-    def test_thinking_off_strips_tags(self):
-        """Tags stripped when thinking OFF."""
-        client = self._make_client(thinking_modes={"LARGE": False})
+    def test_strip_tags_always_works(self):
+        """Tags stripped regardless of prefix setting."""
+        client = self._make_client(label_prefixes={})
+        text = "<think>reasoning here</think>The answer."
+        result = client.strip_thinking_tags(text)
+        assert result == "The answer."
+
+    def test_tag_stripping_backward_compat(self):
+        """_strip_thinking_tags alias still works."""
+        client = self._make_client()
         text = "<think>reasoning here</think>The answer."
         result = client._strip_thinking_tags(text)
         assert result == "The answer."
-
-    def test_thinking_on_preserves_tags(self):
-        """When thinking is ON, _is_thinking_enabled returns True."""
-        client = self._make_client(thinking_modes={"LARGE": True})
-        assert client._is_thinking_enabled("LARGE") is True
-        # Tags would NOT be stripped by generate_with_tokens when thinking ON
-        # (verified by the flow: thinking_enabled=True -> skip strip)

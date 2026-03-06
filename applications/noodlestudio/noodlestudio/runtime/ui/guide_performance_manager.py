@@ -136,6 +136,10 @@ class GuidePerformanceManager:
         self._stage_set = None           # StageSet or None
         self._marks = {}                 # mark_id -> BlockingMark
 
+        # Opening scene state
+        self._opening_active = False
+        self._opening_beats = []         # Remaining beats to execute
+
         logger.info("GuidePerformanceManager initialized")
 
     # =========================================================================
@@ -548,6 +552,9 @@ class GuidePerformanceManager:
             f"({', '.join(p.name for p in performers.values())})"
         )
 
+        # Execute opening scene (if set has beats)
+        self._execute_opening_scene()
+
     def start_ensemble(self, play_title: str = "Ensemble"):
         """
         Start an ensemble performance with two noodlings on a shared stage.
@@ -947,10 +954,15 @@ class GuidePerformanceManager:
 
         In single mode, sends directly to the performer.
         In ensemble mode, starts turn-taking sequence.
+        Blocked during opening scene execution.
 
         Args:
             message: The user's message text
         """
+        if self._opening_active:
+            logger.debug("User message blocked during opening scene")
+            return
+
         if self._ensemble_mode:
             self._on_user_message_ensemble(message)
             return
@@ -1160,6 +1172,131 @@ class GuidePerformanceManager:
         if meta:
             meta['mark'] = mark_id
 
+    # =========================================================================
+    # OPENING SCENE EXECUTION
+    # =========================================================================
+
+    def _execute_opening_scene(self):
+        """Execute opening beat sheet before user interaction.
+
+        Called at end of start_ensemble_from_stage() after all setup.
+        Checks the stage set for an opening scene configuration and
+        dispatches based on mode (silent/live/narrated).
+        """
+        if not self._stage_set or not self._stage_set.opening:
+            return
+        opening = self._stage_set.opening
+        if opening.mode == 'silent' or not opening.beats:
+            if opening.mode == 'narrated' and opening.narration:
+                self._execute_opening_narration(opening)
+            return
+
+        # Live mode: queue beats for sequential execution
+        self._opening_beats = list(opening.beats)
+        self._opening_active = True
+        logger.info(
+            f"Opening scene: {len(self._opening_beats)} beats queued"
+        )
+        self._advance_opening_beat()
+
+    def _advance_opening_beat(self):
+        """Pop and execute the next opening beat."""
+        if not self._opening_beats:
+            self._opening_active = False
+            if self._window:
+                self._window.set_busy(False)
+            logger.info("Opening scene complete")
+            return
+
+        beat = self._opening_beats.pop(0)
+
+        if beat.beat_type == 'pause':
+            QTimer.singleShot(
+                int(beat.duration * 1000), self._advance_opening_beat)
+            return
+
+        if beat.beat_type == 'narration':
+            if self._window:
+                self._window.display_narration(beat.text)
+            QTimer.singleShot(800, self._advance_opening_beat)
+            return
+
+        if beat.beat_type == 'cue':
+            self._execute_opening_cue(beat)
+            return
+
+        # Unknown beat type -- skip
+        self._advance_opening_beat()
+
+    def _execute_opening_cue(self, beat):
+        """Execute a cue beat -- run a noodling's assembly with improv direction."""
+        nid = beat.noodling
+        performer = self._performers.get(nid)
+        if not performer or performer.paused:
+            logger.warning(
+                f"Opening cue: performer '{nid}' not found or paused, skipping"
+            )
+            self._advance_opening_beat()
+            return
+
+        # Highlight active speaker
+        self._active_noodling_id = nid
+        if self._window:
+            self._window.set_active_speaker(nid)
+
+        # Build context with cue as brenda_direction
+        extra_context = {
+            'stage_context': self._build_scene_context(nid),
+            'present_entities': self._format_present_entities(nid),
+            'ensemble_history': self._format_ensemble_history(),
+            'conversation_history': self._format_ensemble_history(),
+            'brenda_direction': beat.cue,
+        }
+
+        # Inject activity from mark if available, and build contextual
+        # incoming_data so the prompt doesn't mention a "user" who
+        # hasn't arrived yet.
+        meta = self._instance_metadata.get(nid, {})
+        mark_id = meta.get('mark', '')
+        mark = self._marks.get(mark_id) if mark_id else None
+        if mark and mark.activity:
+            extra_context['opening_activity'] = mark.activity
+            incoming_data = f"You are currently {mark.activity.strip()}."
+        else:
+            incoming_data = beat.cue.strip()
+
+        # Wire one-shot handler for when this beat finishes
+        # The existing executionFinished signal calls _on_ensemble_turn_finished
+        # which calls _advance_ensemble_turn. During opening, we intercept.
+        self._current_execution_id = str(uuid.uuid4())[:8]
+        self._emit_execution_start_events()
+
+        performer.execute(incoming_data, extra_context)
+
+    def _on_opening_beat_finished(self, noodling_id: str):
+        """Handle an opening cue beat finishing."""
+        performer = self._performers.get(noodling_id)
+        if performer and performer.last_response:
+            self._ensemble_history.append({
+                'role': performer.name,
+                'content': performer.last_response,
+            })
+        self._advance_opening_beat()
+
+    def _execute_opening_narration(self, opening):
+        """Display authored narration with template variable resolution.
+
+        Resolves {noodling_id_activity} templates from mark activities.
+        """
+        text = opening.narration
+        for nid, meta in self._instance_metadata.items():
+            mark_id = meta.get('mark', '')
+            mark = self._marks.get(mark_id) if mark_id else None
+            if mark and mark.activity:
+                text = text.replace(f'{{{nid}_activity}}', mark.activity)
+        if self._window:
+            self._window.display_narration(text)
+
     def _advance_ensemble_turn(self):
         """Advance to the next noodling in the turn sequence."""
         if not self._turn_queue:
@@ -1217,11 +1354,16 @@ class GuidePerformanceManager:
         """
         Handle one noodling finishing its turn.
 
-        Stores the response and advances to the next noodling.
+        During opening scene, routes to opening beat handler.
+        During normal conversation, stores response and advances turn.
 
         Args:
             noodling_id: The noodling that just finished
         """
+        if self._opening_active:
+            self._on_opening_beat_finished(noodling_id)
+            return
+
         performer = self._performers.get(noodling_id)
         if performer:
             self._turn_responses[noodling_id] = performer.last_response
@@ -1729,6 +1871,8 @@ class GuidePerformanceManager:
             self._ensemble_history = []
             self._stage_description = None
             self._instance_metadata = {}
+            self._opening_active = False
+            self._opening_beats = []
 
             # Clear facets editor noodling selector
             try:

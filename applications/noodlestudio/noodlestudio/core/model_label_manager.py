@@ -154,18 +154,17 @@ class ModelLabelManager(QObject):
         """
         # print(f"DEBUG set_model_for_label: label='{label}', provider='{provider_id}', model='{model_name}'")
 
-        # Preserve existing thinking mode when changing model
-        existing_thinking = self._read_thinking_mode(label)
+        # Preserve existing model prefix when changing model
+        existing_prefix = self._read_model_prefix(label)
 
         # Store unassigned labels with special marker (so they appear in get_all_labels)
         if provider_id is None or model_name is None:
-            data = {"provider": "", "model": "", "thinking": existing_thinking}
+            data = {"provider": "", "model": "", "prefix": existing_prefix}
             self.settings.setValue(f"labels/{label}", json.dumps(data))
         else:
             # Store as JSON
-            data = {"provider": provider_id, "model": model_name, "thinking": existing_thinking}
+            data = {"provider": provider_id, "model": model_name, "prefix": existing_prefix}
             json_str = json.dumps(data)
-            # print(f"DEBUG: Storing JSON: {json_str}")
             self.settings.setValue(f"labels/{label}", json_str)
 
         self.settings.sync()
@@ -177,42 +176,56 @@ class ModelLabelManager(QObject):
         if emit_signal:
             self.mappingsChanged.emit()
 
-    def _read_thinking_mode(self, label: str) -> bool:
-        """Read the thinking mode from stored JSON for a label.
+    def _read_model_prefix(self, label: str) -> str:
+        """Read the model prefix from stored JSON for a label.
 
-        Returns True (default) if not set or label doesn't exist.
+        Returns "" (no prefix) by default. Migrates old thinking:false
+        to "/no_think" prefix for backward compatibility.
         """
         value = self.settings.value(f"labels/{label}", None)
         if value is None:
-            return True
+            return ""
         try:
             if isinstance(value, str):
                 data = json.loads(value)
             else:
                 data = value
-            return data.get("thinking", True)
-        except (json.JSONDecodeError, AttributeError):
-            return True
 
-    def get_thinking_mode(self, label: str) -> bool:
+            # New format: explicit "prefix" key
+            if "prefix" in data:
+                return data["prefix"]
+
+            # Migration: old "thinking" boolean -> prefix string
+            thinking = data.get("thinking")
+            if thinking is False:
+                return "/no_think"
+
+            return ""
+        except (json.JSONDecodeError, AttributeError):
+            return ""
+
+    def get_model_prefix(self, label: str) -> str:
         """
-        Get whether thinking/chain-of-thought is enabled for a label.
+        Get the model prefix string for a label.
+
+        The prefix is prepended to the system prompt before LLM calls.
+        Common values: "" (no prefix), "/no_think" (suppress CoT).
 
         Args:
             label: Label name (e.g., "Large", "Noodle Code")
 
         Returns:
-            True if thinking is enabled (default), False if suppressed
+            Prefix string (empty string means no prefix)
         """
-        return self._read_thinking_mode(label)
+        return self._read_model_prefix(label)
 
-    def set_thinking_mode(self, label: str, enabled: bool):
+    def set_model_prefix(self, label: str, prefix: str):
         """
-        Set thinking mode for a label.
+        Set model prefix for a label.
 
         Args:
             label: Label name
-            enabled: True to allow chain-of-thought, False to suppress
+            prefix: Prefix string (e.g., "/no_think", or "" for none)
         """
         value = self.settings.value(f"labels/{label}", None)
         if value is None:
@@ -226,7 +239,9 @@ class ModelLabelManager(QObject):
         except (json.JSONDecodeError, AttributeError):
             data = {"provider": "", "model": ""}
 
-        data["thinking"] = enabled
+        data["prefix"] = prefix
+        # Remove old thinking key if present (migration cleanup)
+        data.pop("thinking", None)
         self.settings.setValue(f"labels/{label}", json.dumps(data))
         self.settings.sync()
         self.mappingsChanged.emit()

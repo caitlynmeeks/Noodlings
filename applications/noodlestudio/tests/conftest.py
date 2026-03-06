@@ -394,6 +394,7 @@ class StubWindow:
         self._text_blocks_ended = 0
         self._noodling_texts: list[tuple] = []  # (nid, name, text)
         self._speaking_mode_calls: list[tuple] = []
+        self._narrations: list[str] = []
 
     def append_guide_text(self, text):
         self.texts.append(text)
@@ -427,6 +428,9 @@ class StubWindow:
 
     def set_speaking_mode(self, active, intensity=0.7, noodling_id='default'):
         self._speaking_mode_calls.append((active, intensity, noodling_id))
+
+    def display_narration(self, text):
+        self._narrations.append(text)
 
     def set_performer_name(self, noodling_id, name):
         pass

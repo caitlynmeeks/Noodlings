@@ -141,6 +141,7 @@ class Facet:
     temperature: float = 0.7             # Sampling temperature
     max_tokens: int = 150                # Max output length
     delivery: str = "buffered"           # Delivery mode: buffered, stream_animated, stream_raw
+    model_prefix: Optional[str] = None  # Per-facet prefix override (None = use label default)
 
     # Scripting API - Dynamic salience control
     salience_script: Optional[str] = None  # JavaScript code for continuous salience computation
@@ -194,6 +195,9 @@ class Facet:
         # Only include delivery when non-default (keeps existing YAMLs clean)
         if self.delivery and self.delivery != "buffered":
             result['delivery'] = self.delivery
+        # Only include model_prefix when explicitly set (None = use label default)
+        if self.model_prefix is not None:
+            result['model_prefix'] = self.model_prefix
         return result
 
     @staticmethod
@@ -208,6 +212,7 @@ class Facet:
             temperature=data.get('temperature', 0.7),
             max_tokens=data.get('max_tokens', 150),
             delivery=data.get('delivery', 'buffered'),
+            model_prefix=data.get('model_prefix'),  # None = use label default
             salience_script=data.get('salience_script'),  # Load salience script if present
             nncanvas_path=data.get('nncanvas_path'),  # Load nncanvas_path for NeuralCanvasFacet
             input_pads=[FacetPad.from_dict(p) for p in data.get('inputs', [])],

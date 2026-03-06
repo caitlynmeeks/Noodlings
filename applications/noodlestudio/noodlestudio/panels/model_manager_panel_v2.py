@@ -41,8 +41,7 @@ from typing import Optional, Dict, List
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QProgressBar, QScrollArea, QFrame, QMessageBox, QComboBox,
-    QLineEdit, QDialog, QFormLayout, QSpinBox, QSplitter, QMenu,
-    QCheckBox
+    QLineEdit, QDialog, QFormLayout, QSpinBox, QSplitter, QMenu
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QAction
@@ -1496,38 +1495,32 @@ class ModelManagerPanel(QWidget):
             activity_indicator = ActivityIndicatorWidget(label)
             row_layout.addWidget(activity_indicator)
 
-            # Thinking mode checkbox
-            thinking_cb = QCheckBox("Thinking")
-            thinking_cb.setChecked(self.label_manager.get_thinking_mode(label))
-            thinking_cb.setToolTip(
-                "When enabled, chain-of-thought reasoning passes through.\n"
-                "When disabled, thinking tags are suppressed."
+            # Model prefix text field (e.g., /no_think)
+            prefix_edit = QLineEdit()
+            prefix_edit.setPlaceholderText("e.g. /no_think")
+            prefix_edit.setText(self.label_manager.get_model_prefix(label))
+            prefix_edit.setToolTip(
+                "Prefix prepended to system prompt before LLM calls.\n"
+                "Common: /no_think (suppress chain-of-thought)"
             )
-            thinking_cb.setStyleSheet("""
-                QCheckBox {
-                    color: #B8B8B8;
-                    font-size: 12px;
-                    spacing: 4px;
-                }
-                QCheckBox::indicator {
-                    width: 14px;
-                    height: 14px;
-                    border: 1px solid #555555;
-                    border-radius: 2px;
+            prefix_edit.setFixedWidth(120)
+            prefix_edit.setStyleSheet("""
+                QLineEdit {
                     background: #3e3e3e;
+                    color: #D2D2D2;
+                    border: 1px solid #555555;
+                    border-radius: 3px;
+                    padding: 2px 6px;
+                    font-size: 12px;
                 }
-                QCheckBox::indicator:checked {
-                    background: #555555;
-                    border: 1px solid #777777;
-                }
-                QCheckBox::indicator:hover {
+                QLineEdit:focus {
                     border: 1px solid #777777;
                 }
             """)
-            thinking_cb.toggled.connect(
-                lambda checked, lbl=label: self.label_manager.set_thinking_mode(lbl, checked)
+            prefix_edit.editingFinished.connect(
+                lambda lbl=label, edit=prefix_edit: self.label_manager.set_model_prefix(lbl, edit.text())
             )
-            row_layout.addWidget(thinking_cb)
+            row_layout.addWidget(prefix_edit)
 
             # Delete button (only for custom labels, not protected/system labels)
             if not self.label_manager.is_protected_label(label):

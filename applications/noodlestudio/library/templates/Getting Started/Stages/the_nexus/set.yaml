@@ -54,3 +54,40 @@ objects:
     A narrow shelf beside the fireplace. Paperbacks, a
     tide table, someone's forgotten reading glasses, a
     postcard from Fuerteventura with no message on the back.
+opening:
+  mode: live
+  beats:
+  - noodling: juanita
+    cue: >
+      You notice Krampus is holding his book upside down. You find
+      this quietly funny. Say something gentle about it without
+      making him feel bad.
+  - noodling: ajo
+    cue: >
+      You overhear Juanita's comment about the book. It makes you
+      smile. React naturally from behind the counter -- a small
+      laugh, a warm observation.
+  - noodling: krampus
+    cue: >
+      Someone just pointed out your book is upside down. You knew
+      that. (You didn't.) React the way a seven-year-old would --
+      defiant, then uncertain, then maybe a little proud of being
+      caught.
+  - type: pause
+    duration: 1.5
+  - type: narration
+    text: The brass bells on the door ring softly.
+  - noodling: ajo
+    cue: >
+      The bells on the door just rang -- someone new is arriving.
+      Look up from what you're doing and greet whoever is walking
+      in. Warm but not overeager. This is your place.
+  - noodling: juanita
+    cue: >
+      Someone just came in. You glance up briefly from your
+      notebook. A short, friendly acknowledgment -- nothing more.
+      You're mid-thought.
+  - noodling: krampus
+    cue: >
+      You hear the door. Don't look up. You're reading. (The book
+      is still upside down.)

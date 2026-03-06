@@ -58,14 +58,14 @@ class LLMConfig:
     # Model label mapping (SMALL/MEDIUM/LARGE -> actual model)
     model_labels: Dict[str, str] = None
 
-    # Thinking mode per label (label -> bool). None = all enabled (default).
-    thinking_modes: Dict[str, bool] = None
+    # Model prefix per label (label -> prefix string). None = no prefixes.
+    label_prefixes: Dict[str, str] = None
 
     def __post_init__(self):
         if self.model_labels is None:
             self.model_labels = {}
-        if self.thinking_modes is None:
-            self.thinking_modes = {}
+        if self.label_prefixes is None:
+            self.label_prefixes = {}
 
         # Set defaults based on provider
         if not self.base_url:
@@ -184,20 +184,21 @@ class HeadlessLLMClient:
         }
         return defaults.get(self.config.provider, "gpt-4o-mini")
 
-    def _is_thinking_enabled(self, label: Optional[str]) -> bool:
-        """Check if thinking mode is enabled for a given model label.
+    def _resolve_prefix(self, label: Optional[str], facet_prefix: Optional[str] = None) -> str:
+        """Resolve the effective prefix for a request.
 
-        Returns True (default) when no label is provided or when thinking_modes
-        has no entry for the label.
+        Priority: facet_prefix (if not None) > label_prefix > empty string.
         """
-        if not label or not self.config.thinking_modes:
-            return True
+        if facet_prefix is not None:
+            return facet_prefix
+        if not label or not self.config.label_prefixes:
+            return ""
         # Normalize label for lookup (check both as-is and uppercase)
-        if label in self.config.thinking_modes:
-            return self.config.thinking_modes[label]
-        if label.upper() in self.config.thinking_modes:
-            return self.config.thinking_modes[label.upper()]
-        return True
+        if label in self.config.label_prefixes:
+            return self.config.label_prefixes[label]
+        if label.upper() in self.config.label_prefixes:
+            return self.config.label_prefixes[label.upper()]
+        return ""
 
     async def generate_with_tokens(
         self,
@@ -206,7 +207,8 @@ class HeadlessLLMClient:
         model: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: int = 400,
-        label: Optional[str] = None
+        label: Optional[str] = None,
+        facet_prefix: Optional[str] = None
     ) -> Tuple[str, int]:
         """
         Generate text with token count tracking.
@@ -219,7 +221,8 @@ class HeadlessLLMClient:
             model: Model label or name (optional)
             temperature: Sampling temperature
             max_tokens: Maximum tokens to generate
-            label: Model label for thinking mode lookup (optional)
+            label: Model label for prefix lookup (optional)
+            facet_prefix: Per-facet prefix override (optional). None = use label default.
 
         Returns:
             Tuple of (generated_text, token_count)
@@ -228,10 +231,10 @@ class HeadlessLLMClient:
 
         resolved_model = self._resolve_model(model)
 
-        # When thinking is OFF: hint in system prompt + will strip tags after
-        thinking_enabled = self._is_thinking_enabled(label or model)
-        if not thinking_enabled:
-            system_prompt = system_prompt + "\n\nRespond directly without chain-of-thought reasoning."
+        # Resolve and prepend prefix to system prompt
+        effective_prefix = self._resolve_prefix(label or model, facet_prefix)
+        if effective_prefix:
+            system_prompt = f"{effective_prefix}\n{system_prompt}"
 
         # Route to provider-specific implementation
         if self.config.provider == "anthropic":
@@ -249,11 +252,8 @@ class HeadlessLLMClient:
                 prompt, system_prompt, resolved_model, temperature, max_tokens
             )
 
-        # Strip thinking tags unless thinking mode is explicitly enabled
-        # for a known label. Default behavior (no label) always strips
-        # for backward compatibility.
-        if not thinking_enabled or not label:
-            text = self._strip_thinking_tags(text)
+        # Defense in depth: always strip thinking tags from buffered responses
+        text = self._strip_thinking_tags(text)
 
         return text, tokens
 
@@ -477,7 +477,7 @@ class HeadlessLLMClient:
                 logger.error(f"HTTP request failed: {e}")
                 raise
 
-    def _strip_thinking_tags(self, text: str) -> str:
+    def strip_thinking_tags(self, text: str) -> str:
         """Strip thinking/reasoning tags from LLM response.
 
         Handles multiple tag variants used by different thinking models:
@@ -504,6 +504,9 @@ class HeadlessLLMClient:
         # Clean up extra whitespace
         result = re.sub(r'\n\s*\n\s*\n', '\n\n', result)
         return result.strip()
+
+    # Backward compatibility alias
+    _strip_thinking_tags = strip_thinking_tags
 
     async def generate(
         self,
@@ -539,7 +542,8 @@ class HeadlessLLMClient:
         temperature: float = 0.7,
         max_tokens: int = 400,
         on_token: Optional[Callable[[str], None]] = None,
-        label: Optional[str] = None
+        label: Optional[str] = None,
+        facet_prefix: Optional[str] = None
     ) -> Tuple[str, int]:
         """
         Generate text via streaming, calling on_token for each chunk.
@@ -551,7 +555,8 @@ class HeadlessLLMClient:
             temperature: Sampling temperature
             max_tokens: Maximum tokens
             on_token: Callback for each text chunk
-            label: Model label for thinking mode lookup
+            label: Model label for prefix lookup
+            facet_prefix: Per-facet prefix override (optional). None = use label default.
 
         Returns:
             Tuple of (full_text, token_count)
@@ -559,13 +564,14 @@ class HeadlessLLMClient:
         await self._ensure_session()
 
         resolved_model = self._resolve_model(model)
-        thinking_enabled = self._is_thinking_enabled(label or model)
 
-        if not thinking_enabled:
-            system_prompt = system_prompt + "\n\nRespond directly without chain-of-thought reasoning."
+        # Resolve and prepend prefix to system prompt
+        effective_prefix = self._resolve_prefix(label or model, facet_prefix)
+        if effective_prefix:
+            system_prompt = f"{effective_prefix}\n{system_prompt}"
 
-        # Build the tag filter for streaming
-        tag_filter = ThinkingTagFilter(suppress=not thinking_enabled)
+        # Defense in depth: always suppress thinking tags in streaming output
+        tag_filter = ThinkingTagFilter(suppress=True)
 
         base = self.config.base_url.rstrip("/")
         if base.endswith("/v1"):
@@ -633,13 +639,10 @@ class HeadlessLLMClient:
 
                     delta = choices[0].get("delta", {})
 
-                    # Extract text from content or reasoning_content
+                    # Extract text from content (discard reasoning_content)
                     chunk = ""
                     if "content" in delta and delta["content"]:
                         chunk = delta["content"]
-                    elif "reasoning_content" in delta and delta["reasoning_content"]:
-                        if thinking_enabled:
-                            chunk = delta["reasoning_content"]
 
                     if chunk:
                         # Run through tag filter

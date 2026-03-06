@@ -132,10 +132,12 @@ def create_llm_client():
         if mname:
             model_labels[label.upper()] = mname
 
-    # Read thinking modes for all labels
-    thinking_modes = {}
+    # Read model prefixes for all labels
+    label_prefixes = {}
     for label in label_mgr.get_all_labels():
-        thinking_modes[label.upper()] = label_mgr.get_thinking_mode(label)
+        prefix = label_mgr.get_model_prefix(label)
+        if prefix:
+            label_prefixes[label.upper()] = prefix
 
     config = LLMConfig(
         provider=provider.type if provider else "ollama",
@@ -143,7 +145,7 @@ def create_llm_client():
         api_key=provider.api_key if provider else "",
         base_url=provider.base_url if provider else "",
         model_labels=model_labels,
-        thinking_modes=thinking_modes
+        label_prefixes=label_prefixes
     )
 
     logger.info(f"LLM client: provider={config.provider}, labels={model_labels}")

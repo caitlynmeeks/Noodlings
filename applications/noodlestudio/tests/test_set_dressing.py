@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from noodlestudio.core.set_dressing import (
     SetObject, StageSet, BlockingMark,
+    OpeningBeat, OpeningScene,
     load_set, save_set, load_marks, load_mark, save_mark,
     build_scene_context,
 )
@@ -117,6 +118,17 @@ class TestDataclasses:
         mark = BlockingMark(id='x', name='X', perspective='Here.')
         assert mark.can_see == []
 
+    def test_blocking_mark_activity_field(self):
+        mark = BlockingMark(
+            id='x', name='X', perspective='Here.',
+            activity='polishing a glass',
+        )
+        assert mark.activity == 'polishing a glass'
+
+    def test_blocking_mark_default_activity_is_empty(self):
+        mark = BlockingMark(id='x', name='X', perspective='Here.')
+        assert mark.activity == ''
+
 
 # =====================================================================
 # Round-trip Serialization
@@ -143,6 +155,20 @@ class TestSerialization:
         assert restored.name == sample_mark.name
         assert restored.perspective == sample_mark.perspective
         assert restored.can_see == sample_mark.can_see
+
+    def test_blocking_mark_activity_round_trip(self):
+        mark = BlockingMark(
+            id='x', name='X', perspective='Here.',
+            activity='wiping down the counter',
+        )
+        d = mark.to_dict()
+        assert d['activity'] == 'wiping down the counter'
+        restored = BlockingMark.from_dict(d)
+        assert restored.activity == 'wiping down the counter'
+
+    def test_blocking_mark_empty_activity_omitted_from_dict(self, sample_mark):
+        d = sample_mark.to_dict()
+        assert 'activity' not in d
 
     def test_stage_set_get_object(self, sample_set):
         obj = sample_set.get_object('fireplace')
@@ -258,6 +284,126 @@ class TestBuildSceneContext:
 
 
 # =====================================================================
+# Opening Scene Data Model
+# =====================================================================
+
+class TestOpeningBeat:
+    """OpeningBeat construction and round-trip."""
+
+    def test_cue_beat_construction(self):
+        beat = OpeningBeat(beat_type='cue', noodling='ajo', cue='Look up')
+        assert beat.beat_type == 'cue'
+        assert beat.noodling == 'ajo'
+        assert beat.cue == 'Look up'
+
+    def test_cue_beat_round_trip(self):
+        beat = OpeningBeat(beat_type='cue', noodling='ajo', cue='Greet them')
+        d = beat.to_dict()
+        assert d == {'noodling': 'ajo', 'cue': 'Greet them'}
+        restored = OpeningBeat.from_dict(d)
+        assert restored.beat_type == 'cue'
+        assert restored.noodling == 'ajo'
+        assert restored.cue == 'Greet them'
+
+    def test_narration_beat_round_trip(self):
+        beat = OpeningBeat(beat_type='narration', text='The bells ring.')
+        d = beat.to_dict()
+        assert d == {'type': 'narration', 'text': 'The bells ring.'}
+        restored = OpeningBeat.from_dict(d)
+        assert restored.beat_type == 'narration'
+        assert restored.text == 'The bells ring.'
+
+    def test_pause_beat_round_trip(self):
+        beat = OpeningBeat(beat_type='pause', duration=2.5)
+        d = beat.to_dict()
+        assert d == {'type': 'pause', 'duration': 2.5}
+        restored = OpeningBeat.from_dict(d)
+        assert restored.beat_type == 'pause'
+        assert restored.duration == 2.5
+
+    def test_default_beat_type_is_cue(self):
+        beat = OpeningBeat()
+        assert beat.beat_type == 'cue'
+
+
+class TestOpeningScene:
+    """OpeningScene construction and round-trip."""
+
+    def test_default_mode_is_silent(self):
+        scene = OpeningScene()
+        assert scene.mode == 'silent'
+        assert scene.beats == []
+        assert scene.narration == ''
+
+    def test_live_mode_round_trip(self):
+        scene = OpeningScene(
+            mode='live',
+            beats=[
+                OpeningBeat(beat_type='cue', noodling='ajo', cue='Greet'),
+                OpeningBeat(beat_type='pause', duration=1.5),
+                OpeningBeat(beat_type='narration', text='Bells ring.'),
+            ],
+        )
+        d = scene.to_dict()
+        assert d['mode'] == 'live'
+        assert len(d['beats']) == 3
+        restored = OpeningScene.from_dict(d)
+        assert restored.mode == 'live'
+        assert len(restored.beats) == 3
+        assert restored.beats[0].beat_type == 'cue'
+        assert restored.beats[1].beat_type == 'pause'
+        assert restored.beats[2].beat_type == 'narration'
+
+    def test_narrated_mode_round_trip(self):
+        scene = OpeningScene(mode='narrated', narration='Once upon a time.')
+        d = scene.to_dict()
+        restored = OpeningScene.from_dict(d)
+        assert restored.mode == 'narrated'
+        assert restored.narration == 'Once upon a time.'
+
+    def test_stage_set_with_opening_round_trip(self, sample_set):
+        opening = OpeningScene(
+            mode='live',
+            beats=[
+                OpeningBeat(beat_type='cue', noodling='ajo', cue='Wave'),
+            ],
+        )
+        sample_set.opening = opening
+        d = sample_set.to_dict()
+        assert 'opening' in d
+        restored = StageSet.from_dict(d)
+        assert restored.opening is not None
+        assert restored.opening.mode == 'live'
+        assert len(restored.opening.beats) == 1
+
+    def test_stage_set_without_opening_loads_as_none(self, sample_set):
+        """Backward compat: sets without opening key load as None."""
+        d = sample_set.to_dict()
+        assert 'opening' not in d
+        restored = StageSet.from_dict(d)
+        assert restored.opening is None
+
+    def test_stage_set_with_opening_yaml_round_trip(self, sample_set):
+        """Opening survives save_set/load_set cycle."""
+        opening = OpeningScene(
+            mode='live',
+            beats=[
+                OpeningBeat(beat_type='cue', noodling='ajo', cue='Nod'),
+                OpeningBeat(beat_type='pause', duration=1.0),
+            ],
+        )
+        sample_set.opening = opening
+        with tempfile.TemporaryDirectory() as tmpdir:
+            save_set(tmpdir, sample_set)
+            loaded = load_set(tmpdir)
+            assert loaded.opening is not None
+            assert loaded.opening.mode == 'live'
+            assert len(loaded.opening.beats) == 2
+            assert loaded.opening.beats[0].noodling == 'ajo'
+            assert loaded.opening.beats[1].duration == 1.0
+
+
+# =====================================================================
 # SceneNodeType Enum
 # =====================================================================
 
@@ -327,3 +473,31 @@ class TestHearthwoodCafeTemplate:
         marks = load_marks(TEMPLATE_STAGE)
         ajo_mark = next(m for m in marks if m.id == 'behind_counter')
         assert len(ajo_mark.can_see) == 7
+
+    def test_default_opening_loads_with_correct_mode(self):
+        """Default set.yaml opening loads as 'live' mode."""
+        stage_set = load_set(TEMPLATE_STAGE)
+        assert stage_set.opening is not None
+        assert stage_set.opening.mode == 'live'
+        assert len(stage_set.opening.beats) == 8
+
+    def test_opening_beat_noodling_refs_are_valid_instances(self):
+        """Beat noodling references must match valid instance IDs."""
+        stage_set = load_set(TEMPLATE_STAGE)
+        instances_dir = os.path.join(TEMPLATE_STAGE, 'Instances')
+        valid_ids = set()
+        if os.path.isdir(instances_dir):
+            for name in os.listdir(instances_dir):
+                if os.path.isdir(os.path.join(instances_dir, name)):
+                    valid_ids.add(name)
+        for beat in stage_set.opening.beats:
+            if beat.beat_type == 'cue':
+                assert beat.noodling in valid_ids, \
+                    f"Beat references unknown noodling '{beat.noodling}'"
+
+    def test_mark_activities_are_nonempty(self):
+        """All marks should have non-empty activity strings."""
+        marks = load_marks(TEMPLATE_STAGE)
+        for mark in marks:
+            assert mark.activity.strip(), \
+                f"Mark '{mark.id}' has empty activity"

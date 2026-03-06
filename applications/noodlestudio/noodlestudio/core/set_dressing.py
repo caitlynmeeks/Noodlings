@@ -43,15 +43,109 @@ class SetObject:
 
 
 @dataclass
+class OpeningBeat:
+    """A single beat in the opening scene.
+
+    Three beat types:
+    - 'cue': An improv direction for a specific noodling. The noodling
+      runs its assembly with the cue as brenda_direction.
+    - 'narration': Authored text displayed without speaker attribution.
+    - 'pause': A timed pause between beats.
+    """
+    beat_type: str = 'cue'
+    noodling: str = ''
+    cue: str = ''
+    text: str = ''
+    duration: float = 1.0
+
+    def to_dict(self) -> dict:
+        """Serialize to a plain dict for YAML output."""
+        if self.beat_type == 'cue':
+            d = {'noodling': self.noodling, 'cue': self.cue}
+        elif self.beat_type == 'narration':
+            d = {'type': 'narration', 'text': self.text}
+        elif self.beat_type == 'pause':
+            d = {'type': 'pause', 'duration': self.duration}
+        else:
+            d = {'type': self.beat_type}
+        return d
+
+    @staticmethod
+    def from_dict(data: dict) -> 'OpeningBeat':
+        """Deserialize from a plain dict (YAML input).
+
+        Detection logic:
+        - Has 'noodling' key -> cue beat
+        - Has type: narration -> narration beat
+        - Has type: pause -> pause beat
+        """
+        if 'noodling' in data:
+            return OpeningBeat(
+                beat_type='cue',
+                noodling=data.get('noodling', ''),
+                cue=data.get('cue', ''),
+            )
+        beat_type = data.get('type', '')
+        if beat_type == 'narration':
+            return OpeningBeat(
+                beat_type='narration',
+                text=data.get('text', ''),
+            )
+        if beat_type == 'pause':
+            return OpeningBeat(
+                beat_type='pause',
+                duration=float(data.get('duration', 1.0)),
+            )
+        return OpeningBeat(beat_type=beat_type or 'cue')
+
+
+@dataclass
+class OpeningScene:
+    """Opening scene configuration on a StageSet.
+
+    Three modes:
+    - 'silent': No opening (current default behavior).
+    - 'live': Noodlings improvise from cue beats sequentially.
+    - 'narrated': Authored narration text displayed before interaction.
+    """
+    mode: str = 'silent'
+    narration: str = ''
+    beats: List[OpeningBeat] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        """Serialize to a plain dict for YAML output."""
+        d = {'mode': self.mode}
+        if self.narration:
+            d['narration'] = self.narration
+        if self.beats:
+            d['beats'] = [b.to_dict() for b in self.beats]
+        return d
+
+    @staticmethod
+    def from_dict(data: dict) -> 'OpeningScene':
+        """Deserialize from a plain dict (YAML input)."""
+        beats = [
+            OpeningBeat.from_dict(b) for b in data.get('beats', [])
+        ]
+        return OpeningScene(
+            mode=data.get('mode', 'silent'),
+            narration=data.get('narration', ''),
+            beats=beats,
+        )
+
+
+@dataclass
 class StageSet:
     """The environment definition for a stage.
 
-    Contains a description of the overall space and a list of
-    scene objects that noodlings can perceive.
+    Contains a description of the overall space, a list of scene
+    objects that noodlings can perceive, and an optional opening
+    scene that plays before user interaction begins.
     """
     name: str
     description: str
     objects: List[SetObject] = field(default_factory=list)
+    opening: Optional[OpeningScene] = None
 
     def get_object(self, obj_id: str) -> Optional[SetObject]:
         """Look up a scene object by id."""
@@ -62,7 +156,7 @@ class StageSet:
 
     def to_dict(self) -> dict:
         """Serialize to a plain dict for YAML output."""
-        return {
+        d = {
             'name': self.name,
             'description': self.description,
             'objects': [
@@ -70,6 +164,9 @@ class StageSet:
                 for o in self.objects
             ],
         }
+        if self.opening is not None:
+            d['opening'] = self.opening.to_dict()
+        return d
 
     @staticmethod
     def from_dict(data: dict) -> 'StageSet':
@@ -82,10 +179,14 @@ class StageSet:
             )
             for o in data.get('objects', [])
         ]
+        opening = None
+        if 'opening' in data:
+            opening = OpeningScene.from_dict(data['opening'])
         return StageSet(
             name=data.get('name', ''),
             description=data.get('description', ''),
             objects=objects,
+            opening=opening,
         )
 
 
@@ -95,21 +196,26 @@ class BlockingMark:
 
     Each noodling is assigned to a mark. The mark defines what they
     see (can_see list of object IDs) and their first-person perspective
-    prose.
+    prose. The optional activity describes what the noodling is doing
+    at this mark (used in opening scene context).
     """
     id: str
     name: str
     perspective: str
     can_see: List[str] = field(default_factory=list)
+    activity: str = ''
 
     def to_dict(self) -> dict:
         """Serialize to a plain dict for YAML output."""
-        return {
+        d = {
             'id': self.id,
             'name': self.name,
             'perspective': self.perspective,
             'can_see': list(self.can_see),
         }
+        if self.activity:
+            d['activity'] = self.activity
+        return d
 
     @staticmethod
     def from_dict(data: dict) -> 'BlockingMark':
@@ -119,6 +225,7 @@ class BlockingMark:
             name=data.get('name', ''),
             perspective=data.get('perspective', ''),
             can_see=data.get('can_see', []),
+            activity=data.get('activity', ''),
         )
 
 
