@@ -173,6 +173,12 @@ class SceneHierarchyContextMenuMixin:
                     add_ui_menu.addSeparator()
                     add_ui_menu.addAction("FacetAssembly", _safe_callback(lambda d=entity_data: self._add_ui_component(d, 'FacetAssembly')))
 
+                elif entity_type == 'set':
+                    menu.addAction("Add Blocking Mark", _safe_callback(lambda d=entity_data: self._add_blocking_mark(d)))
+
+                elif entity_type == 'blocking_mark':
+                    menu.addAction("Delete", _safe_callback(lambda d=entity_data: self._delete_blocking_mark(d)))
+
                 elif entity_type == 'ui_component':
                     # UI Component - can add children (if it's a Panel) and delete
                     component = entity_data.get('component')
@@ -240,6 +246,63 @@ class SceneHierarchyContextMenuMixin:
         """Inspect entity (safe - uses data not item)."""
         entity_type = entity_data.get('type', 'unknown')
         self.entitySelected.emit(entity_type, entity_data)
+
+    def _add_blocking_mark(self, entity_data):
+        """Create a new blocking mark in the stage's Marks/ directory."""
+        import os
+        import yaml
+        from noodlestudio.core.set_dressing import BlockingMark, save_mark
+
+        stage_path = entity_data.get('stage_path', '')
+        if not stage_path:
+            return
+
+        marks_dir = os.path.join(stage_path, 'Marks')
+        os.makedirs(marks_dir, exist_ok=True)
+
+        # Generate unique name
+        existing = [f.replace('.mark.yaml', '') for f in os.listdir(marks_dir)
+                    if f.endswith('.mark.yaml')]
+        mark_id = 'new_mark'
+        counter = 1
+        while mark_id in existing:
+            mark_id = f'new_mark_{counter}'
+            counter += 1
+
+        mark = BlockingMark(
+            id=mark_id,
+            name=mark_id.replace('_', ' ').title(),
+            perspective='',
+            can_see=[],
+        )
+        save_mark(os.path.join(marks_dir, f'{mark_id}.mark.yaml'), mark)
+
+        # Refresh tree
+        self.refresh_scene()
+
+    def _delete_blocking_mark(self, entity_data):
+        """Delete a blocking mark file after confirmation."""
+        import os
+        from PyQt6.QtWidgets import QMessageBox
+
+        mark_path = entity_data.get('path', '')
+        mark_name = entity_data.get('name', 'this mark')
+
+        if not mark_path or not os.path.exists(mark_path):
+            return
+
+        reply = QMessageBox.question(
+            self,
+            'Delete Blocking Mark',
+            f'Delete "{mark_name}"?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        os.remove(mark_path)
+        self.refresh_scene()
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.

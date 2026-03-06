@@ -556,6 +556,9 @@ class SceneHierarchyRefreshMixin:
                 except Exception as e:
                     print(f"Error loading prop {prop_name}: {e}")
 
+        # Load set dressing (set.yaml + Marks/)
+        self._load_set_dressing(stage_path)
+
         # Load UI canvases from *.ui.yaml files at stage root
         self._load_ui_canvases(stage_path)
 
@@ -906,6 +909,62 @@ class SceneHierarchyRefreshMixin:
         # Recursively add children
         for child in component.children:
             self._add_ui_component_to_tree(child, comp_item, node_id, ui_path, create_graph_nodes)
+
+    def _load_set_dressing(self, stage_path: str):
+        """Load set.yaml and Marks/ into the hierarchy tree.
+
+        Creates a top-level SET item with BLOCKING_MARK children.
+        """
+        from ..core.set_dressing import load_set, load_marks
+
+        stage_set = load_set(stage_path)
+        if stage_set is None:
+            return
+
+        # Create Set node
+        set_node = self.scene_graph.create_node(
+            stage_set.name, SceneNodeType.SET, None, stage_path)
+
+        set_item = QTreeWidgetItem([stage_set.name or 'Set', ''])
+        set_item.setForeground(0, Qt.GlobalColor.lightGray)
+        set_item.setData(0, Qt.ItemDataRole.UserRole, {
+            'type': 'set',
+            'id': 'set',
+            'name': stage_set.name,
+            'path': stage_path,
+            'data': stage_set.to_dict(),
+            'node_id': set_node.id,
+            'stage_path': stage_path,
+        })
+        self.tree.addTopLevelItem(set_item)
+
+        self._item_id_to_node_id[id(set_item)] = set_node.id
+        self._node_id_to_item[set_node.id] = set_item
+
+        # Load marks as children
+        marks = load_marks(stage_path)
+        for mark in marks:
+            mark_node = self.scene_graph.create_node(
+                mark.name, SceneNodeType.BLOCKING_MARK, set_node.id, stage_path)
+
+            mark_path = os.path.join(stage_path, 'Marks', f'{mark.id}.mark.yaml')
+            mark_item = QTreeWidgetItem([mark.name, ''])
+            mark_item.setData(0, Qt.ItemDataRole.UserRole, {
+                'type': 'blocking_mark',
+                'id': f'mark_{mark.id}',
+                'name': mark.name,
+                'path': mark_path,
+                'data': mark.to_dict(),
+                'node_id': mark_node.id,
+                'stage_path': stage_path,
+            })
+            set_item.addChild(mark_item)
+
+            self._item_id_to_node_id[id(mark_item)] = mark_node.id
+            self._node_id_to_item[mark_node.id] = mark_item
+
+        set_item.setExpanded(True)
+
 
 # ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡ ～ ♡
 # જ⁀➴ ♡ Made with love. Use with love.
