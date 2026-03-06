@@ -58,6 +58,7 @@ from .inspector_asset import AssetInspectorMixin
 from .inspector_neural import NeuralInspectorMixin
 from .inspector_components import ComponentInspectorMixin
 from .inspector_ui_canvas import UICanvasInspectorMixin
+from .inspector_set_dressing import SetDressingInspectorMixin
 
 
 class InspectorPanel(
@@ -67,6 +68,7 @@ class InspectorPanel(
     NeuralInspectorMixin,
     ComponentInspectorMixin,
     UICanvasInspectorMixin,
+    SetDressingInspectorMixin,
     QWidget
 ):
     """
@@ -393,6 +395,35 @@ class InspectorPanel(
         tokens_spin.valueChanged.connect(on_tokens_changed)
         llm_form.addRow("Max Tokens:", tokens_spin)
 
+        # Model Prefix override (None = label default, "" = no prefix, "/no_think" = override)
+        prefix_edit = QLineEdit()
+        prefix_edit.setPlaceholderText("(label default)")
+        current_prefix = getattr(facet, 'model_prefix', None)
+        if current_prefix is not None:
+            prefix_edit.setText(current_prefix)
+        prefix_edit.setStyleSheet("background-color: #2D2D2D; color: #D2D2D2; padding: 4px;")
+        prefix_edit.setToolTip(
+            "Per-facet prefix prepended to system prompt.\n"
+            "Empty field = use label default. Clear text = no prefix."
+        )
+        prefix_edit._baseline_value = current_prefix
+
+        def on_prefix_changed(edit=prefix_edit, f=facet):
+            text = edit.text()
+            old_val = getattr(edit, '_baseline_value', None)
+            # Empty placeholder = None (use label default)
+            # Any text (including "") = explicit override
+            if text == "" and not edit.hasFocus():
+                new_val = None
+            else:
+                new_val = text
+            setattr(f, 'model_prefix', new_val)
+            self._push_facet_property_command(f, 'model_prefix', old_val, new_val)
+            edit._baseline_value = new_val
+
+        prefix_edit.editingFinished.connect(on_prefix_changed)
+        llm_form.addRow("Model Prefix:", prefix_edit)
+
         # Delivery mode dropdown
         from PyQt6.QtWidgets import QComboBox as _QComboBox
         delivery_combo = _QComboBox()
@@ -470,6 +501,26 @@ class InspectorPanel(
 
         llm_section.set_content_layout(llm_form)
         self.properties_layout.addWidget(llm_section)
+
+        # Last Output viewer (debugging tool)
+        output_section = CollapsibleSection("Last Output")
+        from PyQt6.QtWidgets import QPlainTextEdit as _QPlainTextEdit
+        output_text = _QPlainTextEdit()
+        output_text.setReadOnly(True)
+        output_text.setFont(QFont("Menlo", 11))
+        output_text.setStyleSheet("background-color: #1a1a1a; color: #D2D2D2; padding: 4px;")
+        output_text.setMaximumHeight(200)
+
+        last = getattr(facet, '_last_output', None)
+        if last:
+            # Show first output pad value
+            display = next(iter(last.values()), '') if isinstance(last, dict) else str(last)
+            output_text.setPlainText(str(display))
+        else:
+            output_text.setPlainText("(no output yet)")
+
+        output_section.add_widget(output_text)
+        self.properties_layout.addWidget(output_section)
 
     def _build_neural_canvas_facet_section(self, facet):
         """Build NeuralCanvasFacet section: NNCanvas path with browse button."""
@@ -1722,6 +1773,16 @@ class InspectorPanel(
             elif entity_type == 'asset':
                 # Asset from Assets panel - dispatch to sub-type handler
                 self.load_asset_properties(entity_data)
+
+            elif entity_type == 'set':
+                set_name = entity_data.get('name', 'Set')
+                self.entity_header.setText(set_name)
+                self.load_set_properties(entity_data)
+
+            elif entity_type == 'blocking_mark':
+                mark_name = entity_data.get('name', 'Mark')
+                self.entity_header.setText(mark_name)
+                self.load_mark_properties(entity_data)
 
             elif entity_type in ('ui', 'ui_component'):
                 # UI Canvas or UI Component - use UICanvasInspectorMixin

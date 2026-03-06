@@ -787,16 +787,16 @@ class TestNoAffectBaselineInNoodlingInspector:
         panel = InspectorPanel(None)
         panel.load_entity('noodling', entity_data)
 
-        # Exactly 1 QComboBox (the VRM Model dropdown from Phase F)
+        # Exactly 2 QComboBoxes: VRM Model (Phase F) + Mark (set dressing)
         combos = panel.properties_widget.findChildren(QComboBox)
-        assert len(combos) == 1, (
-            f"Noodling inspector should have exactly 1 QComboBox (VRM Model). "
+        assert len(combos) == 2, (
+            f"Noodling inspector should have exactly 2 QComboBoxes (VRM Model + Mark). "
             f"Found {len(combos)} QComboBox(es)"
         )
-        # Verify it's the VRM dropdown, not a facet dropdown
+        # Verify VRM dropdown is present with '(None)' option
         vrm_combo = combos[0]
         assert vrm_combo.findText('(None)') >= 0, (
-            "The QComboBox should be the VRM Model dropdown with '(None)' option"
+            "The first QComboBox should be the VRM Model dropdown with '(None)' option"
         )
 
     def test_noodling_inspector_still_shows_basics(self, qapp, tmp_path):

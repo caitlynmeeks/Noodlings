@@ -110,6 +110,15 @@ class EntityInspectorMixin:
             on_change=lambda name: self._on_vrm_changed(name, entity_data, vrm_items)
         )
 
+        # ===== MARK (dropdown) =====
+        mark_items = self._discover_marks_for_dropdown(entity_data)
+        mark_options = ['(None)'] + [item['name'] for item in mark_items]
+        current_mark = self._get_current_mark_name(entity_data, mark_items)
+        self.property_fields['mark'] = self.add_dropdown_field(
+            basics_group, "Mark", current_mark, mark_options,
+            on_change=lambda name: self._on_mark_changed(name, entity_data, mark_items)
+        )
+
         # ===== ENSEMBLE ACTIVE (checkbox) =====
         ensemble_active = self._get_instance_override(entity_data, 'ensemble_active', False)
         self.property_fields['ensemble_active'] = self.add_checkbox_field(
@@ -282,6 +291,73 @@ class EntityInspectorMixin:
             agent_id = entity_data.get('id', '')
             if hasattr(self, 'noodlingPropertyChanged'):
                 self.noodlingPropertyChanged.emit(agent_id, 'visible', checked)
+
+    # ========== MARK HELPERS ==========
+
+    def _discover_marks_for_dropdown(self, entity_data: dict) -> list:
+        """Find available blocking marks for the current stage.
+
+        Returns list of dicts: [{'id': ..., 'name': ..., 'path': ...}]
+        """
+        instance_path = entity_data.get('path', '')
+        if not instance_path:
+            return []
+
+        # Walk up from instance dir to find Marks/ sibling of Instances/
+        # Instance path: .../Stages/the_nexus/Instances/ajo
+        # Stage path:    .../Stages/the_nexus
+        stage_path = os.path.normpath(os.path.join(instance_path, '..', '..'))
+        marks_dir = os.path.join(stage_path, 'Marks')
+        if not os.path.isdir(marks_dir):
+            return []
+
+        results = []
+        for filename in sorted(os.listdir(marks_dir)):
+            if not filename.endswith('.mark.yaml'):
+                continue
+            try:
+                with open(os.path.join(marks_dir, filename), 'r') as f:
+                    data = yaml.safe_load(f) or {}
+                results.append({
+                    'id': data.get('id', filename.replace('.mark.yaml', '')),
+                    'name': data.get('name', filename.replace('.mark.yaml', '')),
+                    'path': os.path.join(marks_dir, filename),
+                })
+            except Exception:
+                pass
+
+        return results
+
+    def _get_current_mark_name(self, entity_data: dict, mark_items: list) -> str:
+        """Resolve current mark display name from instance override."""
+        mark_id = self._get_instance_override(entity_data, 'mark', '')
+        if not mark_id:
+            return '(None)'
+        for item in mark_items:
+            if item['id'] == mark_id:
+                return item['name']
+        return '(None)'
+
+    def _on_mark_changed(self, mark_name: str, entity_data: dict, mark_items: list):
+        """Handle mark dropdown change."""
+        if self.is_loading:
+            return
+        instance_path = entity_data.get('path', '')
+        if not instance_path:
+            return
+
+        if mark_name == '(None)':
+            mark_id = ''
+        else:
+            selected = next((item for item in mark_items if item['name'] == mark_name), None)
+            if not selected:
+                return
+            mark_id = selected['id']
+
+        self._save_instance_override(instance_path, 'mark', mark_id)
+        agent_id = entity_data.get('id', '')
+        if hasattr(self, 'noodlingPropertyChanged'):
+            self.noodlingPropertyChanged.emit(agent_id, 'mark', mark_id)
 
     def _save_instance_override(self, instance_path: str, key: str, value):
         """Write a single override to instance.yaml (read-modify-write)."""
