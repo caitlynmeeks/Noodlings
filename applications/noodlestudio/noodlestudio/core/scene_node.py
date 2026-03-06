@@ -46,6 +46,8 @@ class SceneNodeType(Enum):
     PROP = "prop"              # World object
     BONE = "bone"              # Virtual node from skeleton
     ZONE = "zone"              # Spatial region
+    SET = "set"                # Stage set dressing (environment)
+    BLOCKING_MARK = "blocking_mark"  # Named position with perspective
     UI = "ui"                  # UI Canvas (ui.yaml root)
     UI_COMPONENT = "ui_component"  # UI component (Panel, Button, etc.)
 
