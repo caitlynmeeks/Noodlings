@@ -133,6 +133,8 @@ class GuidePerformanceManager:
         # Stage metadata (populated by _discover_stage_instances)
         self._stage_description = None   # str from stage.yaml
         self._instance_metadata = {}     # noodling_id -> discovery dict
+        self._stage_set = None           # StageSet or None
+        self._marks = {}                 # mark_id -> BlockingMark
 
         logger.info("GuidePerformanceManager initialized")
 
@@ -270,6 +272,11 @@ class GuidePerformanceManager:
             except Exception as e:
                 logger.warning(f"Could not read stage.yaml: {e}")
 
+        # Load set dressing and blocking marks
+        from noodlestudio.core.set_dressing import load_set, load_marks
+        self._stage_set = load_set(str(stage_dir))
+        self._marks = {m.id: m for m in load_marks(str(stage_dir))}
+
         instances_dir = stage_dir / 'Instances'
         if not instances_dir.is_dir():
             return []
@@ -306,6 +313,7 @@ class GuidePerformanceManager:
             name = overrides.get('name', instance_dir.name)
             ensemble_active = overrides.get('ensemble_active', True)
             visible = overrides.get('visible', True)
+            mark = overrides.get('mark', '')
 
             # Load noodling.yaml for VRM path and description
             vrm_path = None
@@ -367,6 +375,7 @@ class GuidePerformanceManager:
                 'affect_baseline': affect_baseline,
                 'ensemble_active': ensemble_active,
                 'visible': visible,
+                'mark': mark,
             })
 
         return results
@@ -1111,6 +1120,46 @@ class GuidePerformanceManager:
 
         return f"{v_word} and {a_word}{d_mod}"
 
+    def _build_scene_context(self, noodling_id: str) -> str:
+        """Build scene context for a specific noodling.
+
+        If set dressing is available, assembles context from the noodling's
+        assigned blocking mark. Falls back to stage_description for stages
+        without set dressing (backward compatible).
+        """
+        if self._stage_set is None:
+            return self._stage_description or ''
+
+        from noodlestudio.core.set_dressing import build_scene_context
+
+        # Look up this noodling's mark
+        meta = self._instance_metadata.get(noodling_id, {})
+        mark_id = meta.get('mark', '')
+        mark = self._marks.get(mark_id) if mark_id else None
+
+        # Build others list (name + mark_name for other active performers)
+        others = []
+        for other_nid, other_performer in self._performers.items():
+            if other_nid == noodling_id:
+                continue
+            if other_performer.paused:
+                continue
+            other_meta = self._instance_metadata.get(other_nid, {})
+            other_mark_id = other_meta.get('mark', '')
+            other_mark = self._marks.get(other_mark_id) if other_mark_id else None
+            others.append({
+                'name': other_performer.name,
+                'mark_name': other_mark.name if other_mark else '',
+            })
+
+        return build_scene_context(self._stage_set, mark, others)
+
+    def update_mark(self, noodling_id: str, mark_id: str):
+        """Update a noodling's mark assignment at runtime (from Inspector)."""
+        meta = self._instance_metadata.get(noodling_id)
+        if meta:
+            meta['mark'] = mark_id
+
     def _advance_ensemble_turn(self):
         """Advance to the next noodling in the turn sequence."""
         if not self._turn_queue:
@@ -1140,7 +1189,7 @@ class GuidePerformanceManager:
 
         # Build rich perception context
         extra_context = {
-            'stage_context': self._stage_description or '',
+            'stage_context': self._build_scene_context(nid),
             'present_entities': self._format_present_entities(nid),
             'ensemble_history': self._format_ensemble_history(),
             'conversation_history': self._format_ensemble_history(),

@@ -252,6 +252,8 @@ class MainWindowSignalsMixin:
             manager.set_ensemble_active(noodling_id, value)
         elif prop_name == 'visible':
             manager.set_visible(noodling_id, value)
+        elif prop_name == 'mark':
+            manager.update_mark(noodling_id, value)
 
     def _on_asset_renamed(self, asset_type: str, asset_id: str, new_name: str):
         """Handle name change in Assets Panel."""
