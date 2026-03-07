@@ -39,6 +39,7 @@ def _create_ensemble_manager():
     """Create a manager configured for ensemble testing."""
     from noodlestudio.runtime.ui.guide_performance_manager import (
         GuidePerformanceManager,
+        PerformanceState,
     )
 
     stub_editor = StubFacetsEditor()
@@ -46,6 +47,7 @@ def _create_ensemble_manager():
 
     manager = GuidePerformanceManager(stub_main)
     manager._assembly_editor = stub_editor
+    manager._performance_state = PerformanceState.PLAYING
     return manager
 
 

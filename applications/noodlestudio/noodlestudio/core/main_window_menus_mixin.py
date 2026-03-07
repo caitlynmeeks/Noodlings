@@ -119,25 +119,61 @@ class MainWindowMenusMixin:
         help_menu.addAction(self._create_action("About NoodleStudio", slot=self.show_about))
 
     def _setup_tool_bar(self):
-        """Create tool bar with Play/Stop button."""
+        """Create tool bar with Play / Pause / Stop transport buttons."""
         from PyQt6.QtWidgets import QPushButton
         from PyQt6.QtCore import QSize
+        from PyQt6.QtGui import QShortcut, QKeySequence
 
         tool_bar = self.addToolBar("Main Toolbar")
         tool_bar.setObjectName("MainToolbar")
         tool_bar.setMovable(False)
 
-        # Play/Stop toggle button
-        self._play_button = QPushButton("Play")
-        self._play_button.setCheckable(True)
-        self._play_button.setFixedSize(QSize(64, 28))
-        self._play_button.setStyleSheet(
-            "QPushButton { background: #333; color: #ccc; border: 1px solid #555; "
-            "border-radius: 4px; font-weight: bold; } "
-            "QPushButton:checked { background: #4a7a4a; color: #eee; }"
+        _btn_style = (
+            "QPushButton {{ background: {bg}; color: {fg}; "
+            "border: 1px solid #555; border-radius: 4px; "
+            "font-weight: bold; font-size: 13px; }} "
+            "QPushButton:hover {{ background: {hover}; }} "
+            "QPushButton:disabled {{ background: #2a2a2a; color: #555; "
+            "border: 1px solid #3a3a3a; }}"
         )
-        self._play_button.toggled.connect(self._on_play_toggled)
+
+        # Play button  >
+        self._play_button = QPushButton(">")
+        self._play_button.setFixedSize(QSize(28, 28))
+        self._play_button.setStyleSheet(
+            _btn_style.format(bg='#333', fg='#ccc', hover='#4a7a4a')
+        )
+        self._play_button.clicked.connect(self._on_play_clicked)
         tool_bar.addWidget(self._play_button)
+
+        # Pause button  ||
+        self._pause_button = QPushButton("||")
+        self._pause_button.setFixedSize(QSize(28, 28))
+        self._pause_button.setStyleSheet(
+            _btn_style.format(bg='#333', fg='#ccc', hover='#7a7a4a')
+        )
+        self._pause_button.setEnabled(False)
+        self._pause_button.clicked.connect(self._on_pause_clicked)
+        tool_bar.addWidget(self._pause_button)
+
+        # Stop button  (square)
+        self._stop_button = QPushButton("\u25a0")
+        self._stop_button.setFixedSize(QSize(28, 28))
+        self._stop_button.setStyleSheet(
+            _btn_style.format(bg='#333', fg='#ccc', hover='#7a4a4a')
+        )
+        self._stop_button.setEnabled(False)
+        self._stop_button.clicked.connect(self._on_stop_clicked)
+        tool_bar.addWidget(self._stop_button)
+
+        # Keyboard shortcuts
+        # CMD-P: Play/Pause toggle
+        play_pause_shortcut = QShortcut(QKeySequence("Ctrl+P"), self)
+        play_pause_shortcut.activated.connect(self._on_play_pause_shortcut)
+
+        # CMD-. : Stop
+        stop_shortcut = QShortcut(QKeySequence("Ctrl+."), self)
+        stop_shortcut.activated.connect(self._on_stop_clicked)
 
     def _create_action(
         self,

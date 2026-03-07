@@ -329,80 +329,55 @@ class ProviderManager(QObject):
             return []
 
     def _fetch_anthropic_models(self, provider: ProviderConfig) -> List[Dict]:
-        """Return known Anthropic models with metadata (no discovery API)."""
-        # Known Anthropic models with their actual API IDs and capabilities
-        # Reference: https://docs.anthropic.com/en/docs/about-claude/models
-        models_data = [
-            # Claude 4 family (latest)
-            {
-                "id": "claude-opus-4-5-20251101",
-                "name": "Claude Opus 4.5",
-                "context": 200000,
-                "desc": "Most capable model, best for complex tasks",
-                "capabilities": ["vision", "tools", "thinking", "pdf"],
-            },
-            {
-                "id": "claude-sonnet-4-20250514",
-                "name": "Claude Sonnet 4",
-                "context": 200000,
-                "desc": "Excellent balance, computer use support",
-                "capabilities": ["vision", "tools", "computer_use", "pdf"],
-            },
-            # Claude 3.5 family
-            {
-                "id": "claude-3-5-sonnet-20241022",
-                "name": "Claude 3.5 Sonnet (Oct 2024)",
-                "context": 200000,
-                "desc": "Computer use enabled, excellent coding",
-                "capabilities": ["vision", "tools", "computer_use", "pdf"],
-            },
-            {
-                "id": "claude-3-5-sonnet-20240620",
-                "name": "Claude 3.5 Sonnet (Jun 2024)",
-                "context": 200000,
-                "desc": "Original 3.5 Sonnet, strong general use",
-                "capabilities": ["vision", "tools", "pdf"],
-            },
-            {
-                "id": "claude-3-5-haiku-20241022",
-                "name": "Claude 3.5 Haiku",
-                "context": 200000,
-                "desc": "Fast and efficient, great for high-volume",
-                "capabilities": ["vision", "tools", "pdf"],
-            },
-            # Claude 3 family (previous gen)
-            {
-                "id": "claude-3-opus-20240229",
-                "name": "Claude 3 Opus",
-                "context": 200000,
-                "desc": "Previous flagship, strong reasoning",
-                "capabilities": ["vision", "tools"],
-            },
-            {
-                "id": "claude-3-sonnet-20240229",
-                "name": "Claude 3 Sonnet",
-                "context": 200000,
-                "desc": "Previous balanced model",
-                "capabilities": ["vision", "tools"],
-            },
-            {
-                "id": "claude-3-haiku-20240307",
-                "name": "Claude 3 Haiku",
-                "context": 200000,
-                "desc": "Previous fast model",
-                "capabilities": ["vision", "tools"],
-            },
-        ]
+        """Fetch available models from the Anthropic API."""
+        # Try the /v1/models endpoint first (dynamic discovery)
+        if provider.api_key:
+            try:
+                response = requests.get(
+                    "https://api.anthropic.com/v1/models",
+                    headers={
+                        "x-api-key": provider.api_key,
+                        "anthropic-version": "2023-06-01",
+                    },
+                    timeout=10,
+                )
 
+                if response.status_code == 200:
+                    data = response.json()
+                    models = []
+                    for model in data.get("data", []):
+                        model_id = model.get("id", "")
+                        model_dict = {
+                            'id': model_id,
+                            'name': model.get("display_name", model_id),
+                            'description': model.get("description", ""),
+                            'context_length': model.get("max_tokens", 200000),
+                            'architecture': {'modality': 'text+image->text'},
+                            'supported_parameters': ['temperature', 'max_tokens', 'top_p', 'top_k', 'tools'],
+                        }
+                        models.append(model_dict)
+
+                    if models:
+                        return models
+
+            except Exception as e:
+                print(f"Error fetching Anthropic models from API: {e}")
+
+        # Fallback: return a minimal known-good list if API is unreachable
+        print("[ProviderManager] Using fallback Anthropic model list")
+        fallback = [
+            {"id": "claude-opus-4-6", "name": "Claude Opus 4.6", "context": 1000000},
+            {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "context": 200000},
+            {"id": "claude-haiku-4-5-20251001", "name": "Claude Haiku 4.5", "context": 200000},
+        ]
         return [{
             'id': m['id'],
             'name': m['name'],
-            'description': m['desc'],
+            'description': '',
             'context_length': m['context'],
             'architecture': {'modality': 'text+image->text'},
-            'capabilities': m.get('capabilities', []),
             'supported_parameters': ['temperature', 'max_tokens', 'top_p', 'top_k', 'tools'],
-        } for m in models_data]
+        } for m in fallback]
 
     def _fetch_openai_models(self, provider: ProviderConfig) -> List[Dict]:
         """Fetch models from OpenAI API with metadata."""

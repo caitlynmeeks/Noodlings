@@ -395,6 +395,8 @@ class StubWindow:
         self._noodling_texts: list[tuple] = []  # (nid, name, text)
         self._speaking_mode_calls: list[tuple] = []
         self._narrations: list[str] = []
+        self._input_enabled = True
+        self._dialogue_dimmed = False
 
     def append_guide_text(self, text):
         self.texts.append(text)
@@ -432,6 +434,12 @@ class StubWindow:
     def display_narration(self, text):
         self._narrations.append(text)
 
+    def dim_dialogue(self):
+        self._dialogue_dimmed = True
+
+    def set_input_enabled(self, enabled):
+        self._input_enabled = enabled
+
     def set_performer_name(self, noodling_id, name):
         pass
 
@@ -443,8 +451,23 @@ class StubWindow:
     def show_play_header(self, title):
         pass
 
+    def show(self):
+        pass
+
+    def hide(self):
+        pass
+
+    def raise_(self):
+        pass
+
     def close(self):
         pass
+
+    def clear_dialogue(self):
+        self.texts.clear()
+        self._noodling_texts.clear()
+        self._typed_chars.clear()
+        self._narrations.clear()
 
     def isVisible(self):
         return True
@@ -460,6 +483,7 @@ def guide_manager():
     """
     from noodlestudio.runtime.ui.guide_performance_manager import (
         GuidePerformanceManager,
+        PerformanceState,
     )
 
     stub_editor = StubFacetsEditor()
@@ -468,6 +492,7 @@ def guide_manager():
     manager = GuidePerformanceManager(stub_main)
     manager._assembly_editor = stub_editor  # Pre-cache to skip lookup
     manager._window = StubWindow()
+    manager._performance_state = PerformanceState.PLAYING
 
     return manager
 

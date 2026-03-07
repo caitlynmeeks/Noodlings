@@ -82,6 +82,7 @@ if QT_AVAILABLE:
             self._index = 0             # Current position
             self._is_speaking = False   # Current speaking state
             self._speaking_intensity = 0.7
+            self._paused = False
 
         @property
         def speaking_intensity(self) -> float:
@@ -117,8 +118,30 @@ if QT_AVAILABLE:
             self._timer.stop()
             self._characters = []
             self._index = 0
+            self._paused = False
             if self._is_speaking:
                 self._set_speaking(False)
+
+        def pause(self):
+            """Freeze typing animation at current position."""
+            self._paused = True
+            self._timer.stop()
+            # Also pause streaming timer if active
+            if hasattr(self, '_stream_timer') and self._stream_timer:
+                self._stream_timer.stop()
+
+        def resume(self):
+            """Continue typing animation from current position."""
+            if not self._paused:
+                return
+            self._paused = False
+            # Resume buffered mode
+            if self._index < len(self._characters):
+                self._reveal_next()
+            # Resume streaming mode
+            elif (hasattr(self, '_stream_buffer')
+                  and (self._stream_buffer or not self._stream_done)):
+                self._reveal_next_streaming()
 
         def _reveal_next(self):
             """Reveal the next character and schedule the following one."""

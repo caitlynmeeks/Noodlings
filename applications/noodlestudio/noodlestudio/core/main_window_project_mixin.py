@@ -302,37 +302,118 @@ class MainWindowProjectMixin:
         else:
             QMessageBox.warning(self, "Error", "Scene hierarchy not available.")
 
-    def _on_play_toggled(self, checked: bool):
-        """Play/Stop toggle for the current stage."""
+    def _on_play_clicked(self):
+        """Handle Play button click.
+
+        From PAUSED: resume. From IDLE or STOPPED: start fresh.
+        """
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            PerformanceState,
+        )
+
         manager = getattr(self, 'guide_performance_manager', None)
         if not manager:
             self.statusBar().showMessage("Performance manager not ready", 3000)
-            if hasattr(self, '_play_button'):
-                self._play_button.setChecked(False)
             return
 
-        if checked:
-            # Start performance from current stage
+        state = manager.performance_state
+        if state == PerformanceState.PAUSED:
+            manager.resume_ensemble()
+            self.statusBar().showMessage("Resumed", 3000)
+        else:
+            # IDLE or STOPPED -- start fresh
             hierarchy = getattr(self, 'hierarchy', None)
             if not hierarchy or not getattr(hierarchy, 'current_stage', None):
                 self.statusBar().showMessage("No stage selected", 3000)
-                self._play_button.setChecked(False)
                 return
 
-            stage_path = self.project_manager.get_stage_path(hierarchy.current_stage)
+            stage_path = self.project_manager.get_stage_path(
+                hierarchy.current_stage
+            )
             if not stage_path:
                 self.statusBar().showMessage("Stage path not found", 3000)
-                self._play_button.setChecked(False)
                 return
 
-            manager.start_ensemble_from_stage(stage_path, hierarchy.current_stage)
-            self._play_button.setText("Stop")
+            manager.start_ensemble_from_stage(
+                stage_path, hierarchy.current_stage
+            )
             self.statusBar().showMessage("Playing...", 3000)
-        else:
-            # Stop performance
-            manager.stop_performance()
-            self._play_button.setText("Play")
-            self.statusBar().showMessage("Stopped", 3000)
+
+        self._sync_transport_buttons()
+
+    def _on_pause_clicked(self):
+        """Handle Pause button click."""
+        manager = getattr(self, 'guide_performance_manager', None)
+        if not manager:
+            return
+        manager.pause_ensemble()
+        self.statusBar().showMessage("Paused", 3000)
+        self._sync_transport_buttons()
+
+    def _on_stop_clicked(self):
+        """Handle Stop button click."""
+        manager = getattr(self, 'guide_performance_manager', None)
+        if not manager:
+            return
+        manager.stop_performance()
+        self.statusBar().showMessage("Stopped", 3000)
+        self._sync_transport_buttons()
+
+    def _on_play_pause_shortcut(self):
+        """CMD-P: toggle between play and pause."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            PerformanceState,
+        )
+
+        manager = getattr(self, 'guide_performance_manager', None)
+        if not manager:
+            return
+
+        state = manager.performance_state
+        if state == PerformanceState.PLAYING:
+            self._on_pause_clicked()
+        elif state == PerformanceState.PAUSED:
+            self._on_play_clicked()
+        elif state in (PerformanceState.IDLE, PerformanceState.STOPPED):
+            self._on_play_clicked()
+
+    def _sync_transport_buttons(self):
+        """Enable/disable transport buttons based on current state.
+
+        | State   | Play    | Pause    | Stop    |
+        |---------|---------|----------|---------|
+        | IDLE    | enabled | disabled | disabled|
+        | PLAYING | disabled| enabled  | enabled |
+        | PAUSED  | enabled | disabled | enabled |
+        | STOPPED | enabled | disabled | disabled|
+        """
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            PerformanceState,
+        )
+
+        manager = getattr(self, 'guide_performance_manager', None)
+        state = manager.performance_state if manager else PerformanceState.IDLE
+
+        play_btn = getattr(self, '_play_button', None)
+        pause_btn = getattr(self, '_pause_button', None)
+        stop_btn = getattr(self, '_stop_button', None)
+
+        if state == PerformanceState.IDLE:
+            if play_btn:  play_btn.setEnabled(True)
+            if pause_btn: pause_btn.setEnabled(False)
+            if stop_btn:  stop_btn.setEnabled(False)
+        elif state == PerformanceState.PLAYING:
+            if play_btn:  play_btn.setEnabled(False)
+            if pause_btn: pause_btn.setEnabled(True)
+            if stop_btn:  stop_btn.setEnabled(True)
+        elif state == PerformanceState.PAUSED:
+            if play_btn:  play_btn.setEnabled(True)
+            if pause_btn: pause_btn.setEnabled(False)
+            if stop_btn:  stop_btn.setEnabled(True)
+        elif state == PerformanceState.STOPPED:
+            if play_btn:  play_btn.setEnabled(True)
+            if pause_btn: pause_btn.setEnabled(False)
+            if stop_btn:  stop_btn.setEnabled(False)
 
     def import_noodling_folder(self):
         """Import a noodling folder into the current project."""

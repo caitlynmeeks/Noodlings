@@ -40,6 +40,7 @@ import logging
 import os
 import time
 import uuid
+from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -53,6 +54,23 @@ from ..guide_cue_handler import GuideCueHandler
 from .noodling_performer import NoodlingPerformer, create_llm_client
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Performance State
+# =============================================================================
+
+class PerformanceState(Enum):
+    """State machine for the performance lifecycle.
+
+    IDLE -> PLAYING -> PAUSED -> PLAYING (resume)
+                   -> STOPPED (window persists, dialogue preserved)
+    STOPPED -> PLAYING (restart, window reused)
+    """
+    IDLE = "idle"
+    PLAYING = "playing"
+    PAUSED = "paused"
+    STOPPED = "stopped"
 
 # Well-known guide paths relative to project root
 _GUIDE_VRM_RELATIVE = Path("noodlings/guide/Radiances/AjoMajo.vrm")
@@ -140,6 +158,11 @@ class GuidePerformanceManager:
         self._opening_active = False
         self._opening_beats = []         # Remaining beats to execute
 
+        # Performance state machine
+        self._performance_state = PerformanceState.IDLE
+        self._last_stage_path = None     # Cached for replay
+        self._last_play_title = None
+
         logger.info("GuidePerformanceManager initialized")
 
     # =========================================================================
@@ -163,6 +186,73 @@ class GuidePerformanceManager:
             handler: GuideCueHandler instance
         """
         self._guide_cue_handler = handler
+
+    # =========================================================================
+    # PERFORMANCE STATE
+    # =========================================================================
+
+    @property
+    def performance_state(self) -> PerformanceState:
+        """Current performance lifecycle state."""
+        return self._performance_state
+
+    def _set_performance_state(self, state: PerformanceState):
+        """Transition to a new performance state.
+
+        Updates window UI (input enable/disable, dialogue dimming) and
+        logs the transition.
+
+        Args:
+            state: The target PerformanceState
+        """
+        old = self._performance_state
+        self._performance_state = state
+        logger.info(f"Performance state: {old.value} -> {state.value}")
+
+        if not self._window:
+            return
+
+        if state == PerformanceState.PLAYING:
+            self._window.set_input_enabled(True)
+        elif state == PerformanceState.PAUSED:
+            self._window.set_input_enabled(False)
+        elif state == PerformanceState.STOPPED:
+            self._window.set_input_enabled(False)
+            self._window.dim_dialogue()
+
+    # =========================================================================
+    # PAUSE / RESUME
+    # =========================================================================
+
+    def pause_ensemble(self):
+        """Pause the current performance.
+
+        Freezes all typing animations at their current position and
+        pauses turn advancement. The ensemble can be resumed with
+        resume_ensemble().
+        """
+        if self._performance_state != PerformanceState.PLAYING:
+            return
+        self._set_performance_state(PerformanceState.PAUSED)
+        for performer in self._performers.values():
+            performer.pause_animation()
+
+    def resume_ensemble(self):
+        """Resume a paused performance.
+
+        Continues typing animations from where they were frozen and
+        re-enables turn advancement.
+        """
+        if self._performance_state != PerformanceState.PAUSED:
+            return
+        self._set_performance_state(PerformanceState.PLAYING)
+        for performer in self._performers.values():
+            performer.resume_animation()
+        # If a turn was pending (queue not empty, no active execution), advance
+        if self._turn_queue and not any(
+            p.is_executing for p in self._performers.values()
+        ):
+            self._advance_ensemble_turn()
 
     # =========================================================================
     # HIERARCHY SYNC
@@ -398,16 +488,28 @@ class GuidePerformanceManager:
         and opens the performance window. If only one instance is found,
         starts a single-performer performance instead.
 
+        If the performance window already exists (from a previous stopped
+        performance), it is reused -- dialogue is cleared and the window
+        is re-shown.
+
         Args:
             stage_path: Absolute path to the stage directory
             play_title: Title displayed in the window header
         """
+        # Cache for potential replay
+        self._last_stage_path = stage_path
+        self._last_play_title = play_title
+
         instances = self._discover_stage_instances(stage_path)
         if not instances:
             logger.error(f"No valid instances found in {stage_path}")
             return
 
-        if self._window:
+        # If window exists from a previous stopped performance, stop
+        # performers but keep the window for reuse
+        if self._window and self._performance_state == PerformanceState.STOPPED:
+            self._cleanup_performers()
+        elif self._window:
             logger.warning("Performance already active, stopping first")
             self.stop_performance()
 
@@ -451,24 +553,31 @@ class GuidePerformanceManager:
         # Primary performer for backward compat (first in order)
         self._performer = next(iter(performers.values()))
 
-        # Create window
-        from .guide_performance_window import GuidePerformanceWindow
+        # Reuse existing window or create new one
+        if self._window:
+            self._window.clear_dialogue()
+            self._window.set_input_enabled(True)
+            self._window.show()
+            self._window.raise_()
+        else:
+            from .guide_performance_window import GuidePerformanceWindow
 
-        self._window = GuidePerformanceWindow(
-            parent_window=self._main_window,
-            ensemble_mode=ensemble
-        )
+            self._window = GuidePerformanceWindow(
+                parent_window=self._main_window,
+                ensemble_mode=ensemble
+            )
+
+            # Connect user message
+            self._window.messageSubmitted.connect(self._on_user_message)
+
+            # Connect performer name click -> hierarchy selection routing
+            if ensemble:
+                self._window.noodlingSelected.connect(
+                    self.on_hierarchy_noodling_selected
+                )
+
         self._play_title = play_title
         self._window.show_play_header(play_title)
-
-        # Connect user message
-        self._window.messageSubmitted.connect(self._on_user_message)
-
-        # Connect performer name click -> hierarchy selection routing
-        if ensemble:
-            self._window.noodlingSelected.connect(
-                self.on_hierarchy_noodling_selected
-            )
 
         # Wire each performer
         for nid, performer in performers.items():
@@ -546,6 +655,8 @@ class GuidePerformanceManager:
                             break
         except Exception as e:
             logger.debug(f"Could not load assembly in editor: {e}")
+
+        self._set_performance_state(PerformanceState.PLAYING)
 
         logger.info(
             f"Ensemble from stage started: {play_title} "
@@ -954,11 +1065,14 @@ class GuidePerformanceManager:
 
         In single mode, sends directly to the performer.
         In ensemble mode, starts turn-taking sequence.
-        Blocked during opening scene execution.
+        Blocked during opening scene execution or when not playing.
 
         Args:
             message: The user's message text
         """
+        if self._performance_state != PerformanceState.PLAYING:
+            return
+
         if self._opening_active:
             logger.debug("User message blocked during opening scene")
             return
@@ -1299,6 +1413,9 @@ class GuidePerformanceManager:
 
     def _advance_ensemble_turn(self):
         """Advance to the next noodling in the turn sequence."""
+        if self._performance_state == PerformanceState.PAUSED:
+            return  # Will resume when unpaused
+
         if not self._turn_queue:
             # All turns complete
             self._active_noodling_id = 'default'
@@ -1852,14 +1969,12 @@ class GuidePerformanceManager:
     # PERFORMANCE LIFECYCLE (STOP)
     # =========================================================================
 
-    def stop_performance(self):
-        """
-        Stop the current performance.
+    def _cleanup_performers(self):
+        """Stop and clear all performers and play pipeline.
 
-        Closes the floating window, stops all performers, stops Brenda,
-        disables demo mode, and tears down the play pipeline.
+        Shared between stop_performance() and restart (when reusing
+        a window from STOPPED state).
         """
-        # Stop all ensemble performers
         if self._ensemble_mode:
             for nid, performer in self._performers.items():
                 performer.stop()
@@ -1901,9 +2016,18 @@ class GuidePerformanceManager:
         self._channel_bus = None
         self._guide_cue_handler = None
 
-        if self._window:
-            self._window.close()
-            self._window = None
+    def stop_performance(self):
+        """
+        Stop the current performance.
+
+        Stops all performers and play pipeline but keeps the window
+        alive with dialogue text preserved (dimmed). The window can
+        be reused on the next play.
+        """
+        self._cleanup_performers()
+
+        # Transition to STOPPED -- window persists, dialogue dims
+        self._set_performance_state(PerformanceState.STOPPED)
 
         # Disable demo mode
         self._set_demo_mode(False)
@@ -1912,8 +2036,10 @@ class GuidePerformanceManager:
 
     @property
     def is_active(self) -> bool:
-        """Whether a performance is currently active."""
-        return self._window is not None and self._window.isVisible()
+        """Whether a performance is currently active (playing or paused)."""
+        return self._performance_state in (
+            PerformanceState.PLAYING, PerformanceState.PAUSED
+        )
 
     @property
     def window(self):

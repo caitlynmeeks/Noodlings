@@ -723,6 +723,16 @@ class NoodlingPerformer(QObject):
         self.performanceFinished.emit()
         self.executionFinished.emit()
 
+    def pause_animation(self):
+        """Freeze typing animation at current position."""
+        if self._performance_player:
+            self._performance_player.pause()
+
+    def resume_animation(self):
+        """Continue typing animation from current position."""
+        if self._performance_player:
+            self._performance_player.resume()
+
     @property
     def speaking_intensity(self) -> float:
         """Current speaking animation intensity."""

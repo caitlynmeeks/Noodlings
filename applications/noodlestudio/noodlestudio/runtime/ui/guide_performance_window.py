@@ -336,7 +336,7 @@ if QT_AVAILABLE:
                     border-radius: 3px;
                 }
             """)
-            close_btn.clicked.connect(self.close)
+            close_btn.clicked.connect(self.hide)
             header_layout.addWidget(close_btn)
 
             main_layout.addWidget(header_frame)
@@ -807,6 +807,23 @@ if QT_AVAILABLE:
             """Clear the dialogue display."""
             self.dialogue_view.clear()
 
+        def dim_dialogue(self):
+            """Dim all existing dialogue text to indicate stopped state."""
+            cursor = self.dialogue_view.textCursor()
+            cursor.select(QTextCursor.SelectionType.Document)
+            fmt = QTextCharFormat()
+            fmt.setForeground(QColor(100, 100, 100))
+            cursor.mergeCharFormat(fmt)
+
+        def set_input_enabled(self, enabled: bool):
+            """Enable or disable the message input area.
+
+            Args:
+                enabled: True to enable input, False to disable
+            """
+            self.input_field.setEnabled(enabled)
+            self.send_button.setEnabled(enabled)
+
         def display_narration(self, text: str):
             """Display narration text -- no speaker, dimmed italic."""
             cursor = self.dialogue_view.textCursor()
@@ -1086,6 +1103,8 @@ if not QT_AVAILABLE:
         def set_thinking(self, noodling_id, name, thinking): pass
         def show_play_header(self, title): pass
         def clear_dialogue(self): pass
+        def dim_dialogue(self): pass
+        def set_input_enabled(self, enabled): pass
         def display_narration(self, text): pass
         def append_guide_text(self, text): pass
         def append_noodling_text(self, noodling_id, name, text): pass
