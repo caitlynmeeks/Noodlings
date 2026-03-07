@@ -373,11 +373,13 @@ class StubMainWindow:
             self.unified_editor = unified_editor
         else:
             self.unified_editor = StubFacetsEditor()
-        self.center_tabs = None  # Only used in start_performance tab switch
+        self.center_tabs = None
+        self.performance_panel = None
+        self.cognition_panel = None
 
 
 class StubWindow:
-    """Lightweight stand-in for GuidePerformanceWindow.
+    """Lightweight stand-in for PerformancePanel.
 
     Records method calls so tests can assert on them without
     creating real Qt widgets. Supports both single and ensemble APIs.
@@ -389,6 +391,7 @@ class StubWindow:
         self.busy_states: list = []   # (busy,) or (busy, name)
         self.blend_shapes_calls: list = []  # (shapes,) or (shapes, nid)
         self._vrm_viewport = None
+        self._vrm_viewports = {}
         self._typed_chars: list[str] = []
         self._text_blocks_begun = 0
         self._text_blocks_ended = 0
@@ -397,6 +400,7 @@ class StubWindow:
         self._narrations: list[str] = []
         self._input_enabled = True
         self._dialogue_dimmed = False
+        self._ensemble_visible = True
 
     def append_guide_text(self, text):
         self.texts.append(text)
@@ -439,6 +443,9 @@ class StubWindow:
 
     def set_input_enabled(self, enabled):
         self._input_enabled = enabled
+
+    def set_ensemble_visible(self, visible):
+        self._ensemble_visible = visible
 
     def set_performer_name(self, noodling_id, name):
         pass

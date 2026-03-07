@@ -63,6 +63,7 @@ class _AssemblyWorker(QThread):
     resultReady = pyqtSignal(object)    # ExecutionResult
     errorOccurred = pyqtSignal(str)     # Error message
     facetCompleted = pyqtSignal(str, object)  # (facet_id, outputs_dict)
+    facetTraceReady = pyqtSignal(str, object)  # (facet_id, trace_dict)
     streamTokenReady = pyqtSignal(str, str)   # (facet_id, text) for streaming delivery
 
     def __init__(self, executor, assembly, message: str, context: dict):
@@ -79,6 +80,17 @@ class _AssemblyWorker(QThread):
         try:
             def _on_facet_done(facet_id, outputs):
                 self.facetCompleted.emit(facet_id, outputs)
+                # Emit trace data if available
+                for facet in self._assembly.facets:
+                    if facet.id == facet_id:
+                        trace = getattr(facet, '_last_trace', None)
+                        if trace:
+                            trace_with_id = dict(trace)
+                            trace_with_id['facet_id'] = facet_id
+                            trace_with_id['facet_name'] = facet.name
+                            trace_with_id['facet_type'] = facet.facet_type
+                            self.facetTraceReady.emit(facet_id, trace_with_id)
+                        break
 
             def _on_stream_token(facet_id, text):
                 self.streamTokenReady.emit(facet_id, text)
@@ -190,6 +202,7 @@ class NoodlingPerformer(QObject):
     performanceReady = pyqtSignal(dict)      # performance_script JSON
     affectReady = pyqtSignal(dict)           # VRM blend shapes
     facetCompleted = pyqtSignal(str, object) # (facet_id, outputs) for live viz
+    turnTraceReady = pyqtSignal(str, list)   # (noodling_id, [trace_dicts])
     executionStarted = pyqtSignal()
     executionFinished = pyqtSignal()
     errorOccurred = pyqtSignal(str)
@@ -437,12 +450,16 @@ class NoodlingPerformer(QObject):
             context.update(extra_context)
 
         # Execute assembly on worker thread
+        # Reset per-turn trace collection
+        self._current_turn_traces = []
+
         self._worker = _AssemblyWorker(
             self._executor, self._assembly, user_message, context
         )
         self._worker.resultReady.connect(self._on_assembly_result)
         self._worker.errorOccurred.connect(self._on_assembly_error)
         self._worker.facetCompleted.connect(self._on_facet_completed)
+        self._worker.facetTraceReady.connect(self._on_facet_trace)
 
         # Wire streaming if delivery mode is streaming
         if self._streaming_mode:
@@ -538,6 +555,12 @@ class NoodlingPerformer(QObject):
         if not performance_script:
             self.executionFinished.emit()
 
+        # Emit collected traces for this turn
+        traces = getattr(self, '_current_turn_traces', [])
+        if traces:
+            self.turnTraceReady.emit(self._noodling_id, list(traces))
+            self._current_turn_traces = []
+
         self._worker = None
 
         logger.info(f"[{self._noodling_id}] Assembly done: "
@@ -580,6 +603,17 @@ class NoodlingPerformer(QObject):
 
         # Forward to live viz
         self.facetCompleted.emit(facet_id, outputs)
+
+    def _on_facet_trace(self, facet_id: str, trace: dict):
+        """Collect per-facet trace data for the current turn.
+
+        Args:
+            facet_id: The ID of the completed facet
+            trace: Dict with system_prompt, formatted_prompt, output, etc.
+        """
+        if not hasattr(self, '_current_turn_traces'):
+            self._current_turn_traces = []
+        self._current_turn_traces.append(trace)
 
     # =========================================================================
     # STREAMING DELIVERY

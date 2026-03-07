@@ -128,6 +128,11 @@ class MainWindow(
 
         self.guide_performance_manager = GuidePerformanceManager(self)
 
+        # Wire embedded performance panel
+        perf_panel = getattr(self, 'performance_panel', None)
+        if perf_panel:
+            self.guide_performance_manager.set_performance_panel(perf_panel)
+
         # Wire NoodleCode panel for [D] button sync
         panel = getattr(self, 'noodle_code_panel', None)
         if panel:

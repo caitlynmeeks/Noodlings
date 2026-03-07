@@ -154,6 +154,10 @@ class GuidePerformanceManager:
         self._stage_set = None           # StageSet or None
         self._marks = {}                 # mark_id -> BlockingMark
 
+        # Execution trace storage (noodling_id -> list of trace lists)
+        self._turn_traces = {}
+        self._turn_count = 0
+
         # Opening scene state
         self._opening_active = False
         self._opening_beats = []         # Remaining beats to execute
@@ -178,6 +182,21 @@ class GuidePerformanceManager:
         """
         self._noodle_code_panel = panel
 
+    def set_performance_panel(self, panel):
+        """
+        Set the embedded performance panel (center-pane tab).
+
+        Stores as self._window and connects messageSubmitted and
+        noodlingSelected signals once. Called from MainWindow._init_guide_performance().
+
+        Args:
+            panel: PerformancePanel instance
+        """
+        self._window = panel
+        panel.messageSubmitted.connect(self._on_user_message)
+        panel.noodlingSelected.connect(self.on_hierarchy_noodling_selected)
+        logger.info("Performance panel wired to manager")
+
     def set_guide_cue_handler(self, handler):
         """
         Set the GuideCueHandler for Brenda direction.
@@ -199,8 +218,8 @@ class GuidePerformanceManager:
     def _set_performance_state(self, state: PerformanceState):
         """Transition to a new performance state.
 
-        Updates window UI (input enable/disable, dialogue dimming) and
-        logs the transition.
+        Updates window UI (input enable/disable, dialogue dimming),
+        switches center-pane tab, and logs the transition.
 
         Args:
             state: The target PerformanceState
@@ -214,11 +233,53 @@ class GuidePerformanceManager:
 
         if state == PerformanceState.PLAYING:
             self._window.set_input_enabled(True)
+            self._switch_center_tab("Performance")
+            self._set_idle_on_viewports('play')
         elif state == PerformanceState.PAUSED:
             self._window.set_input_enabled(False)
+            self._set_idle_on_viewports('freeze')
         elif state == PerformanceState.STOPPED:
             self._window.set_input_enabled(False)
             self._window.dim_dialogue()
+            self._switch_center_tab("Assembly")
+            self._set_idle_on_viewports('stop')
+
+    def _switch_center_tab(self, tab_name: str):
+        """Switch the center-pane tab widget to the named tab.
+
+        Args:
+            tab_name: Tab label to switch to (e.g. "Performance", "Assembly")
+        """
+        center_tabs = getattr(self._main_window, 'center_tabs', None)
+        if not center_tabs:
+            return
+        for i in range(center_tabs.count()):
+            if center_tabs.tabText(i) == tab_name:
+                center_tabs.setCurrentIndex(i)
+                return
+
+    def _set_idle_on_viewports(self, mode: str):
+        """Control idle animation on all VRM viewports.
+
+        Args:
+            mode: 'play' -> start idle, 'freeze' -> freeze in place,
+                  'stop' -> stop and reset to neutral
+        """
+        if not self._window:
+            return
+        viewports = getattr(self._window, '_vrm_viewports', {})
+        for viewport in viewports.values():
+            if viewport is None:
+                continue
+            if mode == 'play':
+                if hasattr(viewport, 'set_idle_enabled'):
+                    viewport.set_idle_enabled(True)
+            elif mode == 'freeze':
+                if hasattr(viewport, 'freeze_idle'):
+                    viewport.freeze_idle()
+            elif mode == 'stop':
+                if hasattr(viewport, 'set_idle_enabled'):
+                    viewport.set_idle_enabled(False)
 
     # =========================================================================
     # PAUSE / RESUME
@@ -505,11 +566,12 @@ class GuidePerformanceManager:
             logger.error(f"No valid instances found in {stage_path}")
             return
 
-        # If window exists from a previous stopped performance, stop
-        # performers but keep the window for reuse
-        if self._window and self._performance_state == PerformanceState.STOPPED:
+        # Clean up any previous performance
+        if self._performance_state == PerformanceState.STOPPED:
             self._cleanup_performers()
-        elif self._window:
+        elif self._performance_state in (
+            PerformanceState.PLAYING, PerformanceState.PAUSED
+        ):
             logger.warning("Performance already active, stopping first")
             self.stop_performance()
 
@@ -553,28 +615,14 @@ class GuidePerformanceManager:
         # Primary performer for backward compat (first in order)
         self._performer = next(iter(performers.values()))
 
-        # Reuse existing window or create new one
-        if self._window:
-            self._window.clear_dialogue()
-            self._window.set_input_enabled(True)
-            self._window.show()
-            self._window.raise_()
-        else:
-            from .guide_performance_window import GuidePerformanceWindow
+        if not self._window:
+            logger.error("No performance panel available")
+            return
 
-            self._window = GuidePerformanceWindow(
-                parent_window=self._main_window,
-                ensemble_mode=ensemble
-            )
-
-            # Connect user message
-            self._window.messageSubmitted.connect(self._on_user_message)
-
-            # Connect performer name click -> hierarchy selection routing
-            if ensemble:
-                self._window.noodlingSelected.connect(
-                    self.on_hierarchy_noodling_selected
-                )
+        # Prepare panel for new performance
+        self._window.clear_dialogue()
+        self._window.set_input_enabled(True)
+        self._window.set_ensemble_visible(ensemble)
 
         self._play_title = play_title
         self._window.show_play_header(play_title)
@@ -600,8 +648,6 @@ class GuidePerformanceManager:
                 self._window.show_name_card(
                     info['noodling_id'], info['name']
                 )
-
-        self._window.show()
 
         # Set performer names in ensemble mode
         if ensemble:
@@ -646,16 +692,10 @@ class GuidePerformanceManager:
                         first.assembly, force_reload=True,
                         source_path=first.assembly_path
                     )
-
-                center_tabs = getattr(self._main_window, 'center_tabs', None)
-                if center_tabs:
-                    for i in range(center_tabs.count()):
-                        if center_tabs.tabText(i) == "Assembly":
-                            center_tabs.setCurrentIndex(i)
-                            break
         except Exception as e:
             logger.debug(f"Could not load assembly in editor: {e}")
 
+        # PLAYING state switches to Performance tab
         self._set_performance_state(PerformanceState.PLAYING)
 
         logger.info(
@@ -725,23 +765,17 @@ class GuidePerformanceManager:
         self._performers = {'ajo': ajo, 'yuki': yuki}
         self._performer = ajo  # Primary performer for backward compat
 
-        # --- Create ensemble window ---
-        from .guide_performance_window import GuidePerformanceWindow
+        if not self._window:
+            logger.error("No performance panel available")
+            return
 
-        self._window = GuidePerformanceWindow(
-            parent_window=self._main_window,
-            ensemble_mode=True
-        )
+        # Prepare panel
+        self._window.clear_dialogue()
+        self._window.set_input_enabled(True)
+        self._window.set_ensemble_visible(True)
+
         self._play_title = play_title
         self._window.show_play_header(play_title)
-
-        # Connect user message to ensemble handler
-        self._window.messageSubmitted.connect(self._on_user_message)
-
-        # Connect performer name click -> hierarchy selection routing
-        self._window.noodlingSelected.connect(
-            self.on_hierarchy_noodling_selected
-        )
 
         # Wire each performer to the window
         for nid, performer in self._performers.items():
@@ -751,8 +785,6 @@ class GuidePerformanceManager:
         ajo_vrm = self._discover_guide_vrm()
         if ajo_vrm:
             self._window.set_vrm(ajo_vrm, noodling_id='ajo')
-
-        self._window.show()
 
         # Set performer names in stage view
         self._window.set_performer_name('ajo', 'Ajo Majo')
@@ -773,20 +805,15 @@ class GuidePerformanceManager:
                 if hasattr(editor, 'set_ensemble_noodlings'):
                     editor.set_ensemble_noodlings(noodlings)
                 elif hasattr(editor, 'load_assembly_from_data'):
-                    # Fallback: just load Ajo's assembly
                     editor.load_assembly_from_data(
                         ajo.assembly, force_reload=True,
                         source_path=ajo.assembly_path
                     )
-
-                center_tabs = getattr(self._main_window, 'center_tabs', None)
-                if center_tabs:
-                    for i in range(center_tabs.count()):
-                        if center_tabs.tabText(i) == "Assembly":
-                            center_tabs.setCurrentIndex(i)
-                            break
         except Exception as e:
             logger.debug(f"Could not load assembly in editor: {e}")
+
+        # PLAYING state switches to Performance tab
+        self._set_performance_state(PerformanceState.PLAYING)
 
         logger.info(f"Ensemble started: {play_title} (Ajo + Yuki)")
 
@@ -852,6 +879,9 @@ class GuidePerformanceManager:
         # Live viz: per-facet completion for facets editor
         performer.facetCompleted.connect(self._on_facet_completed)
 
+        # Execution trace for Cognition Panel
+        performer.turnTraceReady.connect(self._on_turn_trace)
+
     def start_performance(self, play_title: str, vrm_path: Optional[str] = None,
                           play_path: Optional[str] = None):
         """
@@ -902,12 +932,15 @@ class GuidePerformanceManager:
             self._performer = None
             return
 
-        # Create the floating performance window
-        from .guide_performance_window import GuidePerformanceWindow
+        if not self._window:
+            logger.error("No performance panel available")
+            return
 
-        self._window = GuidePerformanceWindow(
-            parent_window=self._main_window
-        )
+        # Prepare panel for single-performer mode
+        self._window.clear_dialogue()
+        self._window.set_input_enabled(True)
+        self._window.set_ensemble_visible(False)
+
         self._play_title = play_title
         self._window.show_play_header(play_title)
 
@@ -924,14 +957,6 @@ class GuidePerformanceManager:
                     f"Could not wire ComputerUseController to GuideCueHandler: {e}"
                 )
 
-        # Connect user message to manager (routes to performer)
-        self._window.messageSubmitted.connect(self._on_user_message)
-
-        # Ctrl+Shift+F - FACS expression test mode
-        from PyQt6.QtGui import QShortcut, QKeySequence
-        facs_shortcut = QShortcut(QKeySequence("Ctrl+Shift+F"), self._window)
-        facs_shortcut.activated.connect(self.toggle_expression_test)
-
         if self._channel_bus and hasattr(self._window, 'messageSent') and self._window.messageSent:
             self._window.messageSent.connect(self._on_user_message_for_channel)
 
@@ -947,8 +972,6 @@ class GuidePerformanceManager:
         else:
             logger.warning("No VRM found")
 
-        self._window.show()
-
         # Load assembly into editor for visibility
         if self._performer.assembly:
             try:
@@ -960,21 +983,16 @@ class GuidePerformanceManager:
                         source_path=source
                     )
                     logger.info("Assembly loaded in editor")
-
-                    # Switch to Assembly tab so user sees the graph
-                    center_tabs = getattr(self._main_window, 'center_tabs', None)
-                    if center_tabs:
-                        for i in range(center_tabs.count()):
-                            if center_tabs.tabText(i) == "Assembly":
-                                center_tabs.setCurrentIndex(i)
-                                break
             except Exception as e:
                 logger.debug(f"Could not load assembly in editor: {e}")
 
-        # Start Brenda after window is visible
+        # Start Brenda after panel is ready
         if self._director:
             self._director.start()
             logger.info(f"Brenda directing: {play_title}")
+
+        # PLAYING state switches to Performance tab
+        self._set_performance_state(PerformanceState.PLAYING)
 
         logger.info(f"Performance started: {play_title}")
 
@@ -1021,6 +1039,9 @@ class GuidePerformanceManager:
 
         # Live viz: per-facet completion for facets editor
         performer.facetCompleted.connect(self._on_facet_completed)
+
+        # Execution trace for Cognition Panel
+        performer.turnTraceReady.connect(self._on_turn_trace)
 
     def _setup_play_pipeline(self, play_path: str):
         """
@@ -1672,6 +1693,33 @@ class GuidePerformanceManager:
                 'to_facet': 'outgoing',
                 'execution_id': eid,
             })
+
+    # =========================================================================
+    # EXECUTION TRACE (COGNITION PANEL)
+    # =========================================================================
+
+    def _on_turn_trace(self, noodling_id: str, traces: list):
+        """Handle execution traces from a performer's turn.
+
+        Stores traces and forwards to Cognition Panel if available.
+
+        Args:
+            noodling_id: Which noodling produced these traces
+            traces: List of per-facet trace dicts
+        """
+        self._turn_count += 1
+        if noodling_id not in self._turn_traces:
+            self._turn_traces[noodling_id] = []
+        self._turn_traces[noodling_id].append(traces)
+
+        # Forward to Cognition Panel
+        cognition = getattr(self._main_window, 'cognition_panel', None)
+        if cognition and hasattr(cognition, 'on_turn_trace'):
+            import time as _time
+            cognition.on_turn_trace(
+                noodling_id, traces,
+                self._turn_count, _time.time()
+            )
 
     # =========================================================================
     # FACS EXPRESSION TEST MODE

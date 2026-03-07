@@ -847,6 +847,11 @@ class FacetExecutor:
         """
         start_time = time.time()
 
+        # Trace capture: initialize here so they're in scope for all branches.
+        # LLM facets populate these; non-LLM facets leave them empty.
+        system_prompt = ''
+        formatted_prompt = ''
+
         # Update agent reference for real-time NoodleStudio visualization
         agent_ref = context.get('_agent_ref')
         if agent_ref is not None:
@@ -1395,6 +1400,16 @@ class FacetExecutor:
         timing_msg = f"⏱️  [{facet.name}] {elapsed:.3f}s ({elapsed*1000:.0f}ms)"
         logger.info(timing_msg)
         print(timing_msg)  # Goes to console
+
+        # Store trace data for Cognition Panel
+        facet._last_trace = {
+            'system_prompt': system_prompt,
+            'formatted_prompt': formatted_prompt,
+            'output': next(iter(outputs.values()), '') if outputs else '',
+            'execution_time': elapsed,
+            'token_count': token_count,
+            'model_label': getattr(facet, 'model', '') or '',
+        }
 
         # Emit facet_complete event
         await self._emit_event({

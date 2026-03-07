@@ -148,8 +148,11 @@ class MainWindowPanelsMixin:
 
         left_tabs.addTab(self.hierarchy, "Stage")
         left_tabs.addTab(self.assets, "Assets")
-        # Note: Components palette removed - UI components now shown in Stage hierarchy
-        # Users right-click on UI node to add components (Unity-style)
+
+        # Cognition Panel (per-character prompt chain debugger)
+        from ..panels.cognition_panel import CognitionPanel
+        self.cognition_panel = CognitionPanel()
+        left_tabs.addTab(self.cognition_panel, "Cognition")
 
         # CENTER: Tabbed widget for World View + Facets Editor + etc.
         # Uses MaximizableCenterTabs for double-click maximize feature
@@ -176,6 +179,11 @@ class MainWindowPanelsMixin:
         from ..panels.editors import UnifiedEditorPanel
         self.unified_editor = UnifiedEditorPanel()
         center_tabs.addTab(self.unified_editor, "Assembly")
+
+        # Performance tab (embedded VRM + dialogue panel)
+        from ..runtime.ui.guide_performance_window import PerformancePanel
+        self.performance_panel = PerformancePanel(ensemble_mode=True)
+        center_tabs.addTab(self.performance_panel, "Performance")
 
         # Settings tab
         self.settings_panel = SettingsPanel()

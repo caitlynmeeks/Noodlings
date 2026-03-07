@@ -11,7 +11,7 @@
 # ▀███████  ▀█████▀  ███  ▀███ ▀███████
 # ──────────────────────────────────────────────────────────────
 #
-#   Guide Performance Window
+#   Performance Panel
 #
 #   Pure renderer for noodling performances. Displays VRM
 #   character(s), receives text and affect from facet assemblies.
@@ -19,17 +19,18 @@
 #   All cognition happens in assemblies, orchestrated by
 #   GuidePerformanceManager.
 #
-#   Supports single-noodling mode (one VRM viewport, 350x600) and
-#   ensemble mode (two VRM viewports side by side, 650x650).
+#   Embedded as a center-pane tab (like Unity's Game tab).
+#   Always builds 3 VRM slots; use set_ensemble_visible() to
+#   hide center/right for single-performer plays.
 #
 # ──────────────────────────────────────────────────────────────
 # MODULE:   applications.noodlestudio.runtime.ui.guide_performance_window
-# PURPOSE:  Floating Guide Dialogue and VRM Panel
+# PURPOSE:  Embeddable Performance Panel (center-pane tab)
 # LAYER:    Studio / UI Runtime
 # ──────────────────────────────────────────────────────────────
 #
 # KEY CLASSES:
-#   GuidePerformanceWindow
+#   PerformancePanel
 #
 # ──────────────────────────────────────────────────────────────
 # SPDX-License-Identifier: AGPL-3.0-or-later
@@ -40,68 +41,22 @@
 # ──────────────────────────────────────────────────────────────
 
 import logging
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 try:
     from PyQt6.QtWidgets import (
-        QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+        QWidget, QVBoxLayout, QHBoxLayout,
         QTextEdit, QLineEdit, QPushButton, QLabel, QFrame
     )
     from PyQt6.QtCore import Qt, QTimer, pyqtSignal
     from PyQt6.QtGui import (
-        QTextCursor, QColor, QTextCharFormat, QMouseEvent
+        QTextCursor, QColor, QTextCharFormat
     )
     QT_AVAILABLE = True
 except ImportError:
     QT_AVAILABLE = False
-
-
-# =============================================================================
-# Draggable Header
-# =============================================================================
-
-if QT_AVAILABLE:
-
-    class _DraggableHeader(QLabel):
-        """Header label that supports window dragging.
-
-        Coordinates with GuidePerformanceWindow to pause follow-parent
-        tracking during drag and recalculate offset on release so the
-        window stays at the user-chosen position relative to the parent.
-        """
-
-        closeClicked = pyqtSignal()
-        dragStarted = pyqtSignal()
-        dragFinished = pyqtSignal()
-
-        def __init__(self, text: str = "", parent=None):
-            super().__init__(text, parent)
-            self.drag_position = None
-
-        def mousePressEvent(self, event: QMouseEvent):
-            if event.button() == Qt.MouseButton.LeftButton:
-                self.drag_position = (
-                    event.globalPosition().toPoint()
-                    - self.window().frameGeometry().topLeft()
-                )
-                self.dragStarted.emit()
-            super().mousePressEvent(event)
-
-        def mouseMoveEvent(self, event: QMouseEvent):
-            if (event.buttons() == Qt.MouseButton.LeftButton
-                    and self.drag_position is not None):
-                self.window().move(
-                    event.globalPosition().toPoint() - self.drag_position
-                )
-            super().mouseMoveEvent(event)
-
-        def mouseReleaseEvent(self, event: QMouseEvent):
-            if event.button() == Qt.MouseButton.LeftButton:
-                self.drag_position = None
-                self.dragFinished.emit()
-            super().mouseReleaseEvent(event)
 
 
 # =============================================================================
@@ -166,35 +121,23 @@ if QT_AVAILABLE:
 
 
 # =============================================================================
-# Guide Performance Window
+# Performance Panel
 # =============================================================================
 
 if QT_AVAILABLE:
 
-    class GuidePerformanceWindow(QMainWindow):
+    class PerformancePanel(QWidget):
         """
         Pure renderer for noodling performances.
 
-        Supports two modes:
+        Embeddable QWidget panel for the center-pane tab stack.
+        Always builds 3 VRM viewport slots (left/center/right).
+        Use set_ensemble_visible() to hide center/right for
+        single-performer plays.
 
-        **Single mode** (default): One VRM viewport, 350x600 window.
-        Backward compatible with existing single-noodling performances.
-
-        **Ensemble mode**: Two VRM viewports side by side, 650x650 window.
-        Each viewport is independently addressable by noodling_id.
-        Dialogue interleaves noodling text with name prefixes.
-
-        Usage (single):
-            window = GuidePerformanceWindow(parent_window=main_window)
-            window.set_vrm("/path/to/ajo.vrm")
-            window.show()
-
-        Usage (ensemble):
-            window = GuidePerformanceWindow(parent_window=main_window,
-                                            ensemble_mode=True)
-            window.set_vrm("/path/to/ajo.vrm", noodling_id='ajo')
-            window.set_vrm("/path/to/yuki.vrm", noodling_id='yuki')
-            window.show()
+        Usage:
+            panel = PerformancePanel(ensemble_mode=True)
+            panel.set_vrm("/path/to/ajo.vrm", noodling_id='ajo')
         """
 
         # Signal: user submitted a message for assembly execution
@@ -206,52 +149,22 @@ if QT_AVAILABLE:
         # Signal: user clicked a performer name in the ensemble name bar
         noodlingSelected = pyqtSignal(str)
 
-        def __init__(
-            self,
-            parent_window: QMainWindow,
-            size: Tuple[int, int] = (350, 600),
-            offset: Tuple[int, int] = (10, 60),
-            ensemble_mode: bool = False,
-        ):
+        def __init__(self, ensemble_mode: bool = True, parent=None):
             """
-            Initialize the guide performance window.
+            Initialize the performance panel.
 
             Args:
-                parent_window: The main window to follow
-                size: (width, height) of this window
-                offset: (x, y) offset from right edge of parent
-                ensemble_mode: If True, create two VRM viewports side by side
+                ensemble_mode: If True, show all 3 VRM slots. If False,
+                    hide center/right slots for single-performer display.
+                parent: Parent widget (typically the center tab widget)
             """
-            super().__init__()
-            self.parent_window = parent_window
+            super().__init__(parent)
             self._ensemble_mode = ensemble_mode
-            self._offset = offset
-
-            # In ensemble mode with default single-mode size, widen
-            if ensemble_mode and size == (350, 600):
-                size = (900, 650)
-            self._size = size
-
-            # Frameless, stays on top, no taskbar entry
-            self.setWindowFlags(
-                Qt.WindowType.FramelessWindowHint |
-                Qt.WindowType.WindowStaysOnTopHint |
-                Qt.WindowType.Tool
-            )
-
-            self.setFixedSize(*size)
 
             # Pre-init state needed by _build_ui / _build_ensemble_vrm_area
             self._performer_labels = {}
 
             self._build_ui()
-
-            # Position once at the right edge of the parent, then stay put.
-            if parent_window:
-                geo = parent_window.geometry()
-                x = geo.right() - size[0] - offset[0]
-                y = geo.top() + offset[1]
-                self.move(x, y)
 
             # VRM viewports (slot_key -> VRMViewportWidget)
             self._vrm_viewports = {}
@@ -273,8 +186,12 @@ if QT_AVAILABLE:
             # Track which noodling is currently in a typed-text block
             self._current_typing_noodling = None
 
+            # Apply initial ensemble visibility
+            if not ensemble_mode:
+                self.set_ensemble_visible(False)
+
             logger.info(
-                f"GuidePerformanceWindow created (ensemble={ensemble_mode})"
+                f"PerformancePanel created (ensemble={ensemble_mode})"
             )
 
         # =================================================================
@@ -283,7 +200,7 @@ if QT_AVAILABLE:
 
         @property
         def ensemble_mode(self) -> bool:
-            """Whether this window is in ensemble mode."""
+            """Whether this panel is in ensemble mode."""
             return self._ensemble_mode
 
         # =================================================================
@@ -291,7 +208,7 @@ if QT_AVAILABLE:
         # =================================================================
 
         def _build_ui(self):
-            """Build the window layout."""
+            """Build the panel layout."""
             container = QWidget()
             container.setStyleSheet("background-color: #020204;")
             main_layout = QVBoxLayout(container)
@@ -310,7 +227,7 @@ if QT_AVAILABLE:
             header_layout.setContentsMargins(10, 6, 6, 6)
             header_layout.setSpacing(0)
 
-            self.header_label = _DraggableHeader("Performance")
+            self.header_label = QLabel("Performance")
             self.header_label.setStyleSheet("""
                 color: #B0B0B0;
                 font-family: 'SF Mono', 'Source Code Pro', monospace;
@@ -320,36 +237,14 @@ if QT_AVAILABLE:
             """)
             header_layout.addWidget(self.header_label, stretch=1)
 
-            close_btn = QPushButton("x")
-            close_btn.setFixedSize(22, 22)
-            close_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: transparent;
-                    border: none;
-                    color: #888888;
-                    font-size: 13px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    color: #CCCCCC;
-                    background-color: #3A3A3A;
-                    border-radius: 3px;
-                }
-            """)
-            close_btn.clicked.connect(self.hide)
-            header_layout.addWidget(close_btn)
-
             main_layout.addWidget(header_frame)
 
-            # --- VRM Viewport Area ---
+            # --- VRM Viewport Area (always ensemble layout: 3 slots) ---
             self._vrm_containers = {}
             self._vrm_container_layouts = {}
             self._vrm_placeholders = {}
 
-            if self._ensemble_mode:
-                self._build_ensemble_vrm_area(main_layout)
-            else:
-                self._build_single_vrm_area(main_layout)
+            self._build_ensemble_vrm_area(main_layout)
 
             # --- Thinking Indicator ---
             self.thinking_indicator = _ThinkingIndicator()
@@ -441,47 +336,20 @@ if QT_AVAILABLE:
 
             main_layout.addWidget(input_frame)
 
-            self.setCentralWidget(container)
-
-        def _build_single_vrm_area(self, main_layout: QVBoxLayout):
-            """Build the single-noodling VRM viewport area."""
-            self.vrm_container = QFrame()
-            self.vrm_container.setFixedHeight(250)
-            self.vrm_container.setStyleSheet("""
-                QFrame {
-                    background-color: #020204;
-                    border: none;
-                }
-            """)
-            self.vrm_container_layout = QVBoxLayout(self.vrm_container)
-            self.vrm_container_layout.setContentsMargins(0, 0, 0, 0)
-
-            placeholder = QLabel("No character loaded")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet(
-                "color: #555555; font-size: 11px; background: transparent;"
-            )
-            self.vrm_container_layout.addWidget(placeholder)
-
-            # Register in container dicts
-            self._vrm_containers['default'] = self.vrm_container
-            self._vrm_container_layouts['default'] = self.vrm_container_layout
-            self._vrm_placeholders['default'] = placeholder
-
-            # Legacy alias
-            self._vrm_placeholder = placeholder
-
-            main_layout.addWidget(self.vrm_container)
+            # Set layout on self (QWidget, not QMainWindow)
+            outer = QVBoxLayout(self)
+            outer.setContentsMargins(0, 0, 0, 0)
+            outer.addWidget(container)
 
         def _build_ensemble_vrm_area(self, main_layout: QVBoxLayout):
-            """Build the ensemble VRM viewport area (N viewports side by side)."""
+            """Build the ensemble VRM viewport area (3 viewports side by side)."""
             # --- Performer name bar ---
-            name_bar = QFrame()
-            name_bar.setFixedHeight(28)
-            name_bar.setStyleSheet(
+            self._name_bar = QFrame()
+            self._name_bar.setFixedHeight(28)
+            self._name_bar.setStyleSheet(
                 "QFrame { background-color: #0A0A0C; border: none; }"
             )
-            name_bar_layout = QHBoxLayout(name_bar)
+            name_bar_layout = QHBoxLayout(self._name_bar)
             name_bar_layout.setContentsMargins(8, 2, 8, 2)
             name_bar_layout.setSpacing(8)
 
@@ -497,11 +365,11 @@ if QT_AVAILABLE:
                 name_bar_layout.addWidget(label, stretch=1)
                 self._performer_labels[slot_key] = label
 
-            main_layout.addWidget(name_bar)
+            main_layout.addWidget(self._name_bar)
 
             # --- VRM viewports ---
             vrm_row = QFrame()
-            vrm_row.setFixedHeight(280)
+            vrm_row.setMinimumHeight(200)
             vrm_row.setStyleSheet(
                 "QFrame { background-color: #020204; border: none; }"
             )
@@ -537,6 +405,30 @@ if QT_AVAILABLE:
             main_layout.addWidget(vrm_row)
 
         # =================================================================
+        # ENSEMBLE VISIBILITY
+        # =================================================================
+
+        def set_ensemble_visible(self, visible: bool):
+            """Show or hide the name bar and center/right VRM containers.
+
+            For single-performer plays, call with visible=False to show
+            only the left VRM slot.
+
+            Args:
+                visible: True for full ensemble, False for single-performer
+            """
+            self._ensemble_mode = visible
+
+            # Name bar
+            self._name_bar.setVisible(visible)
+
+            # Center and right VRM containers
+            for slot_key in ('center', 'right'):
+                container = self._vrm_containers.get(slot_key)
+                if container:
+                    container.setVisible(visible)
+
+        # =================================================================
         # VRM SLOT ROUTING
         # =================================================================
 
@@ -544,7 +436,7 @@ if QT_AVAILABLE:
             """
             Get the container slot key for a noodling_id.
 
-            In single mode, always returns 'default'.
+            In single mode, always returns 'left' (the only visible slot).
             In ensemble mode, assigns noodling_ids to 'left'/'center'/'right'
             slots in the order they are first seen.
 
@@ -552,10 +444,10 @@ if QT_AVAILABLE:
                 noodling_id: Identifier for the noodling
 
             Returns:
-                Slot key ('default', 'left', or 'right')
+                Slot key ('left', 'center', or 'right')
             """
             if not self._ensemble_mode:
-                return 'default'
+                return 'left'
 
             # Already assigned?
             if noodling_id in self._noodling_to_slot:
@@ -568,7 +460,7 @@ if QT_AVAILABLE:
                     self._noodling_to_slot[noodling_id] = slot
                     return slot
 
-            # All slots taken — return left as fallback
+            # All slots taken -- return left as fallback
             return 'left'
 
         # =================================================================
@@ -609,8 +501,6 @@ if QT_AVAILABLE:
 
             # Dim non-speaking VRM containers (subtle background shift)
             for slot, container in self._vrm_containers.items():
-                if slot == 'default':
-                    continue  # Single mode container, skip
                 if noodling_id is None:
                     # No speaker -- restore all containers to normal
                     container.setStyleSheet(
@@ -650,8 +540,7 @@ if QT_AVAILABLE:
             """
             Load a VRM character model into a viewport.
 
-            In single mode, noodling_id is ignored (uses default viewport).
-            In ensemble mode, each noodling_id is assigned a viewport slot.
+            Each noodling_id is assigned a viewport slot.
 
             Args:
                 vrm_path: Path to .vrm file
@@ -687,9 +576,6 @@ if QT_AVAILABLE:
                 if placeholder:
                     placeholder.setParent(None)
                     self._vrm_placeholders[slot] = None
-                    # Clear legacy alias (single mode)
-                    if not self._ensemble_mode:
-                        self._vrm_placeholder = None
 
                 # Remove old viewport if any
                 old_viewport = self._vrm_viewports.get(slot)
@@ -1066,13 +952,8 @@ if QT_AVAILABLE:
             self.dialogue_view.setTextCursor(cursor)
             self._scroll_to_bottom()
 
-        # =================================================================
-        # LIFECYCLE
-        # =================================================================
-
-        def closeEvent(self, event):
-            """Clean up on close."""
-            super().closeEvent(event)
+    # Backward-compatible alias
+    GuidePerformanceWindow = PerformancePanel
 
 
 # =============================================================================
@@ -1081,14 +962,14 @@ if QT_AVAILABLE:
 
 if not QT_AVAILABLE:
 
-    class GuidePerformanceWindow:
+    class PerformancePanel:
         """Stub when PyQt6 is not available."""
 
         messageSent = None
         messageSubmitted = None
 
         def __init__(self, *args, **kwargs):
-            logger.warning("GuidePerformanceWindow requires PyQt6")
+            logger.warning("PerformancePanel requires PyQt6")
 
         def show(self): pass
         def hide(self): pass
@@ -1105,6 +986,7 @@ if not QT_AVAILABLE:
         def clear_dialogue(self): pass
         def dim_dialogue(self): pass
         def set_input_enabled(self, enabled): pass
+        def set_ensemble_visible(self, visible): pass
         def display_narration(self, text): pass
         def append_guide_text(self, text): pass
         def append_noodling_text(self, noodling_id, name, text): pass
@@ -1114,6 +996,9 @@ if not QT_AVAILABLE:
         def append_character(self, char): pass
         def end_guide_text(self): pass
         def append_user_text(self, text): pass
+
+    # Backward-compatible alias
+    GuidePerformanceWindow = PerformancePanel
 
 
 # ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡

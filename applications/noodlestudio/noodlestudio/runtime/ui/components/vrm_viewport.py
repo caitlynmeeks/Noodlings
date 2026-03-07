@@ -2164,6 +2164,47 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             return muscles
 
+        # =====================================================================
+        # Idle Animation Guard
+        # =====================================================================
+
+        def set_idle_enabled(self, enabled: bool):
+            """Enable or disable idle animation.
+
+            When disabled, stops the timer, resets muscles and phase to
+            neutral, and applies the reset. When enabled, restarts the
+            timer from phase 0.
+
+            Args:
+                enabled: True to start idle, False to stop and reset
+            """
+            if enabled:
+                if self._idle_timer and self._idle_timer.isActive():
+                    return  # Already running
+                self._idle_phase = 0.0
+                self._idle_muscles = self._compute_idle_muscles(0.0)
+                if not self._idle_timer:
+                    self._idle_timer = QTimer(self)
+                    self._idle_timer.timeout.connect(self._tick_idle)
+                self._idle_timer.start(16)
+            else:
+                if self._idle_timer:
+                    self._idle_timer.stop()
+                self._idle_muscles = {}
+                self._idle_phase = 0.0
+                self._merge_and_apply_muscles()
+                self.update()
+
+        def freeze_idle(self):
+            """Freeze idle animation in its current pose.
+
+            Stops the timer but preserves the current muscles and phase
+            so the character freezes mid-breath rather than snapping to
+            neutral.
+            """
+            if self._idle_timer:
+                self._idle_timer.stop()
+
         def _build_model_matrix(self) -> np.ndarray:
             """Build model matrix. Idle animation now driven by muscles."""
             return np.eye(4, dtype=np.float32)
