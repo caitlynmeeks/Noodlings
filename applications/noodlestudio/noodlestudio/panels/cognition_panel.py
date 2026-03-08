@@ -44,8 +44,55 @@ from PyQt6.QtWidgets import (
     QComboBox, QCheckBox, QScrollArea, QPlainTextEdit, QFrame
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QMouseEvent
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Cmd-Clickable Read-Only Text Edit
+# =============================================================================
+
+class _ReadOnlyClickableTextEdit(QPlainTextEdit):
+    """Read-only QPlainTextEdit that opens a floating editor on Cmd+Click.
+
+    Follows the same modifier-detection pattern as ClickableTextEdit in
+    inspector_base.py, but always opens in read-only mode since cognition
+    trace text is not editable.
+    """
+
+    def __init__(self, field_name: str = "", parent=None):
+        super().__init__(parent)
+        self._field_name = field_name
+        self._floating_editor = None
+        self.setReadOnly(True)
+
+    def mousePressEvent(self, event: QMouseEvent):
+        """Detect Cmd+Click (macOS) or Ctrl+Click (Linux) to open floating editor."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            modifiers = event.modifiers()
+            if modifiers & Qt.KeyboardModifier.MetaModifier or modifiers & Qt.KeyboardModifier.ControlModifier:
+                self._open_floating_editor()
+                return
+        super().mousePressEvent(event)
+
+    def _open_floating_editor(self):
+        """Open floating text editor for this trace field."""
+        if self._floating_editor and self._floating_editor.isVisible():
+            self._floating_editor.raise_()
+            self._floating_editor.activateWindow()
+            return
+
+        from .floating_text_editor import FloatingTextEditor
+
+        self._floating_editor = FloatingTextEditor(
+            field_name=self._field_name,
+            field_key=self._field_name,
+            initial_value=self.toPlainText(),
+            read_only=True,
+            parent=self.window()
+        )
+        self._floating_editor.show()
 
 
 # =============================================================================
@@ -144,15 +191,14 @@ class CollapsibleFacetSection(QWidget):
         self._btn_prompt.clicked.connect(lambda: self._show_view('prompt'))
         self._btn_output.clicked.connect(lambda: self._show_view('output'))
 
-        # Text display
-        self._text_view = QPlainTextEdit()
-        self._text_view.setReadOnly(True)
+        # Text display (Cmd+Click opens floating editor)
+        self._text_view = _ReadOnlyClickableTextEdit(field_name=facet_name)
         self._text_view.setMinimumHeight(80)
         self._text_view.setMaximumHeight(300)
         self._text_view.setStyleSheet("""
             QPlainTextEdit {
                 background-color: #1A1A1A;
-                color: #888888;
+                color: #CCCCCC;
                 border: none;
                 font-family: 'SF Mono', 'Source Code Pro', monospace;
                 font-size: 11px;
@@ -181,13 +227,17 @@ class CollapsibleFacetSection(QWidget):
         self._btn_prompt.setChecked(view == 'prompt')
         self._btn_output.setChecked(view == 'output')
 
-        # Update text
+        # Update text and floating editor field name
+        facet_name = self._trace.get('facet_name', self._trace.get('facet_id', '?'))
         if view == 'system':
             text = self._trace.get('system_prompt', '')
+            self._text_view._field_name = f"{facet_name} -- System Prompt"
         elif view == 'prompt':
             text = self._trace.get('formatted_prompt', '')
+            self._text_view._field_name = f"{facet_name} -- Formatted Prompt"
         else:
             text = str(self._trace.get('output', ''))
+            self._text_view._field_name = f"{facet_name} -- Output"
 
         self._text_view.setPlainText(text or '(empty)')
 
