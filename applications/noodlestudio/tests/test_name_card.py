@@ -26,19 +26,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 
 def _make_ensemble_window(qapp):
-    """Create an ensemble-mode GuidePerformanceWindow with a parent."""
-    from PyQt6.QtWidgets import QMainWindow
+    """Create an ensemble-mode PerformancePanel."""
     from noodlestudio.runtime.ui.guide_performance_window import (
-        GuidePerformanceWindow
+        PerformancePanel
     )
-    parent = QMainWindow()
-    parent.resize(800, 600)
-    window = GuidePerformanceWindow(
-        parent_window=parent,
-        ensemble_mode=True,
-    )
-    # Keep reference so parent isn't garbage collected
-    window._test_parent = parent
+    window = PerformancePanel(ensemble_mode=True)
     return window
 
 
@@ -62,7 +54,6 @@ class TestNameCard:
             assert placeholder.text() == 'Ajo Majo'
         finally:
             window.close()
-            window._test_parent.close()
 
     def test_name_card_styling(self, qapp):
         """Name card has dark background and light text."""
@@ -78,7 +69,6 @@ class TestNameCard:
             assert '#2a2a2a' in style, "Name card background should be dark"
         finally:
             window.close()
-            window._test_parent.close()
 
     def test_name_card_for_multiple_noodlings(self, qapp):
         """Multiple noodlings without VRM each get their own name card."""
@@ -97,7 +87,6 @@ class TestNameCard:
                 assert placeholder.text() == name
         finally:
             window.close()
-            window._test_parent.close()
 
     def test_name_card_restored_after_clear(self, qapp):
         """Calling show_name_card restores the card in its slot."""
@@ -116,7 +105,6 @@ class TestNameCard:
             assert placeholder.text() == 'Ajo Majo'
         finally:
             window.close()
-            window._test_parent.close()
 
     def test_default_placeholder_text_before_name_card(self, qapp):
         """Before show_name_card, placeholders show generic text."""
@@ -128,7 +116,6 @@ class TestNameCard:
                 assert placeholder.text() == "No character loaded"
         finally:
             window.close()
-            window._test_parent.close()
 
 
 # ═══════════════════════════════════════════════════════════════

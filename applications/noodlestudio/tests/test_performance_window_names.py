@@ -26,18 +26,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 
 @pytest.fixture
-def ensemble_window(qapp):
-    """Create an ensemble performance window for testing."""
+def ensemble_window(qapp, qtbot):
+    """Create an ensemble performance panel for testing."""
     from noodlestudio.runtime.ui.guide_performance_window import (
-        GuidePerformanceWindow,
+        PerformancePanel,
     )
-    from PyQt6.QtWidgets import QMainWindow
 
-    parent = QMainWindow()
-    window = GuidePerformanceWindow(
-        parent_window=parent,
-        ensemble_mode=True
-    )
+    window = PerformancePanel(ensemble_mode=True)
+    qtbot.addWidget(window)
 
     # Set up two performers
     window.set_performer_name('ajo', 'Ajo Majo')
@@ -46,7 +42,6 @@ def ensemble_window(qapp):
     yield window
 
     window.close()
-    parent.close()
 
 
 class TestEnsembleWindowNames:
@@ -88,7 +83,7 @@ class TestNameBarClickSignal:
     """Clicking a performer name must emit noodlingSelected signal."""
 
     def test_noodling_selected_signal_exists(self, ensemble_window):
-        """Window must have a noodlingSelected signal."""
+        """Panel must have a noodlingSelected signal."""
         assert hasattr(ensemble_window, 'noodlingSelected')
 
     def test_name_click_emits_signal(self, ensemble_window):

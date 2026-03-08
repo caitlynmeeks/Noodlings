@@ -1,8 +1,8 @@
 # ------------------------------------------------------------------
 #   Tests for Shared Stage Window (Ensemble Mode)
 #
-#   Tests that the GuidePerformanceWindow supports both single-noodling
-#   and ensemble modes. Ensemble mode provides two VRM viewports
+#   Tests that the PerformancePanel supports both single-noodling
+#   and ensemble modes. Ensemble mode provides three VRM viewports
 #   side by side, noodling-aware dialogue methods, and named thinking.
 # ------------------------------------------------------------------
 # SPDX-License-Identifier: AGPL-3.0-or-later
@@ -10,11 +10,10 @@
 # ------------------------------------------------------------------
 
 import pytest
-from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtGui import QColor
 
 from noodlestudio.runtime.ui.guide_performance_window import (
-    GuidePerformanceWindow,
+    PerformancePanel,
 )
 
 
@@ -23,31 +22,18 @@ from noodlestudio.runtime.ui.guide_performance_window import (
 # =============================================================================
 
 @pytest.fixture
-def parent_window(qapp, qtbot):
-    """Create a parent window for positioning."""
-    window = QMainWindow()
-    window.resize(1400, 900)
-    window.move(100, 100)
+def single_window(qapp, qtbot):
+    """Create a single-mode performance panel."""
+    window = PerformancePanel(ensemble_mode=False)
     qtbot.addWidget(window)
     yield window
     window.close()
 
 
 @pytest.fixture
-def single_window(parent_window, qtbot):
-    """Create a single-mode performance window."""
-    window = GuidePerformanceWindow(parent_window=parent_window)
-    qtbot.addWidget(window)
-    yield window
-    window.close()
-
-
-@pytest.fixture
-def ensemble_window(parent_window, qtbot):
-    """Create an ensemble-mode performance window."""
-    window = GuidePerformanceWindow(
-        parent_window=parent_window, ensemble_mode=True
-    )
+def ensemble_window(qapp, qtbot):
+    """Create an ensemble-mode performance panel."""
+    window = PerformancePanel(ensemble_mode=True)
     qtbot.addWidget(window)
     yield window
     window.close()
@@ -64,27 +50,17 @@ class TestSingleModeCompat:
         """Default window is not in ensemble mode."""
         assert not single_window.ensemble_mode
 
-    def test_single_mode_size(self, single_window):
-        """Default window size is 350x600."""
-        assert single_window._size == (350, 600)
+    def test_single_mode_has_left_container(self, single_window):
+        """Single mode has a 'left' VRM container (always 3 built, center/right hidden)."""
+        assert 'left' in single_window._vrm_containers
+        assert 'left' in single_window._vrm_container_layouts
+        assert 'left' in single_window._vrm_placeholders
 
-    def test_single_mode_has_default_container(self, single_window):
-        """Single mode has a 'default' VRM container."""
-        assert 'default' in single_window._vrm_containers
-        assert 'default' in single_window._vrm_container_layouts
-        assert 'default' in single_window._vrm_placeholders
-
-    def test_single_mode_legacy_aliases(self, single_window):
-        """Single mode keeps legacy vrm_container and vrm_container_layout."""
-        assert single_window.vrm_container is not None
-        assert single_window.vrm_container_layout is not None
-        assert single_window._vrm_placeholder is not None
-
-    def test_single_mode_get_slot_returns_default(self, single_window):
-        """_get_slot always returns 'default' in single mode."""
-        assert single_window._get_slot('ajo') == 'default'
-        assert single_window._get_slot('yuki') == 'default'
-        assert single_window._get_slot() == 'default'
+    def test_single_mode_get_slot_returns_left(self, single_window):
+        """_get_slot always returns 'left' in single mode."""
+        assert single_window._get_slot('ajo') == 'left'
+        assert single_window._get_slot('yuki') == 'left'
+        assert single_window._get_slot() == 'left'
 
     def test_set_busy_without_name(self, single_window):
         """set_busy works without name parameter (backward compat)."""
@@ -153,26 +129,6 @@ class TestEnsembleLayout:
         """Ensemble mode is correctly set."""
         assert ensemble_window.ensemble_mode
 
-    def test_ensemble_size_auto_widens(self, parent_window, qtbot):
-        """Ensemble mode with default size auto-widens to 900x650."""
-        window = GuidePerformanceWindow(
-            parent_window=parent_window, ensemble_mode=True
-        )
-        qtbot.addWidget(window)
-        assert window._size == (900, 650)
-        window.close()
-
-    def test_ensemble_custom_size_respected(self, parent_window, qtbot):
-        """Custom size is not overridden by ensemble auto-widening."""
-        window = GuidePerformanceWindow(
-            parent_window=parent_window,
-            size=(800, 700),
-            ensemble_mode=True
-        )
-        qtbot.addWidget(window)
-        assert window._size == (800, 700)
-        window.close()
-
     def test_ensemble_has_three_containers(self, ensemble_window):
         """Ensemble mode creates left, center, and right VRM containers."""
         assert 'left' in ensemble_window._vrm_containers
@@ -187,8 +143,8 @@ class TestEnsembleLayout:
         assert 'right' in ensemble_window._vrm_placeholders
 
     def test_ensemble_vrm_row_height(self, ensemble_window):
-        """VRM row has correct height in ensemble mode."""
-        assert ensemble_window._vrm_row.maximumHeight() == 280
+        """VRM row has correct minimum height in ensemble mode."""
+        assert ensemble_window._vrm_row.minimumHeight() == 200
 
     def test_input_placeholder_ensemble(self, ensemble_window):
         """Ensemble mode shows 'Talk to the ensemble...' placeholder."""
@@ -238,9 +194,9 @@ class TestVRMSlotAssignment:
         assert slot == 'left'
 
     def test_single_mode_ignores_noodling_id(self, single_window):
-        """Single mode always routes to 'default' slot."""
-        assert single_window._get_slot('ajo') == 'default'
-        assert single_window._get_slot('yuki') == 'default'
+        """Single mode always routes to 'left' slot."""
+        assert single_window._get_slot('ajo') == 'left'
+        assert single_window._get_slot('yuki') == 'left'
 
 
 # =============================================================================
@@ -375,7 +331,7 @@ class TestNamedThinking:
 # =============================================================================
 
 class TestSpeakingMode:
-    """Tests for speaking mode routing via the window API."""
+    """Tests for speaking mode routing via the panel API."""
 
     def test_set_speaking_mode_no_viewport_no_crash(self, ensemble_window):
         """set_speaking_mode does not crash when no viewport loaded."""

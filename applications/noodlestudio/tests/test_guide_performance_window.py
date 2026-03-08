@@ -1,11 +1,11 @@
 # ──────────────────────────────────────────────────────────────
-#   Tests for Guide Performance Window
+#   Tests for Performance Panel (formerly GuidePerformanceWindow)
 #
-#   Tests for the floating combined panel that provides VRM
+#   Tests for the embeddable panel that provides VRM
 #   character rendering, dialogue display, and user text input
 #   during guided play performances.
 #
-#   The window is a pure renderer -- it does NOT make LLM calls.
+#   The panel is a pure renderer -- it does NOT make LLM calls.
 #   All cognition is handled by GuidePerformanceManager.
 # ──────────────────────────────────────────────────────────────
 # SPDX-License-Identifier: AGPL-3.0-or-later
@@ -16,10 +16,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMainWindow
 
 from noodlestudio.runtime.ui.guide_performance_window import (
     GuidePerformanceWindow,
+    PerformancePanel,
 )
 
 
@@ -28,19 +28,9 @@ from noodlestudio.runtime.ui.guide_performance_window import (
 # =============================================================================
 
 @pytest.fixture
-def parent_window(qapp, qtbot):
-    """Create a mock parent window."""
-    window = QMainWindow()
-    window.resize(1400, 900)
-    qtbot.addWidget(window)
-    yield window
-    window.close()
-
-
-@pytest.fixture
-def guide_window(qapp, qtbot, parent_window):
-    """Create a GuidePerformanceWindow for testing."""
-    window = GuidePerformanceWindow(parent_window=parent_window)
+def guide_window(qapp, qtbot):
+    """Create a PerformancePanel (single mode) for testing."""
+    window = PerformancePanel(ensemble_mode=False)
     qtbot.addWidget(window)
     yield window
     window.close()
@@ -51,81 +41,38 @@ def guide_window(qapp, qtbot, parent_window):
 # =============================================================================
 
 class TestWindowCreation:
-    """Tests for window construction and flags."""
+    """Tests for panel construction."""
 
-    def test_window_creation(self, guide_window):
-        """Window creates with correct flags."""
-        flags = guide_window.windowFlags()
-        assert flags & Qt.WindowType.FramelessWindowHint
-        assert flags & Qt.WindowType.WindowStaysOnTopHint
-        assert flags & Qt.WindowType.Tool
+    def test_panel_creation(self, guide_window):
+        """Panel creates as a QWidget."""
+        assert isinstance(guide_window, PerformancePanel)
 
     def test_has_vrm_container(self, guide_window):
-        """Window has a VRM viewport container."""
-        assert guide_window.vrm_container is not None
-        assert guide_window.vrm_container.height() == 250
+        """Panel has a VRM viewport container for the 'left' slot."""
+        assert 'left' in guide_window._vrm_containers
+        assert guide_window._vrm_containers['left'] is not None
 
     def test_has_dialogue_view(self, guide_window):
-        """Window has a dialogue text display."""
+        """Panel has a dialogue text display."""
         assert guide_window.dialogue_view is not None
         assert guide_window.dialogue_view.isReadOnly()
 
     def test_has_input_field(self, guide_window):
-        """Window has a user input field."""
+        """Panel has a user input field."""
         assert guide_window.input_field is not None
 
     def test_has_send_button(self, guide_window):
-        """Window has a send button."""
+        """Panel has a send button."""
         assert guide_window.send_button is not None
         assert guide_window.send_button.text() == "Send"
 
     def test_has_header(self, guide_window):
-        """Window has a draggable header."""
+        """Panel has a header label."""
         assert guide_window.header_label is not None
 
     def test_has_thinking_indicator(self, guide_window):
-        """Window has a thinking indicator (hidden by default)."""
+        """Panel has a thinking indicator (hidden by default)."""
         assert guide_window.thinking_indicator is not None
-
-    def test_default_size(self, guide_window):
-        """Window has the expected default size."""
-        assert guide_window.width() == 350
-        assert guide_window.height() == 600
-
-
-# =============================================================================
-# Position Tracking Tests
-# =============================================================================
-
-class TestInitialPosition:
-    """Tests for initial window positioning."""
-
-    def test_positions_at_parent_right_edge(self, parent_window, qapp, qtbot):
-        """Window initially positions near the right edge of parent."""
-        parent_window.move(100, 50)
-        parent_window.show()
-
-        window = GuidePerformanceWindow(parent_window=parent_window)
-        qtbot.addWidget(window)
-
-        geo = parent_window.geometry()
-        # Should be near the right edge (allow tolerance for WM)
-        assert abs(window.x() - (geo.right() - 350 - 20)) < 50
-        window.close()
-
-    def test_stays_put_when_parent_moves(self, guide_window, parent_window):
-        """Window stays at its position when parent moves (independent)."""
-        parent_window.move(100, 50)
-        parent_window.show()
-        guide_window.show()
-
-        original_pos = guide_window.pos()
-
-        # Move the parent window
-        parent_window.move(500, 300)
-
-        # Guide window should NOT have moved
-        assert guide_window.pos() == original_pos
 
 
 # =============================================================================
@@ -166,7 +113,7 @@ class TestDialogueDisplay:
 # =============================================================================
 
 class TestSignals:
-    """Tests for window signals (pure renderer pattern)."""
+    """Tests for panel signals (pure renderer pattern)."""
 
     def test_message_submitted_signal(self, guide_window, qtbot):
         """Sending a message emits messageSubmitted signal."""
@@ -256,8 +203,8 @@ class TestVRMLoading:
 
             guide_window.set_vrm("/path/to/test.vrm")
 
-            # Placeholder should have been removed
-            assert guide_window._vrm_placeholder is None
+            # Placeholder should have been removed for the 'left' slot
+            assert guide_window._vrm_placeholders.get('left') is None
 
     def test_set_vrm_with_invalid_path(self, guide_window):
         """Setting VRM with invalid path logs error gracefully."""
@@ -279,6 +226,5 @@ class TestErrorDisplay:
         assert "Something went wrong" in text
 
 
-# ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡ ~ ♡
-# જ⁀➴ ♡ Made with love. Use with love.
+# Made with love. Use with love.
 # Caitlyn Meeks 2026

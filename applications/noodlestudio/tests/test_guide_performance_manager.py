@@ -2,7 +2,7 @@
 #   Tests for Guide Performance Manager
 #
 #   Tests for the orchestrator that coordinates performance
-#   lifecycle: window creation, assembly loading, demo mode,
+#   lifecycle: panel wiring, assembly loading, demo mode,
 #   [D] button sync, and affect pipeline.
 # ------------------------------------------------------------------
 # SPDX-License-Identifier: AGPL-3.0-or-later
@@ -16,6 +16,9 @@ from PyQt6.QtWidgets import QMainWindow, QPushButton
 
 from noodlestudio.runtime.ui.guide_performance_manager import (
     GuidePerformanceManager,
+)
+from noodlestudio.runtime.ui.guide_performance_window import (
+    PerformancePanel,
 )
 
 # The manager imports get_computer_use_controller locally, so patch at source
@@ -61,10 +64,19 @@ def mock_panel():
 
 
 @pytest.fixture
-def manager(parent_window, mock_panel):
-    """Create a configured GuidePerformanceManager."""
+def performance_panel(qapp, qtbot):
+    """Create a real PerformancePanel for manager tests."""
+    panel = PerformancePanel(ensemble_mode=False)
+    qtbot.addWidget(panel)
+    return panel
+
+
+@pytest.fixture
+def manager(parent_window, mock_panel, performance_panel):
+    """Create a configured GuidePerformanceManager with wired panel."""
     m = GuidePerformanceManager(parent_window)
     m.set_noodle_code_panel(mock_panel)
+    m.set_performance_panel(performance_panel)
     return m
 
 
@@ -78,8 +90,8 @@ class TestPerformanceLifecycle:
     @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
     @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
-    def test_start_creates_window(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
-        """Starting a performance creates the window."""
+    def test_start_uses_existing_panel(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
+        """Starting a performance uses the wired panel."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Test Play")
         assert manager.window is not None
@@ -99,13 +111,14 @@ class TestPerformanceLifecycle:
     @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
     def test_stop_cleans_up(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
-        """Stopping cleans up window and demo mode."""
+        """Stopping deactivates performance but keeps panel alive."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Test Play")
         assert manager.is_active
         manager.stop_performance()
         assert not manager.is_active
-        assert manager.window is None
+        # Panel persists (embedded tab) -- it is NOT set to None
+        assert manager.window is not None
 
     @patch(LOAD_ASSEMBLY_PATCH, return_value=True)
     @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
@@ -143,13 +156,14 @@ class TestPerformanceLifecycle:
     @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
     def test_double_start_stops_first(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
-        """Starting twice stops the first performance."""
+        """Starting twice stops the first performance, reuses the same panel."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Play 1")
         first_window = manager.window
         manager.start_performance("Play 2")
         second_window = manager.window
-        assert second_window is not first_window
+        # Panel is persistent -- same embedded tab is reused
+        assert second_window is first_window
 
 
 # =============================================================================
@@ -190,7 +204,7 @@ class TestAssemblyWiring:
     @patch(CREATE_LLM_PATCH, return_value=FakeLLMClient())
     @patch(CUC_PATCH)
     def test_header_shows_play_title(self, mock_get_ctrl, mock_create_llm, mock_load, manager):
-        """Window header displays the play title."""
+        """Panel header displays the play title."""
         mock_get_ctrl.return_value = MagicMock()
         manager.start_performance("Let's Consciousness!")
         assert manager.window.header_label.text() == "Let's Consciousness!"
