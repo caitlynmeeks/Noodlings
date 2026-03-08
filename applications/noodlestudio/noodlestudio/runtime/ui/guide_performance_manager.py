@@ -865,6 +865,9 @@ class GuidePerformanceManager:
             lambda nid=noodling_id: self._on_ensemble_performance_finished(nid)
         )
 
+        # Format changes (spoken/action/thought) -> dialogue styling
+        performer.formatChanged.connect(window.on_format_changed)
+
         # Execution lifecycle (turn-based)
         performer.executionStarted.connect(
             lambda n=name: window.set_busy(True, name=n)
@@ -1026,6 +1029,9 @@ class GuidePerformanceManager:
             lambda: self._on_performance_finished()
         )
 
+        # Format changes (spoken/action/thought) -> dialogue styling
+        performer.formatChanged.connect(window.on_format_changed)
+
         # Execution lifecycle
         performer.executionStarted.connect(
             lambda: window.set_busy(True)
@@ -1182,10 +1188,11 @@ class GuidePerformanceManager:
         """
         Format descriptions of other noodlings for awareness injection.
 
-        Builds a prose block like:
+        Builds a multi-line block like:
             Also here with you:
-            - Ajo Majo: A small chibi axolotl... Currently seems happy and energetic.
-            - Krampus: A seven-year-old boy... Currently seems determined.
+            - Ajo Majo: A small chibi axolotl with pink-lavender coloring...
+              Expression: bright eyes, genuine smile, animated gestures
+              Last action: *wiggles gill nubs excitedly*
 
         Args:
             exclude_nid: Noodling ID to exclude (you don't describe yourself)
@@ -1193,7 +1200,7 @@ class GuidePerformanceManager:
         Returns:
             Formatted entity descriptions, or empty string if alone
         """
-        lines = []
+        entity_blocks = []
         for nid, meta in self._instance_metadata.items():
             if nid == exclude_nid:
                 continue
@@ -1202,29 +1209,83 @@ class GuidePerformanceManager:
             # Prefer appearance (richer prose), fall back to description
             desc = meta.get('appearance') or meta.get('description') or ''
 
-            # Append current mood if available
             performer = self._performers.get(nid)
-            mood_str = ''
+
+            # Observable expression cues from PAD values
+            expression = ''
             if performer and performer.last_affect:
-                mood_str = self._describe_affect(performer.last_affect)
+                expression = self._describe_expression(performer.last_affect)
 
-            if desc and mood_str:
-                lines.append(f"- {name}: {desc} Currently seems {mood_str}.")
-            elif desc:
-                lines.append(f"- {name}: {desc}")
-            elif mood_str:
-                lines.append(f"- {name}: Currently seems {mood_str}.")
-            else:
-                lines.append(f"- {name}")
+            # Last visible action (ACTION: tagged lines from prior turn)
+            last_action = ''
+            if performer and getattr(performer, '_last_actions', None):
+                last_action = performer._last_actions[-1]
 
-        if not lines:
+            # Build multi-line entity block
+            header = f"- {name}"
+            if desc:
+                header += f": {desc}"
+            parts = [header]
+            if expression:
+                parts.append(f"  Expression: {expression}")
+            if last_action:
+                parts.append(f"  Last action: *{last_action}*")
+            entity_blocks.append('\n'.join(parts))
+
+        if not entity_blocks:
             return ""
-        return "Also here with you:\n" + "\n".join(lines)
+        return "Also here with you:\n" + "\n".join(entity_blocks)
+
+    @staticmethod
+    def _describe_expression(pad: Dict) -> str:
+        """Convert PAD values to observable expression cues (third-person).
+
+        Returns prose describing visible physical signals rather than
+        internal mood labels -- so noodlings perceive each other through
+        observable body language, not direct affect readout.
+
+        Args:
+            pad: Dict with valence (-1..1), arousal (0..1), dominance (0..1)
+
+        Returns:
+            Comma-separated expression cue string, or empty string
+        """
+        valence = pad.get('valence', 0.0)
+        arousal = pad.get('arousal', 0.5)
+        dominance = pad.get('dominance', 0.5)
+        cues = []
+
+        if valence > 0.6:
+            cues.append('bright eyes, genuine smile')
+        elif valence > 0.3:
+            cues.append('relaxed expression, slight smile')
+        elif valence > -0.1:
+            cues.append('neutral expression')
+        elif valence > -0.4:
+            cues.append('mouth turned down slightly, brow creased')
+        else:
+            cues.append('jaw tight, eyes narrowed')
+
+        if arousal > 0.7:
+            cues.append('animated gestures, leaning forward')
+        elif arousal > 0.5:
+            cues.append('attentive posture')
+        elif arousal < 0.3:
+            cues.append('still, barely moving')
+
+        if dominance > 0.7:
+            cues.append('chin up, shoulders squared')
+        elif dominance < 0.3:
+            cues.append('shoulders hunched, avoiding eye contact')
+
+        return ', '.join(cues)
 
     @staticmethod
     def _describe_affect(pad: Dict) -> str:
         """
         Convert PAD values to a brief natural-language mood description.
+
+        Kept for backward compatibility (used in unit tests).
 
         Args:
             pad: Dict with valence (-1..1), arousal (0..1), dominance (0..1)

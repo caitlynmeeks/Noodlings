@@ -186,6 +186,9 @@ if QT_AVAILABLE:
             # Track which noodling is currently in a typed-text block
             self._current_typing_noodling = None
 
+            # Track current segment type for append_character() styling
+            self._current_char_fmt = 'spoken'  # 'spoken' | 'action' | 'thought'
+
             # Apply initial ensemble visibility
             if not ensemble_mode:
                 self.set_ensemble_visible(False)
@@ -692,6 +695,7 @@ if QT_AVAILABLE:
         def clear_dialogue(self):
             """Clear the dialogue display."""
             self.dialogue_view.clear()
+            self._current_char_fmt = 'spoken'
 
         def dim_dialogue(self):
             """Dim all existing dialogue text to indicate stopped state."""
@@ -736,6 +740,7 @@ if QT_AVAILABLE:
                 name: Display name (e.g. "Ajo", "Yuki"), or None
             """
             self._current_typing_noodling = noodling_id
+            self._current_char_fmt = 'spoken'   # Reset format at start of each block
 
             cursor = self.dialogue_view.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
@@ -815,12 +820,25 @@ if QT_AVAILABLE:
             """
             self.begin_noodling_text('default', None)
 
+        def on_format_changed(self, fmt: str):
+            """Update current character format type for subsequent append_character() calls.
+
+            Called by GuidePerformanceManager when a performer's formatChanged
+            signal fires (streaming mode only).
+
+            Args:
+                fmt: 'spoken', 'action', or 'thought' (thought is a no-op
+                     since thought lines are filtered before reaching here)
+            """
+            self._current_char_fmt = fmt
+
         def append_character(self, char: str):
             """
             Append a single character to the dialogue for typed-text effect.
 
             Uses the color of the current typing noodling (set by
-            begin_noodling_text or begin_guide_text).
+            begin_noodling_text or begin_guide_text). Applies italic
+            dim styling for 'action' segments.
 
             Args:
                 char: Single character to append
@@ -832,9 +850,18 @@ if QT_AVAILABLE:
             color = self._noodling_colors.get(
                 nid, self._noodling_colors['default']
             )
-            fmt = QTextCharFormat()
-            fmt.setForeground(color)
-            cursor.setCharFormat(fmt)
+            char_fmt = QTextCharFormat()
+
+            if self._current_char_fmt == 'action':
+                # Action text: italic + slightly dimmer gray
+                char_fmt.setForeground(QColor(153, 153, 153))  # #999999
+                char_fmt.setFontItalic(True)
+            else:
+                # Spoken (and any unrecognized type): normal color
+                char_fmt.setForeground(color)
+                char_fmt.setFontItalic(False)
+
+            cursor.setCharFormat(char_fmt)
             cursor.insertText(char)
 
             self.dialogue_view.setTextCursor(cursor)
@@ -996,6 +1023,7 @@ if not QT_AVAILABLE:
         def append_character(self, char): pass
         def end_guide_text(self): pass
         def append_user_text(self, text): pass
+        def on_format_changed(self, fmt): pass
 
     # Backward-compatible alias
     GuidePerformanceWindow = PerformancePanel

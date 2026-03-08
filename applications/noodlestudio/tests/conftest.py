@@ -455,6 +455,11 @@ class StubWindow:
             self._active_speaker_calls = []
         self._active_speaker_calls.append(noodling_id)
 
+    def on_format_changed(self, fmt):
+        if not hasattr(self, '_format_changes'):
+            self._format_changes = []
+        self._format_changes.append(fmt)
+
     def show_play_header(self, title):
         pass
 
