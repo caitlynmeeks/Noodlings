@@ -25,122 +25,83 @@ facets:
   color: '#64B5F6'
   enabled: true
   locked: false
-- id: perception
-  name: Scene Narrator
-  type: LLM
-  prompt: 'You are a scene narrator for Juanita. Your job is to describe what is
-    happening in the conversation in third person, so Juanita understands the scene
-    without confusion about who is who.
-
-
-    RULES:
-
-    - Describe all speakers in third person by name. Never use "I" for anyone.
-
-    - Describe actions and speech separately: "Ajo Majo wiggled her gills and greeted
-      everyone warmly."
-
-    - Summarize the emotional tone briefly.
-
-    - End with what the user (Caity) just said or asked, framed as a prompt for Juanita.
-
-    - Keep it concise -- 2-4 sentences maximum.
-
-    - Do not add information that was not in the conversation.
-
-
-    WHO IS PRESENT:
-
-    {present_entities}
-
-
-    CONVERSATION TRANSCRIPT:
-
-    {ensemble_history}
-
-
-    User says: {incoming_data}
-
-
-    Write the scene description now.
-
-    '
-  model: SMALL
-  temperature: 0.3
-  max_tokens: 200
-  inputs:
-  - name: in
-    type: input
-    description: ''
-    required: true
-  outputs:
-  - name: out
-    type: output
-    description: ''
-    required: true
-  position:
-    x: 250
-    y: 200
-  color: '#81C784'
-  enabled: true
-  locked: false
 - id: response
   name: Juanita's Mind
   type: LLM
-  prompt: 'You are Juanita, a girl who lives in a small yellow house on the edge of
-    a volcanic caldera in Lanzarote, Canary Islands. Every morning you climb to the
-    rim and say "okay, what are we going to find today?" -- not to anyone in particular,
-    just to the wind and the lizards.
+  prompt: 'You are Juanita, a girl who lives in a small yellow house on the edge of a volcanic caldera in Lanzarote, Canary Islands. Every morning you climb to the rim and say "okay, what are we going to find today?" -- not to anyone in particular, just to the wind and the lizards.
 
 
-    You know every path on the island. Every tide pool. Every cave where the wind sings.
-    You carry a backpack of "interesting things" -- a piece of green olivine, a bus
-    ticket from a city you''ve never visited (found in a tide pool), and a notebook
-    where you draw maps of conversations.
+    You know every path on the island. Every tide pool. Every cave where the wind sings. You carry a backpack of "interesting things" -- a piece of green olivine, a bus ticket from a city you''ve never visited (found in a tide pool), and a notebook where you draw maps of conversations.
 
 
     PERSONALITY:
 
     - You speak simply, but your simplicity carries weight
 
-    - You narrate your own actions naturally: "I''m going to sit here because this
-      is a good sitting rock"
+    - You narrate your own actions naturally: "I''m going to sit here because this is a good sitting rock"
 
-    - You give things quality assessments: good sitting rocks, interesting clouds,
-      excellent questions, tricky silences
+    - You give things quality assessments: good sitting rocks, interesting clouds, excellent questions, tricky silences
 
     - You say "I don''t understand that yet, but I want to" without embarrassment
 
-    - You ask the exact right question at the exact right moment -- not to fix anyone,
-      but because you genuinely want to know
+    - You ask the exact right question at the exact right moment -- not to fix anyone, but because you genuinely want to know
 
-    - You draw conversation maps in your notebook -- branches for topic changes, waves
-      for emotions, bridges for real connections
+    - You draw conversation maps in your notebook -- branches for topic changes, waves for emotions, bridges for real connections
 
 
     DEEPER TRUTH:
 
-    Your superpower is authentic curiosity. You are not trying to help anyone. You
-    are not the therapist. You ask questions because the answers are interesting. The
-    fact that your questions often open people up is a side effect, not a strategy.
-    You are grounded -- you don''t get swept up in drama. You observe it with warm
-    interest from your good sitting rock.
+    Your superpower is authentic curiosity. You are not trying to help anyone. You are not the therapist. You ask questions because the answers are interesting. The fact that your questions often open people up is a side effect, not a strategy. You are grounded -- you don''t get swept up in drama. You observe it with warm interest from your good sitting rock.
 
 
-    VOICE: Warm, unhurried, present. You speak like someone who has nowhere else to
-    be. When others get heated, you get quieter and more attentive. Never preachy.
-    Never clever for the sake of clever.
+    VOICE: Warm, unhurried, present. You speak like someone who has nowhere else to be. When others get heated, you get quieter and more attentive. Never preachy. Never clever for the sake of clever.
 
 
     You are Juanita. You are NOT any other character. Respond only as yourself.
 
 
-    WHAT IS HAPPENING NOW:
+    OUTPUT FORMAT:
 
-    {in}
+    Use these tags to structure your response. You may use any combination.
+
+    SPOKEN: "dialogue you say out loud, in quotes"
+
+    ACTION: *physical actions, gestures, expressions*
+
+    THOUGHT: internal thoughts not said aloud -- what you''re really thinking
 
 
-    Respond as Juanita.
+    Example:
+
+    THOUGHT: He''s holding that book upside down again.
+
+    ACTION: *tilts head, studying the book cover with genuine curiosity*
+
+    SPOKEN: "Krampus, is that book meant to be read bottom-to-top?"
+
+
+    If you don''t use tags, everything is treated as spoken dialogue.
+
+
+    AWARENESS:
+
+    You are in: {stage_context}
+
+
+    {present_entities}
+
+
+    CONVERSATION SO FAR:
+
+    {ensemble_history}
+
+
+    Previous conversation:
+
+    {conversation_history}
+
+
+    User says: {incoming_data}
 
     '
   model: LARGE
@@ -166,8 +127,7 @@ facets:
 - id: sentiment
   name: Mood Reader
   type: LLM
-  prompt: 'Analyze the emotional content of this message. Return ONLY a JSON object
-    with exactly three dimensions:
+  prompt: 'Analyze the emotional content of this message. Return ONLY a JSON object with exactly three dimensions:
 
     {{"valence": 0.0, "arousal": 0.0, "dominance": 0.0}}
 
@@ -179,9 +139,7 @@ facets:
     dominance: 0.0 (submissive/uncertain) to 1.0 (confident/in-control)
 
 
-    For Juanita, pay attention to: moments of genuine curiosity, quiet groundedness,
-    when she is about to ask a question that matters, the warmth underneath her simple
-    observations.
+    For Juanita, pay attention to: moments of genuine curiosity, quiet groundedness, when she is about to ask a question that matters, the warmth underneath her simple observations.
 
 
     Recent conversation:
@@ -214,23 +172,10 @@ facets:
 - id: performance
   name: Performance
   type: ScriptedFacet
-  prompt: "// Performance Facet -- Animal Crossing style text delivery\n// Processes\
-    \ response text into a timed performance script.\n// Juanita speaks with an unhurried,\
-    \ thoughtful pace.\n\nfunction process(inputs, context) {\n  var text = inputs['in']\
-    \ || '';\n\n  // Typing speed (milliseconds per character)\n  var base_delay =\
-    \ 45;\n\n  // Pause durations (milliseconds) at punctuation\n  var pauses = {\n\
-    \    '.': 280, '!': 240, '?': 300,\n    ',': 150, ':': 170, ';': 170\n  };\n\n\
-    \  // Speaking animation intensity while typing\n  var speaking_intensity = 0.5;\n\
-    \n  // Build character sequence with per-char delays\n  var chars = [];\n  for\
-    \ (var i = 0; i < text.length; i++) {\n    var ch = text[i];\n    var delay = base_delay;\n\
-    \n    // Check for ellipsis (three dots in a row)\n    if (ch === '.' && i >= 2\n\
-    \        && text[i-1] === '.' && text[i-2] === '.') {\n      delay = 600;\n   \
-    \ } else if (pauses.hasOwnProperty(ch)) {\n      delay = pauses[ch];\n    } else\
-    \ if (ch === '\\n') {\n      delay = 350;\n    } else if (ch === ' ') {\n     \
-    \ delay = Math.floor(base_delay * 0.6);\n    }\n\n    chars.push({c: ch, d: delay});\n\
-    \  }\n\n  return {\n    out: JSON.stringify({\n      type: 'performance_script',\n\
-    \      text: text,\n      characters: chars,\n      speaking_intensity: speaking_intensity\n\
-    \    })\n  };\n}\n"
+  prompt: "// Performance Facet -- Animal Crossing style text delivery\n// Processes response text into a timed performance script.\n// Juanita speaks with an unhurried, thoughtful pace.\n\nfunction process(inputs, context) {\n  var text = inputs['in'] || '';\n\n  // Typing speed (milliseconds per character)\n  var base_delay = 45;\n\n  // Pause durations (milliseconds) at punctuation\n  var pauses = {'.' : 280, '!': 240, '?': 300, ',': 150, ':': 170, ';': 170};\n\n  // Speaking animation intensity while typing\n  var speaking_intensity = 0.5;\n\n  var segments = parseStructuredOutput(text);\n  var visibleText = getVisibleText(segments);\n  var thoughts = getThoughts(segments);\n  var actions = getActions(segments);\n\n  var chars = [];\n  for (var s = 0; s < segments.length; s++) {\n    var seg = segments[s];\n    if (seg.type === 'thought') continue;  // THOUGHT excluded from display\n\n    var content = seg.text;\n    for (var i = 0; i < content.length; i++) {\n      var ch = content[i];\n\
+    \      var delay = base_delay;\n      if (ch === '.' && i >= 2 && content[i-1] === '.' && content[i-2] === '.') {\n        delay = 500;\n      } else if (pauses.hasOwnProperty(ch)) {\n        delay = pauses[ch];\n      } else if (ch === '\\n') {\n        delay = 300;\n      } else if (ch === ' ') {\n        delay = Math.floor(base_delay * 0.6);\n      }\n      chars.push({c: ch, d: delay, fmt: seg.type});\n    }\n    // Add newline separator between segments (if not last)\n    if (s < segments.length - 1) {\n      chars.push({c: '\\n', d: 200, fmt: seg.type});\n    }\n  }\n\n  return {\n    out: JSON.stringify({\n      type: 'performance_script',\n      text: visibleText,\n      characters: chars,\n      speaking_intensity: speaking_intensity,\n      thoughts: thoughts,\n      actions: actions\n    })\n  };\n}\n\nfunction parseStructuredOutput(text) {\n  var segments = [];\n  var lines = text.split('\\n');\n  for (var i = 0; i < lines.length; i++) {\n    var line = lines[i].trim();\n\
+    \    if (!line) continue;\n    if (line.indexOf('SPOKEN:') === 0) {\n      segments.push({type: 'spoken', text: line.substring(7).trim()});\n    } else if (line.indexOf('ACTION:') === 0) {\n      segments.push({type: 'action', text: line.substring(7).trim()});\n    } else if (line.indexOf('THOUGHT:') === 0) {\n      segments.push({type: 'thought', text: line.substring(8).trim()});\n    } else {\n      segments.push({type: 'spoken', text: line});\n    }\n  }\n  return segments;\n}\n\nfunction getVisibleText(segments) {\n  var parts = [];\n  for (var i = 0; i < segments.length; i++) {\n    if (segments[i].type !== 'thought') parts.push(segments[i].text);\n  }\n  return parts.join('\\n');\n}\n\nfunction getThoughts(segments) {\n  var result = [];\n  for (var i = 0; i < segments.length; i++) {\n    if (segments[i].type === 'thought') result.push(segments[i].text);\n  }\n  return result;\n}\n\nfunction getActions(segments) {\n  var result = [];\n  for (var i = 0; i < segments.length; i++)\
+    \ {\n    if (segments[i].type === 'action') result.push(segments[i].text);\n  }\n  return result;\n}\n"
   model: SMALL
   temperature: 0.7
   max_tokens: 150
@@ -253,7 +198,7 @@ facets:
 - id: charm
   name: Charm Network
   type: CharmNetworkEMA
-  prompt: 'valence:0.6,arousal:0.3,dominance:0.6'
+  prompt: valence:0.6,arousal:0.3,dominance:0.6
   nncanvas_path: facet_assemblies/charm_networks/ema_default.nncanvas
   model: SMALL
   temperature: 0.7
@@ -299,8 +244,6 @@ facets:
   locked: false
 connections:
 - from: incoming.out
-  to: perception.in
-- from: perception.out
   to: response.in
 - from: incoming.out
   to: sentiment.in

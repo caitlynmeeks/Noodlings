@@ -261,8 +261,8 @@ class TestMoodCrossPollination:
         manager._advance_ensemble_turn()
 
         entities = captured['present_entities']
-        # Krampus should have a mood descriptor
-        assert 'Currently seems' in entities
+        # Krampus should have an observable expression line
+        assert 'Expression:' in entities
 
     def test_no_mood_for_noodling_without_affect(self):
         """Noodlings without stored affect must not have mood in context."""
