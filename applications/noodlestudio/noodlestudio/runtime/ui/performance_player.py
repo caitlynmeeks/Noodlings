@@ -33,6 +33,14 @@ try:
 except ImportError:
     QT_AVAILABLE = False
 
+# Prefixes that introduce structured output segments.
+# Checked at line start in streaming mode.
+_TAG_PREFIXES = {
+    'SPOKEN: ': 'spoken',
+    'ACTION: ': 'action',
+    'THOUGHT: ': 'thought',
+}
+
 
 # Pauses longer than this (ms) toggle speaking state off briefly
 _PAUSE_THRESHOLD_MS = 150
@@ -70,6 +78,7 @@ if QT_AVAILABLE:
 
         characterRevealed = pyqtSignal(str)
         speakingStateChanged = pyqtSignal(bool)
+        formatChanged = pyqtSignal(str)   # emitted when segment type changes between lines
         finished = pyqtSignal()
 
         def __init__(self, parent=None):
@@ -83,6 +92,10 @@ if QT_AVAILABLE:
             self._is_speaking = False   # Current speaking state
             self._speaking_intensity = 0.7
             self._paused = False
+
+            # Streaming tag detection state
+            self._line_buffer = ''          # Accumulate chars until \n
+            self._current_format = 'spoken' # 'spoken' | 'action' | 'thought'
 
         @property
         def speaking_intensity(self) -> float:
@@ -204,22 +217,76 @@ if QT_AVAILABLE:
             self._stream_timer.setSingleShot(True)
             self._stream_timer.timeout.connect(self._reveal_next_streaming)
             self._stream_started = False
+            # Reset tag detection state
+            self._line_buffer = ''
+            self._current_format = 'spoken'
 
         def append_text(self, text: str):
             """
-            Buffer incoming tokens from streaming LLM.
+            Buffer incoming tokens from streaming LLM with tag detection.
 
-            Starts character reveal when 3+ chars are buffered.
+            Accumulates characters into a line buffer. When a newline arrives,
+            the completed line is checked for SPOKEN/ACTION/THOUGHT prefixes:
+            - THOUGHT lines are silently discarded (not added to stream buffer)
+            - ACTION and SPOKEN lines emit formatChanged if the type changes
+            - Untagged lines are treated as SPOKEN
+
+            Starts character reveal once 3+ chars are buffered.
             """
-            self._stream_buffer += text
+            for ch in text:
+                if ch == '\n':
+                    self._flush_line_buffer()
+                else:
+                    self._line_buffer += ch
+
             # Start revealing once we have enough to avoid stutter
             if not self._stream_started and len(self._stream_buffer) >= 3:
                 self._stream_started = True
                 self._set_speaking(True)
                 self._reveal_next_streaming()
 
+        def _flush_line_buffer(self):
+            """Process a completed line from the streaming buffer.
+
+            Detects tag prefix, emits formatChanged if type changed,
+            strips the prefix, and adds the content to the stream buffer
+            (unless the line is a THOUGHT, which is silently dropped).
+            """
+            line = self._line_buffer
+            self._line_buffer = ''
+
+            if not line.strip():
+                # Empty line -- add the newline separator to stream buffer
+                self._stream_buffer += '\n'
+                return
+
+            # Detect tag prefix
+            new_format = 'spoken'
+            content = line
+            for prefix, fmt in _TAG_PREFIXES.items():
+                if line.startswith(prefix):
+                    new_format = fmt
+                    content = line[len(prefix):]
+                    break
+
+            # THOUGHT lines are not displayed
+            if new_format == 'thought':
+                return
+
+            # Emit formatChanged if type changed
+            if new_format != self._current_format:
+                self._current_format = new_format
+                self.formatChanged.emit(new_format)
+
+            # Add stripped content to stream buffer (with trailing newline)
+            self._stream_buffer += content + '\n'
+
         def finish_streaming(self):
-            """Mark stream as done. Drains remaining buffer."""
+            """Mark stream as done. Flushes line buffer, then drains stream buffer."""
+            # Flush any partial line that didn't end with \n
+            if self._line_buffer:
+                self._flush_line_buffer()
+
             self._stream_done = True
             # If we never started (very short response), start now
             if not self._stream_started and self._stream_buffer:

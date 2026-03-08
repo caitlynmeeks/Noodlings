@@ -210,6 +210,7 @@ class NoodlingPerformer(QObject):
     # Playback signals (proxied from PerformancePlayer)
     characterRevealed = pyqtSignal(str)
     speakingStateChanged = pyqtSignal(bool)
+    formatChanged = pyqtSignal(str)      # proxied from PerformancePlayer
     performanceFinished = pyqtSignal()
 
     def __init__(self, noodling_id: str, name: str, llm_client,
@@ -250,6 +251,10 @@ class NoodlingPerformer(QObject):
         # Streaming delivery state
         self._streaming_mode: Optional[str] = None
         self._streaming_first_token: bool = True
+
+        # Structured output: last visible actions and private thoughts
+        self._last_thoughts: List[str] = []
+        self._last_actions: List[str] = []
 
         # Performance player (created lazily)
         self._performance_player = None
@@ -498,7 +503,16 @@ class NoodlingPerformer(QObject):
             except (json.JSONDecodeError, ValueError):
                 pass
 
-        # Store the raw response text
+        # Extract structured output fields from performance script
+        if performance_script:
+            self._last_thoughts = performance_script.get('thoughts', [])
+            self._last_actions = performance_script.get('actions', [])
+            # Use visible text (SPOKEN + ACTION, no THOUGHT) as the response
+            visible_text = performance_script.get('text', raw_response)
+            if visible_text:
+                raw_response = visible_text
+
+        # Store the raw response text (visible text only, no thoughts)
         self._last_response = raw_response or outgoing_output or ''
 
         # Emit response signal
@@ -656,6 +670,9 @@ class NoodlingPerformer(QObject):
                     self._performance_player.speakingStateChanged.connect(
                         self.speakingStateChanged
                     )
+                    self._performance_player.formatChanged.connect(
+                        self.formatChanged
+                    )
                     self._performance_player.finished.connect(
                         self._on_performance_finished
                     )
@@ -746,6 +763,7 @@ class NoodlingPerformer(QObject):
             self._performance_player.speakingStateChanged.connect(
                 self.speakingStateChanged
             )
+            self._performance_player.formatChanged.connect(self.formatChanged)
             self._performance_player.finished.connect(
                 self._on_performance_finished
             )

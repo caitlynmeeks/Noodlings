@@ -270,10 +270,14 @@ class TestPerformancePlayerPauseResume:
         player.start_streaming()
         # Pause before any tokens arrive
         player.pause()
-        # Buffer should still accept text even when paused
+        # Text without a newline goes into _line_buffer (pending flush)
         player.append_text("Hi")
-        assert player._stream_buffer == "Hi"
+        assert player._line_buffer == "Hi"
         assert player._paused is True
+        # finish_streaming flushes the line buffer into stream buffer
+        player.finish_streaming()
+        # Streaming consumes first char synchronously; check suffix present
+        assert "i" in player._stream_buffer
 
 
 class TestNoodlingPerformerPauseAnimation:
