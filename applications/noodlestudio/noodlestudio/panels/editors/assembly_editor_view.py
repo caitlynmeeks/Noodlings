@@ -260,6 +260,10 @@ class AssemblyEditorView(
         """Clear the scene and rebuild all nodes and wires."""
         self.scene_transition_lock = True
 
+        # Invalidate pending cleanup timers from the previous scene.
+        # Closures captured the old generation; they become no-ops.
+        self._scene_generation += 1
+
         # Stop any existing animation timers on nodes and wires
         for node in self._node_items.values():
             node.stop_animation()

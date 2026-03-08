@@ -37,6 +37,10 @@ class AssemblyExecutionMixin:
         self.scene_transition_lock: bool = False
         self.current_agent_id: Optional[str] = None
 
+        # Generation counter: incremented on scene transitions to
+        # invalidate pending cleanup timers from a previous scene.
+        self._scene_generation: int = 0
+
         # Cycle color tracking
         self.cycle_colors: Dict[str, QColor] = {}
         self.cycle_color_palette: List[QColor] = [
@@ -109,8 +113,11 @@ class AssemblyExecutionMixin:
             if from_facet and to_facet:
                 self.play_sound('data_flow')
                 for wire in list(self._wire_items):
-                    if not wire or not wire.scene():
-                        continue
+                    try:
+                        if not wire or not wire.scene():
+                            continue
+                    except RuntimeError:
+                        continue  # C++ object deleted
                     if (wire.from_port.facet_node.facet.id == from_facet and
                             wire.to_port.facet_node.facet.id == to_facet):
                         wire.animate_data_flow()
@@ -124,8 +131,11 @@ class AssemblyExecutionMixin:
             return
 
         node = self._node_items.get(facet_id)
-        if not node or not node.scene():
-            return
+        try:
+            if not node or not node.scene():
+                return
+        except RuntimeError:
+            return  # C++ object deleted
 
         self._play_pachinko_sound()
 
@@ -208,18 +218,29 @@ class AssemblyExecutionMixin:
         node.set_execution_state('complete')
         node.update()
 
-        # Remove cycle after 300ms animation
+        # Remove cycle after 300ms animation.
+        # Capture scene generation so the timer is a no-op if the scene
+        # was cleared and rebuilt before the 300ms fires. Without this,
+        # the closure holds a stale QGraphicsItem pointer and calling
+        # node.scene() segfaults (EXC_BAD_ACCESS on freed C++ object).
         captured_exec_id = execution_id
+        captured_generation = self._scene_generation
 
         def clear_cycle():
-            if node and node.scene():
-                node.active_cycles = [
-                    c for c in node.active_cycles if c[0] != captured_exec_id
-                ]
-                if not self.cognition_paused:
-                    if captured_exec_id in node.cycle_data:
-                        del node.cycle_data[captured_exec_id]
-                node.update()
+            if captured_generation != self._scene_generation:
+                return  # Scene was rebuilt; node is stale
+            try:
+                if node and node.scene():
+                    node.active_cycles = [
+                        c for c in node.active_cycles
+                        if c[0] != captured_exec_id
+                    ]
+                    if not self.cognition_paused:
+                        if captured_exec_id in node.cycle_data:
+                            del node.cycle_data[captured_exec_id]
+                    node.update()
+            except RuntimeError:
+                pass  # C++ object already deleted
 
         QTimer.singleShot(300, clear_cycle)
 
