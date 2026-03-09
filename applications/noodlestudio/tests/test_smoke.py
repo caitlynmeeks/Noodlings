@@ -245,6 +245,33 @@ class TestAssemblyLoading:
         assert 'facets' in data
         assert len(data['facets']) >= 3
 
+    def test_brenda_assembly_parses(self):
+        """Brenda director assembly.yaml must parse with Scene Writer facet."""
+        assembly_path = os.path.join(
+            LIBRARY_DIR, 'templates', 'Getting Started',
+            'Noodlings', 'brenda', 'assembly.yaml'
+        )
+        with open(assembly_path) as f:
+            data = yaml.safe_load(f)
+        assert 'name' in data
+        assert 'facets' in data
+        # Brenda has: INCOMING, Scene Writer, Beat Formatter, OUTGOING
+        assert len(data['facets']) >= 4
+        facet_ids = [f['id'] for f in data['facets']]
+        assert 'scene_writer' in facet_ids
+        assert 'beat_formatter' in facet_ids
+
+    def test_brenda_instance_has_director_role(self):
+        """Brenda instance must have role=director in overrides."""
+        inst_path = os.path.join(
+            LIBRARY_DIR, 'templates', 'Getting Started',
+            'Stages', 'the_nexus', 'Instances', 'brenda', 'instance.yaml'
+        )
+        with open(inst_path) as f:
+            data = yaml.safe_load(f)
+        assert data.get('overrides', {}).get('role') == 'director'
+        assert data.get('overrides', {}).get('visible') is False
+
     def test_set_yaml_exists_in_default_template(self):
         """Default stage must have a set.yaml with scene objects."""
         set_path = os.path.join(
@@ -300,9 +327,9 @@ class TestAssemblyLoading:
             LIBRARY_DIR, 'templates', 'Getting Started', 'Stages', 'the_nexus'
         )
         instances = manager._discover_stage_instances(stage_path)
-        assert len(instances) == 3
+        assert len(instances) == 4
         ids = {i['noodling_id'] for i in instances}
-        assert ids == {'ajo', 'krampus', 'juanita'}
+        assert ids == {'ajo', 'krampus', 'juanita', 'brenda'}
 
     def test_set_yaml_has_opening_beats(self):
         """Default set.yaml must have an opening scene with 8 beats."""

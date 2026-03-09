@@ -1,0 +1,9 @@
+noodling: ../../../../Noodlings/brenda
+overrides:
+  name: "Brenda"
+  position: [0, 0, 0]
+  zone: "main"
+  role: director
+  ensemble_active: true
+  visible: false
+created: "2026-03-09T00:00:00Z"

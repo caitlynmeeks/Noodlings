@@ -484,6 +484,41 @@ class StubWindow:
     def isVisible(self):
         return True
 
+    # Directed ensemble methods
+    def set_offstage_status(self, text):
+        pass
+
+    def set_director(self, noodling_id, name):
+        pass
+
+    def set_view_mode(self, mode):
+        pass
+
+    def append_character_event(self, noodling_id, event_type, text):
+        pass
+
+    def clear_character_text(self, noodling_id=None):
+        pass
+
+    def append_offstage_beat(self, text):
+        pass
+
+    def clear_offstage_beats(self):
+        pass
+
+    def set_vrm(self, vrm_path, noodling_id='default'):
+        pass
+
+    def show_name_card(self, noodling_id, name):
+        pass
+
+    def _get_slot(self, noodling_id):
+        return 'left'
+
+    @property
+    def _vrm_containers(self):
+        return {}
+
 
 @pytest.fixture
 def guide_manager():

@@ -162,6 +162,13 @@ class GuidePerformanceManager:
         self._opening_active = False
         self._opening_beats = []         # Remaining beats to execute
 
+        # Directed ensemble (director + performers)
+        self._director_performer = None  # NoodlingPerformer for director
+        self._directed_mode = False      # True when director is present
+        self._auto_advance_timer = None  # QTimer for beat auto-advance
+        self._auto_advance_delay_ms = 5000  # ms before auto-advance
+        self._beat_count = 0             # Running beat counter
+
         # Performance state machine
         self._performance_state = PerformanceState.IDLE
         self._last_stage_path = None     # Cached for replay
@@ -632,7 +639,14 @@ class GuidePerformanceManager:
         # Wire each performer
         for nid, performer in performers.items():
             if ensemble:
-                self._wire_ensemble_performer(performer, self._window, nid)
+                meta = self._instance_metadata.get(nid, {})
+                if meta.get('role') == 'director':
+                    # Director wiring: executionFinished -> _on_director_result
+                    self._wire_director_performer(performer, nid)
+                else:
+                    self._wire_ensemble_performer(
+                        performer, self._window, nid
+                    )
             else:
                 self._wire_performer_to_window(performer, self._window)
 
@@ -697,6 +711,24 @@ class GuidePerformanceManager:
         except Exception as e:
             logger.debug(f"Could not load assembly in editor: {e}")
 
+        # Detect directed ensemble (director role)
+        self._director_performer = None
+        self._directed_mode = False
+        self._beat_count = 0
+        for nid, performer in performers.items():
+            meta = self._instance_metadata.get(nid, {})
+            if meta.get('role') == 'director':
+                self._director_performer = performer
+                self._directed_mode = True
+                # Tell the panel about the director
+                if self._window:
+                    self._window.set_director(nid, performer.name)
+                    self._window.set_view_mode('stage')
+                logger.info(
+                    f"Directed ensemble: {performer.name} is the director"
+                )
+                break
+
         # PLAYING state switches to Performance tab
         self._set_performance_state(PerformanceState.PLAYING)
 
@@ -707,6 +739,10 @@ class GuidePerformanceManager:
 
         # Execute opening scene (if set has beats)
         self._execute_opening_scene()
+
+        # In directed mode, fire the first beat automatically
+        if self._directed_mode and not self._opening_active:
+            self._generate_next_beat()
 
     def start_ensemble(self, play_title: str = "Ensemble"):
         """
@@ -818,6 +854,26 @@ class GuidePerformanceManager:
         self._set_performance_state(PerformanceState.PLAYING)
 
         logger.info(f"Ensemble started: {play_title} (Ajo + Yuki)")
+
+    def _wire_director_performer(self, performer: NoodlingPerformer,
+                                  noodling_id: str):
+        """Wire a director performer's signals.
+
+        The director produces beat JSON, not dialogue. Its execution
+        result routes to _on_director_result for parsing and dispatch.
+        No VRM or dialogue wiring needed (backstage).
+
+        Args:
+            performer: NoodlingPerformer for the director
+            noodling_id: Director's instance ID
+        """
+        performer.executionFinished.connect(
+            lambda nid=noodling_id: self._on_director_result(nid)
+        )
+        performer.errorOccurred.connect(
+            lambda msg, nid=noodling_id: self._on_ensemble_error(nid, msg)
+        )
+        logger.info(f"Director performer wired: {performer.name} ({noodling_id})")
 
     def _wire_ensemble_performer(self, performer: NoodlingPerformer,
                                   window, noodling_id: str):
@@ -1138,8 +1194,9 @@ class GuidePerformanceManager:
         """
         Start the ensemble turn-taking sequence.
 
-        User types a message -> Ajo responds first -> Yuki responds next
-        (aware of what Ajo said) -> wait for user.
+        In directed mode, cancels auto-advance and fires the director
+        with the user message. In improv mode, starts sequential
+        turn-taking.
 
         Args:
             message: The user's message text
@@ -1150,18 +1207,30 @@ class GuidePerformanceManager:
                 self._window.set_busy(False)
             return
 
-        self._turn_responses = {}
-        # Only queue performers that are not paused (ensemble_active = ON)
-        self._turn_queue = [
-            nid for nid, p in self._performers.items() if not p.paused
-        ]
-        self._pending_message = message
-
         # Record user message in shared ensemble history
         self._ensemble_history.append({
             'role': 'User',
             'content': message,
         })
+
+        # Directed mode: route to director
+        if self._directed_mode and self._director_performer:
+            # Cancel auto-advance timer if running
+            if self._auto_advance_timer:
+                self._auto_advance_timer.stop()
+                self._auto_advance_timer = None
+            self._generate_next_beat(user_message=message)
+            return
+
+        # Improv mode: sequential turn-taking
+        self._turn_responses = {}
+        # Only queue performers that are not paused and not directors
+        self._turn_queue = [
+            nid for nid, p in self._performers.items()
+            if not p.paused
+            and self._instance_metadata.get(nid, {}).get('role') != 'director'
+        ]
+        self._pending_message = message
 
         # Start events are emitted per-noodling in _advance_ensemble_turn()
         self._advance_ensemble_turn()
@@ -1500,6 +1569,89 @@ class GuidePerformanceManager:
         beat_duration = (max_tick * tick_ms) + 2000  # 2s buffer
         QTimer.singleShot(beat_duration, self._on_beat_finished)
 
+    def _generate_next_beat(self, user_message: str = None):
+        """Fire the director's assembly to produce the next beat.
+
+        Builds rich context (character descriptions, scene, history)
+        and executes the director's assembly. The result is handled
+        by _on_director_result() via the executionFinished signal.
+
+        Args:
+            user_message: User's message (None for auto-advance)
+        """
+        if not self._director_performer:
+            return
+
+        self._beat_count += 1
+
+        if self._window:
+            self._window.set_offstage_status("Generating...")
+            self._window.set_input_enabled(False)
+
+        # Build context for the director's prompt
+        director_nid = self._director_performer.noodling_id
+        extra_context = {
+            'stage_context': self._build_scene_context(director_nid),
+            'ensemble_history': self._format_ensemble_history(),
+            'conversation_history': self._format_ensemble_history(),
+            'character_descriptions': self._format_character_descriptions(),
+        }
+
+        incoming = user_message or '[Scene continues]'
+
+        logger.info(
+            f"Generating beat {self._beat_count} "
+            f"(user: {bool(user_message)})"
+        )
+
+        self._director_performer.execute(incoming, extra_context)
+
+    def _on_director_result(self, noodling_id: str):
+        """Handle director assembly completion.
+
+        Parses the beat JSON from the director's response and
+        schedules events for dispatch to performer text boxes.
+        """
+        if not self._director_performer:
+            return
+
+        response = self._director_performer.last_response
+        if not response:
+            logger.warning("Director produced no response")
+            if self._window:
+                self._window.set_offstage_status("No response")
+                self._window.set_input_enabled(True)
+            return
+
+        beat = self._parse_directed_beat(response)
+        if not beat:
+            logger.warning(f"Could not parse directed beat: {response[:100]}")
+            if self._window:
+                self._window.set_offstage_status("Parse error")
+                self._window.set_input_enabled(True)
+            return
+
+        if self._window:
+            self._window.set_offstage_status(
+                f"Beat {self._beat_count} -- playing"
+            )
+            self._window.clear_character_text()
+
+        self._schedule_beat(beat)
+
+    def _auto_advance_beat(self):
+        """Auto-advance: generate the next beat when no user input.
+
+        Called by the auto-advance timer after a beat finishes.
+        """
+        self._auto_advance_timer = None
+        if self._performance_state != PerformanceState.PLAYING:
+            return
+        if not self._directed_mode:
+            return
+        logger.info("Auto-advancing beat (no user input)")
+        self._generate_next_beat()
+
     def _on_beat_finished(self):
         """Called when all events in a directed beat have played.
 
@@ -1508,6 +1660,42 @@ class GuidePerformanceManager:
         logger.info("Directed beat finished")
         if self._window:
             self._window.set_offstage_status("Waiting for input")
+            self._window.set_input_enabled(True)
+
+        # Start auto-advance timer
+        if self._directed_mode and self._performance_state == PerformanceState.PLAYING:
+            self._auto_advance_timer = QTimer()
+            self._auto_advance_timer.setSingleShot(True)
+            self._auto_advance_timer.timeout.connect(self._auto_advance_beat)
+            self._auto_advance_timer.start(self._auto_advance_delay_ms)
+
+    def _format_character_descriptions(self) -> str:
+        """Format character descriptions for the director's prompt.
+
+        Returns a block describing each non-director performer
+        with their ID, name, appearance, and personality.
+        """
+        lines = []
+        for nid, meta in self._instance_metadata.items():
+            if meta.get('role') == 'director':
+                continue
+
+            performer = self._performers.get(nid)
+            if not performer or performer.paused:
+                continue
+
+            name = meta.get('name', nid)
+            appearance = meta.get('appearance', '')
+            description = meta.get('description', '')
+
+            lines.append(f"- {name} (id: {nid})")
+            if description:
+                lines.append(f"  {description}")
+            if appearance:
+                lines.append(f"  Appearance: {appearance[:200]}")
+            lines.append("")
+
+        return "\n".join(lines) if lines else "(No characters)"
 
     # =========================================================================
     # OPENING SCENE EXECUTION

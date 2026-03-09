@@ -1,0 +1,242 @@
+name: Director Assembly
+version: 1.0.0
+description: "Brenda -- scene director. Writes structured beats for the ensemble."
+author: "noodlings.ai"
+tags:
+  - director
+created: "2026-03-09"
+modified: "2026-03-09"
+
+facets:
+  - id: incoming
+    name: INCOMING
+    type: INCOMING
+    prompt: ''
+    model: SMALL
+    temperature: 0.7
+    max_tokens: 150
+    inputs: []
+    outputs:
+      - name: out
+        type: output
+        description: ''
+        required: true
+    position:
+      x: 100
+      y: 250
+    color: '#64B5F6'
+    enabled: true
+    locked: false
+
+  - id: scene_writer
+    name: Scene Writer
+    type: LLM
+    prompt: >
+      You are a dramaturg directing an intimate scene. You know every character
+      deeply -- their voice, their history, their relationships, their body
+      language. You write the next beat of the scene as a structured sequence
+      of actions, dialogue, thoughts, and expressions.
+
+      RULES:
+      - Each character speaks in their own distinct voice.
+      - Actions and dialogue can overlap in time (use tick offsets).
+        Tick 0 is the start of the beat. Each tick is ~100ms.
+      - Include THOUGHT lines for characters when their internal reaction
+        matters -- these are invisible to other characters but visible to
+        the author in the Cognition panel.
+      - Include expression cues (observable facial/body state) for each action.
+      - Keep beats short. 3-6 events per beat. Leave room for the next beat.
+      - If the user has spoken, incorporate their message as an event in the
+        scene. They are a visitor to the cafe, not a director.
+
+      OUTPUT FORMAT:
+      You must respond with a JSON object in this exact format:
+
+      ```json
+      {
+        "type": "directed_beat",
+        "events": [
+          {
+            "character": "character_id",
+            "tick": 0,
+            "type": "spoken",
+            "text": "dialogue text"
+          },
+          {
+            "character": "character_id",
+            "tick": 5,
+            "type": "action",
+            "text": "physical action description",
+            "expression": {"emotion_name": 0.0}
+          },
+          {
+            "character": "character_id",
+            "tick": 10,
+            "type": "thought",
+            "text": "internal thought"
+          }
+        ],
+        "narration": "Optional brief scene narration."
+      }
+      ```
+
+      Valid event types: "spoken", "action", "thought"
+      Valid character IDs: Use the character IDs listed below.
+      Expression values: 0.0 to 1.0, optional.
+
+      CHARACTERS:
+      {character_descriptions}
+
+      SCENE:
+      {stage_context}
+
+      WHAT JUST HAPPENED:
+      {ensemble_history}
+
+      USER INPUT (if any):
+      {incoming_data}
+
+      Write the next beat as a JSON object. Nothing else.
+    model: LARGE
+    temperature: 0.7
+    max_tokens: 800
+    inputs:
+      - name: in
+        type: input
+        description: ''
+        required: true
+    outputs:
+      - name: out
+        type: output
+        description: ''
+        required: true
+    position:
+      x: 400
+      y: 250
+    color: '#9575CD'
+    enabled: true
+    locked: false
+
+  - id: beat_formatter
+    name: Beat Formatter
+    type: ScriptedFacet
+    prompt: |
+      // Beat Formatter -- validates and normalizes directed_beat JSON
+      // from the Scene Writer LLM output.
+
+      function process(inputs, context) {
+        var raw = inputs['in'] || '';
+
+        // Try to extract JSON from markdown code fences
+        var fenceMatch = raw.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
+        if (fenceMatch) {
+          raw = fenceMatch[1].trim();
+        }
+
+        var beat;
+        try {
+          beat = JSON.parse(raw.trim());
+        } catch (e) {
+          // Try to find JSON object in the raw text
+          var start = raw.indexOf('{');
+          var end = raw.lastIndexOf('}');
+          if (start >= 0 && end > start) {
+            try {
+              beat = JSON.parse(raw.substring(start, end + 1));
+            } catch (e2) {
+              return { out: JSON.stringify({
+                type: 'directed_beat',
+                events: [],
+                error: 'Could not parse beat JSON'
+              })};
+            }
+          } else {
+            return { out: JSON.stringify({
+              type: 'directed_beat',
+              events: [],
+              error: 'No JSON found in output'
+            })};
+          }
+        }
+
+        // Validate structure
+        if (!beat.events || !Array.isArray(beat.events)) {
+          beat.events = [];
+        }
+
+        // Normalize events
+        var events = [];
+        for (var i = 0; i < beat.events.length; i++) {
+          var ev = beat.events[i];
+          if (!ev.character || !ev.text) continue;
+          events.push({
+            character: String(ev.character).toLowerCase(),
+            tick: parseInt(ev.tick) || 0,
+            type: ev.type || 'spoken',
+            text: String(ev.text),
+            expression: ev.expression || undefined
+          });
+        }
+
+        // Sort by tick for deterministic dispatch order
+        events.sort(function(a, b) { return a.tick - b.tick; });
+
+        return {
+          out: JSON.stringify({
+            type: 'directed_beat',
+            events: events,
+            narration: beat.narration || ''
+          })
+        };
+      }
+    model: SMALL
+    temperature: 0.7
+    max_tokens: 150
+    inputs:
+      - name: in
+        type: input
+        description: ''
+        required: true
+    outputs:
+      - name: out
+        type: output
+        description: ''
+        required: true
+    position:
+      x: 700
+      y: 250
+    color: '#64B5F6'
+    enabled: true
+    locked: false
+
+  - id: outgoing
+    name: OUTGOING
+    type: OUTGOING
+    prompt: ''
+    model: SMALL
+    temperature: 0.7
+    max_tokens: 150
+    inputs:
+      - name: in
+        type: input
+        description: ''
+        required: true
+    outputs: []
+    position:
+      x: 950
+      y: 250
+    color: '#64B5F6'
+    enabled: true
+    locked: false
+
+connections:
+  - from: incoming.out
+    to: scene_writer.in
+  - from: scene_writer.out
+    to: beat_formatter.in
+  - from: beat_formatter.out
+    to: outgoing.in
+
+channels:
+  subscribe: []
+  publish: []

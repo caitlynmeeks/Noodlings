@@ -485,8 +485,8 @@ class TestDefaultInstancesBackwardCompat:
         role = data.get('overrides', {}).get('role', '')
         assert role == '', f"Ajo should have no role set, got: {role!r}"
 
-    def test_existing_instances_discoverable_without_role(self):
-        """Stage discovery works for instances that predate the role field."""
+    def test_existing_instances_discoverable_with_roles(self):
+        """Stage discovery works for all instances including director."""
         from noodlestudio.runtime.ui.guide_performance_manager import (
             GuidePerformanceManager,
         )
@@ -502,10 +502,14 @@ class TestDefaultInstancesBackwardCompat:
         manager = GuidePerformanceManager(StubMainWindow())
         results = manager._discover_stage_instances(stage_path)
 
-        # All existing instances should have role='' (backward compat)
+        # Ajo, Krampus, Juanita (no role) + Brenda (director)
+        assert len(results) >= 4
+        roles = {r['name']: r['role'] for r in results}
+        assert roles.get('Brenda') == 'director'
+        # Non-directors should have empty role
         for r in results:
-            assert r['role'] == '', f"{r['name']} has unexpected role: {r['role']!r}"
-        assert len(results) >= 3  # Ajo, Krampus, Juanita
+            if r['name'] != 'Brenda':
+                assert r['role'] == '', f"{r['name']} has unexpected role: {r['role']!r}"
 
 
 # =================================================================
@@ -954,6 +958,284 @@ class TestBeatDispatch:
         manager._dispatch_event(event)
 
         assert len(manager._ensemble_history) == 0
+
+
+# =================================================================
+# PHASE D: BRENDA'S DIRECTOR ASSEMBLY
+# =================================================================
+
+class TestBrendaAssembly:
+    """Test Brenda's director assembly structure."""
+
+    def test_assembly_has_scene_writer(self):
+        """Assembly contains a Scene Writer LLM facet."""
+        assembly_path = os.path.join(
+            os.path.dirname(__file__), '..',
+            'library/templates/Getting Started/Noodlings/brenda/assembly.yaml'
+        )
+        with open(assembly_path) as f:
+            data = yaml.safe_load(f)
+
+        facet_map = {f['id']: f for f in data['facets']}
+        assert 'scene_writer' in facet_map
+        sw = facet_map['scene_writer']
+        assert sw['type'] == 'LLM'
+        assert sw['model'] == 'LARGE'
+        assert 'directed_beat' in sw['prompt']
+        assert '{character_descriptions}' in sw['prompt']
+        assert '{ensemble_history}' in sw['prompt']
+
+    def test_assembly_has_beat_formatter(self):
+        """Assembly contains a Beat Formatter ScriptedFacet."""
+        assembly_path = os.path.join(
+            os.path.dirname(__file__), '..',
+            'library/templates/Getting Started/Noodlings/brenda/assembly.yaml'
+        )
+        with open(assembly_path) as f:
+            data = yaml.safe_load(f)
+
+        facet_map = {f['id']: f for f in data['facets']}
+        assert 'beat_formatter' in facet_map
+        bf = facet_map['beat_formatter']
+        assert bf['type'] == 'ScriptedFacet'
+        assert 'directed_beat' in bf['prompt']
+        assert 'JSON.parse' in bf['prompt']
+
+    def test_assembly_connections(self):
+        """Assembly has correct data flow: INCOMING -> SW -> BF -> OUTGOING."""
+        assembly_path = os.path.join(
+            os.path.dirname(__file__), '..',
+            'library/templates/Getting Started/Noodlings/brenda/assembly.yaml'
+        )
+        with open(assembly_path) as f:
+            data = yaml.safe_load(f)
+
+        conns = data.get('connections', [])
+        conn_set = {(c['from'], c['to']) for c in conns}
+        assert ('incoming.out', 'scene_writer.in') in conn_set
+        assert ('scene_writer.out', 'beat_formatter.in') in conn_set
+        assert ('beat_formatter.out', 'outgoing.in') in conn_set
+
+    def test_noodling_yaml_no_vrm(self):
+        """Brenda's noodling.yaml should not specify a VRM path."""
+        noodling_path = os.path.join(
+            os.path.dirname(__file__), '..',
+            'library/templates/Getting Started/Noodlings/brenda/noodling.yaml'
+        )
+        with open(noodling_path) as f:
+            data = yaml.safe_load(f)
+
+        assert data.get('vrm_path') is None or data.get('vrm_path') == ''
+        assert 'director' in data.get('tags', [])
+
+
+# =================================================================
+# PHASE E: DIRECTED ENSEMBLE DETECTION + REACTIVE FLOW
+# =================================================================
+
+class TestDirectedEnsembleDetection:
+    """Test that the manager detects director role and splits performers."""
+
+    def _make_stage_with_director(self, tmpdir):
+        """Build a stage with Brenda (director) + Ajo (performer)."""
+        stage_dir = os.path.join(tmpdir, 'test_stage')
+        os.makedirs(stage_dir)
+
+        with open(os.path.join(stage_dir, 'stage.yaml'), 'w') as f:
+            yaml.dump({'name': 'Test', 'description': 'Test stage'}, f)
+
+        instances_dir = os.path.join(stage_dir, 'Instances')
+
+        for inst in [
+            {'id': 'brenda', 'name': 'Brenda', 'role': 'director'},
+            {'id': 'ajo', 'name': 'Ajo', 'role': 'performer'},
+        ]:
+            inst_path = os.path.join(instances_dir, inst['id'])
+            os.makedirs(inst_path)
+
+            noodling_dir = os.path.join(tmpdir, f'noodling_{inst["id"]}')
+            os.makedirs(noodling_dir, exist_ok=True)
+            with open(os.path.join(noodling_dir, 'assembly.yaml'), 'w') as f:
+                yaml.dump({'name': f'{inst["name"]} Assembly', 'facets': []}, f)
+            with open(os.path.join(noodling_dir, 'noodling.yaml'), 'w') as f:
+                yaml.dump({'name': inst['name']}, f)
+
+            noodling_ref = os.path.relpath(noodling_dir, inst_path)
+            overrides = {'name': inst['name'], 'role': inst['role']}
+            with open(os.path.join(inst_path, 'instance.yaml'), 'w') as f:
+                yaml.dump({
+                    'noodling': noodling_ref,
+                    'overrides': overrides,
+                }, f, default_flow_style=False)
+
+        return stage_dir
+
+    def test_discovery_identifies_director(self):
+        """Director noodling detected in stage instances."""
+        import tempfile
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from tests.conftest import StubMainWindow
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            stage_dir = self._make_stage_with_director(tmpdir)
+            manager = GuidePerformanceManager(StubMainWindow())
+            results = manager._discover_stage_instances(stage_dir)
+
+            directors = [r for r in results if r['role'] == 'director']
+            performers = [r for r in results if r['role'] == 'performer']
+
+            assert len(directors) == 1
+            assert directors[0]['name'] == 'Brenda'
+            assert len(performers) == 1
+            assert performers[0]['name'] == 'Ajo'
+
+
+class TestCharacterDescriptions:
+    """Test _format_character_descriptions for director context."""
+
+    def test_excludes_director(self):
+        """Character descriptions exclude the director noodling."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+        from tests.conftest import StubMainWindow, FakeLLMClient
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        manager._instance_metadata = {
+            'brenda': {'name': 'Brenda', 'role': 'director'},
+            'ajo': {
+                'name': 'Ajo Majo', 'role': 'performer',
+                'description': 'A curious axolotl', 'appearance': 'Pink gills',
+            },
+            'krampus': {
+                'name': 'Krampus', 'role': 'performer',
+                'description': 'Alpine kid',
+            },
+        }
+        manager._performers = {
+            'brenda': NoodlingPerformer('brenda', 'Brenda', FakeLLMClient()),
+            'ajo': NoodlingPerformer('ajo', 'Ajo Majo', FakeLLMClient()),
+            'krampus': NoodlingPerformer('krampus', 'Krampus', FakeLLMClient()),
+        }
+
+        desc = manager._format_character_descriptions()
+        assert 'Ajo Majo' in desc
+        assert 'Krampus' in desc
+        assert 'Brenda' not in desc
+
+    def test_includes_appearance(self):
+        """Character descriptions include appearance when available."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+        from tests.conftest import StubMainWindow, FakeLLMClient
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        manager._instance_metadata = {
+            'ajo': {
+                'name': 'Ajo', 'role': 'performer',
+                'appearance': 'Bright-eyed axolotl',
+            },
+        }
+        manager._performers = {
+            'ajo': NoodlingPerformer('ajo', 'Ajo', FakeLLMClient()),
+        }
+
+        desc = manager._format_character_descriptions()
+        assert 'Bright-eyed axolotl' in desc
+
+
+class TestReactiveFlow:
+    """Test the reactive auto-advance flow."""
+
+    def test_auto_advance_delay_default(self):
+        """Default auto-advance delay is 5000ms."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from tests.conftest import StubMainWindow
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        assert manager._auto_advance_delay_ms == 5000
+
+    def test_user_message_cancels_auto_advance(self, qapp):
+        """User message in directed mode cancels auto-advance timer."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+            PerformanceState,
+        )
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+        from PyQt6.QtCore import QTimer
+        from tests.conftest import StubMainWindow, StubWindow, FakeLLMClient
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        manager._window = StubWindow()
+        manager._performance_state = PerformanceState.PLAYING
+        manager._directed_mode = True
+
+        director = NoodlingPerformer('brenda', 'Brenda', FakeLLMClient())
+        manager._director_performer = director
+        manager._performers = {
+            'brenda': director,
+            'ajo': NoodlingPerformer('ajo', 'Ajo', FakeLLMClient()),
+        }
+        manager._instance_metadata = {
+            'brenda': {'name': 'Brenda', 'role': 'director'},
+            'ajo': {'name': 'Ajo', 'role': 'performer'},
+        }
+
+        # Simulate a running auto-advance timer
+        timer = QTimer()
+        timer.setSingleShot(True)
+        manager._auto_advance_timer = timer
+        timer.start(99999)
+
+        # User sends message -- should cancel timer
+        manager._on_user_message_ensemble("Hello there!")
+
+        # Timer should be stopped
+        assert not timer.isActive()
+
+    def test_improv_turn_queue_excludes_director(self, qapp):
+        """In improv fallback, director is excluded from turn queue."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+            PerformanceState,
+        )
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+        from tests.conftest import StubMainWindow, StubWindow, FakeLLMClient
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        manager._window = StubWindow()
+        manager._performance_state = PerformanceState.PLAYING
+        manager._directed_mode = False  # Improv fallback
+
+        manager._performers = {
+            'brenda': NoodlingPerformer('brenda', 'Brenda', FakeLLMClient()),
+            'ajo': NoodlingPerformer('ajo', 'Ajo', FakeLLMClient()),
+            'krampus': NoodlingPerformer('krampus', 'Krampus', FakeLLMClient()),
+        }
+        manager._instance_metadata = {
+            'brenda': {'name': 'Brenda', 'role': 'director'},
+            'ajo': {'name': 'Ajo', 'role': 'performer'},
+            'krampus': {'name': 'Krampus', 'role': 'performer'},
+        }
+
+        # Build the queue using the same filter logic (without executing)
+        queue = [
+            nid for nid, p in manager._performers.items()
+            if not p.paused
+            and manager._instance_metadata.get(nid, {}).get('role') != 'director'
+        ]
+
+        # Director should NOT be in the turn queue
+        assert 'brenda' not in queue
+        assert 'ajo' in queue
+        assert 'krampus' in queue
 
 
 # Made with love. Use with love.

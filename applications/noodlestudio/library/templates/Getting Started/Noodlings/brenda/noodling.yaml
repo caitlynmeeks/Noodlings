@@ -1,0 +1,13 @@
+name: "Brenda"
+description: "Dramaturg and scene director -- writes scene beats for the ensemble to perform"
+author: "noodlings.ai"
+version: "1.0.0"
+created: "2026-03-09T00:00:00Z"
+
+# No VRM -- Brenda is backstage, not visible on stage
+# vrm_path: ""
+
+tags:
+  - director
+  - dramaturg
+  - backstage
