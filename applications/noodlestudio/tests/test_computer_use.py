@@ -38,6 +38,8 @@ from unittest.mock import MagicMock, patch
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtWidgets import QApplication, QLineEdit, QPushButton, QTabBar
 
+pytestmark = pytest.mark.slow
+
 
 # ============================================================================
 # Fixtures

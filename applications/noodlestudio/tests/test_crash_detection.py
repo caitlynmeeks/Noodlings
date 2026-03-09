@@ -39,6 +39,8 @@ from pathlib import Path
 from datetime import datetime
 from unittest.mock import patch, MagicMock
 
+pytestmark = pytest.mark.slow
+
 # Import the crash detection and single-instance functions
 from noodlestudio.main import (
     SENTINEL_DIR,
