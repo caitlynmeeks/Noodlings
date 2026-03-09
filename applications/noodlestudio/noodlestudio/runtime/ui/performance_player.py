@@ -245,19 +245,26 @@ if QT_AVAILABLE:
                 self._set_speaking(True)
                 self._reveal_next_streaming()
 
-        def _flush_line_buffer(self):
+        def _flush_line_buffer(self, add_newline: bool = True):
             """Process a completed line from the streaming buffer.
 
             Detects tag prefix, emits formatChanged if type changed,
             strips the prefix, and adds the content to the stream buffer
             (unless the line is a THOUGHT, which is silently dropped).
+
+            Args:
+                add_newline: If True (default), appends '\\n' after the content
+                    (used when the line ended with an actual newline in the stream).
+                    Pass False when flushing a partial line at stream end so no
+                    spurious '\\n' is appended.
             """
             line = self._line_buffer
             self._line_buffer = ''
 
             if not line.strip():
                 # Empty line -- add the newline separator to stream buffer
-                self._stream_buffer += '\n'
+                if add_newline:
+                    self._stream_buffer += '\n'
                 return
 
             # Detect tag prefix
@@ -278,14 +285,14 @@ if QT_AVAILABLE:
                 self._current_format = new_format
                 self.formatChanged.emit(new_format)
 
-            # Add stripped content to stream buffer (with trailing newline)
-            self._stream_buffer += content + '\n'
+            # Add stripped content to stream buffer
+            self._stream_buffer += content + ('\n' if add_newline else '')
 
         def finish_streaming(self):
             """Mark stream as done. Flushes line buffer, then drains stream buffer."""
-            # Flush any partial line that didn't end with \n
+            # Flush any partial line that didn't end with \n -- no trailing newline
             if self._line_buffer:
-                self._flush_line_buffer()
+                self._flush_line_buffer(add_newline=False)
 
             self._stream_done = True
             # If we never started (very short response), start now
