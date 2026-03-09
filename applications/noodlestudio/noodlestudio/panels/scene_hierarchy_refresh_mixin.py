@@ -316,6 +316,12 @@ class SceneHierarchyRefreshMixin:
 
         item.setData(0, Qt.ItemDataRole.UserRole, entity_data)
 
+        # Append role indicator for noodlings (after entity_data loaded from disk)
+        if node.node_type == SceneNodeType.NOODLING:
+            role = entity_data.get('data', {}).get('overrides', {}).get('role', '')
+            if role:
+                item.setText(0, f"{node.name} [{role.capitalize()}]")
+
         # Track mappings
         self._item_id_to_node_id[id(item)] = node.id
         self._node_id_to_item[node.id] = item
@@ -480,13 +486,17 @@ class SceneHierarchyRefreshMixin:
                     display_name = overrides.get('name', inst_name)
                     noodling_ref = inst_data.get('noodling', '')
                     zone = overrides.get('zone', 'default')
+                    role = overrides.get('role', '')
                     agent_id = f"agent_{inst_name}"
+
+                    # Role indicator suffix for display
+                    role_suffix = f" [{role.capitalize()}]" if role else ""
 
                     # Add to scene graph as root (parent_id=None)
                     inst_node = self.scene_graph.create_node(
                         display_name, SceneNodeType.NOODLING, None, inst_path)
 
-                    inst_item = QTreeWidgetItem([display_name, ""])  # Two columns
+                    inst_item = QTreeWidgetItem([display_name + role_suffix, ""])  # Two columns
                     entity_data = {
                         'type': 'noodling',
                         'id': agent_id,

@@ -100,6 +100,15 @@ class EntityInspectorMixin:
         description = recipe_data.get('description', agent.get('description', 'An empty noodling...'))
         self.property_fields['description'] = self.add_text_area(basics_group, "Description", description)
 
+        # ===== ROLE (dropdown) =====
+        role_options = ['(None)', 'Director', 'Performer']
+        current_role = self._get_instance_override(entity_data, 'role', '')
+        current_role_display = current_role.capitalize() if current_role else '(None)'
+        self.property_fields['role'] = self.add_dropdown_field(
+            basics_group, "Role", current_role_display, role_options,
+            on_change=lambda name: self._on_role_changed(name, entity_data)
+        )
+
         # ===== VRM MODEL (dropdown) =====
         vrm_items = self._discover_vrm_for_dropdown()
         vrm_options = ['(None)'] + [item['name'] for item in vrm_items]
@@ -291,6 +300,20 @@ class EntityInspectorMixin:
             agent_id = entity_data.get('id', '')
             if hasattr(self, 'noodlingPropertyChanged'):
                 self.noodlingPropertyChanged.emit(agent_id, 'visible', checked)
+
+    def _on_role_changed(self, role_name: str, entity_data: dict):
+        """Handle role dropdown change."""
+        if self.is_loading:
+            return
+        instance_path = entity_data.get('path', '')
+        if not instance_path:
+            return
+
+        role_value = role_name.lower() if role_name != '(None)' else ''
+        self._save_instance_override(instance_path, 'role', role_value)
+        agent_id = entity_data.get('id', '')
+        if hasattr(self, 'noodlingPropertyChanged'):
+            self.noodlingPropertyChanged.emit(agent_id, 'role', role_value)
 
     # ========== MARK HELPERS ==========
 

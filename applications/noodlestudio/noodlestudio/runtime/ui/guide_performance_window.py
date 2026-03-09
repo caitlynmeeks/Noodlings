@@ -189,6 +189,10 @@ if QT_AVAILABLE:
             # Track current segment type for append_character() styling
             self._current_char_fmt = 'spoken'  # 'spoken' | 'action' | 'thought'
 
+            # Director tracking for offstage section
+            self._director_noodling_id = None
+            self._director_name = None
+
             # Apply initial ensemble visibility
             if not ensemble_mode:
                 self.set_ensemble_visible(False)
@@ -240,6 +244,27 @@ if QT_AVAILABLE:
             """)
             header_layout.addWidget(self.header_label, stretch=1)
 
+            # View toggle: Script (interleaved) vs Stage (per-character columns)
+            self._view_toggle_btn = QPushButton("Stage View")
+            self._view_toggle_btn.setFixedHeight(20)
+            self._view_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._view_toggle_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    border: 1px solid #444;
+                    border-radius: 3px;
+                    color: #888;
+                    font-size: 10px;
+                    padding: 1px 8px;
+                }
+                QPushButton:hover {
+                    color: #D2D2D2;
+                    border-color: #666;
+                }
+            """)
+            self._view_toggle_btn.clicked.connect(self._toggle_view_mode)
+            header_layout.addWidget(self._view_toggle_btn)
+
             main_layout.addWidget(header_frame)
 
             # --- VRM Viewport Area (always ensemble layout: 3 slots) ---
@@ -249,11 +274,131 @@ if QT_AVAILABLE:
 
             self._build_ensemble_vrm_area(main_layout)
 
+            # --- Per-Character Text Areas (Stage View) ---
+            self._char_text_views = {}
+            self._char_text_row = QFrame()
+            self._char_text_row.setStyleSheet(
+                "QFrame { background-color: #1A1A1A; border: none; }"
+            )
+            char_text_layout = QHBoxLayout(self._char_text_row)
+            char_text_layout.setContentsMargins(0, 0, 0, 0)
+            char_text_layout.setSpacing(1)
+
+            _CHAR_TEXT_STYLE = """
+                QTextEdit {
+                    background-color: #1A1A1A;
+                    border: none;
+                    border-top: 1px solid #2A2A2A;
+                    color: #B0B0B0;
+                    font-family: 'SF Mono', 'Source Code Pro', monospace;
+                    font-size: 11px;
+                    padding: 6px;
+                    selection-background-color: #3A3A3A;
+                }
+                QScrollBar:vertical {
+                    background: #1A1A1A;
+                    width: 4px;
+                }
+                QScrollBar::handle:vertical {
+                    background: #3A3A3A;
+                    border-radius: 2px;
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    height: 0px;
+                }
+            """
+
+            for slot_key in ('left', 'center', 'right'):
+                text_view = QTextEdit()
+                text_view.setReadOnly(True)
+                text_view.setStyleSheet(_CHAR_TEXT_STYLE)
+                char_text_layout.addWidget(text_view, stretch=1)
+                self._char_text_views[slot_key] = text_view
+
+            self._char_text_row.hide()  # Hidden until Stage View is active
+            main_layout.addWidget(self._char_text_row, stretch=1)
+
+            # --- Offstage Section (Director visibility) ---
+            self._offstage_section = QFrame()
+            self._offstage_section.setStyleSheet("""
+                QFrame {
+                    background-color: #151515;
+                    border-top: 1px solid #2A2A2A;
+                }
+            """)
+            offstage_layout = QVBoxLayout(self._offstage_section)
+            offstage_layout.setContentsMargins(8, 4, 8, 4)
+            offstage_layout.setSpacing(2)
+
+            # Offstage header (clickable to expand/collapse beat sheet)
+            offstage_header = QHBoxLayout()
+            offstage_header.setSpacing(6)
+
+            offstage_label_text = QLabel("Offstage")
+            offstage_label_text.setStyleSheet(
+                "color: #666; font-size: 10px; font-weight: bold; "
+                "font-family: 'SF Mono', monospace; background: transparent;"
+            )
+            offstage_header.addWidget(offstage_label_text)
+
+            # Separator line
+            sep = QFrame()
+            sep.setFrameShape(QFrame.Shape.HLine)
+            sep.setStyleSheet("color: #333;")
+            offstage_header.addWidget(sep, stretch=1)
+
+            offstage_layout.addLayout(offstage_header)
+
+            # Director name + status line
+            self._offstage_status = QLabel("")
+            self._offstage_status.setStyleSheet(
+                "color: #888; font-size: 10px; "
+                "font-family: 'SF Mono', monospace; background: transparent;"
+            )
+            offstage_layout.addWidget(self._offstage_status)
+
+            # Beat sheet details (collapsible)
+            self._offstage_beat_view = QTextEdit()
+            self._offstage_beat_view.setReadOnly(True)
+            self._offstage_beat_view.setMaximumHeight(100)
+            self._offstage_beat_view.setStyleSheet("""
+                QTextEdit {
+                    background-color: #111;
+                    border: none;
+                    color: #666;
+                    font-family: 'SF Mono', monospace;
+                    font-size: 10px;
+                    padding: 4px;
+                }
+                QScrollBar:vertical {
+                    background: #111; width: 4px;
+                }
+                QScrollBar::handle:vertical {
+                    background: #333; border-radius: 2px;
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    height: 0px;
+                }
+            """)
+            self._offstage_beat_view.hide()  # Collapsed by default
+            offstage_layout.addWidget(self._offstage_beat_view)
+
+            # Click offstage header to toggle beat sheet
+            offstage_label_text.setCursor(Qt.CursorShape.PointingHandCursor)
+            offstage_label_text.mousePressEvent = lambda _: (
+                self._offstage_beat_view.setVisible(
+                    not self._offstage_beat_view.isVisible()
+                )
+            )
+
+            self._offstage_section.hide()  # Hidden until director is present
+            main_layout.addWidget(self._offstage_section)
+
             # --- Thinking Indicator ---
             self.thinking_indicator = _ThinkingIndicator()
             main_layout.addWidget(self.thinking_indicator)
 
-            # --- Dialogue Display ---
+            # --- Dialogue Display (Script View -- interleaved) ---
             self.dialogue_view = QTextEdit()
             self.dialogue_view.setReadOnly(True)
             self.dialogue_view.setStyleSheet("""
@@ -279,6 +424,9 @@ if QT_AVAILABLE:
                 }
             """)
             main_layout.addWidget(self.dialogue_view, stretch=1)
+
+            # View mode state (default: script = interleaved)
+            self._view_mode = 'script'
 
             # --- Input Area ---
             input_frame = QFrame()
@@ -430,6 +578,170 @@ if QT_AVAILABLE:
                 container = self._vrm_containers.get(slot_key)
                 if container:
                     container.setVisible(visible)
+
+        # =================================================================
+        # VIEW MODE (Stage View vs Script View)
+        # =================================================================
+
+        def _toggle_view_mode(self):
+            """Toggle between Stage View (per-character) and Script View (interleaved)."""
+            if self._view_mode == 'script':
+                self.set_view_mode('stage')
+            else:
+                self.set_view_mode('script')
+
+        def set_view_mode(self, mode: str):
+            """Switch between 'stage' and 'script' view modes.
+
+            Stage View: per-character text areas below VRM viewports,
+            offstage section visible if director present.
+
+            Script View: interleaved single-stream dialogue (current behavior).
+
+            Args:
+                mode: 'stage' or 'script'
+            """
+            self._view_mode = mode
+
+            if mode == 'stage':
+                self._char_text_row.show()
+                self.dialogue_view.hide()
+                self._view_toggle_btn.setText("Script View")
+                # Show offstage section if director is present
+                if self._director_noodling_id:
+                    self._offstage_section.show()
+                # Hide center/right text areas if not ensemble
+                if not self._ensemble_mode:
+                    for slot in ('center', 'right'):
+                        view = self._char_text_views.get(slot)
+                        if view:
+                            view.hide()
+            else:
+                self._char_text_row.hide()
+                self._offstage_section.hide()
+                self.dialogue_view.show()
+                self._view_toggle_btn.setText("Stage View")
+
+        # =================================================================
+        # DIRECTOR / OFFSTAGE
+        # =================================================================
+
+        def set_director(self, noodling_id: str, name: str):
+            """Configure the director for this performance.
+
+            Shows the offstage section in Stage View mode with the
+            director's name. Call with None to clear.
+
+            Args:
+                noodling_id: Director's instance ID (or None to clear)
+                name: Director's display name
+            """
+            self._director_noodling_id = noodling_id
+            self._director_name = name
+
+            if noodling_id:
+                self._offstage_status.setText(
+                    f"[{name}]  Waiting for input"
+                )
+                if self._view_mode == 'stage':
+                    self._offstage_section.show()
+            else:
+                self._offstage_section.hide()
+                self._offstage_status.setText("")
+
+        def set_offstage_status(self, text: str):
+            """Update the offstage status line.
+
+            Args:
+                text: Status text (e.g. "generating...", "Beat 4 ready")
+            """
+            name = self._director_name or "Director"
+            self._offstage_status.setText(f"[{name}]  {text}")
+
+        def append_offstage_beat(self, beat_text: str):
+            """Append beat sheet text to the offstage details area.
+
+            Args:
+                beat_text: Formatted beat breakdown text
+            """
+            cursor = self._offstage_beat_view.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            fmt = QTextCharFormat()
+            fmt.setForeground(QColor(102, 102, 102))
+            cursor.setCharFormat(fmt)
+            cursor.insertText(beat_text + "\n")
+            self._offstage_beat_view.setTextCursor(cursor)
+
+        def clear_offstage_beats(self):
+            """Clear the offstage beat sheet."""
+            self._offstage_beat_view.clear()
+
+        # =================================================================
+        # PER-CHARACTER EVENT DISPATCH (Stage View)
+        # =================================================================
+
+        def append_character_event(self, noodling_id: str,
+                                    event_type: str, text: str):
+            """Append an event to a character's per-character text area.
+
+            Used in directed ensemble mode. Each event appears in the
+            correct character's column with type-appropriate styling.
+
+            Args:
+                noodling_id: Which character's column to write to
+                event_type: 'spoken', 'action', or 'thought'
+                text: Event text
+            """
+            slot = self._get_slot(noodling_id)
+            text_view = self._char_text_views.get(slot)
+            if not text_view:
+                return
+
+            cursor = text_view.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+
+            fmt = QTextCharFormat()
+
+            if event_type == 'action':
+                fmt.setForeground(QColor(153, 153, 153))  # #999
+                fmt.setFontItalic(True)
+                cursor.setCharFormat(fmt)
+                cursor.insertText(f"{text}\n")
+            elif event_type == 'thought':
+                fmt.setForeground(QColor(102, 102, 102))  # #666 dimmer
+                fmt.setFontItalic(True)
+                cursor.setCharFormat(fmt)
+                cursor.insertText(f"{text}\n")
+            else:
+                # Spoken (default)
+                color = self._noodling_colors.get(
+                    noodling_id, self._noodling_colors['default']
+                )
+                fmt.setForeground(color)
+                fmt.setFontItalic(False)
+                cursor.setCharFormat(fmt)
+                cursor.insertText(f"{text}\n")
+
+            text_view.setTextCursor(cursor)
+            # Auto-scroll
+            scrollbar = text_view.verticalScrollBar()
+            scrollbar.setValue(scrollbar.maximum())
+
+        def clear_character_text(self, noodling_id: str = None):
+            """Clear per-character text areas.
+
+            Args:
+                noodling_id: Clear only this character's area, or None for all
+            """
+            if noodling_id:
+                slot = self._noodling_to_slot.get(noodling_id)
+                if slot:
+                    view = self._char_text_views.get(slot)
+                    if view:
+                        view.clear()
+            else:
+                for view in self._char_text_views.values():
+                    view.clear()
 
         # =================================================================
         # VRM SLOT ROUTING
@@ -693,8 +1005,10 @@ if QT_AVAILABLE:
             self.header_label.setText(title)
 
         def clear_dialogue(self):
-            """Clear the dialogue display."""
+            """Clear the dialogue display (both views)."""
             self.dialogue_view.clear()
+            self.clear_character_text()
+            self.clear_offstage_beats()
             self._current_char_fmt = 'spoken'
 
         def dim_dialogue(self):
@@ -1024,6 +1338,13 @@ if not QT_AVAILABLE:
         def end_guide_text(self): pass
         def append_user_text(self, text): pass
         def on_format_changed(self, fmt): pass
+        def set_view_mode(self, mode): pass
+        def set_director(self, noodling_id, name): pass
+        def set_offstage_status(self, text): pass
+        def append_offstage_beat(self, text): pass
+        def clear_offstage_beats(self): pass
+        def append_character_event(self, noodling_id, event_type, text): pass
+        def clear_character_text(self, noodling_id=None): pass
 
     # Backward-compatible alias
     GuidePerformanceWindow = PerformancePanel

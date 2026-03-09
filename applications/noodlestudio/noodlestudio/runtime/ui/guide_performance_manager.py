@@ -469,6 +469,7 @@ class GuidePerformanceManager:
             ensemble_active = overrides.get('ensemble_active', True)
             visible = overrides.get('visible', True)
             mark = overrides.get('mark', '')
+            role = overrides.get('role', '')
 
             # Load noodling.yaml for VRM path and description
             vrm_path = None
@@ -531,6 +532,7 @@ class GuidePerformanceManager:
                 'ensemble_active': ensemble_active,
                 'visible': visible,
                 'mark': mark,
+                'role': role,
             })
 
         return results
@@ -1367,6 +1369,145 @@ class GuidePerformanceManager:
         meta = self._instance_metadata.get(noodling_id)
         if meta:
             meta['mark'] = mark_id
+
+    def update_role(self, noodling_id: str, role: str):
+        """Update a noodling's role at runtime (from Inspector).
+
+        Stores the role in instance metadata. Runtime behavior changes
+        (directed vs improv execution paths) will be wired in Phase C.
+        """
+        meta = self._instance_metadata.get(noodling_id)
+        if meta:
+            meta['role'] = role
+            logger.info(f"Role updated: {noodling_id} -> {role or '(none)'}")
+
+    # =========================================================================
+    # DIRECTED ENSEMBLE: BEAT PARSING + DISPATCH
+    # =========================================================================
+
+    def _parse_directed_beat(self, raw_text: str) -> dict:
+        """Parse a directed_beat JSON from director output.
+
+        Handles raw JSON, or JSON wrapped in markdown code fences.
+        Returns the parsed beat dict if valid, or None if unparseable
+        or wrong type.
+
+        Args:
+            raw_text: Raw text output from the director's assembly
+
+        Returns:
+            Beat dict with 'type', 'events', and optional 'narration',
+            or None if invalid
+        """
+        import json
+        import re
+
+        if not raw_text:
+            return None
+
+        text = raw_text.strip()
+
+        # Try to extract JSON from markdown code fence
+        fence_match = re.search(
+            r'```(?:json)?\s*\n(.*?)\n```', text, re.DOTALL
+        )
+        if fence_match:
+            text = fence_match.group(1).strip()
+
+        try:
+            beat = json.loads(text)
+        except (json.JSONDecodeError, ValueError):
+            logger.warning("Could not parse directed beat as JSON")
+            return None
+
+        if not isinstance(beat, dict):
+            return None
+        if beat.get('type') != 'directed_beat':
+            return None
+        if not isinstance(beat.get('events'), list):
+            return None
+
+        return beat
+
+    def _dispatch_event(self, event: dict):
+        """Dispatch a single directed beat event to a performer.
+
+        Routes the event text to the correct character's text area
+        in the performance panel. Records spoken and action events
+        in ensemble history.
+
+        Args:
+            event: Dict with 'character', 'tick', 'type', 'text',
+                   and optional 'expression'
+        """
+        nid = event.get('character', '')
+        performer = self._performers.get(nid)
+        if not performer:
+            return
+
+        event_type = event.get('type', 'spoken')
+        text = event.get('text', '')
+
+        # Route to per-character text area
+        if self._window:
+            self._window.append_character_event(nid, event_type, text)
+
+        # Store in ensemble history (spoken + action only, not thought)
+        if event_type in ('spoken', 'action'):
+            content = text if event_type == 'spoken' else f"ACTION: {text}"
+            self._ensemble_history.append({
+                'role': performer.name,
+                'content': content,
+            })
+
+    def _schedule_beat(self, beat: dict, tick_ms: int = 100):
+        """Schedule all events in a directed beat with tick-based timing.
+
+        Events fire at their designated tick offset using QTimer.singleShot.
+        After the last event fires (plus a buffer for typing animation),
+        calls _on_beat_finished().
+
+        Args:
+            beat: Parsed directed_beat dict
+            tick_ms: Duration of one tick in milliseconds (default 100ms)
+        """
+        events = beat.get('events', [])
+        if not events:
+            return
+
+        # Log beat to offstage
+        if self._window:
+            for ev in events:
+                char = ev.get('character', '?')
+                tick = ev.get('tick', 0)
+                etype = ev.get('type', '?')
+                text = ev.get('text', '')
+                self._window.append_offstage_beat(
+                    f"  n+{tick}  CUE {char}: {etype} -- {text[:50]}"
+                )
+
+            narration = beat.get('narration')
+            if narration:
+                self._window.display_narration(narration)
+
+        # Schedule each event
+        for event in events:
+            delay = event.get('tick', 0) * tick_ms
+            QTimer.singleShot(delay, lambda e=event: self._dispatch_event(e))
+
+        # Calculate when beat ends (last tick + buffer for typing)
+        max_tick = max(e.get('tick', 0) for e in events)
+        beat_duration = (max_tick * tick_ms) + 2000  # 2s buffer
+        QTimer.singleShot(beat_duration, self._on_beat_finished)
+
+    def _on_beat_finished(self):
+        """Called when all events in a directed beat have played.
+
+        Starts the input window timer for auto-advance behavior.
+        """
+        logger.info("Directed beat finished")
+        if self._window:
+            self._window.set_offstage_status("Waiting for input")
 
     # =========================================================================
     # OPENING SCENE EXECUTION
