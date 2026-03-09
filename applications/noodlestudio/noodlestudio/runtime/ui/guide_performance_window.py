@@ -284,34 +284,43 @@ if QT_AVAILABLE:
             char_text_layout.setContentsMargins(0, 0, 0, 0)
             char_text_layout.setSpacing(1)
 
-            _CHAR_TEXT_STYLE = """
-                QTextEdit {
+            _CHAR_TEXT_BASE = """
+                QTextEdit {{
                     background-color: #1A1A1A;
                     border: none;
                     border-top: 1px solid #2A2A2A;
+                    {border_right}
                     color: #B0B0B0;
                     font-family: 'SF Mono', 'Source Code Pro', monospace;
                     font-size: 11px;
                     padding: 6px;
                     selection-background-color: #3A3A3A;
-                }
-                QScrollBar:vertical {
+                }}
+                QScrollBar:vertical {{
                     background: #1A1A1A;
                     width: 4px;
-                }
-                QScrollBar::handle:vertical {
+                }}
+                QScrollBar::handle:vertical {{
                     background: #3A3A3A;
                     border-radius: 2px;
-                }
-                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                }}
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                     height: 0px;
-                }
+                }}
             """
 
             for slot_key in ('left', 'center', 'right'):
+                # Add right border on left and center columns as delimiter
+                border_right = (
+                    "border-right: 1px solid #2A2A2A;"
+                    if slot_key != 'right' else ""
+                )
                 text_view = QTextEdit()
                 text_view.setReadOnly(True)
-                text_view.setStyleSheet(_CHAR_TEXT_STYLE)
+                text_view.setPlaceholderText("Ready")
+                text_view.setStyleSheet(
+                    _CHAR_TEXT_BASE.format(border_right=border_right)
+                )
                 char_text_layout.addWidget(text_view, stretch=1)
                 self._char_text_views[slot_key] = text_view
 
@@ -320,6 +329,7 @@ if QT_AVAILABLE:
 
             # --- Offstage Section (Director visibility) ---
             self._offstage_section = QFrame()
+            self._offstage_section.setMinimumHeight(60)
             self._offstage_section.setStyleSheet("""
                 QFrame {
                     background-color: #151515;
@@ -360,7 +370,7 @@ if QT_AVAILABLE:
             # Beat sheet details (collapsible)
             self._offstage_beat_view = QTextEdit()
             self._offstage_beat_view.setReadOnly(True)
-            self._offstage_beat_view.setMaximumHeight(100)
+            self._offstage_beat_view.setMaximumHeight(160)
             self._offstage_beat_view.setStyleSheet("""
                 QTextEdit {
                     background-color: #111;

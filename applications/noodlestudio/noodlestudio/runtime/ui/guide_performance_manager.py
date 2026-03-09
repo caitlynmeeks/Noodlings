@@ -650,8 +650,22 @@ class GuidePerformanceManager:
             else:
                 self._wire_performer_to_window(performer, self._window)
 
+        # Pre-assign VRM slots for non-director performers (stable name order)
+        # This prevents first-come-first-served slot assignment from
+        # depending on VRM load timing or signal firing order.
+        visible_instances = [
+            info for info in instances
+            if self._instance_metadata.get(
+                info['noodling_id'], {}
+            ).get('role') != 'director'
+        ]
+        if ensemble and self._window:
+            slots = ['left', 'center', 'right']
+            for i, info in enumerate(visible_instances[:3]):
+                self._window._noodling_to_slot[info['noodling_id']] = slots[i]
+
         # Load VRM files or show name cards from stage instance data
-        for info in instances:
+        for info in visible_instances:
             if info['vrm_path']:
                 if ensemble:
                     self._window.set_vrm(
@@ -667,7 +681,7 @@ class GuidePerformanceManager:
 
         # Set performer names in ensemble mode
         if ensemble:
-            for info in instances:
+            for info in visible_instances:
                 self._window.set_performer_name(
                     info['noodling_id'], info['name']
                 )
@@ -729,6 +743,23 @@ class GuidePerformanceManager:
                 )
                 break
 
+        # Resolve stage display name (from stage.yaml, not dir name)
+        if play_title and self._stage_description is not None:
+            # Check if play_title is just the directory name
+            stage_yaml = Path(stage_path) / 'stage.yaml'
+            if stage_yaml.exists():
+                try:
+                    with open(stage_yaml) as f:
+                        stage_data = yaml.safe_load(f) or {}
+                    stage_display_name = stage_data.get('name', play_title)
+                    if stage_display_name:
+                        play_title = stage_display_name
+                        self._play_title = play_title
+                        if self._window:
+                            self._window.show_play_header(play_title)
+                except Exception:
+                    pass
+
         # PLAYING state switches to Performance tab
         self._set_performance_state(PerformanceState.PLAYING)
 
@@ -737,12 +768,12 @@ class GuidePerformanceManager:
             f"({', '.join(p.name for p in performers.values())})"
         )
 
-        # Execute opening scene (if set has beats)
-        self._execute_opening_scene()
-
-        # In directed mode, fire the first beat automatically
-        if self._directed_mode and not self._opening_active:
+        if self._directed_mode:
+            # Directed mode: skip opening scene (Brenda generates beats)
             self._generate_next_beat()
+        else:
+            # Improv mode: execute opening scene (if set has beats)
+            self._execute_opening_scene()
 
     def start_ensemble(self, play_title: str = "Ensemble"):
         """
