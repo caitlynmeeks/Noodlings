@@ -548,16 +548,20 @@ class TestViewMode:
         assert not panel.dialogue_view.isHidden()
         assert panel._char_text_row.isHidden()
 
-    def test_toggle_button_changes_label(self, qapp):
-        """Toggle button text reflects current mode."""
+    def test_segmented_control_reflects_mode(self, qapp):
+        """Segmented control highlights active mode."""
         from noodlestudio.runtime.ui.guide_performance_window import PerformancePanel
         panel = PerformancePanel(ensemble_mode=True)
 
-        assert panel._view_toggle_btn.text() == "Stage View"  # Can switch to stage
+        # Default: script mode -- Script segment active
+        assert panel._view_mode == 'script'
+        assert panel._seg_active_style in panel._seg_script.styleSheet()
+        assert panel._seg_inactive_style in panel._seg_stage.styleSheet()
         panel.set_view_mode('stage')
-        assert panel._view_toggle_btn.text() == "Script View"  # Can switch back
+        assert panel._seg_active_style in panel._seg_stage.styleSheet()
+        assert panel._seg_inactive_style in panel._seg_script.styleSheet()
         panel.set_view_mode('script')
-        assert panel._view_toggle_btn.text() == "Stage View"
+        assert panel._seg_active_style in panel._seg_script.styleSheet()
 
     def test_three_char_text_views_exist(self, qapp):
         """Three per-character text areas created for left/center/right."""
@@ -840,6 +844,7 @@ class TestBeatDispatch:
                 dispatched.append((nid, etype, text))
             def append_offstage_beat(self, text):
                 pass
+            def append_screenplay_line(self, *a): pass
 
         manager = GuidePerformanceManager(StubMainWindow())
         manager._window = TrackingWindow()
@@ -891,6 +896,7 @@ class TestBeatDispatch:
         class SilentWindow:
             def append_character_event(self, *a): pass
             def append_offstage_beat(self, *a): pass
+            def append_screenplay_line(self, *a): pass
 
         manager = GuidePerformanceManager(StubMainWindow())
         manager._window = SilentWindow()
@@ -919,6 +925,7 @@ class TestBeatDispatch:
         class SilentWindow:
             def append_character_event(self, *a): pass
             def append_offstage_beat(self, *a): pass
+            def append_screenplay_line(self, *a): pass
 
         manager = GuidePerformanceManager(StubMainWindow())
         manager._window = SilentWindow()
@@ -945,6 +952,7 @@ class TestBeatDispatch:
         class SilentWindow:
             def append_character_event(self, *a): pass
             def append_offstage_beat(self, *a): pass
+            def append_screenplay_line(self, *a): pass
 
         manager = GuidePerformanceManager(StubMainWindow())
         manager._window = SilentWindow()
@@ -1259,6 +1267,7 @@ class TestCharacterIdResolution:
             def append_character_event(self, nid, etype, text):
                 dispatched.append((nid, etype, text))
             def append_offstage_beat(self, *a): pass
+            def append_screenplay_line(self, *a): pass
 
         manager = GuidePerformanceManager(StubMainWindow())
         manager._window = TrackingWindow()
@@ -1438,7 +1447,7 @@ class TestOffstageLayout:
         )
 
         panel = PerformancePanel()
-        assert panel._offstage_section.minimumHeight() >= 120
+        assert panel._offstage_section.minimumHeight() >= 80
 
     def test_set_offstage_beat_text(self, qapp):
         """set_offstage_beat_text replaces content and shows the view."""

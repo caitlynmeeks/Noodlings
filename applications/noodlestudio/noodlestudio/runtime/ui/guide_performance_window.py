@@ -47,12 +47,12 @@ logger = logging.getLogger(__name__)
 
 try:
     from PyQt6.QtWidgets import (
-        QWidget, QVBoxLayout, QHBoxLayout,
+        QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
         QTextEdit, QLineEdit, QPushButton, QLabel, QFrame
     )
-    from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+    from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QSettings
     from PyQt6.QtGui import (
-        QTextCursor, QColor, QTextCharFormat
+        QTextCursor, QColor, QTextCharFormat, QKeySequence, QShortcut
     )
     QT_AVAILABLE = True
 except ImportError:
@@ -197,6 +197,20 @@ if QT_AVAILABLE:
             if not ensemble_mode:
                 self.set_ensemble_visible(False)
 
+            # Font scaling (persisted via QSettings)
+            settings = QSettings("noodlings", "PerformancePanel")
+            self._font_scale = settings.value("font_scale", 1.0, type=float)
+            if self._font_scale != 1.0:
+                self._apply_font_scale()
+
+            # Keyboard shortcuts: Cmd+= zoom in, Cmd+- zoom out
+            QShortcut(
+                QKeySequence("Ctrl+="), self
+            ).activated.connect(self.zoom_in)
+            QShortcut(
+                QKeySequence("Ctrl+-"), self
+            ).activated.connect(self.zoom_out)
+
             logger.info(
                 f"PerformancePanel created (ensemble={ensemble_mode})"
             )
@@ -209,6 +223,64 @@ if QT_AVAILABLE:
         def ensemble_mode(self) -> bool:
             """Whether this panel is in ensemble mode."""
             return self._ensemble_mode
+
+        # =================================================================
+        # FONT SCALING
+        # =================================================================
+
+        def zoom_in(self):
+            """Increase font scale (Cmd+=)."""
+            self._font_scale = min(self._font_scale + 0.1, 2.0)
+            self._apply_font_scale()
+
+        def zoom_out(self):
+            """Decrease font scale (Cmd+-)."""
+            self._font_scale = max(self._font_scale - 0.1, 0.6)
+            self._apply_font_scale()
+
+        def _apply_font_scale(self):
+            """Apply current font scale to all text areas and persist."""
+            import re
+            _BASE = {
+                'dialogue': 12, 'char_text': 11,
+                'offstage_beat': 10, 'offstage_status': 10,
+                'name_bar': 11,
+            }
+
+            def _set_pt(widget, base):
+                f = widget.font()
+                f.setPointSizeF(base * self._font_scale)
+                widget.setFont(f)
+
+            def _scale_ss(widget, base):
+                px = int(base * self._font_scale)
+                ss = re.sub(
+                    r'font-size:\s*\d+px',
+                    f'font-size: {px}px',
+                    widget.styleSheet()
+                )
+                widget.setStyleSheet(ss)
+
+            # Dialogue view (script mode)
+            _set_pt(self.dialogue_view, _BASE['dialogue'])
+
+            # Per-character text views (stage mode swim lanes)
+            for view in self._char_text_views.values():
+                _set_pt(view, _BASE['char_text'])
+
+            # Offstage beat view and status label
+            if hasattr(self, '_offstage_beat_view'):
+                _set_pt(self._offstage_beat_view, _BASE['offstage_beat'])
+            if hasattr(self, '_offstage_status_label'):
+                _set_pt(self._offstage_status_label, _BASE['offstage_status'])
+
+            # Name bar labels (stylesheet-based sizing)
+            for label in self._performer_labels.values():
+                _scale_ss(label, _BASE['name_bar'])
+
+            # Persist
+            settings = QSettings("noodlings", "PerformancePanel")
+            settings.setValue("font_scale", self._font_scale)
 
         # =================================================================
         # UI CONSTRUCTION
@@ -244,26 +316,62 @@ if QT_AVAILABLE:
             """)
             header_layout.addWidget(self.header_label, stretch=1)
 
-            # View toggle: Script (interleaved) vs Stage (per-character columns)
-            self._view_toggle_btn = QPushButton("Stage View")
-            self._view_toggle_btn.setFixedHeight(20)
-            self._view_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            self._view_toggle_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: transparent;
-                    border: 1px solid #444;
-                    border-radius: 3px;
-                    color: #888;
-                    font-size: 10px;
-                    padding: 1px 8px;
-                }
-                QPushButton:hover {
-                    color: #D2D2D2;
-                    border-color: #666;
-                }
-            """)
-            self._view_toggle_btn.clicked.connect(self._toggle_view_mode)
-            header_layout.addWidget(self._view_toggle_btn)
+            # View toggle: segmented control [ Script | Stage ]
+            _SEG_ACTIVE = (
+                "background-color: #3A3A3A; color: #D0D0D0; "
+                "border: 1px solid #555; font-size: 10px; "
+                "padding: 1px 8px; font-weight: bold;"
+            )
+            _SEG_INACTIVE = (
+                "background-color: #1A1A1A; color: #666; "
+                "border: 1px solid #333; font-size: 10px; "
+                "padding: 1px 8px;"
+            )
+
+            seg_frame = QFrame()
+            seg_frame.setStyleSheet("QFrame { background: transparent; }")
+            seg_layout = QHBoxLayout(seg_frame)
+            seg_layout.setContentsMargins(0, 0, 0, 0)
+            seg_layout.setSpacing(0)
+
+            self._seg_script = QPushButton("Script")
+            self._seg_script.setFixedHeight(20)
+            self._seg_script.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._seg_script.setStyleSheet(_SEG_ACTIVE)
+            self._seg_script.clicked.connect(lambda: self.set_view_mode('script'))
+            seg_layout.addWidget(self._seg_script)
+
+            self._seg_stage = QPushButton("Stage")
+            self._seg_stage.setFixedHeight(20)
+            self._seg_stage.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._seg_stage.setStyleSheet(_SEG_INACTIVE)
+            self._seg_stage.clicked.connect(lambda: self.set_view_mode('stage'))
+            seg_layout.addWidget(self._seg_stage)
+
+            self._seg_active_style = _SEG_ACTIVE
+            self._seg_inactive_style = _SEG_INACTIVE
+
+            header_layout.addWidget(seg_frame)
+
+            # Font size controls (A- / A+)
+            _FONT_BTN = (
+                "QPushButton { background: transparent; border: none; "
+                "color: #666; font-size: 11px; padding: 1px 4px; } "
+                "QPushButton:hover { color: #D0D0D0; }"
+            )
+            btn_font_down = QPushButton("A-")
+            btn_font_down.setFixedHeight(20)
+            btn_font_down.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_font_down.setStyleSheet(_FONT_BTN)
+            btn_font_down.clicked.connect(self.zoom_out)
+            header_layout.addWidget(btn_font_down)
+
+            btn_font_up = QPushButton("A+")
+            btn_font_up.setFixedHeight(20)
+            btn_font_up.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_font_up.setStyleSheet(_FONT_BTN)
+            btn_font_up.clicked.connect(self.zoom_in)
+            header_layout.addWidget(btn_font_up)
 
             main_layout.addWidget(header_frame)
 
@@ -272,64 +380,89 @@ if QT_AVAILABLE:
             self._vrm_container_layouts = {}
             self._vrm_placeholders = {}
 
-            self._build_ensemble_vrm_area(main_layout)
+            # Splitter style (thin dark handles)
+            _SPLITTER_STYLE = """
+                QSplitter::handle {
+                    background-color: #333;
+                }
+                QSplitter::handle:vertical {
+                    height: 2px;
+                }
+                QSplitter::handle:horizontal {
+                    width: 2px;
+                }
+            """
 
-            # --- Per-Character Text Areas (Stage View) ---
-            self._char_text_views = {}
-            self._char_text_row = QFrame()
-            self._char_text_row.setStyleSheet(
-                "QFrame { background-color: #1A1A1A; border: none; }"
+            # --- Main vertical splitter: VRM row | text content ---
+            self._main_splitter = QSplitter(Qt.Orientation.Vertical)
+            self._main_splitter.setStyleSheet(_SPLITTER_STYLE)
+            self._main_splitter.setChildrenCollapsible(False)
+
+            # VRM section (name bar + viewports)
+            vrm_section = QWidget()
+            vrm_section.setStyleSheet(
+                "QWidget { background-color: #020204; }"
             )
-            char_text_layout = QHBoxLayout(self._char_text_row)
-            char_text_layout.setContentsMargins(0, 0, 0, 0)
-            char_text_layout.setSpacing(1)
+            vrm_section_layout = QVBoxLayout(vrm_section)
+            vrm_section_layout.setContentsMargins(0, 0, 0, 0)
+            vrm_section_layout.setSpacing(0)
+            self._build_ensemble_vrm_area(vrm_section_layout)
+            self._main_splitter.addWidget(vrm_section)
 
-            _CHAR_TEXT_BASE = """
-                QTextEdit {{
+            # --- Content splitter: text areas | offstage ---
+            self._content_splitter = QSplitter(Qt.Orientation.Vertical)
+            self._content_splitter.setStyleSheet(_SPLITTER_STYLE)
+            self._content_splitter.setChildrenCollapsible(False)
+
+            # --- Per-Character Text Areas (Stage View, horizontal splitter) ---
+            self._char_text_views = {}
+            self._char_text_splitter = QSplitter(Qt.Orientation.Horizontal)
+            self._char_text_splitter.setStyleSheet(_SPLITTER_STYLE)
+            self._char_text_splitter.setChildrenCollapsible(False)
+
+            _CHAR_TEXT_STYLE = """
+                QTextEdit {
                     background-color: #1A1A1A;
                     border: none;
                     border-top: 1px solid #2A2A2A;
-                    {border_right}
                     color: #B0B0B0;
                     font-family: 'SF Mono', 'Source Code Pro', monospace;
                     font-size: 11px;
                     padding: 6px;
                     selection-background-color: #3A3A3A;
-                }}
-                QScrollBar:vertical {{
+                }
+                QScrollBar:vertical {
                     background: #1A1A1A;
                     width: 4px;
-                }}
-                QScrollBar::handle:vertical {{
+                }
+                QScrollBar::handle:vertical {
                     background: #3A3A3A;
                     border-radius: 2px;
-                }}
-                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                     height: 0px;
-                }}
+                }
             """
 
             for slot_key in ('left', 'center', 'right'):
-                # Add right border on left and center columns as delimiter
-                border_right = (
-                    "border-right: 1px solid #2A2A2A;"
-                    if slot_key != 'right' else ""
-                )
                 text_view = QTextEdit()
                 text_view.setReadOnly(True)
                 text_view.setPlaceholderText("Ready")
-                text_view.setStyleSheet(
-                    _CHAR_TEXT_BASE.format(border_right=border_right)
-                )
-                char_text_layout.addWidget(text_view, stretch=1)
+                text_view.setStyleSheet(_CHAR_TEXT_STYLE)
+                self._char_text_splitter.addWidget(text_view)
                 self._char_text_views[slot_key] = text_view
 
+            # Equal initial split
+            self._char_text_splitter.setSizes([1, 1, 1])
+
+            # Wrap char text splitter in a container for show/hide
+            self._char_text_row = self._char_text_splitter
             self._char_text_row.hide()  # Hidden until Stage View is active
-            main_layout.addWidget(self._char_text_row, stretch=1)
+            self._content_splitter.addWidget(self._char_text_row)
 
             # --- Offstage Section (Director visibility) ---
             self._offstage_section = QFrame()
-            self._offstage_section.setMinimumHeight(120)
+            self._offstage_section.setMinimumHeight(80)
             self._offstage_section.setStyleSheet("""
                 QFrame {
                     background-color: #151515;
@@ -365,6 +498,8 @@ if QT_AVAILABLE:
                 "color: #B0B0B0; font-size: 10px; "
                 "font-family: 'SF Mono', monospace; background: transparent;"
             )
+            # Store reference for font scaling
+            self._offstage_status_label = self._offstage_status
             offstage_layout.addWidget(self._offstage_status)
 
             # Beat sheet details (collapsible)
@@ -400,11 +535,7 @@ if QT_AVAILABLE:
             )
 
             self._offstage_section.hide()  # Hidden until director is present
-            main_layout.addWidget(self._offstage_section)
-
-            # --- Thinking Indicator ---
-            self.thinking_indicator = _ThinkingIndicator()
-            main_layout.addWidget(self.thinking_indicator)
+            self._content_splitter.addWidget(self._offstage_section)
 
             # --- Dialogue Display (Script View -- interleaved) ---
             self.dialogue_view = QTextEdit()
@@ -431,7 +562,21 @@ if QT_AVAILABLE:
                     height: 0px;
                 }
             """)
-            main_layout.addWidget(self.dialogue_view, stretch=1)
+            self._content_splitter.addWidget(self.dialogue_view)
+
+            # Set initial content splitter proportions
+            self._content_splitter.setSizes([300, 100])
+
+            self._main_splitter.addWidget(self._content_splitter)
+
+            # Set initial main splitter proportions (40% VRM, 60% text)
+            self._main_splitter.setSizes([200, 300])
+
+            main_layout.addWidget(self._main_splitter, stretch=1)
+
+            # --- Thinking Indicator ---
+            self.thinking_indicator = _ThinkingIndicator()
+            main_layout.addWidget(self.thinking_indicator)
 
             # View mode state (default: script = interleaved)
             self._view_mode = 'script'
@@ -614,7 +759,6 @@ if QT_AVAILABLE:
             if mode == 'stage':
                 self._char_text_row.show()
                 self.dialogue_view.hide()
-                self._view_toggle_btn.setText("Script View")
                 # Show offstage section if director is present
                 if self._director_noodling_id:
                     self._offstage_section.show()
@@ -628,7 +772,16 @@ if QT_AVAILABLE:
                 self._char_text_row.hide()
                 self._offstage_section.hide()
                 self.dialogue_view.show()
-                self._view_toggle_btn.setText("Stage View")
+
+            # Update segmented control
+            self._seg_script.setStyleSheet(
+                self._seg_active_style if mode == 'script'
+                else self._seg_inactive_style
+            )
+            self._seg_stage.setStyleSheet(
+                self._seg_active_style if mode == 'stage'
+                else self._seg_inactive_style
+            )
 
         # =================================================================
         # DIRECTOR / OFFSTAGE
@@ -1079,15 +1232,82 @@ if QT_AVAILABLE:
             self.input_field.setEnabled(enabled)
             self.send_button.setEnabled(enabled)
 
+        def _timestamp(self) -> str:
+            """Return current HH:MM:SS timestamp for screenplay lines."""
+            from datetime import datetime
+            return datetime.now().strftime("%H:%M:%S")
+
+        def _insert_timestamp(self, cursor: QTextCursor):
+            """Insert a dim fixed-width timestamp prefix at cursor position."""
+            fmt = QTextCharFormat()
+            fmt.setForeground(QColor(85, 85, 85))  # #555
+            cursor.setCharFormat(fmt)
+            cursor.insertText(f"{self._timestamp()}  ")
+
         def display_narration(self, text: str):
-            """Display narration text -- no speaker, dimmed italic."""
+            """Display narration text -- no speaker, dimmed italic, timestamped."""
             cursor = self.dialogue_view.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
+            self._insert_timestamp(cursor)
             fmt = QTextCharFormat()
             fmt.setForeground(QColor(136, 136, 136))  # #888
             fmt.setFontItalic(True)
             cursor.setCharFormat(fmt)
             cursor.insertText(f"{text}\n\n")
+            self.dialogue_view.setTextCursor(cursor)
+            self._scroll_to_bottom()
+
+        def append_screenplay_line(self, noodling_id: str, name: str,
+                                    event_type: str, text: str):
+            """Append a screenplay-format line to the script view dialogue.
+
+            Used in directed ensemble mode so script view shows the full
+            interlaced scene alongside timestamps.
+
+            Formatting:
+                spoken:  "HH:MM:SS  AJO MAJO: text"
+                action:  "HH:MM:SS  *Ajo text*"  (italic, dimmed)
+                thought: "HH:MM:SS  (Juanita thinks: text)"  (very dim)
+
+            Args:
+                noodling_id: Character identifier for color lookup
+                name: Display name of the character
+                event_type: 'spoken', 'action', or 'thought'
+                text: Event text
+            """
+            cursor = self.dialogue_view.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            self._insert_timestamp(cursor)
+
+            fmt = QTextCharFormat()
+
+            if event_type == 'action':
+                fmt.setForeground(QColor(153, 153, 153))  # #999
+                fmt.setFontItalic(True)
+                cursor.setCharFormat(fmt)
+                cursor.insertText(f"*{name} {text}*\n")
+            elif event_type == 'thought':
+                fmt.setForeground(QColor(102, 102, 102))  # #666
+                fmt.setFontItalic(True)
+                cursor.setCharFormat(fmt)
+                cursor.insertText(f"({name} thinks: {text})\n")
+            else:
+                # Spoken
+                color = self._noodling_colors.get(
+                    noodling_id, self._noodling_colors['default']
+                )
+                # Name in bold uppercase
+                name_fmt = QTextCharFormat()
+                name_fmt.setForeground(color)
+                name_fmt.setFontWeight(700)
+                cursor.setCharFormat(name_fmt)
+                cursor.insertText(f"{name.upper()}: ")
+                # Text in normal weight
+                text_fmt = QTextCharFormat()
+                text_fmt.setForeground(color)
+                cursor.setCharFormat(text_fmt)
+                cursor.insertText(f"{text}\n")
+
             self.dialogue_view.setTextCursor(cursor)
             self._scroll_to_bottom()
 
@@ -1242,13 +1462,14 @@ if QT_AVAILABLE:
 
         def append_user_text(self, text: str):
             """
-            Append user text to the dialogue.
+            Append user text to the dialogue, timestamped.
 
             Args:
                 text: User's message text
             """
             cursor = self.dialogue_view.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
+            self._insert_timestamp(cursor)
 
             fmt = QTextCharFormat()
             fmt.setBackground(QColor(60, 60, 60))
@@ -1259,7 +1480,7 @@ if QT_AVAILABLE:
             for i, line in enumerate(lines):
                 if i > 0:
                     cursor.insertText('\n')
-                cursor.insertText(f"\u2b44 {line}" if line.strip() else "\u2b44")
+                cursor.insertText(f"> {line}" if line.strip() else ">")
 
             cursor.setCharFormat(QTextCharFormat())
             cursor.insertText('\n\n')
@@ -1397,6 +1618,7 @@ if not QT_AVAILABLE:
         def set_offstage_beat_text(self, text): pass
         def append_beat_separator(self): pass
         def append_character_event(self, noodling_id, event_type, text): pass
+        def append_screenplay_line(self, noodling_id, name, event_type, text): pass
         def clear_character_text(self, noodling_id=None): pass
 
     # Backward-compatible alias

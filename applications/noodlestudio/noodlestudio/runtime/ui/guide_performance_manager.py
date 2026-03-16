@@ -1613,9 +1613,15 @@ class GuidePerformanceManager:
         event_type = event.get('type', 'spoken')
         text = event.get('text', '')
 
-        # Route to per-character text area
+        # Route to per-character text area (stage view)
         if self._window:
             self._window.append_character_event(nid, event_type, text)
+
+        # Route to script view dialogue (screenplay format)
+        if self._window:
+            self._window.append_screenplay_line(
+                nid, performer.name, event_type, text
+            )
 
         # Store in ensemble history (spoken + action only, not thought)
         if event_type in ('spoken', 'action'):
@@ -1648,7 +1654,7 @@ class GuidePerformanceManager:
                 etype = ev.get('type', '?')
                 text = ev.get('text', '')
                 self._window.append_offstage_beat(
-                    f"  n+{tick}  CUE {char}: {etype} -- {text[:50]}"
+                    f"  n+{tick}  CUE {char}: {etype} -- {text}"
                 )
 
             narration = beat.get('narration')

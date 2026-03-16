@@ -497,6 +497,9 @@ class StubWindow:
     def append_character_event(self, noodling_id, event_type, text):
         pass
 
+    def append_screenplay_line(self, noodling_id, name, event_type, text):
+        pass
+
     def clear_character_text(self, noodling_id=None):
         pass
 
