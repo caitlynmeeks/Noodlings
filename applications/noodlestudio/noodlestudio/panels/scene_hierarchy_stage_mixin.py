@@ -34,6 +34,7 @@
 
 import os
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 
 
@@ -69,8 +70,14 @@ class SceneHierarchyStageMixin:
                             except:
                                 pass
 
-                        display_text = f"{display_name} ({stage_name})"
+                        display_text = display_name
                         self.stage_selector.addItem(display_text, stage_name)
+                        # Show full info in tooltip
+                        idx = self.stage_selector.count() - 1
+                        self.stage_selector.setItemData(
+                            idx, f"{display_name} ({stage_name})",
+                            Qt.ItemDataRole.ToolTipRole
+                        )
 
                         # Select current stage
                         if stage_name == self.current_stage:

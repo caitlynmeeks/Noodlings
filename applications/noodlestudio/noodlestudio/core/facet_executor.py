@@ -317,6 +317,37 @@ class FacetExecutor:
             except Exception as e:
                 logger.error(f"Debug log callback failed: {e}")
 
+    @staticmethod
+    def _safe_format_prompt(template: str, variables: dict) -> str:
+        """Substitute {variable_name} placeholders in a prompt template.
+
+        Unlike str.format(), this only replaces patterns where the name
+        is a known key in `variables`. Literal braces in JSON examples,
+        code blocks, or unknown placeholders are left untouched. This
+        prevents prompts containing JSON output format examples from
+        breaking template substitution.
+
+        Args:
+            template: Prompt string with {variable} placeholders
+            variables: Dict of variable_name -> value to substitute
+
+        Returns:
+            Prompt with known variables substituted
+        """
+        import re
+
+        def _replacer(match):
+            key = match.group(1)
+            if key in variables:
+                return str(variables[key])
+            return match.group(0)  # Leave unrecognized {vars} as-is
+
+        # Match {identifier} where identifier is a valid Python name
+        # (letters, digits, underscores -- must start with letter/underscore).
+        # This naturally skips JSON braces like {"type": ...} because
+        # " is not a valid identifier start character.
+        return re.sub(r'\{([A-Za-z_]\w*)\}', _replacer, template)
+
     def _build_dependency_graph(
         self,
         assembly: FacetAssembly
@@ -1267,11 +1298,13 @@ class FacetExecutor:
                         format_vars['boredom'] = affect.get('boredom', 0.0)
 
                 try:
-                    formatted_prompt = facet.prompt.format(**format_vars)
-                    print(f"[FacetExecutor] ✅ Prompt formatted successfully for {facet.name}")
-                except KeyError as e:
-                    logger.warning(f"Prompt formatting missing variable {e} in facet {facet.name}, using unformatted")
-                    print(f"[FacetExecutor] ⚠️  Prompt formatting failed for {facet.name}: {e}")
+                    formatted_prompt = self._safe_format_prompt(
+                        facet.prompt, format_vars
+                    )
+                    print(f"[FacetExecutor] Prompt formatted successfully for {facet.name}")
+                except Exception as e:
+                    logger.warning(f"Prompt formatting failed for {facet.name}: {e}")
+                    print(f"[FacetExecutor] Prompt formatting failed for {facet.name}: {e}")
                     formatted_prompt = facet.prompt
 
                 # Call LLM with facet parameters (use generate_with_tokens for tracking)

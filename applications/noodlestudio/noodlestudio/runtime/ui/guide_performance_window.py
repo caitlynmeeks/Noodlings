@@ -329,7 +329,7 @@ if QT_AVAILABLE:
 
             # --- Offstage Section (Director visibility) ---
             self._offstage_section = QFrame()
-            self._offstage_section.setMinimumHeight(60)
+            self._offstage_section.setMinimumHeight(120)
             self._offstage_section.setStyleSheet("""
                 QFrame {
                     background-color: #151515;
@@ -362,7 +362,7 @@ if QT_AVAILABLE:
             # Director name + status line
             self._offstage_status = QLabel("")
             self._offstage_status.setStyleSheet(
-                "color: #888; font-size: 10px; "
+                "color: #B0B0B0; font-size: 10px; "
                 "font-family: 'SF Mono', monospace; background: transparent;"
             )
             offstage_layout.addWidget(self._offstage_status)
@@ -370,12 +370,11 @@ if QT_AVAILABLE:
             # Beat sheet details (collapsible)
             self._offstage_beat_view = QTextEdit()
             self._offstage_beat_view.setReadOnly(True)
-            self._offstage_beat_view.setMaximumHeight(160)
             self._offstage_beat_view.setStyleSheet("""
                 QTextEdit {
                     background-color: #111;
                     border: none;
-                    color: #666;
+                    color: #999;
                     font-family: 'SF Mono', monospace;
                     font-size: 10px;
                     padding: 4px;
@@ -390,7 +389,6 @@ if QT_AVAILABLE:
                     height: 0px;
                 }
             """)
-            self._offstage_beat_view.hide()  # Collapsed by default
             offstage_layout.addWidget(self._offstage_beat_view)
 
             # Click offstage header to toggle beat sheet
@@ -677,7 +675,7 @@ if QT_AVAILABLE:
             cursor = self._offstage_beat_view.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
             fmt = QTextCharFormat()
-            fmt.setForeground(QColor(102, 102, 102))
+            fmt.setForeground(QColor(153, 153, 153))  # #999
             cursor.setCharFormat(fmt)
             cursor.insertText(beat_text + "\n")
             self._offstage_beat_view.setTextCursor(cursor)
@@ -685,6 +683,37 @@ if QT_AVAILABLE:
         def clear_offstage_beats(self):
             """Clear the offstage beat sheet."""
             self._offstage_beat_view.clear()
+
+        def set_offstage_beat_text(self, text: str):
+            """Replace the offstage beat sheet content.
+
+            Args:
+                text: Full text to display (replaces existing content)
+            """
+            self._offstage_beat_view.clear()
+            self._offstage_beat_view.setPlainText(text)
+            self._offstage_beat_view.show()
+
+        def append_beat_separator(self):
+            """Add a visual separator between beats in all character columns.
+
+            Inserts a dim horizontal rule to delineate beats while
+            keeping the full conversation history visible.
+            """
+            for slot_key in ('left', 'center', 'right'):
+                text_view = self._char_text_views.get(slot_key)
+                if not text_view:
+                    continue
+                # Only add separator if there's existing content
+                if not text_view.toPlainText().strip():
+                    continue
+                cursor = text_view.textCursor()
+                cursor.movePosition(QTextCursor.MoveOperation.End)
+                fmt = QTextCharFormat()
+                fmt.setForeground(QColor(60, 60, 60))
+                cursor.setCharFormat(fmt)
+                cursor.insertText("\n--- --- ---\n\n")
+                text_view.setTextCursor(cursor)
 
         # =================================================================
         # PER-CHARACTER EVENT DISPATCH (Stage View)
@@ -785,7 +814,13 @@ if QT_AVAILABLE:
                     self._noodling_to_slot[noodling_id] = slot
                     return slot
 
-            # All slots taken -- return left as fallback
+            # All slots taken -- warn and return left as fallback.
+            # Callers should check _noodling_to_slot membership before
+            # using the returned slot for visibility/hiding operations.
+            logger.warning(
+                f"_get_slot: all slots taken, returning 'left' fallback "
+                f"for unassigned noodling '{noodling_id}'"
+            )
             return 'left'
 
         # =================================================================
@@ -871,9 +906,13 @@ if QT_AVAILABLE:
                 vrm_path: Path to .vrm file
                 noodling_id: Identifier for the noodling
             """
+            import os
             slot = self._get_slot(noodling_id)
             slot_container = self._vrm_containers.get(slot)
             slot_layout = self._vrm_container_layouts.get(slot)
+            print(f"[VRM-DIAG] set_vrm: noodling_id={noodling_id}, "
+                  f"slot={slot}, vrm={os.path.basename(vrm_path)}, "
+                  f"container_id={id(slot_container)}", flush=True)
 
             if not slot_container or not slot_layout:
                 logger.warning(f"No VRM container for slot '{slot}'")
@@ -1020,6 +1059,8 @@ if QT_AVAILABLE:
             self.clear_character_text()
             self.clear_offstage_beats()
             self._current_char_fmt = 'spoken'
+            # Reset slot assignments so replay doesn't inherit stale mappings
+            self._noodling_to_slot = {}
 
         def dim_dialogue(self):
             """Dim all existing dialogue text to indicate stopped state."""
@@ -1353,6 +1394,8 @@ if not QT_AVAILABLE:
         def set_offstage_status(self, text): pass
         def append_offstage_beat(self, text): pass
         def clear_offstage_beats(self): pass
+        def set_offstage_beat_text(self, text): pass
+        def append_beat_separator(self): pass
         def append_character_event(self, noodling_id, event_type, text): pass
         def clear_character_text(self, noodling_id=None): pass
 

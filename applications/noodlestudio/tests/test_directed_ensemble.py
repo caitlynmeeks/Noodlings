@@ -1238,5 +1238,387 @@ class TestReactiveFlow:
         assert 'krampus' in queue
 
 
+# =================================================================
+# BUGFIX TESTS: Typewriter Sprint (March 15, 2026)
+# =================================================================
+
+class TestCharacterIdResolution:
+    """Test fuzzy character ID matching in _dispatch_event (Bug 3)."""
+
+    def _make_manager(self, qapp):
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+            PerformanceState,
+        )
+        from noodlestudio.runtime.ui.noodling_performer import NoodlingPerformer
+        from tests.conftest import StubMainWindow, FakeLLMClient
+
+        dispatched = []
+
+        class TrackingWindow:
+            def append_character_event(self, nid, etype, text):
+                dispatched.append((nid, etype, text))
+            def append_offstage_beat(self, *a): pass
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        manager._window = TrackingWindow()
+        manager._performance_state = PerformanceState.PLAYING
+
+        manager._performers = {
+            'ajo': NoodlingPerformer('ajo', 'Ajo Majo', FakeLLMClient()),
+            'juanita': NoodlingPerformer('juanita', 'Juanita', FakeLLMClient()),
+            'krampus': NoodlingPerformer('krampus', 'Krampus', FakeLLMClient()),
+        }
+        manager._instance_metadata = {
+            'ajo': {'name': 'Ajo Majo', 'role': ''},
+            'juanita': {'name': 'Juanita', 'role': ''},
+            'krampus': {'name': 'Krampus', 'role': ''},
+        }
+
+        return manager, dispatched
+
+    def test_exact_match(self, qapp):
+        """Exact noodling_id match works."""
+        manager, dispatched = self._make_manager(qapp)
+        assert manager._resolve_character_id('ajo') == 'ajo'
+
+    def test_display_name_match(self, qapp):
+        """Display name lowered matches (e.g., 'ajo majo' -> 'ajo')."""
+        manager, dispatched = self._make_manager(qapp)
+        assert manager._resolve_character_id('ajo majo') == 'ajo'
+
+    def test_underscore_variant(self, qapp):
+        """Underscored display name matches (e.g., 'ajo_majo' -> 'ajo')."""
+        manager, dispatched = self._make_manager(qapp)
+        assert manager._resolve_character_id('ajo_majo') == 'ajo'
+
+    def test_simple_names_match(self, qapp):
+        """Simple names match directly."""
+        manager, dispatched = self._make_manager(qapp)
+        assert manager._resolve_character_id('juanita') == 'juanita'
+        assert manager._resolve_character_id('krampus') == 'krampus'
+
+    def test_unknown_returns_empty(self, qapp):
+        """Unknown character ID returns empty string."""
+        manager, dispatched = self._make_manager(qapp)
+        assert manager._resolve_character_id('nobody') == ''
+
+    def test_dispatch_with_display_name(self, qapp):
+        """Full dispatch pipeline works with display name as character ID."""
+        manager, dispatched = self._make_manager(qapp)
+        event = {'character': 'ajo majo', 'tick': 0, 'type': 'spoken',
+                 'text': 'Hello!'}
+        manager._dispatch_event(event)
+        assert len(dispatched) == 1
+        assert dispatched[0] == ('ajo', 'spoken', 'Hello!')
+
+
+class TestSlotResetOnReplay:
+    """Test that VRM slot assignments reset between performances (Bug 1)."""
+
+    def test_clear_dialogue_resets_slots(self, qapp):
+        """clear_dialogue() clears _noodling_to_slot mapping."""
+        from noodlestudio.runtime.ui.guide_performance_window import (
+            PerformancePanel,
+        )
+
+        panel = PerformancePanel()
+        panel._noodling_to_slot = {'ajo': 'left', 'juanita': 'center'}
+        panel.clear_dialogue()
+        assert panel._noodling_to_slot == {}
+
+    def test_slot_assignment_deterministic_after_reset(self, qapp):
+        """After reset, pre-assignment produces consistent ordering."""
+        from noodlestudio.runtime.ui.guide_performance_window import (
+            PerformancePanel,
+        )
+
+        panel = PerformancePanel()
+        panel.set_ensemble_visible(True)
+
+        # Simulate stale state from previous play
+        panel._noodling_to_slot = {'old_char': 'left'}
+        panel.clear_dialogue()
+
+        # Pre-assign fresh -- same pattern as start_ensemble_from_stage
+        slots = ['left', 'center', 'right']
+        for i, nid in enumerate(['ajo', 'juanita', 'krampus']):
+            panel._noodling_to_slot[nid] = slots[i]
+
+        assert panel._get_slot('ajo') == 'left'
+        assert panel._get_slot('juanita') == 'center'
+        assert panel._get_slot('krampus') == 'right'
+        # Stale entry should be gone
+        assert 'old_char' not in panel._noodling_to_slot
+
+
+class TestEnsembleActiveDefault:
+    """Test that ensemble_active defaults to True in inspector (Bug 4)."""
+
+    def test_inspector_default_matches_runtime(self):
+        """Inspector and runtime both default ensemble_active to True."""
+        from noodlestudio.panels.inspector_entity import EntityInspectorMixin
+
+        mixin = EntityInspectorMixin()
+        # Simulate entity_data with no ensemble_active override
+        result = mixin._get_instance_override(
+            {'path': '/tmp/fake', 'overrides': {}},
+            'ensemble_active', True
+        )
+        assert result is True
+
+
+class TestStageDropdownDisplay:
+    """Test that stage dropdown shows only display name (Bug 5)."""
+
+    def test_dropdown_no_directory_name(self, qapp):
+        """Stage dropdown shows 'Hearthwood Cafe', not 'Hearthwood Cafe (the_nexus)'."""
+        import tempfile
+        from noodlestudio.panels.scene_hierarchy_stage_mixin import (
+            SceneHierarchyStageMixin,
+        )
+        from PyQt6.QtWidgets import QComboBox
+
+        # Create minimal mixin with required attributes
+        mixin = SceneHierarchyStageMixin.__new__(SceneHierarchyStageMixin)
+        mixin.stage_selector = QComboBox()
+        mixin.current_stage = None
+
+        class FakeProjectManager:
+            def is_project_open(self):
+                return True
+            def list_stages(self):
+                return ['the_nexus']
+            def get_stage_path(self, name):
+                return stage_dir
+
+        mixin.project_manager = FakeProjectManager()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            stage_dir = os.path.join(tmpdir, 'the_nexus')
+            os.makedirs(stage_dir)
+
+            import yaml
+            with open(os.path.join(stage_dir, 'stage.yaml'), 'w') as f:
+                yaml.dump({'name': 'Hearthwood Cafe'}, f)
+
+            # Patch get_stage_path to return our temp dir
+            mixin.project_manager.get_stage_path = lambda n: stage_dir
+            mixin.populate_stage_selector()
+
+        assert mixin.stage_selector.count() == 1
+        text = mixin.stage_selector.itemText(0)
+        assert text == 'Hearthwood Cafe'
+        assert '(the_nexus)' not in text
+
+
+class TestRoleDisplayDefault:
+    """Test that empty role shows 'Performer' in inspector (Bug 6)."""
+
+    def test_empty_role_displays_as_performer(self):
+        """When role override is empty, display shows 'Performer'."""
+        role = ''
+        display = role.capitalize() if role else 'Performer'
+        assert display == 'Performer'
+
+    def test_director_role_displays_correctly(self):
+        """When role is 'director', display shows 'Director'."""
+        role = 'director'
+        display = role.capitalize() if role else 'Performer'
+        assert display == 'Director'
+
+
+class TestOffstageLayout:
+    """Test offstage section sizing and beat view visibility (Bug 2)."""
+
+    def test_offstage_minimum_height(self, qapp):
+        """Offstage section has adequate minimum height."""
+        from noodlestudio.runtime.ui.guide_performance_window import (
+            PerformancePanel,
+        )
+
+        panel = PerformancePanel()
+        assert panel._offstage_section.minimumHeight() >= 120
+
+    def test_set_offstage_beat_text(self, qapp):
+        """set_offstage_beat_text replaces content and shows the view."""
+        from noodlestudio.runtime.ui.guide_performance_window import (
+            PerformancePanel,
+        )
+
+        panel = PerformancePanel()
+        panel.set_offstage_beat_text("Raw director output:\nsome JSON here")
+        assert 'some JSON here' in panel._offstage_beat_view.toPlainText()
+        assert not panel._offstage_beat_view.isHidden()
+
+
+class TestSafeFormatPrompt:
+    """Test that prompt template substitution handles JSON braces safely."""
+
+    def test_substitutes_known_variables(self):
+        """Known variables in {name} pattern are replaced."""
+        from noodlestudio.core.facet_executor import FacetExecutor
+
+        template = "Hello {name}, your role is {role}."
+        result = FacetExecutor._safe_format_prompt(
+            template, {'name': 'Ajo', 'role': 'performer'}
+        )
+        assert result == "Hello Ajo, your role is performer."
+
+    def test_leaves_json_braces_untouched(self):
+        """JSON object braces { "key": "value" } are not mangled."""
+        from noodlestudio.core.facet_executor import FacetExecutor
+
+        template = 'Output JSON: { "type": "directed_beat", "events": [] }'
+        result = FacetExecutor._safe_format_prompt(template, {})
+        assert result == template  # Unchanged
+
+    def test_mixed_variables_and_json(self):
+        """Variables are substituted while JSON braces are preserved."""
+        from noodlestudio.core.facet_executor import FacetExecutor
+
+        template = (
+            "CHARACTERS:\n{character_descriptions}\n\n"
+            'FORMAT: { "type": "directed_beat", '
+            '"character": "{character_id}" }'
+        )
+        result = FacetExecutor._safe_format_prompt(
+            template, {'character_descriptions': 'Ajo (id: ajo)'}
+        )
+        assert 'Ajo (id: ajo)' in result
+        assert '{ "type": "directed_beat"' in result
+        # {character_id} is not in variables, left as-is
+        assert '{character_id}' in result
+
+    def test_unknown_variables_left_as_is(self):
+        """Variables not in the dict are left unchanged."""
+        from noodlestudio.core.facet_executor import FacetExecutor
+
+        template = "Hello {name}, welcome to {place}."
+        result = FacetExecutor._safe_format_prompt(
+            template, {'name': 'Ajo'}
+        )
+        assert result == "Hello Ajo, welcome to {place}."
+
+    def test_brenda_prompt_real_assembly(self):
+        """Brenda's actual Scene Writer prompt formats correctly."""
+        import yaml
+        from noodlestudio.core.facet_executor import FacetExecutor
+
+        assembly_path = (
+            "library/templates/Getting Started/"
+            "Noodlings/brenda/assembly.yaml"
+        )
+        import os
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        full_path = os.path.join(base, assembly_path)
+
+        with open(full_path) as f:
+            data = yaml.safe_load(f)
+
+        scene_writer = None
+        for facet in data['facets']:
+            if facet['id'] == 'scene_writer':
+                scene_writer = facet
+                break
+        assert scene_writer is not None
+
+        variables = {
+            'character_descriptions': '- Ajo Majo (id: ajo)\n- Juanita (id: juanita)',
+            'stage_context': 'A small cafe in a volcanic caldera',
+            'ensemble_history': 'Ajo: Hello!',
+            'incoming_data': 'Hi everyone!',
+            'conversation_history': '',
+        }
+
+        result = FacetExecutor._safe_format_prompt(
+            scene_writer['prompt'], variables
+        )
+
+        # Variables should be substituted
+        assert 'Ajo Majo (id: ajo)' in result
+        assert 'A small cafe in a volcanic caldera' in result
+        assert 'Hi everyone!' in result
+        # JSON format example should be preserved
+        assert '"directed_beat"' in result
+        assert '"character"' in result
+
+
+class TestDirectorVisibilityDoesNotClobberPerformerSlot:
+    """Regression: director with visible=false must not hide a performer's VRM slot.
+
+    Bug: _get_slot() fallback returns 'left' when all slots are taken.
+    If the director (who has no slot) hits the visibility loop, the fallback
+    causes the left performer's container to be hidden.
+    """
+
+    def _make_instances(self):
+        """Return instance info dicts for a 3-performer + 1-director ensemble."""
+        return [
+            {'noodling_id': 'ajo', 'name': 'Ajo Majo', 'vrm_path': '/ajo.vrm',
+             'ensemble_active': True, 'visible': True},
+            {'noodling_id': 'juanita', 'name': 'Juanita', 'vrm_path': '/juanita.vrm',
+             'ensemble_active': True, 'visible': True},
+            {'noodling_id': 'krampus', 'name': 'Krampus', 'vrm_path': '/krampus.vrm',
+             'ensemble_active': True, 'visible': True},
+            {'noodling_id': 'brenda', 'name': 'Brenda', 'vrm_path': None,
+             'ensemble_active': True, 'visible': False},
+        ]
+
+    def test_director_visible_false_does_not_hide_left_slot(self, qapp):
+        """Director with visible=false should not hide the left performer container."""
+        pytest.importorskip("PyQt6")
+        from noodlestudio.runtime.ui.guide_performance_window import PerformancePanel
+
+        panel = PerformancePanel(ensemble_mode=True)
+
+        # Pre-assign performer slots (as the manager does)
+        panel._noodling_to_slot['ajo'] = 'left'
+        panel._noodling_to_slot['juanita'] = 'center'
+        panel._noodling_to_slot['krampus'] = 'right'
+
+        # Simulate the visibility loop from guide_performance_manager
+        instances = self._make_instances()
+        instance_metadata = {
+            'ajo': {'role': ''},
+            'juanita': {'role': ''},
+            'krampus': {'role': ''},
+            'brenda': {'role': 'director'},
+        }
+
+        for info in instances:
+            nid = info['noodling_id']
+            role = instance_metadata.get(nid, {}).get('role')
+            if not info.get('visible', True) and role != 'director':
+                slot = panel._get_slot(nid)
+                container = panel._vrm_containers.get(slot)
+                if container:
+                    container.setVisible(False)
+
+        # All three performer containers must remain visible
+        for slot_key in ('left', 'center', 'right'):
+            container = panel._vrm_containers[slot_key]
+            assert not container.isHidden(), (
+                f"Slot '{slot_key}' was hidden -- director visibility "
+                f"clobbered a performer slot"
+            )
+
+    def test_director_not_assigned_to_performer_slot(self, qapp):
+        """_get_slot for an unassigned noodling when all slots are full returns
+        'left' fallback but does NOT assign the noodling to that slot."""
+        pytest.importorskip("PyQt6")
+        from noodlestudio.runtime.ui.guide_performance_window import PerformancePanel
+
+        panel = PerformancePanel(ensemble_mode=True)
+        panel._noodling_to_slot['ajo'] = 'left'
+        panel._noodling_to_slot['juanita'] = 'center'
+        panel._noodling_to_slot['krampus'] = 'right'
+
+        # Calling _get_slot for brenda should return fallback, not assign
+        slot = panel._get_slot('brenda')
+        assert slot == 'left'  # Fallback
+        assert 'brenda' not in panel._noodling_to_slot
+
+
 # Made with love. Use with love.
 # Caitlyn Meeks 2026

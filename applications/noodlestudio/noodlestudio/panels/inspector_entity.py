@@ -103,7 +103,7 @@ class EntityInspectorMixin:
         # ===== ROLE (dropdown) =====
         role_options = ['(None)', 'Director', 'Performer']
         current_role = self._get_instance_override(entity_data, 'role', '')
-        current_role_display = current_role.capitalize() if current_role else '(None)'
+        current_role_display = current_role.capitalize() if current_role else 'Performer'
         self.property_fields['role'] = self.add_dropdown_field(
             basics_group, "Role", current_role_display, role_options,
             on_change=lambda name: self._on_role_changed(name, entity_data)
@@ -129,7 +129,7 @@ class EntityInspectorMixin:
         )
 
         # ===== ENSEMBLE ACTIVE (checkbox) =====
-        ensemble_active = self._get_instance_override(entity_data, 'ensemble_active', False)
+        ensemble_active = self._get_instance_override(entity_data, 'ensemble_active', True)
         self.property_fields['ensemble_active'] = self.add_checkbox_field(
             basics_group, "Ensemble Active", ensemble_active,
             on_change=lambda checked: self._on_ensemble_active_changed(checked, entity_data)

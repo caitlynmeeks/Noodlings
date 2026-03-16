@@ -472,18 +472,10 @@ cd applications/noodlestudio
 ./launch_with_log.sh
 ```
 
-### Launching Guide Performance Window (VRM Avatar)
-**IMPORTANT:** There is no UI button to open the Guide Performance Window. Claude Code must launch it via the `--play` CLI flag:
-```bash
-cd applications/noodlestudio
-../../venv/bin/python3 -m noodlestudio.main --play "Ajo Alive" --no-splash
-```
-This opens the editor, then after 5 seconds auto-opens the floating Guide Performance Window with the VRM avatar (auto-discovers `noodlings/guide/Radiances/AjoMajo.vrm`). The avatar renders with MToon shading, GPU skeletal skinning, procedural idle muscles, and blend shape morph targets.
+### Testing the Performance Window (VRM Avatars)
+To test the ensemble performance with VRM avatars, launch NoodleStudio and create a new project using the **Getting Started** template. This loads the Hearthwood Cafe stage with Ajo, Juanita, and Krampus as performers and Brenda as director.
 
-To also run a directed play script:
-```bash
-../../venv/bin/python3 -m noodlestudio.main --play "docs/noodlestudio/plays/lets_consciousness_intro.play.yaml" --no-splash
-```
+> **Legacy:** The `--play "Ajo Alive"` CLI flag is obsolete and should not be used. It referenced an old single-performer flow that predates the ensemble architecture.
 
 ### Running noodleMUSH Server
 ```bash

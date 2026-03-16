@@ -653,16 +653,33 @@ class GuidePerformanceManager:
         # Pre-assign VRM slots for non-director performers (stable name order)
         # This prevents first-come-first-served slot assignment from
         # depending on VRM load timing or signal firing order.
-        visible_instances = [
-            info for info in instances
-            if self._instance_metadata.get(
-                info['noodling_id'], {}
-            ).get('role') != 'director'
-        ]
+        # Sort by display name for deterministic ordering (Ajo < Juanita < Krampus).
+        visible_instances = sorted(
+            [
+                info for info in instances
+                if self._instance_metadata.get(
+                    info['noodling_id'], {}
+                ).get('role') != 'director'
+            ],
+            key=lambda info: info.get('name', info['noodling_id']),
+        )
         if ensemble and self._window:
             slots = ['left', 'center', 'right']
             for i, info in enumerate(visible_instances[:3]):
                 self._window._noodling_to_slot[info['noodling_id']] = slots[i]
+            import os
+            print(f"[VRM-DIAG] Slot pre-assignment:", flush=True)
+            for i, info in enumerate(visible_instances[:3]):
+                vrm = os.path.basename(info['vrm_path']) if info['vrm_path'] else 'None'
+                print(f"  [{slots[i]}] nid={info['noodling_id']}, "
+                      f"name={info['name']}, vrm={vrm}", flush=True)
+
+        # Switch to Performance tab BEFORE creating VRM widgets.
+        # QOpenGLWidget.initializeGL() only fires when the widget is
+        # visible. If the Performance tab is hidden (e.g. Assembly tab
+        # is active), widgets created here would never initialize their
+        # GL context, causing missing/misplaced VRM renders.
+        self._switch_center_tab("Performance")
 
         # Load VRM files or show name cards from stage instance data
         for info in visible_instances:
@@ -694,8 +711,11 @@ class GuidePerformanceManager:
                 performer = self._performers.get(nid)
                 if performer:
                     performer.set_paused(True)
-            # Hide non-visible containers
-            if not info.get('visible', True) and ensemble:
+            # Hide non-visible containers (skip directors -- they have
+            # no slot assigned and _get_slot fallback would clobber a
+            # performer's slot)
+            role = self._instance_metadata.get(nid, {}).get('role')
+            if not info.get('visible', True) and ensemble and role != 'director':
                 slot = self._window._get_slot(nid)
                 container = self._window._vrm_containers.get(slot)
                 if container:
@@ -1529,6 +1549,51 @@ class GuidePerformanceManager:
 
         return beat
 
+    def _resolve_character_id(self, raw_id: str) -> str:
+        """Resolve a character ID from beat JSON to a performer key.
+
+        Handles exact match, case-insensitive match, and fuzzy matching
+        (e.g. "ajo majo" -> "ajo", "ajo_majo" -> "ajo") so that LLM
+        output doesn't need to perfectly match instance directory names.
+
+        Args:
+            raw_id: Character identifier from beat JSON (already lowercased
+                    by Beat Formatter)
+
+        Returns:
+            Matching performer noodling_id, or empty string if no match
+        """
+        if not raw_id:
+            return ''
+
+        # Exact match
+        if raw_id in self._performers:
+            return raw_id
+
+        # Build lookup from display names and variants
+        for nid, meta in self._instance_metadata.items():
+            if nid not in self._performers:
+                continue
+            if meta.get('role') == 'director':
+                continue
+
+            name_lower = meta.get('name', '').lower()
+            # Match against lowered display name ("ajo majo" -> "ajo")
+            if raw_id == name_lower:
+                return nid
+            # Match against underscored variant ("ajo_majo" -> "ajo")
+            if raw_id == name_lower.replace(' ', '_'):
+                return nid
+            # Match if raw_id starts with nid ("ajo_majo" starts with "ajo")
+            if raw_id.startswith(nid):
+                return nid
+            # Match if nid starts with raw_id ("ajo" starts with "ajo")
+            if nid.startswith(raw_id):
+                return nid
+
+        logger.warning(f"Could not resolve character ID: '{raw_id}'")
+        return ''
+
     def _dispatch_event(self, event: dict):
         """Dispatch a single directed beat event to a performer.
 
@@ -1540,7 +1605,7 @@ class GuidePerformanceManager:
             event: Dict with 'character', 'tick', 'type', 'text',
                    and optional 'expression'
         """
-        nid = event.get('character', '')
+        nid = self._resolve_character_id(event.get('character', ''))
         performer = self._performers.get(nid)
         if not performer:
             return
@@ -1656,9 +1721,12 @@ class GuidePerformanceManager:
 
         beat = self._parse_directed_beat(response)
         if not beat:
-            logger.warning(f"Could not parse directed beat: {response[:100]}")
+            logger.warning(f"Could not parse directed beat: {response[:200]}")
             if self._window:
                 self._window.set_offstage_status("Parse error")
+                self._window.set_offstage_beat_text(
+                    f"Raw director output:\n{response[:500]}"
+                )
                 self._window.set_input_enabled(True)
             return
 
@@ -1666,7 +1734,9 @@ class GuidePerformanceManager:
             self._window.set_offstage_status(
                 f"Beat {self._beat_count} -- playing"
             )
-            self._window.clear_character_text()
+            # Add beat separator if there's existing text (persistent history)
+            if self._beat_count > 1:
+                self._window.append_beat_separator()
 
         self._schedule_beat(beat)
 

@@ -274,16 +274,23 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
         poseApplied = pyqtSignal(int)  # muscle_count
         clicked = pyqtSignal(int, int, str)  # x, y, bone_name (or empty)
 
+        # Class-level flag: set the default surface format exactly once,
+        # before any QOpenGLWidget is created. Calling setDefaultFormat()
+        # after the global shared context exists corrupts the first
+        # widget's GL initialization on macOS (initializeGL never fires).
+        _gl_format_initialized = False
+
         def __init__(self, component: VRMViewport, parent=None):
-            # Set up OpenGL format
-            fmt = QSurfaceFormat()
-            fmt.setSamples(4)  # MSAA
-            fmt.setDepthBufferSize(24)
-            fmt.setStencilBufferSize(8)  # For single-layer shadow rendering
-            fmt.setAlphaBufferSize(8)  # Enable alpha channel for transparency
-            fmt.setVersion(3, 3)
-            fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
-            QSurfaceFormat.setDefaultFormat(fmt)
+            if not VRMViewportWidget._gl_format_initialized:
+                fmt = QSurfaceFormat()
+                fmt.setSamples(4)  # MSAA
+                fmt.setDepthBufferSize(24)
+                fmt.setStencilBufferSize(8)  # For single-layer shadow rendering
+                fmt.setAlphaBufferSize(8)  # Enable alpha channel for transparency
+                fmt.setVersion(3, 3)
+                fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+                QSurfaceFormat.setDefaultFormat(fmt)
+                VRMViewportWidget._gl_format_initialized = True
 
             super().__init__(parent)
             self.component = component
@@ -379,6 +386,10 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
         def initializeGL(self):
             """Initialize OpenGL resources."""
+            import os
+            print(f"[VRM-DIAG] initializeGL: name={self.component.name}, "
+                  f"vrm={os.path.basename(self.component.vrm_path) if self.component.vrm_path else 'None'}, "
+                  f"widget_id={id(self)}, parent_id={id(self.parent())}", flush=True)
             if self.component.transparent:
                 # Transparent background - alpha = 0 where no geometry
                 GL.glClearColor(0.0, 0.0, 0.0, 0.0)
@@ -396,14 +407,14 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             self._create_grid()
             self._create_ground_plane()
 
-            # Load VRM if path specified
+            # Load VRM if path specified.
+            # Load directly in initializeGL (not deferred) because Qt
+            # guarantees our GL context is current here. Deferred loading
+            # via QTimer.singleShot was causing VRM mesh data to render
+            # in wrong viewports when multiple QOpenGLWidgets share a
+            # context -- the wrong context was active at load time.
             if self.component.vrm_path:
-                self._load_vrm_deferred()
-
-        def _load_vrm_deferred(self):
-            """Load VRM after OpenGL is initialized."""
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(0, lambda: self.load_vrm(self.component.vrm_path))
+                self.load_vrm(self.component.vrm_path)
 
         def _create_shaders(self):
             """Create shader programs."""
@@ -1015,6 +1026,9 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
             # Create VAO
             self._mesh['vao'] = GL.glGenVertexArrays(1)
+            print(f"[VRM-DIAG] _create_mesh_buffers: name={self.component.name}, "
+                  f"vao={self._mesh['vao']}, verts={len(vertices)}, "
+                  f"widget_id={id(self)}", flush=True)
             GL.glBindVertexArray(self._mesh['vao'])
 
             # Position (location 0) - DYNAMIC for morph target updates
@@ -1659,6 +1673,23 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
 
         def paintGL(self):
             """Render the scene."""
+            # Ensure this widget's FBO is the active render target.
+            # On macOS with shared GL contexts, Qt 6 may not always
+            # rebind the correct FBO between widgets.
+            self.makeCurrent()
+
+            if not hasattr(self, '_paint_diag_done'):
+                self._paint_diag_done = True
+                has_mesh = bool(self._mesh and self._mesh.get('vao'))
+                vao_id = self._mesh['vao'] if has_mesh else 0
+                gpos = self.mapToGlobal(self.rect().topLeft())
+                verts = len(self._mesh['vertices']) if has_mesh else 0
+                fbo = GL.glGetIntegerv(GL.GL_FRAMEBUFFER_BINDING)
+                print(f"[VRM-DIAG] paintGL(first): name={self.component.name}, "
+                      f"has_mesh={has_mesh}, vao={vao_id}, verts={verts}, "
+                      f"fbo={fbo}, widget_id={id(self)}, "
+                      f"size={self.width()}x{self.height()}, "
+                      f"global_pos=({gpos.x()},{gpos.y()})", flush=True)
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
 
             aspect = self.width() / max(1, self.height())
@@ -1940,6 +1971,13 @@ if QT_AVAILABLE and OPENGL_AVAILABLE and NUMPY_AVAILABLE:
             loc_rim_power = locs.get('uRimPower', -1)
 
             GL.glBindVertexArray(self._mesh['vao'])
+            if not hasattr(self, '_draw_diag_done'):
+                self._draw_diag_done = True
+                # Query actually-bound VAO from GL to verify it matches self
+                bound_vao = GL.glGetIntegerv(GL.GL_VERTEX_ARRAY_BINDING)
+                print(f"[VRM-DIAG] _draw_mesh(first): name={self.component.name}, "
+                      f"self_vao={self._mesh['vao']}, bound_vao={bound_vao}, "
+                      f"shader={self._shader_mesh}, mat_groups={len(self._material_groups)}", flush=True)
 
             for mat_idx, byte_offset, count in self._material_groups:
                 # Bind texture if available for this material
