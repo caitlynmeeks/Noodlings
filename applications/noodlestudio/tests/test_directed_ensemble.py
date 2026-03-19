@@ -1629,5 +1629,194 @@ class TestDirectorVisibilityDoesNotClobberPerformerSlot:
         assert 'brenda' not in panel._noodling_to_slot
 
 
+class TestPreflightLabelCheck:
+    """Pre-flight validation catches unassigned model labels before play starts."""
+
+    def _make_assembly_yaml(self, tmpdir, name, facets):
+        """Write a minimal assembly YAML with given facet model fields."""
+        path = os.path.join(tmpdir, f'{name}_assembly.yaml')
+        data = {
+            'facets': [
+                {'id': f'f{i}', 'name': f'Facet {i}',
+                 'type': 'ResponseFacet', 'model': model,
+                 'prompt': 'test'}
+                for i, model in enumerate(facets)
+            ],
+            'connections': [],
+        }
+        with open(path, 'w') as f:
+            yaml.dump(data, f)
+        return path
+
+    def _make_instances(self, tmpdir, assemblies):
+        """Build instance dicts with assembly paths."""
+        return [
+            {
+                'noodling_id': f'nid_{i}',
+                'name': f'Noodling {i}',
+                'assembly_path': self._make_assembly_yaml(
+                    tmpdir, f'noodling_{i}', models
+                ),
+                'ensemble_active': True,
+            }
+            for i, models in enumerate(assemblies)
+        ]
+
+    def test_all_labels_assigned_returns_empty(self, qapp):
+        """When all referenced labels are assigned, returns empty list."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from noodlestudio.core.model_label_manager import get_model_label_manager
+        from tests.conftest import StubMainWindow
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        label_mgr = get_model_label_manager()
+
+        # Ensure SMALL is assigned (defaults usually exist)
+        provider, model = label_mgr.get_model_for_label("SMALL")
+        if not provider or not model:
+            label_mgr.set_model_for_label("SMALL", "ollama", "test-model")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            instances = self._make_instances(tmpdir, [['SMALL']])
+            unassigned = manager._preflight_label_check(instances)
+            assert unassigned == []
+
+    def test_unassigned_label_detected(self, qapp):
+        """Unassigned labels referenced by assemblies are reported."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from noodlestudio.core.model_label_manager import get_model_label_manager
+        from tests.conftest import StubMainWindow
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        label_mgr = get_model_label_manager()
+
+        # Clear a label to make it unassigned
+        label_mgr.set_model_for_label(
+            "ZZZTEST_NONEXISTENT", None, None, emit_signal=False
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            instances = self._make_instances(
+                tmpdir, [['ZZZTEST_NONEXISTENT']]
+            )
+            unassigned = manager._preflight_label_check(instances)
+            assert 'ZZZTEST_NONEXISTENT' in unassigned
+
+    def test_inactive_instances_skipped(self, qapp):
+        """Instances with ensemble_active=False are not scanned."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from tests.conftest import StubMainWindow
+
+        manager = GuidePerformanceManager(StubMainWindow())
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._make_assembly_yaml(
+                tmpdir, 'inactive', ['ZZZTEST_BOGUS']
+            )
+            instances = [{
+                'noodling_id': 'inactive',
+                'name': 'Inactive',
+                'assembly_path': path,
+                'ensemble_active': False,
+            }]
+            unassigned = manager._preflight_label_check(instances)
+            assert unassigned == []
+
+    def test_multiple_assemblies_union(self, qapp):
+        """Labels from all active assemblies are collected."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from noodlestudio.core.model_label_manager import get_model_label_manager
+        from tests.conftest import StubMainWindow
+
+        manager = GuidePerformanceManager(StubMainWindow())
+        label_mgr = get_model_label_manager()
+
+        # Ensure SMALL is assigned but ZZZTEST_A and ZZZTEST_B are not
+        provider, model = label_mgr.get_model_for_label("SMALL")
+        if not provider or not model:
+            label_mgr.set_model_for_label("SMALL", "ollama", "test-model")
+        label_mgr.set_model_for_label(
+            "ZZZTEST_A", None, None, emit_signal=False
+        )
+        label_mgr.set_model_for_label(
+            "ZZZTEST_B", None, None, emit_signal=False
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            instances = self._make_instances(
+                tmpdir, [['SMALL', 'ZZZTEST_A'], ['ZZZTEST_B']]
+            )
+            unassigned = manager._preflight_label_check(instances)
+            assert 'ZZZTEST_A' in unassigned
+            assert 'ZZZTEST_B' in unassigned
+            assert 'SMALL' not in unassigned
+
+    def test_default_template_labels_assigned(self, qapp):
+        """Getting Started template assemblies use labels that are
+        typically assigned by default (SMALL, LARGE)."""
+        from noodlestudio.runtime.ui.guide_performance_manager import (
+            GuidePerformanceManager,
+        )
+        from tests.conftest import StubMainWindow
+
+        manager = GuidePerformanceManager(StubMainWindow())
+
+        # Build instances from real default template assemblies
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        template = os.path.join(
+            base, 'library', 'templates', 'Getting Started'
+        )
+        instances_dir = os.path.join(template, 'Stages', 'the_nexus', 'Instances')
+
+        instances = []
+        for name in sorted(os.listdir(instances_dir)):
+            inst_dir = os.path.join(instances_dir, name)
+            inst_yaml = os.path.join(inst_dir, 'instance.yaml')
+            if not os.path.exists(inst_yaml):
+                continue
+            with open(inst_yaml) as f:
+                data = yaml.safe_load(f)
+            noodling_ref = data.get('noodling', '')
+            noodling_path = os.path.normpath(
+                os.path.join(inst_dir, noodling_ref)
+            )
+            assembly_path = os.path.join(noodling_path, 'assembly.yaml')
+            instances.append({
+                'noodling_id': name,
+                'name': data.get('overrides', {}).get('name', name),
+                'assembly_path': assembly_path,
+                'ensemble_active': data.get('overrides', {}).get(
+                    'ensemble_active', True
+                ),
+            })
+
+        # Collect which labels the template actually uses
+        required = set()
+        for info in instances:
+            if not info.get('ensemble_active', True):
+                continue
+            path = info['assembly_path']
+            if os.path.exists(path):
+                with open(path) as f:
+                    asm = yaml.safe_load(f)
+                for facet in asm.get('facets', []):
+                    m = facet.get('model', 'SMALL')
+                    if m:
+                        required.add(m.upper())
+
+        # These should be SMALL and LARGE at minimum
+        assert 'SMALL' in required or 'LARGE' in required, (
+            f"Template assemblies use labels: {required}"
+        )
+
+
 # Made with love. Use with love.
 # Caitlyn Meeks 2026

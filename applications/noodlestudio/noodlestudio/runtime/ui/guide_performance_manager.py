@@ -395,6 +395,91 @@ class GuidePerformanceManager:
         return None
 
     # =========================================================================
+    # PRE-FLIGHT VALIDATION
+    # =========================================================================
+
+    def _preflight_label_check(self, instances: List[dict]) -> List[str]:
+        """Check that all model labels used by assemblies are assigned.
+
+        Scans each instance's assembly YAML for facet model fields and
+        cross-references with ModelLabelManager. Returns a list of
+        unassigned label names that are actually referenced by active
+        assemblies. Labels like AUDIO_IN that aren't referenced don't
+        trigger warnings.
+
+        Args:
+            instances: Instance dicts from _discover_stage_instances()
+
+        Returns:
+            List of unassigned label names, empty if all OK.
+        """
+        from noodlestudio.core.model_label_manager import get_model_label_manager
+
+        label_mgr = get_model_label_manager()
+        required_labels = set()
+
+        for info in instances:
+            # Skip instances that aren't ensemble-active
+            if not info.get('ensemble_active', True):
+                continue
+
+            assembly_path = info.get('assembly_path')
+            if not assembly_path or not os.path.exists(assembly_path):
+                continue
+
+            try:
+                with open(assembly_path) as f:
+                    data = yaml.safe_load(f)
+                for facet in data.get('facets', []):
+                    model = facet.get('model', 'SMALL')
+                    if model:
+                        required_labels.add(model.upper())
+            except Exception as e:
+                logger.warning(
+                    f"Pre-flight: could not scan {assembly_path}: {e}"
+                )
+
+        unassigned = []
+        for label in sorted(required_labels):
+            provider_id, model_name = label_mgr.get_model_for_label(label)
+            if not provider_id or not model_name:
+                unassigned.append(label)
+
+        return unassigned
+
+    def _show_preflight_warning(self, unassigned: List[str]) -> bool:
+        """Show a warning dialog for unassigned model labels.
+
+        Args:
+            unassigned: List of label names that need assignment
+
+        Returns:
+            True if user chose to open Settings, False if cancelled.
+        """
+        from PyQt6.QtWidgets import QMessageBox
+
+        labels_str = ", ".join(unassigned)
+        msg = QMessageBox(self._main_window)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Unassigned Model Labels")
+        msg.setText(
+            f"The following model labels are used by your assemblies "
+            f"but have no model assigned:\n\n"
+            f"    {labels_str}\n\n"
+            f"Go to Settings > Label Assignments to configure them."
+        )
+        open_btn = msg.addButton(
+            "Open Settings", QMessageBox.ButtonRole.AcceptRole
+        )
+        msg.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        msg.exec()
+
+        if msg.clickedButton() == open_btn:
+            self._switch_center_tab("Settings")
+            return True
+        return False
+
+    # =========================================================================
     # STAGE INSTANCE DISCOVERY
     # =========================================================================
 
@@ -573,6 +658,15 @@ class GuidePerformanceManager:
         instances = self._discover_stage_instances(stage_path)
         if not instances:
             logger.error(f"No valid instances found in {stage_path}")
+            return
+
+        # Pre-flight: validate model labels before creating performers
+        unassigned = self._preflight_label_check(instances)
+        if unassigned:
+            logger.warning(
+                f"Pre-flight: unassigned labels: {', '.join(unassigned)}"
+            )
+            self._show_preflight_warning(unassigned)
             return
 
         # Clean up any previous performance
