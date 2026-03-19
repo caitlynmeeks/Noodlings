@@ -149,6 +149,9 @@ if QT_AVAILABLE:
         # Signal: user clicked a performer name in the ensemble name bar
         noodlingSelected = pyqtSignal(str)
 
+        # Signal: user toggled focus mode (maximize center pane)
+        focusToggled = pyqtSignal()
+
         def __init__(self, ensemble_mode: bool = True, parent=None):
             """
             Initialize the performance panel.
@@ -372,6 +375,20 @@ if QT_AVAILABLE:
             btn_font_up.setStyleSheet(_FONT_BTN)
             btn_font_up.clicked.connect(self.zoom_in)
             header_layout.addWidget(btn_font_up)
+
+            # Focus mode button
+            btn_focus = QPushButton("Focus")
+            btn_focus.setFixedHeight(20)
+            btn_focus.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_focus.setToolTip("Toggle focus mode (Cmd+Shift+F)")
+            btn_focus.setStyleSheet(
+                "QPushButton { background: transparent; border: 1px solid #333; "
+                "border-radius: 3px; color: #555; font-size: 10px; "
+                "padding: 1px 6px; } "
+                "QPushButton:hover { color: #D0D0D0; border-color: #666; }"
+            )
+            btn_focus.clicked.connect(self.focusToggled.emit)
+            header_layout.addWidget(btn_focus)
 
             main_layout.addWidget(header_frame)
 

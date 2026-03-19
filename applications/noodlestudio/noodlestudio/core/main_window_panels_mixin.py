@@ -183,6 +183,9 @@ class MainWindowPanelsMixin:
         # Performance tab (embedded VRM + dialogue panel)
         from ..runtime.ui.guide_performance_window import PerformancePanel
         self.performance_panel = PerformancePanel(ensemble_mode=True)
+        self.performance_panel.focusToggled.connect(
+            lambda: self._toggle_focus_mode()
+        )
         center_tabs.addTab(self.performance_panel, "Performance")
 
         # Settings tab
@@ -479,6 +482,14 @@ class MainWindowPanelsMixin:
         maximize_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
         maximize_shortcut.activated.connect(self.toggle_world_view_maximize)
 
+        # Cmd+Shift+F - Focus mode (maximize center pane, hide all side panels)
+        focus_shortcut = QShortcut(QKeySequence("Ctrl+Shift+F"), self)
+        focus_shortcut.activated.connect(self._toggle_focus_mode)
+
+        # Escape - Exit focus mode (restore panels)
+        esc_shortcut = QShortcut(QKeySequence("Escape"), self)
+        esc_shortcut.activated.connect(self._exit_focus_mode)
+
         # Cmd+Option+S - Screenshot for debugging with Claude
         # ApplicationShortcut so it works even when a floating window has focus
         screenshot_shortcut = QShortcut(QKeySequence("Ctrl+Alt+S"), self)
@@ -733,6 +744,23 @@ class MainWindowPanelsMixin:
             panel.toggle_maximize()
         else:
             panel.show()
+
+    def _toggle_focus_mode(self):
+        """Toggle focus mode -- maximize center pane, hide all side panels.
+
+        Switches to Performance tab if not already active, then calls
+        toggle_maximize on the center tabs. Cmd+Shift+F to toggle.
+        """
+        center_tabs = getattr(self, 'center_tabs', None)
+        if not center_tabs:
+            return
+        center_tabs.toggle_maximize()
+
+    def _exit_focus_mode(self):
+        """Exit focus mode if active (Escape key)."""
+        center_tabs = getattr(self, 'center_tabs', None)
+        if center_tabs and center_tabs.is_maximized:
+            center_tabs.toggle_maximize()
 
     def reset_to_factory_layout(self):
         """Reset to factory default layout."""
