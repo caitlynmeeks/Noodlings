@@ -117,7 +117,7 @@ class StateTransition:
         self.transition_type = transition_type
         self.from_state = from_state
         self.to_state = to_state
-        self.duration = duration
+        self.duration = durationion
         self.callback = callback
         self.metadata = metadata or {}
 
